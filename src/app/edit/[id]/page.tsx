@@ -44,10 +44,17 @@ const MainEdit = async ({ params }: { params: Promise<{ id: string }> }) => {
 
   return (
     <>
-      <div className="my-2 mb-3.5 px-2">
-        <Link href="/list" className="flex items-center gap-1 text-lg font-semibold">
+      <div className="my-2 mb-3.5 flex space-x-4 px-2">
+        <Link href="/list" className="inline-flex items-center gap-1 text-lg font-semibold">
           <IoMdArrowRoundBack className="inline-block text-xl" />
           Main List
+        </Link>
+        <Link
+          href={`/view/${word_puzzle.uuid}:${word_puzzle.id}`}
+          className="inline-flex items-center gap-1 text-lg font-semibold"
+        >
+          <IoMdArrowRoundBack className="inline-block text-xl" />
+          Play
         </Link>
       </div>
       <ViewEditPuzzle word_puzzle={word_puzzle} />
