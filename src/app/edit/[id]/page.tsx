@@ -1,0 +1,50 @@
+import { redirect } from 'next/navigation';
+import { headers } from 'next/headers';
+import get_seesion_from_cookie from '~/lib/get_auth_from_cookie';
+import { z } from 'zod';
+import { db } from '~/db/db';
+import ViewEditPuzzle from './ViewEditPuzzle';
+import { type Metadata } from 'next';
+
+type Props = { params: { id: string } };
+
+export async function generateMetadata({ params }: Props): Promise<Metadata> {
+  const id = z.coerce
+    .number()
+    .int()
+    .parse((await params).id);
+
+  const word_puzzle = (await db.query.word_puzzles.findFirst({
+    where: (tbl, { eq }) => eq(tbl.id, id),
+    columns: {
+      title: true
+    }
+  }))!;
+
+  return {
+    title: word_puzzle.title + ' - Edit'
+  };
+}
+
+const MainEdit = async ({ params }: { params: Promise<{ id: string }> }) => {
+  const session = await get_seesion_from_cookie((await headers()).get('cookie') ?? '');
+  if (!session) redirect('/');
+  if (session.user.role !== 'admin' || !session.user.is_approved) redirect('/');
+
+  const id = z.coerce
+    .number()
+    .int()
+    .parse((await params).id);
+
+  const word_puzzle = (await db.query.word_puzzles.findFirst({
+    where: (tbl, { eq }) => eq(tbl.id, id)
+  }))!;
+
+  return (
+    <>
+      <ViewEditPuzzle word_puzzle={word_puzzle} />
+    </>
+  );
+};
+
+export default MainEdit;

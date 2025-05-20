@@ -1,3 +1,4 @@
+import { Metadata } from 'next';
 import { headers } from 'next/headers';
 import Link from 'next/link';
 import { redirect } from 'next/navigation';
@@ -26,7 +27,7 @@ const List = async () => {
       <ul className="space-y-4">
         {list.map((item) => (
           <li key={item.id}>
-            <Link href={`/view/${item.uuid}`}>
+            <Link href={`/edit/${item.id}`}>
               <Card className="p-2 transition duration-200 hover:bg-gray-100 hover:dark:bg-gray-800">
                 <CardHeader>
                   <CardTitle>{item.title}</CardTitle>
@@ -43,3 +44,7 @@ const List = async () => {
   );
 };
 export default List;
+
+export const metadata: Metadata = {
+  title: 'पदावली सूची'
+};
