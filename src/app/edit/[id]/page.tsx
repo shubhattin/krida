@@ -5,6 +5,8 @@ import { z } from 'zod';
 import { db } from '~/db/db';
 import ViewEditPuzzle from './ViewEditPuzzle';
 import { type Metadata } from 'next';
+import Link from 'next/link';
+import { IoMdArrowRoundBack } from 'react-icons/io';
 
 type Props = { params: { id: string } };
 
@@ -42,6 +44,12 @@ const MainEdit = async ({ params }: { params: Promise<{ id: string }> }) => {
 
   return (
     <>
+      <div className="my-2 mb-3.5 px-2">
+        <Link href="/list" className="flex items-center gap-1 text-lg font-semibold">
+          <IoMdArrowRoundBack className="inline-block text-xl" />
+          Main List
+        </Link>
+      </div>
       <ViewEditPuzzle word_puzzle={word_puzzle} />
     </>
   );

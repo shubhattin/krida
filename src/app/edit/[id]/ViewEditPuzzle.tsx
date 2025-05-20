@@ -1,6 +1,6 @@
 'use client';
 
-import { set, z } from 'zod';
+import { z } from 'zod';
 import React, { useEffect, useRef, useState } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { Card, CardHeader, CardTitle, CardContent } from '@/components/ui/card';
@@ -18,8 +18,9 @@ import {
   AlertDialogAction,
   AlertDialogCancel
 } from '@/components/ui/alert-dialog';
-// import { load_parivartak_lang_data } from '~/tools/lipi_lekhika/lekhika_core';
 import { lekhika_typing_tool, load_parivartak_lang_data } from '~/tools/lipi_lekhika';
+import { trpc_q } from '~/api/client';
+import { toast } from 'sonner';
 
 const puzzle_schema = z.object({
   id: z.number().int(),
@@ -35,6 +36,21 @@ const puzzle_schema = z.object({
 let BASE_SCRIPT = 'Sanskrit';
 
 const ViewEditPuzzle = ({ word_puzzle }: { word_puzzle: z.infer<typeof puzzle_schema> }) => {
+  const update_word_puzzle_mut = trpc_q.puzzle.update_puzzle.useMutation({
+    onSuccess: (data) => {
+      if (data.success) {
+        toast.success('Puzzle updated successfully');
+        initialRef.current = {
+          title,
+          wordList,
+          gridData
+        };
+      } else {
+        toast.error('Failed to update puzzle');
+      }
+    }
+  });
+
   const loaded = useRef(false);
   useEffect(() => {
     if (typeof window !== 'undefined') {
@@ -45,7 +61,16 @@ const ViewEditPuzzle = ({ word_puzzle }: { word_puzzle: z.infer<typeof puzzle_sc
   }, []);
 
   const handleSave = async () => {
-    console.log('Saving...');
+    await update_word_puzzle_mut.mutateAsync({
+      id: word_puzzle.id,
+      uuid: word_puzzle.uuid,
+      title,
+      created_at: word_puzzle.created_at,
+      updated_at: new Date(),
+      word_list: wordList,
+      grid_data: gridData,
+      grid_dimensions: [rows, cols]
+    });
   };
   const [title, setTitle] = useState<string>(word_puzzle.title);
   const [wordList, setWordList] = useState<string[]>([...word_puzzle.word_list]);
@@ -70,21 +95,48 @@ const ViewEditPuzzle = ({ word_puzzle }: { word_puzzle: z.infer<typeof puzzle_sc
 
   const addWord = () => setWordList((prev) => [...prev, '']);
   const removeWord = (index: number) => setWordList((prev) => prev.filter((_, i) => i !== index));
-  const updateWord = (index: number, value: string) =>
+  const updateWord = (index: number, value: string, e: any) => {
     setWordList((prev) => prev.map((w, i) => (i === index ? value : w)));
+    lekhika_typing_tool(
+      e.nativeEvent.target,
+      // @ts-ignore
+      e.nativeEvent.data,
+      BASE_SCRIPT,
+      true,
+      // @ts-ignore
+      (val) => {
+        setWordList((prev) => prev.map((w, i) => (i === index ? val : w)));
+      }
+    );
+  };
 
-  const updateCell = (r: number, c: number, value: string) => {
+  const updateCell = (r: number, c: number, value: string, e: any) => {
     setGridData((prev) => {
       const newGrid = prev.map((row) => [...row]);
       newGrid[r][c] = value;
       return newGrid;
     });
+    lekhika_typing_tool(
+      e.nativeEvent.target,
+      // @ts-ignore
+      e.nativeEvent.data,
+      BASE_SCRIPT,
+      true,
+      // @ts-ignore
+      (val) => {
+        setGridData((prev) => {
+          const newGrid = prev.map((row) => [...row]);
+          newGrid[r][c] = val;
+          return newGrid;
+        });
+      }
+    );
   };
 
   return (
-    <Card className="space-y-6">
-      <CardHeader>
-        <CardTitle>Editing Puzzle</CardTitle>
+    <Card className="space-y-5">
+      <CardHeader className="mb-0">
+        <CardTitle>Edit '{word_puzzle.title}' Details</CardTitle>
       </CardHeader>
       <CardContent>
         <div className="space-y-4">
@@ -95,24 +147,21 @@ const ViewEditPuzzle = ({ word_puzzle }: { word_puzzle: z.infer<typeof puzzle_sc
               className="mt-1 block w-full"
               value={title}
               onInput={(e) => {
-                // if (!loaded.current) {
                 setTitle(e.currentTarget.value);
-                return;
-                // }
-                // console.log(e);
-                // lekhika_typing_tool(
-                //   e.nativeEvent.target,
-                //   (e.nativeEvent.data as InputEvent).data,
-                //   BASE_SCRIPT,
-                //   true,
-                //   (val) => {
-                //     setTitle(val);
-                //   }
-                // );
+                lekhika_typing_tool(
+                  e.nativeEvent.target,
+                  // @ts-ignore
+                  e.nativeEvent.data,
+                  BASE_SCRIPT,
+                  true,
+                  // @ts-ignore
+                  (val) => {
+                    setTitle(val);
+                  }
+                );
               }}
             />
           </div>
-
           <div>
             <Label className="mb-2 block text-sm font-medium">Word List</Label>
             <div className="space-y-2">
@@ -134,7 +183,7 @@ const ViewEditPuzzle = ({ word_puzzle }: { word_puzzle: z.infer<typeof puzzle_sc
                         type="text"
                         className="w-full"
                         value={word}
-                        onChange={(e) => updateWord(idx, e.target.value)}
+                        onChange={(e) => updateWord(idx, e.target.value, e)}
                       />
                     </motion.div>
                     <motion.div whileHover={{ scale: 1.05 }} whileTap={{ scale: 0.95 }}>
@@ -171,7 +220,7 @@ const ViewEditPuzzle = ({ word_puzzle }: { word_puzzle: z.infer<typeof puzzle_sc
                     minLength={1}
                     className="w-full rounded"
                     value={cell}
-                    onChange={(e) => updateCell(r, c, e.target.value)}
+                    onChange={(e) => updateCell(r, c, e.target.value, e)}
                   />
                 ))
               )}

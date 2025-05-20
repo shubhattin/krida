@@ -7,6 +7,7 @@ import AppBar from '@/components/ui/app-bar';
 import Provider from '@/api/TRPCProvider';
 import { headers } from 'next/headers';
 import get_seesion_from_cookie from '~/lib/get_auth_from_cookie';
+import { Toaster } from '@/components/ui/sonner';
 
 export default async function RootLayout({
   children
@@ -34,6 +35,7 @@ export default async function RootLayout({
             <AppBar title="पदावली" />
             <Provider user_info_init={session?.user}>
               <div className="mx-2">{children}</div>
+              <Toaster />
             </Provider>
           </div>
         </ThemeProvider>

@@ -2,6 +2,7 @@ import { Metadata } from 'next';
 import { headers } from 'next/headers';
 import Link from 'next/link';
 import { redirect } from 'next/navigation';
+import { IoMdArrowRoundBack } from 'react-icons/io';
 import { Card, CardDescription, CardHeader, CardTitle } from '~/components/ui/card';
 import { db } from '~/db/db';
 import get_seesion_from_cookie from '~/lib/get_auth_from_cookie';
@@ -24,6 +25,12 @@ const List = async () => {
 
   return (
     <div className="container mx-auto p-4">
+      <div className="my-2 mb-4 px-2">
+        <Link href="/" className="flex items-center gap-1 text-lg font-semibold">
+          <IoMdArrowRoundBack className="inline-block text-xl" />
+          Home
+        </Link>
+      </div>
       <ul className="space-y-4">
         {list.map((item) => (
           <li key={item.id}>
