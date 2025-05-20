@@ -10,6 +10,7 @@ export default async function Home() {
     limit: 10,
     orderBy: ({ created_at }, { desc }) => desc(created_at)
   });
+
   const GRID_DIMENSIONS = [6, 6];
   const grid_data = [
     ['सं', 'हा', 'र', 'ना', 'सी', 'क्रो'],

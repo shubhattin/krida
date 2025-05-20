@@ -1,14 +1,15 @@
 'use client';
-import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
+import { QueryClientProvider } from '@tanstack/react-query';
 import { httpBatchLink } from '@trpc/client';
 import React, { useState } from 'react';
 import transformer from './transformer';
 import { ReactQueryDevtools } from '@tanstack/react-query-devtools';
 
 import { trpc_q } from './client';
+import { queryClient as queryClientGlobal } from '~/state/queryClient';
 
 export default function Provider({ children }: { children: React.ReactNode }) {
-  const [queryClient] = useState(() => new QueryClient({}));
+  const [queryClient] = useState(queryClientGlobal);
   const [trpcClient] = useState(() =>
     trpc_q.createClient({
       links: [
