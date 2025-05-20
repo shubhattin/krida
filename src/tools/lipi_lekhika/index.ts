@@ -1,5 +1,4 @@
 import { normalize } from './normalise_lang';
-import load_lekhika__worker from './worker?worker';
 import type { Arg, ArgUUID } from './types';
 import type * as functions from './lekhika_core';
 
@@ -7,21 +6,6 @@ let lekhika_worker: Worker = null!;
 
 // uuid: [func_name, callback]
 const messages_queue: Record<string, [string, (response: any) => void]> = {};
-
-if (typeof Worker !== 'undefined') {
-  lekhika_worker = new load_lekhika__worker();
-
-  lekhika_worker.onmessage = (event) => {
-    const data = event.data;
-    if (data.uuid in messages_queue) {
-      const [func_name, resolve] = messages_queue[data.uuid];
-      if (data.func_name === func_name) {
-        resolve(data?.response);
-        delete messages_queue[data.uuid];
-      }
-    }
-  };
-}
 
 let lipi_lekhika_lib: typeof import('./lekhika_core') = null!;
 
@@ -35,19 +19,19 @@ async function postMessage<F extends keyof typeof functions>(
   load_main: 'both' | 'only' | false = false
 ) {
   return new Promise<ReturnType<(typeof functions)[F]>>(async (resolve, reject) => {
-    if (!lekhika_worker || load_main) {
-      const lipi_lekhika = await load_lipi_lekhika_instance();
-      // @ts-ignore
-      resolve(lipi_lekhika[message.func_name](...message.args));
-      if (!load_main || load_main === 'only') return;
-    }
-    const uuid = crypto.randomUUID();
-    const post_message: ArgUUID<F> = {
-      ...message,
-      uuid
-    };
-    messages_queue[uuid] = [message.func_name, resolve];
-    lekhika_worker.postMessage(post_message);
+    // if (!lekhika_worker || load_main) {
+    const lipi_lekhika = await load_lipi_lekhika_instance();
+    // @ts-ignore
+    resolve(lipi_lekhika[message.func_name](...message.args));
+    return;
+    // }
+    // const uuid = crypto.randomUUID();
+    // const post_message: ArgUUID<F> = {
+    //   ...message,
+    //   uuid
+    // };
+    // messages_queue[uuid] = [message.func_name, resolve];
+    // lekhika_worker.postMessage(post_message);
   });
 }
 
@@ -68,15 +52,12 @@ export const load_parivartak_lang_data = async (
   load_in_main = false
 ) => {
   await Promise.all([
-    await postMessage({
-      func_name: 'load_parivartak_lang_data',
-      args: [lang, base_lang_folder]
-    }),
-    load_in_main &&
-      postMessage(
-        { func_name: 'load_parivartak_lang_data', args: [lang, base_lang_folder] },
-        'only'
-      )
+    // await postMessage({
+    //   func_name: 'load_parivartak_lang_data',
+    //   args: [lang, base_lang_folder]
+    // }),
+    // load_in_main &&
+    postMessage({ func_name: 'load_parivartak_lang_data', args: [lang, base_lang_folder] }, 'only')
   ]);
 };
 
@@ -91,10 +72,13 @@ export const lipi_parivartak = async <T extends string | string[]>(
   to: string
 ) => {
   if (normalize_lang_code(from) === normalize_lang_code(to)) return val;
-  return (await postMessage({
-    func_name: 'lipi_parivartak',
-    args: [val, from, to]
-  })) as Promise<T extends string ? string : string[]>;
+  return (await postMessage(
+    {
+      func_name: 'lipi_parivartak',
+      args: [val, from, to]
+    },
+    'only'
+  )) as Promise<T extends string ? string : string[]>;
 };
 
 /**

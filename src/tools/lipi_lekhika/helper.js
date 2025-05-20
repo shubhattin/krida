@@ -109,26 +109,10 @@ export class lipi_helper {
     // for the current scenario the lang files dont pose a problem in 1mb size limit of
     // edge fucntions so ignore the loading it it fow now
     if (!(lang in this.akSharAH)) {
-      if (import.meta.env) {
-        // this part should be used fot vitest and svelte
-        const langs_data = import.meta.glob('/src/tools/converter/resources/dattAMsh/*.json');
-        const data =
-          await langs_data['/src/tools/converter/resources/dattAMsh/' + lang + '.json']();
-        if (callback) callback();
-        this.akSharAH[lang] = data.default[0];
-      } else if (!import.meta.env.PROD) {
-        // you should run the code using vite-node to avoid this part
-        const fs = (await import('fs')).default;
-        // if you run file manually from cli
-        const data = JSON.parse(
-          fs.readFileSync(
-            base_folder_path + '/tools/converter/resources/dattAMsh/' + lang + '.json',
-            'utf-8'
-          )
-        );
-        if (callback) callback();
-        this.akSharAH[lang] = data[0];
-      }
+      // this part should be used fot vitest and svelte
+      const data = (await import('./resources/dattAMsh/' + lang + '.json')).default[0];
+      if (callback) callback();
+      this.akSharAH[lang] = data;
     } else if (callback != null) callback();
   }
   in(in_what, what) {

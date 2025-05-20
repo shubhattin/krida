@@ -1,7 +1,7 @@
 'use client';
 
-import { z } from 'zod';
-import React, { useState } from 'react';
+import { set, z } from 'zod';
+import React, { useEffect, useRef, useState } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { Card, CardHeader, CardTitle, CardContent } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
@@ -18,6 +18,8 @@ import {
   AlertDialogAction,
   AlertDialogCancel
 } from '@/components/ui/alert-dialog';
+// import { load_parivartak_lang_data } from '~/tools/lipi_lekhika/lekhika_core';
+import { lekhika_typing_tool, load_parivartak_lang_data } from '~/tools/lipi_lekhika';
 
 const puzzle_schema = z.object({
   id: z.number().int(),
@@ -30,7 +32,18 @@ const puzzle_schema = z.object({
   grid_dimensions: z.tuple([z.number().int(), z.number().int()])
 });
 
+let BASE_SCRIPT = 'Sanskrit';
+
 const ViewEditPuzzle = ({ word_puzzle }: { word_puzzle: z.infer<typeof puzzle_schema> }) => {
+  const loaded = useRef(false);
+  useEffect(() => {
+    if (typeof window !== 'undefined') {
+      load_parivartak_lang_data(BASE_SCRIPT).then(() => {
+        loaded.current = true;
+      });
+    }
+  }, []);
+
   const handleSave = async () => {
     console.log('Saving...');
   };
@@ -81,7 +94,22 @@ const ViewEditPuzzle = ({ word_puzzle }: { word_puzzle: z.infer<typeof puzzle_sc
               type="text"
               className="mt-1 block w-full"
               value={title}
-              onChange={(e) => setTitle(e.target.value)}
+              onInput={(e) => {
+                // if (!loaded.current) {
+                setTitle(e.currentTarget.value);
+                return;
+                // }
+                // console.log(e);
+                // lekhika_typing_tool(
+                //   e.nativeEvent.target,
+                //   (e.nativeEvent.data as InputEvent).data,
+                //   BASE_SCRIPT,
+                //   true,
+                //   (val) => {
+                //     setTitle(val);
+                //   }
+                // );
+              }}
             />
           </div>
 
