@@ -52,6 +52,7 @@
     "chalk": "^5.4.1",
     "dotenv": "^16.5.0",
     "drizzle-kit": "^0.31.1",
+    "postgres": "^3.4.5",
     "prettier": "^3.5.3",
     "prettier-plugin-tailwindcss": "^0.6.11",
     "sass": "^1.89.0",

@@ -111,6 +111,9 @@ importers:
       drizzle-kit:
         specifier: ^0.31.1
         version: 0.31.1
+      postgres:
+        specifier: ^3.4.5
+        version: 3.4.5
       prettier:
         specifier: ^3.5.3
         version: 3.5.3
@@ -3134,8 +3137,7 @@ snapshots:
 
   postgres-range@1.1.4: {}
 
-  postgres@3.4.5:
-    optional: true
+  postgres@3.4.5: {}
 
   prettier-plugin-tailwindcss@0.6.11(prettier@3.5.3):
     dependencies:
