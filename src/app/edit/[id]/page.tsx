@@ -7,6 +7,7 @@ import ViewEditPuzzle from './ViewEditPuzzle';
 import { type Metadata } from 'next';
 import Link from 'next/link';
 import { IoMdArrowRoundBack } from 'react-icons/io';
+import { FaPlay } from 'react-icons/fa';
 
 type Props = { params: Promise<{ id: string }> };
 
@@ -44,16 +45,16 @@ const MainEdit = async ({ params }: Props) => {
 
   return (
     <>
-      <div className="my-2 mb-3.5 flex space-x-4 px-2">
+      <div className="my-2 mb-3.5 flex space-x-6 px-2 sm:space-x-9">
         <Link href="/list" className="inline-flex items-center gap-1 text-lg font-semibold">
           <IoMdArrowRoundBack className="inline-block text-xl" />
           Main List
         </Link>
         <Link
           href={`/view/${word_puzzle.uuid}:${word_puzzle.id}`}
-          className="inline-flex items-center gap-1 text-lg font-semibold"
+          className="inline-flex items-center gap-2 text-lg font-semibold"
         >
-          <IoMdArrowRoundBack className="inline-block text-xl" />
+          <FaPlay className="inline-block text-lg" />
           Play
         </Link>
       </div>
