@@ -5,7 +5,7 @@ const get_seesion_from_cookie = async (cookie: string) => {
   try {
     const session = await ky
       .get<typeof authClient.$Infer.Session>(
-        `${process.env.NEXT_BETTER_AUTH_URL}/api/auth/get-session`,
+        `${process.env.NEXT_PUBLIC_BETTER_AUTH_URL}/api/auth/get-session`,
         {
           headers: {
             Cookie: cookie
