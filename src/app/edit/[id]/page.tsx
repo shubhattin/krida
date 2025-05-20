@@ -8,7 +8,7 @@ import { type Metadata } from 'next';
 import Link from 'next/link';
 import { IoMdArrowRoundBack } from 'react-icons/io';
 
-type Props = { params: { id: string } };
+type Props = { params: Promise<{ id: string }> };
 
 export async function generateMetadata({ params }: Props): Promise<Metadata> {
   const id = z.coerce
@@ -28,7 +28,7 @@ export async function generateMetadata({ params }: Props): Promise<Metadata> {
   };
 }
 
-const MainEdit = async ({ params }: { params: Promise<{ id: string }> }) => {
+const MainEdit = async ({ params }: Props) => {
   const session = await get_seesion_from_cookie((await headers()).get('cookie') ?? '');
   if (!session) redirect('/');
   if (session.user.role !== 'admin' || !session.user.is_approved) redirect('/');
