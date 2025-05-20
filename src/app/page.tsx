@@ -3,13 +3,13 @@ import { Metadata } from 'next';
 import WordGame from './WordGame';
 
 export default async function Home() {
-  const list = await db.query.word_puzzles.findMany({
-    columns: {
-      id: true
-    },
-    limit: 10,
-    orderBy: ({ created_at }, { desc }) => desc(created_at)
-  });
+  // const list = await db.query.word_puzzles.findMany({
+  //   columns: {
+  //     id: true
+  //   },
+  //   limit: 10,
+  //   orderBy: ({ created_at }, { desc }) => desc(created_at)
+  // });
 
   const GRID_DIMENSIONS = [6, 6];
   const grid_data = [
@@ -27,7 +27,7 @@ export default async function Home() {
       <main className="flex flex-1 items-center justify-center p-4">
         <div className="mt-4 sm:mt-8">
           <WordGame grid_data={grid_data} dims={GRID_DIMENSIONS} word_list={word_list} />
-          {list.length}
+          {/* {list.length} */}
         </div>
       </main>
     </>

@@ -239,7 +239,6 @@ export default function WordGame({ grid_data, dims, word_list }: WordGameProps) 
             </div>
           ))}
         </div> */}
-        {JSON.stringify([user_info?.id])}
       </div>
     </div>
   );
