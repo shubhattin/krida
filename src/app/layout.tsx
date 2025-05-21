@@ -45,7 +45,7 @@ export const runtime = 'edge';
 
 export const metadata: Metadata = {
   icons: {
-    icon: '/favicon.png',
-    apple: '/favicon.png'
+    icon: '/favicon.ico',
+    apple: '/favicon.ico'
   }
 };
