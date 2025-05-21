@@ -3,6 +3,12 @@ import { Metadata } from 'next';
 import WordGame from '~/components/pages/main/WordGame';
 import Others from './OtherLinks';
 
+export const dynamic = 'force-dynamic';
+
+const get_rand_num = (a: number, b: number) => {
+  return Math.trunc(Math.random() * (b - a + 1)) + a;
+};
+
 export default async function Home() {
   const currentTime = new Date();
   const list = await db.query.word_puzzles.findMany({
@@ -13,7 +19,7 @@ export default async function Home() {
     orderBy: ({ created_at }, { desc }) => desc(created_at)
   });
 
-  const randomIndex = currentTime.getSeconds() % list.length;
+  const randomIndex = get_rand_num(0, list.length - 1);
   const word_puzzle = (await db.query.word_puzzles.findFirst({
     where: ({ id }, { eq }) => eq(id, list[randomIndex].id)
   }))!;
@@ -28,6 +34,7 @@ export default async function Home() {
           <div className="flex flex-col items-center">
             <span className="text-xl font-bold">{word_puzzle.title}</span>
           </div>
+          <div>Random Selection: {randomIndex}</div>
           <div>Curent Server Time : {currentTime.toLocaleString()}</div>
           <WordGame
             grid_data={word_puzzle.grid_data}
