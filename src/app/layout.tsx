@@ -7,6 +7,7 @@ import AppBar from '@/components/ui/app-bar';
 import Provider from '@/api/TRPCProvider';
 import { Toaster } from '@/components/ui/sonner';
 import { Metadata } from 'next';
+import PosthogInit from '~/components/PosthogInit';
 
 export default async function RootLayout({
   children
@@ -36,6 +37,7 @@ export default async function RootLayout({
             </Provider>
           </div>
         </ThemeProvider>
+        <PosthogInit />
       </body>
     </html>
   );
