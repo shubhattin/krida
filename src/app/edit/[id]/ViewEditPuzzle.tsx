@@ -248,8 +248,6 @@ const SaveButton = ({ word_puzzle }: { word_puzzle: z.infer<typeof puzzle_schema
     }
   });
 
-  const loaded = useRef(false);
-
   const isEdited = useMemo(() => {
     return (
       title !== initialRef.current.title ||

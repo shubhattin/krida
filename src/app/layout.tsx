@@ -5,8 +5,6 @@ import { robotoSans } from '@/components/fonts';
 import { cn } from '@/lib/utils';
 import AppBar from '@/components/ui/app-bar';
 import Provider from '@/api/TRPCProvider';
-import { headers } from 'next/headers';
-import get_seesion_from_cookie from '~/lib/get_auth_from_cookie';
 import { Toaster } from '@/components/ui/sonner';
 
 export default async function RootLayout({
@@ -14,8 +12,6 @@ export default async function RootLayout({
 }: Readonly<{
   children: React.ReactNode;
 }>) {
-  const session = await get_seesion_from_cookie((await headers()).get('cookie') ?? '');
-
   return (
     <html lang="en" suppressHydrationWarning className="dark" style={{ colorScheme: 'dark' }}>
       <body
@@ -33,7 +29,7 @@ export default async function RootLayout({
         >
           <div className="contaiiner mx-auto mb-1 max-w-screen-lg">
             <AppBar title="पदावली" />
-            <Provider user_info_init={session?.user}>
+            <Provider>
               <div className="mx-2">{children}</div>
               <Toaster richColors={true} />
             </Provider>

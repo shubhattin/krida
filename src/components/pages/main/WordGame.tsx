@@ -6,7 +6,6 @@ import { cn } from '@/lib/utils';
 import { Card } from '@/components/ui/card';
 import { notoSansDevanagari } from '@/components/fonts';
 import { useAtom } from 'jotai';
-import { user_info_atom } from '@/state/user.state';
 
 interface WordGameProps {
   grid_data: string[][];
@@ -18,7 +17,6 @@ type CellPosition = { row: number; col: number };
 type Selection = { cells: CellPosition[]; word: string };
 
 export default function WordGame({ grid_data, dims, word_list }: WordGameProps) {
-  const [user_info] = useAtom(user_info_atom);
   const [rows, cols] = dims;
   const gridRef = useRef<HTMLDivElement>(null);
 
