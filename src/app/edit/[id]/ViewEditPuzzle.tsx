@@ -38,7 +38,7 @@ const puzzle_schema = z.object({
 
 let BASE_SCRIPT = 'Sanskrit';
 
-const title_atom = atom<string>('d');
+const title_atom = atom<string>('');
 const word_list_atom = atom<string[]>([]);
 const grid_data_atom = atom<string[][]>([]);
 
