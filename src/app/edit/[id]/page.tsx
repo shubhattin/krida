@@ -57,7 +57,7 @@ const MainEdit = async ({ params }: Props) => {
           className="inline-flex items-center gap-2 text-lg font-semibold"
         >
           <FaPlay className="inline-block text-lg" />
-          Play
+          क्रीड्यताम्
         </Link>
       </div>
       <JotaiProvider key={word_puzzle.id}>

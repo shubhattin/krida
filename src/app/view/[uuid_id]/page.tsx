@@ -38,7 +38,7 @@ const MainEdit = async ({ params }: Props) => {
       <div className="my-2 mb-3.5 px-2">
         <Link href="/" className="flex items-center gap-1 text-lg font-semibold">
           <IoMdArrowRoundBack className="inline-block text-xl" />
-          Home Page
+          मुख्यपृष्ठम्
         </Link>
       </div>
       {word_puzzle ? (
@@ -53,7 +53,7 @@ const MainEdit = async ({ params }: Props) => {
           />
         </>
       ) : (
-        <span>Invalid ID</span>
+        <span>अनुचित ID</span>
       )}
     </>
   );
