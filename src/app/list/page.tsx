@@ -33,7 +33,7 @@ const List = async () => {
       <div className="my-2 mb-4 px-2">
         <Link href="/" className="flex items-center gap-1 text-lg font-semibold">
           <IoMdArrowRoundBack className="inline-block text-xl" />
-          मुख्यः
+          मुख्यपृष्ठं
         </Link>
       </div>
       <div className="mt-2 mb-5 flex items-center justify-center px-2">
