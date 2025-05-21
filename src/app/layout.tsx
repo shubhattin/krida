@@ -35,7 +35,7 @@ export default async function RootLayout({
             <AppBar title="पदावली" />
             <Provider user_info_init={session?.user}>
               <div className="mx-2">{children}</div>
-              <Toaster />
+              <Toaster richColors={true} />
             </Provider>
           </div>
         </ThemeProvider>
