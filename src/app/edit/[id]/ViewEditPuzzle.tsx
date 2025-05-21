@@ -2,7 +2,7 @@
 
 import { z } from 'zod';
 import React, { useEffect, useRef, useState } from 'react';
-import { motion, AnimatePresence } from 'framer-motion';
+import { motion } from 'framer-motion';
 import { Card, CardHeader, CardTitle, CardContent } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Label } from '@/components/ui/label';
@@ -21,6 +21,8 @@ import {
 import { lekhika_typing_tool, load_parivartak_lang_data } from '~/tools/lipi_lekhika';
 import { trpc_q } from '~/api/client';
 import { toast } from 'sonner';
+import { IoMdAdd, IoMdClose } from 'react-icons/io';
+import { atom } from 'jotai';
 
 const puzzle_schema = z.object({
   id: z.number().int(),
@@ -34,6 +36,8 @@ const puzzle_schema = z.object({
 });
 
 let BASE_SCRIPT = 'Sanskrit';
+
+const sdf = atom<string[]>([]);
 
 const ViewEditPuzzle = ({ word_puzzle }: { word_puzzle: z.infer<typeof puzzle_schema> }) => {
   const update_word_puzzle_mut = trpc_q.puzzle.update_puzzle.useMutation({
@@ -134,82 +138,86 @@ const ViewEditPuzzle = ({ word_puzzle }: { word_puzzle: z.infer<typeof puzzle_sc
   };
 
   return (
-    <Card className="space-y-5">
+    <Card className="space-y-1.5">
       <CardHeader className="mb-0">
         <CardTitle>Edit '{word_puzzle.title}' Details</CardTitle>
       </CardHeader>
       <CardContent>
         <div className="space-y-4">
           <div>
-            <Label className="block text-sm font-medium">Title</Label>
-            <Input
-              type="text"
-              className="mt-1 block w-full"
-              value={title}
-              onInput={(e) => {
-                setTitle(e.currentTarget.value);
-                lekhika_typing_tool(
-                  e.nativeEvent.target,
-                  // @ts-ignore
-                  e.nativeEvent.data,
-                  BASE_SCRIPT,
-                  true,
-                  // @ts-ignore
-                  (val) => {
-                    setTitle(val);
-                  }
-                );
-              }}
-            />
+            <Label className="block font-medium">
+              Title
+              <Input
+                type="text"
+                className="lg:1/5 mt-1 block w-3/5 sm:w-2/5"
+                value={title}
+                onInput={(e) => {
+                  setTitle(e.currentTarget.value);
+                  lekhika_typing_tool(
+                    e.nativeEvent.target,
+                    // @ts-ignore
+                    e.nativeEvent.data,
+                    BASE_SCRIPT,
+                    true,
+                    // @ts-ignore
+                    (val) => {
+                      setTitle(val);
+                    }
+                  );
+                }}
+              />
+            </Label>
           </div>
           <div>
-            <Label className="mb-2 block text-sm font-medium">Word List</Label>
-            <div className="space-y-2">
-              <AnimatePresence mode="popLayout">
-                {wordList.map((word, idx) => (
-                  <motion.div
-                    key={idx}
-                    initial={{ opacity: 0, height: 0, x: -20 }}
-                    animate={{ opacity: 1, height: 'auto', x: 0 }}
-                    exit={{ opacity: 0, height: 0, x: 20 }}
-                    transition={{
-                      duration: 0.2,
-                      exit: { duration: 0.15 }
-                    }}
-                    className="flex items-center space-x-2 overflow-hidden"
-                  >
-                    <motion.div className="flex-1">
-                      <Input
-                        type="text"
-                        className="w-full"
-                        value={word}
-                        onChange={(e) => updateWord(idx, e.target.value, e)}
-                      />
-                    </motion.div>
-                    <motion.div whileHover={{ scale: 1.05 }} whileTap={{ scale: 0.95 }}>
-                      <Button variant="destructive" size="icon" onClick={() => removeWord(idx)}>
-                        -
-                      </Button>
-                    </motion.div>
+            <Label className="mb-2 block font-medium">Word List</Label>
+            <div className="grid grid-cols-3 gap-2 space-y-2 sm:grid-cols-5 lg:grid-cols-6">
+              {wordList.map((word, idx) => (
+                <motion.div
+                  key={idx}
+                  initial={{ opacity: 0, height: 0, x: -20 }}
+                  animate={{ opacity: 1, height: 'auto', x: 0 }}
+                  exit={{ opacity: 0, height: 0, x: 20 }}
+                  transition={{
+                    duration: 0.2,
+                    exit: { duration: 0.15 }
+                  }}
+                  className="flex items-center space-x-2 overflow-hidden"
+                >
+                  <motion.div className="flex-1">
+                    <Input
+                      type="text"
+                      className="px- py-1 text-base"
+                      value={word}
+                      onChange={(e) => updateWord(idx, e.target.value, e)}
+                    />
                   </motion.div>
-                ))}
-              </AnimatePresence>
+                  <motion.div whileHover={{ scale: 1.05 }} whileTap={{ scale: 0.95 }}>
+                    <Button
+                      variant={'ghost'}
+                      className="p-0 text-red-500 has-[>svg]:p-0 dark:text-red-400"
+                      onClick={() => removeWord(idx)}
+                    >
+                      <IoMdClose className="inline-block" />
+                    </Button>
+                  </motion.div>
+                </motion.div>
+              ))}
               <motion.div
                 whileHover={{ scale: 1.02 }}
                 whileTap={{ scale: 0.98 }}
                 className="inline-block"
               >
                 <Button variant="outline" size="sm" onClick={addWord}>
-                  + Add Word
+                  <IoMdAdd className="text-lg" /> Add Word
                 </Button>
               </motion.div>
             </div>
           </div>
 
           <div>
-            <Label className="mb-2 block text-sm font-medium">Grid Data</Label>
+            <Label className="mb-2 block font-medium">Grid Data</Label>
             <div
-              className="grid gap-1"
+              className="grid w-full gap-1 sm:w-4/5 lg:w-3/5"
               style={{ gridTemplateColumns: `repeat(${cols}, minmax(0, 1fr))` }}
             >
               {gridData.map((row, r) =>
@@ -218,7 +226,7 @@ const ViewEditPuzzle = ({ word_puzzle }: { word_puzzle: z.infer<typeof puzzle_sc
                     key={`${r}-${c}`}
                     type="text"
                     minLength={1}
-                    className="w-full rounded"
+                    className="rounded"
                     value={cell}
                     onChange={(e) => updateCell(r, c, e.target.value, e)}
                   />
@@ -229,7 +237,7 @@ const ViewEditPuzzle = ({ word_puzzle }: { word_puzzle: z.infer<typeof puzzle_sc
         </div>
       </CardContent>
 
-      <div className="flex justify-center p-4">
+      <div className="mx-6 sm:mx-10">
         <AlertDialog>
           <AlertDialogTrigger asChild>
             <Button disabled={!isEdited}>Save</Button>
