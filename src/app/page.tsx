@@ -5,6 +5,7 @@ import Others from './OtherLinks';
 
 // Force this route to be dynamic so cache is not static and random values update on each request
 export const dynamic = 'force-dynamic';
+export const revalidate = 0;
 
 const get_rand_num = (a: number, b: number) => {
   return Math.trunc(Math.random() * (b - a + 1)) + a;
