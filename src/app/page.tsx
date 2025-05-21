@@ -38,7 +38,7 @@ export default async function Home() {
           <div>Curent Server Time : {currentTime.toLocaleString()}</div>
           <WordGame
             grid_data={word_puzzle.grid_data}
-            dims={[6, 6]}
+            dims={word_puzzle.grid_dimensions}
             word_list={word_puzzle.word_list}
           />
         </div>
