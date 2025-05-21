@@ -31,7 +31,12 @@ export default async function Home() {
           <div className="flex flex-col items-center">
             <span className="text-xl font-bold">{word_puzzle.title}</span>
           </div>
-          {word_puzzle.id}: {word_puzzle.title}
+          <div>
+            {word_puzzle.id}: {word_puzzle.title}
+          </div>
+          <div>
+            {list.length}: {randomIndex}
+          </div>
           <WordGame
             grid_data={word_puzzle.grid_data}
             dims={[6, 6]}
