@@ -32,10 +32,7 @@ export default async function Home() {
             <span className="text-xl font-bold">{word_puzzle.title}</span>
           </div>
           <div>
-            {word_puzzle.id}: {word_puzzle.title}
-          </div>
-          <div>
-            {list.length}: {randomIndex}
+            {list.length}: {randomIndex} ({get_rand_num(0, 10)})
           </div>
           <WordGame
             grid_data={word_puzzle.grid_data}
@@ -51,3 +48,5 @@ export default async function Home() {
 export const metadata: Metadata = {
   title: 'पदावली'
 };
+
+export const dynamic = 'force-dynamic'; // This page will always be re-rendered on the server
