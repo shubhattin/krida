@@ -24,10 +24,12 @@ import { toast } from 'sonner';
 import { IoMdAdd, IoMdClose } from 'react-icons/io';
 import { atom, useAtom, type WritableAtom } from 'jotai';
 import { useHydrateAtoms } from 'jotai/utils';
+import { FaRegUser } from 'react-icons/fa';
+import { useRouter } from 'next/navigation';
 
 const puzzle_schema = z.object({
-  id: z.number().int(),
-  uuid: z.string().uuid(),
+  id: z.number().int().nullable(),
+  uuid: z.string().uuid().nullable(),
   title: z.string(),
   created_at: z.date(),
   updated_at: z.date().nullable(),
@@ -35,6 +37,7 @@ const puzzle_schema = z.object({
   grid_data: z.string().min(1).array().array(),
   grid_dimensions: z.tuple([z.number().int(), z.number().int()])
 });
+export type Puzzle = z.infer<typeof puzzle_schema>;
 
 let BASE_SCRIPT = 'Sanskrit';
 
@@ -204,7 +207,7 @@ const GridData = () => {
     <div>
       <Label className="mb-2 block font-medium">Grid Data</Label>
       <div
-        className="grid w-full gap-1 sm:w-4/5 lg:w-3/5"
+        className="grid w-4/5 gap-1 sm:w-3/5 lg:w-2/5"
         style={{ gridTemplateColumns: `repeat(${cols}, minmax(0, 1fr))` }}
       >
         {gridData.map((row, r) =>
@@ -213,7 +216,7 @@ const GridData = () => {
               key={`${r}-${c}`}
               type="text"
               minLength={1}
-              className="rounded"
+              className="rounded text-center"
               value={cell}
               onChange={(e) => updateCell(r, c, e.target.value, e)}
             />
@@ -235,18 +238,29 @@ const SaveButton = ({ word_puzzle }: { word_puzzle: z.infer<typeof puzzle_schema
     gridData: word_puzzle.grid_data
   });
 
+  const router = useRouter();
+
   const update_word_puzzle_mut = trpc_q.puzzle.update_puzzle.useMutation({
     onSuccess: (data) => {
-      if (data.success) {
-        toast.success('Puzzle updated successfully');
-        initialRef.current = {
-          title,
-          wordList,
-          gridData
-        };
-      } else {
-        toast.error('Failed to update puzzle, check the entered data');
-      }
+      toast.success('Puzzle updated successfully');
+      initialRef.current = {
+        title,
+        wordList,
+        gridData
+      };
+    },
+    onError() {
+      toast.error('Failed to update puzzle, check the entered data');
+    }
+  });
+
+  const add_word_puzzle_mut = trpc_q.puzzle.add_puzzle.useMutation({
+    onSuccess(data) {
+      toast.success('Puzzle added successfully');
+      router.push(`/edit/${data.id}`);
+    },
+    onError() {
+      toast.error('Failed to add puzzle, check the entered data');
     }
   });
 
@@ -258,29 +272,53 @@ const SaveButton = ({ word_puzzle }: { word_puzzle: z.infer<typeof puzzle_schema
     );
   }, [title, wordList, gridData]);
 
+  const is_addition = word_puzzle.id === null || word_puzzle.id === undefined;
+
   const handleSave = async () => {
-    await update_word_puzzle_mut.mutateAsync({
-      id: word_puzzle.id,
-      uuid: word_puzzle.uuid,
-      title,
-      created_at: word_puzzle.created_at,
-      updated_at: new Date(),
-      word_list: wordList,
-      grid_data: gridData,
-      grid_dimensions: [rows, cols]
-    });
+    if (!is_addition)
+      await update_word_puzzle_mut.mutateAsync({
+        id: word_puzzle.id!,
+        uuid: word_puzzle.uuid!,
+        title,
+        created_at: word_puzzle.created_at,
+        updated_at: new Date(),
+        word_list: wordList,
+        grid_data: gridData,
+        grid_dimensions: [rows, cols]
+      });
+    else {
+      await add_word_puzzle_mut.mutateAsync({
+        title,
+        word_list: wordList,
+        grid_data: gridData,
+        grid_dimensions: [rows, cols]
+      });
+    }
   };
+
   return (
-    <div className="mx-6 sm:mx-10">
+    <div className="mx-2 mt-2 sm:mx-4">
       <AlertDialog>
         <AlertDialogTrigger asChild>
-          <Button disabled={!isEdited}>Save</Button>
+          <Button disabled={!isEdited} className="flex text-lg" variant={'outline'}>
+            {is_addition ? (
+              <>
+                <IoMdAdd className="text-lg" /> Add
+              </>
+            ) : (
+              <>
+                <FaRegUser className="text-lg" /> Save
+              </>
+            )}
+          </Button>
         </AlertDialogTrigger>
         <AlertDialogContent>
           <AlertDialogHeader>
             <AlertDialogTitle>Confirm Save</AlertDialogTitle>
             <AlertDialogDescription>
-              Are you sure you want to save your changes?
+              {is_addition
+                ? 'Are you sure you want to add this new puzzle?'
+                : 'Are you sure you want to update this puzzle?'}
             </AlertDialogDescription>
           </AlertDialogHeader>
           <AlertDialogFooter>

@@ -48,7 +48,7 @@ const MainEdit = async ({ params }: Props) => {
           </div>
           <WordGame
             word_list={word_puzzle.word_list}
-            dims={word_puzzle.grid_dimensions}
+            dims={[6, 6]}
             grid_data={word_puzzle.grid_data}
           />
         </>

@@ -3,7 +3,7 @@ import { headers } from 'next/headers';
 import get_seesion_from_cookie from '~/lib/get_auth_from_cookie';
 import { z } from 'zod';
 import { db } from '~/db/db';
-import ViewEditPuzzle from './ViewEditPuzzle';
+import ViewEditPuzzle from '../../../components/pages/main/ViewEditPuzzle';
 import { type Metadata } from 'next';
 import Link from 'next/link';
 import { IoMdArrowRoundBack } from 'react-icons/io';

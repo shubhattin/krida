@@ -2,10 +2,15 @@ import { Metadata } from 'next';
 import { headers } from 'next/headers';
 import Link from 'next/link';
 import { redirect } from 'next/navigation';
-import { IoMdArrowRoundBack } from 'react-icons/io';
+import { IoMdAdd, IoMdArrowRoundBack } from 'react-icons/io';
+import { Button } from '~/components/ui/button';
 import { Card, CardDescription, CardHeader, CardTitle } from '~/components/ui/card';
 import { db } from '~/db/db';
 import get_seesion_from_cookie from '~/lib/get_auth_from_cookie';
+import dayjs from 'dayjs';
+import relativeTime from 'dayjs/plugin/relativeTime';
+
+dayjs.extend(relativeTime);
 
 const List = async () => {
   const session = await get_seesion_from_cookie((await headers()).get('cookie') ?? '');
@@ -31,6 +36,13 @@ const List = async () => {
           Home
         </Link>
       </div>
+      <div className="my-3 flex items-center justify-center px-2">
+        <Link href="/add">
+          <Button variant="blue" className="gap-2 text-lg font-semibold">
+            <IoMdAdd className="text-lh" /> Add New Puzzle
+          </Button>
+        </Link>
+      </div>
       <ul className="space-y-4">
         {list.map((item) => (
           <li key={item.id}>
@@ -38,9 +50,7 @@ const List = async () => {
               <Card className="p-2 transition duration-200 hover:bg-gray-100 hover:dark:bg-gray-800">
                 <CardHeader>
                   <CardTitle>{item.title}</CardTitle>
-                  <CardDescription>
-                    Created on {new Date(item.created_at).toLocaleDateString()}
-                  </CardDescription>
+                  <CardDescription>{dayjs(item.created_at).fromNow()}</CardDescription>
                 </CardHeader>
               </Card>
             </Link>
