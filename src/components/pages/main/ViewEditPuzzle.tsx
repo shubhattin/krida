@@ -264,6 +264,16 @@ const SaveButton = ({ word_puzzle }: { word_puzzle: z.infer<typeof puzzle_schema
     }
   });
 
+  const delete_word_puzzle_mut = trpc_q.puzzle.delete_puzzle.useMutation({
+    onSuccess() {
+      toast.success('Puzzle deleted successfully');
+      router.push('/list');
+    },
+    onError() {
+      toast.error('Failed to delete puzzle');
+    }
+  });
+
   const isEdited = useMemo(() => {
     return (
       title !== initialRef.current.title ||
@@ -296,8 +306,16 @@ const SaveButton = ({ word_puzzle }: { word_puzzle: z.infer<typeof puzzle_schema
     }
   };
 
+  const handleDelete = async () => {
+    if (!is_addition) {
+      await delete_word_puzzle_mut.mutateAsync({
+        id: word_puzzle.id!
+      });
+    }
+  };
+
   return (
-    <div className="mx-2 mt-2 sm:mx-4">
+    <div className="mx-2 mt-2 flex items-center justify-between sm:mx-4">
       <AlertDialog>
         <AlertDialogTrigger asChild>
           <Button disabled={!isEdited} className="flex text-lg" variant={'outline'}>
@@ -327,6 +345,30 @@ const SaveButton = ({ word_puzzle }: { word_puzzle: z.infer<typeof puzzle_schema
           </AlertDialogFooter>
         </AlertDialogContent>
       </AlertDialog>
+
+      {!is_addition && (
+        <AlertDialog>
+          <AlertDialogTrigger asChild>
+            <Button className="flex text-lg" variant="destructive">
+              Delete
+            </Button>
+          </AlertDialogTrigger>
+          <AlertDialogContent>
+            <AlertDialogHeader>
+              <AlertDialogTitle>Confirm Deletion</AlertDialogTitle>
+              <AlertDialogDescription>
+                Are you sure you want to delete this puzzle? This action cannot be undone.
+              </AlertDialogDescription>
+            </AlertDialogHeader>
+            <AlertDialogFooter>
+              <AlertDialogCancel>Cancel</AlertDialogCancel>
+              <AlertDialogAction onClick={handleDelete} className="bg-red-500 hover:bg-red-600">
+                Delete
+              </AlertDialogAction>
+            </AlertDialogFooter>
+          </AlertDialogContent>
+        </AlertDialog>
+      )}
     </div>
   );
 };

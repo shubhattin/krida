@@ -41,7 +41,17 @@ const add_puzzle_route = protectedAdminProcedure
     };
   });
 
+const delete_puzzle_route = protectedAdminProcedure
+  .input(z.object({ id: z.number().int() }))
+  .mutation(async ({ input }) => {
+    await db.delete(word_puzzles).where(eq(word_puzzles.id, input.id));
+    return {
+      success: true
+    };
+  });
+
 export const puzzle_router = t.router({
   update_puzzle: update_puzzle_route,
-  add_puzzle: add_puzzle_route
+  add_puzzle: add_puzzle_route,
+  delete_puzzle: delete_puzzle_route
 });
