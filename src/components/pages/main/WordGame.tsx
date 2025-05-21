@@ -5,7 +5,6 @@ import { useDrag } from '@use-gesture/react';
 import { cn } from '@/lib/utils';
 import { Card } from '@/components/ui/card';
 import { notoSansDevanagari } from '@/components/fonts';
-import { useAtom } from 'jotai';
 
 interface WordGameProps {
   grid_data: string[][];
@@ -227,16 +226,6 @@ export default function WordGame({ grid_data, dims, word_list }: WordGameProps) 
             {foundWords.length}/{word_list.length}
           </span>
         </h3>
-        {/* <div className="flex flex-wrap gap-2">
-          {foundWords.map((sel, idx) => (
-            <div
-              key={idx}
-              className="px-3 py-1 bg-green-100 text-green-800 rounded-full"
-            >
-              {sel.word}
-            </div>
-          ))}
-        </div> */}
       </div>
     </div>
   );

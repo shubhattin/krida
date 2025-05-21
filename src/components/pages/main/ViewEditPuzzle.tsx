@@ -40,7 +40,7 @@ const puzzle_schema = z.object({
 });
 export type Puzzle = z.infer<typeof puzzle_schema>;
 
-let BASE_SCRIPT = 'Sanskrit';
+const BASE_SCRIPT = 'Sanskrit';
 
 const title_atom = atom<string>('');
 const word_list_atom = atom<string[]>([]);
