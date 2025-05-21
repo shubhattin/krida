@@ -1,7 +1,7 @@
 import './globals.css';
 import './app.scss';
 import { ThemeProvider } from '@/components/theme-provider';
-import { robotoSans } from '@/components/fonts';
+import { robotoSans, notoSansDevanagari } from '@/components/fonts';
 import { cn } from '@/lib/utils';
 import AppBar from '@/components/ui/app-bar';
 import Provider from '@/api/TRPCProvider';
@@ -15,9 +15,10 @@ export default async function RootLayout({
   children: React.ReactNode;
 }>) {
   return (
-    <html lang="en" suppressHydrationWarning className="dark" style={{ colorScheme: 'dark' }}>
+    <html lang="sa" suppressHydrationWarning className="dark" style={{ colorScheme: 'dark' }}>
       <body
         className={cn(
+          notoSansDevanagari.className,
           robotoSans.className,
           'antialiased',
           'overflow-y-scroll sm:px-2 lg:px-3 xl:px-4 2xl:px-4'

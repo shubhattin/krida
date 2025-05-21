@@ -29,10 +29,10 @@ const Add = async () => {
       <div className="my-2 mb-3.5 flex space-x-6 px-2 sm:space-x-9">
         <Link href="/list" className="inline-flex items-center gap-1 text-lg font-semibold">
           <IoMdArrowRoundBack className="inline-block text-xl" />
-          Main List
+          मुख्यसूची
         </Link>
       </div>
-      <div className="text- font-bold">Add New Puzzle</div>
+      <div className="ml-3 text-xl font-bold">नवप्रहेलिकायाः योजनम्</div>
       <ViewEditPuzzle word_puzzle={word_puzzle} key={word_puzzle.id} />
     </>
   );

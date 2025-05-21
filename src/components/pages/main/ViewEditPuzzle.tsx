@@ -24,7 +24,8 @@ import { toast } from 'sonner';
 import { IoMdAdd, IoMdClose } from 'react-icons/io';
 import { atom, useAtom, type WritableAtom } from 'jotai';
 import { useHydrateAtoms } from 'jotai/utils';
-import { FaRegUser } from 'react-icons/fa';
+import { FiSave } from 'react-icons/fi';
+import { MdDeleteOutline } from 'react-icons/md';
 import { useRouter } from 'next/navigation';
 
 const puzzle_schema = z.object({
@@ -80,7 +81,7 @@ const Title = () => {
   return (
     <div>
       <Label className="block font-medium">
-        <span className="text-xl font-bold">Title</span>
+        <span className="text-xl font-bold">शीर्षकम्</span>
         <Input
           type="text"
           className="lg:1/5 mt-1 block w-3/5 text-lg font-semibold sm:w-2/5"
@@ -127,7 +128,7 @@ const WordList = () => {
 
   return (
     <div>
-      <Label className="mb-2 block font-medium">Word List</Label>
+      <Label className="mb-2 block font-medium">शब्दानां सूची</Label>
       <div className="grid grid-cols-3 gap-2 space-y-2 sm:grid-cols-5 lg:grid-cols-6">
         <AnimatePresence mode="popLayout">
           {wordList.map((word, idx) => (
@@ -168,7 +169,7 @@ const WordList = () => {
           className="inline-block"
         >
           <Button variant="outline" size="sm" onClick={addWord}>
-            <IoMdAdd className="text-lg" /> Add Word
+            <IoMdAdd className="text-lg" /> शब्दस्थानं युञ्जतु
           </Button>
         </motion.div>
       </div>
@@ -205,7 +206,7 @@ const GridData = () => {
 
   return (
     <div>
-      <Label className="mb-2 block font-medium">Grid Data</Label>
+      <Label className="mb-2 block font-medium">गृध्रदत्तांशम्</Label>
       <div
         className="grid w-4/5 gap-1 sm:w-3/5 lg:w-2/5"
         style={{ gridTemplateColumns: `repeat(${cols}, minmax(0, 1fr))` }}
@@ -320,27 +321,27 @@ const SaveButton = ({ word_puzzle }: { word_puzzle: z.infer<typeof puzzle_schema
           <Button disabled={!isEdited} className="flex text-lg" variant={'outline'}>
             {is_addition ? (
               <>
-                <IoMdAdd className="text-lg" /> Add
+                <IoMdAdd className="text-lg" /> योज्यताम्
               </>
             ) : (
               <>
-                <FaRegUser className="text-lg" /> Save
+                <FiSave className="text-lg" /> सङ्ग्रह्यते
               </>
             )}
           </Button>
         </AlertDialogTrigger>
         <AlertDialogContent>
           <AlertDialogHeader>
-            <AlertDialogTitle>Confirm Save</AlertDialogTitle>
+            <AlertDialogTitle>संरक्षितुं दृढःe</AlertDialogTitle>
             <AlertDialogDescription>
               {is_addition
-                ? 'Are you sure you want to add this new puzzle?'
-                : 'Are you sure you want to update this puzzle?'}
+                ? 'किं भवान्निश्चितरूपेपेणेदं प्रहेलिकां योजितुमिच्छसि ?'
+                : 'किं भवान्निश्चितरूपेपेणेदं प्रहेलिकामद्यतितुमिच्छसि ?'}
             </AlertDialogDescription>
           </AlertDialogHeader>
           <AlertDialogFooter>
-            <AlertDialogCancel>Cancel</AlertDialogCancel>
-            <AlertDialogAction onClick={handleSave}>Confirm</AlertDialogAction>
+            <AlertDialogCancel>निरसयतु</AlertDialogCancel>
+            <AlertDialogAction onClick={handleSave}>अस्तु</AlertDialogAction>
           </AlertDialogFooter>
         </AlertDialogContent>
       </AlertDialog>
@@ -348,21 +349,22 @@ const SaveButton = ({ word_puzzle }: { word_puzzle: z.infer<typeof puzzle_schema
       {!is_addition && (
         <AlertDialog>
           <AlertDialogTrigger asChild>
-            <Button className="flex text-lg" variant="destructive">
-              Delete
+            <Button className="flex gap-1 px-1 py-0 text-sm" variant="destructive">
+              <MdDeleteOutline className="text-base" /> निष्कासनम्
             </Button>
           </AlertDialogTrigger>
           <AlertDialogContent>
             <AlertDialogHeader>
-              <AlertDialogTitle>Confirm Deletion</AlertDialogTitle>
+              <AlertDialogTitle>निष्कासितुं दृढः</AlertDialogTitle>
               <AlertDialogDescription>
-                Are you sure you want to delete this puzzle? This action cannot be undone.
+                किं भवान्निश्चितरूपेणेदं प्रहेलिकां निष्कासितुमिच्छसि ? एतत्कार्यमनिवर्तयितुं शक्यते
+                !
               </AlertDialogDescription>
             </AlertDialogHeader>
             <AlertDialogFooter>
-              <AlertDialogCancel>Cancel</AlertDialogCancel>
+              <AlertDialogCancel>निरसयतु</AlertDialogCancel>
               <AlertDialogAction onClick={handleDelete} className="bg-red-500 hover:bg-red-600">
-                Delete
+                निष्कास्यताम्
               </AlertDialogAction>
             </AlertDialogFooter>
           </AlertDialogContent>

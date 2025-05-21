@@ -33,13 +33,13 @@ const List = async () => {
       <div className="my-2 mb-4 px-2">
         <Link href="/" className="flex items-center gap-1 text-lg font-semibold">
           <IoMdArrowRoundBack className="inline-block text-xl" />
-          Home
+          मुख्यः
         </Link>
       </div>
       <div className="mt-2 mb-5 flex items-center justify-center px-2">
         <Link href="/add">
           <Button variant="blue" className="gap-2 text-lg font-semibold">
-            <IoMdAdd className="text-lh" /> Add New Puzzle
+            <IoMdAdd className="text-lh" /> नवप्रहेलिकां युञ्जतु
           </Button>
         </Link>
       </div>

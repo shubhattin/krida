@@ -34,7 +34,7 @@ function Others() {
             }}
           >
             <GrLogin />
-            Login
+            सम्प्रवेशम्
           </DropdownMenuItem>
         )}
         {session.data?.user && (
@@ -45,7 +45,7 @@ function Others() {
               }}
             >
               <IoIosList className="text-lg" />
-              View List
+              सूचीन्दर्शतु
             </DropdownMenuItem>
             <DropdownMenuItem
               onClick={() => {
@@ -53,7 +53,7 @@ function Others() {
               }}
             >
               <FaRegUser className="text-lg" />
-              User Profile Page
+              उपयोक्ताविवरणपृष्टम्
             </DropdownMenuItem>
           </>
         )}
