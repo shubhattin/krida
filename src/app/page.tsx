@@ -10,7 +10,7 @@ const get_rand_num = (a: number, b: number) => {
 };
 
 export default async function Home() {
-  const currentTime = new Date();
+  // const currentTime = new Date();
   const list = await db.query.word_puzzles.findMany({
     columns: {
       id: true
@@ -34,8 +34,8 @@ export default async function Home() {
           <div className="flex flex-col items-center">
             <span className="text-xl font-bold">{word_puzzle.title}</span>
           </div>
-          <div>Random Selection: {randomIndex}</div>
-          <div>Curent Server Time : {currentTime.toLocaleString()}</div>
+          {/* <div>Random Selection: {randomIndex}</div>
+          <div>Curent Server Time : {currentTime.toLocaleString()}</div> */}
           <WordGame
             grid_data={word_puzzle.grid_data}
             dims={word_puzzle.grid_dimensions}
