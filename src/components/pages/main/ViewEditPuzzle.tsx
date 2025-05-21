@@ -231,7 +231,6 @@ const SaveButton = ({ word_puzzle }: { word_puzzle: z.infer<typeof puzzle_schema
   const [title] = useAtom(title_atom);
   const [wordList] = useAtom(word_list_atom);
   const [gridData] = useAtom(grid_data_atom);
-  const [rows, cols] = wordList.length > 0 ? [wordList.length, wordList[0].length] : [0, 0];
   const initialRef = useRef({
     title: word_puzzle.title,
     wordList: word_puzzle.word_list,
@@ -285,7 +284,7 @@ const SaveButton = ({ word_puzzle }: { word_puzzle: z.infer<typeof puzzle_schema
   const is_addition = word_puzzle.id === null || word_puzzle.id === undefined;
 
   const handleSave = async () => {
-    if (!is_addition)
+    if (!is_addition) {
       await update_word_puzzle_mut.mutateAsync({
         id: word_puzzle.id!,
         uuid: word_puzzle.uuid!,
@@ -294,14 +293,14 @@ const SaveButton = ({ word_puzzle }: { word_puzzle: z.infer<typeof puzzle_schema
         updated_at: new Date(),
         word_list: wordList,
         grid_data: gridData,
-        grid_dimensions: [rows, cols]
+        grid_dimensions: word_puzzle.grid_dimensions
       });
-    else {
+    } else {
       await add_word_puzzle_mut.mutateAsync({
         title,
         word_list: wordList,
         grid_data: gridData,
-        grid_dimensions: [rows, cols]
+        grid_dimensions: word_puzzle.grid_dimensions
       });
     }
   };

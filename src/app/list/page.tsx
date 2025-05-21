@@ -36,7 +36,7 @@ const List = async () => {
           Home
         </Link>
       </div>
-      <div className="my-3 flex items-center justify-center px-2">
+      <div className="mt-2 mb-5 flex items-center justify-center px-2">
         <Link href="/add">
           <Button variant="blue" className="gap-2 text-lg font-semibold">
             <IoMdAdd className="text-lh" /> Add New Puzzle
