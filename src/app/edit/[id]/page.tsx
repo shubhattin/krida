@@ -53,6 +53,7 @@ const MainEdit = async ({ params }: Props) => {
         </Link>
         <Link
           href={`/view/${word_puzzle.uuid}:${word_puzzle.id}`}
+          target="_blank"
           className="inline-flex items-center gap-2 text-lg font-semibold"
         >
           <FaPlay className="inline-block text-lg" />

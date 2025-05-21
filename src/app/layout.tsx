@@ -6,6 +6,7 @@ import { cn } from '@/lib/utils';
 import AppBar from '@/components/ui/app-bar';
 import Provider from '@/api/TRPCProvider';
 import { Toaster } from '@/components/ui/sonner';
+import { Metadata } from 'next';
 
 export default async function RootLayout({
   children
@@ -41,3 +42,10 @@ export default async function RootLayout({
 }
 
 export const runtime = 'edge';
+
+export const metadata: Metadata = {
+  icons: {
+    icon: '/favicon.png',
+    apple: '/favicon.png'
+  }
+};
