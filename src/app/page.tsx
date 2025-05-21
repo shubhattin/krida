@@ -3,6 +3,9 @@ import { Metadata } from 'next';
 import WordGame from '~/components/pages/main/WordGame';
 import Others from './OtherLinks';
 
+// Force this route to be dynamic so cache is not static and random values update on each request
+export const dynamic = 'force-dynamic';
+
 const get_rand_num = (a: number, b: number) => {
   return Math.trunc(Math.random() * (b - a + 1)) + a;
 };
@@ -48,5 +51,3 @@ export default async function Home() {
 export const metadata: Metadata = {
   title: 'पदावली'
 };
-
-export const dynamic = 'force-dynamic'; // This page will always be re-rendered on the server
