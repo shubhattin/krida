@@ -2,7 +2,7 @@
 
 import { z } from 'zod';
 import { type ReactNode, useEffect, useMemo, useRef } from 'react';
-import { motion } from 'framer-motion';
+import { motion, AnimatePresence } from 'framer-motion';
 import { Card, CardContent } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Label } from '@/components/ui/label';
@@ -126,37 +126,39 @@ const WordList = () => {
     <div>
       <Label className="mb-2 block font-medium">Word List</Label>
       <div className="grid grid-cols-3 gap-2 space-y-2 sm:grid-cols-5 lg:grid-cols-6">
-        {wordList.map((word, idx) => (
-          <motion.div
-            key={idx}
-            initial={{ opacity: 0, height: 0, x: -20 }}
-            animate={{ opacity: 1, height: 'auto', x: 0 }}
-            exit={{ opacity: 0, height: 0, x: 20 }}
-            transition={{
-              duration: 0.2,
-              exit: { duration: 0.15 }
-            }}
-            className="flex items-center space-x-2 overflow-hidden"
-          >
-            <motion.div className="flex-1">
-              <Input
-                type="text"
-                className="px- py-1 text-base"
-                value={word}
-                onChange={(e) => updateWord(idx, e.target.value, e)}
-              />
+        <AnimatePresence mode="popLayout">
+          {wordList.map((word, idx) => (
+            <motion.div
+              key={idx}
+              initial={{ opacity: 0, height: 0, x: -20 }}
+              animate={{ opacity: 1, height: 'auto', x: 0 }}
+              exit={{ opacity: 0, height: 0, x: 20 }}
+              transition={{
+                duration: 0.2,
+                exit: { duration: 0.15 }
+              }}
+              className="flex items-center space-x-2 overflow-hidden"
+            >
+              <motion.div className="flex-1">
+                <Input
+                  type="text"
+                  className="px- py-1 text-base"
+                  value={word}
+                  onChange={(e) => updateWord(idx, e.target.value, e)}
+                />
+              </motion.div>
+              <motion.div whileHover={{ scale: 1.05 }} whileTap={{ scale: 0.95 }}>
+                <Button
+                  variant={'ghost'}
+                  className="p-0 text-red-500 has-[>svg]:p-0 dark:text-red-400"
+                  onClick={() => removeWord(idx)}
+                >
+                  <IoMdClose className="inline-block" />
+                </Button>
+              </motion.div>
             </motion.div>
-            <motion.div whileHover={{ scale: 1.05 }} whileTap={{ scale: 0.95 }}>
-              <Button
-                variant={'ghost'}
-                className="p-0 text-red-500 has-[>svg]:p-0 dark:text-red-400"
-                onClick={() => removeWord(idx)}
-              >
-                <IoMdClose className="inline-block" />
-              </Button>
-            </motion.div>
-          </motion.div>
-        ))}
+          ))}
+        </AnimatePresence>
         <motion.div
           whileHover={{ scale: 1.02 }}
           whileTap={{ scale: 0.98 }}
