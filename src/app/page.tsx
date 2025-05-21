@@ -37,6 +37,7 @@ export default async function Home() {
           <div>
             {list.length}: {randomIndex} ({get_rand_num(0, 10)})
           </div>
+          <div>Curent Server Time : {new Date().toLocaleString()}</div>
           <WordGame
             grid_data={word_puzzle.grid_data}
             dims={[6, 6]}
