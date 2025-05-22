@@ -45,7 +45,7 @@ function Others() {
               }}
             >
               <IoIosList className="text-lg" />
-              सूचीन्दर्शतु
+              सूचीम्पश्यतु
             </DropdownMenuItem>
             <DropdownMenuItem
               onClick={() => {
@@ -53,7 +53,7 @@ function Others() {
               }}
             >
               <FaRegUser className="text-lg" />
-              उपयोक्ताविवरणपृष्टम्
+              उपयोक्तृविवरणपृष्ठम्
             </DropdownMenuItem>
           </>
         )}

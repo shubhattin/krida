@@ -43,10 +43,8 @@ const MainEdit = async ({ params }: Props) => {
       </div>
       {word_puzzle ? (
         <>
-          <div className="flex flex-col items-center">
-            <span className="text-xl font-bold">{word_puzzle.title}</span>
-          </div>
           <WordGame
+            title={word_puzzle.title}
             word_list={word_puzzle.word_list}
             dims={word_puzzle.grid_dimensions}
             grid_data={word_puzzle.grid_data}
