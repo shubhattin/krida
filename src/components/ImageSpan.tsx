@@ -1,17 +1,11 @@
-import React from 'react';
 import { cn } from '~/lib/utils';
 
-type ImageSpanProps = {
-  src: string;
-  alt?: string;
-  className?: string;
-};
-
-const ImageSpan: React.FC<ImageSpanProps> = ({ src, alt = '', className }) => {
+const ImageSpan = ({ className, src }: { className?: string; src: string }) => {
   return (
-    <span className={cn(className)}>
-      <img src={src} alt={alt} className="h-full w-full" />
-    </span>
+    <span
+      className={cn('inline-block bg-cover', className)}
+      style={{ backgroundImage: `url(${src})` }}
+    ></span>
   );
 };
 

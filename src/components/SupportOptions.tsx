@@ -11,26 +11,35 @@ import {
   YoutubeIcon
 } from './icons';
 import { cn } from '~/lib/utils';
-import { Dialog, DialogContent, DialogTrigger } from '~/components/ui/dialog';
+import { Dialog, DialogContent, DialogHeader, DialogTrigger } from '~/components/ui/dialog';
 import QRCode from 'qrcode';
 import ImageSpan from './ImageSpan';
+import { DialogTitle } from '@radix-ui/react-dialog';
 
 // Main component
 export const SupportOptions = () => {
   return (
     <Dialog>
       <DialogTrigger>
-        <button
+        <span
           className={cn(
-            '-mt-1 rounded-md px-1 py-1 font-semibold outline-hidden select-none hover:bg-gray-200 sm:px-2 dark:hover:bg-gray-700',
+            '-mt-1 rounded-md px-1 py-2 font-semibold outline-hidden select-none hover:bg-gray-200 sm:px-2 dark:hover:bg-gray-700',
             'mr-3 space-x-1.5 sm:mr-3'
           )}
         >
           <Icon src={ContributeIcon} className="text-3xl" />
           <span className="hidden text-sm font-semibold sm:inline">Support Our Projects</span>
-        </button>
+        </span>
       </DialogTrigger>
       <DialogContent className="w-80 bg-slate-200 p-3 dark:bg-gray-900">
+        <DialogHeader>
+          <DialogTitle>
+            <div className="text-center text-lg font-bold text-amber-700 dark:text-orange-400">
+              <div>Support Our Projects</div>
+              <div className="text-sm">Pay as you wish</div>
+            </div>
+          </DialogTitle>
+        </DialogHeader>
         <SupportOptionsContent />
       </DialogContent>
     </Dialog>
@@ -68,11 +77,6 @@ const SupportOptionsContent: React.FC = () => {
 
   return (
     <div>
-      <div className="mb-2.5 text-center text-lg font-bold text-amber-700 dark:text-orange-400">
-        <div>Support Our Projects</div>
-        <div className="text-sm">Pay as you wish</div>
-      </div>
-
       <div className="text-sm font-semibold underline">One-Time Contributions :</div>
       <div className="mt-2">
         <div className="flex justify-center text-center text-sm">
