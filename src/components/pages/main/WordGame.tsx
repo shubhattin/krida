@@ -8,6 +8,7 @@ import { Button } from '@/components/ui/button';
 import { notoSansDevanagari } from '@/components/fonts';
 import { MdReplay } from 'react-icons/md';
 import { FaPlay } from 'react-icons/fa';
+import { IoShareSocialOutline } from 'react-icons/io5';
 
 interface WordGameProps {
   grid_data: string[][];
@@ -327,9 +328,31 @@ export default function WordGame({ grid_data, dims, word_list, title }: WordGame
           )}
 
           {completed && (
-            <p className="mt-4 text-center text-lg font-semibold text-green-700 dark:text-green-400">
-              क्रीडनाय गृहीतकालम् - <span className="font-mono">{formatTime(seconds)}</span>
-            </p>
+            <div className="mt-4 text-center">
+              <p className="text-lg font-semibold text-green-700 dark:text-green-400">
+                क्रीडनाय गृहीतकालम् - <span className="font-mono">{formatTime(seconds)}</span>
+              </p>
+              {typeof navigator !== 'undefined' && navigator.share && (
+                // {true && (
+                <Button
+                  onClick={() => {
+                    if (navigator.share) {
+                      navigator
+                        .share({
+                          title: `${title} - पदावलीशब्दक्रीडनम्`,
+                          text: `I completed ${title} in ${formatTime(seconds)} !`,
+                          url: window.location.href
+                        })
+                        .catch((err) => console.log('Error sharing:', err));
+                    }
+                  }}
+                  className="m-0 mt-1.5 gap-1.5 bg-green-600 px-1.5 py-1 text-lg text-white hover:bg-green-700 dark:bg-green-700 dark:hover:bg-green-800"
+                >
+                  <IoShareSocialOutline className="text-lg" />
+                  सन्दातु
+                </Button>
+              )}
+            </div>
           )}
         </div>
       </div>
