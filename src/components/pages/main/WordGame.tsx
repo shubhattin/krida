@@ -4,6 +4,7 @@ import { useState, useRef, useEffect } from 'react';
 import { useDrag } from '@use-gesture/react';
 import { cn } from '@/lib/utils';
 import { Card } from '@/components/ui/card';
+import { Button } from '@/components/ui/button';
 import { notoSansDevanagari } from '@/components/fonts';
 
 interface WordGameProps {
@@ -16,8 +17,14 @@ type CellPosition = { row: number; col: number };
 type Selection = { cells: CellPosition[]; word: string };
 
 export default function WordGame({ grid_data, dims, word_list }: WordGameProps) {
+  const [started, setStarted] = useState(false);
   const [rows, cols] = dims;
   const gridRef = useRef<HTMLDivElement>(null);
+
+  // Timer state
+  const [seconds, setSeconds] = useState(0);
+  const [completed, setCompleted] = useState(false);
+  const timerRef = useRef<NodeJS.Timeout | null>(null);
 
   // store the grid's bbox so we can compute actual pixel centers
   const [gridBBox, setGridBBox] = useState<DOMRect | null>(null);
@@ -37,7 +44,8 @@ export default function WordGame({ grid_data, dims, word_list }: WordGameProps) 
   useEffect(() => {
     if (!gridRef.current) return;
     const ro = new ResizeObserver(() => {
-      setGridBBox(gridRef.current!.getBoundingClientRect());
+      if (!gridRef.current) return;
+      setGridBBox(gridRef.current.getBoundingClientRect());
     });
     ro.observe(gridRef.current);
     return () => ro.disconnect();
@@ -88,6 +96,7 @@ export default function WordGame({ grid_data, dims, word_list }: WordGameProps) 
   const bind = useDrag(
     ({ event, first, down, last }) => {
       event?.preventDefault();
+      if (!started) return;
       if (first) setCurrentSelection([]);
       if (down) {
         const cell = getCellFromEvent(event);
@@ -130,8 +139,71 @@ export default function WordGame({ grid_data, dims, word_list }: WordGameProps) 
       })
       .join(' ');
 
+  // Format seconds to mm:ss
+  const formatTime = (totalSeconds: number) => {
+    const minutes = Math.floor(totalSeconds / 60);
+    const seconds = totalSeconds % 60;
+    return `${minutes.toString().padStart(2, '0')}:${seconds.toString().padStart(2, '0')}`;
+  };
+
+  // Start the game
+  const handleStart = () => {
+    setStarted(true);
+    setSeconds(0);
+    setFoundWords([]);
+    setCompleted(false);
+
+    if (timerRef.current) {
+      clearInterval(timerRef.current);
+    }
+
+    timerRef.current = setInterval(() => {
+      setSeconds((prev) => prev + 1);
+    }, 1000);
+  };
+
+  // Timer effect
+  useEffect(() => {
+    return () => {
+      if (timerRef.current) {
+        clearInterval(timerRef.current);
+      }
+    };
+  }, []);
+
+  // Check for puzzle completion
+  useEffect(() => {
+    if (foundWords.length === word_list.length && foundWords.length > 0 && started) {
+      setCompleted(true);
+      if (timerRef.current) {
+        clearInterval(timerRef.current);
+      }
+    }
+  }, [foundWords.length, word_list.length, started]);
+
   return (
     <div className="flex flex-col items-center gap-6 p-4">
+      <div className="mb-2 flex w-full max-w-md items-center justify-between">
+        <Button variant="blue" size="lg" onClick={handleStart} className="font-semibold">
+          {started ? 'पुनः आरम्भ' : 'आरम्भ करें'}
+        </Button>
+
+        <div className="text-xl font-semibold">
+          {started && (
+            <span
+              className={cn(
+                'font-mono',
+                completed
+                  ? 'text-green-600 dark:text-green-400'
+                  : 'text-blue-600 dark:text-blue-400'
+              )}
+            >
+              {formatTime(seconds)}
+            </span>
+          )}
+        </div>
+      </div>
+
       <Card className="p-4">
         {/* relative wrapper for grid + overlay */}
         <div className="relative aspect-square w-full max-w-md">
@@ -156,6 +228,7 @@ export default function WordGame({ grid_data, dims, word_list }: WordGameProps) 
                     data-col={ci}
                     className={cn(
                       notoSansDevanagari.className,
+                      !started && 'blur-xs',
                       'flex items-center justify-center rounded-2xl text-center text-xl font-bold',
                       'aspect-square border-2 border-gray-200 p-1 dark:border-gray-700',
                       'transform transition-transform duration-300',
@@ -226,6 +299,12 @@ export default function WordGame({ grid_data, dims, word_list }: WordGameProps) 
             {foundWords.length}/{word_list.length}
           </span>
         </h3>
+
+        {completed && (
+          <p className="mt-4 text-center text-lg font-semibold text-green-700 dark:text-green-400">
+            अभिनन्दनम्! पूर्णं कृतम् - <span className="font-mono">{formatTime(seconds)}</span>
+          </p>
+        )}
       </div>
     </div>
   );
