@@ -335,13 +335,14 @@ export default function WordGame({ grid_data, dims, word_list, title }: WordGame
               {typeof navigator !== 'undefined' && navigator.share && (
                 // {true && (
                 <Button
-                  onClick={() => {
-                    if (navigator.share) {
-                      navigator
+                  onClick={async () => {
+                    if (navigator?.share) {
+                      await navigator
                         .share({
                           title: `${title} - पदावलीशब्दक्रीडनम्`,
-                          text: `I completed ${title} in ${formatTime(seconds)} !`,
-                          url: window.location.href
+                          text:
+                            `I completed '${title}' in ${formatTime(seconds)} !\n\nTry it out at ` +
+                            window.location.origin
                         })
                         .catch((err) => console.log('Error sharing:', err));
                     }
