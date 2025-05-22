@@ -1,7 +1,7 @@
 'use client';
 
 import { z } from 'zod';
-import { type ReactNode, useEffect, useMemo, useRef } from 'react';
+import { useEffect, useMemo, useRef } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { Card, CardContent } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
@@ -22,11 +22,11 @@ import { lekhika_typing_tool, load_parivartak_lang_data } from '~/tools/lipi_lek
 import { trpc_q } from '~/api/client';
 import { toast } from 'sonner';
 import { IoMdAdd, IoMdClose } from 'react-icons/io';
-import { atom, useAtom, type WritableAtom } from 'jotai';
-import { useHydrateAtoms } from 'jotai/utils';
+import { atom, useAtom } from 'jotai';
 import { FiSave } from 'react-icons/fi';
 import { MdDeleteOutline } from 'react-icons/md';
 import { useRouter } from 'next/navigation';
+import { AtomsHydrator } from './AtomsHydrator';
 
 const puzzle_schema = z.object({
   id: z.number().int().nullable(),
@@ -332,7 +332,7 @@ const SaveButton = ({ word_puzzle }: { word_puzzle: z.infer<typeof puzzle_schema
         </AlertDialogTrigger>
         <AlertDialogContent>
           <AlertDialogHeader>
-            <AlertDialogTitle>संरक्षितुं दृढःe</AlertDialogTitle>
+            <AlertDialogTitle>संरक्षितुं दृढः</AlertDialogTitle>
             <AlertDialogDescription>
               {is_addition
                 ? 'किं भवान्निश्चितरूपेपेणेदं प्रहेलिकां योजितुमिच्छसि ?'
@@ -375,15 +375,3 @@ const SaveButton = ({ word_puzzle }: { word_puzzle: z.infer<typeof puzzle_schema
 };
 
 export default ViewEditPuzzle;
-
-function AtomsHydrator({
-  atomValues,
-  children
-}: {
-  // eslint-disable-next-line @typescript-eslint/no-explicit-any
-  atomValues: Iterable<readonly [WritableAtom<unknown, [any], unknown>, unknown]>;
-  children: ReactNode;
-}) {
-  useHydrateAtoms(new Map(atomValues));
-  return children;
-}
