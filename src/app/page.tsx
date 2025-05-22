@@ -31,12 +31,10 @@ export default async function Home() {
           <div className="flex flex-col items-end justify-end">
             <Others />
           </div>
-          <div className="flex flex-col items-center">
-            <span className="text-xl font-bold">{word_puzzle.title}</span>
-          </div>
           {/* <div>Random Selection: {randomIndex}</div>
           <div>Curent Server Time : {currentTime.toLocaleString()}</div> */}
           <WordGame
+            title={word_puzzle.title}
             grid_data={word_puzzle.grid_data}
             dims={word_puzzle.grid_dimensions}
             word_list={word_puzzle.word_list}

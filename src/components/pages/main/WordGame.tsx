@@ -6,17 +6,20 @@ import { cn } from '@/lib/utils';
 import { Card } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { notoSansDevanagari } from '@/components/fonts';
+import { MdReplay } from 'react-icons/md';
+import { FaPlay } from 'react-icons/fa';
 
 interface WordGameProps {
   grid_data: string[][];
   dims: number[];
   word_list: string[];
+  title: string;
 }
 
 type CellPosition = { row: number; col: number };
 type Selection = { cells: CellPosition[]; word: string };
 
-export default function WordGame({ grid_data, dims, word_list }: WordGameProps) {
+export default function WordGame({ grid_data, dims, word_list, title }: WordGameProps) {
   const [started, setStarted] = useState(false);
   const [rows, cols] = dims;
   const gridRef = useRef<HTMLDivElement>(null);
@@ -182,130 +185,154 @@ export default function WordGame({ grid_data, dims, word_list }: WordGameProps) 
   }, [foundWords.length, word_list.length, started]);
 
   return (
-    <div className="flex flex-col items-center gap-6 p-4">
-      <div className="mb-2 flex w-full max-w-md items-center justify-between">
-        <Button variant="blue" size="lg" onClick={handleStart} className="font-semibold">
-          {started ? 'पुनः आरम्भ' : 'आरम्भ करें'}
-        </Button>
-
-        <div className="text-xl font-semibold">
-          {started && (
-            <span
-              className={cn(
-                'font-mono',
-                completed
-                  ? 'text-green-600 dark:text-green-400'
-                  : 'text-blue-600 dark:text-blue-400'
-              )}
+    <>
+      <div className="flex flex-col items-center">
+        <span className="text-xl font-bold">{title}</span>
+      </div>
+      <div className="flex flex-col items-center gap-6 p-4">
+        <div className="flex w-full max-w-md items-center justify-center">
+          {!started && (
+            <Button
+              variant={'outline'}
+              onClick={handleStart}
+              className="text-lg font-semibold text-amber-500 hover:text-yellow-500 dark:text-amber-300 hover:dark:text-yellow-400"
             >
-              {formatTime(seconds)}
-            </span>
+              <FaPlay className="text-lg" />
+              आरम्भयताम्
+            </Button>
+          )}
+          {completed && (
+            <Button
+              variant={'outline'}
+              onClick={handleStart}
+              className="text-lg font-semibold text-sky-600 hover:text-sky-700 dark:text-sky-300 hover:dark:text-sky-400"
+            >
+              <MdReplay className="text-lg" />
+              पुनः क्रीडयताम्
+            </Button>
+          )}
+
+          <div className="text-xl font-semibold">
+            {started && !completed && (
+              <span
+                className={cn(
+                  'font-mono',
+                  completed
+                    ? 'text-green-600 dark:text-green-400'
+                    : 'text-blue-600 dark:text-blue-400'
+                )}
+              >
+                {formatTime(seconds)}
+              </span>
+            )}
+          </div>
+        </div>
+
+        <Card className="m-0 p-1">
+          {/* relative wrapper for grid + overlay */}
+          <div className="relative aspect-square w-full max-w-md">
+            {/* your grid */}
+            <div
+              ref={gridRef}
+              {...bind()}
+              className="relative z-10 grid h-full w-full touch-none gap-4 select-none sm:gap-5"
+              style={{
+                gridTemplateColumns: `repeat(${cols}, 1fr)`,
+                gridTemplateRows: `repeat(${rows}, 1fr)`
+              }}
+            >
+              {grid_data.map((row, ri) =>
+                row.map((letter, ci) => {
+                  const isInCurrent = isCellInCurrentSelection(ri, ci);
+                  const isInFound = isCellInFoundWords(ri, ci);
+                  return (
+                    <div
+                      key={`${ri}-${ci}`}
+                      data-row={ri}
+                      data-col={ci}
+                      className={cn(
+                        notoSansDevanagari.className,
+                        !started && 'blur-xs',
+                        'flex items-center justify-center rounded-2xl text-center text-xl font-bold',
+                        'aspect-square border-2 border-gray-200 p-1 dark:border-gray-700',
+                        'transform transition-transform duration-300',
+                        isInFound &&
+                          'border-green-400 bg-green-200 dark:border-green-600 dark:bg-green-900',
+                        isInCurrent &&
+                          !isInFound &&
+                          'border-blue-400 bg-blue-200 dark:border-blue-600 dark:bg-blue-900',
+                        isInCurrent &&
+                          !isInFound &&
+                          currentSelection.length !== 0 &&
+                          currentSelection.at(-1)?.row === ri &&
+                          currentSelection.at(-1)?.col === ci &&
+                          'scale-115',
+                        !isInCurrent && !isInFound && 'bg-white dark:bg-gray-800'
+                      )}
+                    >
+                      {letter}
+                    </div>
+                  );
+                })
+              )}
+            </div>
+
+            {/* overlay SVG for trails */}
+            <svg
+              className="pointer-events-none absolute inset-0 h-full w-full"
+              xmlns="http://www.w3.org/2000/svg"
+            >
+              {/* already found words in green */}
+              {foundWords.map((sel, i) => (
+                <polyline
+                  key={i}
+                  points={buildPoints(sel.cells)}
+                  fill="none"
+                  className="stroke-green-400 dark:stroke-green-500"
+                  strokeWidth={6}
+                  strokeLinecap="round"
+                  strokeLinejoin="round"
+                />
+              ))}
+
+              {/* current drag in blue */}
+              {currentSelection.length > 1 && (
+                <polyline
+                  points={buildPoints(currentSelection)}
+                  fill="none"
+                  className="stroke-blue-400 dark:stroke-blue-500"
+                  strokeWidth={6}
+                  strokeLinecap="round"
+                  strokeLinejoin="round"
+                />
+              )}
+            </svg>
+          </div>
+        </Card>
+
+        <div className="w-full max-w-md">
+          {started && !completed && (
+            <h3 className="mb-2 text-lg font-semibold text-stone-800 dark:text-stone-200">
+              <span className="mr-1.5">लब्धशब्दानि :</span>
+              <span
+                className={cn(
+                  foundWords.length === word_list.length
+                    ? 'text-green-700 dark:text-green-400'
+                    : 'text-blue-700 dark:text-blue-400'
+                )}
+              >
+                {foundWords.length}/{word_list.length}
+              </span>
+            </h3>
+          )}
+
+          {completed && (
+            <p className="mt-4 text-center text-lg font-semibold text-green-700 dark:text-green-400">
+              क्रीडनाय गृहीतकालम् - <span className="font-mono">{formatTime(seconds)}</span>
+            </p>
           )}
         </div>
       </div>
-
-      <Card className="p-4">
-        {/* relative wrapper for grid + overlay */}
-        <div className="relative aspect-square w-full max-w-md">
-          {/* your grid */}
-          <div
-            ref={gridRef}
-            {...bind()}
-            className="relative z-10 grid h-full w-full touch-none gap-4 select-none sm:gap-5"
-            style={{
-              gridTemplateColumns: `repeat(${cols}, 1fr)`,
-              gridTemplateRows: `repeat(${rows}, 1fr)`
-            }}
-          >
-            {grid_data.map((row, ri) =>
-              row.map((letter, ci) => {
-                const isInCurrent = isCellInCurrentSelection(ri, ci);
-                const isInFound = isCellInFoundWords(ri, ci);
-                return (
-                  <div
-                    key={`${ri}-${ci}`}
-                    data-row={ri}
-                    data-col={ci}
-                    className={cn(
-                      notoSansDevanagari.className,
-                      !started && 'blur-xs',
-                      'flex items-center justify-center rounded-2xl text-center text-xl font-bold',
-                      'aspect-square border-2 border-gray-200 p-1 dark:border-gray-700',
-                      'transform transition-transform duration-300',
-                      isInFound &&
-                        'border-green-400 bg-green-200 dark:border-green-600 dark:bg-green-900',
-                      isInCurrent &&
-                        !isInFound &&
-                        'border-blue-400 bg-blue-200 dark:border-blue-600 dark:bg-blue-900',
-                      isInCurrent &&
-                        !isInFound &&
-                        currentSelection.length !== 0 &&
-                        currentSelection.at(-1)?.row === ri &&
-                        currentSelection.at(-1)?.col === ci &&
-                        'scale-115',
-                      !isInCurrent && !isInFound && 'bg-white dark:bg-gray-800'
-                    )}
-                  >
-                    {letter}
-                  </div>
-                );
-              })
-            )}
-          </div>
-
-          {/* overlay SVG for trails */}
-          <svg
-            className="pointer-events-none absolute inset-0 h-full w-full"
-            xmlns="http://www.w3.org/2000/svg"
-          >
-            {/* already found words in green */}
-            {foundWords.map((sel, i) => (
-              <polyline
-                key={i}
-                points={buildPoints(sel.cells)}
-                fill="none"
-                className="stroke-green-400 dark:stroke-green-500"
-                strokeWidth={6}
-                strokeLinecap="round"
-                strokeLinejoin="round"
-              />
-            ))}
-
-            {/* current drag in blue */}
-            {currentSelection.length > 1 && (
-              <polyline
-                points={buildPoints(currentSelection)}
-                fill="none"
-                className="stroke-blue-400 dark:stroke-blue-500"
-                strokeWidth={6}
-                strokeLinecap="round"
-                strokeLinejoin="round"
-              />
-            )}
-          </svg>
-        </div>
-      </Card>
-
-      <div className="w-full max-w-md">
-        <h3 className="mb-2 text-lg font-semibold text-stone-800 dark:text-stone-200">
-          लब्धशब्दानि :{' '}
-          <span
-            className={cn(
-              foundWords.length === word_list.length
-                ? 'text-green-700 dark:text-green-400'
-                : 'text-blue-700 dark:text-blue-400'
-            )}
-          >
-            {foundWords.length}/{word_list.length}
-          </span>
-        </h3>
-
-        {completed && (
-          <p className="mt-4 text-center text-lg font-semibold text-green-700 dark:text-green-400">
-            अभिनन्दनम्! पूर्णं कृतम् - <span className="font-mono">{formatTime(seconds)}</span>
-          </p>
-        )}
-      </div>
-    </div>
+    </>
   );
 }
