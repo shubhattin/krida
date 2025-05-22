@@ -199,7 +199,7 @@ export default function WordGame({ grid_data, dims, word_list, title }: WordGame
               className="text-lg font-semibold text-amber-600 hover:text-yellow-600 dark:text-amber-300 hover:dark:text-yellow-400"
             >
               <FaPlay className="text-lg" />
-              आरम्भयताम्
+              क्रीड
             </Button>
           )}
           {completed && (
@@ -209,7 +209,7 @@ export default function WordGame({ grid_data, dims, word_list, title }: WordGame
               className="text-lg font-semibold text-sky-600 hover:text-sky-700 dark:text-sky-300 hover:dark:text-sky-400"
             >
               <MdReplay className="text-lg" />
-              पुनः क्रीडयताम्
+              पुनः
             </Button>
           )}
 
