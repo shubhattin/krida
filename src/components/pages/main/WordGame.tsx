@@ -229,9 +229,9 @@ export default function WordGame({ grid_data, dims, word_list, title }: WordGame
           </div>
         </div>
 
-        <Card className="m-0 p-1">
+        <Card className="m-0 p-2 sm:p-2.5">
           {/* relative wrapper for grid + overlay */}
-          <div className="relative aspect-square w-full max-w-md">
+          <div className="relative">
             {/* your grid */}
             <div
               ref={gridRef}
