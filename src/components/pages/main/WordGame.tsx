@@ -100,7 +100,7 @@ export default function WordGame({ grid_data, dims, word_list, title }: WordGame
   const bind = useDrag(
     ({ event, first, down, last }) => {
       event?.preventDefault();
-      if (!started) return;
+      if (!started || completed) return;
       if (first) setCurrentSelection([]);
       if (down) {
         const cell = getCellFromEvent(event);
@@ -196,7 +196,7 @@ export default function WordGame({ grid_data, dims, word_list, title }: WordGame
             <Button
               variant={'outline'}
               onClick={handleStart}
-              className="text-lg font-semibold text-amber-500 hover:text-yellow-500 dark:text-amber-300 hover:dark:text-yellow-400"
+              className="text-lg font-semibold text-amber-600 hover:text-yellow-600 dark:text-amber-300 hover:dark:text-yellow-400"
             >
               <FaPlay className="text-lg" />
               आरम्भयताम्
@@ -253,7 +253,7 @@ export default function WordGame({ grid_data, dims, word_list, title }: WordGame
                       data-col={ci}
                       className={cn(
                         notoSansDevanagari.className,
-                        !started && 'blur-xs',
+                        !started && 'blur-sm',
                         'flex items-center justify-center rounded-2xl text-center text-xl font-bold',
                         'aspect-square border-2 border-gray-200 p-1 dark:border-gray-700',
                         'transform transition-transform duration-300',

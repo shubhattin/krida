@@ -15,7 +15,7 @@ export default async function RootLayout({
   children: React.ReactNode;
 }>) {
   return (
-    <html lang="sa" suppressHydrationWarning className="dark" style={{ colorScheme: 'dark' }}>
+    <html lang="en" suppressHydrationWarning className="dark" style={{ colorScheme: 'dark' }}>
       <body
         className={cn(
           notoSansDevanagari.className,
