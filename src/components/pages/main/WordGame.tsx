@@ -11,6 +11,12 @@ import { FaPlay } from 'react-icons/fa';
 import { IoShareSocialOutline } from 'react-icons/io5';
 import Icon from '~/tools/Icon';
 import { BrainIcon } from '~/components/icons';
+import {
+  Accordion,
+  AccordionItem,
+  AccordionContent,
+  AccordionTrigger
+} from '~/components/ui/accordion';
 
 interface WordGameProps {
   grid_data: string[][];
@@ -360,6 +366,16 @@ export default function WordGame({ grid_data, dims, word_list, title }: WordGame
               )}
             </div>
           )}
+        </div>
+        <div className="flex items-center justify-start">
+          <Accordion type="single" collapsible>
+            <AccordionItem value="item-1">
+              <AccordionTrigger>How to Play ?</AccordionTrigger>
+              <AccordionContent>
+                After Starting the game select the cells to make a word combination.
+              </AccordionContent>
+            </AccordionItem>
+          </Accordion>
         </div>
       </div>
     </>
