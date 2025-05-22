@@ -1,6 +1,6 @@
-import { MenuButton } from '~/components/AppBarMenu';
-import { notoSansDevanagari } from './fonts';
-import { SupportOptions } from './SupportOptions';
+import { MenuButton } from '~/components/app-bar/AppBarMenu';
+import { notoSansDevanagari } from '../fonts';
+import SupportOptions from '~/components/app-bar/SupportOptions';
 
 export default function AppBar({ title }: { title: string }) {
   return (

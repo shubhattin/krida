@@ -27,7 +27,7 @@ const Icon: React.FC<IconProps> = ({
         stroke="currentColor"
         fill="currentColor"
         strokeWidth="0"
-        className={cn('inline-block', className)}
+        className={cn('inline-block bg-cover', className)}
         height="1em"
         width="1em"
         {...src.a}

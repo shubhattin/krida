@@ -9,6 +9,8 @@ import { notoSansDevanagari } from '@/components/fonts';
 import { MdReplay } from 'react-icons/md';
 import { FaPlay } from 'react-icons/fa';
 import { IoShareSocialOutline } from 'react-icons/io5';
+import Icon from '~/tools/Icon';
+import { BrainIcon } from '~/components/icons';
 
 interface WordGameProps {
   grid_data: string[][];
@@ -195,11 +197,14 @@ export default function WordGame({ grid_data, dims, word_list, title }: WordGame
           {!started && (
             <Button
               variant={'outline'}
+              size={'default'}
               onClick={handleStart}
-              className="text-lg font-semibold text-amber-600 hover:text-yellow-600 dark:text-amber-300 hover:dark:text-yellow-400"
+              className={cn(
+                'flex space-x-3 font-semibold text-amber-600 hover:text-yellow-600 dark:text-amber-300 hover:dark:text-yellow-400'
+              )}
             >
-              <FaPlay className="text-lg" />
-              क्रीड
+              <Icon src={BrainIcon} className="-m-4 text-2xl" />
+              <span className="text-xl">क्रीड</span>
             </Button>
           )}
           {completed && (

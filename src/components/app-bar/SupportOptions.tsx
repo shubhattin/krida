@@ -9,15 +9,15 @@ import {
   RazorpayIcon,
   UPIIcon,
   YoutubeIcon
-} from './icons';
+} from '../icons';
 import { cn } from '~/lib/utils';
 import { Dialog, DialogContent, DialogHeader, DialogTrigger } from '~/components/ui/dialog';
 import QRCode from 'qrcode';
-import ImageSpan from './ImageSpan';
+import ImageSpan from '../ImageSpan';
 import { DialogTitle } from '@radix-ui/react-dialog';
 
 // Main component
-export const SupportOptions = () => {
+const SupportOptions = () => {
   return (
     <Dialog>
       <DialogTrigger>
@@ -45,6 +45,8 @@ export const SupportOptions = () => {
     </Dialog>
   );
 };
+
+export default SupportOptions;
 
 // Support options content as a separate component
 const SupportOptionsContent: React.FC = () => {
