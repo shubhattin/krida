@@ -3,7 +3,7 @@ import './app.scss';
 import { ThemeProvider } from '@/components/theme-provider';
 import { robotoSans, notoSansDevanagari } from '@/components/fonts';
 import { cn } from '@/lib/utils';
-import AppBar from '@/components/ui/app-bar';
+import AppBar from '~/components/AppBar';
 import Provider from '@/api/TRPCProvider';
 import { Toaster } from '@/components/ui/sonner';
 import { Metadata } from 'next';
