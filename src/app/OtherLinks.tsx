@@ -40,7 +40,9 @@ function Others() {
             सम्प्रवेशः
           </DropdownMenuItem>
         )}
-        {session.data?.user && (
+        {session.data?.user &&
+        session.data.user.role === 'admin' &&
+        session.data.user.is_approved ? (
           <>
             <DropdownMenuItem
               onClick={() => {
@@ -59,6 +61,8 @@ function Others() {
               उपयोक्तरम्
             </DropdownMenuItem>
           </>
+        ) : (
+          <DropdownMenuItem>Account not Verified !</DropdownMenuItem>
         )}
       </DropdownMenuContent>
     </DropdownMenu>
