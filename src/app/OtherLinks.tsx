@@ -41,29 +41,31 @@ function Others() {
           </DropdownMenuItem>
         )}
         {session.data?.user &&
-        session.data.user.role === 'admin' &&
-        session.data.user.is_approved ? (
-          <>
-            <DropdownMenuItem
-              onClick={() => {
-                router.push('/list');
-              }}
-            >
-              <IoIosList className="text-lg" />
-              सूची
-            </DropdownMenuItem>
-            <DropdownMenuItem
-              onClick={() => {
-                window.open(`${process.env.NEXT_PUBLIC_BETTER_AUTH_URL}/user`, '_blank');
-              }}
-            >
-              <FaRegUser className="text-lg" />
-              उपयोक्तरम्
-            </DropdownMenuItem>
-          </>
-        ) : (
-          <DropdownMenuItem>Account not Verified !</DropdownMenuItem>
-        )}
+          session.data.user.role === 'admin' &&
+          session.data.user.is_approved && (
+            <>
+              <DropdownMenuItem
+                onClick={() => {
+                  router.push('/list');
+                }}
+              >
+                <IoIosList className="text-lg" />
+                सूची
+              </DropdownMenuItem>
+              <DropdownMenuItem
+                onClick={() => {
+                  window.open(`${process.env.NEXT_PUBLIC_BETTER_AUTH_URL}/user`, '_blank');
+                }}
+              >
+                <FaRegUser className="text-lg" />
+                उपयोक्तरम्
+              </DropdownMenuItem>
+            </>
+          )}
+        {session.data?.user &&
+          (session.data.user.role !== 'admin' || !session.data.user.is_approved) && (
+            <DropdownMenuItem>Unauthorized Account !</DropdownMenuItem>
+          )}
       </DropdownMenuContent>
     </DropdownMenu>
   );
