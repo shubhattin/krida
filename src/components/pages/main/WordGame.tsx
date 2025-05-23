@@ -195,7 +195,7 @@ export default function WordGame({ grid_data, dims, word_list, title }: WordGame
   return (
     <>
       <div className="flex flex-col items-center justify-center">
-        <div className="mb-1.5 rounded-md bg-emerald-300 px-4 font-semibold text-gray-600 dark:bg-green-400 dark:text-gray-900">
+        <div className="mb-1.5 rounded-md bg-emerald-300 px-4 font-semibold text-gray-600 dark:bg-green-400 dark:text-slate-800">
           Hint
         </div>
         <span className="text-2xl font-bold">{title}</span>
