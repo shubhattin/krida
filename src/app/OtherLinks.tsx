@@ -9,11 +9,12 @@ import {
   DropdownMenuTrigger
 } from '@/components/ui/dropdown-menu';
 import { BsThreeDots } from 'react-icons/bs';
-import { signIn, useSession } from '~/lib/auth-client';
+import { signOut, signIn, useSession } from '~/lib/auth-client';
 import { IoIosList } from 'react-icons/io';
 import { useRouter } from 'next/navigation';
 import { GrLogin } from 'react-icons/gr';
 import { FaRegUser } from 'react-icons/fa';
+import { BiLogOut } from 'react-icons/bi';
 
 function Others() {
   const session = useSession();
@@ -40,10 +41,9 @@ function Others() {
             सम्प्रवेशः
           </DropdownMenuItem>
         )}
-        {session.data?.user &&
-          session.data.user.role === 'admin' &&
-          session.data.user.is_approved && (
-            <>
+        {session.data?.user && (
+          <>
+            {session.data.user.role === 'admin' && session.data.user.is_approved ? (
               <DropdownMenuItem
                 onClick={() => {
                   router.push('/list');
@@ -52,20 +52,27 @@ function Others() {
                 <IoIosList className="text-lg" />
                 सूची
               </DropdownMenuItem>
-              <DropdownMenuItem
-                onClick={() => {
-                  window.open(`${process.env.NEXT_PUBLIC_BETTER_AUTH_URL}/user`, '_blank');
-                }}
-              >
-                <FaRegUser className="text-lg" />
-                उपयोक्तरम्
-              </DropdownMenuItem>
-            </>
-          )}
-        {session.data?.user &&
-          (session.data.user.role !== 'admin' || !session.data.user.is_approved) && (
-            <DropdownMenuItem>Unauthorized Account !</DropdownMenuItem>
-          )}
+            ) : (
+              <DropdownMenuItem>Unauthorized Account !</DropdownMenuItem>
+            )}
+            <DropdownMenuItem
+              onClick={() => {
+                window.open(`${process.env.NEXT_PUBLIC_BETTER_AUTH_URL}/user`, '_blank');
+              }}
+            >
+              <FaRegUser className="text-lg" />
+              उपयोक्तरम्
+            </DropdownMenuItem>
+            <DropdownMenuItem
+              onClick={() => {
+                signOut();
+              }}
+            >
+              <BiLogOut className="text-lg" />
+              निर्प्रवेशः
+            </DropdownMenuItem>
+          </>
+        )}
       </DropdownMenuContent>
     </DropdownMenu>
   );

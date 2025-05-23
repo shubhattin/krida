@@ -7,7 +7,6 @@ import { Card } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { notoSansDevanagari } from '@/components/fonts';
 import { MdReplay } from 'react-icons/md';
-import { FaPlay } from 'react-icons/fa';
 import { IoShareSocialOutline } from 'react-icons/io5';
 import Icon from '~/tools/Icon';
 import { BrainIcon } from '~/components/icons';
@@ -195,33 +194,44 @@ export default function WordGame({ grid_data, dims, word_list, title }: WordGame
 
   return (
     <>
-      <div className="flex flex-col items-center">
-        <span className="text-xl font-bold">{title}</span>
+      <div className="flex flex-col items-center justify-center">
+        <div className="mb-1.5 rounded-md bg-emerald-300 px-4 font-semibold text-gray-600 dark:bg-green-400 dark:text-gray-900">
+          Hint
+        </div>
+        <span className="text-2xl font-bold">{title}</span>
       </div>
       <div className="flex flex-col items-center gap-6 p-4">
         <div className="flex w-full max-w-md items-center justify-center">
           {!started && (
-            <Button
-              variant={'outline'}
-              size={'default'}
+            <button
               onClick={handleStart}
               className={cn(
-                'flex space-x-3 font-semibold text-amber-600 hover:text-yellow-600 dark:text-amber-300 hover:dark:text-yellow-400'
+                'group flex items-center justify-center space-x-2 rounded-xl px-2 py-0.5 pt-2 font-semibold',
+                'border-2 border-red-600 hover:border-blue-700 dark:border-orange-500 hover:dark:border-pink-500'
               )}
             >
-              <Icon src={BrainIcon} className="-m-4 text-2xl" />
-              <span className="text-xl">क्रीड</span>
-            </Button>
+              <Icon
+                src={BrainIcon}
+                className="-mt-1.5 text-2xl text-green-500 group-hover:text-emerald-600 dark:text-green-400"
+              />
+              <span className="text-2xl text-amber-500 group-hover:text-yellow-600 dark:text-amber-300 group-hover:dark:text-yellow-400">
+                क्रीड
+              </span>
+            </button>
           )}
           {completed && (
-            <Button
-              variant={'outline'}
+            <button
               onClick={handleStart}
-              className="text-lg font-semibold text-sky-600 hover:text-sky-700 dark:text-sky-300 hover:dark:text-sky-400"
+              className={cn(
+                'flex items-center justify-center font-semibold',
+                'group space-x-2 rounded-xl border-2 px-2 py-0.5'
+              )}
             >
-              <MdReplay className="text-lg" />
-              पुनः
-            </Button>
+              <MdReplay className="text-2xl" />
+              <span className="text-2xl text-sky-600 group-hover:text-sky-700 dark:text-sky-300 group-hover:dark:text-sky-400">
+                पुनः
+              </span>
+            </button>
           )}
 
           <div className="text-xl font-semibold">
