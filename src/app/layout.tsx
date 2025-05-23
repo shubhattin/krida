@@ -18,8 +18,8 @@ export default async function RootLayout({
     <html lang="en" suppressHydrationWarning className="dark" style={{ colorScheme: 'dark' }}>
       <body
         className={cn(
-          notoSansDevanagari.className,
           robotoSans.className,
+          notoSansDevanagari.className,
           'antialiased',
           'overflow-y-scroll sm:px-2 lg:px-3 xl:px-4 2xl:px-4'
         )}

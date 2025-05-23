@@ -5,7 +5,6 @@ import { useDrag } from '@use-gesture/react';
 import { cn } from '@/lib/utils';
 import { Card } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
-import { notoSansDevanagari } from '@/components/fonts';
 import { MdReplay } from 'react-icons/md';
 import { IoShareSocialOutline } from 'react-icons/io5';
 import Icon from '~/tools/Icon';
@@ -16,6 +15,24 @@ import {
   AccordionContent,
   AccordionTrigger
 } from '~/components/ui/accordion';
+import { lipi_parivartak } from '~/tools/lipi_lekhika';
+import { useAtom } from 'jotai';
+import {
+  script_atom,
+  DEFAULT_DATA_SCRIPT,
+  type ScriptType,
+  SCRIPT_LIST,
+  FONT_INFO
+} from '~/state/main.state';
+import {
+  Select,
+  SelectContent,
+  SelectGroup,
+  SelectItem,
+  SelectLabel,
+  SelectTrigger,
+  SelectValue
+} from '~/components/ui/select';
 
 interface WordGameProps {
   grid_data: string[][];
@@ -28,6 +45,24 @@ type CellPosition = { row: number; col: number };
 type Selection = { cells: CellPosition[]; word: string };
 
 export default function WordGame({ grid_data, dims, word_list, title }: WordGameProps) {
+  const [script, setScript] = useAtom(script_atom);
+  const [gridData, setGridData] = useState(grid_data);
+  const [wordList, setWordList] = useState(word_list);
+
+  useEffect(() => {
+    lipi_parivartak(word_list, DEFAULT_DATA_SCRIPT, script).then((v) => {
+      setWordList(v);
+    });
+    (async () => {
+      const alphas: string[][] = [];
+      for (let i = 0; i < grid_data.length; i++) {
+        const row = grid_data[i];
+        alphas.push(await lipi_parivartak(row, DEFAULT_DATA_SCRIPT, script));
+      }
+      setGridData(alphas);
+    })();
+  }, [script]);
+
   const [started, setStarted] = useState(false);
   const [rows, cols] = dims;
   const gridRef = useRef<HTMLDivElement>(null);
@@ -49,7 +84,7 @@ export default function WordGame({ grid_data, dims, word_list, title }: WordGame
   const isCellInFoundWords = (r: number, c: number) =>
     foundWords.some((sel) => sel.cells.some((cell) => cell.row === r && cell.col === c));
   const getWordFromSelection = (sel: CellPosition[]) =>
-    sel.map((cell) => grid_data[cell.row][cell.col]).join('');
+    sel.map((cell) => gridData[cell.row][cell.col]).join('');
 
   // re-compute bbox on mount & on resize
   useEffect(() => {
@@ -132,7 +167,7 @@ export default function WordGame({ grid_data, dims, word_list, title }: WordGame
       }
       if (last) {
         const word = getWordFromSelection(currentSelection);
-        if (currentSelection.length >= 2 && word_list.includes(word)) {
+        if (currentSelection.length >= 2 && wordList.includes(word)) {
           setFoundWords((prev) => [...prev, { cells: [...currentSelection], word }]);
         }
         setCurrentSelection([]);
@@ -184,16 +219,35 @@ export default function WordGame({ grid_data, dims, word_list, title }: WordGame
 
   // Check for puzzle completion
   useEffect(() => {
-    if (foundWords.length === word_list.length && foundWords.length > 0 && started) {
+    if (foundWords.length === wordList.length && foundWords.length > 0 && started) {
       setCompleted(true);
       if (timerRef.current) {
         clearInterval(timerRef.current);
       }
     }
-  }, [foundWords.length, word_list.length, started]);
+  }, [foundWords.length, wordList.length, started]);
+
+  const font_info = FONT_INFO[script];
 
   return (
     <>
+      <div className="mb-3 flex flex-col items-center justify-center">
+        <Select value={script} onValueChange={(v) => setScript(v as ScriptType)}>
+          <SelectTrigger className="w-36">
+            <SelectValue placeholder="Select Script" />
+          </SelectTrigger>
+          <SelectContent>
+            <SelectGroup>
+              <SelectLabel>Scripts</SelectLabel>
+              {SCRIPT_LIST.map((s) => (
+                <SelectItem key={s} value={s}>
+                  {s}
+                </SelectItem>
+              ))}
+            </SelectGroup>
+          </SelectContent>
+        </Select>
+      </div>
       <div className="flex flex-col items-center justify-center">
         <div className="mb-1.5 rounded-md bg-emerald-300 px-4 font-semibold text-gray-600 dark:bg-green-400 dark:text-slate-800">
           Hint
@@ -263,7 +317,7 @@ export default function WordGame({ grid_data, dims, word_list, title }: WordGame
                 gridTemplateRows: `repeat(${rows}, 1fr)`
               }}
             >
-              {grid_data.map((row, ri) =>
+              {gridData.map((row, ri) =>
                 row.map((letter, ci) => {
                   const isInCurrent = isCellInCurrentSelection(ri, ci);
                   const isInFound = isCellInFoundWords(ri, ci);
@@ -272,10 +326,13 @@ export default function WordGame({ grid_data, dims, word_list, title }: WordGame
                       key={`${ri}-${ci}`}
                       data-row={ri}
                       data-col={ci}
+                      style={{
+                        fontSize: `${font_info.fontSize}rem`
+                      }}
                       className={cn(
-                        notoSansDevanagari.className,
+                        font_info.clasName,
                         !started && 'blur-sm',
-                        'flex items-center justify-center rounded-2xl text-center text-xl font-bold',
+                        'flex items-center justify-center rounded-2xl text-center font-bold',
                         'aspect-square border-2 border-gray-200 p-1 dark:border-gray-700',
                         'transform transition-transform duration-300',
                         isInFound &&
@@ -338,12 +395,12 @@ export default function WordGame({ grid_data, dims, word_list, title }: WordGame
               <span className="mr-1.5">लब्धशब्दानि :</span>
               <span
                 className={cn(
-                  foundWords.length === word_list.length
+                  foundWords.length === wordList.length
                     ? 'text-green-700 dark:text-green-400'
                     : 'text-blue-700 dark:text-blue-400'
                 )}
               >
-                {foundWords.length}/{word_list.length}
+                {foundWords.length}/{wordList.length}
               </span>
             </h3>
           )}
