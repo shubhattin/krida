@@ -4,8 +4,14 @@ import { type Metadata } from 'next';
 import Link from 'next/link';
 import { IoMdArrowRoundBack } from 'react-icons/io';
 import WordGame from '~/components/pages/main/WordGame/WordGame';
-import { get_lang_from_cookie, SCRIPT_DATA_COOKIE_KEY } from '~/state/main.state';
+import {
+  DEFAULT_DATA_SCRIPT,
+  get_lang_from_cookie,
+  SCRIPT_DATA_COOKIE_KEY
+} from '~/state/main.state';
 import { cookies } from 'next/headers';
+import { get_transliterated_word_game_msgs } from '~/components/pages/main/WordGame/word_game_msgs';
+import { lipi_parivartak } from '~/tools/lipi_lekhika';
 
 type Props = { params: Promise<{ uuid_id: string }> };
 
@@ -36,6 +42,13 @@ const MainEdit = async ({ params }: Props) => {
   });
 
   const script = get_lang_from_cookie((await cookies()).get(SCRIPT_DATA_COOKIE_KEY)?.value);
+  const word_game_msgs = await get_transliterated_word_game_msgs(script);
+  const title = await lipi_parivartak(word_puzzle?.title ?? '', DEFAULT_DATA_SCRIPT, script);
+  const grid_data = await Promise.all(
+    (word_puzzle?.grid_data ?? []).map(
+      async (row) => await lipi_parivartak(row, DEFAULT_DATA_SCRIPT, script)
+    )
+  );
 
   return (
     <>
@@ -53,6 +66,7 @@ const MainEdit = async ({ params }: Props) => {
             word_list={word_puzzle.word_list}
             dims={word_puzzle.grid_dimensions}
             grid_data={word_puzzle.grid_data}
+            initial_script_data={{ word_msgs: word_game_msgs, title, grid_data }}
           />
         </>
       ) : (

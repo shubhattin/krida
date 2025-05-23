@@ -35,7 +35,6 @@ export default async function Home() {
   const script = get_lang_from_cookie((await cookies()).get(SCRIPT_DATA_COOKIE_KEY)?.value);
   const word_game_msgs = await get_transliterated_word_game_msgs(script);
   const title = await lipi_parivartak(word_puzzle.title, DEFAULT_DATA_SCRIPT, script);
-  // const grid_data = await lipi_parivartak(word_puzzle.grid_data, DEFAULT_DATA_SCRIPT, script);
   const grid_data = await Promise.all(
     word_puzzle.grid_data.map(
       async (row) => await lipi_parivartak(row, DEFAULT_DATA_SCRIPT, script)

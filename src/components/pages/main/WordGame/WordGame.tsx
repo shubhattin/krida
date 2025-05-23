@@ -63,7 +63,7 @@ export default function WordGame({
   const [gridData, setGridData] = useState(initial_script_data.grid_data);
   const [title_tr, setTitle] = useState(initial_script_data.title);
 
-  const [wordMsgs, setInitialData] = useState(initial_script_data.word_msgs);
+  const [wordMsgs, setWordMsgs] = useState(initial_script_data.word_msgs);
 
   useEffect(() => {
     (async () => {
@@ -74,7 +74,7 @@ export default function WordGame({
       );
       setTitle(await lipi_parivartak(title, DEFAULT_DATA_SCRIPT, script));
 
-      setInitialData({
+      setWordMsgs({
         ...(await get_transliterated_word_game_msgs(script))
       });
     })();
@@ -419,7 +419,7 @@ export default function WordGame({
         <div className="w-full max-w-md">
           {started && !completed && (
             <h3 className="mb-2 text-lg font-semibold text-stone-800 dark:text-stone-200">
-              <span className="mr-1.5">लब्धशब्दानि :</span>
+              <span className="mr-1.5">{wordMsgs.found_words} :</span>
               <span
                 className={cn(
                   foundWords.length === word_list.length
