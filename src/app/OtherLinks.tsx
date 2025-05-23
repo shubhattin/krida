@@ -9,7 +9,7 @@ import {
   DropdownMenuTrigger
 } from '@/components/ui/dropdown-menu';
 import { BsThreeDots } from 'react-icons/bs';
-import { useSession } from '~/lib/auth-client';
+import { signIn, useSession } from '~/lib/auth-client';
 import { IoIosList } from 'react-icons/io';
 import { useRouter } from 'next/navigation';
 import { GrLogin } from 'react-icons/gr';
@@ -29,8 +29,11 @@ function Others() {
       <DropdownMenuContent align="end">
         {!session.data?.user && (
           <DropdownMenuItem
-            onClick={() => {
-              window.open(`${process.env.NEXT_PUBLIC_BETTER_AUTH_URL}/login`, '_blank');
+            onClick={async () => {
+              await signIn.social({
+                provider: 'google',
+                callbackURL: window.location.href
+              });
             }}
           >
             <GrLogin />

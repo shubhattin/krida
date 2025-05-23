@@ -367,16 +367,14 @@ export default function WordGame({ grid_data, dims, word_list, title }: WordGame
             </div>
           )}
         </div>
-        <div className="flex items-center justify-start">
-          <Accordion type="single" collapsible>
-            <AccordionItem value="item-1">
-              <AccordionTrigger>How to Play ?</AccordionTrigger>
-              <AccordionContent>
-                After Starting the game select the cells to make a word combination.
-              </AccordionContent>
-            </AccordionItem>
-          </Accordion>
-        </div>
+        <Accordion type="single" collapsible>
+          <AccordionItem value="item-1">
+            <AccordionTrigger>How to Play ?</AccordionTrigger>
+            <AccordionContent>
+              After Starting the game select the cells to make a word combination.
+            </AccordionContent>
+          </AccordionItem>
+        </Accordion>
       </div>
     </>
   );
