@@ -455,7 +455,7 @@ export default function WordGame({
                   className="m-0 mt-1.5 gap-1.5 bg-green-600 px-1.5 py-1 text-lg text-white hover:bg-green-700 dark:bg-green-700 dark:hover:bg-green-800"
                 >
                   <IoShareSocialOutline className="text-lg" />
-                  सन्दातु
+                  Share
                 </Button>
               )}
             </div>
