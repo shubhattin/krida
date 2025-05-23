@@ -16,13 +16,12 @@ import {
   AccordionTrigger
 } from '~/components/ui/accordion';
 import { lipi_parivartak } from '~/tools/lipi_lekhika';
-import { useAtom } from 'jotai';
 import {
-  script_atom,
   DEFAULT_DATA_SCRIPT,
   type ScriptType,
   SCRIPT_LIST,
-  FONT_INFO
+  FONT_INFO,
+  SCRIPT_DATA_COOKIE_KEY
 } from '~/state/main.state';
 import {
   Select,
@@ -33,33 +32,51 @@ import {
   SelectTrigger,
   SelectValue
 } from '~/components/ui/select';
+import Cookies from 'js-cookie';
+import { get_transliterated_word_game_msgs, word_game_msgs } from './word_game_msgs';
 
 interface WordGameProps {
   grid_data: string[][];
   dims: number[];
   word_list: string[];
   title: string;
+  script_init: ScriptType;
+  initial_script_data: {
+    word_msgs: typeof word_game_msgs;
+    title: string;
+    grid_data: string[][];
+  };
 }
 
 type CellPosition = { row: number; col: number };
 type Selection = { cells: CellPosition[]; word: string };
 
-export default function WordGame({ grid_data, dims, word_list, title }: WordGameProps) {
-  const [script, setScript] = useAtom(script_atom);
-  const [gridData, setGridData] = useState(grid_data);
-  const [wordList, setWordList] = useState(word_list);
+export default function WordGame({
+  grid_data,
+  dims,
+  word_list,
+  title,
+  script_init,
+  initial_script_data
+}: WordGameProps) {
+  const [script, setScript] = useState<ScriptType>(script_init);
+  const [gridData, setGridData] = useState(initial_script_data.grid_data);
+  const [title_tr, setTitle] = useState(initial_script_data.title);
+
+  const [wordMsgs, setInitialData] = useState(initial_script_data.word_msgs);
 
   useEffect(() => {
-    lipi_parivartak(word_list, DEFAULT_DATA_SCRIPT, script).then((v) => {
-      setWordList(v);
-    });
     (async () => {
-      const alphas: string[][] = [];
-      for (let i = 0; i < grid_data.length; i++) {
-        const row = grid_data[i];
-        alphas.push(await lipi_parivartak(row, DEFAULT_DATA_SCRIPT, script));
-      }
-      setGridData(alphas);
+      setGridData(
+        await Promise.all(
+          grid_data.map(async (row) => await lipi_parivartak(row, DEFAULT_DATA_SCRIPT, script))
+        )
+      );
+      setTitle(await lipi_parivartak(title, DEFAULT_DATA_SCRIPT, script));
+
+      setInitialData({
+        ...(await get_transliterated_word_game_msgs(script))
+      });
     })();
   }, [script]);
 
@@ -84,7 +101,7 @@ export default function WordGame({ grid_data, dims, word_list, title }: WordGame
   const isCellInFoundWords = (r: number, c: number) =>
     foundWords.some((sel) => sel.cells.some((cell) => cell.row === r && cell.col === c));
   const getWordFromSelection = (sel: CellPosition[]) =>
-    sel.map((cell) => gridData[cell.row][cell.col]).join('');
+    sel.map((cell) => grid_data[cell.row][cell.col]).join('');
 
   // re-compute bbox on mount & on resize
   useEffect(() => {
@@ -167,7 +184,7 @@ export default function WordGame({ grid_data, dims, word_list, title }: WordGame
       }
       if (last) {
         const word = getWordFromSelection(currentSelection);
-        if (currentSelection.length >= 2 && wordList.includes(word)) {
+        if (currentSelection.length >= 2 && word_list.includes(word)) {
           setFoundWords((prev) => [...prev, { cells: [...currentSelection], word }]);
         }
         setCurrentSelection([]);
@@ -219,40 +236,50 @@ export default function WordGame({ grid_data, dims, word_list, title }: WordGame
 
   // Check for puzzle completion
   useEffect(() => {
-    if (foundWords.length === wordList.length && foundWords.length > 0 && started) {
+    if (foundWords.length === word_list.length && foundWords.length > 0 && started) {
       setCompleted(true);
       if (timerRef.current) {
         clearInterval(timerRef.current);
       }
     }
-  }, [foundWords.length, wordList.length, started]);
+  }, [foundWords.length, word_list.length, started]);
 
   const font_info = FONT_INFO[script];
 
   return (
     <>
-      <div className="mb-3 flex flex-col items-center justify-center">
-        <Select value={script} onValueChange={(v) => setScript(v as ScriptType)}>
-          <SelectTrigger className="w-36">
-            <SelectValue placeholder="Select Script" />
-          </SelectTrigger>
-          <SelectContent>
-            <SelectGroup>
-              <SelectLabel>Scripts</SelectLabel>
-              {SCRIPT_LIST.map((s) => (
-                <SelectItem key={s} value={s}>
-                  {s}
-                </SelectItem>
-              ))}
-            </SelectGroup>
-          </SelectContent>
-        </Select>
+      <div>
+        <div className="mb-3 flex flex-col items-center justify-center">
+          <Select
+            value={script}
+            onValueChange={(v) => {
+              setScript(v as ScriptType);
+              Cookies.set(SCRIPT_DATA_COOKIE_KEY, v as ScriptType, {
+                expires: 365 // 1 year
+              });
+            }}
+          >
+            <SelectTrigger className="w-36">
+              <SelectValue placeholder="Select Script" />
+            </SelectTrigger>
+            <SelectContent>
+              <SelectGroup>
+                <SelectLabel>Scripts</SelectLabel>
+                {SCRIPT_LIST.map((s) => (
+                  <SelectItem key={s} value={s}>
+                    {s}
+                  </SelectItem>
+                ))}
+              </SelectGroup>
+            </SelectContent>
+          </Select>
+        </div>
       </div>
       <div className="flex flex-col items-center justify-center">
         <div className="mb-1.5 rounded-md bg-emerald-300 px-4 font-semibold text-gray-600 dark:bg-green-400 dark:text-slate-800">
           Hint
         </div>
-        <span className="text-2xl font-bold">{title}</span>
+        <span className="text-2xl font-bold">{title_tr}</span>
       </div>
       <div className="flex flex-col items-center gap-6 p-4">
         <div className="flex w-full max-w-md items-center justify-center">
@@ -269,7 +296,7 @@ export default function WordGame({ grid_data, dims, word_list, title }: WordGame
                 className="-mt-1.5 text-2xl text-green-500 group-hover:text-emerald-600 dark:text-green-400"
               />
               <span className="text-2xl text-amber-500 group-hover:text-yellow-600 dark:text-amber-300 group-hover:dark:text-yellow-400">
-                क्रीड
+                {wordMsgs.play}
               </span>
             </button>
           )}
@@ -283,7 +310,7 @@ export default function WordGame({ grid_data, dims, word_list, title }: WordGame
             >
               <MdReplay className="text-2xl" />
               <span className="text-2xl text-sky-600 group-hover:text-sky-700 dark:text-sky-300 group-hover:dark:text-sky-400">
-                पुनः
+                {wordMsgs.replay}
               </span>
             </button>
           )}
@@ -395,12 +422,12 @@ export default function WordGame({ grid_data, dims, word_list, title }: WordGame
               <span className="mr-1.5">लब्धशब्दानि :</span>
               <span
                 className={cn(
-                  foundWords.length === wordList.length
+                  foundWords.length === word_list.length
                     ? 'text-green-700 dark:text-green-400'
                     : 'text-blue-700 dark:text-blue-400'
                 )}
               >
-                {foundWords.length}/{wordList.length}
+                {foundWords.length}/{word_list.length}
               </span>
             </h3>
           )}
@@ -408,7 +435,7 @@ export default function WordGame({ grid_data, dims, word_list, title }: WordGame
           {completed && (
             <div className="mt-4 text-center">
               <p className="text-lg font-semibold text-green-700 dark:text-green-400">
-                क्रीडनाय गृहीतकालम् - <span className="font-mono">{formatTime(seconds)}</span>
+                {wordMsgs.time_taken} - <span className="font-mono">{formatTime(seconds)}</span>
               </p>
               {typeof navigator !== 'undefined' && navigator.share && (
                 // {true && (
@@ -434,15 +461,15 @@ export default function WordGame({ grid_data, dims, word_list, title }: WordGame
             </div>
           )}
         </div>
-        <Accordion type="single" collapsible>
-          <AccordionItem value="item-1">
-            <AccordionTrigger>How to Play ?</AccordionTrigger>
-            <AccordionContent>
-              After Starting the game select the cells to make a word combination.
-            </AccordionContent>
-          </AccordionItem>
-        </Accordion>
       </div>
+      <Accordion type="single" collapsible>
+        <AccordionItem value="item-1">
+          <AccordionTrigger>How to Play ?</AccordionTrigger>
+          <AccordionContent>
+            After Starting the game select the cells to make a word combination.
+          </AccordionContent>
+        </AccordionItem>
+      </Accordion>
     </>
   );
 }

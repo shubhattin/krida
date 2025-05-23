@@ -77,6 +77,9 @@ importers:
       jotai:
         specifier: ^2.12.4
         version: 2.12.4(@types/react@19.1.4)(react@19.1.0)
+      js-cookie:
+        specifier: ^3.0.5
+        version: 3.0.5
       lucide-react:
         specifier: ^0.510.0
         version: 0.510.0(react@19.1.0)
@@ -126,6 +129,9 @@ importers:
       '@tanstack/react-query-devtools':
         specifier: ^5.76.1
         version: 5.76.1(@tanstack/react-query@5.76.1(react@19.1.0))(react@19.1.0)
+      '@types/js-cookie':
+        specifier: ^3.0.6
+        version: 3.0.6
       '@types/ms':
         specifier: ^2.1.0
         version: 2.1.0
@@ -1462,6 +1468,9 @@ packages:
     peerDependencies:
       typescript: '>=5.7.2'
 
+  '@types/js-cookie@3.0.6':
+    resolution: {integrity: sha512-wkw9yd1kEXOPnvEeEV1Go1MmxtBJL0RR79aOTAApecWFVu7w0NNXNqhcWgvw2YgZDYadliXkl14pa3WXw5jlCQ==}
+
   '@types/ms@2.1.0':
     resolution: {integrity: sha512-GsCCIZDE/p3i96vtEqx+7dBUGXrc7zeSK3wwPHIaRThS+9OhWIXRqzs4d6k1SVU8g91DrNRWxWUGhp5KXQb2VA==}
 
@@ -1827,6 +1836,10 @@ packages:
         optional: true
       react:
         optional: true
+
+  js-cookie@3.0.5:
+    resolution: {integrity: sha512-cEiJEAEoIbWfCZYKWhVwFuvPX1gETRYPw6LlaTKoxD3s2AkXzkCjnp6h0V77ozyqj0jakteJ4YqDJT830+lVGw==}
+    engines: {node: '>=14'}
 
   kysely@0.28.2:
     resolution: {integrity: sha512-4YAVLoF0Sf0UTqlhgQMFU9iQECdah7n+13ANkiuVfRvlK+uI0Etbgd7bVP36dKlG+NXWbhGua8vnGt+sdhvT7A==}
@@ -3425,6 +3438,8 @@ snapshots:
     dependencies:
       typescript: 5.8.3
 
+  '@types/js-cookie@3.0.6': {}
+
   '@types/ms@2.1.0': {}
 
   '@types/node@20.17.48':
@@ -3733,6 +3748,8 @@ snapshots:
     optionalDependencies:
       '@types/react': 19.1.4
       react: 19.1.0
+
+  js-cookie@3.0.5: {}
 
   kysely@0.28.2: {}
 

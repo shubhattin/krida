@@ -3,7 +3,9 @@ import { db } from '~/db/db';
 import { type Metadata } from 'next';
 import Link from 'next/link';
 import { IoMdArrowRoundBack } from 'react-icons/io';
-import WordGame from '~/components/pages/main/WordGame';
+import WordGame from '~/components/pages/main/WordGame/WordGame';
+import { get_lang_from_cookie, SCRIPT_DATA_COOKIE_KEY } from '~/state/main.state';
+import { cookies } from 'next/headers';
 
 type Props = { params: Promise<{ uuid_id: string }> };
 
@@ -33,6 +35,8 @@ const MainEdit = async ({ params }: Props) => {
     where: (tbl, { eq, and }) => and(eq(tbl.id, id), eq(tbl.uuid, uuid))
   });
 
+  const script = get_lang_from_cookie((await cookies()).get(SCRIPT_DATA_COOKIE_KEY)?.value);
+
   return (
     <>
       <div className="my-2 mb-3.5 px-2">
@@ -44,6 +48,7 @@ const MainEdit = async ({ params }: Props) => {
       {word_puzzle ? (
         <>
           <WordGame
+            script_init={script}
             title={word_puzzle.title}
             word_list={word_puzzle.word_list}
             dims={word_puzzle.grid_dimensions}

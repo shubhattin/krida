@@ -1,7 +1,15 @@
 import { db } from '~/db/db';
 import { Metadata } from 'next';
-import WordGame from '~/components/pages/main/WordGame';
+import WordGame from '~/components/pages/main/WordGame/WordGame';
 import Others from './OtherLinks';
+import { cookies } from 'next/headers';
+import {
+  DEFAULT_DATA_SCRIPT,
+  get_lang_from_cookie,
+  SCRIPT_DATA_COOKIE_KEY
+} from '~/state/main.state';
+import { get_transliterated_word_game_msgs } from '~/components/pages/main/WordGame/word_game_msgs';
+import { lipi_parivartak } from '~/tools/lipi_lekhika';
 
 export const dynamic = 'force-dynamic';
 
@@ -24,6 +32,16 @@ export default async function Home() {
     where: ({ id }, { eq }) => eq(id, list[randomIndex].id)
   }))!;
 
+  const script = get_lang_from_cookie((await cookies()).get(SCRIPT_DATA_COOKIE_KEY)?.value);
+  const word_game_msgs = await get_transliterated_word_game_msgs(script);
+  const title = await lipi_parivartak(word_puzzle.title, DEFAULT_DATA_SCRIPT, script);
+  // const grid_data = await lipi_parivartak(word_puzzle.grid_data, DEFAULT_DATA_SCRIPT, script);
+  const grid_data = await Promise.all(
+    word_puzzle.grid_data.map(
+      async (row) => await lipi_parivartak(row, DEFAULT_DATA_SCRIPT, script)
+    )
+  );
+
   return (
     <>
       <main className="flex flex-1 items-center justify-center p-4">
@@ -38,6 +56,8 @@ export default async function Home() {
             grid_data={word_puzzle.grid_data}
             dims={word_puzzle.grid_dimensions}
             word_list={word_puzzle.word_list}
+            script_init={script}
+            initial_script_data={{ word_msgs: word_game_msgs, title, grid_data }}
           />
         </div>
       </main>

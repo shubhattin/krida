@@ -31,7 +31,7 @@ export default async function RootLayout({
           disableTransitionOnChange
         >
           <div className="contaiiner mx-auto mb-1 max-w-screen-lg">
-            <AppBar title="पदावली" />
+            <AppBar title="Padavali" />
             <Provider>
               <div className="mx-2">{children}</div>
               <Toaster richColors={true} />
