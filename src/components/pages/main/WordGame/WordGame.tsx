@@ -1,6 +1,12 @@
 'use client';
 
 import { useState, useRef, useEffect } from 'react';
+import {
+  Accordion,
+  AccordionItem,
+  AccordionContent,
+  AccordionTrigger
+} from '~/components/ui/accordion';
 import { lipi_parivartak } from '~/tools/lipi_lekhika';
 import { DEFAULT_DATA_SCRIPT, type ScriptType } from '~/state/script_font_data';
 import { get_transliterated_word_game_msgs, type word_game_msgs } from './word_game_msgs';
@@ -8,7 +14,6 @@ import { GameContoller, type CellPosition, type Selection } from './GameControll
 import { GameBottom } from './BottomSection';
 import { GameGrid } from './GameGrid';
 import { ScriptSelector } from './ScriptSelector';
-import { GameHelp } from './GameHelp';
 
 interface WordGameProps {
   grid_data: string[][];
@@ -37,7 +42,6 @@ export default function WordGame({
 
   const [wordMsgs, setWordMsgs] = useState(initial_script_data.word_msgs);
 
-  // transliteration
   useEffect(() => {
     (async () => {
       setGridData(
@@ -129,7 +133,22 @@ export default function WordGame({
           word_list={word_list}
         />
       </div>
-      <GameHelp />
+      <Accordion type="single" collapsible>
+        <AccordionItem value="item-1">
+          <AccordionTrigger>How to Play ?</AccordionTrigger>
+          <AccordionContent>
+            <div>
+              🔹Swipe up, down, forward, backward, or diagonally, to form words inside the grid that
+              match the Hint.
+            </div>
+            <div>🔹Find all the words to complete the Puzzle.</div>
+            <div>
+              🔹Share your puzzle solving time with Friends, and on Social Media. Tag us
+              <span className="mx-1 text-blue-500 dark:text-blue-400">@thesanskritchannel</span>
+            </div>
+          </AccordionContent>
+        </AccordionItem>
+      </Accordion>
     </>
   );
 }
