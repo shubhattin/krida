@@ -1,0 +1,47 @@
+import { SCRIPT_DATA_COOKIE_KEY, SCRIPT_LIST, type ScriptType } from '~/state/script_font_data';
+import Cookies from 'js-cookie';
+import type { Dispatch, SetStateAction } from 'react';
+import { cn } from '~/lib/utils';
+
+type Props = {
+  script: ScriptType;
+  setScript: Dispatch<SetStateAction<ScriptType>>;
+};
+
+export const ScriptSelector = ({ script, setScript }: Props) => {
+  return (
+    <div>
+      <div className="mb-3 flex flex-col items-center justify-center">
+        <select
+          value={script}
+          className={cn(
+            'select rounded-md border border-gray-300 bg-white px-2 py-1 text-sm text-gray-700 shadow-sm focus:border-blue-500 focus:ring-1 focus:ring-blue-500 focus:outline-none',
+            'bg-white dark:border-gray-600 dark:bg-gray-800 dark:text-gray-200 dark:focus:border-blue-500 dark:focus:ring-blue-500',
+            'w-32'
+          )}
+          onChange={(e) => {
+            setScript(e.target.value as ScriptType);
+            Cookies.set(SCRIPT_DATA_COOKIE_KEY, e.target.value, {
+              expires: 365 // 1 year
+            });
+          }}
+        >
+          {SCRIPT_LIST.map((s) => (
+            <option
+              key={s}
+              value={s}
+              onClick={() => {
+                setScript(s as ScriptType);
+                Cookies.set(SCRIPT_DATA_COOKIE_KEY, s, {
+                  expires: 365 // 1 year
+                });
+              }}
+            >
+              {s}
+            </option>
+          ))}
+        </select>
+      </div>
+    </div>
+  );
+};
