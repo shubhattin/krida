@@ -22,7 +22,7 @@ import {
   SCRIPT_LIST,
   FONT_INFO,
   SCRIPT_DATA_COOKIE_KEY
-} from '~/state/main.state';
+} from '~/state/script_font_data';
 import {
   Select,
   SelectContent,

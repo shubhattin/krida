@@ -7,7 +7,7 @@ import {
   DEFAULT_DATA_SCRIPT,
   get_lang_from_cookie,
   SCRIPT_DATA_COOKIE_KEY
-} from '~/state/main.state';
+} from '~/state/script_font_data';
 import { get_transliterated_word_game_msgs } from '~/components/pages/main/WordGame/word_game_msgs';
 import { lipi_parivartak } from '~/tools/lipi_lekhika';
 
