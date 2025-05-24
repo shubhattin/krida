@@ -1,12 +1,6 @@
 'use client';
 
 import { useState, useRef, useEffect } from 'react';
-import {
-  Accordion,
-  AccordionItem,
-  AccordionContent,
-  AccordionTrigger
-} from '~/components/ui/accordion';
 import { lipi_parivartak } from '~/tools/lipi_lekhika';
 import { DEFAULT_DATA_SCRIPT, type ScriptType } from '~/state/script_font_data';
 import { get_transliterated_word_game_msgs, type word_game_msgs } from './word_game_msgs';
@@ -14,6 +8,7 @@ import { GameContoller, type CellPosition, type Selection } from './GameControll
 import { GameBottom } from './BottomSection';
 import { GameGrid } from './GameGrid';
 import { ScriptSelector } from './ScriptSelector';
+import { GameHelp } from './GameHelp';
 
 interface WordGameProps {
   grid_data: string[][];
@@ -42,6 +37,7 @@ export default function WordGame({
 
   const [wordMsgs, setWordMsgs] = useState(initial_script_data.word_msgs);
 
+  // transliteration
   useEffect(() => {
     (async () => {
       setGridData(
@@ -83,25 +79,6 @@ export default function WordGame({
     return () => ro.disconnect();
   }, []);
 
-  // Timer effect
-  useEffect(() => {
-    return () => {
-      if (timerRef.current) {
-        clearInterval(timerRef.current);
-      }
-    };
-  }, []);
-
-  // Check for puzzle completion
-  useEffect(() => {
-    if (foundWords.length === word_list.length && foundWords.length > 0 && started) {
-      setCompleted(true);
-      if (timerRef.current) {
-        clearInterval(timerRef.current);
-      }
-    }
-  }, [foundWords.length, word_list.length, started]);
-
   return (
     <>
       <ScriptSelector script={script} setScript={setScript} />
@@ -138,6 +115,8 @@ export default function WordGame({
           setFoundWords={setFoundWords}
           started={started}
           word_list={word_list}
+          timerRef={timerRef}
+          setCompleted={setCompleted}
         />
 
         <GameBottom
@@ -150,14 +129,7 @@ export default function WordGame({
           word_list={word_list}
         />
       </div>
-      <Accordion type="single" collapsible>
-        <AccordionItem value="item-1">
-          <AccordionTrigger>How to Play ?</AccordionTrigger>
-          <AccordionContent>
-            After Starting the game select the cells to make a word combination.
-          </AccordionContent>
-        </AccordionItem>
-      </Accordion>
+      <GameHelp />
     </>
   );
 }

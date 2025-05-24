@@ -1,5 +1,5 @@
 import { useDrag } from '@use-gesture/react';
-import type { Dispatch, RefObject, SetStateAction } from 'react';
+import { useEffect, type Dispatch, type RefObject, type SetStateAction } from 'react';
 import { Card } from '~/components/ui/card';
 import { FONT_INFO, type ScriptType } from '~/state/script_font_data';
 import { type CellPosition } from './GameController';
@@ -17,8 +17,10 @@ type Props = {
   word_list: string[];
   grid_data: string[][];
   foundWords: { cells: CellPosition[]; word: string }[];
+  timerRef: RefObject<NodeJS.Timeout | null>;
   setCurrentSelection: Dispatch<SetStateAction<CellPosition[]>>;
   setFoundWords: Dispatch<SetStateAction<{ cells: CellPosition[]; word: string }[]>>;
+  setCompleted: Dispatch<SetStateAction<boolean>>;
 };
 
 export const GameGrid = ({
@@ -33,8 +35,10 @@ export const GameGrid = ({
   word_list,
   foundWords,
   grid_data,
+  timerRef,
   setCurrentSelection,
-  setFoundWords
+  setFoundWords,
+  setCompleted
 }: Props) => {
   const font_info = FONT_INFO[script];
 
@@ -133,6 +137,16 @@ export const GameGrid = ({
     foundWords.some((sel) => sel.cells.some((cell) => cell.row === r && cell.col === c));
   const getWordFromSelection = (sel: CellPosition[]) =>
     sel.map((cell) => grid_data[cell.row][cell.col]).join('');
+
+  // Check for puzzle completion
+  useEffect(() => {
+    if (foundWords.length === word_list.length && foundWords.length > 0 && started) {
+      setCompleted(true);
+      if (timerRef.current) {
+        clearInterval(timerRef.current);
+      }
+    }
+  }, [foundWords.length, word_list.length, started]);
 
   return (
     <Card className="m-0 p-2 sm:p-2.5">

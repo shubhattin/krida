@@ -2,7 +2,7 @@ import { MdReplay } from 'react-icons/md';
 import { cn } from '~/lib/utils';
 import Icon from '~/tools/Icon';
 import { BrainIcon } from '~/components/icons';
-import type { Dispatch, RefObject, SetStateAction } from 'react';
+import { useEffect, type Dispatch, type RefObject, type SetStateAction } from 'react';
 import { type word_game_msgs } from './word_game_msgs';
 
 export type CellPosition = { row: number; col: number };
@@ -53,6 +53,15 @@ export const GameContoller = ({
       setSeconds((prev) => prev + 1);
     }, 1000);
   };
+
+  // Timer effect
+  useEffect(() => {
+    return () => {
+      if (timerRef.current) {
+        clearInterval(timerRef.current);
+      }
+    };
+  }, []);
 
   return (
     <div className="flex w-full max-w-md items-center justify-center">
