@@ -160,7 +160,8 @@ export const GameGrid = ({
           <div
             ref={gridRef}
             {...(started || !completed ? { ...bind() } : {})}
-            className="relative z-10 mx-auto grid h-full w-full touch-none gap-1.5 select-none sm:gap-2 md:gap-3"
+            className="relative z-10 mx-auto grid h-full w-full gap-1.5 select-none sm:gap-2 md:gap-3"
+            // touch-none
             style={{
               gridTemplateColumns: `repeat(${cols}, 1fr)`,
               gridTemplateRows: `repeat(${rows}, 1fr)`,
@@ -282,7 +283,7 @@ const GridCell = ({
       }}
       className={cn(
         fontInfo.clasName,
-        !started && 'cursor-not-allowed blur-sm',
+        !started && 'blur-sm',
         started && 'cursor-pointer',
         'flex items-center justify-center rounded-xl text-center font-bold sm:rounded-2xl',
         'aspect-square border-2 p-1 sm:p-2 md:p-3',
