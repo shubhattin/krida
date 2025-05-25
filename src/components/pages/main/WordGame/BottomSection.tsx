@@ -57,9 +57,7 @@ export const GameBottom = ({
                   await navigator
                     .share({
                       title: `${title} - पदावलीशब्दक्रीडनम्`,
-                      text:
-                        `I completed '${title}' in ${formatTime(seconds)} !\n\nTry it out at ` +
-                        window.location.origin
+                      text: get_share_msg(title, formatTime(seconds))
                     })
                     .catch((err) => console.log('Error sharing:', err));
                 }
@@ -74,4 +72,17 @@ export const GameBottom = ({
       )}
     </div>
   );
+};
+
+const get_share_msg = (name: string, time_taken: string) => {
+  const msg = [
+    `✨I just solved a Super Fun, Interactive, Sanskrit Puzzle - 'Padavali'`,
+    `'${name}' in a record ${time_taken} sec.s`,
+    `💪🏽I challenge you to beat my record!`,
+    `Play it NOW at https://krida.thesanskritchannel.org`,
+    `Playable in Devanagari/Telugu/Kannada/Gujarati/Bengali!`,
+    `नमस्ते - నమస్తే - ನಮಸ್ತೇ - નમસ્તે - নমস্তে`
+  ].join('\n');
+
+  return msg;
 };
