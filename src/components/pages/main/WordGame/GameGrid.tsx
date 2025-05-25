@@ -159,7 +159,7 @@ export const GameGrid = ({
           {/* Game Grid */}
           <div
             ref={gridRef}
-            {...bind()}
+            {...(started || !completed ? { ...bind() } : {})}
             className="relative z-10 mx-auto grid h-full w-full touch-none gap-1.5 select-none sm:gap-2 md:gap-3"
             style={{
               gridTemplateColumns: `repeat(${cols}, 1fr)`,
