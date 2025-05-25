@@ -168,61 +168,18 @@ export const GameGrid = ({
             }}
           >
             {gridData.map((row, ri) =>
-              row.map((letter, ci) => {
-                const isInCurrent = isCellInCurrentSelection(ri, ci);
-                const isInFound = isCellInFoundWords(ri, ci);
-                return (
-                  <div
-                    key={`${ri}-${ci}`}
-                    data-row={ri}
-                    data-col={ci}
-                    style={{
-                      fontSize: `${font_info.fontSize}rem`
-                    }}
-                    className={cn(
-                      font_info.clasName,
-                      !started && 'cursor-not-allowed blur-sm',
-                      started && 'cursor-pointer',
-                      'flex items-center justify-center rounded-xl text-center font-bold sm:rounded-2xl',
-                      'aspect-square border-2 p-1 sm:p-2 md:p-3',
-                      'transform transition-all duration-300 ease-out',
-                      'hover:scale-105 active:scale-95',
-                      // Default state
-                      'border-slate-300 bg-gradient-to-br from-white to-slate-50 dark:border-slate-600 dark:from-slate-700 dark:to-slate-800',
-                      'shadow-lg hover:shadow-xl',
-                      // Found words styling
-                      isInFound && [
-                        'border-emerald-400 dark:border-emerald-500',
-                        'bg-gradient-to-br from-emerald-100 to-green-200 dark:from-emerald-900 dark:to-green-800',
-                        'text-emerald-800 dark:text-emerald-100',
-                        'shadow-emerald-200 dark:shadow-emerald-900'
-                      ],
-                      // Current selection styling
-                      isInCurrent &&
-                        !isInFound && [
-                          'border-blue-400 dark:border-blue-500',
-                          'bg-gradient-to-br from-blue-100 to-indigo-200 dark:from-blue-900 dark:to-indigo-800',
-                          'text-blue-800 dark:text-blue-100',
-                          'shadow-blue-200 dark:shadow-blue-900'
-                        ],
-                      // Last selected cell highlight
-                      isInCurrent &&
-                        !isInFound &&
-                        currentSelection.length !== 0 &&
-                        currentSelection.at(-1)?.row === ri &&
-                        currentSelection.at(-1)?.col === ci &&
-                        'ring-opacity-50 ring-4 ring-blue-300 dark:ring-blue-600',
-                      // Subtle glow for unselected cells
-                      !isInCurrent &&
-                        !isInFound &&
-                        started &&
-                        'hover:bg-gradient-to-br hover:from-slate-100 hover:to-slate-200 dark:hover:from-slate-600 dark:hover:to-slate-700'
-                    )}
-                  >
-                    {letter}
-                  </div>
-                );
-              })
+              row.map((letter, ci) => (
+                <GridCell
+                  key={`${ri}-${ci}`}
+                  row={ri}
+                  col={ci}
+                  letter={letter}
+                  fontInfo={font_info}
+                  started={started}
+                  currentSelection={currentSelection}
+                  foundWords={foundWords}
+                />
+              ))
             )}
           </div>
 
@@ -283,6 +240,77 @@ export const GameGrid = ({
           </svg>
         </div>
       </div>
+    </div>
+  );
+};
+
+type GridCellProps = {
+  row: number;
+  col: number;
+  letter: string;
+  fontInfo: { fontSize: number; clasName: string };
+  started: boolean;
+  currentSelection: CellPosition[];
+  foundWords: { cells: CellPosition[]; word: string }[];
+};
+
+const GridCell = ({
+  row,
+  col,
+  letter,
+  fontInfo,
+  started,
+  currentSelection,
+  foundWords
+}: GridCellProps) => {
+  const isInCurrent = currentSelection.some((cell) => cell.row === row && cell.col === col);
+  const isInFound = foundWords.some((sel) =>
+    sel.cells.some((cell) => cell.row === row && cell.col === col)
+  );
+  const isLast =
+    isInCurrent &&
+    currentSelection.length !== 0 &&
+    currentSelection.at(-1)?.row === row &&
+    currentSelection.at(-1)?.col === col;
+
+  return (
+    <div
+      data-row={row}
+      data-col={col}
+      style={{
+        fontSize: `${fontInfo.fontSize}rem`
+      }}
+      className={cn(
+        fontInfo.clasName,
+        !started && 'cursor-not-allowed blur-sm',
+        started && 'cursor-pointer',
+        'flex items-center justify-center rounded-xl text-center font-bold sm:rounded-2xl',
+        'aspect-square border-2 p-1 sm:p-2 md:p-3',
+        'transform transition-all duration-300 ease-out',
+        'hover:scale-105 active:scale-95',
+        'border-slate-300 bg-gradient-to-br from-white to-slate-50 dark:border-slate-600 dark:from-slate-700 dark:to-slate-800',
+        'shadow-lg hover:shadow-xl',
+        isInFound && [
+          'border-emerald-400 dark:border-emerald-500',
+          'bg-gradient-to-br from-emerald-100 to-green-200 dark:from-emerald-900 dark:to-green-800',
+          'text-emerald-800 dark:text-emerald-100',
+          'shadow-emerald-200 dark:shadow-emerald-900'
+        ],
+        isInCurrent &&
+          !isInFound && [
+            'border-blue-400 dark:border-blue-500',
+            'bg-gradient-to-br from-blue-100 to-indigo-200 dark:from-blue-900 dark:to-indigo-800',
+            'text-blue-800 dark:text-blue-100',
+            'shadow-blue-200 dark:shadow-blue-900'
+          ],
+        isLast && 'ring-opacity-50 ring-4 ring-blue-300 dark:ring-blue-600',
+        !isInCurrent &&
+          !isInFound &&
+          started &&
+          'hover:bg-gradient-to-br hover:from-slate-100 hover:to-slate-200 dark:hover:from-slate-600 dark:hover:to-slate-700'
+      )}
+    >
+      {letter}
     </div>
   );
 };

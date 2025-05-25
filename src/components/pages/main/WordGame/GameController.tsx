@@ -76,13 +76,13 @@ export const GameContoller = ({
             onClick={handleStart}
             className={cn(
               'group relative overflow-hidden bg-gradient-to-r from-emerald-500 to-teal-500 hover:from-emerald-600 hover:to-teal-600',
-              'rounded-xl px-4 py-3 font-bold text-white shadow-lg hover:shadow-xl sm:rounded-2xl sm:px-8 sm:py-4',
+              'rounded-xl px-3 py-2 font-bold text-white shadow-lg hover:shadow-xl sm:rounded-2xl sm:px-8 sm:py-4',
               'transform transition-all duration-200 hover:scale-105 active:scale-95',
               'flex w-full items-center justify-center space-x-2 sm:space-x-3'
             )}
           >
-            <Icon src={BrainIcon} className="text-xl sm:text-2xl" />
-            <span className="text-lg sm:text-xl">{wordMsgs.play}</span>
+            <Icon src={BrainIcon} className="text-2xl sm:text-3xl" />
+            <span className="text-xl sm:text-2xl">{wordMsgs.play}</span>
           </button>
         )}
 
@@ -91,13 +91,13 @@ export const GameContoller = ({
             onClick={handleStart}
             className={cn(
               'group relative overflow-hidden bg-gradient-to-r from-blue-500 to-indigo-500 hover:from-blue-600 hover:to-indigo-600',
-              'rounded-xl px-4 py-3 font-bold text-white shadow-lg hover:shadow-xl sm:rounded-2xl sm:px-8 sm:py-4',
+              'rounded-xl px-3 py-2 font-bold text-white shadow-lg hover:shadow-xl sm:rounded-2xl sm:px-8 sm:py-4',
               'transform transition-all duration-200 hover:scale-105 active:scale-95',
               'flex w-full items-center justify-center space-x-2 sm:space-x-3'
             )}
           >
-            <MdReplay className="text-xl sm:text-2xl" />
-            <span className="text-lg sm:text-xl">{wordMsgs.replay}</span>
+            <MdReplay className="text-2xl sm:text-3xl" />
+            <span className="text-xl sm:text-2xl">{wordMsgs.replay}</span>
           </button>
         )}
 

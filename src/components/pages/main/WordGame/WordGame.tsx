@@ -85,13 +85,18 @@ export default function WordGame({
 
   return (
     <div className="min-h-screen w-full bg-gradient-to-br from-slate-50 via-blue-50 to-indigo-50 dark:from-slate-900 dark:via-slate-800 dark:to-slate-900">
-      <div className="flex items-center justify-center gap-2 pt-2.5 sm:pt-4 lg:pt-5">
+      <div
+        className={cn(
+          'flex items-center justify-center gap-2 pt-2.5 sm:pt-4 lg:pt-5',
+          'mb-2.5 sm:mb-4'
+        )}
+      >
         <Icon className="h-8 w-8" src={LanguageIcon} />
         <ScriptSelector />
       </div>
       <div className="container mx-auto my-3.5 max-w-7xl px-4">
         {/* Header Section */}
-        <div className="mb-3 space-y-2 text-center">
+        <div className="mb-3 space-y-1 text-center sm:space-y-1.5">
           <div className="inline-flex items-center gap-2 rounded-xl bg-gradient-to-r from-emerald-500 to-teal-500 px-5 py-1.5 text-white shadow-lg">
             <span className="text-sm font-semibold tracking-wide uppercase">Hint</span>
           </div>
@@ -107,10 +112,15 @@ export default function WordGame({
             <div
               className={cn(
                 'flex items-center justify-center',
-                started && 'grid grid-cols-2 gap-3 lg:sticky lg:top-6 lg:grid-cols-1 lg:gap-4'
+                (started || completed) &&
+                  'grid grid-cols-[auto_1fr] gap-3 sm:grid-cols-2 lg:sticky lg:top-6 lg:grid-cols-1 lg:gap-4'
               )}
             >
-              <div className="rounded-2xl border border-slate-200 bg-white px-4 py-4 shadow-xl lg:p-6 dark:border-slate-700 dark:bg-slate-800">
+              <div
+                className={cn(
+                  'rounded-2xl border border-slate-200 bg-white px-4 py-4 shadow-xl lg:p-6 dark:border-slate-700 dark:bg-slate-800'
+                )}
+              >
                 <GameContoller
                   started={started}
                   completed={completed}
@@ -129,7 +139,10 @@ export default function WordGame({
                   initial={{ opacity: 0, y: 20 }}
                   animate={{ opacity: 1, y: 0 }}
                   transition={{ duration: 0.5, ease: 'easeOut' }}
-                  className="rounded-2xl border border-slate-200 bg-white p-4 shadow-xl lg:p-6 dark:border-slate-700 dark:bg-slate-800"
+                  className={cn(
+                    'rounded-2xl border border-slate-200 bg-white p-4 shadow-xl lg:p-6 dark:border-slate-700 dark:bg-slate-800',
+                    completed && 'p-1'
+                  )}
                 >
                   <GameBottom
                     completed={completed}

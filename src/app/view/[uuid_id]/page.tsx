@@ -52,13 +52,13 @@ const MainEdit = async ({ params }: Props) => {
 
   return (
     <main className="flex flex-1 items-center justify-center">
-      <div className="mt-6">
-        <div className="my-2 mb-3.5 px-2">
+      <>
+        {/* <div className="my-2 mb-3.5 px-2">
           <Link href="/" className="flex items-center gap-1 text-lg font-semibold">
             <IoMdArrowRoundBack className="inline-block text-xl" />
             मुख्यपृष्ठम्
           </Link>
-        </div>
+        </div> */}
         {word_puzzle ? (
           <>
             <WordGame
@@ -72,7 +72,7 @@ const MainEdit = async ({ params }: Props) => {
         ) : (
           <div>अनुचित ID</div>
         )}
-      </div>
+      </>
     </main>
   );
 };

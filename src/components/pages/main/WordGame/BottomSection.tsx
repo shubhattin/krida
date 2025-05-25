@@ -66,7 +66,12 @@ export const GameBottom = ({
 
         {completed && (
           <div className="space-y-2 sm:space-y-4">
-            <div className="rounded-xl border border-green-200 bg-gradient-to-r from-green-50 to-emerald-50 p-3 sm:rounded-2xl sm:p-6 dark:border-green-800 dark:from-green-950 dark:to-emerald-950">
+            <div
+              className={cn(
+                'rounded-xl border border-green-200 bg-gradient-to-r from-green-50 to-emerald-50 p-3 sm:rounded-2xl sm:p-6 dark:border-green-800 dark:from-green-950 dark:to-emerald-950',
+                completed && 'px-1'
+              )}
+            >
               <div className="space-y-3 text-center sm:space-y-4">
                 <div className="mx-auto flex h-12 w-12 items-center justify-center rounded-full bg-gradient-to-r from-green-500 to-emerald-500 sm:h-16 sm:w-16">
                   <GoStopwatch className="text-lg text-white sm:text-2xl" />
@@ -74,6 +79,7 @@ export const GameBottom = ({
 
                 <div>
                   <p className="mb-0.5 text-center text-base font-semibold text-green-700 sm:mb-1 sm:text-lg dark:text-green-300">
+                    {/* 🎉 {wordMsgs.time_taken} 🎉 */}
                     🎉 {wordMsgs.time_taken} 🎉
                   </p>
                   <p className="font-mono text-2xl font-bold text-green-800 sm:text-3xl dark:text-green-200">
