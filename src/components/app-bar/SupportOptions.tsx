@@ -27,7 +27,7 @@ const SupportOptions = () => {
             'mr-3 space-x-1.5 sm:mr-3'
           )}
         >
-          <Icon src={ContributeIcon} className="text-3xl" />
+          <Icon src={ContributeIcon} className="text-3xl text-rose-500 dark:text-rose-300" />
           <span className="hidden text-sm font-semibold sm:inline">Support Our Projects</span>
         </span>
       </DialogTrigger>

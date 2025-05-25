@@ -206,7 +206,7 @@ const GridData = () => {
 
   return (
     <div>
-      <Label className="mb-2 block font-medium">गृध्रदत्तांशम्</Label>
+      <Label className="mb-2 block font-medium">स्थानपट्टिका</Label>
       <div
         className="grid w-4/5 gap-1 sm:w-3/5 lg:w-2/5"
         style={{ gridTemplateColumns: `repeat(${cols}, minmax(0, 1fr))` }}
@@ -325,22 +325,20 @@ const SaveButton = ({ word_puzzle }: { word_puzzle: z.infer<typeof puzzle_schema
               </>
             ) : (
               <>
-                <FiSave className="text-lg" /> सङ्ग्रह्यते
+                <FiSave className="text-lg" /> रक्ष्यताम्
               </>
             )}
           </Button>
         </AlertDialogTrigger>
         <AlertDialogContent>
           <AlertDialogHeader>
-            <AlertDialogTitle>संरक्षितुं दृढः</AlertDialogTitle>
+            <AlertDialogTitle>रक्षणाय अनुमोदनम</AlertDialogTitle>
             <AlertDialogDescription>
-              {is_addition
-                ? 'किं भवान्निश्चितरूपेपेणेदं प्रहेलिकां योजितुमिच्छसि ?'
-                : 'किं भवान्निश्चितरूपेपेणेदं प्रहेलिकामद्यतितुमिच्छसि ?'}
+              {is_addition ? 'निश्चयेन योजामहे किम् ? ?' : 'निश्चयेन रक्षामः किम् ?'}
             </AlertDialogDescription>
           </AlertDialogHeader>
           <AlertDialogFooter>
-            <AlertDialogCancel>निरसयतु</AlertDialogCancel>
+            <AlertDialogCancel>मास्तु</AlertDialogCancel>
             <AlertDialogAction onClick={handleSave}>अस्तु</AlertDialogAction>
           </AlertDialogFooter>
         </AlertDialogContent>
@@ -350,21 +348,22 @@ const SaveButton = ({ word_puzzle }: { word_puzzle: z.infer<typeof puzzle_schema
         <AlertDialog>
           <AlertDialogTrigger asChild>
             <Button className="flex gap-1 px-1 py-0 text-sm" variant="destructive">
-              <MdDeleteOutline className="text-base" /> निष्कासनम्
+              <MdDeleteOutline className="text-base" />
+              मार्ज्यताम्
             </Button>
           </AlertDialogTrigger>
           <AlertDialogContent>
             <AlertDialogHeader>
               <AlertDialogTitle>निष्कासितुं दृढः</AlertDialogTitle>
               <AlertDialogDescription>
-                किं भवान्निश्चितरूपेणेदं प्रहेलिकां निष्कासितुमिच्छसि ? एतत्कार्यमनिवर्तयितुं शक्यते
+                किन्त्वन्निश्चितरूपेणेदं प्रहेलिकां निष्कासितुमिच्छसि ? एतत्कार्यमनिवर्तयितुं शक्यते
                 !
               </AlertDialogDescription>
             </AlertDialogHeader>
             <AlertDialogFooter>
-              <AlertDialogCancel>निरसयतु</AlertDialogCancel>
-              <AlertDialogAction onClick={handleDelete} className="bg-red-500 hover:bg-red-600">
-                निष्कास्यताम्
+              <AlertDialogCancel>मास्तु</AlertDialogCancel>
+              <AlertDialogAction onClick={handleDelete} className="bg-red-500 hover:bg-red-400">
+                अस्तु
               </AlertDialogAction>
             </AlertDialogFooter>
           </AlertDialogContent>

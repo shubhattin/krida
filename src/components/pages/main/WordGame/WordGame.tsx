@@ -1,46 +1,26 @@
 'use client';
 
 import { useState, useRef, useEffect } from 'react';
-import { useDrag } from '@use-gesture/react';
-import { cn } from '@/lib/utils';
-import { Card } from '@/components/ui/card';
-import { Button } from '@/components/ui/button';
-import { MdReplay } from 'react-icons/md';
-import { IoShareSocialOutline } from 'react-icons/io5';
-import Icon from '~/tools/Icon';
-import { BrainIcon } from '~/components/icons';
-import {
-  Accordion,
-  AccordionItem,
-  AccordionContent,
-  AccordionTrigger
-} from '~/components/ui/accordion';
 import { lipi_parivartak } from '~/tools/lipi_lekhika';
-import {
-  DEFAULT_DATA_SCRIPT,
-  type ScriptType,
-  SCRIPT_LIST,
-  FONT_INFO,
-  SCRIPT_DATA_COOKIE_KEY
-} from '~/state/main.state';
-import {
-  Select,
-  SelectContent,
-  SelectGroup,
-  SelectItem,
-  SelectLabel,
-  SelectTrigger,
-  SelectValue
-} from '~/components/ui/select';
-import Cookies from 'js-cookie';
-import { get_transliterated_word_game_msgs, word_game_msgs } from './word_game_msgs';
+import { DEFAULT_DATA_SCRIPT, type ScriptType } from '~/state/script_font_data';
+import { get_transliterated_word_game_msgs, type word_game_msgs } from './word_game_msgs';
+import { GameContoller, type CellPosition, type Selection } from './GameController';
+import { GameBottom } from './BottomSection';
+import { GameGrid } from './GameGrid';
+import { GameHelp } from './GameHelp';
+import { useAtom } from 'jotai';
+import { script_atom } from '~/state/main.state';
+import { ScriptSelector } from '~/components/pages/main/WordGame/ScriptSelector';
+import { motion } from 'framer-motion';
+import { cn } from '~/lib/utils';
+import Icon from '~/tools/Icon';
+import { LanguageIcon } from '~/components/icons';
 
 interface WordGameProps {
   grid_data: string[][];
   dims: number[];
   word_list: string[];
   title: string;
-  script_init: ScriptType;
   initial_script_data: {
     word_msgs: typeof word_game_msgs;
     title: string;
@@ -48,34 +28,31 @@ interface WordGameProps {
   };
 }
 
-type CellPosition = { row: number; col: number };
-type Selection = { cells: CellPosition[]; word: string };
-
 export default function WordGame({
   grid_data,
   dims,
   word_list,
   title,
-  script_init,
   initial_script_data
 }: WordGameProps) {
-  const [script, setScript] = useState<ScriptType>(script_init);
+  const [script] = useAtom(script_atom);
   const [gridData, setGridData] = useState(initial_script_data.grid_data);
   const [title_tr, setTitle] = useState(initial_script_data.title);
 
   const [wordMsgs, setWordMsgs] = useState(initial_script_data.word_msgs);
 
+  // transliteration
   useEffect(() => {
     (async () => {
       setGridData(
         await Promise.all(
-          grid_data.map(async (row) => await lipi_parivartak(row, DEFAULT_DATA_SCRIPT, script))
+          grid_data.map(async (row) => await lipi_parivartak(row, DEFAULT_DATA_SCRIPT, script!))
         )
       );
-      setTitle(await lipi_parivartak(title, DEFAULT_DATA_SCRIPT, script));
+      setTitle(await lipi_parivartak(title, DEFAULT_DATA_SCRIPT, script!));
 
       setWordMsgs({
-        ...(await get_transliterated_word_game_msgs(script))
+        ...(await get_transliterated_word_game_msgs(script!))
       });
     })();
   }, [script]);
@@ -95,14 +72,6 @@ export default function WordGame({
   const [currentSelection, setCurrentSelection] = useState<CellPosition[]>([]);
   const [foundWords, setFoundWords] = useState<Selection[]>([]);
 
-  // helpers for hit-testing and coloring
-  const isCellInCurrentSelection = (r: number, c: number) =>
-    currentSelection.some((cell) => cell.row === r && cell.col === c);
-  const isCellInFoundWords = (r: number, c: number) =>
-    foundWords.some((sel) => sel.cells.some((cell) => cell.row === r && cell.col === c));
-  const getWordFromSelection = (sel: CellPosition[]) =>
-    sel.map((cell) => grid_data[cell.row][cell.col]).join('');
-
   // re-compute bbox on mount & on resize
   useEffect(() => {
     if (!gridRef.current) return;
@@ -114,362 +83,114 @@ export default function WordGame({
     return () => ro.disconnect();
   }, []);
 
-  // helper to go from a cell index to its pixel center
-  const getCenter = ({ row, col }: CellPosition) => {
-    if (!gridRef.current) return { x: 0, y: 0 };
-    const parentRect = gridRef.current.getBoundingClientRect();
-    const cell = gridRef.current.querySelector<HTMLElement>(
-      `[data-row="${row}"][data-col="${col}"]`
-    );
-    if (!cell) return { x: 0, y: 0 };
-    const r = cell.getBoundingClientRect();
-    return {
-      x: r.left + r.width / 2 - parentRect.left,
-      y: r.top + r.height / 2 - parentRect.top
-    };
-  };
-
-  // hit-test using elementFromPoint (as before)
-  const getCellFromEvent = (e: any): CellPosition | null => {
-    const clientX = e.clientX ?? e.touches?.[0]?.clientX;
-    const clientY = e.clientY ?? e.touches?.[0]?.clientY;
-    if (clientX == null || clientY == null) return null;
-
-    const target = document
-      .elementFromPoint(clientX, clientY)
-      ?.closest<HTMLElement>('[data-row][data-col]');
-    if (!target) return null;
-
-    const row = parseInt(target.dataset.row!, 10);
-    const col = parseInt(target.dataset.col!, 10);
-    if (
-      Number.isNaN(row) ||
-      Number.isNaN(col) ||
-      row < 0 ||
-      row >= rows ||
-      col < 0 ||
-      col >= cols
-    ) {
-      return null;
-    }
-    return { row, col };
-  };
-
-  // same drag logic as before
-  const bind = useDrag(
-    ({ event, first, down, last }) => {
-      event?.preventDefault();
-      if (!started || completed) return;
-      if (first) setCurrentSelection([]);
-      if (down) {
-        const cell = getCellFromEvent(event);
-        if (!cell) return;
-        const { row, col } = cell;
-
-        if (currentSelection.length === 0) {
-          setCurrentSelection([{ row, col }]);
-        } else {
-          const lastCell = currentSelection[currentSelection.length - 1];
-          const rowDiff = Math.abs(row - lastCell.row);
-          const colDiff = Math.abs(col - lastCell.col);
-          if (
-            !isCellInCurrentSelection(row, col) &&
-            rowDiff <= 1 &&
-            colDiff <= 1 &&
-            (rowDiff !== 0 || colDiff !== 0)
-          ) {
-            setCurrentSelection((prev) => [...prev, { row, col }]);
-          }
-        }
-      }
-      if (last) {
-        const word = getWordFromSelection(currentSelection);
-        if (currentSelection.length >= 2 && word_list.includes(word)) {
-          setFoundWords((prev) => [...prev, { cells: [...currentSelection], word }]);
-        }
-        setCurrentSelection([]);
-      }
-    },
-    { eventOptions: { passive: false } }
-  );
-
-  // build the SVG <polyline> points strings
-  const buildPoints = (cells: CellPosition[]) =>
-    cells
-      .map((c) => {
-        const { x, y } = getCenter(c);
-        return `${x},${y}`;
-      })
-      .join(' ');
-
-  // Format seconds to mm:ss
-  const formatTime = (totalSeconds: number) => {
-    const minutes = Math.floor(totalSeconds / 60);
-    const seconds = totalSeconds % 60;
-    return `${minutes.toString().padStart(2, '0')}:${seconds.toString().padStart(2, '0')}`;
-  };
-
-  // Start the game
-  const handleStart = () => {
-    setStarted(true);
-    setSeconds(0);
-    setFoundWords([]);
-    setCompleted(false);
-
-    if (timerRef.current) {
-      clearInterval(timerRef.current);
-    }
-
-    timerRef.current = setInterval(() => {
-      setSeconds((prev) => prev + 1);
-    }, 1000);
-  };
-
-  // Timer effect
-  useEffect(() => {
-    return () => {
-      if (timerRef.current) {
-        clearInterval(timerRef.current);
-      }
-    };
-  }, []);
-
-  // Check for puzzle completion
-  useEffect(() => {
-    if (foundWords.length === word_list.length && foundWords.length > 0 && started) {
-      setCompleted(true);
-      if (timerRef.current) {
-        clearInterval(timerRef.current);
-      }
-    }
-  }, [foundWords.length, word_list.length, started]);
-
-  const font_info = FONT_INFO[script];
-
   return (
-    <>
-      <div>
-        <div className="mb-3 flex flex-col items-center justify-center">
-          <Select
-            value={script}
-            onValueChange={(v) => {
-              setScript(v as ScriptType);
-              Cookies.set(SCRIPT_DATA_COOKIE_KEY, v as ScriptType, {
-                expires: 365 // 1 year
-              });
-            }}
-          >
-            <SelectTrigger className="w-36">
-              <SelectValue placeholder="Select Script" />
-            </SelectTrigger>
-            <SelectContent>
-              <SelectGroup>
-                <SelectLabel>Scripts</SelectLabel>
-                {SCRIPT_LIST.map((s) => (
-                  <SelectItem key={s} value={s}>
-                    {s}
-                  </SelectItem>
-                ))}
-              </SelectGroup>
-            </SelectContent>
-          </Select>
-        </div>
+    <div className="min-h-screen w-full bg-gradient-to-br from-slate-50 via-blue-50 to-indigo-50 dark:from-slate-900 dark:via-slate-800 dark:to-slate-900">
+      <div
+        className={cn(
+          'flex items-center justify-center gap-2 pt-2.5 sm:pt-4 lg:pt-5',
+          'mb-2.5 sm:mb-4'
+        )}
+      >
+        <Icon className="h-8 w-8" src={LanguageIcon} />
+        <ScriptSelector />
       </div>
-      <div className="flex flex-col items-center justify-center">
-        <div className="mb-1.5 rounded-md bg-emerald-300 px-4 font-semibold text-gray-600 dark:bg-green-400 dark:text-slate-800">
-          Hint
-        </div>
-        <span className="text-2xl font-bold">{title_tr}</span>
-      </div>
-      <div className="flex flex-col items-center gap-6 p-4">
-        <div className="flex w-full max-w-md items-center justify-center">
-          {!started && (
-            <button
-              onClick={handleStart}
-              className={cn(
-                'group flex items-center justify-center space-x-2 rounded-xl px-2 py-0.5 pt-2 font-semibold',
-                'border-2 border-red-600 hover:border-blue-700 dark:border-orange-500 hover:dark:border-pink-500'
-              )}
-            >
-              <Icon
-                src={BrainIcon}
-                className="-mt-1.5 text-2xl text-green-500 group-hover:text-emerald-600 dark:text-green-400"
-              />
-              <span className="text-2xl text-amber-500 group-hover:text-yellow-600 dark:text-amber-300 group-hover:dark:text-yellow-400">
-                {wordMsgs.play}
-              </span>
-            </button>
-          )}
-          {completed && (
-            <button
-              onClick={handleStart}
-              className={cn(
-                'flex items-center justify-center font-semibold',
-                'group space-x-2 rounded-xl border-2 px-2 py-0.5'
-              )}
-            >
-              <MdReplay className="text-2xl" />
-              <span className="text-2xl text-sky-600 group-hover:text-sky-700 dark:text-sky-300 group-hover:dark:text-sky-400">
-                {wordMsgs.replay}
-              </span>
-            </button>
-          )}
-
-          <div className="text-xl font-semibold">
-            {started && !completed && (
-              <span
-                className={cn(
-                  'font-mono',
-                  completed
-                    ? 'text-green-600 dark:text-green-400'
-                    : 'text-blue-600 dark:text-blue-400'
-                )}
-              >
-                {formatTime(seconds)}
-              </span>
-            )}
+      <div className="container mx-auto my-3.5 max-w-7xl px-4">
+        {/* Header Section */}
+        <div className="mb-3 space-y-1 text-center sm:space-y-1.5">
+          <div className="inline-flex items-center gap-2 rounded-xl bg-gradient-to-r from-emerald-500 to-teal-500 px-5 py-1.5 text-white shadow-lg">
+            <span className="text-sm font-semibold tracking-wide uppercase">Hint</span>
           </div>
+          <h1 className="bg-gradient-to-r from-slate-800 to-slate-600 bg-clip-text py-1 text-2xl font-bold text-transparent sm:text-3xl md:text-4xl dark:from-slate-100 dark:to-slate-300">
+            {title_tr}
+          </h1>
         </div>
 
-        <Card className="m-0 p-2 sm:p-2.5">
-          {/* relative wrapper for grid + overlay */}
-          <div className="relative">
-            {/* your grid */}
+        {/* Main Game Container */}
+        <div className="grid grid-cols-1 gap-6 lg:grid-cols-12 lg:gap-8">
+          {/* Game Controls & Progress - Left Sidebar on large screens, top on mobile */}
+          <div className="order-1 lg:order-1 lg:col-span-3">
             <div
-              ref={gridRef}
-              {...bind()}
-              className="relative z-10 grid h-full w-full touch-none gap-4 select-none sm:gap-5"
-              style={{
-                gridTemplateColumns: `repeat(${cols}, 1fr)`,
-                gridTemplateRows: `repeat(${rows}, 1fr)`
-              }}
-            >
-              {gridData.map((row, ri) =>
-                row.map((letter, ci) => {
-                  const isInCurrent = isCellInCurrentSelection(ri, ci);
-                  const isInFound = isCellInFoundWords(ri, ci);
-                  return (
-                    <div
-                      key={`${ri}-${ci}`}
-                      data-row={ri}
-                      data-col={ci}
-                      style={{
-                        fontSize: `${font_info.fontSize}rem`
-                      }}
-                      className={cn(
-                        font_info.clasName,
-                        !started && 'blur-sm',
-                        'flex items-center justify-center rounded-2xl text-center font-bold',
-                        'aspect-square border-2 border-gray-200 p-1 dark:border-gray-700',
-                        'transform transition-transform duration-300',
-                        isInFound &&
-                          'border-green-400 bg-green-200 dark:border-green-600 dark:bg-green-900',
-                        isInCurrent &&
-                          !isInFound &&
-                          'border-blue-400 bg-blue-200 dark:border-blue-600 dark:bg-blue-900',
-                        isInCurrent &&
-                          !isInFound &&
-                          currentSelection.length !== 0 &&
-                          currentSelection.at(-1)?.row === ri &&
-                          currentSelection.at(-1)?.col === ci &&
-                          'scale-115',
-                        !isInCurrent && !isInFound && 'bg-white dark:bg-gray-800'
-                      )}
-                    >
-                      {letter}
-                    </div>
-                  );
-                })
+              className={cn(
+                'flex items-center justify-center',
+                (started || completed) &&
+                  'grid grid-cols-[auto_1fr] gap-3 sm:grid-cols-2 lg:sticky lg:top-6 lg:grid-cols-1 lg:gap-4'
               )}
-            </div>
-
-            {/* overlay SVG for trails */}
-            <svg
-              className="pointer-events-none absolute inset-0 h-full w-full"
-              xmlns="http://www.w3.org/2000/svg"
             >
-              {/* already found words in green */}
-              {foundWords.map((sel, i) => (
-                <polyline
-                  key={i}
-                  points={buildPoints(sel.cells)}
-                  fill="none"
-                  className="stroke-green-400 dark:stroke-green-500"
-                  strokeWidth={6}
-                  strokeLinecap="round"
-                  strokeLinejoin="round"
-                />
-              ))}
-
-              {/* current drag in blue */}
-              {currentSelection.length > 1 && (
-                <polyline
-                  points={buildPoints(currentSelection)}
-                  fill="none"
-                  className="stroke-blue-400 dark:stroke-blue-500"
-                  strokeWidth={6}
-                  strokeLinecap="round"
-                  strokeLinejoin="round"
-                />
-              )}
-            </svg>
-          </div>
-        </Card>
-
-        <div className="w-full max-w-md">
-          {started && !completed && (
-            <h3 className="mb-2 text-lg font-semibold text-stone-800 dark:text-stone-200">
-              <span className="mr-1.5">{wordMsgs.found_words} :</span>
-              <span
+              <div
                 className={cn(
-                  foundWords.length === word_list.length
-                    ? 'text-green-700 dark:text-green-400'
-                    : 'text-blue-700 dark:text-blue-400'
+                  'rounded-2xl border border-slate-200 bg-white px-4 py-4 shadow-xl lg:p-6 dark:border-slate-700 dark:bg-slate-800'
                 )}
               >
-                {foundWords.length}/{word_list.length}
-              </span>
-            </h3>
-          )}
+                <GameContoller
+                  started={started}
+                  completed={completed}
+                  seconds={seconds}
+                  timerRef={timerRef}
+                  setCompleted={setCompleted}
+                  setSeconds={setSeconds}
+                  setStarted={setStarted}
+                  wordMsgs={wordMsgs}
+                  setFoundWords={setFoundWords}
+                />
+              </div>
 
-          {completed && (
-            <div className="mt-4 text-center">
-              <p className="text-lg font-semibold text-green-700 dark:text-green-400">
-                {wordMsgs.time_taken} - <span className="font-mono">{formatTime(seconds)}</span>
-              </p>
-              {typeof navigator !== 'undefined' && navigator.share && (
-                // {true && (
-                <Button
-                  onClick={async () => {
-                    if (navigator?.share) {
-                      await navigator
-                        .share({
-                          title: `${title} - पदावलीशब्दक्रीडनम्`,
-                          text:
-                            `I completed '${title}' in ${formatTime(seconds)} !\n\nTry it out at ` +
-                            window.location.origin
-                        })
-                        .catch((err) => console.log('Error sharing:', err));
-                    }
-                  }}
-                  className="m-0 mt-1.5 gap-1.5 bg-green-600 px-1.5 py-1 text-lg text-white hover:bg-green-700 dark:bg-green-700 dark:hover:bg-green-800"
+              {(started || completed) && (
+                <motion.div
+                  initial={{ opacity: 0, y: 20 }}
+                  animate={{ opacity: 1, y: 0 }}
+                  transition={{ duration: 0.5, ease: 'easeOut' }}
+                  className={cn(
+                    'rounded-2xl border border-slate-200 bg-white p-4 shadow-xl lg:p-6 dark:border-slate-700 dark:bg-slate-800',
+                    completed && 'p-1'
+                  )}
                 >
-                  <IoShareSocialOutline className="text-lg" />
-                  Share
-                </Button>
+                  <GameBottom
+                    completed={completed}
+                    foundWords={foundWords}
+                    seconds={seconds}
+                    started={started}
+                    title={title}
+                    wordMsgs={wordMsgs}
+                    word_list={word_list}
+                  />
+                </motion.div>
               )}
             </div>
-          )}
+          </div>
+
+          {/* Game Grid - Center */}
+          <div className="order-2 flex justify-center lg:order-2 lg:col-span-6">
+            <div className="w-full max-w-lg">
+              <GameGrid
+                cols={cols}
+                rows={rows}
+                completed={completed}
+                currentSelection={currentSelection}
+                foundWords={foundWords}
+                gridData={gridData}
+                grid_data={grid_data}
+                gridRef={gridRef}
+                script={script!}
+                setCurrentSelection={setCurrentSelection}
+                setFoundWords={setFoundWords}
+                started={started}
+                word_list={word_list}
+                timerRef={timerRef}
+                setCompleted={setCompleted}
+              />
+            </div>
+          </div>
+
+          {/* Help Section - Right Sidebar on large screens, bottom on mobile */}
+          <div className="order-3 lg:col-span-3">
+            <div className="lg:sticky lg:top-6">
+              <div className="overflow-hidden rounded-2xl border border-slate-200 bg-white shadow-xl dark:border-slate-700 dark:bg-slate-800">
+                <GameHelp />
+              </div>
+            </div>
+          </div>
         </div>
       </div>
-      <Accordion type="single" collapsible>
-        <AccordionItem value="item-1">
-          <AccordionTrigger>How to Play ?</AccordionTrigger>
-          <AccordionContent>
-            After Starting the game select the cells to make a word combination.
-          </AccordionContent>
-        </AccordionItem>
-      </Accordion>
-    </>
+    </div>
   );
 }

@@ -8,7 +8,7 @@ import {
   DEFAULT_DATA_SCRIPT,
   get_lang_from_cookie,
   SCRIPT_DATA_COOKIE_KEY
-} from '~/state/main.state';
+} from '~/state/script_font_data';
 import { cookies } from 'next/headers';
 import { get_transliterated_word_game_msgs } from '~/components/pages/main/WordGame/word_game_msgs';
 import { lipi_parivartak } from '~/tools/lipi_lekhika';
@@ -51,18 +51,17 @@ const MainEdit = async ({ params }: Props) => {
   );
 
   return (
-    <main className="flex flex-1 items-center justify-center p-4">
-      <div className="mt-6 sm:mt-10">
-        <div className="my-2 mb-3.5 px-2">
+    <main className="flex flex-1 items-center justify-center">
+      <>
+        {/* <div className="my-2 mb-3.5 px-2">
           <Link href="/" className="flex items-center gap-1 text-lg font-semibold">
             <IoMdArrowRoundBack className="inline-block text-xl" />
             मुख्यपृष्ठम्
           </Link>
-        </div>
+        </div> */}
         {word_puzzle ? (
           <>
             <WordGame
-              script_init={script}
               title={word_puzzle.title}
               word_list={word_puzzle.word_list}
               dims={word_puzzle.grid_dimensions}
@@ -73,7 +72,7 @@ const MainEdit = async ({ params }: Props) => {
         ) : (
           <div>अनुचित ID</div>
         )}
-      </div>
+      </>
     </main>
   );
 };

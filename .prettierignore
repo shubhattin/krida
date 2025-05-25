@@ -11,5 +11,5 @@ src/db/migrations
 src/db/scripts/out/
 src/db/scripts/backup/
 
-src/tools/converter/resources
+src/tools/lipi_lekhika/resources
 src/db/migrations

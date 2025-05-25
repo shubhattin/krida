@@ -1,13 +1,12 @@
 import { db } from '~/db/db';
 import { Metadata } from 'next';
 import WordGame from '~/components/pages/main/WordGame/WordGame';
-import Others from './OtherLinks';
 import { cookies } from 'next/headers';
 import {
   DEFAULT_DATA_SCRIPT,
   get_lang_from_cookie,
   SCRIPT_DATA_COOKIE_KEY
-} from '~/state/main.state';
+} from '~/state/script_font_data';
 import { get_transliterated_word_game_msgs } from '~/components/pages/main/WordGame/word_game_msgs';
 import { lipi_parivartak } from '~/tools/lipi_lekhika';
 
@@ -42,25 +41,17 @@ export default async function Home() {
   );
 
   return (
-    <>
-      <main className="flex flex-1 items-center justify-center p-4">
-        <div className="mt-6 sm:mt-10">
-          <div className="flex flex-col items-end justify-end">
-            <Others />
-          </div>
-          {/* <div>Random Selection: {randomIndex}</div>
-          <div>Curent Server Time : {currentTime.toLocaleString()}</div> */}
-          <WordGame
-            title={word_puzzle.title}
-            grid_data={word_puzzle.grid_data}
-            dims={word_puzzle.grid_dimensions}
-            word_list={word_puzzle.word_list}
-            script_init={script}
-            initial_script_data={{ word_msgs: word_game_msgs, title, grid_data }}
-          />
-        </div>
-      </main>
-    </>
+    <main className="min-h-screen w-full">
+      {/* <div>Random Selection: {randomIndex}</div>
+        <div>Curent Server Time : {currentTime.toLocaleString()}</div> */}
+      <WordGame
+        title={word_puzzle.title}
+        grid_data={word_puzzle.grid_data}
+        dims={word_puzzle.grid_dimensions}
+        word_list={word_puzzle.word_list}
+        initial_script_data={{ word_msgs: word_game_msgs, title, grid_data }}
+      />
+    </main>
   );
 }
 
