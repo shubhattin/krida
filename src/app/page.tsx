@@ -44,9 +44,7 @@ export default async function Home() {
   return (
     <main className="flex flex-1 items-center justify-center p-4">
       <div className="mt-6 sm:mt-10">
-        <div className="flex flex-col items-end justify-end">
-          <Others />
-        </div>
+        <Others />
         {/* <div>Random Selection: {randomIndex}</div>
           <div>Curent Server Time : {currentTime.toLocaleString()}</div> */}
         <WordGame

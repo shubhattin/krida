@@ -7,7 +7,6 @@ import { get_transliterated_word_game_msgs, type word_game_msgs } from './word_g
 import { GameContoller, type CellPosition, type Selection } from './GameController';
 import { GameBottom } from './BottomSection';
 import { GameGrid } from './GameGrid';
-import { ScriptSelector } from './ScriptSelector';
 import { GameHelp } from './GameHelp';
 import { useAtom } from 'jotai';
 import { script_atom } from '~/state/main.state';
@@ -83,7 +82,6 @@ export default function WordGame({
 
   return (
     <>
-      <ScriptSelector />
       <div className="flex flex-col items-center justify-center">
         <div className="mb-1.5 rounded-md bg-emerald-300 px-4 font-semibold text-gray-600 dark:bg-green-400 dark:text-slate-800">
           Hint

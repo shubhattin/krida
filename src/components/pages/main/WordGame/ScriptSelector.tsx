@@ -8,7 +8,7 @@ export const ScriptSelector = () => {
   const [script, setScript] = useAtom(script_atom);
 
   return (
-    <div className="mb-3 flex flex-col items-center justify-center">
+    <>
       <select
         value={script}
         className={cn(
@@ -38,6 +38,6 @@ export const ScriptSelector = () => {
           </option>
         ))}
       </select>
-    </div>
+    </>
   );
 };
