@@ -110,52 +110,35 @@ export default function WordGame({
         {/* Main Game Container */}
         <div className="grid grid-cols-1 gap-6 lg:grid-cols-12 lg:gap-8">
           {/* Game Controls & Progress - Left Sidebar on large screens, top on mobile */}
-          <div className="order-1 lg:order-1 lg:col-span-3">
+          <div className="order-1 flex items-center justify-center lg:order-1 lg:col-span-3">
             <div
               className={cn(
-                'flex items-center justify-center',
-                (started || completed) &&
-                  'grid grid-cols-[auto_1fr] gap-3 sm:grid-cols-2 lg:sticky lg:top-6 lg:grid-cols-1 lg:gap-4'
+                'inline-flex items-center justify-center rounded-2xl border border-slate-200 bg-white shadow-xl dark:border-slate-700 dark:bg-slate-800',
+                'px-5 py-3 lg:px-2 lg:py-6',
+                'space-x-3.5 sm:space-x-5 md:space-x-5 lg:flex lg:flex-col lg:space-y-5 lg:space-x-0'
               )}
             >
-              <div
-                className={cn(
-                  'rounded-2xl border border-slate-200 bg-white px-4 py-4 shadow-xl lg:p-6 dark:border-slate-700 dark:bg-slate-800'
-                )}
-              >
-                <GameContoller
-                  started={started}
-                  completed={completed}
-                  seconds={seconds}
-                  timerRef={timerRef}
-                  setCompleted={setCompleted}
-                  setSeconds={setSeconds}
-                  setStarted={setStarted}
-                  wordMsgs={wordMsgs}
-                  setFoundWords={setFoundWords}
-                />
-              </div>
-
+              <GameContoller
+                started={started}
+                completed={completed}
+                seconds={seconds}
+                timerRef={timerRef}
+                setCompleted={setCompleted}
+                setSeconds={setSeconds}
+                setStarted={setStarted}
+                wordMsgs={wordMsgs}
+                setFoundWords={setFoundWords}
+              />
               {(started || completed) && (
-                <motion.div
-                  initial={{ opacity: 0, y: 20 }}
-                  animate={{ opacity: 1, y: 0 }}
-                  transition={{ duration: 0.5, ease: 'easeOut' }}
-                  className={cn(
-                    'rounded-2xl border border-slate-200 bg-white p-4 shadow-xl lg:p-6 dark:border-slate-700 dark:bg-slate-800',
-                    completed && 'p-1'
-                  )}
-                >
-                  <GameBottom
-                    completed={completed}
-                    foundWords={foundWords}
-                    seconds={seconds}
-                    started={started}
-                    title={title}
-                    wordMsgs={wordMsgs}
-                    word_list={word_list}
-                  />
-                </motion.div>
+                <GameBottom
+                  completed={completed}
+                  foundWords={foundWords}
+                  seconds={seconds}
+                  started={started}
+                  title={title}
+                  wordMsgs={wordMsgs}
+                  word_list={word_list}
+                />
               )}
             </div>
           </div>

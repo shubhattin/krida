@@ -5,6 +5,7 @@ import { BrainIcon } from '~/components/icons';
 import { useEffect, type Dispatch, type RefObject, type SetStateAction } from 'react';
 import { type word_game_msgs } from './word_game_msgs';
 import { GoStopwatch } from 'react-icons/go';
+import { motion } from 'framer-motion';
 
 export type CellPosition = { row: number; col: number };
 export type Selection = { cells: CellPosition[]; word: string };
@@ -65,58 +66,86 @@ export const GameContoller = ({
   }, []);
 
   return (
-    <div className="space-y-2 sm:space-y-4">
-      <div className="text-center">
-        <h2 className="mb-1.5 text-base font-semibold text-slate-800 sm:mb-4 sm:text-lg dark:text-slate-200">
-          Game Control
-        </h2>
+    <>
+      {!started && (
+        <button
+          onClick={handleStart}
+          className={cn(
+            'group relative overflow-hidden bg-gradient-to-r from-emerald-500 to-teal-500 hover:from-emerald-600 hover:to-teal-600',
+            'rounded-xl px-3 py-2 font-bold text-white shadow-lg hover:shadow-xl sm:rounded-2xl sm:px-8 sm:py-4',
+            'transform transition-all duration-200 hover:scale-105 active:scale-95',
+            'flex w-full items-center justify-center space-x-2 sm:space-x-3'
+          )}
+        >
+          <Icon src={BrainIcon} className="text-2xl sm:text-3xl" />
+          <span className="text-xl sm:text-2xl">{wordMsgs.play}</span>
+        </button>
+      )}
 
-        {!started && (
-          <button
-            onClick={handleStart}
-            className={cn(
-              'group relative overflow-hidden bg-gradient-to-r from-emerald-500 to-teal-500 hover:from-emerald-600 hover:to-teal-600',
-              'rounded-xl px-3 py-2 font-bold text-white shadow-lg hover:shadow-xl sm:rounded-2xl sm:px-8 sm:py-4',
-              'transform transition-all duration-200 hover:scale-105 active:scale-95',
-              'flex w-full items-center justify-center space-x-2 sm:space-x-3'
-            )}
+      {completed && (
+        <motion.button
+          onClick={handleStart}
+          initial={{ opacity: 0, scale: 0.9 }}
+          animate={{ opacity: 1, scale: 1 }}
+          transition={{ duration: 0.5, ease: 'easeOut' }}
+          className={cn(
+            'group relative overflow-hidden bg-gradient-to-r from-blue-500 to-indigo-500 hover:from-blue-600 hover:to-indigo-600',
+            'rounded-xl px-3 py-2 font-bold text-white shadow-lg hover:shadow-xl sm:rounded-2xl sm:px-8 sm:py-4',
+            'transform transition-all duration-200 hover:scale-105 active:scale-95',
+            'flex w-full items-center justify-center space-x-2 sm:space-x-3'
+          )}
+        >
+          <MdReplay className="text-2xl sm:text-3xl" />
+          <span className="text-xl sm:text-2xl">{wordMsgs.replay}</span>
+        </motion.button>
+      )}
+
+      {started && !completed && (
+        <motion.div
+          initial={{ opacity: 0, y: 20 }}
+          animate={{ opacity: 1, y: 0 }}
+          transition={{ duration: 0.5, ease: 'easeOut' }}
+          className="rounded-xl border border-blue-200 bg-gradient-to-r from-blue-50 to-indigo-50 p-2.5 sm:rounded-2xl sm:p-5 md:p-6 lg:p-4 dark:border-blue-800 dark:from-blue-950 dark:to-indigo-950"
+        >
+          <motion.div
+            initial={{ opacity: 0 }}
+            animate={{ opacity: 1 }}
+            transition={{ delay: 0.2, duration: 0.5 }}
+            className="flex items-center justify-center space-x-2 sm:space-x-3"
           >
-            <Icon src={BrainIcon} className="text-2xl sm:text-3xl" />
-            <span className="text-xl sm:text-2xl">{wordMsgs.play}</span>
-          </button>
-        )}
-
-        {completed && (
-          <button
-            onClick={handleStart}
-            className={cn(
-              'group relative overflow-hidden bg-gradient-to-r from-blue-500 to-indigo-500 hover:from-blue-600 hover:to-indigo-600',
-              'rounded-xl px-3 py-2 font-bold text-white shadow-lg hover:shadow-xl sm:rounded-2xl sm:px-8 sm:py-4',
-              'transform transition-all duration-200 hover:scale-105 active:scale-95',
-              'flex w-full items-center justify-center space-x-2 sm:space-x-3'
-            )}
-          >
-            <MdReplay className="text-2xl sm:text-3xl" />
-            <span className="text-xl sm:text-2xl">{wordMsgs.replay}</span>
-          </button>
-        )}
-
-        {started && !completed && (
-          <div className="rounded-xl border border-blue-200 bg-gradient-to-r from-blue-50 to-indigo-50 p-3 sm:rounded-2xl sm:p-6 dark:border-blue-800 dark:from-blue-950 dark:to-indigo-950">
-            <div className="flex items-center justify-center space-x-2 sm:space-x-3">
+            <motion.div
+              initial={{ scale: 0, rotate: -180 }}
+              animate={{ scale: 1, rotate: 0 }}
+              transition={{ delay: 0.3, duration: 0.6, type: 'spring' }}
+            >
               <GoStopwatch className="text-2xl text-blue-600 sm:text-3xl dark:text-blue-400" />
-              <div className="text-center">
-                <p className="mb-1 text-xs font-medium text-blue-600 sm:text-sm dark:text-blue-400">
-                  {wordMsgs.time_elapsed}
-                </p>
-                <span className="font-mono text-xl font-bold text-blue-700 sm:text-2xl dark:text-blue-300">
-                  {formatTime(seconds)}
-                </span>
-              </div>
-            </div>
-          </div>
-        )}
-      </div>
-    </div>
+            </motion.div>
+            <motion.div
+              initial={{ opacity: 0, x: -20 }}
+              animate={{ opacity: 1, x: 0 }}
+              transition={{ delay: 0.4, duration: 0.5 }}
+              className="text-center"
+            >
+              <motion.div
+                initial={{ opacity: 0, y: 10 }}
+                animate={{ opacity: 1, y: 0 }}
+                transition={{ delay: 0.5, duration: 0.5 }}
+                className="mb-1 text-lg font-semibold tracking-wide text-blue-600 sm:text-xl dark:text-blue-400"
+              >
+                {wordMsgs.time_elapsed}
+              </motion.div>
+              <motion.span
+                initial={{ opacity: 0, scale: 0.8 }}
+                animate={{ opacity: 1, scale: 1 }}
+                transition={{ delay: 0.6, duration: 0.5 }}
+                className="font-mono text-xl font-bold text-blue-700 sm:text-2xl dark:text-blue-300"
+              >
+                {formatTime(seconds)}
+              </motion.span>
+            </motion.div>
+          </motion.div>
+        </motion.div>
+      )}
+    </>
   );
 };
