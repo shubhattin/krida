@@ -56,5 +56,8 @@ export default async function Home() {
 }
 
 export const metadata: Metadata = {
-  title: 'पदावली'
+  title: 'पदावली',
+  description:
+    'Padavali is a fun, interactive Sanskrit Puzzle that tests your creativity, expands your vocabulary, ' +
+    'and lets you challenge your friends to try and beat your score.'
 };

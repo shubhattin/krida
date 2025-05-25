@@ -26,6 +26,7 @@ interface WordGameProps {
     title: string;
     grid_data: string[][];
   };
+  children?: React.ReactNode;
 }
 
 export default function WordGame({
@@ -33,6 +34,7 @@ export default function WordGame({
   dims,
   word_list,
   title,
+  children,
   initial_script_data
 }: WordGameProps) {
   const [script] = useAtom(script_atom);
@@ -85,14 +87,14 @@ export default function WordGame({
 
   return (
     <div className="min-h-screen w-full bg-gradient-to-br from-slate-50 via-blue-50 to-indigo-50 dark:from-slate-900 dark:via-slate-800 dark:to-slate-900">
+      {children}
       <div
-        className={cn(
-          'flex items-center justify-center gap-2 pt-2.5 sm:pt-4 lg:pt-5',
-          'mb-2.5 sm:mb-4'
-        )}
+        className={cn('flex items-center justify-center pt-2.5 sm:pt-4 lg:pt-5', 'mb-2.5 sm:mb-4')}
       >
-        <Icon className="h-8 w-8" src={LanguageIcon} />
-        <ScriptSelector />
+        <label className="space-x-2">
+          <Icon className="h-8 w-8" src={LanguageIcon} />
+          <ScriptSelector />
+        </label>
       </div>
       <div className="container mx-auto my-3.5 max-w-7xl px-4">
         {/* Header Section */}

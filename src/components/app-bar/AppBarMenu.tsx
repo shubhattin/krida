@@ -1,6 +1,6 @@
 'use client';
 
-import * as React from 'react';
+import { useState } from 'react';
 import {
   Moon,
   Sun,
@@ -26,6 +26,7 @@ export function MenuButton() {
   const { theme, setTheme } = useTheme();
   const session = useSession();
   const router = useRouter();
+  const [open, setOpen] = useState(false);
 
   const themeOptions = [
     {
@@ -49,7 +50,7 @@ export function MenuButton() {
   ];
 
   return (
-    <Popover>
+    <Popover open={open} onOpenChange={setOpen}>
       <PopoverTrigger asChild>
         <Button
           variant="outline"
@@ -71,9 +72,9 @@ export function MenuButton() {
             </div>
             <div>
               <h3 className="font-semibold text-slate-800 dark:text-slate-200">Settings</h3>
-              <p className="text-xs text-slate-500 dark:text-slate-400">
+              {/* <p className="text-xs text-slate-500 dark:text-slate-400">
                 Customize your experience
-              </p>
+              </p> */}
             </div>
           </div>
 
@@ -125,6 +126,7 @@ export function MenuButton() {
               {!session.data?.user ? (
                 <button
                   onClick={async () => {
+                    setOpen(false);
                     await signIn.social({
                       provider: 'google',
                       callbackURL: window.location.href
@@ -160,7 +162,10 @@ export function MenuButton() {
                   {/* Admin Actions */}
                   {session.data.user.role === 'admin' && session.data.user.is_approved && (
                     <button
-                      onClick={() => router.push('/list')}
+                      onClick={() => {
+                        setOpen(false);
+                        router.push('/list');
+                      }}
                       className="flex w-full items-center gap-3 rounded-lg border border-slate-200 bg-slate-50 p-3 text-left text-sm font-medium text-slate-700 transition-all duration-200 hover:scale-[1.02] hover:border-slate-300 hover:bg-slate-100 active:scale-[0.98] dark:border-slate-700 dark:bg-slate-800/50 dark:text-slate-300 dark:hover:border-slate-600 dark:hover:bg-slate-700/50"
                     >
                       <div className="flex h-8 w-8 items-center justify-center rounded-lg bg-gradient-to-br from-purple-500 to-violet-600">
@@ -178,6 +183,7 @@ export function MenuButton() {
                   {/* Profile */}
                   <button
                     onClick={() => {
+                      setOpen(false);
                       window.open(`${process.env.NEXT_PUBLIC_BETTER_AUTH_URL}/user`, '_blank');
                     }}
                     className="flex w-full items-center gap-3 rounded-lg border border-slate-200 bg-slate-50 p-3 text-left text-sm font-medium text-slate-700 transition-all duration-200 hover:scale-[1.02] hover:border-slate-300 hover:bg-slate-100 active:scale-[0.98] dark:border-slate-700 dark:bg-slate-800/50 dark:text-slate-300 dark:hover:border-slate-600 dark:hover:bg-slate-700/50"
@@ -193,15 +199,18 @@ export function MenuButton() {
 
                   {/* Sign Out */}
                   <button
-                    onClick={() => signOut()}
+                    onClick={() => {
+                      setOpen(false);
+                      signOut();
+                    }}
                     className="flex w-full items-center gap-3 rounded-lg border border-red-200 bg-red-50 p-3 text-left text-sm font-medium text-red-700 transition-all duration-200 hover:scale-[1.02] hover:border-red-300 hover:bg-red-100 active:scale-[0.98] dark:border-red-800 dark:bg-red-950/30 dark:text-red-300 dark:hover:border-red-700 dark:hover:bg-red-900/30"
                   >
                     <div className="flex h-8 w-8 items-center justify-center rounded-lg bg-gradient-to-br from-red-500 to-rose-600">
                       <LogOut className="h-4 w-4 text-white" />
                     </div>
                     <div>
-                      <div className="font-medium">निर्प्रवेशः</div>
-                      <div className="text-xs text-red-500 dark:text-red-400">Sign out</div>
+                      <div className="font-medium">निर्गमः</div>
+                      <div className="text-xs text-red-500 dark:text-red-400">Log out</div>
                     </div>
                   </button>
                 </div>

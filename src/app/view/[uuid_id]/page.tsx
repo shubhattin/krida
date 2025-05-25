@@ -53,12 +53,6 @@ const MainEdit = async ({ params }: Props) => {
   return (
     <main className="flex flex-1 items-center justify-center">
       <>
-        {/* <div className="my-2 mb-3.5 px-2">
-          <Link href="/" className="flex items-center gap-1 text-lg font-semibold">
-            <IoMdArrowRoundBack className="inline-block text-xl" />
-            मुख्यपृष्ठम्
-          </Link>
-        </div> */}
         {word_puzzle ? (
           <>
             <WordGame
@@ -67,7 +61,14 @@ const MainEdit = async ({ params }: Props) => {
               dims={word_puzzle.grid_dimensions}
               grid_data={word_puzzle.grid_data}
               initial_script_data={{ word_msgs: word_game_msgs, title, grid_data }}
-            />
+            >
+              <div className="my-3 mb-3 px-4">
+                <Link href="/" className="flex items-center gap-1 text-lg font-semibold">
+                  <IoMdArrowRoundBack className="inline-block text-xl" />
+                  मुख्यपृष्ठम्
+                </Link>
+              </div>
+            </WordGame>
           </>
         ) : (
           <div>अनुचित ID</div>
