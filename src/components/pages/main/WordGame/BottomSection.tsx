@@ -25,28 +25,32 @@ export const GameBottom = ({
   title
 }: Props) => {
   return (
-    <div className="space-y-4">
+    <div className="space-y-2 sm:space-y-4">
       <div className="text-center">
-        <h2 className="mb-4 text-lg font-semibold text-slate-800 dark:text-slate-200">Progress</h2>
+        <h2 className="mb-1.5 text-base font-semibold text-slate-800 sm:mb-4 sm:text-lg dark:text-slate-200">
+          Progress
+        </h2>
 
         {started && !completed && (
-          <div className="rounded-2xl border border-slate-200 bg-gradient-to-r from-slate-50 to-blue-50 p-6 dark:border-slate-700 dark:from-slate-900 dark:to-blue-950">
-            <div className="space-y-3 text-center">
-              <p className="text-sm font-medium tracking-wide text-slate-600 uppercase dark:text-slate-400">
+          <div className="rounded-xl border border-slate-200 bg-gradient-to-r from-slate-50 to-blue-50 p-3 sm:rounded-2xl sm:p-6 dark:border-slate-700 dark:from-slate-900 dark:to-blue-950">
+            <div className="space-y-2 text-center sm:space-y-3">
+              <p className="text-xs font-medium tracking-wide text-slate-600 uppercase sm:text-sm dark:text-slate-400">
                 {wordMsgs.found_words}
               </p>
-              <div className="flex items-center justify-center space-x-2">
-                <span className="text-3xl font-bold text-blue-600 dark:text-blue-400">
+              <div className="flex items-center justify-center space-x-1.5 sm:space-x-2">
+                <span className="text-2xl font-bold text-blue-600 sm:text-3xl dark:text-blue-400">
                   {foundWords.length}
                 </span>
-                <span className="text-2xl font-bold text-slate-400 dark:text-slate-600">/</span>
-                <span className="text-3xl font-bold text-slate-600 dark:text-slate-400">
+                <span className="text-xl font-bold text-slate-400 sm:text-2xl dark:text-slate-600">
+                  /
+                </span>
+                <span className="text-2xl font-bold text-slate-600 sm:text-3xl dark:text-slate-400">
                   {word_list.length}
                 </span>
               </div>
 
               {/* Progress Bar */}
-              <div className="h-3 w-full overflow-hidden rounded-full bg-slate-200 dark:bg-slate-700">
+              <div className="h-2.5 w-full overflow-hidden rounded-full bg-slate-200 sm:h-3 dark:bg-slate-700">
                 <div
                   className="h-full rounded-full bg-gradient-to-r from-blue-500 to-emerald-500 transition-all duration-500 ease-out"
                   style={{ width: `${(foundWords.length / word_list.length) * 100}%` }}
@@ -61,21 +65,18 @@ export const GameBottom = ({
         )}
 
         {completed && (
-          <div className="space-y-4">
-            <div className="rounded-2xl border border-green-200 bg-gradient-to-r from-green-50 to-emerald-50 p-6 dark:border-green-800 dark:from-green-950 dark:to-emerald-950">
-              <div className="space-y-4 text-center">
-                <div className="mx-auto flex h-16 w-16 items-center justify-center rounded-full bg-gradient-to-r from-green-500 to-emerald-500">
-                  <GoStopwatch className="text-2xl text-white" />
+          <div className="space-y-2 sm:space-y-4">
+            <div className="rounded-xl border border-green-200 bg-gradient-to-r from-green-50 to-emerald-50 p-3 sm:rounded-2xl sm:p-6 dark:border-green-800 dark:from-green-950 dark:to-emerald-950">
+              <div className="space-y-3 text-center sm:space-y-4">
+                <div className="mx-auto flex h-12 w-12 items-center justify-center rounded-full bg-gradient-to-r from-green-500 to-emerald-500 sm:h-16 sm:w-16">
+                  <GoStopwatch className="text-lg text-white sm:text-2xl" />
                 </div>
 
                 <div>
-                  <p className="mb-2 text-sm font-medium tracking-wide text-green-600 uppercase dark:text-green-400">
-                    🎉 Congratulations! 🎉
+                  <p className="mb-0.5 text-center text-base font-semibold text-green-700 sm:mb-1 sm:text-lg dark:text-green-300">
+                    🎉 {wordMsgs.time_taken} 🎉
                   </p>
-                  <p className="mb-1 text-lg font-semibold text-green-700 dark:text-green-300">
-                    {wordMsgs.time_taken}
-                  </p>
-                  <p className="font-mono text-3xl font-bold text-green-800 dark:text-green-200">
+                  <p className="font-mono text-2xl font-bold text-green-800 sm:text-3xl dark:text-green-200">
                     {formatTime(seconds)}
                   </p>
                 </div>
@@ -92,10 +93,10 @@ export const GameBottom = ({
                           .catch((err) => console.log('Error sharing:', err));
                       }
                     }}
-                    className="flex transform items-center space-x-2 rounded-xl bg-gradient-to-r from-green-600 to-emerald-600 px-6 py-3 font-semibold text-white shadow-lg transition-all duration-200 hover:scale-105 hover:from-green-700 hover:to-emerald-700 hover:shadow-xl active:scale-95"
+                    className="flex transform items-center space-x-1.5 rounded-lg bg-gradient-to-r from-green-600 to-emerald-600 px-4 py-2.5 font-semibold text-white shadow-md transition-all duration-200 hover:scale-105 hover:from-green-700 hover:to-emerald-700 hover:shadow-lg active:scale-95 sm:space-x-2 sm:rounded-xl sm:px-6 sm:py-3 sm:shadow-lg sm:hover:shadow-xl"
                   >
-                    <IoShareSocialOutline className="text-lg" />
-                    <span>Share Achievement</span>
+                    <IoShareSocialOutline className="text-base sm:text-lg" />
+                    <span className="text-sm sm:text-base">Share Achievement</span>
                   </Button>
                 )}
               </div>

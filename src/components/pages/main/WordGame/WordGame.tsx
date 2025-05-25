@@ -12,6 +12,9 @@ import { useAtom } from 'jotai';
 import { script_atom } from '~/state/main.state';
 import { ScriptSelector } from '~/components/pages/main/WordGame/ScriptSelector';
 import { motion } from 'framer-motion';
+import { cn } from '~/lib/utils';
+import Icon from '~/tools/Icon';
+import { LanguageIcon } from '~/components/icons';
 
 interface WordGameProps {
   grid_data: string[][];
@@ -82,7 +85,8 @@ export default function WordGame({
 
   return (
     <div className="min-h-screen w-full bg-gradient-to-br from-slate-50 via-blue-50 to-indigo-50 dark:from-slate-900 dark:via-slate-800 dark:to-slate-900">
-      <div className="flex items-center justify-center pt-2">
+      <div className="flex items-center justify-center gap-2 pt-2.5 sm:pt-4 lg:pt-5">
+        <Icon className="h-8 w-8" src={LanguageIcon} />
         <ScriptSelector />
       </div>
       <div className="container mx-auto my-3.5 max-w-7xl px-4">
@@ -99,9 +103,14 @@ export default function WordGame({
         {/* Main Game Container */}
         <div className="grid grid-cols-1 gap-6 lg:grid-cols-12 lg:gap-8">
           {/* Game Controls & Progress - Left Sidebar on large screens, top on mobile */}
-          <div className="order-1 space-y-6 lg:order-1 lg:col-span-3">
-            <div className="space-y-4 lg:sticky lg:top-6">
-              <div className="rounded-2xl border border-slate-200 bg-white p-4 shadow-xl lg:p-6 dark:border-slate-700 dark:bg-slate-800">
+          <div className="order-1 lg:order-1 lg:col-span-3">
+            <div
+              className={cn(
+                'flex items-center justify-center',
+                started && 'grid grid-cols-2 gap-3 lg:sticky lg:top-6 lg:grid-cols-1 lg:gap-4'
+              )}
+            >
+              <div className="rounded-2xl border border-slate-200 bg-white px-4 py-4 shadow-xl lg:p-6 dark:border-slate-700 dark:bg-slate-800">
                 <GameContoller
                   started={started}
                   completed={completed}

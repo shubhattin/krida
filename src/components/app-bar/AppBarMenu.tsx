@@ -186,10 +186,8 @@ export function MenuButton() {
                       <User className="h-4 w-4 text-white" />
                     </div>
                     <div>
-                      <div className="font-medium">उपयोक्तरम्</div>
-                      <div className="text-xs text-slate-500 dark:text-slate-400">
-                        उपयोक्तृविवरणः
-                      </div>
+                      <div className="font-medium">उपयोक्तृविवरणः</div>
+                      <div className="text-xs text-slate-500 dark:text-slate-400">User Profile</div>
                     </div>
                   </button>
 
@@ -209,10 +207,8 @@ export function MenuButton() {
                 </div>
               )}
 
-              {/* Unauthorized Message */}
               {session.data?.user &&
-                session.data.user.role === 'admin' &&
-                !session.data.user.is_approved && (
+                (session.data.user.role !== 'admin' || !session.data.user.is_approved) && (
                   <div className="rounded-lg border border-orange-200 bg-orange-50 p-3 dark:border-orange-800 dark:bg-orange-950/30">
                     <div className="text-sm font-medium text-orange-800 dark:text-orange-300">
                       Unauthorized Account
