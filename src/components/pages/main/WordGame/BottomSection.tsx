@@ -3,6 +3,7 @@ import { type Selection, formatTime } from './GameController';
 import { cn } from '~/lib/utils';
 import { Button } from '~/components/ui/button';
 import { IoShareSocialOutline } from 'react-icons/io5';
+import { GoStopwatch } from 'react-icons/go';
 
 type Props = {
   started: boolean;
@@ -42,9 +43,12 @@ export const GameBottom = ({
 
       {completed && (
         <div className="mt-4 text-center">
-          <p className="text-lg font-semibold text-green-700 dark:text-green-400">
-            {wordMsgs.time_taken} - <span className="font-mono">{formatTime(seconds)}</span>
-          </p>
+          <div className="flex items-center justify-center gap-2">
+            <GoStopwatch className="text-3xl" />
+            <div className="text-lg font-semibold text-green-700 dark:text-green-400">
+              {wordMsgs.time_taken} - <span className="font-mono">{formatTime(seconds)}</span>
+            </div>
+          </div>
           {typeof navigator !== 'undefined' && navigator.share && (
             // {true && (
             <Button

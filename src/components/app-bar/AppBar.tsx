@@ -4,7 +4,7 @@ import SupportOptions from '~/components/app-bar/SupportOptions';
 
 export default function AppBar({ title }: { title: string }) {
   return (
-    <header className="w-full bg-white shadow-sm dark:bg-gray-900">
+    <header className="w-full bg-zinc-200 shadow-sm dark:bg-zinc-800">
       <div className="mx-auto flex h-15 max-w-4xl items-center justify-between px-3.5">
         <div className={`text-2xl font-bold ${robotoSans.className}`}>{title}</div>
         <div>

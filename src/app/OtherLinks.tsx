@@ -22,7 +22,7 @@ function Others() {
   const router = useRouter();
 
   return (
-    <div className="flex items-center justify-between">
+    <div className="mb-2 flex items-center justify-between sm:mb-3.5">
       <ScriptSelector />
       <DropdownMenu>
         <DropdownMenuTrigger asChild>

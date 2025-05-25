@@ -4,6 +4,7 @@ import Icon from '~/tools/Icon';
 import { BrainIcon } from '~/components/icons';
 import { useEffect, type Dispatch, type RefObject, type SetStateAction } from 'react';
 import { type word_game_msgs } from './word_game_msgs';
+import { GoStopwatch } from 'react-icons/go';
 
 export type CellPosition = { row: number; col: number };
 export type Selection = { cells: CellPosition[]; word: string };
@@ -97,16 +98,21 @@ export const GameContoller = ({
         </button>
       )}
 
-      <div className="text-xl font-semibold">
+      <div className="flex space-x-2 text-xl font-semibold">
         {started && !completed && (
-          <span
-            className={cn(
-              'font-mono',
-              completed ? 'text-green-600 dark:text-green-400' : 'text-blue-600 dark:text-blue-400'
-            )}
-          >
-            {formatTime(seconds)}
-          </span>
+          <>
+            <GoStopwatch className="text-3xl" />
+            <span
+              className={cn(
+                'font-mono',
+                completed
+                  ? 'text-green-600 dark:text-green-400'
+                  : 'text-blue-600 dark:text-blue-400'
+              )}
+            >
+              {formatTime(seconds)}
+            </span>
+          </>
         )}
       </div>
     </div>

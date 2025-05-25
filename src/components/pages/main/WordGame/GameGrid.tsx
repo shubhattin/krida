@@ -93,6 +93,7 @@ export const GameGrid = ({
         const cell = getCellFromEvent(event);
         if (!cell) return;
         const { row, col } = cell;
+        if (isCellInFoundWords(row, col)) return;
 
         if (currentSelection.length === 0) {
           setCurrentSelection([{ row, col }]);

@@ -12,6 +12,7 @@ import {
 import { cookies } from 'next/headers';
 import { get_transliterated_word_game_msgs } from '~/components/pages/main/WordGame/word_game_msgs';
 import { lipi_parivartak } from '~/tools/lipi_lekhika';
+import { ScriptSelector } from '~/components/pages/main/WordGame/ScriptSelector';
 
 type Props = { params: Promise<{ uuid_id: string }> };
 
@@ -51,8 +52,8 @@ const MainEdit = async ({ params }: Props) => {
   );
 
   return (
-    <main className="flex flex-1 items-center justify-center p-4">
-      <div className="mt-6 sm:mt-10">
+    <main className="flex flex-1 items-center justify-center">
+      <div className="mt-6">
         <div className="my-2 mb-3.5 px-2">
           <Link href="/" className="flex items-center gap-1 text-lg font-semibold">
             <IoMdArrowRoundBack className="inline-block text-xl" />
@@ -61,6 +62,9 @@ const MainEdit = async ({ params }: Props) => {
         </div>
         {word_puzzle ? (
           <>
+            <div className="mb-3 flex items-center justify-center">
+              <ScriptSelector />
+            </div>
             <WordGame
               script_init={script}
               title={word_puzzle.title}
