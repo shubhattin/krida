@@ -65,54 +65,56 @@ export const GameContoller = ({
   }, []);
 
   return (
-    <div className="flex w-full max-w-md items-center justify-center">
-      {!started && (
-        <button
-          onClick={handleStart}
-          className={cn(
-            'group flex items-center justify-center space-x-2 rounded-xl px-2 py-0.5 pt-2 font-semibold',
-            'border-2 border-red-600 hover:border-blue-700 dark:border-orange-500 hover:dark:border-pink-500'
-          )}
-        >
-          <Icon
-            src={BrainIcon}
-            className="-mt-1.5 text-2xl text-green-500 group-hover:text-emerald-600 dark:text-green-400"
-          />
-          <span className="text-2xl text-amber-500 group-hover:text-yellow-600 dark:text-amber-300 group-hover:dark:text-yellow-400">
-            {wordMsgs.play}
-          </span>
-        </button>
-      )}
-      {completed && (
-        <button
-          onClick={handleStart}
-          className={cn(
-            'flex items-center justify-center font-semibold',
-            'group space-x-2 rounded-xl border-2 px-2 py-0.5'
-          )}
-        >
-          <MdReplay className="text-2xl" />
-          <span className="text-2xl text-sky-600 group-hover:text-sky-700 dark:text-sky-300 group-hover:dark:text-sky-400">
-            {wordMsgs.replay}
-          </span>
-        </button>
-      )}
+    <div className="space-y-4">
+      <div className="text-center">
+        <h2 className="mb-4 text-lg font-semibold text-slate-800 dark:text-slate-200">
+          Game Control
+        </h2>
 
-      <div className="flex space-x-2 text-xl font-semibold">
+        {!started && (
+          <button
+            onClick={handleStart}
+            className={cn(
+              'group relative overflow-hidden bg-gradient-to-r from-emerald-500 to-teal-500 hover:from-emerald-600 hover:to-teal-600',
+              'rounded-2xl px-8 py-4 font-bold text-white shadow-lg hover:shadow-xl',
+              'transform transition-all duration-200 hover:scale-105 active:scale-95',
+              'flex w-full items-center justify-center space-x-3'
+            )}
+          >
+            <Icon src={BrainIcon} className="text-2xl" />
+            <span className="text-xl">{wordMsgs.play}</span>
+          </button>
+        )}
+
+        {completed && (
+          <button
+            onClick={handleStart}
+            className={cn(
+              'group relative overflow-hidden bg-gradient-to-r from-blue-500 to-indigo-500 hover:from-blue-600 hover:to-indigo-600',
+              'rounded-2xl px-8 py-4 font-bold text-white shadow-lg hover:shadow-xl',
+              'transform transition-all duration-200 hover:scale-105 active:scale-95',
+              'flex w-full items-center justify-center space-x-3'
+            )}
+          >
+            <MdReplay className="text-2xl" />
+            <span className="text-xl">{wordMsgs.replay}</span>
+          </button>
+        )}
+
         {started && !completed && (
-          <>
-            <GoStopwatch className="text-3xl" />
-            <span
-              className={cn(
-                'font-mono',
-                completed
-                  ? 'text-green-600 dark:text-green-400'
-                  : 'text-blue-600 dark:text-blue-400'
-              )}
-            >
-              {formatTime(seconds)}
-            </span>
-          </>
+          <div className="rounded-2xl border border-blue-200 bg-gradient-to-r from-blue-50 to-indigo-50 p-6 dark:border-blue-800 dark:from-blue-950 dark:to-indigo-950">
+            <div className="flex items-center justify-center space-x-3">
+              <GoStopwatch className="text-3xl text-blue-600 dark:text-blue-400" />
+              <div className="text-center">
+                <p className="mb-1 text-sm font-medium text-blue-600 dark:text-blue-400">
+                  Time Elapsed
+                </p>
+                <span className="font-mono text-2xl font-bold text-blue-700 dark:text-blue-300">
+                  {formatTime(seconds)}
+                </span>
+              </div>
+            </div>
+          </div>
         )}
       </div>
     </div>

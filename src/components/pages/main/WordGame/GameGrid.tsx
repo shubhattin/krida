@@ -150,89 +150,146 @@ export const GameGrid = ({
   }, [foundWords.length, word_list.length, started]);
 
   return (
-    <Card className="m-0 p-2 sm:p-2.5">
-      {/* relative wrapper for grid + overlay */}
-      <div className="relative">
-        {/* your grid */}
-        <div
-          ref={gridRef}
-          {...bind()}
-          className="relative z-10 grid h-full w-full touch-none gap-4 select-none sm:gap-5"
-          style={{
-            gridTemplateColumns: `repeat(${cols}, 1fr)`,
-            gridTemplateRows: `repeat(${rows}, 1fr)`
-          }}
-        >
-          {gridData.map((row, ri) =>
-            row.map((letter, ci) => {
-              const isInCurrent = isCellInCurrentSelection(ri, ci);
-              const isInFound = isCellInFoundWords(ri, ci);
-              return (
-                <div
-                  key={`${ri}-${ci}`}
-                  data-row={ri}
-                  data-col={ci}
-                  style={{
-                    fontSize: `${font_info.fontSize}rem`
-                  }}
-                  className={cn(
-                    font_info.clasName,
-                    !started && 'blur-sm',
-                    'flex items-center justify-center rounded-2xl text-center font-bold',
-                    'aspect-square border-2 border-gray-200 p-1 dark:border-gray-700',
-                    'transform transition-transform duration-300',
-                    isInFound &&
-                      'border-green-400 bg-green-200 dark:border-green-600 dark:bg-green-900',
-                    isInCurrent &&
-                      !isInFound &&
-                      'border-blue-400 bg-blue-200 dark:border-blue-600 dark:bg-blue-900',
-                    isInCurrent &&
-                      !isInFound &&
-                      currentSelection.length !== 0 &&
-                      currentSelection.at(-1)?.row === ri &&
-                      currentSelection.at(-1)?.col === ci &&
-                      'scale-115',
-                    !isInCurrent && !isInFound && 'bg-white dark:bg-gray-800'
-                  )}
-                >
-                  {letter}
-                </div>
-              );
-            })
-          )}
+    <div className="w-full">
+      {/* Game Grid Card */}
+      <div className="overflow-hidden rounded-3xl border border-slate-200 bg-white p-6 shadow-2xl dark:border-slate-700 dark:bg-slate-800">
+        {/* relative wrapper for grid + overlay */}
+        <div className="relative">
+          {/* Grid Header */}
+          <div className="mb-6 text-center">
+            <h2 className="text-lg font-semibold text-slate-800 dark:text-slate-200">Word Grid</h2>
+            <p className="mt-1 text-sm text-slate-500 dark:text-slate-400">
+              {started ? 'Drag to select words' : 'Click play to start'}
+            </p>
+          </div>
+
+          {/* Game Grid */}
+          <div
+            ref={gridRef}
+            {...bind()}
+            className="relative z-10 mx-auto grid h-full w-full touch-none gap-1.5 select-none sm:gap-2 md:gap-3"
+            style={{
+              gridTemplateColumns: `repeat(${cols}, 1fr)`,
+              gridTemplateRows: `repeat(${rows}, 1fr)`,
+              maxWidth: 'min(100%, min(90vw, 450px))'
+            }}
+          >
+            {gridData.map((row, ri) =>
+              row.map((letter, ci) => {
+                const isInCurrent = isCellInCurrentSelection(ri, ci);
+                const isInFound = isCellInFoundWords(ri, ci);
+                return (
+                  <div
+                    key={`${ri}-${ci}`}
+                    data-row={ri}
+                    data-col={ci}
+                    style={{
+                      fontSize: `${font_info.fontSize}rem`
+                    }}
+                    className={cn(
+                      font_info.clasName,
+                      !started && 'cursor-not-allowed blur-sm',
+                      started && 'cursor-pointer',
+                      'flex items-center justify-center rounded-xl text-center font-bold sm:rounded-2xl',
+                      'aspect-square border-2 p-1 sm:p-2 md:p-3',
+                      'transform transition-all duration-300 ease-out',
+                      'hover:scale-105 active:scale-95',
+                      // Default state
+                      'border-slate-300 bg-gradient-to-br from-white to-slate-50 dark:border-slate-600 dark:from-slate-700 dark:to-slate-800',
+                      'shadow-lg hover:shadow-xl',
+                      // Found words styling
+                      isInFound && [
+                        'border-emerald-400 dark:border-emerald-500',
+                        'bg-gradient-to-br from-emerald-100 to-green-200 dark:from-emerald-900 dark:to-green-800',
+                        'text-emerald-800 dark:text-emerald-100',
+                        'shadow-emerald-200 dark:shadow-emerald-900'
+                      ],
+                      // Current selection styling
+                      isInCurrent &&
+                        !isInFound && [
+                          'border-blue-400 dark:border-blue-500',
+                          'bg-gradient-to-br from-blue-100 to-indigo-200 dark:from-blue-900 dark:to-indigo-800',
+                          'text-blue-800 dark:text-blue-100',
+                          'shadow-blue-200 dark:shadow-blue-900'
+                        ],
+                      // Last selected cell highlight
+                      isInCurrent &&
+                        !isInFound &&
+                        currentSelection.length !== 0 &&
+                        currentSelection.at(-1)?.row === ri &&
+                        currentSelection.at(-1)?.col === ci &&
+                        'ring-opacity-50 ring-4 ring-blue-300 dark:ring-blue-600',
+                      // Subtle glow for unselected cells
+                      !isInCurrent &&
+                        !isInFound &&
+                        started &&
+                        'hover:bg-gradient-to-br hover:from-slate-100 hover:to-slate-200 dark:hover:from-slate-600 dark:hover:to-slate-700'
+                    )}
+                  >
+                    {letter}
+                  </div>
+                );
+              })
+            )}
+          </div>
+
+          {/* Overlay SVG for trails */}
+          <svg
+            className="pointer-events-none absolute inset-0 h-full w-full"
+            xmlns="http://www.w3.org/2000/svg"
+          >
+            {/* Found words trails in green with glow effect */}
+            {foundWords.map((sel, i) => (
+              <g key={i}>
+                {/* Glow effect */}
+                <polyline
+                  points={buildPoints(sel.cells)}
+                  fill="none"
+                  className="stroke-emerald-300 dark:stroke-emerald-400"
+                  strokeWidth={12}
+                  strokeLinecap="round"
+                  strokeLinejoin="round"
+                  opacity={0.3}
+                />
+                {/* Main line */}
+                <polyline
+                  points={buildPoints(sel.cells)}
+                  fill="none"
+                  className="stroke-emerald-500 dark:stroke-emerald-400"
+                  strokeWidth={6}
+                  strokeLinecap="round"
+                  strokeLinejoin="round"
+                />
+              </g>
+            ))}
+
+            {/* Current selection trail in blue with glow effect */}
+            {currentSelection.length > 1 && (
+              <g>
+                {/* Glow effect */}
+                <polyline
+                  points={buildPoints(currentSelection)}
+                  fill="none"
+                  className="stroke-blue-300 dark:stroke-blue-400"
+                  strokeWidth={12}
+                  strokeLinecap="round"
+                  strokeLinejoin="round"
+                  opacity={0.3}
+                />
+                {/* Main line */}
+                <polyline
+                  points={buildPoints(currentSelection)}
+                  fill="none"
+                  className="stroke-blue-500 dark:stroke-blue-400"
+                  strokeWidth={6}
+                  strokeLinecap="round"
+                  strokeLinejoin="round"
+                />
+              </g>
+            )}
+          </svg>
         </div>
-
-        {/* overlay SVG for trails */}
-        <svg
-          className="pointer-events-none absolute inset-0 h-full w-full"
-          xmlns="http://www.w3.org/2000/svg"
-        >
-          {/* already found words in green */}
-          {foundWords.map((sel, i) => (
-            <polyline
-              key={i}
-              points={buildPoints(sel.cells)}
-              fill="none"
-              className="stroke-green-400 dark:stroke-green-500"
-              strokeWidth={6}
-              strokeLinecap="round"
-              strokeLinejoin="round"
-            />
-          ))}
-
-          {/* current drag in blue */}
-          {currentSelection.length > 1 && (
-            <polyline
-              points={buildPoints(currentSelection)}
-              fill="none"
-              className="stroke-blue-400 dark:stroke-blue-500"
-              strokeWidth={6}
-              strokeLinecap="round"
-              strokeLinejoin="round"
-            />
-          )}
-        </svg>
       </div>
-    </Card>
+    </div>
   );
 };

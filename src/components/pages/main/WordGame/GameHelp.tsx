@@ -4,28 +4,87 @@ import {
   AccordionItem,
   AccordionTrigger
 } from '~/components/ui/accordion';
+import { HelpCircle, Sparkles, Users, Trophy } from 'lucide-react';
 
 export const GameHelp = () => {
   return (
-    <>
-      <Accordion type="single" collapsible>
-        <AccordionItem value="item-1">
-          <AccordionTrigger>How to Play ?</AccordionTrigger>
-          <AccordionContent>
-            <ul className="list-disc space-y-2 pl-5">
-              <li>
-                Swipe up, down, forward, backward, or diagonally, to form words inside the grid that
-                match the Hint.
-              </li>
-              <li>Find all the words to complete the Puzzle.</li>
-              <li>
-                Share your puzzle solving time with Friends, and on Social Media. Tag us
-                <span className="mx-1 text-blue-500 dark:text-blue-400">@thesanskritchannel</span>
-              </li>
-            </ul>
-          </AccordionContent>
-        </AccordionItem>
-      </Accordion>
-    </>
+    <div className="h-full">
+      <div className="border-b border-slate-200 p-6 dark:border-slate-700">
+        <div className="flex items-center gap-2 text-slate-800 dark:text-slate-200">
+          <HelpCircle className="h-5 w-5" />
+          <h3 className="text-lg font-semibold">Game Guide</h3>
+        </div>
+      </div>
+
+      <div className="p-6">
+        <Accordion type="single" collapsible className="space-y-2">
+          <AccordionItem
+            value="how-to-play"
+            className="rounded-lg border border-slate-200 px-4 dark:border-slate-700"
+          >
+            <AccordionTrigger className="py-3 hover:no-underline">
+              <div className="flex items-center gap-2">
+                <Sparkles className="h-4 w-4 text-emerald-500" />
+                <span className="text-left font-medium">How to Play?</span>
+              </div>
+            </AccordionTrigger>
+            <AccordionContent className="pb-4">
+              <div className="space-y-3 text-sm text-slate-600 dark:text-slate-400">
+                <div className="flex items-start gap-2">
+                  <div className="mt-0.5 flex h-6 w-6 flex-shrink-0 items-center justify-center rounded-full bg-emerald-100 dark:bg-emerald-900">
+                    <span className="text-xs font-bold text-emerald-600 dark:text-emerald-400">
+                      1
+                    </span>
+                  </div>
+                  <p>
+                    Swipe up, down, forward, backward, or diagonally to form words inside the grid
+                    that match the Hint.
+                  </p>
+                </div>
+                <div className="flex items-start gap-2">
+                  <div className="mt-0.5 flex h-6 w-6 flex-shrink-0 items-center justify-center rounded-full bg-blue-100 dark:bg-blue-900">
+                    <span className="text-xs font-bold text-blue-600 dark:text-blue-400">2</span>
+                  </div>
+                  <p>Find all the words to complete the puzzle and beat your best time!</p>
+                </div>
+              </div>
+            </AccordionContent>
+          </AccordionItem>
+
+          <AccordionItem
+            value="share"
+            className="rounded-lg border border-slate-200 px-4 dark:border-slate-700"
+          >
+            <AccordionTrigger className="py-3 hover:no-underline">
+              <div className="flex items-center gap-2">
+                <Users className="h-4 w-4 text-blue-500" />
+                <span className="text-left font-medium">Share & Challenge</span>
+              </div>
+            </AccordionTrigger>
+            <AccordionContent className="pb-4">
+              <div className="space-y-3 text-sm text-slate-600 dark:text-slate-400">
+                <div className="flex items-start gap-2">
+                  <Trophy className="mt-1 h-4 w-4 flex-shrink-0 text-yellow-500" />
+                  <p>
+                    Share your puzzle solving time with friends and on social media. Tag us{' '}
+                    <span className="font-medium text-blue-500 dark:text-blue-400">
+                      @thesanskritchannel
+                    </span>{' '}
+                    and challenge others to beat your record!
+                  </p>
+                </div>
+              </div>
+            </AccordionContent>
+          </AccordionItem>
+        </Accordion>
+
+        <div className="mt-6 rounded-lg border border-emerald-200 bg-gradient-to-r from-emerald-50 to-teal-50 p-4 dark:border-emerald-800 dark:from-emerald-950 dark:to-teal-950">
+          <p className="text-center text-xs text-emerald-700 dark:text-emerald-300">
+            💡 <strong>Pro Tip:</strong> Look for common patterns and word endings to find words
+            faster!
+          </p>
+        </div>
+      </div>
+    </div>
   );
 };
