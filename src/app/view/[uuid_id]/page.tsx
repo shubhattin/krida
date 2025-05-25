@@ -66,7 +66,6 @@ const MainEdit = async ({ params }: Props) => {
               <ScriptSelector />
             </div>
             <WordGame
-              script_init={script}
               title={word_puzzle.title}
               word_list={word_puzzle.word_list}
               dims={word_puzzle.grid_dimensions}

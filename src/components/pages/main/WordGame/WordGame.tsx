@@ -16,7 +16,6 @@ interface WordGameProps {
   dims: number[];
   word_list: string[];
   title: string;
-  script_init: ScriptType;
   initial_script_data: {
     word_msgs: typeof word_game_msgs;
     title: string;
@@ -29,7 +28,6 @@ export default function WordGame({
   dims,
   word_list,
   title,
-  script_init,
   initial_script_data
 }: WordGameProps) {
   const [script] = useAtom(script_atom);
