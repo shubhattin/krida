@@ -1,12 +1,6 @@
 'use client';
 
 import { useState, useRef, useEffect } from 'react';
-import {
-  Accordion,
-  AccordionItem,
-  AccordionContent,
-  AccordionTrigger
-} from '~/components/ui/accordion';
 import { lipi_parivartak } from '~/tools/lipi_lekhika';
 import { DEFAULT_DATA_SCRIPT, type ScriptType } from '~/state/script_font_data';
 import { get_transliterated_word_game_msgs, type word_game_msgs } from './word_game_msgs';
@@ -14,6 +8,9 @@ import { GameContoller, type CellPosition, type Selection } from './GameControll
 import { GameBottom } from './BottomSection';
 import { GameGrid } from './GameGrid';
 import { ScriptSelector } from './ScriptSelector';
+import { GameHelp } from './GameHelp';
+import { useAtom } from 'jotai';
+import { script_atom } from '~/state/main.state';
 
 interface WordGameProps {
   grid_data: string[][];
@@ -36,23 +33,24 @@ export default function WordGame({
   script_init,
   initial_script_data
 }: WordGameProps) {
-  const [script, setScript] = useState<ScriptType>(script_init);
+  const [script] = useAtom(script_atom);
   const [gridData, setGridData] = useState(initial_script_data.grid_data);
   const [title_tr, setTitle] = useState(initial_script_data.title);
 
   const [wordMsgs, setWordMsgs] = useState(initial_script_data.word_msgs);
 
+  // transliteration
   useEffect(() => {
     (async () => {
       setGridData(
         await Promise.all(
-          grid_data.map(async (row) => await lipi_parivartak(row, DEFAULT_DATA_SCRIPT, script))
+          grid_data.map(async (row) => await lipi_parivartak(row, DEFAULT_DATA_SCRIPT, script!))
         )
       );
-      setTitle(await lipi_parivartak(title, DEFAULT_DATA_SCRIPT, script));
+      setTitle(await lipi_parivartak(title, DEFAULT_DATA_SCRIPT, script!));
 
       setWordMsgs({
-        ...(await get_transliterated_word_game_msgs(script))
+        ...(await get_transliterated_word_game_msgs(script!))
       });
     })();
   }, [script]);
@@ -85,7 +83,7 @@ export default function WordGame({
 
   return (
     <>
-      <ScriptSelector script={script} setScript={setScript} />
+      <ScriptSelector />
       <div className="flex flex-col items-center justify-center">
         <div className="mb-1.5 rounded-md bg-emerald-300 px-4 font-semibold text-gray-600 dark:bg-green-400 dark:text-slate-800">
           Hint
@@ -114,7 +112,7 @@ export default function WordGame({
           gridData={gridData}
           grid_data={grid_data}
           gridRef={gridRef}
-          script={script}
+          script={script!}
           setCurrentSelection={setCurrentSelection}
           setFoundWords={setFoundWords}
           started={started}
@@ -133,22 +131,7 @@ export default function WordGame({
           word_list={word_list}
         />
       </div>
-      <Accordion type="single" collapsible>
-        <AccordionItem value="item-1">
-          <AccordionTrigger>How to Play ?</AccordionTrigger>
-          <AccordionContent>
-            <div>
-              🔹Swipe up, down, forward, backward, or diagonally, to form words inside the grid that
-              match the Hint.
-            </div>
-            <div>🔹Find all the words to complete the Puzzle.</div>
-            <div>
-              🔹Share your puzzle solving time with Friends, and on Social Media. Tag us
-              <span className="mx-1 text-blue-500 dark:text-blue-400">@thesanskritchannel</span>
-            </div>
-          </AccordionContent>
-        </AccordionItem>
-      </Accordion>
+      <GameHelp />
     </>
   );
 }

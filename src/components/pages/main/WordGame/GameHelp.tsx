@@ -1,11 +1,9 @@
-'use client';
-
 import {
   Accordion,
   AccordionContent,
   AccordionItem,
   AccordionTrigger
-} from '@radix-ui/react-accordion';
+} from '~/components/ui/accordion';
 
 export const GameHelp = () => {
   return (

@@ -8,12 +8,16 @@ import Provider from '@/api/TRPCProvider';
 import { Toaster } from '@/components/ui/sonner';
 import { Metadata } from 'next';
 import PosthogInit from '~/components/PosthogInit';
+import { get_lang_from_cookie, SCRIPT_DATA_COOKIE_KEY } from '~/state/script_font_data';
+import { cookies } from 'next/headers';
 
 export default async function RootLayout({
   children
 }: Readonly<{
   children: React.ReactNode;
 }>) {
+  const script = get_lang_from_cookie((await cookies()).get(SCRIPT_DATA_COOKIE_KEY)?.value);
+
   return (
     <html lang="en" suppressHydrationWarning className="dark" style={{ colorScheme: 'dark' }}>
       <body
@@ -32,7 +36,7 @@ export default async function RootLayout({
         >
           <div className="contaiiner mx-auto mb-1 max-w-screen-lg">
             <AppBar title="Padavali" />
-            <Provider>
+            <Provider script={script}>
               <div className="mx-2">{children}</div>
               <Toaster richColors={true} />
             </Provider>

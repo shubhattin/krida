@@ -42,25 +42,23 @@ export default async function Home() {
   );
 
   return (
-    <>
-      <main className="flex flex-1 items-center justify-center p-4">
-        <div className="mt-6 sm:mt-10">
-          <div className="flex flex-col items-end justify-end">
-            <Others />
-          </div>
-          {/* <div>Random Selection: {randomIndex}</div>
-          <div>Curent Server Time : {currentTime.toLocaleString()}</div> */}
-          <WordGame
-            title={word_puzzle.title}
-            grid_data={word_puzzle.grid_data}
-            dims={word_puzzle.grid_dimensions}
-            word_list={word_puzzle.word_list}
-            script_init={script}
-            initial_script_data={{ word_msgs: word_game_msgs, title, grid_data }}
-          />
+    <main className="flex flex-1 items-center justify-center p-4">
+      <div className="mt-6 sm:mt-10">
+        <div className="flex flex-col items-end justify-end">
+          <Others />
         </div>
-      </main>
-    </>
+        {/* <div>Random Selection: {randomIndex}</div>
+          <div>Curent Server Time : {currentTime.toLocaleString()}</div> */}
+        <WordGame
+          title={word_puzzle.title}
+          grid_data={word_puzzle.grid_data}
+          dims={word_puzzle.grid_dimensions}
+          word_list={word_puzzle.word_list}
+          script_init={script}
+          initial_script_data={{ word_msgs: word_game_msgs, title, grid_data }}
+        />
+      </div>
+    </main>
   );
 }
 
