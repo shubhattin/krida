@@ -151,7 +151,7 @@ export const GameGrid = ({
   return (
     <div className="w-full">
       {/* Game Grid Card */}
-      <div className="overflow-hidden rounded-3xl border border-slate-200 bg-white p-6 shadow-2xl dark:border-slate-700 dark:bg-slate-800">
+      <div className="overflow-hidden rounded-3xl border border-slate-200 bg-white p-2.5 shadow-2xl sm:p-4 md:p-6 dark:border-slate-700 dark:bg-slate-800">
         {/* relative wrapper for grid + overlay */}
         <div className="relative">
           {/* Grid Header */}
@@ -159,8 +159,11 @@ export const GameGrid = ({
           {/* Game Grid */}
           <div
             ref={gridRef}
-            {...(started || !completed ? { ...bind() } : {})}
-            className="relative z-10 mx-auto grid h-full w-full touch-none gap-1.5 select-none sm:gap-2 md:gap-3"
+            {...bind()}
+            className={cn(
+              'relative z-10 mx-auto grid h-full w-full touch-none select-none',
+              'gap-1.5 sm:gap-2.5 md:gap-3'
+            )}
             style={{
               gridTemplateColumns: `repeat(${cols}, 1fr)`,
               gridTemplateRows: `repeat(${rows}, 1fr)`,
@@ -284,8 +287,8 @@ const GridCell = ({
         fontInfo.clasName,
         !started && 'blur-sm',
         started && 'cursor-pointer',
-        'flex items-center justify-center rounded-xl text-center font-bold sm:rounded-2xl',
-        'aspect-square border-2 p-1 sm:p-2 md:p-3',
+        'flex items-center justify-center rounded-3xl px-[1px] py-0 text-center font-bold sm:rounded-2xl',
+        'aspect-square border-2 sm:p-1 md:p-2',
         'transform transition-all duration-300 ease-out',
         'hover:scale-105 active:scale-95',
         'border-slate-300 bg-gradient-to-br from-white to-slate-50 dark:border-slate-600 dark:from-slate-700 dark:to-slate-800',

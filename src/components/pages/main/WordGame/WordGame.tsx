@@ -96,7 +96,7 @@ export default function WordGame({
           <ScriptSelector />
         </label>
       </div>
-      <div className="container mx-auto my-3.5 max-w-7xl px-4">
+      <div className="container mx-auto my-3.5 max-w-7xl px-2 sm:px-4 md:px-6">
         {/* Header Section */}
         <div className="mb-3 space-y-1 text-center sm:space-y-1.5">
           <div className="inline-flex items-center gap-2 rounded-xl bg-gradient-to-r from-emerald-500 to-teal-500 px-5 py-1.5 text-white shadow-lg">

@@ -107,7 +107,7 @@ export const GameContoller = ({
               <GoStopwatch className="text-2xl text-blue-600 sm:text-3xl dark:text-blue-400" />
               <div className="text-center">
                 <p className="mb-1 text-xs font-medium text-blue-600 sm:text-sm dark:text-blue-400">
-                  Time Elapsed
+                  {wordMsgs.time_elapsed}
                 </p>
                 <span className="font-mono text-xl font-bold text-blue-700 sm:text-2xl dark:text-blue-300">
                   {formatTime(seconds)}
