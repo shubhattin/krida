@@ -53,9 +53,9 @@ export const GameBottom = ({
                 />
               </div>
 
-              <p className="text-xs text-slate-500 dark:text-slate-400">
+              {/* <p className="text-xs text-slate-500 dark:text-slate-400">
                 {Math.round((foundWords.length / word_list.length) * 100)}% Complete
-              </p>
+              </p> */}
             </div>
           </div>
         )}

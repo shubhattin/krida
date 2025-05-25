@@ -1,6 +1,5 @@
 import { useDrag } from '@use-gesture/react';
 import { useEffect, type Dispatch, type RefObject, type SetStateAction } from 'react';
-import { Card } from '~/components/ui/card';
 import { FONT_INFO, type ScriptType } from '~/state/script_font_data';
 import { type CellPosition } from './GameController';
 import { cn } from '~/lib/utils';
@@ -156,12 +155,6 @@ export const GameGrid = ({
         {/* relative wrapper for grid + overlay */}
         <div className="relative">
           {/* Grid Header */}
-          <div className="mb-6 text-center">
-            <h2 className="text-lg font-semibold text-slate-800 dark:text-slate-200">Word Grid</h2>
-            <p className="mt-1 text-sm text-slate-500 dark:text-slate-400">
-              {started ? 'Drag to select words' : 'Click play to start'}
-            </p>
-          </div>
 
           {/* Game Grid */}
           <div

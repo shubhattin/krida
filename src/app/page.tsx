@@ -1,7 +1,6 @@
 import { db } from '~/db/db';
 import { Metadata } from 'next';
 import WordGame from '~/components/pages/main/WordGame/WordGame';
-import Others from './OtherLinks';
 import { cookies } from 'next/headers';
 import {
   DEFAULT_DATA_SCRIPT,
@@ -43,7 +42,6 @@ export default async function Home() {
 
   return (
     <main className="min-h-screen w-full">
-      <Others />
       {/* <div>Random Selection: {randomIndex}</div>
         <div>Curent Server Time : {currentTime.toLocaleString()}</div> */}
       <WordGame

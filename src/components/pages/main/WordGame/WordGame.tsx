@@ -10,6 +10,8 @@ import { GameGrid } from './GameGrid';
 import { GameHelp } from './GameHelp';
 import { useAtom } from 'jotai';
 import { script_atom } from '~/state/main.state';
+import { ScriptSelector } from '~/components/pages/main/WordGame/ScriptSelector';
+import { motion } from 'framer-motion';
 
 interface WordGameProps {
   grid_data: string[][];
@@ -80,13 +82,16 @@ export default function WordGame({
 
   return (
     <div className="min-h-screen w-full bg-gradient-to-br from-slate-50 via-blue-50 to-indigo-50 dark:from-slate-900 dark:via-slate-800 dark:to-slate-900">
-      <div className="container mx-auto max-w-7xl px-4 py-6">
+      <div className="flex items-center justify-center pt-2">
+        <ScriptSelector />
+      </div>
+      <div className="container mx-auto my-3.5 max-w-7xl px-4">
         {/* Header Section */}
-        <div className="mb-8 space-y-4 text-center">
-          <div className="inline-flex items-center gap-2 rounded-full bg-gradient-to-r from-emerald-500 to-teal-500 px-6 py-2 text-white shadow-lg">
+        <div className="mb-3 space-y-2 text-center">
+          <div className="inline-flex items-center gap-2 rounded-xl bg-gradient-to-r from-emerald-500 to-teal-500 px-5 py-1.5 text-white shadow-lg">
             <span className="text-sm font-semibold tracking-wide uppercase">Hint</span>
           </div>
-          <h1 className="bg-gradient-to-r from-slate-800 to-slate-600 bg-clip-text text-2xl font-bold text-transparent sm:text-3xl md:text-4xl lg:text-5xl dark:from-slate-100 dark:to-slate-300">
+          <h1 className="bg-gradient-to-r from-slate-800 to-slate-600 bg-clip-text py-1 text-2xl font-bold text-transparent sm:text-3xl md:text-4xl dark:from-slate-100 dark:to-slate-300">
             {title_tr}
           </h1>
         </div>
@@ -94,7 +99,7 @@ export default function WordGame({
         {/* Main Game Container */}
         <div className="grid grid-cols-1 gap-6 lg:grid-cols-12 lg:gap-8">
           {/* Game Controls & Progress - Left Sidebar on large screens, top on mobile */}
-          <div className="order-2 space-y-6 lg:order-1 lg:col-span-3">
+          <div className="order-1 space-y-6 lg:order-1 lg:col-span-3">
             <div className="space-y-4 lg:sticky lg:top-6">
               <div className="rounded-2xl border border-slate-200 bg-white p-4 shadow-xl lg:p-6 dark:border-slate-700 dark:bg-slate-800">
                 <GameContoller
@@ -110,22 +115,29 @@ export default function WordGame({
                 />
               </div>
 
-              <div className="rounded-2xl border border-slate-200 bg-white p-4 shadow-xl lg:p-6 dark:border-slate-700 dark:bg-slate-800">
-                <GameBottom
-                  completed={completed}
-                  foundWords={foundWords}
-                  seconds={seconds}
-                  started={started}
-                  title={title}
-                  wordMsgs={wordMsgs}
-                  word_list={word_list}
-                />
-              </div>
+              {(started || completed) && (
+                <motion.div
+                  initial={{ opacity: 0, y: 20 }}
+                  animate={{ opacity: 1, y: 0 }}
+                  transition={{ duration: 0.5, ease: 'easeOut' }}
+                  className="rounded-2xl border border-slate-200 bg-white p-4 shadow-xl lg:p-6 dark:border-slate-700 dark:bg-slate-800"
+                >
+                  <GameBottom
+                    completed={completed}
+                    foundWords={foundWords}
+                    seconds={seconds}
+                    started={started}
+                    title={title}
+                    wordMsgs={wordMsgs}
+                    word_list={word_list}
+                  />
+                </motion.div>
+              )}
             </div>
           </div>
 
           {/* Game Grid - Center */}
-          <div className="order-1 flex justify-center lg:order-2 lg:col-span-6">
+          <div className="order-2 flex justify-center lg:order-2 lg:col-span-6">
             <div className="w-full max-w-lg">
               <GameGrid
                 cols={cols}

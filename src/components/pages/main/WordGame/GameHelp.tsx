@@ -9,14 +9,14 @@ import { HelpCircle, Sparkles, Users, Trophy } from 'lucide-react';
 export const GameHelp = () => {
   return (
     <div className="h-full">
-      <div className="border-b border-slate-200 p-6 dark:border-slate-700">
+      <div className="border-b border-slate-200 px-4 py-3 sm:px-6 sm:py-5 lg:py-6.5 dark:border-slate-700">
         <div className="flex items-center gap-2 text-slate-800 dark:text-slate-200">
           <HelpCircle className="h-5 w-5" />
           <h3 className="text-lg font-semibold">Game Guide</h3>
         </div>
       </div>
 
-      <div className="p-6">
+      <div className="px-5 py-4 sm:py-5 lg:py-6">
         <Accordion type="single" collapsible className="space-y-2">
           <AccordionItem
             value="how-to-play"
@@ -77,13 +77,6 @@ export const GameHelp = () => {
             </AccordionContent>
           </AccordionItem>
         </Accordion>
-
-        <div className="mt-6 rounded-lg border border-emerald-200 bg-gradient-to-r from-emerald-50 to-teal-50 p-4 dark:border-emerald-800 dark:from-emerald-950 dark:to-teal-950">
-          <p className="text-center text-xs text-emerald-700 dark:text-emerald-300">
-            💡 <strong>Pro Tip:</strong> Look for common patterns and word endings to find words
-            faster!
-          </p>
-        </div>
       </div>
     </div>
   );
