@@ -47,12 +47,15 @@ const MainEdit = async ({ params }: Props) => {
   return (
     <>
       <div className="my-2 mb-3.5 flex space-x-6 px-2 sm:space-x-9">
-        <Link href="/list" className="inline-flex items-center gap-1 text-lg font-semibold">
+        <Link
+          href="/padavali/list"
+          className="inline-flex items-center gap-1 text-lg font-semibold"
+        >
           <IoMdArrowRoundBack className="inline-block text-xl" />
           मुख्यसूची
         </Link>
         <Link
-          href={`/view/${word_puzzle.uuid}:${word_puzzle.id}`}
+          href={`/padavali/view/${word_puzzle.uuid}:${word_puzzle.id}`}
           target="_blank"
           className="inline-flex items-center gap-2 text-lg font-semibold"
         >

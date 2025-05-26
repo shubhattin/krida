@@ -3,7 +3,6 @@ import './app.scss';
 import { ThemeProvider } from '@/components/theme-provider';
 import { robotoSans, notoSansDevanagari } from '@/components/fonts';
 import { cn } from '@/lib/utils';
-import AppBar from '~/components/app-bar/AppBar';
 import Provider from '@/api/TRPCProvider';
 import { Toaster } from '@/components/ui/sonner';
 import { Metadata } from 'next';
@@ -35,9 +34,8 @@ export default async function RootLayout({
           disableTransitionOnChange
         >
           <div className="contaiiner mx-auto mb-1 max-w-screen-lg">
-            <AppBar title="Padavali" />
             <Provider script={script}>
-              <div className="mx-2">{children}</div>
+              {children}
               <Toaster richColors={true} />
             </Provider>
           </div>

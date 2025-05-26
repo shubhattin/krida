@@ -27,7 +27,10 @@ const Add = async () => {
   return (
     <>
       <div className="my-2 mb-3.5 flex space-x-6 px-2 sm:space-x-9">
-        <Link href="/list" className="inline-flex items-center gap-1 text-lg font-semibold">
+        <Link
+          href="/padavali/list"
+          className="inline-flex items-center gap-1 text-lg font-semibold"
+        >
           <IoMdArrowRoundBack className="inline-block text-xl" />
           मुख्यसूची
         </Link>

@@ -26,6 +26,7 @@ import { Button } from '@/components/ui/button';
 import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover';
 import { Separator } from '@/components/ui/separator';
 import { cn } from '~/lib/utils';
+import Link from 'next/link';
 
 export function MenuButton() {
   const { theme, setTheme } = useTheme();
@@ -226,11 +227,11 @@ export function MenuButton() {
 
                   {/* Admin Actions */}
                   {session.data.user.role === 'admin' && session.data.user.is_approved && (
-                    <button
+                    <Link
                       onClick={() => {
                         setOpen(false);
-                        router.push('/list');
                       }}
+                      href="/padavali/list"
                       className="flex w-full items-center gap-3 rounded-lg border border-slate-200 bg-slate-50 p-3 text-left text-sm font-medium text-slate-700 transition-all duration-200 hover:scale-[1.02] hover:border-slate-300 hover:bg-slate-100 active:scale-[0.98] dark:border-slate-700 dark:bg-slate-800/50 dark:text-slate-300 dark:hover:border-slate-600 dark:hover:bg-slate-700/50"
                     >
                       <div className="flex h-8 w-8 items-center justify-center rounded-lg bg-gradient-to-br from-purple-500 to-violet-600">
@@ -242,15 +243,17 @@ export function MenuButton() {
                           Admin panel
                         </div>
                       </div>
-                    </button>
+                    </Link>
                   )}
 
                   {/* Profile */}
-                  <button
+                  <a
                     onClick={() => {
                       setOpen(false);
-                      window.open(`${process.env.NEXT_PUBLIC_BETTER_AUTH_URL}/user`, '_blank');
                     }}
+                    href={`${process.env.NEXT_PUBLIC_BETTER_AUTH_URL}/user`}
+                    target="_blank"
+                    rel="noopener noreferrer"
                     className="flex w-full items-center gap-3 rounded-lg border border-slate-200 bg-slate-50 p-3 text-left text-sm font-medium text-slate-700 transition-all duration-200 hover:scale-[1.02] hover:border-slate-300 hover:bg-slate-100 active:scale-[0.98] dark:border-slate-700 dark:bg-slate-800/50 dark:text-slate-300 dark:hover:border-slate-600 dark:hover:bg-slate-700/50"
                   >
                     <div className="flex h-8 w-8 items-center justify-center rounded-lg bg-gradient-to-br from-blue-500 to-cyan-600">
@@ -260,7 +263,7 @@ export function MenuButton() {
                       <div className="font-medium">उपयोक्तृविवरणः</div>
                       <div className="text-xs text-slate-500 dark:text-slate-400">User Profile</div>
                     </div>
-                  </button>
+                  </a>
 
                   {/* Sign Out */}
                   <button

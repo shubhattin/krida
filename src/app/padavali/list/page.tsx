@@ -24,20 +24,20 @@ const List = async () => {
       title: true,
       created_at: true
     },
-    limit: 10,
+    // limit: 10,
     orderBy: ({ created_at }, { desc }) => desc(created_at)
   });
 
   return (
     <div className="container mx-auto p-4">
       <div className="my-2 mb-4 px-2">
-        <Link href="/" className="flex items-center gap-1 text-lg font-semibold">
+        <Link href="/padavali" className="flex items-center gap-1 text-lg font-semibold">
           <IoMdArrowRoundBack className="inline-block text-xl" />
           मुख्यपृष्ठं
         </Link>
       </div>
       <div className="mt-2 mb-5 flex items-center justify-center px-2">
-        <Link href="/add">
+        <Link href="/padavali/add">
           <Button variant="blue" className="gap-2 text-lg font-semibold">
             <IoMdAdd className="text-lh" /> नवप्रहेलिकां युञ्जतु
           </Button>
@@ -46,7 +46,7 @@ const List = async () => {
       <ul className="space-y-4">
         {list.map((item) => (
           <li key={item.id}>
-            <Link href={`/edit/${item.id}`}>
+            <Link href={`/padavali/edit/${item.id}`}>
               <Card className="p-2 transition duration-200 hover:bg-gray-100 hover:dark:bg-gray-800">
                 <CardHeader>
                   <CardTitle>{item.title}</CardTitle>

@@ -63,7 +63,7 @@ const MainEdit = async ({ params }: Props) => {
               initial_script_data={{ word_msgs: word_game_msgs, title, grid_data }}
             >
               <div className="my-3 mb-3 px-4">
-                <Link href="/" className="flex items-center gap-1 text-lg font-semibold">
+                <Link href="/padavali" className="flex items-center gap-1 text-lg font-semibold">
                   <IoMdArrowRoundBack className="inline-block text-xl" />
                   मुख्यपृष्ठम्
                 </Link>
