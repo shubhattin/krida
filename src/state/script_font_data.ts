@@ -3,10 +3,18 @@ import {
   notoSansKannada,
   notoSansTelugu,
   notoSansBengali,
-  notoSansGujarati
+  notoSansGujarati,
+  notoSansOdia
 } from '~/components/fonts';
 
-export const SCRIPT_LIST = ['Devanagari', 'Telugu', 'Kannada', 'Gujarati', 'Bengali'] as const;
+export const SCRIPT_LIST = [
+  'Devanagari',
+  'Telugu',
+  'Kannada',
+  'Gujarati',
+  'Bengali',
+  'Odia'
+] as const;
 export type ScriptType = (typeof SCRIPT_LIST)[number];
 
 export const DEFAULT_DATA_SCRIPT: ScriptType = 'Devanagari';
@@ -38,6 +46,10 @@ export const FONT_INFO: Record<ScriptType, { clasName: string; fontSize: number 
   },
   Gujarati: {
     clasName: notoSansGujarati.className,
+    fontSize: 1.25
+  },
+  Odia: {
+    clasName: notoSansOdia.className,
     fontSize: 1.25
   }
 };

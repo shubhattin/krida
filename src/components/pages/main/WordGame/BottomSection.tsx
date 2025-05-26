@@ -163,8 +163,8 @@ const get_share_msg = (name: string, time_taken: string) => {
     `'${name}' in a record ${time_taken} sec.s`,
     `💪🏽I challenge you to beat my record!`,
     `Play it NOW at https://krida.thesanskritchannel.org`,
-    `Playable in Devanagari/Telugu/Kannada/Gujarati/Bengali!`,
-    `नमस्ते - నమస్తే - ನಮಸ್ತೇ - નમસ્તે - নমস্তে`
+    `Playable in Devanagari/Telugu/Kannada/Gujarati/Bengali/Odia!`,
+    `नमस्ते - నమస్తే - ನಮಸ್తೇ - નમસ્તે - নমস্তে - ନମସ୍ତେ`
   ].join('\n');
 
   return msg;
