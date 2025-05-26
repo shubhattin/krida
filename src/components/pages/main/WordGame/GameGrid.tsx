@@ -87,12 +87,7 @@ export const GameGrid = ({
     ({ event, first, down, last }) => {
       if (!started || completed) {
         // Allow native scroll behavior on mobile when game is off
-        // Only prevent default for non-touch events to avoid blocking scroll
-        const isTouchEvent =
-          event?.type?.startsWith('touch') || (event && 'touches' in event && event.touches);
-        if (!isTouchEvent) {
-          event?.preventDefault();
-        }
+        // Don't prevent default for any events to allow natural scrolling
         return;
       }
       event?.preventDefault();
@@ -128,9 +123,7 @@ export const GameGrid = ({
       }
     },
     {
-      eventOptions: { passive: false },
-      // Allow touch events to be handled natively when game is off
-      enabled: started && !completed
+      eventOptions: { passive: false }
     }
   );
 
@@ -174,8 +167,10 @@ export const GameGrid = ({
             ref={gridRef}
             {...bind()}
             className={cn(
-              'relative z-10 mx-auto grid h-full w-full touch-none select-none',
-              'gap-1.5 sm:gap-2.5 md:gap-3'
+              'relative z-10 mx-auto grid h-full w-full select-none',
+              'gap-1.5 sm:gap-2.5 md:gap-3',
+              // Only disable touch when game is active to allow scrolling when game is off
+              started && !completed && 'touch-none'
             )}
             style={{
               gridTemplateColumns: `repeat(${cols}, 1fr)`,

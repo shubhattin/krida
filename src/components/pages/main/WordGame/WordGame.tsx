@@ -92,7 +92,7 @@ export default function WordGame({
         className={cn('flex items-center justify-center pt-2.5 sm:pt-4 lg:pt-5', 'mb-2.5 sm:mb-4')}
       >
         <label className="space-x-2">
-          <Icon className="h-8 w-8" src={LanguageIcon} />
+          <Icon className="h-7 w-7" src={LanguageIcon} />
           <ScriptSelector />
         </label>
       </div>
@@ -110,13 +110,19 @@ export default function WordGame({
         {/* Main Game Container */}
         <div className="grid grid-cols-1 gap-6 lg:grid-cols-12 lg:gap-8">
           {/* Game Controls & Progress - Left Sidebar on large screens, top on mobile */}
-          <div className="order-1 flex items-center justify-center lg:order-1 lg:col-span-3">
+          <div
+            className={cn(
+              'order-1 flex items-center justify-center lg:order-1 lg:col-span-3',
+              !started && 'lg:mt-12 lg:items-start'
+            )}
+          >
             <div
               className={cn(
                 'inline-flex items-center justify-center rounded-2xl border border-slate-200 bg-white shadow-xl dark:border-slate-700 dark:bg-slate-800',
                 'px-5 py-3 lg:px-2 lg:py-6',
                 'space-x-3.5 sm:space-x-5 md:space-x-5 lg:flex lg:flex-col lg:space-y-5 lg:space-x-0',
-                completed && 'flex-col space-y-3'
+                completed && 'flex-col space-y-3',
+                !started && 'px-2.5 sm:px-3 lg:px-4.5'
               )}
             >
               <GameContoller

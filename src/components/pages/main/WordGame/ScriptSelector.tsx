@@ -14,9 +14,9 @@ export const ScriptSelector = () => {
       <select
         value={script}
         className={cn(
-          'select rounded-md border border-gray-300 bg-white text-sm text-gray-700 shadow-sm focus:border-blue-500 focus:ring-1 focus:ring-blue-500 focus:outline-none',
+          'select rounded-md border border-gray-300 bg-white text-gray-700 shadow-sm focus:border-blue-500 focus:ring-1 focus:ring-blue-500 focus:outline-none',
           'bg-white dark:border-gray-600 dark:bg-gray-800 dark:text-gray-200 dark:focus:border-blue-500 dark:focus:ring-blue-500',
-          'w-32 px-2 py-1.5'
+          'w-28 px-2 py-1 text-xs'
         )}
         onChange={(e) => {
           setScript(e.target.value as ScriptType);
