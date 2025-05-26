@@ -99,7 +99,7 @@ export default function WordGame({
       <div className="container mx-auto my-3.5 max-w-7xl px-2 sm:px-4 md:px-6">
         {/* Header Section */}
         <div className="mb-3 space-y-1 text-center sm:space-y-1.5">
-          <div className="inline-flex items-center gap-2 rounded-xl bg-gradient-to-r from-emerald-500 to-teal-500 px-5 py-1.5 text-white shadow-lg">
+          <div className="inline-flex items-center gap-2 rounded-xl bg-gradient-to-r from-yellow-600 to-orange-400 px-5 py-1.5 text-white shadow-lg">
             <span className="text-sm font-semibold tracking-wide uppercase">Hint</span>
           </div>
           <h1 className="bg-gradient-to-r from-slate-800 to-slate-600 bg-clip-text py-1 text-2xl font-bold text-transparent sm:text-3xl md:text-4xl dark:from-slate-100 dark:to-slate-300">
@@ -115,7 +115,8 @@ export default function WordGame({
               className={cn(
                 'inline-flex items-center justify-center rounded-2xl border border-slate-200 bg-white shadow-xl dark:border-slate-700 dark:bg-slate-800',
                 'px-5 py-3 lg:px-2 lg:py-6',
-                'space-x-3.5 sm:space-x-5 md:space-x-5 lg:flex lg:flex-col lg:space-y-5 lg:space-x-0'
+                'space-x-3.5 sm:space-x-5 md:space-x-5 lg:flex lg:flex-col lg:space-y-5 lg:space-x-0',
+                completed && 'flex-col space-y-3'
               )}
             >
               <GameContoller

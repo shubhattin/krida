@@ -11,12 +11,12 @@ export const GameHelp = () => {
     <div className="h-full">
       <div className="border-b border-slate-200 px-4 py-3 sm:px-6 sm:py-5 lg:py-6.5 dark:border-slate-700">
         <div className="flex items-center gap-2 text-slate-800 dark:text-slate-200">
-          <HelpCircle className="h-5 w-5" />
-          <h3 className="text-lg font-semibold">Game Guide</h3>
+          <HelpCircle className="h-6 w-6" />
+          <h3 className="text-lg font-semibold">How to Play ?</h3>
         </div>
       </div>
 
-      <div className="px-5 py-4 sm:py-5 lg:py-6">
+      <div className="px-5 pt-1.5 pb-2 sm:pb-3 lg:pb-4">
         <Accordion type="single" collapsible className="space-y-2">
           <AccordionItem
             value="how-to-play"

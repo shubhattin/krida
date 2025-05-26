@@ -85,8 +85,17 @@ export const GameGrid = ({
   // same drag logic as before
   const bind = useDrag(
     ({ event, first, down, last }) => {
+      if (!started || completed) {
+        // Allow native scroll behavior on mobile when game is off
+        // Only prevent default for non-touch events to avoid blocking scroll
+        const isTouchEvent =
+          event?.type?.startsWith('touch') || (event && 'touches' in event && event.touches);
+        if (!isTouchEvent) {
+          event?.preventDefault();
+        }
+        return;
+      }
       event?.preventDefault();
-      if (!started || completed) return;
       if (first) setCurrentSelection([]);
       if (down) {
         const cell = getCellFromEvent(event);
@@ -118,7 +127,11 @@ export const GameGrid = ({
         setCurrentSelection([]);
       }
     },
-    { eventOptions: { passive: false } }
+    {
+      eventOptions: { passive: false },
+      // Allow touch events to be handled natively when game is off
+      enabled: started && !completed
+    }
   );
 
   // build the SVG <polyline> points strings

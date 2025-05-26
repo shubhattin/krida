@@ -94,7 +94,7 @@ export const GameBottom = ({
           transition={{ duration: 0.5, ease: 'easeOut' }}
           className={cn(
             'rounded-xl border border-green-200 bg-gradient-to-r from-green-50 to-emerald-50 p-3 sm:rounded-2xl sm:p-6 dark:border-green-800 dark:from-green-950 dark:to-emerald-950',
-            completed && 'px-1'
+            completed && 'px-4 lg:px-0.5'
           )}
         >
           <motion.div
@@ -125,6 +125,7 @@ export const GameBottom = ({
               </p>
             </motion.div>
 
+            {/* {true && ( */}
             {typeof navigator !== 'undefined' && navigator.share && (
               <motion.div
                 initial={{ opacity: 0, y: 10 }}
