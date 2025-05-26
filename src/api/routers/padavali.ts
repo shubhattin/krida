@@ -51,7 +51,7 @@ const delete_puzzle_route = protectedAdminProcedure
     };
   });
 
-export const puzzle_router = t.router({
+export const padavali_router = t.router({
   update_puzzle: update_puzzle_route,
   add_puzzle: add_puzzle_route,
   delete_puzzle: delete_puzzle_route
