@@ -49,6 +49,69 @@ export const GameGrid = ({
 }: Props) => {
   const font_info = FONT_INFO[script];
 
+  // Prevent pull-to-refresh and other navigation gestures
+  useEffect(() => {
+    if (!started || completed) return;
+
+    const preventNavigation = (e: TouchEvent) => {
+      // Prevent pull-to-refresh and navigation gestures
+      if (e.touches.length === 1) {
+        const touch = e.touches[0];
+        const target = e.target as Element;
+
+        // Check if touch started on the game grid
+        if (
+          target &&
+          (target.closest('[data-game-grid]') || target.hasAttribute('data-game-grid'))
+        ) {
+          e.preventDefault();
+        }
+      }
+    };
+
+    const preventOverscroll = (e: TouchEvent) => {
+      // Prevent overscroll bounce that can trigger refresh
+      if (e.touches.length === 1) {
+        const target = e.target as Element;
+        if (
+          target &&
+          (target.closest('[data-game-grid]') || target.hasAttribute('data-game-grid'))
+        ) {
+          e.preventDefault();
+        }
+      }
+    };
+
+    const preventContextMenu = (e: Event) => {
+      // Prevent long press context menu on mobile
+      const target = e.target as Element;
+      if (target && (target.closest('[data-game-grid]') || target.hasAttribute('data-game-grid'))) {
+        e.preventDefault();
+      }
+    };
+
+    const preventDoubleClick = (e: Event) => {
+      // Prevent double-click zoom on mobile
+      const target = e.target as Element;
+      if (target && (target.closest('[data-game-grid]') || target.hasAttribute('data-game-grid'))) {
+        e.preventDefault();
+      }
+    };
+
+    // Add event listeners to document to catch all touch events
+    document.addEventListener('touchstart', preventNavigation, { passive: false });
+    document.addEventListener('touchmove', preventOverscroll, { passive: false });
+    document.addEventListener('contextmenu', preventContextMenu, { passive: false });
+    document.addEventListener('dblclick', preventDoubleClick, { passive: false });
+
+    return () => {
+      document.removeEventListener('touchstart', preventNavigation);
+      document.removeEventListener('touchmove', preventOverscroll);
+      document.removeEventListener('contextmenu', preventContextMenu);
+      document.removeEventListener('dblclick', preventDoubleClick);
+    };
+  }, [started, completed]);
+
   // helper to go from a cell index to its pixel center
   const getCenter = ({ row, col }: CellPosition) => {
     if (!gridRef.current) return { x: 0, y: 0 };
@@ -90,16 +153,28 @@ export const GameGrid = ({
     return { row, col };
   };
 
-  // same drag logic as before
+  // Enhanced drag logic with better mobile support
   const bind = useDrag(
-    ({ event, first, down, last }) => {
+    ({ event, first, down, last, cancel }) => {
       if (!started || completed) {
         // Allow native scroll behavior on mobile when game is off
-        // Don't prevent default for any events to allow natural scrolling
         return;
       }
-      event?.preventDefault();
-      if (first) setCurrentSelection([]);
+
+      // Aggressively prevent default for all game-related events
+      if (event) {
+        event.preventDefault();
+        event.stopPropagation();
+      }
+
+      if (first) {
+        setCurrentSelection([]);
+        // Additional prevention for iOS Safari
+        if (event && 'touches' in event) {
+          event.preventDefault();
+        }
+      }
+
       if (down) {
         const cell = getCellFromEvent(event);
         if (!cell) return;
@@ -122,6 +197,7 @@ export const GameGrid = ({
           }
         }
       }
+
       if (last) {
         const word = getWordFromSelection(currentSelection);
         if (currentSelection.length >= 2) {
@@ -137,7 +213,17 @@ export const GameGrid = ({
       }
     },
     {
-      eventOptions: { passive: false }
+      // Enhanced event options for better mobile support
+      eventOptions: {
+        passive: false,
+        capture: true
+      },
+      // Prevent default on all interactions
+      preventDefault: true,
+      // Configure touch-specific behavior
+      touch: {
+        target: gridRef
+      }
     }
   );
 
@@ -180,16 +266,24 @@ export const GameGrid = ({
           <div
             ref={gridRef}
             {...bind()}
+            data-game-grid
             className={cn(
               'relative z-10 mx-auto grid h-full w-full select-none',
               'gap-1.5 sm:gap-2.5 md:gap-3',
-              // Only disable touch when game is active to allow scrolling when game is off
-              started && !completed && 'touch-none'
+              // Enhanced touch handling for all states
+              'touch-none'
             )}
             style={{
               gridTemplateColumns: `repeat(${cols}, 1fr)`,
               gridTemplateRows: `repeat(${rows}, 1fr)`,
-              maxWidth: 'min(100%, min(90vw, 450px))'
+              maxWidth: 'min(100%, min(90vw, 450px))',
+              // Additional CSS properties for mobile gesture prevention
+              WebkitTouchCallout: 'none',
+              WebkitUserSelect: 'none',
+              touchAction: started && !completed ? 'none' : 'pan-y',
+              // Prevent iOS Safari bounce and zoom
+              WebkitOverflowScrolling: 'touch',
+              overscrollBehavior: 'contain'
             }}
           >
             {gridData.map((row, ri) =>
@@ -302,8 +396,12 @@ const GridCell = ({
     <div
       data-row={row}
       data-col={col}
+      data-game-grid
       style={{
-        fontSize: `${fontInfo.fontSize}rem`
+        fontSize: `${fontInfo.fontSize}rem`,
+        // Additional mobile gesture prevention
+        WebkitTouchCallout: 'none',
+        WebkitUserSelect: 'none'
       }}
       className={cn(
         fontInfo.clasName,

@@ -90,7 +90,14 @@ export default function WordGame({
   }, []);
 
   return (
-    <div className="min-h-screen w-full bg-gradient-to-br from-slate-50 via-blue-50 to-indigo-50 dark:from-slate-900 dark:via-slate-800 dark:to-slate-900">
+    <div
+      className="min-h-screen w-full bg-gradient-to-br from-slate-50 via-blue-50 to-indigo-50 dark:from-slate-900 dark:via-slate-800 dark:to-slate-900"
+      style={{
+        // Prevent iOS Safari bounce and zoom during game
+        WebkitOverflowScrolling: 'touch',
+        overscrollBehavior: started && !completed ? 'contain' : 'auto'
+      }}
+    >
       {children}
       <div
         className={cn('flex items-center justify-center pt-2.5 sm:pt-4 lg:pt-5', 'mb-2.5 sm:mb-4')}
