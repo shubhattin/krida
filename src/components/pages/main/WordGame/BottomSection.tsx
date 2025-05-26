@@ -98,7 +98,7 @@ export const GameBottom = ({
           transition={{ duration: 0.5, ease: 'easeOut' }}
           className={cn(
             'rounded-xl border border-green-200 bg-gradient-to-r from-green-50 to-emerald-50 p-3 sm:rounded-2xl sm:p-6 dark:border-green-800 dark:from-green-950 dark:to-emerald-950',
-            completed && 'px-4 lg:px-0.5'
+            completed && 'px-4 lg:px-3'
           )}
         >
           <motion.div

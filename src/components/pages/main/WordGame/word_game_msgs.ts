@@ -4,7 +4,7 @@ import { lipi_parivartak } from '~/tools/lipi_lekhika';
 export const word_game_msgs = {
   play: 'क्रीड',
   replay: 'पुनः',
-  time_taken: 'क्रीडनाय गृहीतकालम्',
+  time_taken: 'गृहीतकालम्',
   found_words: 'लब्ध-शब्दानि',
   time_elapsed: 'अतीत-समयः'
 };
