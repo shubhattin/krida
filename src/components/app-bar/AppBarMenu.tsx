@@ -12,7 +12,9 @@ import {
   List,
   Settings,
   Palette,
-  ExternalLink
+  ExternalLink,
+  Book,
+  Music
 } from 'lucide-react';
 import { SiGithub } from 'react-icons/si';
 import { FaYoutube, FaInstagram } from 'react-icons/fa';
@@ -153,6 +155,44 @@ export function MenuButton() {
                 title="Instagram"
               >
                 <FaInstagram className="h-6 w-6" />
+              </a>
+            </div>
+
+            {/* Project Links */}
+            <div className="mt-4 space-y-2">
+              <a
+                href="http://projects.thesanskritchannel.org/"
+                target="_blank"
+                rel="noopener noreferrer"
+                onClick={() => setOpen(false)}
+                className="flex w-full items-center gap-3 rounded-lg border border-slate-200 bg-slate-50 p-3 text-left text-sm font-medium text-slate-700 transition-all duration-200 hover:scale-[1.02] hover:border-slate-300 hover:bg-slate-100 active:scale-[0.98] dark:border-slate-700 dark:bg-slate-800/50 dark:text-slate-300 dark:hover:border-slate-600 dark:hover:bg-slate-700/50"
+              >
+                <div className="flex h-8 w-8 items-center justify-center rounded-lg bg-gradient-to-br from-green-500 to-emerald-600">
+                  <Book className="h-4 w-4 text-white" />
+                </div>
+                <div>
+                  <div className="font-medium">Projects</div>
+                  <div className="text-xs text-slate-500 dark:text-slate-400">
+                    Sanskrit Channel Projects
+                  </div>
+                </div>
+              </a>
+              <a
+                href="https://svara.thesanskritchannel.org/"
+                target="_blank"
+                rel="noopener noreferrer"
+                onClick={() => setOpen(false)}
+                className="flex w-full items-center gap-3 rounded-lg border border-slate-200 bg-slate-50 p-3 text-left text-sm font-medium text-slate-700 transition-all duration-200 hover:scale-[1.02] hover:border-slate-300 hover:bg-slate-100 active:scale-[0.98] dark:border-slate-700 dark:bg-slate-800/50 dark:text-slate-300 dark:hover:border-slate-600 dark:hover:bg-slate-700/50"
+              >
+                <div className="flex h-8 w-8 items-center justify-center rounded-lg bg-gradient-to-br from-indigo-500 to-purple-600">
+                  <Music className="h-4 w-4 text-white" />
+                </div>
+                <div>
+                  <div className="font-medium">Svara Darshini</div>
+                  <div className="text-xs text-slate-500 dark:text-slate-400">
+                    Understand Principles of Music
+                  </div>
+                </div>
               </a>
             </div>
           </div>
