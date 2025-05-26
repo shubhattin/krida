@@ -11,8 +11,11 @@ import {
   LogOut,
   List,
   Settings,
-  Palette
+  Palette,
+  ExternalLink
 } from 'lucide-react';
+import { SiGithub } from 'react-icons/si';
+import { FaYoutube, FaInstagram } from 'react-icons/fa';
 import { useTheme } from 'next-themes';
 import { signOut, signIn, useSession } from '~/lib/auth-client';
 import { useRouter } from 'next/navigation';
@@ -113,38 +116,60 @@ export function MenuButton() {
 
           <Separator className="my-4 bg-slate-200 dark:bg-slate-700" />
 
-          {/* Account Section */}
+          {/* Links Section */}
           <div className="space-y-3">
             <div className="flex items-center gap-2">
-              <User className="h-4 w-4 text-slate-600 dark:text-slate-400" />
-              <span className="text-sm font-medium text-slate-700 dark:text-slate-300">
-                Account
-              </span>
+              <ExternalLink className="h-4 w-4 text-slate-600 dark:text-slate-400" />
+              <span className="text-sm font-medium text-slate-700 dark:text-slate-300">Links</span>
             </div>
 
-            <div className="space-y-2">
-              {!session.data?.user ? (
-                <button
-                  onClick={async () => {
-                    setOpen(false);
-                    await signIn.social({
-                      provider: 'google',
-                      callbackURL: window.location.href
-                    });
-                  }}
-                  className="flex w-full items-center gap-3 rounded-lg border border-slate-200 bg-slate-50 p-3 text-left text-sm font-medium text-slate-700 transition-all duration-200 hover:scale-[1.02] hover:border-slate-300 hover:bg-slate-100 active:scale-[0.98] dark:border-slate-700 dark:bg-slate-800/50 dark:text-slate-300 dark:hover:border-slate-600 dark:hover:bg-slate-700/50"
-                >
-                  <div className="flex h-8 w-8 items-center justify-center rounded-lg bg-gradient-to-br from-green-500 to-emerald-600">
-                    <LogIn className="h-4 w-4 text-white" />
-                  </div>
-                  <div>
-                    <div className="font-medium">सम्प्रवेशः</div>
-                    <div className="text-xs text-slate-500 dark:text-slate-400">
-                      Sign in with Google
-                    </div>
-                  </div>
-                </button>
-              ) : (
+            <div className="flex justify-center gap-8">
+              <a
+                href="https://github.com/shubhattin/padavali/"
+                target="_blank"
+                rel="noopener noreferrer"
+                onClick={() => setOpen(false)}
+                className="flex h-12 w-12 items-center justify-center rounded-xl border-2 border-gray-800/20 bg-gray-50 text-gray-800 transition-all duration-200 hover:scale-105 hover:border-gray-800/40 hover:bg-gray-100 hover:shadow-md active:scale-95 dark:border-gray-300/20 dark:bg-gray-800/50 dark:text-gray-300 dark:hover:border-gray-300/40 dark:hover:bg-gray-700/50"
+                title="GitHub"
+              >
+                <SiGithub className="h-6 w-6" />
+              </a>
+              <a
+                href="https://www.youtube.com/@TheSanskritChannel"
+                target="_blank"
+                rel="noopener noreferrer"
+                onClick={() => setOpen(false)}
+                className="flex h-12 w-12 items-center justify-center rounded-xl border-2 border-red-500/20 bg-red-50 text-red-600 transition-all duration-200 hover:scale-105 hover:border-red-500/40 hover:bg-red-100 hover:shadow-md active:scale-95 dark:border-red-400/20 dark:bg-red-950/30 dark:text-red-400 dark:hover:border-red-400/40 dark:hover:bg-red-900/40"
+                title="YouTube"
+              >
+                <FaYoutube className="h-6 w-6" />
+              </a>
+              <a
+                href="https://www.instagram.com/thesanskritchannel/"
+                target="_blank"
+                rel="noopener noreferrer"
+                onClick={() => setOpen(false)}
+                className="flex h-12 w-12 items-center justify-center rounded-xl border-2 border-pink-500/20 bg-gradient-to-br from-pink-50 to-purple-50 text-pink-600 transition-all duration-200 hover:scale-105 hover:border-pink-500/40 hover:from-pink-100 hover:to-purple-100 hover:shadow-md active:scale-95 dark:border-pink-400/20 dark:from-pink-950/30 dark:to-purple-950/30 dark:text-pink-400 dark:hover:border-pink-400/40 dark:hover:from-pink-900/40 dark:hover:to-purple-900/40"
+                title="Instagram"
+              >
+                <FaInstagram className="h-6 w-6" />
+              </a>
+            </div>
+          </div>
+
+          <Separator className="my-4 bg-slate-200 dark:bg-slate-700" />
+
+          {/* Account Section */}
+          <div className="space-y-3">
+            {session.data?.user ? (
+              <>
+                <div className="flex items-center gap-2">
+                  <User className="h-4 w-4 text-slate-600 dark:text-slate-400" />
+                  <span className="text-sm font-medium text-slate-700 dark:text-slate-300">
+                    Account
+                  </span>
+                </div>
+
                 <div className="space-y-2">
                   {/* User Info */}
                   <div className="flex items-center gap-3 rounded-lg border border-slate-200 bg-gradient-to-r from-blue-50 to-indigo-50 p-3 dark:border-slate-700 dark:from-blue-950/30 dark:to-indigo-950/30">
@@ -214,20 +239,37 @@ export function MenuButton() {
                     </div>
                   </button>
                 </div>
-              )}
 
-              {session.data?.user &&
-                (session.data.user.role !== 'admin' || !session.data.user.is_approved) && (
-                  <div className="rounded-lg border border-orange-200 bg-orange-50 p-3 dark:border-orange-800 dark:bg-orange-950/30">
-                    <div className="text-sm font-medium text-orange-800 dark:text-orange-300">
-                      Unauthorized Account
+                {session.data.user &&
+                  (session.data.user.role !== 'admin' || !session.data.user.is_approved) && (
+                    <div className="rounded-lg border border-orange-200 bg-orange-50 p-3 dark:border-orange-800 dark:bg-orange-950/30">
+                      <div className="text-sm font-medium text-orange-800 dark:text-orange-300">
+                        Unauthorized Account
+                      </div>
+                      <div className="text-xs text-orange-600 dark:text-orange-400">
+                        Contact admin for approval
+                      </div>
                     </div>
-                    <div className="text-xs text-orange-600 dark:text-orange-400">
-                      Contact admin for approval
-                    </div>
-                  </div>
-                )}
-            </div>
+                  )}
+              </>
+            ) : (
+              <div className="flex justify-center">
+                <button
+                  onClick={async () => {
+                    setOpen(false);
+                    await signIn.social({
+                      provider: 'google',
+                      callbackURL: window.location.href
+                    });
+                  }}
+                  className="flex items-center gap-2 rounded-lg border border-slate-200 bg-slate-50 px-3 py-2 text-xs font-medium text-slate-600 transition-all duration-200 hover:border-slate-300 hover:bg-slate-100 active:scale-95 dark:border-slate-700 dark:bg-slate-800/50 dark:text-slate-400 dark:hover:border-slate-600 dark:hover:bg-slate-700/50"
+                  title="Sign in with Google"
+                >
+                  <LogIn className="h-3 w-3" />
+                  <span>Sign in</span>
+                </button>
+              </div>
+            )}
           </div>
         </div>
       </PopoverContent>
