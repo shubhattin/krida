@@ -89,6 +89,43 @@ export default function WordGame({
     return () => ro.disconnect();
   }, []);
 
+  // Prevent page refresh/navigation during active game
+  useEffect(() => {
+    if (!started || completed) return;
+
+    const handleBeforeUnload = (e: BeforeUnloadEvent) => {
+      // Show confirmation dialog when trying to leave/refresh during active game
+      e.preventDefault();
+      e.returnValue = ''; // Chrome requires returnValue to be set
+      return ''; // Some browsers require a return value
+    };
+
+    const handlePopState = (e: PopStateEvent) => {
+      // Prevent back/forward navigation during active game
+      if (started && !completed) {
+        const confirmLeave = window.confirm(
+          'Are you sure you want to leave? Your current game progress will be lost.'
+        );
+        if (!confirmLeave) {
+          // Push the current state back to prevent navigation
+          window.history.pushState(null, '', window.location.href);
+        }
+      }
+    };
+
+    // Add event listeners
+    window.addEventListener('beforeunload', handleBeforeUnload);
+    window.addEventListener('popstate', handlePopState);
+
+    // Push initial state to handle back button
+    window.history.pushState(null, '', window.location.href);
+
+    return () => {
+      window.removeEventListener('beforeunload', handleBeforeUnload);
+      window.removeEventListener('popstate', handlePopState);
+    };
+  }, [started, completed]);
+
   return (
     <div
       className="min-h-screen w-full bg-gradient-to-br from-slate-50 via-blue-50 to-indigo-50 dark:from-slate-900 dark:via-slate-800 dark:to-slate-900"

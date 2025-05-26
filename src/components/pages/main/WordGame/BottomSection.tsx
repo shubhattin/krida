@@ -130,7 +130,7 @@ export const GameBottom = ({
             </motion.div>
 
             {/* Accuracy Display */}
-            {/* <motion.div
+            <motion.div
               initial={{ opacity: 0, y: 10 }}
               animate={{ opacity: 1, y: 0 }}
               transition={{ delay: 0.7, duration: 0.5 }}
@@ -142,7 +142,7 @@ export const GameBottom = ({
                   {totalAttempts > 0 ? Math.round((correctAttempts / totalAttempts) * 100) : 0}%
                 </p>
               </div>
-            </motion.div> */}
+            </motion.div>
 
             {/* {true && ( */}
             {typeof navigator !== 'undefined' && navigator.share && (
@@ -181,8 +181,8 @@ export const GameBottom = ({
 const get_share_msg = (name: string, time_taken: string, accuracy: number) => {
   const msg = [
     `✨I just solved a Super Fun, Interactive, Sanskrit Puzzle - 'Padavali'`,
-    `'${name}' in a record ${time_taken} secs`,
-    // `'${name}' in a record ${time_taken} secs with ${accuracy}% accuracy! 🎯`,
+    // `'${name}' in a record of ${time_taken} secs`,
+    `'${name}' in a record of ${time_taken} secs with ${accuracy}% accuracy! 🎯`,
     `💪🏽I challenge you to beat my record!`,
     `Play it NOW at https://krida.thesanskritchannel.org`,
     `Playable in Devanagari/Telugu/Kannada/Gujarati/Bengali/Odia!`,
