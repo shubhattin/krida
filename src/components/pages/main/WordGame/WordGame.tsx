@@ -74,6 +74,10 @@ export default function WordGame({
   const [currentSelection, setCurrentSelection] = useState<CellPosition[]>([]);
   const [foundWords, setFoundWords] = useState<Selection[]>([]);
 
+  // Accuracy tracking state
+  const [totalAttempts, setTotalAttempts] = useState(0);
+  const [correctAttempts, setCorrectAttempts] = useState(0);
+
   // re-compute bbox on mount & on resize
   useEffect(() => {
     if (!gridRef.current) return;
@@ -96,9 +100,9 @@ export default function WordGame({
           <ScriptSelector />
         </label>
       </div>
-      <div className="container mx-auto my-3.5 max-w-7xl px-2 sm:px-4 md:px-6">
+      <div className="container mx-auto my-2.5 max-w-7xl px-2 sm:my-3.5 sm:px-4 md:my-4 md:px-6 lg:my-5">
         {/* Header Section */}
-        <div className="mb-3 space-y-1 text-center sm:space-y-1.5">
+        <div className="mb-1 space-y-1 text-center sm:mb-2 sm:space-y-1.5 md:mb-3">
           <div className="inline-flex items-center gap-2 rounded-xl bg-gradient-to-r from-yellow-600 to-orange-400 px-5 py-1.5 text-white shadow-lg">
             <span className="text-sm font-semibold tracking-wide uppercase">Hint</span>
           </div>
@@ -108,7 +112,12 @@ export default function WordGame({
         </div>
 
         {/* Main Game Container */}
-        <div className="grid grid-cols-1 gap-6 lg:grid-cols-12 lg:gap-8">
+        <div
+          className={cn(
+            'grid grid-cols-1 lg:grid-cols-12 lg:gap-8',
+            'gap-3.5 sm:gap-5 md:gap-6 lg:gap-3'
+          )}
+        >
           {/* Game Controls & Progress - Left Sidebar on large screens, top on mobile */}
           <div
             className={cn(
@@ -145,6 +154,8 @@ export default function WordGame({
                   title={title}
                   wordMsgs={wordMsgs}
                   word_list={word_list}
+                  totalAttempts={totalAttempts}
+                  correctAttempts={correctAttempts}
                 />
               )}
             </div>
@@ -169,12 +180,16 @@ export default function WordGame({
                 word_list={word_list}
                 timerRef={timerRef}
                 setCompleted={setCompleted}
+                totalAttempts={totalAttempts}
+                setTotalAttempts={setTotalAttempts}
+                correctAttempts={correctAttempts}
+                setCorrectAttempts={setCorrectAttempts}
               />
             </div>
           </div>
 
           {/* Help Section - Right Sidebar on large screens, bottom on mobile */}
-          <div className="order-3 lg:col-span-3">
+          <div className="order-3 lg:col-span-3 lg:ml-3">
             <div className="lg:sticky lg:top-6">
               <div className="overflow-hidden rounded-2xl border border-slate-200 bg-white shadow-xl dark:border-slate-700 dark:bg-slate-800">
                 <GameHelp />

@@ -17,9 +17,13 @@ type Props = {
   grid_data: string[][];
   foundWords: { cells: CellPosition[]; word: string }[];
   timerRef: RefObject<NodeJS.Timeout | null>;
+  totalAttempts: number;
+  correctAttempts: number;
   setCurrentSelection: Dispatch<SetStateAction<CellPosition[]>>;
   setFoundWords: Dispatch<SetStateAction<{ cells: CellPosition[]; word: string }[]>>;
   setCompleted: Dispatch<SetStateAction<boolean>>;
+  setTotalAttempts: Dispatch<SetStateAction<number>>;
+  setCorrectAttempts: Dispatch<SetStateAction<number>>;
 };
 
 export const GameGrid = ({
@@ -35,9 +39,13 @@ export const GameGrid = ({
   foundWords,
   grid_data,
   timerRef,
+  totalAttempts,
+  correctAttempts,
   setCurrentSelection,
   setFoundWords,
-  setCompleted
+  setCompleted,
+  setTotalAttempts,
+  setCorrectAttempts
 }: Props) => {
   const font_info = FONT_INFO[script];
 
@@ -116,8 +124,14 @@ export const GameGrid = ({
       }
       if (last) {
         const word = getWordFromSelection(currentSelection);
-        if (currentSelection.length >= 2 && word_list.includes(word)) {
-          setFoundWords((prev) => [...prev, { cells: [...currentSelection], word }]);
+        if (currentSelection.length >= 2) {
+          // Track attempt only if selection has at least 2 cells
+          setTotalAttempts((prev) => prev + 1);
+
+          if (word_list.includes(word)) {
+            setFoundWords((prev) => [...prev, { cells: [...currentSelection], word }]);
+            setCorrectAttempts((prev) => prev + 1);
+          }
         }
         setCurrentSelection([]);
       }

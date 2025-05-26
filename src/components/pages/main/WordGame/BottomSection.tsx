@@ -14,6 +14,8 @@ type Props = {
   foundWords: Selection[];
   word_list: string[];
   title: string;
+  totalAttempts: number;
+  correctAttempts: number;
 };
 
 export const GameBottom = ({
@@ -23,7 +25,9 @@ export const GameBottom = ({
   started,
   wordMsgs,
   word_list,
-  title
+  title,
+  totalAttempts,
+  correctAttempts
 }: Props) => {
   return (
     <>
@@ -125,20 +129,37 @@ export const GameBottom = ({
               </p>
             </motion.div>
 
+            {/* Accuracy Display */}
+            {/* <motion.div
+              initial={{ opacity: 0, y: 10 }}
+              animate={{ opacity: 1, y: 0 }}
+              transition={{ delay: 0.7, duration: 0.5 }}
+              className="-mt-1 flex items-center justify-center space-x-2"
+            >
+              <span className="text-lg">🎯</span>
+              <div className="text-center">
+                <p className="font-mono text-xl font-bold text-green-800 dark:text-green-200">
+                  {totalAttempts > 0 ? Math.round((correctAttempts / totalAttempts) * 100) : 0}%
+                </p>
+              </div>
+            </motion.div> */}
+
             {/* {true && ( */}
             {typeof navigator !== 'undefined' && navigator.share && (
               <motion.div
                 initial={{ opacity: 0, y: 10 }}
                 animate={{ opacity: 1, y: 0 }}
-                transition={{ delay: 0.8, duration: 0.5 }}
+                transition={{ delay: 0.9, duration: 0.5 }}
               >
                 <Button
                   onClick={async () => {
                     if (navigator?.share) {
+                      const accuracy =
+                        totalAttempts > 0 ? Math.round((correctAttempts / totalAttempts) * 100) : 0;
                       await navigator
                         .share({
                           title: `${title} - पदावलीशब्दक्रीडनम्`,
-                          text: get_share_msg(title, formatTime(seconds))
+                          text: get_share_msg(title, formatTime(seconds), accuracy)
                         })
                         .catch((err) => console.log('Error sharing:', err));
                     }
@@ -157,10 +178,11 @@ export const GameBottom = ({
   );
 };
 
-const get_share_msg = (name: string, time_taken: string) => {
+const get_share_msg = (name: string, time_taken: string, accuracy: number) => {
   const msg = [
     `✨I just solved a Super Fun, Interactive, Sanskrit Puzzle - 'Padavali'`,
-    `'${name}' in a record ${time_taken} sec.s`,
+    `'${name}' in a record ${time_taken} secs`,
+    // `'${name}' in a record ${time_taken} secs with ${accuracy}% accuracy! 🎯`,
     `💪🏽I challenge you to beat my record!`,
     `Play it NOW at https://krida.thesanskritchannel.org`,
     `Playable in Devanagari/Telugu/Kannada/Gujarati/Bengali/Odia!`,
