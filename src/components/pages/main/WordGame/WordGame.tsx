@@ -77,6 +77,7 @@ export default function WordGame({
 
   // Prevent page refresh/navigation during active game
   useEffect(() => {
+    if (process.env.NODE_ENV === 'development') return;
     if (!started || completed) return;
 
     const handleBeforeUnload = (e: BeforeUnloadEvent) => {
