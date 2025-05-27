@@ -4,7 +4,9 @@ import {
   notoSansTelugu,
   notoSansBengali,
   notoSansGujarati,
-  notoSansOdia
+  notoSansOdia,
+  notoSansTamil,
+  notoSansMalayalam
 } from '~/components/fonts';
 
 export const SCRIPT_LIST = [
@@ -13,7 +15,10 @@ export const SCRIPT_LIST = [
   'Kannada',
   'Gujarati',
   'Bengali',
-  'Odia'
+  'Odia',
+  'Malayalam',
+  'Tamil',
+  'Assamese'
 ] as const;
 export type ScriptType = (typeof SCRIPT_LIST)[number];
 
@@ -38,7 +43,7 @@ export const FONT_INFO: Record<ScriptType, { clasName: string; fontSize: number 
   },
   Kannada: {
     clasName: notoSansKannada.className,
-    fontSize: 1.01
+    fontSize: 1.0
   },
   Bengali: {
     clasName: notoSansBengali.className,
@@ -51,5 +56,17 @@ export const FONT_INFO: Record<ScriptType, { clasName: string; fontSize: number 
   Odia: {
     clasName: notoSansOdia.className,
     fontSize: 1.25
+  },
+  Assamese: {
+    clasName: notoSansBengali.className,
+    fontSize: 1.25
+  },
+  Malayalam: {
+    clasName: notoSansMalayalam.className,
+    fontSize: 0.93
+  },
+  Tamil: {
+    clasName: notoSansTamil.className,
+    fontSize: 0.91
   }
 };

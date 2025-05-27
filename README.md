@@ -4,13 +4,16 @@ A fun, interactive Sanskrit word puzzle game that tests your creativity, expands
 
 ## ✨ Features
 
-- **Multi-Script Support**: Play in 6 different Indian scripts:
+- **Multi-Script Support**: Play in 8 different Indian scripts:
   - Devanagari (देवनागरी)
   - Telugu (తెలుగు)
   - Kannada (ಕನ್ನಡ)
   - Gujarati (ગુજરાતી)
   - Bengali (বাংলা)
   - Odia (ଓଡ଼ିଆ)
+  - Malayalam (മലയാളം)
+  - Assamese (অসমীয়া)
+  - Tamil (தமிழ்)
 
 - **Interactive Grid**: Click and drag to find hidden words
 - **Real-time Transliteration**: Seamlessly switch between scripts

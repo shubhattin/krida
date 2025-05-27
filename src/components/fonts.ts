@@ -5,7 +5,9 @@ import {
   Noto_Sans_Kannada,
   Noto_Sans_Gujarati,
   Noto_Sans_Bengali,
-  Noto_Sans_Oriya
+  Noto_Sans_Oriya,
+  Noto_Sans_Tamil,
+  Noto_Sans_Malayalam
 } from 'next/font/google';
 
 export const robotoSans = Roboto({
@@ -47,5 +49,17 @@ export const notoSansBengali = Noto_Sans_Bengali({
 export const notoSansOdia = Noto_Sans_Oriya({
   variable: '--font-noto-sans-odia',
   subsets: ['oriya'],
+  weight: ['400', '500', '700']
+});
+
+export const notoSansTamil = Noto_Sans_Tamil({
+  variable: '--font-noto-sans-tamil',
+  subsets: ['tamil'],
+  weight: ['400', '500', '700']
+});
+
+export const notoSansMalayalam = Noto_Sans_Malayalam({
+  variable: '--font-noto-sans-malayalam',
+  subsets: ['malayalam'],
   weight: ['400', '500', '700']
 });

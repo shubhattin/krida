@@ -184,9 +184,9 @@ const get_share_msg = (name: string, time_taken: string, accuracy: number) => {
     // `'${name}' in a record of ${time_taken} secs`,
     `'${name}' in a record of ${time_taken} secs with ${accuracy}% accuracy! 🎯`,
     `💪🏽I challenge you to beat my record!`,
-    `Play it NOW at https://krida.thesanskritchannel.org`,
-    `Playable in Devanagari/Telugu/Kannada/Gujarati/Bengali/Odia!`,
-    `नमस्ते - నమస్తే - ನಮಸ್తೇ - નમસ્તે - নমস্তে - ନମସ୍ତେ`
+    `Play it NOW at https://krida.thesanskritchannel.org/padavali`,
+    `Play in your own script! Supports 8 Indian scripts!`,
+    `नमस्ते - నమస్తే - ನಮಸ್తೇ - નમસ્તે - নমস্তে - ନମସ୍ତେ - നമസ്തേ - நமஸ்தே`
   ].join('\n');
 
   return msg;
