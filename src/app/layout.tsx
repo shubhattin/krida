@@ -33,7 +33,7 @@ export default async function RootLayout({
           enableSystem
           disableTransitionOnChange
         >
-          <div className="contaiiner mx-auto mb-1 max-w-screen-lg">
+          <div className="container mx-auto mb-1">
             <Provider script={script}>
               {children}
               <Toaster richColors={true} />

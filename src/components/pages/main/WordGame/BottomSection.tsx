@@ -98,7 +98,7 @@ export const GameBottom = ({
           transition={{ duration: 0.5, ease: 'easeOut' }}
           className={cn(
             'rounded-xl border border-green-200 bg-gradient-to-r from-green-50 to-emerald-50 p-3 sm:rounded-2xl sm:p-6 dark:border-green-800 dark:from-green-950 dark:to-emerald-950',
-            completed && 'px-4 lg:px-3'
+            completed && 'px-4'
           )}
         >
           <motion.div
@@ -122,7 +122,7 @@ export const GameBottom = ({
               transition={{ delay: 0.6, duration: 0.5 }}
             >
               <p className="mb-0.5 text-center text-base font-semibold text-green-700 sm:mb-1 sm:text-lg dark:text-green-300">
-                🎉 {wordMsgs.time_taken} 🎉
+                🎉<span className="mx-2">{wordMsgs.time_taken}</span>🎉
               </p>
               <p className="font-mono text-2xl font-bold text-green-800 sm:text-3xl dark:text-green-200">
                 {formatTime(seconds)}

@@ -234,7 +234,7 @@ export default function WordGame({
 
           {/* Help Section - Right Sidebar on large screens, bottom on mobile */}
           <div className="order-3 lg:col-span-3 lg:ml-3">
-            <div className="lg:sticky lg:top-6">
+            <div className="lg:sticky lg:top-6 lg:mt-12">
               <div className="overflow-hidden rounded-2xl border border-slate-200 bg-white shadow-xl dark:border-slate-700 dark:bg-slate-800">
                 <GameHelp />
               </div>
