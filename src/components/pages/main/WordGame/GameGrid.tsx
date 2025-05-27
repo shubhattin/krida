@@ -6,6 +6,7 @@ import { cn } from '~/lib/utils';
 
 type Props = {
   gridRef: RefObject<HTMLDivElement | null>;
+  gridBBox: DOMRect | null;
   rows: number;
   cols: number;
   script: ScriptType;
@@ -28,6 +29,7 @@ type Props = {
 
 export const GameGrid = ({
   gridRef,
+  gridBBox,
   cols,
   rows,
   script,
@@ -115,7 +117,7 @@ export const GameGrid = ({
   // helper to go from a cell index to its pixel center
   const getCenter = ({ row, col }: CellPosition) => {
     if (!gridRef.current) return { x: 0, y: 0 };
-    const parentRect = gridRef.current.getBoundingClientRect();
+    const parentRect = gridBBox ?? gridRef.current.getBoundingClientRect();
     const cell = gridRef.current.querySelector<HTMLElement>(
       `[data-row="${row}"][data-col="${col}"]`
     );

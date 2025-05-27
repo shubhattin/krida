@@ -217,6 +217,7 @@ export default function WordGame({
                 gridData={gridData}
                 grid_data={grid_data}
                 gridRef={gridRef}
+                gridBBox={gridBBox}
                 script={script!}
                 setCurrentSelection={setCurrentSelection}
                 setFoundWords={setFoundWords}
