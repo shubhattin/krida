@@ -8,9 +8,14 @@ export default function AppBar({ title }: { title: string }) {
       <div className="mx-auto flex h-16 max-w-4xl items-center justify-between px-4 lg:px-6">
         {/* Logo/Title Section */}
         <div className="flex items-center space-x-3">
-          <div className="flex h-10 w-10 items-center justify-center rounded-xl bg-gradient-to-br from-blue-500 to-indigo-600 shadow-lg">
-            <span className="text-lg font-bold text-white">प</span>
-          </div>
+          <div
+            className="flex h-12 w-12 items-center justify-center rounded-xl shadow-lg"
+            style={{
+              backgroundImage: "url('/img/icon_128.png')",
+              backgroundSize: 'cover',
+              backgroundPosition: 'center'
+            }}
+          ></div>
           <div>
             <h1
               className={`bg-gradient-to-r from-slate-800 to-slate-600 bg-clip-text text-2xl font-bold text-transparent dark:from-slate-100 dark:to-slate-300 ${robotoSans.className}`}
