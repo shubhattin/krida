@@ -117,7 +117,8 @@ export const GameGrid = ({
   // helper to go from a cell index to its pixel center
   const getCenter = ({ row, col }: CellPosition) => {
     if (!gridRef.current) return { x: 0, y: 0 };
-    const parentRect = gridBBox ?? gridRef.current.getBoundingClientRect();
+    // const parentRect = gridBBox ?? gridRef.current.getBoundingClientRect();
+    const parentRect = gridRef.current.getBoundingClientRect();
     const cell = gridRef.current.querySelector<HTMLElement>(
       `[data-row="${row}"][data-col="${col}"]`
     );
