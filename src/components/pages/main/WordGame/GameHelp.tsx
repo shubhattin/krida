@@ -16,7 +16,7 @@ export const GameHelp = () => {
         </div>
       </div>
 
-      <div className="px-5 pt-1.5 pb-2 sm:pb-3 lg:pb-4">
+      <div className="px-3 pt-1.5 pb-2 sm:pb-3 lg:px-2 lg:pb-4 xl:px-6">
         <Accordion type="single" collapsible className="space-y-2">
           <AccordionItem
             value="how-to-play"
