@@ -68,26 +68,12 @@ export default function WordGame({
   const [completed, setCompleted] = useState(false);
   const timerRef = useRef<NodeJS.Timeout | null>(null);
 
-  // store the grid's bbox so we can compute actual pixel centers
-  const [gridBBox, setGridBBox] = useState<DOMRect | null>(null);
-
   const [currentSelection, setCurrentSelection] = useState<CellPosition[]>([]);
   const [foundWords, setFoundWords] = useState<Selection[]>([]);
 
   // Accuracy tracking state
   const [totalAttempts, setTotalAttempts] = useState(0);
   const [correctAttempts, setCorrectAttempts] = useState(0);
-
-  // re-compute bbox on mount & on resize
-  useEffect(() => {
-    if (!gridRef.current) return;
-    const ro = new ResizeObserver(() => {
-      if (!gridRef.current) return;
-      setGridBBox(gridRef.current.getBoundingClientRect());
-    });
-    ro.observe(gridRef.current);
-    return () => ro.disconnect();
-  }, []);
 
   // Prevent page refresh/navigation during active game
   useEffect(() => {
@@ -217,7 +203,6 @@ export default function WordGame({
                 gridData={gridData}
                 grid_data={grid_data}
                 gridRef={gridRef}
-                gridBBox={gridBBox}
                 script={script!}
                 setCurrentSelection={setCurrentSelection}
                 setFoundWords={setFoundWords}
