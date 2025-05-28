@@ -257,7 +257,7 @@ const SaveButton = ({ word_puzzle }: { word_puzzle: z.infer<typeof puzzle_schema
   const add_word_puzzle_mut = trpc_q.padavali.add_puzzle.useMutation({
     onSuccess(data) {
       toast.success('Puzzle added successfully');
-      router.push(`/edit/${data.id}`);
+      router.push(`/padavali/edit/${data.id}`);
     },
     onError() {
       toast.error('Failed to add puzzle, check the entered data');
@@ -267,7 +267,7 @@ const SaveButton = ({ word_puzzle }: { word_puzzle: z.infer<typeof puzzle_schema
   const delete_word_puzzle_mut = trpc_q.padavali.delete_puzzle.useMutation({
     onSuccess() {
       toast.success('Puzzle deleted successfully');
-      router.push('/list');
+      router.push('/padavali/list');
     },
     onError() {
       toast.error('Failed to delete puzzle');

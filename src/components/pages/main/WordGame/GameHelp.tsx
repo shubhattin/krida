@@ -66,7 +66,8 @@ export const GameHelp = () => {
                 <div className="flex items-start gap-2">
                   <Trophy className="mt-1 h-4 w-4 flex-shrink-0 text-yellow-500" />
                   <p>
-                    Share your puzzle solving time with friends and on social media. Tag us{' '}
+                    Share your puzzle solving time and accuracy with friends and on social media.
+                    Tag us{' '}
                     <span className="font-medium text-blue-500 dark:text-blue-400">
                       @thesanskritchannel
                     </span>{' '}
