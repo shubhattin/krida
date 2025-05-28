@@ -43,7 +43,7 @@ const List = async () => {
           </Button>
         </Link>
       </div>
-      <ul className="space-y-4">
+      <ul className="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4">
         {list.map((item) => (
           <li key={item.id}>
             <Link href={`/padavali/edit/${item.id}`}>

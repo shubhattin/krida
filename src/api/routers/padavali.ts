@@ -17,11 +17,11 @@ const schema = z.object({
 });
 
 const update_puzzle_route = protectedAdminProcedure.input(schema).mutation(async ({ input }) => {
+  revalidatePath('/padavali/list');
   await db
     .update(word_puzzles)
     .set(input)
     .where(and(eq(word_puzzles.id, input.id), eq(word_puzzles.uuid, input.uuid)));
-  revalidatePath('/padavali/list');
   return {
     success: true
   };
@@ -37,8 +37,8 @@ const add_puzzle_route = protectedAdminProcedure
     })
   )
   .mutation(async ({ input }) => {
-    const info = await db.insert(word_puzzles).values(input).returning();
     revalidatePath('/padavali/list');
+    const info = await db.insert(word_puzzles).values(input).returning();
     return {
       id: info[0].id,
       uuid: info[0].uuid
@@ -48,8 +48,8 @@ const add_puzzle_route = protectedAdminProcedure
 const delete_puzzle_route = protectedAdminProcedure
   .input(z.object({ id: z.number().int() }))
   .mutation(async ({ input }) => {
-    await db.delete(word_puzzles).where(eq(word_puzzles.id, input.id));
     revalidatePath('/padavali/list');
+    await db.delete(word_puzzles).where(eq(word_puzzles.id, input.id));
     return {
       success: true
     };
