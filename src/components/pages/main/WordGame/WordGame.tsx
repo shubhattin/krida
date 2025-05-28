@@ -2,7 +2,7 @@
 
 import { useState, useRef, useEffect } from 'react';
 import { lipi_parivartak } from '~/tools/lipi_lekhika';
-import { DEFAULT_DATA_SCRIPT, type ScriptType } from '~/state/script_font_data';
+import { DEFAULT_DATA_SCRIPT, FONT_INFO, type ScriptType } from '~/state/script_font_data';
 import { get_transliterated_word_game_msgs, type word_game_msgs } from './word_game_msgs';
 import { GameContoller, type CellPosition, type Selection } from './GameController';
 import { GameBottom } from './BottomSection';
@@ -37,9 +37,10 @@ export default function WordGame({
   children,
   initial_script_data
 }: WordGameProps) {
-  const [script] = useAtom(script_atom);
+  const script = useAtom(script_atom)[0]!;
   const [gridData, setGridData] = useState(initial_script_data.grid_data);
   const [title_tr, setTitle] = useState(initial_script_data.title);
+  const font_info = FONT_INFO[script as ScriptType];
 
   const [wordMsgs, setWordMsgs] = useState(initial_script_data.word_msgs);
 
@@ -137,7 +138,12 @@ export default function WordGame({
           <div className="inline-flex items-center gap-2 rounded-xl bg-gradient-to-r from-yellow-600 to-orange-400 px-5 py-1 text-white shadow-lg">
             <span className="text-sm font-semibold tracking-wide uppercase">Hint</span>
           </div>
-          <h1 className="bg-gradient-to-r from-slate-800 to-slate-600 bg-clip-text py-1 text-2xl font-bold text-transparent sm:text-3xl md:text-4xl dark:from-slate-100 dark:to-slate-300">
+          <h1
+            className={cn(
+              'bg-gradient-to-r from-slate-800 to-slate-600 bg-clip-text py-1 text-2xl font-bold text-transparent sm:text-3xl md:text-4xl dark:from-slate-100 dark:to-slate-300',
+              font_info.clasName
+            )}
+          >
             {title_tr}
           </h1>
         </div>
@@ -175,6 +181,7 @@ export default function WordGame({
                 setStarted={setStarted}
                 wordMsgs={wordMsgs}
                 setFoundWords={setFoundWords}
+                script={script}
               />
               {(started || completed) && (
                 <GameBottom
@@ -185,6 +192,7 @@ export default function WordGame({
                   title={title}
                   wordMsgs={wordMsgs}
                   word_list={word_list}
+                  script={script}
                   totalAttempts={totalAttempts}
                   correctAttempts={correctAttempts}
                 />

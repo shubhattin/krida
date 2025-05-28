@@ -1,6 +1,11 @@
 'use client';
 
-import { SCRIPT_DATA_COOKIE_KEY, SCRIPT_LIST, type ScriptType } from '~/state/script_font_data';
+import {
+  SCRIPT_DATA_COOKIE_KEY,
+  SCRIPT_LIST,
+  SCRIPT_NAMES,
+  type ScriptType
+} from '~/state/script_font_data';
 import Cookies from 'js-cookie';
 import { cn } from '~/lib/utils';
 import { useAtom } from 'jotai';
@@ -36,7 +41,7 @@ export const ScriptSelector = () => {
               });
             }}
           >
-            {s}
+            {SCRIPT_NAMES[s as ScriptType]}
           </option>
         ))}
       </select>

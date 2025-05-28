@@ -6,7 +6,8 @@ import {
   notoSansGujarati,
   notoSansOdia,
   notoSansTamil,
-  notoSansMalayalam
+  notoSansMalayalam,
+  robotoSans
 } from '~/components/fonts';
 
 export const SCRIPT_LIST = [
@@ -17,10 +18,24 @@ export const SCRIPT_LIST = [
   'Bengali',
   'Odia',
   'Malayalam',
-  'Tamil',
-  'Assamese'
+  'Tamil-Extended',
+  'Assamese',
+  'Romanized'
 ] as const;
 export type ScriptType = (typeof SCRIPT_LIST)[number];
+
+export const SCRIPT_NAMES: Record<ScriptType, string> = {
+  Devanagari: 'Devanagari',
+  Telugu: 'Telugu',
+  Kannada: 'Kannada',
+  Gujarati: 'Gujarati',
+  Bengali: 'Bengali',
+  Odia: 'Odia',
+  Malayalam: 'Malayalam',
+  Assamese: 'Assamese',
+  'Tamil-Extended': 'Tamil',
+  Romanized: 'Romanized'
+};
 
 export const DEFAULT_DATA_SCRIPT: ScriptType = 'Devanagari';
 export const SCRIPT_DATA_COOKIE_KEY = 'data_script';
@@ -65,8 +80,12 @@ export const FONT_INFO: Record<ScriptType, { clasName: string; fontSize: number 
     clasName: notoSansMalayalam.className,
     fontSize: 0.93
   },
-  Tamil: {
+  'Tamil-Extended': {
     clasName: notoSansTamil.className,
     fontSize: 0.91
+  },
+  Romanized: {
+    clasName: robotoSans.className,
+    fontSize: 1.1
   }
 };

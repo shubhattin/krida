@@ -5,6 +5,7 @@ import { Button } from '~/components/ui/button';
 import { IoShareSocialOutline } from 'react-icons/io5';
 import { GoStopwatch } from 'react-icons/go';
 import { motion } from 'framer-motion';
+import { FONT_INFO, type ScriptType } from '~/state/script_font_data';
 
 type Props = {
   started: boolean;
@@ -16,6 +17,7 @@ type Props = {
   title: string;
   totalAttempts: number;
   correctAttempts: number;
+  script: ScriptType;
 };
 
 export const GameBottom = ({
@@ -27,8 +29,10 @@ export const GameBottom = ({
   word_list,
   title,
   totalAttempts,
-  correctAttempts
+  correctAttempts,
+  script
 }: Props) => {
+  const font_info = FONT_INFO[script];
   return (
     <>
       {started && !completed && (
@@ -48,7 +52,10 @@ export const GameBottom = ({
               initial={{ opacity: 0, y: 10 }}
               animate={{ opacity: 1, y: 0 }}
               transition={{ delay: 0.3, duration: 0.5 }}
-              className="text-lg font-semibold tracking-wide text-slate-600 uppercase sm:text-xl dark:text-slate-400"
+              className={cn(
+                'text-lg font-semibold tracking-wide text-slate-600 sm:text-xl dark:text-slate-400',
+                font_info.clasName
+              )}
             >
               {wordMsgs.found_words}
             </motion.div>
@@ -122,7 +129,7 @@ export const GameBottom = ({
               transition={{ delay: 0.6, duration: 0.5 }}
             >
               <p className="mb-0.5 text-center text-base font-semibold text-green-700 sm:mb-1 sm:text-lg dark:text-green-300">
-                🎉<span className="mx-2">{wordMsgs.time_taken}</span>🎉
+                🎉<span className={cn('mx-2', font_info.clasName)}>{wordMsgs.time_taken}</span>🎉
               </p>
               <p className="font-mono text-2xl font-bold text-green-800 sm:text-3xl dark:text-green-200">
                 {formatTime(seconds)}

@@ -6,6 +6,7 @@ import { useEffect, type Dispatch, type RefObject, type SetStateAction } from 'r
 import { type word_game_msgs } from './word_game_msgs';
 import { GoStopwatch } from 'react-icons/go';
 import { motion } from 'framer-motion';
+import { FONT_INFO, ScriptType } from '~/state/script_font_data';
 
 export type CellPosition = { row: number; col: number };
 export type Selection = { cells: CellPosition[]; word: string };
@@ -20,6 +21,7 @@ type Props = {
   setSeconds: Dispatch<SetStateAction<number>>;
   setFoundWords: Dispatch<SetStateAction<Selection[]>>;
   wordMsgs: typeof word_game_msgs;
+  script: ScriptType;
 };
 
 // Format seconds to mm:ss
@@ -38,8 +40,11 @@ export const GameContoller = ({
   setSeconds,
   setStarted,
   setFoundWords,
-  wordMsgs
+  wordMsgs,
+  script
 }: Props) => {
+  const font_info = FONT_INFO[script];
+
   // Start the game
   const handleStart = () => {
     setStarted(true);
@@ -74,7 +79,8 @@ export const GameContoller = ({
             'group relative overflow-hidden bg-gradient-to-r from-emerald-500 to-teal-500 hover:from-emerald-600 hover:to-teal-600',
             'rounded-xl px-3 py-2 font-bold text-white shadow-lg hover:shadow-xl sm:rounded-2xl sm:px-5 sm:py-4',
             'transform transition-all duration-200 hover:scale-105 active:scale-95',
-            'flex w-full items-center justify-center space-x-2 sm:space-x-3'
+            'flex w-full items-center justify-center space-x-2 sm:space-x-3',
+            font_info.clasName
           )}
         >
           <Icon src={BrainIcon} className="text-2xl sm:text-3xl" />
@@ -93,7 +99,8 @@ export const GameContoller = ({
               'group relative overflow-hidden bg-gradient-to-r from-blue-500 to-indigo-500 hover:from-blue-600 hover:to-indigo-600',
               'rounded-xl px-3 py-2 font-bold text-white shadow-lg hover:shadow-xl sm:rounded-2xl sm:px-8 sm:py-4',
               'transform transition-all duration-200 hover:scale-105 active:scale-95',
-              'flex w-full items-center justify-center space-x-2 sm:space-x-3'
+              'flex w-full items-center justify-center space-x-2 sm:space-x-3',
+              font_info.clasName
             )}
           >
             <MdReplay className="text-2xl sm:text-3xl" />
@@ -114,7 +121,12 @@ export const GameContoller = ({
               <GoStopwatch className="text-2xl text-blue-600 sm:text-3xl dark:text-blue-400" />
             </div>
             <div className="text-center">
-              <div className="mb-1 text-lg font-semibold tracking-wide text-blue-600 sm:text-xl dark:text-blue-400">
+              <div
+                className={cn(
+                  'mb-1 text-lg font-semibold tracking-wide text-blue-600 sm:text-xl dark:text-blue-400',
+                  font_info.clasName
+                )}
+              >
                 {wordMsgs.time_elapsed}
               </div>
               <span className="font-mono text-xl font-bold text-blue-700 sm:text-2xl dark:text-blue-300">
