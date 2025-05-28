@@ -208,7 +208,7 @@ const GridData = () => {
     <div>
       <Label className="mb-2 block font-medium">स्थानपट्टिका</Label>
       <div
-        className="grid w-4/5 gap-1 sm:w-3/5 lg:w-2/5"
+        className="md:3/5 grid w-full gap-1 sm:w-4/5 md:w-3/5 lg:w-2/5"
         style={{ gridTemplateColumns: `repeat(${cols}, minmax(0, 1fr))` }}
       >
         {gridData.map((row, r) =>
