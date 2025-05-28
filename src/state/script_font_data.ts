@@ -82,7 +82,7 @@ export const FONT_INFO: Record<ScriptType, { clasName: string; fontSize: number 
   },
   'Tamil-Extended': {
     clasName: notoSansTamil.className,
-    fontSize: 0.91
+    fontSize: 0.85
   },
   Romanized: {
     clasName: robotoSans.className,
