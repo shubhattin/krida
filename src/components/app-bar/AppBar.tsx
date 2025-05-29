@@ -9,7 +9,7 @@ export default function AppBar({ title }: { title: string }) {
         {/* Logo/Title Section */}
         <div className="flex items-center space-x-3">
           <div
-            className="flex h-12 w-12 items-center justify-center rounded-xl shadow-lg"
+            className="flex h-12 w-12 items-center justify-center shadow-lg"
             style={{
               backgroundImage: "url('/img/icon_128.png')",
               backgroundSize: 'cover',
