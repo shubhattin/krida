@@ -19,7 +19,7 @@ import {
   AlertDialogCancel
 } from '@/components/ui/alert-dialog';
 import { lekhika_typing_tool, load_parivartak_lang_data } from '~/tools/lipi_lekhika';
-import { trpc_q } from '~/api/client';
+import { client_q } from '~/api/client';
 import { toast } from 'sonner';
 import { IoMdAdd, IoMdClose } from 'react-icons/io';
 import { atom, useAtom } from 'jotai';
@@ -240,7 +240,7 @@ const SaveButton = ({ word_puzzle }: { word_puzzle: z.infer<typeof puzzle_schema
 
   const router = useRouter();
 
-  const update_word_puzzle_mut = trpc_q.padavali.update_puzzle.useMutation({
+  const update_word_puzzle_mut = client_q.padavali.update_puzzle.useMutation({
     onSuccess: (data) => {
       toast.success('Puzzle updated successfully');
       initialRef.current = {
@@ -254,7 +254,7 @@ const SaveButton = ({ word_puzzle }: { word_puzzle: z.infer<typeof puzzle_schema
     }
   });
 
-  const add_word_puzzle_mut = trpc_q.padavali.add_puzzle.useMutation({
+  const add_word_puzzle_mut = client_q.padavali.add_puzzle.useMutation({
     onSuccess(data) {
       toast.success('Puzzle added successfully');
       router.push(`/padavali/edit/${data.id}`);
@@ -264,7 +264,7 @@ const SaveButton = ({ word_puzzle }: { word_puzzle: z.infer<typeof puzzle_schema
     }
   });
 
-  const delete_word_puzzle_mut = trpc_q.padavali.delete_puzzle.useMutation({
+  const delete_word_puzzle_mut = client_q.padavali.delete_puzzle.useMutation({
     onSuccess() {
       toast.success('Puzzle deleted successfully');
       router.push('/padavali/list');

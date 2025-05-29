@@ -38,3 +38,20 @@ export const protectedAdminProcedure = protectedProcedure.use(async function isA
     ctx: { user }
   });
 });
+
+export const verify_cloudflare_turnstile_token = async (token: string) => {
+  try {
+    const response = await fetch(`https://challenges.cloudflare.com/turnstile/v0/siteverify`, {
+      method: 'POST',
+      body: JSON.stringify({ secret: process.env.TURNSTILE_SECRET_KEY, response: token }),
+      headers: {
+        'Content-Type': 'application/json'
+      }
+    });
+    const data = await response.json();
+    return data.success;
+  } catch (error) {
+    console.error(error);
+    return false;
+  }
+};

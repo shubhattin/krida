@@ -1,10 +1,15 @@
 import { useDrag } from '@use-gesture/react';
-import { useEffect, type Dispatch, type RefObject, type SetStateAction } from 'react';
+import { useEffect, useState, type Dispatch, type RefObject, type SetStateAction } from 'react';
 import { FONT_INFO, type ScriptType } from '~/state/script_font_data';
 import { type CellPosition } from './GameController';
 import { cn } from '~/lib/utils';
+import TurnstileWidget from '~/components/Turnstile';
+import { client_q } from '~/api/client';
+import { useTurnstile } from 'react-turnstile';
 
 type Props = {
+  puzzle_id: number;
+  seconds: number;
   gridRef: RefObject<HTMLDivElement | null>;
   rows: number;
   cols: number;
@@ -27,6 +32,8 @@ type Props = {
 };
 
 export const GameGrid = ({
+  puzzle_id,
+  seconds,
   gridRef,
   cols,
   rows,
@@ -48,6 +55,27 @@ export const GameGrid = ({
   setCorrectAttempts
 }: Props) => {
   const font_info = FONT_INFO[script];
+  const [turnstileToken, setTurnstileToken] = useState('');
+  const turnstile = useTurnstile();
+  const submit_stats_mut = client_q.padavali.stats.submit_stats.useMutation({
+    onSuccess() {
+      turnstile.reset();
+    }
+  });
+  const PROD = process.env.NODE_ENV === 'production';
+  const submit_stats = async () => {
+    if (!turnstileToken || !PROD) return;
+    await submit_stats_mut.mutateAsync({
+      turnstile_token: turnstileToken,
+      info: {
+        puzzle_id: puzzle_id,
+        time_taken: seconds,
+        accuracy: Math.trunc((correctAttempts / totalAttempts) * 100),
+        correct_attempts: correctAttempts,
+        total_attempts: totalAttempts
+      }
+    });
+  };
 
   // Prevent pull-to-refresh and other navigation gestures
   useEffect(() => {
@@ -252,6 +280,7 @@ export const GameGrid = ({
   useEffect(() => {
     if (foundWords.length === word_list.length && foundWords.length > 0 && started) {
       setCompleted(true);
+      submit_stats();
       if (timerRef.current) {
         clearInterval(timerRef.current);
       }
@@ -259,111 +288,114 @@ export const GameGrid = ({
   }, [foundWords.length, word_list.length, started]);
 
   return (
-    <div className="w-full">
-      {/* Game Grid Card */}
-      <div className="overflow-hidden rounded-3xl border border-slate-200 bg-white p-2.5 shadow-2xl sm:p-4 md:p-6 dark:border-slate-700 dark:bg-slate-800">
-        {/* relative wrapper for grid + overlay */}
-        <div className="relative">
-          {/* Grid Header */}
+    <>
+      <TurnstileWidget setToken={setTurnstileToken} />
+      <div className="w-full">
+        {/* Game Grid Card */}
+        <div className="overflow-hidden rounded-3xl border border-slate-200 bg-white p-2.5 shadow-2xl sm:p-4 md:p-6 dark:border-slate-700 dark:bg-slate-800">
+          {/* relative wrapper for grid + overlay */}
+          <div className="relative">
+            {/* Grid Header */}
 
-          {/* Game Grid */}
-          <div
-            ref={gridRef}
-            {...bind()}
-            data-game-grid
-            className={cn(
-              'relative z-10 mx-auto grid h-full w-full select-none',
-              'gap-1.5 sm:gap-2.5 md:gap-3',
-              // Enhanced touch handling for all states
-              'touch-none'
-            )}
-            style={{
-              gridTemplateColumns: `repeat(${cols}, 1fr)`,
-              gridTemplateRows: `repeat(${rows}, 1fr)`,
-              maxWidth: 'min(100%, min(90vw, 450px))',
-              // Additional CSS properties for mobile gesture prevention
-              WebkitTouchCallout: 'none',
-              WebkitUserSelect: 'none',
-              touchAction: started && !completed ? 'none' : 'pan-y',
-              // Prevent iOS Safari bounce and zoom
-              WebkitOverflowScrolling: 'touch',
-              overscrollBehavior: 'contain'
-            }}
-          >
-            {gridData.map((row, ri) =>
-              row.map((letter, ci) => (
-                <GridCell
-                  key={`${ri}-${ci}`}
-                  row={ri}
-                  col={ci}
-                  letter={letter}
-                  fontInfo={font_info}
-                  started={started}
-                  currentSelection={currentSelection}
-                  foundWords={foundWords}
-                />
-              ))
-            )}
+            {/* Game Grid */}
+            <div
+              ref={gridRef}
+              {...bind()}
+              data-game-grid
+              className={cn(
+                'relative z-10 mx-auto grid h-full w-full select-none',
+                'gap-1.5 sm:gap-2.5 md:gap-3',
+                // Enhanced touch handling for all states
+                'touch-none'
+              )}
+              style={{
+                gridTemplateColumns: `repeat(${cols}, 1fr)`,
+                gridTemplateRows: `repeat(${rows}, 1fr)`,
+                maxWidth: 'min(100%, min(90vw, 450px))',
+                // Additional CSS properties for mobile gesture prevention
+                WebkitTouchCallout: 'none',
+                WebkitUserSelect: 'none',
+                touchAction: started && !completed ? 'none' : 'pan-y',
+                // Prevent iOS Safari bounce and zoom
+                WebkitOverflowScrolling: 'touch',
+                overscrollBehavior: 'contain'
+              }}
+            >
+              {gridData.map((row, ri) =>
+                row.map((letter, ci) => (
+                  <GridCell
+                    key={`${ri}-${ci}`}
+                    row={ri}
+                    col={ci}
+                    letter={letter}
+                    fontInfo={font_info}
+                    started={started}
+                    currentSelection={currentSelection}
+                    foundWords={foundWords}
+                  />
+                ))
+              )}
+            </div>
+
+            {/* Overlay SVG for trails */}
+            <svg
+              className="pointer-events-none absolute inset-0 h-full w-full"
+              xmlns="http://www.w3.org/2000/svg"
+            >
+              {/* Found words trails in green with glow effect */}
+              {foundWords.map((sel, i) => (
+                <g key={i}>
+                  {/* Glow effect */}
+                  <polyline
+                    points={buildPoints(sel.cells)}
+                    fill="none"
+                    className="stroke-emerald-300 dark:stroke-emerald-400"
+                    strokeWidth={12}
+                    strokeLinecap="round"
+                    strokeLinejoin="round"
+                    opacity={0.3}
+                  />
+                  {/* Main line */}
+                  <polyline
+                    points={buildPoints(sel.cells)}
+                    fill="none"
+                    className="stroke-emerald-500 dark:stroke-emerald-400"
+                    strokeWidth={6}
+                    strokeLinecap="round"
+                    strokeLinejoin="round"
+                  />
+                </g>
+              ))}
+
+              {/* Current selection trail in blue with glow effect */}
+              {currentSelection.length > 1 && (
+                <g>
+                  {/* Glow effect */}
+                  <polyline
+                    points={buildPoints(currentSelection)}
+                    fill="none"
+                    className="stroke-blue-300 dark:stroke-blue-400"
+                    strokeWidth={12}
+                    strokeLinecap="round"
+                    strokeLinejoin="round"
+                    opacity={0.3}
+                  />
+                  {/* Main line */}
+                  <polyline
+                    points={buildPoints(currentSelection)}
+                    fill="none"
+                    className="stroke-blue-500 dark:stroke-blue-400"
+                    strokeWidth={6}
+                    strokeLinecap="round"
+                    strokeLinejoin="round"
+                  />
+                </g>
+              )}
+            </svg>
           </div>
-
-          {/* Overlay SVG for trails */}
-          <svg
-            className="pointer-events-none absolute inset-0 h-full w-full"
-            xmlns="http://www.w3.org/2000/svg"
-          >
-            {/* Found words trails in green with glow effect */}
-            {foundWords.map((sel, i) => (
-              <g key={i}>
-                {/* Glow effect */}
-                <polyline
-                  points={buildPoints(sel.cells)}
-                  fill="none"
-                  className="stroke-emerald-300 dark:stroke-emerald-400"
-                  strokeWidth={12}
-                  strokeLinecap="round"
-                  strokeLinejoin="round"
-                  opacity={0.3}
-                />
-                {/* Main line */}
-                <polyline
-                  points={buildPoints(sel.cells)}
-                  fill="none"
-                  className="stroke-emerald-500 dark:stroke-emerald-400"
-                  strokeWidth={6}
-                  strokeLinecap="round"
-                  strokeLinejoin="round"
-                />
-              </g>
-            ))}
-
-            {/* Current selection trail in blue with glow effect */}
-            {currentSelection.length > 1 && (
-              <g>
-                {/* Glow effect */}
-                <polyline
-                  points={buildPoints(currentSelection)}
-                  fill="none"
-                  className="stroke-blue-300 dark:stroke-blue-400"
-                  strokeWidth={12}
-                  strokeLinecap="round"
-                  strokeLinejoin="round"
-                  opacity={0.3}
-                />
-                {/* Main line */}
-                <polyline
-                  points={buildPoints(currentSelection)}
-                  fill="none"
-                  className="stroke-blue-500 dark:stroke-blue-400"
-                  strokeWidth={6}
-                  strokeLinecap="round"
-                  strokeLinejoin="round"
-                />
-              </g>
-            )}
-          </svg>
         </div>
       </div>
-    </div>
+    </>
   );
 };
 
