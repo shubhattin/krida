@@ -20,7 +20,7 @@ export const puzzle_gameplay_stats = pgTable('puzzle_gameplay_stats', {
   id: serial().primaryKey(),
   puzzle_id: integer()
     .notNull()
-    .references(() => word_puzzles.id),
+    .references(() => word_puzzles.id, { onDelete: 'cascade' }),
   created_at: timestamp({ withTimezone: true }).notNull().defaultNow(),
   time_taken: integer().notNull(),
   accuracy: integer().notNull(),

@@ -8,4 +8,4 @@ CREATE TABLE "puzzle_gameplay_stats" (
 	"total_attempts" integer NOT NULL
 );
 --> statement-breakpoint
-ALTER TABLE "puzzle_gameplay_stats" ADD CONSTRAINT "puzzle_gameplay_stats_puzzle_id_word_puzzles_id_fk" FOREIGN KEY ("puzzle_id") REFERENCES "public"."word_puzzles"("id") ON DELETE no action ON UPDATE no action;
+ALTER TABLE "puzzle_gameplay_stats" ADD CONSTRAINT "puzzle_gameplay_stats_puzzle_id_word_puzzles_id_fk" FOREIGN KEY ("puzzle_id") REFERENCES "public"."word_puzzles"("id") ON DELETE cascade ON UPDATE no action;
