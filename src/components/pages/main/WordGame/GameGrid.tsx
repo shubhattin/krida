@@ -62,8 +62,9 @@ export const GameGrid = ({
       turnstile.reset();
     }
   });
+  const PROD = process.env.NODE_ENV === 'production';
   const submit_stats = async () => {
-    if (!turnstileToken) return;
+    if (!turnstileToken || !PROD) return;
     await submit_stats_mut.mutateAsync({
       turnstile_token: turnstileToken,
       info: {
