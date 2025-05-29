@@ -1,4 +1,5 @@
 import { pgTable, serial, jsonb, text, timestamp, index, uuid, integer } from 'drizzle-orm/pg-core';
+import { relations } from 'drizzle-orm';
 
 export const word_puzzles = pgTable(
   'word_puzzles',
@@ -26,3 +27,16 @@ export const puzzle_gameplay_stats = pgTable('puzzle_gameplay_stats', {
   correct_attempts: integer().notNull(),
   total_attempts: integer().notNull()
 });
+
+// relations
+
+export const word_puzzlesRelations = relations(word_puzzles, ({ many }) => ({
+  stats: many(puzzle_gameplay_stats)
+}));
+
+export const puzzle_gameplay_statsRelations = relations(puzzle_gameplay_stats, ({ one }) => ({
+  puzzle: one(word_puzzles, {
+    fields: [puzzle_gameplay_stats.puzzle_id],
+    references: [word_puzzles.id]
+  })
+}));
