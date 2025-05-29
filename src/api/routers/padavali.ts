@@ -4,6 +4,7 @@ import { db } from '~/db/db';
 import { word_puzzles } from '~/db/schema';
 import { and, eq } from 'drizzle-orm';
 import { revalidatePath } from 'next/cache';
+import { padavali_stats_router } from './padavali_stats';
 
 const schema = z.object({
   id: z.number().int(),
@@ -58,5 +59,6 @@ const delete_puzzle_route = protectedAdminProcedure
 export const padavali_router = t.router({
   update_puzzle: update_puzzle_route,
   add_puzzle: add_puzzle_route,
-  delete_puzzle: delete_puzzle_route
+  delete_puzzle: delete_puzzle_route,
+  stats: padavali_stats_router
 });

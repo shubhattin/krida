@@ -21,6 +21,7 @@ interface WordGameProps {
   dims: number[];
   word_list: string[];
   title: string;
+  id: number;
   initial_script_data: {
     word_msgs: typeof word_game_msgs;
     title: string;
@@ -35,7 +36,8 @@ export default function WordGame({
   word_list,
   title,
   children,
-  initial_script_data
+  initial_script_data,
+  id: puzzle_id
 }: WordGameProps) {
   const script = useAtom(script_atom)[0]!;
   const [gridData, setGridData] = useState(initial_script_data.grid_data);
@@ -204,6 +206,8 @@ export default function WordGame({
           <div className="order-2 flex justify-center lg:order-2 lg:col-span-6">
             <div className="w-full max-w-lg">
               <GameGrid
+                puzzle_id={puzzle_id}
+                seconds={seconds}
                 cols={cols}
                 rows={rows}
                 completed={completed}

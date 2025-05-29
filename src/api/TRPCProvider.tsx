@@ -6,7 +6,7 @@ import transformer from './transformer';
 import { ReactQueryDevtools } from '@tanstack/react-query-devtools';
 import { Provider as JotaiProvider, createStore } from 'jotai';
 
-import { trpc_q } from './client';
+import { client_q } from './client';
 import { queryClient as queryClientGlobal } from '~/state/queryClient';
 import { script_atom } from '~/state/main.state';
 import { type ScriptType } from '~/state/script_font_data';
@@ -20,7 +20,7 @@ export default function Provider({
 }) {
   const [queryClient] = useState(queryClientGlobal);
   const [trpcClient] = useState(() =>
-    trpc_q.createClient({
+    client_q.createClient({
       links: [
         httpBatchLink({
           url: '/api/trpc',
@@ -38,12 +38,12 @@ export default function Provider({
 
   return (
     <JotaiProvider store={jotaiStore}>
-      <trpc_q.Provider client={trpcClient} queryClient={queryClient}>
+      <client_q.Provider client={trpcClient} queryClient={queryClient}>
         <QueryClientProvider client={queryClient}>
           <ReactQueryDevtools initialIsOpen={false} />
           {children}
         </QueryClientProvider>
-      </trpc_q.Provider>
+      </client_q.Provider>
     </JotaiProvider>
   );
 }

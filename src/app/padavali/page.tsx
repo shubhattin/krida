@@ -45,6 +45,7 @@ export default async function Home() {
       {/* <div>Random Selection: {randomIndex}</div>
         <div>Curent Server Time : {currentTime.toLocaleString()}</div> */}
       <WordGame
+        id={word_puzzle.id}
         title={word_puzzle.title}
         grid_data={word_puzzle.grid_data}
         dims={word_puzzle.grid_dimensions}

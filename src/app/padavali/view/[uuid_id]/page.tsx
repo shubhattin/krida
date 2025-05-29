@@ -56,6 +56,7 @@ const MainEdit = async ({ params }: Props) => {
         {word_puzzle ? (
           <>
             <WordGame
+              id={word_puzzle.id}
               title={word_puzzle.title}
               word_list={word_puzzle.word_list}
               dims={word_puzzle.grid_dimensions}
