@@ -1,4 +1,4 @@
-import { pgTable, serial, jsonb, text, timestamp, index, uuid } from 'drizzle-orm/pg-core';
+import { pgTable, serial, jsonb, text, timestamp, index, uuid, integer } from 'drizzle-orm/pg-core';
 
 export const word_puzzles = pgTable(
   'word_puzzles',
@@ -14,3 +14,15 @@ export const word_puzzles = pgTable(
   },
   (table) => [index().on(table.created_at)]
 );
+
+export const puzzle_gameplay_stats = pgTable('puzzle_gameplay_stats', {
+  id: serial().primaryKey(),
+  puzzle_id: integer()
+    .notNull()
+    .references(() => word_puzzles.id),
+  created_at: timestamp({ withTimezone: true }).notNull().defaultNow(),
+  time_taken: integer().notNull(),
+  accuracy: integer().notNull(),
+  correct_attempts: integer().notNull(),
+  total_attempts: integer().notNull()
+});
