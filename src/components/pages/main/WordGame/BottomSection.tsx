@@ -12,11 +12,11 @@ import {
   completed_atom,
   seconds_atom,
   found_words_atom,
-  word_list_atom,
-  title_atom,
+  title_current_atom,
   total_attempts_atom,
   correct_attempts_atom,
-  word_msgs_atom
+  word_msgs_atom,
+  original_word_list_atom
 } from './game_state';
 
 export const GameBottom = () => {
@@ -25,11 +25,11 @@ export const GameBottom = () => {
   const [completed] = useAtom(completed_atom);
   const [seconds] = useAtom(seconds_atom);
   const [foundWords] = useAtom(found_words_atom);
-  const [wordList] = useAtom(word_list_atom);
-  const [title] = useAtom(title_atom);
+  const [title] = useAtom(title_current_atom);
   const [totalAttempts] = useAtom(total_attempts_atom);
   const [correctAttempts] = useAtom(correct_attempts_atom);
   const [wordMsgs] = useAtom(word_msgs_atom);
+  const [wordList] = useAtom(original_word_list_atom);
 
   const font_info = FONT_INFO[script!];
 
@@ -165,7 +165,7 @@ export const GameBottom = () => {
                         totalAttempts > 0 ? Math.round((correctAttempts / totalAttempts) * 100) : 0;
                       await navigator
                         .share({
-                          title: `${title} - पदावलीशब्दक्रीडनम्`,
+                          title: `${title} - पदावली-शब्द-क्रीडनम्`,
                           text: get_share_msg(title, formatTime(seconds), accuracy)
                         })
                         .catch((err) => console.log('Error sharing:', err));

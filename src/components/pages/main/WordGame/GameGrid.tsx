@@ -14,30 +14,31 @@ import {
   seconds_atom,
   current_selection_atom,
   found_words_atom,
-  word_list_atom,
-  grid_data_atom,
+  grid_data_current_atom,
   grid_dimensions_atom,
   total_attempts_atom,
-  correct_attempts_atom
+  correct_attempts_atom,
+  original_word_list_atom
 } from './game_state';
 
 type Props = {
   puzzle_id: number;
   timerRef: RefObject<NodeJS.Timeout | null>;
+  original_grid_data: string[][];
 };
 
-export const GameGrid = ({ puzzle_id, timerRef }: Props) => {
+export const GameGrid = ({ puzzle_id, timerRef, original_grid_data }: Props) => {
   const [script] = useAtom(script_atom);
   const [started] = useAtom(started_atom);
   const [completed, setCompleted] = useAtom(completed_atom);
   const [seconds] = useAtom(seconds_atom);
   const [currentSelection, setCurrentSelection] = useAtom(current_selection_atom);
   const [foundWords, setFoundWords] = useAtom(found_words_atom);
-  const [wordList] = useAtom(word_list_atom);
-  const [gridData] = useAtom(grid_data_atom);
+  const [gridData] = useAtom(grid_data_current_atom);
   const [gridDimensions] = useAtom(grid_dimensions_atom);
   const [totalAttempts, setTotalAttempts] = useAtom(total_attempts_atom);
   const [correctAttempts, setCorrectAttempts] = useAtom(correct_attempts_atom);
+  const [wordList] = useAtom(original_word_list_atom);
 
   const [rows, cols] = gridDimensions;
   const gridRef = useRef<HTMLDivElement>(null);
@@ -262,7 +263,7 @@ export const GameGrid = ({ puzzle_id, timerRef }: Props) => {
   const isCellInFoundWords = (r: number, c: number) =>
     foundWords.some((sel) => sel.cells.some((cell) => cell.row === r && cell.col === c));
   const getWordFromSelection = (sel: CellPosition[]) =>
-    sel.map((cell) => gridData[cell.row][cell.col]).join('');
+    sel.map((cell) => original_grid_data[cell.row][cell.col]).join('');
 
   // Check for puzzle completion
   useEffect(() => {

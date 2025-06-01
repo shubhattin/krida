@@ -16,17 +16,17 @@ import Icon from '~/tools/Icon';
 import { LanguageIcon } from '~/components/icons';
 import {
   completed_atom,
-  grid_data_atom,
+  grid_data_current_atom,
   correct_attempts_atom,
   seconds_atom,
   started_atom,
-  title_atom,
+  title_current_atom,
   total_attempts_atom,
   current_selection_atom,
   found_words_atom,
-  word_list_atom,
   grid_dimensions_atom,
-  word_msgs_atom
+  word_msgs_atom,
+  original_word_list_atom
 } from './game_state';
 import { AtomsHydrator } from '~/components/AtomsHydrator';
 
@@ -37,16 +37,16 @@ interface WordGameProps {
   title: string;
   id: number;
   children?: React.ReactNode;
+  initial_script_data: {
+    word_msgs: typeof word_game_msgs;
+    title: string;
+    grid_data: string[][];
+  };
 }
 
 export default function WordGameRoot(
   props: WordGameProps & {
     script: ScriptType;
-    initial_script_data: {
-      word_msgs: typeof word_game_msgs;
-      title: string;
-      grid_data: string[][];
-    };
   }
 ) {
   const jotaiStore = (() => {
@@ -61,9 +61,8 @@ export default function WordGameRoot(
     <Provider store={jotaiStore} key={props.id}>
       <AtomsHydrator
         atomValues={[
-          [title_atom, initial_script_data.title],
-          [word_list_atom, props.word_list],
-          [grid_data_atom, initial_script_data.grid_data],
+          [title_current_atom, initial_script_data.title],
+          [grid_data_current_atom, initial_script_data.grid_data],
           [grid_dimensions_atom, props.dims],
           [started_atom, false],
           [completed_atom, false],
@@ -72,7 +71,9 @@ export default function WordGameRoot(
           [seconds_atom, 0],
           [total_attempts_atom, 0],
           [correct_attempts_atom, 0],
-          [word_msgs_atom, initial_script_data.word_msgs]
+          [word_msgs_atom, initial_script_data.word_msgs],
+          [original_word_list_atom, props.word_list],
+          [script_atom, props.script]
         ]}
       >
         <WordGame {...props} />
@@ -81,10 +82,16 @@ export default function WordGameRoot(
   );
 }
 
-function WordGame({ children, id: puzzle_id }: Pick<WordGameProps, 'children'> & { id: number }) {
+function WordGame({
+  children,
+  id: puzzle_id,
+  initial_script_data,
+  title: org_title,
+  grid_data: org_grid_data
+}: WordGameProps & { id: number }) {
   const [script] = useAtom(script_atom);
-  const [gridData, setGridData] = useAtom(grid_data_atom);
-  const [title_tr, setTitle] = useAtom(title_atom);
+  const [, setGridData] = useAtom(grid_data_current_atom);
+  const [title, setTitle] = useAtom(title_current_atom);
   const [, setWordMsgs] = useAtom(word_msgs_atom);
   const [started] = useAtom(started_atom);
   const [completed] = useAtom(completed_atom);
@@ -95,23 +102,20 @@ function WordGame({ children, id: puzzle_id }: Pick<WordGameProps, 'children'> &
 
   // transliteration
   useEffect(() => {
-    (async () => {
-      const originalGridData = gridData;
-      const originalTitle = title_tr;
+    console.log('script', script);
+    Promise.all(
+      org_grid_data.map(async (row) => await lipi_parivartak(row, DEFAULT_DATA_SCRIPT, script!))
+    ).then((grid_data) => {
+      setGridData(grid_data);
+    });
 
-      setGridData(
-        await Promise.all(
-          originalGridData.map(
-            async (row) => await lipi_parivartak(row, DEFAULT_DATA_SCRIPT, script!)
-          )
-        )
-      );
-      setTitle(await lipi_parivartak(originalTitle, DEFAULT_DATA_SCRIPT, script!));
+    lipi_parivartak(org_title, DEFAULT_DATA_SCRIPT, script!).then((title) => {
+      setTitle(title);
+    });
 
-      setWordMsgs({
-        ...(await get_transliterated_word_game_msgs(script!))
-      });
-    })();
+    get_transliterated_word_game_msgs(script!).then((word_msgs) => {
+      setWordMsgs(word_msgs);
+    });
   }, [script]);
 
   // Prevent page refresh/navigation during active game
@@ -182,7 +186,7 @@ function WordGame({ children, id: puzzle_id }: Pick<WordGameProps, 'children'> &
               font_info.className
             )}
           >
-            {title_tr}
+            {title}
           </h1>
         </div>
 
@@ -217,7 +221,11 @@ function WordGame({ children, id: puzzle_id }: Pick<WordGameProps, 'children'> &
           {/* Game Grid - Center */}
           <div className="order-2 flex justify-center lg:order-2 lg:col-span-6">
             <div className="w-full max-w-lg">
-              <GameGrid puzzle_id={puzzle_id} timerRef={timerRef} />
+              <GameGrid
+                original_grid_data={initial_script_data.grid_data}
+                puzzle_id={puzzle_id}
+                timerRef={timerRef}
+              />
             </div>
           </div>
 
