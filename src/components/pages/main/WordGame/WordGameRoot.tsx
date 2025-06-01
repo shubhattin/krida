@@ -10,7 +10,7 @@ import { GameGrid } from './GameGrid';
 import { GameHelp } from './Help';
 import { createStore, Provider, useAtom } from 'jotai';
 import { script_atom } from '~/state/main.state';
-import { ScriptSelector } from '~/components/ScriptSelector';
+import { ScriptSelector } from '~/components/pages/main/ScriptSelector';
 import { cn } from '~/lib/utils';
 import Icon from '~/tools/Icon';
 import { LanguageIcon } from '~/components/icons';
