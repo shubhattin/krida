@@ -55,13 +55,15 @@ export default function WordGameRoot(
     return store;
   })();
 
+  const { initial_script_data } = props;
+
   return (
     <Provider store={jotaiStore} key={props.id}>
       <AtomsHydrator
         atomValues={[
-          [title_atom, props.title],
+          [title_atom, initial_script_data.title],
           [word_list_atom, props.word_list],
-          [grid_data_atom, props.grid_data],
+          [grid_data_atom, initial_script_data.grid_data],
           [grid_dimensions_atom, props.dims],
           [started_atom, false],
           [completed_atom, false],
@@ -70,7 +72,7 @@ export default function WordGameRoot(
           [seconds_atom, 0],
           [total_attempts_atom, 0],
           [correct_attempts_atom, 0],
-          [word_msgs_atom, props.initial_script_data.word_msgs]
+          [word_msgs_atom, initial_script_data.word_msgs]
         ]}
       >
         <WordGame {...props} />
