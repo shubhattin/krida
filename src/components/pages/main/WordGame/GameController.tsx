@@ -68,7 +68,7 @@ export const GameContoller = ({ timerRef }: Props) => {
           onClick={handleStart}
           className={cn(
             'group relative overflow-hidden bg-gradient-to-r from-emerald-500 to-teal-500 hover:from-emerald-600 hover:to-teal-600',
-            'rounded-xl px-3 py-2 pb-1 font-bold text-white shadow-lg hover:shadow-xl sm:rounded-2xl sm:px-5 sm:py-4 sm:pb-2',
+            'rounded-xl px-3 pt-2.5 pb-1 font-bold text-white shadow-lg hover:shadow-xl sm:rounded-2xl sm:px-5 sm:py-4 sm:pb-2',
             'transform transition-all duration-200 hover:scale-105 active:scale-95',
             'flex w-full items-center justify-center space-x-2 sm:space-x-3',
             font_info.className
