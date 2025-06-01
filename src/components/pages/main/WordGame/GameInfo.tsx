@@ -19,7 +19,7 @@ import {
   original_word_list_atom
 } from './game_state';
 
-export const GameBottom = () => {
+export const GameInfo = () => {
   const [script] = useAtom(script_atom);
   const [started] = useAtom(started_atom);
   const [completed] = useAtom(completed_atom);

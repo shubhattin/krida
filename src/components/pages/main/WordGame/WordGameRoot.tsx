@@ -5,7 +5,7 @@ import { lipi_parivartak } from '~/tools/lipi_lekhika';
 import { DEFAULT_DATA_SCRIPT, FONT_INFO, type ScriptType } from '~/state/script_font_data';
 import { get_transliterated_word_game_msgs, type word_game_msgs } from './msgs';
 import { GameContoller } from './GameController';
-import { GameBottom } from './BottomSection';
+import { GameInfo } from './GameInfo';
 import { GameGrid } from './GameGrid';
 import { GameHelp } from './Help';
 import { createStore, Provider, useAtom } from 'jotai';
@@ -212,7 +212,7 @@ function WordGame({
               )}
             >
               <GameContoller timerRef={timerRef} />
-              {(started || completed) && <GameBottom />}
+              {(started || completed) && <GameInfo />}
             </div>
           </div>
 
