@@ -79,45 +79,38 @@ export default function WordGameRoot(
   );
 }
 
-function WordGame({ grid_data, dims, word_list, title, children, id: puzzle_id }: WordGameProps) {
-  const script = useAtom(script_atom)[0]!;
+function WordGame({ children, id: puzzle_id }: Pick<WordGameProps, 'children'> & { id: number }) {
+  const [script] = useAtom(script_atom);
   const [gridData, setGridData] = useAtom(grid_data_atom);
   const [title_tr, setTitle] = useAtom(title_atom);
+  const [, setWordMsgs] = useAtom(word_msgs_atom);
+  const [started] = useAtom(started_atom);
+  const [completed] = useAtom(completed_atom);
+
   const font_info = FONT_INFO[script as ScriptType];
 
-  const [wordMsgs, setWordMsgs] = useAtom(word_msgs_atom);
+  const timerRef = useRef<NodeJS.Timeout | null>(null);
 
   // transliteration
   useEffect(() => {
     (async () => {
+      const originalGridData = gridData;
+      const originalTitle = title_tr;
+
       setGridData(
         await Promise.all(
-          grid_data.map(async (row) => await lipi_parivartak(row, DEFAULT_DATA_SCRIPT, script!))
+          originalGridData.map(
+            async (row) => await lipi_parivartak(row, DEFAULT_DATA_SCRIPT, script!)
+          )
         )
       );
-      setTitle(await lipi_parivartak(title, DEFAULT_DATA_SCRIPT, script!));
+      setTitle(await lipi_parivartak(originalTitle, DEFAULT_DATA_SCRIPT, script!));
 
       setWordMsgs({
         ...(await get_transliterated_word_game_msgs(script!))
       });
     })();
   }, [script]);
-
-  const [started, setStarted] = useAtom(started_atom);
-  const [rows, cols] = dims;
-  const gridRef = useRef<HTMLDivElement>(null);
-
-  // Timer state
-  const [seconds, setSeconds] = useAtom(seconds_atom);
-  const [completed, setCompleted] = useAtom(completed_atom);
-  const timerRef = useRef<NodeJS.Timeout | null>(null);
-
-  const [currentSelection, setCurrentSelection] = useAtom(current_selection_atom);
-  const [foundWords, setFoundWords] = useAtom(found_words_atom);
-
-  // Accuracy tracking state
-  const [totalAttempts, setTotalAttempts] = useAtom(total_attempts_atom);
-  const [correctAttempts, setCorrectAttempts] = useAtom(correct_attempts_atom);
 
   // Prevent page refresh/navigation during active game
   useEffect(() => {
@@ -214,61 +207,15 @@ function WordGame({ grid_data, dims, word_list, title, children, id: puzzle_id }
                 !started && 'px-2.5 sm:px-3 lg:px-4.5'
               )}
             >
-              <GameContoller
-                started={started}
-                completed={completed}
-                seconds={seconds}
-                timerRef={timerRef}
-                setCompleted={setCompleted}
-                setSeconds={setSeconds}
-                setStarted={setStarted}
-                wordMsgs={wordMsgs}
-                setFoundWords={setFoundWords}
-                script={script}
-              />
-              {(started || completed) && (
-                <GameBottom
-                  completed={completed}
-                  foundWords={foundWords}
-                  seconds={seconds}
-                  started={started}
-                  title={title}
-                  wordMsgs={wordMsgs}
-                  word_list={word_list}
-                  script={script}
-                  totalAttempts={totalAttempts}
-                  correctAttempts={correctAttempts}
-                />
-              )}
+              <GameContoller timerRef={timerRef} />
+              {(started || completed) && <GameBottom />}
             </div>
           </div>
 
           {/* Game Grid - Center */}
           <div className="order-2 flex justify-center lg:order-2 lg:col-span-6">
             <div className="w-full max-w-lg">
-              <GameGrid
-                puzzle_id={puzzle_id}
-                seconds={seconds}
-                cols={cols}
-                rows={rows}
-                completed={completed}
-                currentSelection={currentSelection}
-                foundWords={foundWords}
-                gridData={gridData}
-                grid_data={grid_data}
-                gridRef={gridRef}
-                script={script!}
-                setCurrentSelection={setCurrentSelection}
-                setFoundWords={setFoundWords}
-                started={started}
-                word_list={word_list}
-                timerRef={timerRef}
-                setCompleted={setCompleted}
-                totalAttempts={totalAttempts}
-                setTotalAttempts={setTotalAttempts}
-                correctAttempts={correctAttempts}
-                setCorrectAttempts={setCorrectAttempts}
-              />
+              <GameGrid puzzle_id={puzzle_id} timerRef={timerRef} />
             </div>
           </div>
 

@@ -1,27 +1,19 @@
 import { MdReplay } from 'react-icons/md';
 import { cn } from '~/lib/utils';
-import Icon from '~/tools/Icon';
-import { BrainIcon } from '~/components/icons';
-import { useEffect, type Dispatch, type RefObject, type SetStateAction } from 'react';
-import { type word_game_msgs } from './msgs';
+import { type RefObject, useEffect } from 'react';
 import { GoStopwatch } from 'react-icons/go';
 import { motion } from 'framer-motion';
-import { FONT_INFO, ScriptType } from '~/state/script_font_data';
+import { FONT_INFO } from '~/state/script_font_data';
 import { IoExtensionPuzzleSharp } from 'react-icons/io5';
-import { type Selection } from './game_state';
-
-type Props = {
-  started: boolean;
-  completed: boolean;
-  seconds: number;
-  timerRef: RefObject<NodeJS.Timeout | null>;
-  setStarted: Dispatch<SetStateAction<boolean>>;
-  setCompleted: Dispatch<SetStateAction<boolean>>;
-  setSeconds: Dispatch<SetStateAction<number>>;
-  setFoundWords: Dispatch<SetStateAction<Selection[]>>;
-  wordMsgs: typeof word_game_msgs;
-  script: ScriptType;
-};
+import { useAtom } from 'jotai';
+import { script_atom } from '~/state/main.state';
+import {
+  started_atom,
+  completed_atom,
+  seconds_atom,
+  found_words_atom,
+  word_msgs_atom
+} from './game_state';
 
 // Format seconds to mm:ss
 export const formatTime = (totalSeconds: number) => {
@@ -30,19 +22,19 @@ export const formatTime = (totalSeconds: number) => {
   return `${minutes.toString().padStart(2, '0')}:${seconds.toString().padStart(2, '0')}`;
 };
 
-export const GameContoller = ({
-  started,
-  completed,
-  seconds,
-  timerRef,
-  setCompleted,
-  setSeconds,
-  setStarted,
-  setFoundWords,
-  wordMsgs,
-  script
-}: Props) => {
-  const font_info = FONT_INFO[script];
+type Props = {
+  timerRef: RefObject<NodeJS.Timeout | null>;
+};
+
+export const GameContoller = ({ timerRef }: Props) => {
+  const [script] = useAtom(script_atom);
+  const [started, setStarted] = useAtom(started_atom);
+  const [completed, setCompleted] = useAtom(completed_atom);
+  const [seconds, setSeconds] = useAtom(seconds_atom);
+  const [, setFoundWords] = useAtom(found_words_atom);
+  const [wordMsgs] = useAtom(word_msgs_atom);
+
+  const font_info = FONT_INFO[script!];
 
   // Start the game
   const handleStart = () => {

@@ -1,39 +1,38 @@
-import { type word_game_msgs } from './msgs';
 import { formatTime } from './GameController';
 import { cn } from '~/lib/utils';
 import { Button } from '~/components/ui/button';
 import { IoShareSocialOutline } from 'react-icons/io5';
 import { GoStopwatch } from 'react-icons/go';
 import { motion } from 'framer-motion';
-import { FONT_INFO, type ScriptType } from '~/state/script_font_data';
-import { type Selection } from './game_state';
+import { FONT_INFO } from '~/state/script_font_data';
+import { useAtom } from 'jotai';
+import { script_atom } from '~/state/main.state';
+import {
+  started_atom,
+  completed_atom,
+  seconds_atom,
+  found_words_atom,
+  word_list_atom,
+  title_atom,
+  total_attempts_atom,
+  correct_attempts_atom,
+  word_msgs_atom
+} from './game_state';
 
-type Props = {
-  started: boolean;
-  completed: boolean;
-  seconds: number;
-  wordMsgs: typeof word_game_msgs;
-  foundWords: Selection[];
-  word_list: string[];
-  title: string;
-  totalAttempts: number;
-  correctAttempts: number;
-  script: ScriptType;
-};
+export const GameBottom = () => {
+  const [script] = useAtom(script_atom);
+  const [started] = useAtom(started_atom);
+  const [completed] = useAtom(completed_atom);
+  const [seconds] = useAtom(seconds_atom);
+  const [foundWords] = useAtom(found_words_atom);
+  const [wordList] = useAtom(word_list_atom);
+  const [title] = useAtom(title_atom);
+  const [totalAttempts] = useAtom(total_attempts_atom);
+  const [correctAttempts] = useAtom(correct_attempts_atom);
+  const [wordMsgs] = useAtom(word_msgs_atom);
 
-export const GameBottom = ({
-  completed,
-  foundWords,
-  seconds,
-  started,
-  wordMsgs,
-  word_list,
-  title,
-  totalAttempts,
-  correctAttempts,
-  script
-}: Props) => {
-  const font_info = FONT_INFO[script];
+  const font_info = FONT_INFO[script!];
+
   return (
     <>
       {started && !completed && (
@@ -73,7 +72,7 @@ export const GameBottom = ({
                 /
               </span>
               <span className="text-lg font-bold text-slate-600 sm:text-xl dark:text-slate-400">
-                {word_list.length}
+                {wordList.length}
               </span>
             </motion.div>
 
@@ -86,7 +85,7 @@ export const GameBottom = ({
             >
               <motion.div
                 initial={{ width: 0 }}
-                animate={{ width: `${(foundWords.length / word_list.length) * 100}%` }}
+                animate={{ width: `${(foundWords.length / wordList.length) * 100}%` }}
                 transition={{ duration: 0.8, ease: 'easeOut' }}
                 className="h-full rounded-full bg-gradient-to-r from-blue-500 to-emerald-500"
               />
