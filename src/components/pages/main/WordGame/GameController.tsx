@@ -7,6 +7,7 @@ import { type word_game_msgs } from './word_game_msgs';
 import { GoStopwatch } from 'react-icons/go';
 import { motion } from 'framer-motion';
 import { FONT_INFO, ScriptType } from '~/state/script_font_data';
+import { IoExtensionPuzzleSharp } from 'react-icons/io5';
 
 export type CellPosition = { row: number; col: number };
 export type Selection = { cells: CellPosition[]; word: string };
@@ -77,13 +78,13 @@ export const GameContoller = ({
           onClick={handleStart}
           className={cn(
             'group relative overflow-hidden bg-gradient-to-r from-emerald-500 to-teal-500 hover:from-emerald-600 hover:to-teal-600',
-            'rounded-xl px-3 py-2 font-bold text-white shadow-lg hover:shadow-xl sm:rounded-2xl sm:px-5 sm:py-4',
+            'rounded-xl px-3 py-2 pb-1 font-bold text-white shadow-lg hover:shadow-xl sm:rounded-2xl sm:px-5 sm:py-4 sm:pb-2',
             'transform transition-all duration-200 hover:scale-105 active:scale-95',
             'flex w-full items-center justify-center space-x-2 sm:space-x-3',
             font_info.clasName
           )}
         >
-          <Icon src={BrainIcon} className="text-2xl sm:text-3xl" />
+          <IoExtensionPuzzleSharp className="-mt-2 size-6 sm:size-7 md:size-7.5" />
           <span className="text-xl sm:text-2xl">{wordMsgs.play}</span>
         </button>
       )}
