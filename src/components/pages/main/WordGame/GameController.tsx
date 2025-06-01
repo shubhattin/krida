@@ -3,7 +3,7 @@ import { cn } from '~/lib/utils';
 import Icon from '~/tools/Icon';
 import { BrainIcon } from '~/components/icons';
 import { useEffect, type Dispatch, type RefObject, type SetStateAction } from 'react';
-import { type word_game_msgs } from './word_game_msgs';
+import { type word_game_msgs } from './msgs';
 import { GoStopwatch } from 'react-icons/go';
 import { motion } from 'framer-motion';
 import { FONT_INFO, ScriptType } from '~/state/script_font_data';

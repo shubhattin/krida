@@ -7,7 +7,7 @@ import {
   get_lang_from_cookie,
   SCRIPT_DATA_COOKIE_KEY
 } from '~/state/script_font_data';
-import { get_transliterated_word_game_msgs } from '~/components/pages/main/WordGame/word_game_msgs';
+import { get_transliterated_word_game_msgs } from '~/components/pages/main/WordGame/msgs';
 import { lipi_parivartak } from '~/tools/lipi_lekhika';
 
 export const dynamic = 'force-dynamic';

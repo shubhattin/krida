@@ -1,4 +1,4 @@
-import { type word_game_msgs } from './word_game_msgs';
+import { type word_game_msgs } from './msgs';
 import { type Selection, formatTime } from './GameController';
 import { cn } from '~/lib/utils';
 import { Button } from '~/components/ui/button';

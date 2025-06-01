@@ -3,14 +3,14 @@
 import { useState, useRef, useEffect } from 'react';
 import { lipi_parivartak } from '~/tools/lipi_lekhika';
 import { DEFAULT_DATA_SCRIPT, FONT_INFO, type ScriptType } from '~/state/script_font_data';
-import { get_transliterated_word_game_msgs, type word_game_msgs } from './word_game_msgs';
+import { get_transliterated_word_game_msgs, type word_game_msgs } from './msgs';
 import { GameContoller, type CellPosition, type Selection } from './GameController';
 import { GameBottom } from './BottomSection';
 import { GameGrid } from './GameGrid';
-import { GameHelp } from './GameHelp';
+import { GameHelp } from './Help';
 import { createStore, Provider, useAtom } from 'jotai';
 import { script_atom } from '~/state/main.state';
-import { ScriptSelector } from '~/components/pages/main/WordGame/ScriptSelector';
+import { ScriptSelector } from '~/components/ScriptSelector';
 import { cn } from '~/lib/utils';
 import Icon from '~/tools/Icon';
 import { LanguageIcon } from '~/components/icons';

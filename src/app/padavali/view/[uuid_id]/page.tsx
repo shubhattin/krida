@@ -10,7 +10,7 @@ import {
   SCRIPT_DATA_COOKIE_KEY
 } from '~/state/script_font_data';
 import { cookies } from 'next/headers';
-import { get_transliterated_word_game_msgs } from '~/components/pages/main/WordGame/word_game_msgs';
+import { get_transliterated_word_game_msgs } from '~/components/pages/main/WordGame/msgs';
 import { lipi_parivartak } from '~/tools/lipi_lekhika';
 
 type Props = { params: Promise<{ uuid_id: string }> };
