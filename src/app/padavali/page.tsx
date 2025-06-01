@@ -1,13 +1,13 @@
 import { db } from '~/db/db';
 import { Metadata } from 'next';
-import WordGame from '~/components/pages/main/WordGame/WordGame';
+import WordGameRoot from '~/components/pages/main/WordGame/WordGameRoot';
 import { cookies } from 'next/headers';
 import {
   DEFAULT_DATA_SCRIPT,
   get_lang_from_cookie,
   SCRIPT_DATA_COOKIE_KEY
 } from '~/state/script_font_data';
-import { get_transliterated_word_game_msgs } from '~/components/pages/main/WordGame/word_game_msgs';
+import { get_transliterated_word_game_msgs } from '~/components/pages/main/WordGame/msgs';
 import { lipi_parivartak } from '~/tools/lipi_lekhika';
 
 export const dynamic = 'force-dynamic';
@@ -44,7 +44,8 @@ export default async function Home() {
     <main className="min-h-screen w-full">
       {/* <div>Random Selection: {randomIndex}</div>
         <div>Curent Server Time : {currentTime.toLocaleString()}</div> */}
-      <WordGame
+      <WordGameRoot
+        script={script}
         id={word_puzzle.id}
         title={word_puzzle.title}
         grid_data={word_puzzle.grid_data}

@@ -1,20 +1,34 @@
 'use client';
 
-import { useState, useRef, useEffect } from 'react';
+import { useRef, useEffect } from 'react';
 import { lipi_parivartak } from '~/tools/lipi_lekhika';
 import { DEFAULT_DATA_SCRIPT, FONT_INFO, type ScriptType } from '~/state/script_font_data';
-import { get_transliterated_word_game_msgs, type word_game_msgs } from './word_game_msgs';
-import { GameContoller, type CellPosition, type Selection } from './GameController';
-import { GameBottom } from './BottomSection';
+import { get_transliterated_word_game_msgs, type word_game_msgs } from './msgs';
+import { GameContoller } from './GameController';
+import { GameInfo } from './GameInfo';
 import { GameGrid } from './GameGrid';
-import { GameHelp } from './GameHelp';
-import { useAtom } from 'jotai';
+import { GameHelp } from './Help';
+import { createStore, Provider, useAtom } from 'jotai';
 import { script_atom } from '~/state/main.state';
-import { ScriptSelector } from '~/components/pages/main/WordGame/ScriptSelector';
-import { motion } from 'framer-motion';
+import { ScriptSelector } from '~/components/pages/main/ScriptSelector';
 import { cn } from '~/lib/utils';
 import Icon from '~/tools/Icon';
 import { LanguageIcon } from '~/components/icons';
+import {
+  completed_atom,
+  grid_data_current_atom,
+  correct_attempts_atom,
+  seconds_atom,
+  started_atom,
+  title_current_atom,
+  total_attempts_atom,
+  current_selection_atom,
+  found_words_atom,
+  grid_dimensions_atom,
+  word_msgs_atom,
+  original_word_list_atom
+} from './game_state';
+import { AtomsHydrator } from '~/components/AtomsHydrator';
 
 interface WordGameProps {
   grid_data: string[][];
@@ -22,61 +36,85 @@ interface WordGameProps {
   word_list: string[];
   title: string;
   id: number;
+  children?: React.ReactNode;
   initial_script_data: {
     word_msgs: typeof word_game_msgs;
     title: string;
     grid_data: string[][];
   };
-  children?: React.ReactNode;
 }
 
-export default function WordGame({
-  grid_data,
-  dims,
-  word_list,
-  title,
+export default function WordGameRoot(
+  props: WordGameProps & {
+    script: ScriptType;
+  }
+) {
+  const jotaiStore = (() => {
+    const store = createStore();
+    store.set(script_atom, props.script);
+    return store;
+  })();
+
+  const { initial_script_data } = props;
+
+  return (
+    <Provider store={jotaiStore} key={props.id}>
+      <AtomsHydrator
+        atomValues={[
+          [title_current_atom, initial_script_data.title],
+          [grid_data_current_atom, initial_script_data.grid_data],
+          [grid_dimensions_atom, props.dims],
+          [started_atom, false],
+          [completed_atom, false],
+          [current_selection_atom, []],
+          [found_words_atom, []],
+          [seconds_atom, 0],
+          [total_attempts_atom, 0],
+          [correct_attempts_atom, 0],
+          [word_msgs_atom, initial_script_data.word_msgs],
+          [original_word_list_atom, props.word_list],
+          [script_atom, props.script]
+        ]}
+      >
+        <WordGame {...props} />
+      </AtomsHydrator>
+    </Provider>
+  );
+}
+
+function WordGame({
   children,
-  initial_script_data,
-  id: puzzle_id
-}: WordGameProps) {
-  const script = useAtom(script_atom)[0]!;
-  const [gridData, setGridData] = useState(initial_script_data.grid_data);
-  const [title_tr, setTitle] = useState(initial_script_data.title);
+  id: puzzle_id,
+  title: org_title,
+  grid_data: org_grid_data
+}: WordGameProps & { id: number }) {
+  const [script] = useAtom(script_atom);
+  const [, setGridData] = useAtom(grid_data_current_atom);
+  const [title, setTitle] = useAtom(title_current_atom);
+  const [, setWordMsgs] = useAtom(word_msgs_atom);
+  const [started] = useAtom(started_atom);
+  const [completed] = useAtom(completed_atom);
+
   const font_info = FONT_INFO[script as ScriptType];
 
-  const [wordMsgs, setWordMsgs] = useState(initial_script_data.word_msgs);
+  const timerRef = useRef<NodeJS.Timeout | null>(null);
 
   // transliteration
   useEffect(() => {
-    (async () => {
-      setGridData(
-        await Promise.all(
-          grid_data.map(async (row) => await lipi_parivartak(row, DEFAULT_DATA_SCRIPT, script!))
-        )
-      );
-      setTitle(await lipi_parivartak(title, DEFAULT_DATA_SCRIPT, script!));
+    Promise.all(
+      org_grid_data.map(async (row) => await lipi_parivartak(row, DEFAULT_DATA_SCRIPT, script!))
+    ).then((grid_data) => {
+      setGridData(grid_data);
+    });
 
-      setWordMsgs({
-        ...(await get_transliterated_word_game_msgs(script!))
-      });
-    })();
+    lipi_parivartak(org_title, DEFAULT_DATA_SCRIPT, script!).then((title) => {
+      setTitle(title);
+    });
+
+    get_transliterated_word_game_msgs(script!).then((word_msgs) => {
+      setWordMsgs(word_msgs);
+    });
   }, [script]);
-
-  const [started, setStarted] = useState(false);
-  const [rows, cols] = dims;
-  const gridRef = useRef<HTMLDivElement>(null);
-
-  // Timer state
-  const [seconds, setSeconds] = useState(0);
-  const [completed, setCompleted] = useState(false);
-  const timerRef = useRef<NodeJS.Timeout | null>(null);
-
-  const [currentSelection, setCurrentSelection] = useState<CellPosition[]>([]);
-  const [foundWords, setFoundWords] = useState<Selection[]>([]);
-
-  // Accuracy tracking state
-  const [totalAttempts, setTotalAttempts] = useState(0);
-  const [correctAttempts, setCorrectAttempts] = useState(0);
 
   // Prevent page refresh/navigation during active game
   useEffect(() => {
@@ -143,10 +181,10 @@ export default function WordGame({
           <h1
             className={cn(
               'bg-gradient-to-r from-slate-800 to-slate-600 bg-clip-text py-1 text-2xl font-bold text-transparent sm:text-3xl md:text-4xl dark:from-slate-100 dark:to-slate-300',
-              font_info.clasName
+              font_info.className
             )}
           >
-            {title_tr}
+            {title}
           </h1>
         </div>
 
@@ -173,32 +211,8 @@ export default function WordGame({
                 !started && 'px-2.5 sm:px-3 lg:px-4.5'
               )}
             >
-              <GameContoller
-                started={started}
-                completed={completed}
-                seconds={seconds}
-                timerRef={timerRef}
-                setCompleted={setCompleted}
-                setSeconds={setSeconds}
-                setStarted={setStarted}
-                wordMsgs={wordMsgs}
-                setFoundWords={setFoundWords}
-                script={script}
-              />
-              {(started || completed) && (
-                <GameBottom
-                  completed={completed}
-                  foundWords={foundWords}
-                  seconds={seconds}
-                  started={started}
-                  title={title}
-                  wordMsgs={wordMsgs}
-                  word_list={word_list}
-                  script={script}
-                  totalAttempts={totalAttempts}
-                  correctAttempts={correctAttempts}
-                />
-              )}
+              <GameContoller timerRef={timerRef} />
+              {(started || completed) && <GameInfo />}
             </div>
           </div>
 
@@ -206,27 +220,9 @@ export default function WordGame({
           <div className="order-2 flex justify-center lg:order-2 lg:col-span-6">
             <div className="w-full max-w-lg">
               <GameGrid
+                original_grid_data={org_grid_data}
                 puzzle_id={puzzle_id}
-                seconds={seconds}
-                cols={cols}
-                rows={rows}
-                completed={completed}
-                currentSelection={currentSelection}
-                foundWords={foundWords}
-                gridData={gridData}
-                grid_data={grid_data}
-                gridRef={gridRef}
-                script={script!}
-                setCurrentSelection={setCurrentSelection}
-                setFoundWords={setFoundWords}
-                started={started}
-                word_list={word_list}
                 timerRef={timerRef}
-                setCompleted={setCompleted}
-                totalAttempts={totalAttempts}
-                setTotalAttempts={setTotalAttempts}
-                correctAttempts={correctAttempts}
-                setCorrectAttempts={setCorrectAttempts}
               />
             </div>
           </div>

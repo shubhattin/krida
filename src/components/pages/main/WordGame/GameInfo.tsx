@@ -1,38 +1,38 @@
-import { type word_game_msgs } from './word_game_msgs';
-import { type Selection, formatTime } from './GameController';
+import { formatTime } from './GameController';
 import { cn } from '~/lib/utils';
 import { Button } from '~/components/ui/button';
 import { IoShareSocialOutline } from 'react-icons/io5';
 import { GoStopwatch } from 'react-icons/go';
 import { motion } from 'framer-motion';
-import { FONT_INFO, type ScriptType } from '~/state/script_font_data';
+import { FONT_INFO } from '~/state/script_font_data';
+import { useAtom } from 'jotai';
+import { script_atom } from '~/state/main.state';
+import {
+  started_atom,
+  completed_atom,
+  seconds_atom,
+  found_words_atom,
+  title_current_atom,
+  total_attempts_atom,
+  correct_attempts_atom,
+  word_msgs_atom,
+  original_word_list_atom
+} from './game_state';
 
-type Props = {
-  started: boolean;
-  completed: boolean;
-  seconds: number;
-  wordMsgs: typeof word_game_msgs;
-  foundWords: Selection[];
-  word_list: string[];
-  title: string;
-  totalAttempts: number;
-  correctAttempts: number;
-  script: ScriptType;
-};
+export const GameInfo = () => {
+  const [script] = useAtom(script_atom);
+  const [started] = useAtom(started_atom);
+  const [completed] = useAtom(completed_atom);
+  const [seconds] = useAtom(seconds_atom);
+  const [foundWords] = useAtom(found_words_atom);
+  const [title] = useAtom(title_current_atom);
+  const [totalAttempts] = useAtom(total_attempts_atom);
+  const [correctAttempts] = useAtom(correct_attempts_atom);
+  const [wordMsgs] = useAtom(word_msgs_atom);
+  const [wordList] = useAtom(original_word_list_atom);
 
-export const GameBottom = ({
-  completed,
-  foundWords,
-  seconds,
-  started,
-  wordMsgs,
-  word_list,
-  title,
-  totalAttempts,
-  correctAttempts,
-  script
-}: Props) => {
-  const font_info = FONT_INFO[script];
+  const font_info = FONT_INFO[script!];
+
   return (
     <>
       {started && !completed && (
@@ -54,7 +54,7 @@ export const GameBottom = ({
               transition={{ delay: 0.3, duration: 0.5 }}
               className={cn(
                 'text-lg font-semibold tracking-wide text-slate-600 sm:text-xl dark:text-slate-400',
-                font_info.clasName
+                font_info.className
               )}
             >
               {wordMsgs.found_words}
@@ -72,7 +72,7 @@ export const GameBottom = ({
                 /
               </span>
               <span className="text-lg font-bold text-slate-600 sm:text-xl dark:text-slate-400">
-                {word_list.length}
+                {wordList.length}
               </span>
             </motion.div>
 
@@ -85,7 +85,7 @@ export const GameBottom = ({
             >
               <motion.div
                 initial={{ width: 0 }}
-                animate={{ width: `${(foundWords.length / word_list.length) * 100}%` }}
+                animate={{ width: `${(foundWords.length / wordList.length) * 100}%` }}
                 transition={{ duration: 0.8, ease: 'easeOut' }}
                 className="h-full rounded-full bg-gradient-to-r from-blue-500 to-emerald-500"
               />
@@ -129,7 +129,7 @@ export const GameBottom = ({
               transition={{ delay: 0.6, duration: 0.5 }}
             >
               <p className="mb-0.5 text-center text-base font-semibold text-green-700 sm:mb-1 sm:text-lg dark:text-green-300">
-                🎉<span className={cn('mx-2', font_info.clasName)}>{wordMsgs.time_taken}</span>🎉
+                🎉<span className={cn('mx-2', font_info.className)}>{wordMsgs.time_taken}</span>🎉
               </p>
               <p className="font-mono text-2xl font-bold text-green-800 sm:text-3xl dark:text-green-200">
                 {formatTime(seconds)}
@@ -165,7 +165,7 @@ export const GameBottom = ({
                         totalAttempts > 0 ? Math.round((correctAttempts / totalAttempts) * 100) : 0;
                       await navigator
                         .share({
-                          title: `${title} - पदावलीशब्दक्रीडनम्`,
+                          title: `${title} - पदावली-शब्द-क्रीडनम्`,
                           text: get_share_msg(title, formatTime(seconds), accuracy)
                         })
                         .catch((err) => console.log('Error sharing:', err));

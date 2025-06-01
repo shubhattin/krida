@@ -26,7 +26,7 @@ import { atom, useAtom } from 'jotai';
 import { FiSave } from 'react-icons/fi';
 import { MdDeleteOutline } from 'react-icons/md';
 import { useRouter } from 'next/navigation';
-import { AtomsHydrator } from './AtomsHydrator';
+import { AtomsHydrator } from '~/components/AtomsHydrator';
 
 const puzzle_schema = z.object({
   id: z.number().int().nullable(),

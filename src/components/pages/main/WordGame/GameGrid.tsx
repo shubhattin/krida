@@ -1,60 +1,49 @@
 import { useDrag } from '@use-gesture/react';
-import { useEffect, useState, type Dispatch, type RefObject, type SetStateAction } from 'react';
-import { FONT_INFO, type ScriptType } from '~/state/script_font_data';
-import { type CellPosition } from './GameController';
+import { useEffect, useState, useRef, type RefObject } from 'react';
+import { FONT_INFO } from '~/state/script_font_data';
 import { cn } from '~/lib/utils';
 import TurnstileWidget from '~/components/Turnstile';
 import { client_q } from '~/api/client';
 import { useTurnstile } from 'react-turnstile';
+import { useAtom } from 'jotai';
+import { script_atom } from '~/state/main.state';
+import {
+  type CellPosition,
+  started_atom,
+  completed_atom,
+  seconds_atom,
+  current_selection_atom,
+  found_words_atom,
+  grid_data_current_atom,
+  grid_dimensions_atom,
+  total_attempts_atom,
+  correct_attempts_atom,
+  original_word_list_atom
+} from './game_state';
 
 type Props = {
   puzzle_id: number;
-  seconds: number;
-  gridRef: RefObject<HTMLDivElement | null>;
-  rows: number;
-  cols: number;
-  script: ScriptType;
-  gridData: string[][];
-  started: boolean;
-  completed: boolean;
-  currentSelection: CellPosition[];
-  word_list: string[];
-  grid_data: string[][];
-  foundWords: { cells: CellPosition[]; word: string }[];
   timerRef: RefObject<NodeJS.Timeout | null>;
-  totalAttempts: number;
-  correctAttempts: number;
-  setCurrentSelection: Dispatch<SetStateAction<CellPosition[]>>;
-  setFoundWords: Dispatch<SetStateAction<{ cells: CellPosition[]; word: string }[]>>;
-  setCompleted: Dispatch<SetStateAction<boolean>>;
-  setTotalAttempts: Dispatch<SetStateAction<number>>;
-  setCorrectAttempts: Dispatch<SetStateAction<number>>;
+  original_grid_data: string[][];
 };
 
-export const GameGrid = ({
-  puzzle_id,
-  seconds,
-  gridRef,
-  cols,
-  rows,
-  script,
-  completed,
-  currentSelection,
-  gridData,
-  started,
-  word_list,
-  foundWords,
-  grid_data,
-  timerRef,
-  totalAttempts,
-  correctAttempts,
-  setCurrentSelection,
-  setFoundWords,
-  setCompleted,
-  setTotalAttempts,
-  setCorrectAttempts
-}: Props) => {
-  const font_info = FONT_INFO[script];
+export const GameGrid = ({ puzzle_id, timerRef, original_grid_data }: Props) => {
+  const [script] = useAtom(script_atom);
+  const [started] = useAtom(started_atom);
+  const [completed, setCompleted] = useAtom(completed_atom);
+  const [seconds] = useAtom(seconds_atom);
+  const [currentSelection, setCurrentSelection] = useAtom(current_selection_atom);
+  const [foundWords, setFoundWords] = useAtom(found_words_atom);
+  const [gridData] = useAtom(grid_data_current_atom);
+  const [gridDimensions] = useAtom(grid_dimensions_atom);
+  const [totalAttempts, setTotalAttempts] = useAtom(total_attempts_atom);
+  const [correctAttempts, setCorrectAttempts] = useAtom(correct_attempts_atom);
+  const [wordList] = useAtom(original_word_list_atom);
+
+  const [rows, cols] = gridDimensions;
+  const gridRef = useRef<HTMLDivElement>(null);
+
+  const font_info = FONT_INFO[script!];
   const [turnstileToken, setTurnstileToken] = useState('');
   const turnstile = useTurnstile();
   const submit_stats_mut = client_q.padavali.stats.submit_stats.useMutation({
@@ -217,6 +206,8 @@ export const GameGrid = ({
           setCurrentSelection([{ row, col }]);
         } else {
           const lastCell = currentSelection[currentSelection.length - 1];
+          if (lastCell.row === row && lastCell.col === col) return;
+          // ^^ this is the edge case where a single cell's content are repeated
           const rowDiff = Math.abs(row - lastCell.row);
           const colDiff = Math.abs(col - lastCell.col);
           if (
@@ -232,11 +223,12 @@ export const GameGrid = ({
 
       if (last) {
         const word = getWordFromSelection(currentSelection);
+        // console.log('word', word);
         if (currentSelection.length >= 2) {
           // Track attempt only if selection has at least 2 cells
           setTotalAttempts((prev) => prev + 1);
 
-          if (word_list.includes(word)) {
+          if (wordList.includes(word)) {
             setFoundWords((prev) => [...prev, { cells: [...currentSelection], word }]);
             setCorrectAttempts((prev) => prev + 1);
           }
@@ -274,18 +266,18 @@ export const GameGrid = ({
   const isCellInFoundWords = (r: number, c: number) =>
     foundWords.some((sel) => sel.cells.some((cell) => cell.row === r && cell.col === c));
   const getWordFromSelection = (sel: CellPosition[]) =>
-    sel.map((cell) => grid_data[cell.row][cell.col]).join('');
+    sel.map((cell) => original_grid_data[cell.row][cell.col]).join('');
 
   // Check for puzzle completion
   useEffect(() => {
-    if (foundWords.length === word_list.length && foundWords.length > 0 && started) {
+    if (foundWords.length === wordList.length && foundWords.length > 0 && started) {
       setCompleted(true);
       submit_stats();
       if (timerRef.current) {
         clearInterval(timerRef.current);
       }
     }
-  }, [foundWords.length, word_list.length, started]);
+  }, [foundWords.length, wordList.length, started]);
 
   return (
     <>
@@ -403,7 +395,7 @@ type GridCellProps = {
   row: number;
   col: number;
   letter: string;
-  fontInfo: { fontSize: number; clasName: string };
+  fontInfo: { fontSize: number; className: string };
   started: boolean;
   currentSelection: CellPosition[];
   foundWords: { cells: CellPosition[]; word: string }[];
@@ -440,7 +432,7 @@ const GridCell = ({
         WebkitUserSelect: 'none'
       }}
       className={cn(
-        fontInfo.clasName,
+        fontInfo.className,
         !started && 'blur-sm',
         started && 'cursor-pointer',
         'flex items-center justify-center rounded-3xl px-[1px] py-0 text-center font-bold sm:rounded-2xl',

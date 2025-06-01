@@ -3,14 +3,14 @@ import { db } from '~/db/db';
 import { type Metadata } from 'next';
 import Link from 'next/link';
 import { IoMdArrowRoundBack } from 'react-icons/io';
-import WordGame from '~/components/pages/main/WordGame/WordGame';
+import WordGame from '~/components/pages/main/WordGame/WordGameRoot';
 import {
   DEFAULT_DATA_SCRIPT,
   get_lang_from_cookie,
   SCRIPT_DATA_COOKIE_KEY
 } from '~/state/script_font_data';
 import { cookies } from 'next/headers';
-import { get_transliterated_word_game_msgs } from '~/components/pages/main/WordGame/word_game_msgs';
+import { get_transliterated_word_game_msgs } from '~/components/pages/main/WordGame/msgs';
 import { lipi_parivartak } from '~/tools/lipi_lekhika';
 
 type Props = { params: Promise<{ uuid_id: string }> };
@@ -56,6 +56,7 @@ const MainEdit = async ({ params }: Props) => {
         {word_puzzle ? (
           <>
             <WordGame
+              script={script}
               id={word_puzzle.id}
               title={word_puzzle.title}
               word_list={word_puzzle.word_list}
