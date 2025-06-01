@@ -4,7 +4,7 @@ import { useState, useRef, useEffect } from 'react';
 import { lipi_parivartak } from '~/tools/lipi_lekhika';
 import { DEFAULT_DATA_SCRIPT, FONT_INFO, type ScriptType } from '~/state/script_font_data';
 import { get_transliterated_word_game_msgs, type word_game_msgs } from './msgs';
-import { GameContoller, type CellPosition, type Selection } from './GameController';
+import { GameContoller } from './GameController';
 import { GameBottom } from './BottomSection';
 import { GameGrid } from './GameGrid';
 import { GameHelp } from './Help';
@@ -14,6 +14,17 @@ import { ScriptSelector } from '~/components/pages/main/ScriptSelector';
 import { cn } from '~/lib/utils';
 import Icon from '~/tools/Icon';
 import { LanguageIcon } from '~/components/icons';
+import {
+  completed_atom,
+  grid_data_atom,
+  correct_attempts_atom,
+  seconds_atom,
+  started_atom,
+  title_atom,
+  total_attempts_atom,
+  current_selection_atom,
+  found_words_atom
+} from './game_state';
 
 interface WordGameProps {
   grid_data: string[][];
@@ -53,8 +64,8 @@ function WordGame({
   id: puzzle_id
 }: WordGameProps) {
   const script = useAtom(script_atom)[0]!;
-  const [gridData, setGridData] = useState(initial_script_data.grid_data);
-  const [title_tr, setTitle] = useState(initial_script_data.title);
+  const [gridData, setGridData] = useAtom(grid_data_atom);
+  const [title_tr, setTitle] = useAtom(title_atom);
   const font_info = FONT_INFO[script as ScriptType];
 
   const [wordMsgs, setWordMsgs] = useState(initial_script_data.word_msgs);
@@ -75,21 +86,21 @@ function WordGame({
     })();
   }, [script]);
 
-  const [started, setStarted] = useState(false);
+  const [started, setStarted] = useAtom(started_atom);
   const [rows, cols] = dims;
   const gridRef = useRef<HTMLDivElement>(null);
 
   // Timer state
-  const [seconds, setSeconds] = useState(0);
-  const [completed, setCompleted] = useState(false);
+  const [seconds, setSeconds] = useAtom(seconds_atom);
+  const [completed, setCompleted] = useAtom(completed_atom);
   const timerRef = useRef<NodeJS.Timeout | null>(null);
 
-  const [currentSelection, setCurrentSelection] = useState<CellPosition[]>([]);
-  const [foundWords, setFoundWords] = useState<Selection[]>([]);
+  const [currentSelection, setCurrentSelection] = useAtom(current_selection_atom);
+  const [foundWords, setFoundWords] = useAtom(found_words_atom);
 
   // Accuracy tracking state
-  const [totalAttempts, setTotalAttempts] = useState(0);
-  const [correctAttempts, setCorrectAttempts] = useState(0);
+  const [totalAttempts, setTotalAttempts] = useAtom(total_attempts_atom);
+  const [correctAttempts, setCorrectAttempts] = useAtom(correct_attempts_atom);
 
   // Prevent page refresh/navigation during active game
   useEffect(() => {

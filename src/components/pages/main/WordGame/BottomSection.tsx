@@ -1,11 +1,12 @@
 import { type word_game_msgs } from './msgs';
-import { type Selection, formatTime } from './GameController';
+import { formatTime } from './GameController';
 import { cn } from '~/lib/utils';
 import { Button } from '~/components/ui/button';
 import { IoShareSocialOutline } from 'react-icons/io5';
 import { GoStopwatch } from 'react-icons/go';
 import { motion } from 'framer-motion';
 import { FONT_INFO, type ScriptType } from '~/state/script_font_data';
+import { type Selection } from './game_state';
 
 type Props = {
   started: boolean;

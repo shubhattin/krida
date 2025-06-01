@@ -8,9 +8,7 @@ import { GoStopwatch } from 'react-icons/go';
 import { motion } from 'framer-motion';
 import { FONT_INFO, ScriptType } from '~/state/script_font_data';
 import { IoExtensionPuzzleSharp } from 'react-icons/io5';
-
-export type CellPosition = { row: number; col: number };
-export type Selection = { cells: CellPosition[]; word: string };
+import { type Selection } from './game_state';
 
 type Props = {
   started: boolean;

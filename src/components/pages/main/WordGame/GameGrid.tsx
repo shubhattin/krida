@@ -1,7 +1,7 @@
 import { useDrag } from '@use-gesture/react';
 import { useEffect, useState, type Dispatch, type RefObject, type SetStateAction } from 'react';
 import { FONT_INFO, type ScriptType } from '~/state/script_font_data';
-import { type CellPosition } from './GameController';
+import { type CellPosition } from './game_state';
 import { cn } from '~/lib/utils';
 import TurnstileWidget from '~/components/Turnstile';
 import { client_q } from '~/api/client';
