@@ -1,6 +1,6 @@
 import { db } from '~/db/db';
 import { Metadata } from 'next';
-import WordGame from '~/components/pages/main/WordGame/WordGame';
+import WordGame from '~/components/pages/main/WordGame/WordGameRoot';
 import { cookies } from 'next/headers';
 import {
   DEFAULT_DATA_SCRIPT,

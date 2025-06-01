@@ -3,7 +3,7 @@ import { db } from '~/db/db';
 import { type Metadata } from 'next';
 import Link from 'next/link';
 import { IoMdArrowRoundBack } from 'react-icons/io';
-import WordGame from '~/components/pages/main/WordGame/WordGame';
+import WordGame from '~/components/pages/main/WordGame/WordGameRoot';
 import {
   DEFAULT_DATA_SCRIPT,
   get_lang_from_cookie,
