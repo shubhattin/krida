@@ -129,7 +129,7 @@ const WordList = () => {
   return (
     <div>
       <Label className="mb-2 block font-medium">शब्दानां सूची</Label>
-      <div className="grid grid-cols-3 gap-2 space-y-2 sm:grid-cols-5 lg:grid-cols-6">
+      <div className="grid max-w-7xl grid-cols-2 gap-2 space-y-2 sm:grid-cols-4 md:grid-cols-5 lg:grid-cols-6">
         <AnimatePresence mode="popLayout">
           {wordList.map((word, idx) => (
             <motion.div
