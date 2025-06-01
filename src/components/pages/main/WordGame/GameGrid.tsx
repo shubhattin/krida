@@ -206,6 +206,8 @@ export const GameGrid = ({ puzzle_id, timerRef, original_grid_data }: Props) => 
           setCurrentSelection([{ row, col }]);
         } else {
           const lastCell = currentSelection[currentSelection.length - 1];
+          if (lastCell.row === row && lastCell.col === col) return;
+          // ^^ this is the edge case where a single cell's content are repeated
           const rowDiff = Math.abs(row - lastCell.row);
           const colDiff = Math.abs(col - lastCell.col);
           if (
@@ -221,6 +223,7 @@ export const GameGrid = ({ puzzle_id, timerRef, original_grid_data }: Props) => 
 
       if (last) {
         const word = getWordFromSelection(currentSelection);
+        // console.log('word', word);
         if (currentSelection.length >= 2) {
           // Track attempt only if selection has at least 2 cells
           setTotalAttempts((prev) => prev + 1);
