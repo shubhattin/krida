@@ -55,7 +55,7 @@ export const GameBottom = ({
               transition={{ delay: 0.3, duration: 0.5 }}
               className={cn(
                 'text-lg font-semibold tracking-wide text-slate-600 sm:text-xl dark:text-slate-400',
-                font_info.clasName
+                font_info.className
               )}
             >
               {wordMsgs.found_words}
@@ -130,7 +130,7 @@ export const GameBottom = ({
               transition={{ delay: 0.6, duration: 0.5 }}
             >
               <p className="mb-0.5 text-center text-base font-semibold text-green-700 sm:mb-1 sm:text-lg dark:text-green-300">
-                🎉<span className={cn('mx-2', font_info.clasName)}>{wordMsgs.time_taken}</span>🎉
+                🎉<span className={cn('mx-2', font_info.className)}>{wordMsgs.time_taken}</span>🎉
               </p>
               <p className="font-mono text-2xl font-bold text-green-800 sm:text-3xl dark:text-green-200">
                 {formatTime(seconds)}

@@ -1,6 +1,6 @@
 'use client';
 
-import { useState, useRef, useEffect } from 'react';
+import { useRef, useEffect } from 'react';
 import { lipi_parivartak } from '~/tools/lipi_lekhika';
 import { DEFAULT_DATA_SCRIPT, FONT_INFO, type ScriptType } from '~/state/script_font_data';
 import { get_transliterated_word_game_msgs, type word_game_msgs } from './msgs';
@@ -23,8 +23,12 @@ import {
   title_atom,
   total_attempts_atom,
   current_selection_atom,
-  found_words_atom
+  found_words_atom,
+  word_list_atom,
+  grid_dimensions_atom,
+  word_msgs_atom
 } from './game_state';
+import { AtomsHydrator } from '~/components/AtomsHydrator';
 
 interface WordGameProps {
   grid_data: string[][];
@@ -32,15 +36,19 @@ interface WordGameProps {
   word_list: string[];
   title: string;
   id: number;
-  initial_script_data: {
-    word_msgs: typeof word_game_msgs;
-    title: string;
-    grid_data: string[][];
-  };
   children?: React.ReactNode;
 }
 
-export default function WordGameRoot(props: WordGameProps & { script: ScriptType }) {
+export default function WordGameRoot(
+  props: WordGameProps & {
+    script: ScriptType;
+    initial_script_data: {
+      word_msgs: typeof word_game_msgs;
+      title: string;
+      grid_data: string[][];
+    };
+  }
+) {
   const jotaiStore = (() => {
     const store = createStore();
     store.set(script_atom, props.script);
@@ -49,26 +57,35 @@ export default function WordGameRoot(props: WordGameProps & { script: ScriptType
 
   return (
     <Provider store={jotaiStore} key={props.id}>
-      <WordGame {...props} />
+      <AtomsHydrator
+        atomValues={[
+          [title_atom, props.title],
+          [word_list_atom, props.word_list],
+          [grid_data_atom, props.grid_data],
+          [grid_dimensions_atom, props.dims],
+          [started_atom, false],
+          [completed_atom, false],
+          [current_selection_atom, []],
+          [found_words_atom, []],
+          [seconds_atom, 0],
+          [total_attempts_atom, 0],
+          [correct_attempts_atom, 0],
+          [word_msgs_atom, props.initial_script_data.word_msgs]
+        ]}
+      >
+        <WordGame {...props} />
+      </AtomsHydrator>
     </Provider>
   );
 }
 
-function WordGame({
-  grid_data,
-  dims,
-  word_list,
-  title,
-  children,
-  initial_script_data,
-  id: puzzle_id
-}: WordGameProps) {
+function WordGame({ grid_data, dims, word_list, title, children, id: puzzle_id }: WordGameProps) {
   const script = useAtom(script_atom)[0]!;
   const [gridData, setGridData] = useAtom(grid_data_atom);
   const [title_tr, setTitle] = useAtom(title_atom);
   const font_info = FONT_INFO[script as ScriptType];
 
-  const [wordMsgs, setWordMsgs] = useState(initial_script_data.word_msgs);
+  const [wordMsgs, setWordMsgs] = useAtom(word_msgs_atom);
 
   // transliteration
   useEffect(() => {
@@ -167,7 +184,7 @@ function WordGame({
           <h1
             className={cn(
               'bg-gradient-to-r from-slate-800 to-slate-600 bg-clip-text py-1 text-2xl font-bold text-transparent sm:text-3xl md:text-4xl dark:from-slate-100 dark:to-slate-300',
-              font_info.clasName
+              font_info.className
             )}
           >
             {title_tr}

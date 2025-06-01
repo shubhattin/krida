@@ -79,7 +79,7 @@ export const GameContoller = ({
             'rounded-xl px-3 py-2 pb-1 font-bold text-white shadow-lg hover:shadow-xl sm:rounded-2xl sm:px-5 sm:py-4 sm:pb-2',
             'transform transition-all duration-200 hover:scale-105 active:scale-95',
             'flex w-full items-center justify-center space-x-2 sm:space-x-3',
-            font_info.clasName
+            font_info.className
           )}
         >
           <IoExtensionPuzzleSharp className="-mt-2 size-6 sm:size-7 md:size-7.5" />
@@ -99,7 +99,7 @@ export const GameContoller = ({
               'rounded-xl px-3 py-2 font-bold text-white shadow-lg hover:shadow-xl sm:rounded-2xl sm:px-8 sm:py-4',
               'transform transition-all duration-200 hover:scale-105 active:scale-95',
               'flex w-full items-center justify-center space-x-2 sm:space-x-3',
-              font_info.clasName
+              font_info.className
             )}
           >
             <MdReplay className="text-2xl sm:text-3xl" />
@@ -123,7 +123,7 @@ export const GameContoller = ({
               <div
                 className={cn(
                   'mb-1 text-lg font-semibold tracking-wide text-blue-600 sm:text-xl dark:text-blue-400',
-                  font_info.clasName
+                  font_info.className
                 )}
               >
                 {wordMsgs.time_elapsed}
