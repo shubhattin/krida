@@ -1,6 +1,6 @@
 import { db } from '~/db/db';
 import { Metadata } from 'next';
-import WordGame from '~/components/pages/main/WordGame/WordGameRoot';
+import WordGameRoot from '~/components/pages/main/WordGame/WordGameRoot';
 import { cookies } from 'next/headers';
 import {
   DEFAULT_DATA_SCRIPT,
@@ -44,7 +44,8 @@ export default async function Home() {
     <main className="min-h-screen w-full">
       {/* <div>Random Selection: {randomIndex}</div>
         <div>Curent Server Time : {currentTime.toLocaleString()}</div> */}
-      <WordGame
+      <WordGameRoot
+        script={script}
         id={word_puzzle.id}
         title={word_puzzle.title}
         grid_data={word_puzzle.grid_data}

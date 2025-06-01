@@ -8,10 +8,9 @@ import { GameContoller, type CellPosition, type Selection } from './GameControll
 import { GameBottom } from './BottomSection';
 import { GameGrid } from './GameGrid';
 import { GameHelp } from './GameHelp';
-import { useAtom } from 'jotai';
+import { createStore, Provider, useAtom } from 'jotai';
 import { script_atom } from '~/state/main.state';
 import { ScriptSelector } from '~/components/pages/main/WordGame/ScriptSelector';
-import { motion } from 'framer-motion';
 import { cn } from '~/lib/utils';
 import Icon from '~/tools/Icon';
 import { LanguageIcon } from '~/components/icons';
@@ -30,7 +29,21 @@ interface WordGameProps {
   children?: React.ReactNode;
 }
 
-export default function WordGame({
+export default function WordGameRoot(props: WordGameProps & { script: ScriptType }) {
+  const jotaiStore = (() => {
+    const store = createStore();
+    store.set(script_atom, props.script);
+    return store;
+  })();
+
+  return (
+    <Provider store={jotaiStore} key={props.id}>
+      <WordGame {...props} />
+    </Provider>
+  );
+}
+
+function WordGame({
   grid_data,
   dims,
   word_list,
