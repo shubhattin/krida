@@ -85,7 +85,6 @@ export default function WordGameRoot(
 function WordGame({
   children,
   id: puzzle_id,
-  initial_script_data,
   title: org_title,
   grid_data: org_grid_data
 }: WordGameProps & { id: number }) {
@@ -102,7 +101,6 @@ function WordGame({
 
   // transliteration
   useEffect(() => {
-    console.log('script', script);
     Promise.all(
       org_grid_data.map(async (row) => await lipi_parivartak(row, DEFAULT_DATA_SCRIPT, script!))
     ).then((grid_data) => {
@@ -222,7 +220,7 @@ function WordGame({
           <div className="order-2 flex justify-center lg:order-2 lg:col-span-6">
             <div className="w-full max-w-lg">
               <GameGrid
-                original_grid_data={initial_script_data.grid_data}
+                original_grid_data={org_grid_data}
                 puzzle_id={puzzle_id}
                 timerRef={timerRef}
               />
