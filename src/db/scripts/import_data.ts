@@ -8,9 +8,11 @@ const main = async () => {
   console.log(`Fetching Data from ${dbMode} Database...`);
 
   const word_puzzles = await db.query.word_puzzles.findMany();
+  const puzzle_gameplay_stats = await db.query.puzzle_gameplay_stats.findMany();
 
   const json_data = {
-    word_puzzles
+    word_puzzles,
+    puzzle_gameplay_stats
   };
 
   await make_dir('./out');
