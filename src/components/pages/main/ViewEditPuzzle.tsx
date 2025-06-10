@@ -26,7 +26,7 @@ import { atom, useAtom } from 'jotai';
 import { FiSave } from 'react-icons/fi';
 import { MdDeleteOutline } from 'react-icons/md';
 import { useRouter } from 'next/navigation';
-import { Info } from 'lucide-react';
+import { Info, ArrowRight } from 'lucide-react';
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from '@/components/ui/tooltip';
 import { AtomsHydrator } from '~/components/AtomsHydrator';
 import { findAllTraversals, getOccupiedCells, type Coordinate } from '~/tools/puzzle/puzzle_tools';
@@ -226,10 +226,24 @@ const TraversalAnalysis = () => {
                             </TooltipTrigger>
                             <TooltipContent className="max-w-xs">
                               {warning.paths?.map((path, pIdx) => (
-                                <p key={pIdx} className="text-xs">
-                                  <span className="font-semibold">Path {pIdx + 1}:</span>{' '}
-                                  {path.map(([r, c]) => `(${r},${c})`).join(' → ')}
-                                </p>
+                                <div key={pIdx} className="flex items-center space-x-1 text-xs">
+                                  <span className="font-semibold">Path {pIdx + 1}:</span>
+                                  <div className="flex items-center space-x-1">
+                                    {path.map(([r, c], idx) => (
+                                      <div
+                                        key={idx}
+                                        className="flex items-center justify-center space-x-1"
+                                      >
+                                        <span className="font-semibold">
+                                          {r + 1},{c + 1}
+                                        </span>
+                                        {idx < path.length - 1 && (
+                                          <ArrowRight className="-mt-1 h-3 w-3" />
+                                        )}
+                                      </div>
+                                    ))}
+                                  </div>
+                                </div>
                               ))}
                             </TooltipContent>
                           </Tooltip>
