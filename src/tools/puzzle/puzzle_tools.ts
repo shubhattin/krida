@@ -72,3 +72,24 @@ export function findAllTraversals(
 
   return result;
 }
+
+/**
+ * Returns a set of all unique coordinates occupied by any traversal across all words.
+ */
+export function getOccupiedCells(traversalsMap: Map<number, Traversal[]>): Set<Coordinate> {
+  const cellSet = new Set<string>();
+  for (const traversals of traversalsMap.values()) {
+    for (const traversal of traversals) {
+      for (const [r, c] of traversal) {
+        cellSet.add(`${r},${c}`);
+      }
+    }
+  }
+
+  const result = new Set<Coordinate>();
+  for (const coord of cellSet) {
+    const [rStr, cStr] = coord.split(',');
+    result.add([Number(rStr), Number(cStr)]);
+  }
+  return result;
+}

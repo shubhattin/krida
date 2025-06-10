@@ -27,6 +27,8 @@ import { FiSave } from 'react-icons/fi';
 import { MdDeleteOutline } from 'react-icons/md';
 import { useRouter } from 'next/navigation';
 import { AtomsHydrator } from '~/components/AtomsHydrator';
+import { findAllTraversals, getOccupiedCells, type Coordinate } from '~/tools/puzzle/puzzle_tools';
+import { cn } from '~/lib/utils';
 
 const puzzle_schema = z.object({
   id: z.number().int().nullable(),
@@ -66,6 +68,7 @@ const ViewEditPuzzle = ({ word_puzzle }: { word_puzzle: z.infer<typeof puzzle_sc
           <div className="space-y-4">
             <Title />
             <WordList />
+            <TraversalAnalysis />
             <GridData />
             <SaveButton word_puzzle={word_puzzle} />
           </div>
@@ -103,6 +106,151 @@ const Title = () => {
         />
       </Label>
     </div>
+  );
+};
+
+const TraversalAnalysis = () => {
+  const [wordList] = useAtom(word_list_atom);
+  const [gridData] = useAtom(grid_data_atom);
+
+  const analysisResult = useMemo(() => {
+    if (gridData.length === 0 || wordList.length === 0) {
+      return { warnings: [], hasAllValidWords: false, occupiedCells: new Set<string>() };
+    }
+
+    // Filter out empty strings from wordList
+    const validWords = wordList.filter((word) => word.trim() !== '');
+
+    if (validWords.length === 0) {
+      return { warnings: [], hasAllValidWords: false, occupiedCells: new Set<string>() };
+    }
+
+    const gridDimensions: [number, number] = [gridData.length, gridData[0]?.length || 0];
+    const traversalsMap = findAllTraversals(gridData, gridDimensions, validWords);
+    const occupiedCells = getOccupiedCells(traversalsMap);
+
+    const warnings: {
+      wordIndex: number;
+      word: string;
+      traversalCount: number;
+      type: 'none' | 'multiple';
+    }[] = [];
+    let hasAllValidWords = true;
+
+    for (let i = 0; i < validWords.length; i++) {
+      const traversals = traversalsMap.get(i) || [];
+      if (traversals.length === 0) {
+        hasAllValidWords = false;
+        warnings.push({
+          wordIndex: i,
+          word: validWords[i],
+          traversalCount: 0,
+          type: 'none'
+        });
+      } else if (traversals.length > 1) {
+        warnings.push({
+          wordIndex: i,
+          word: validWords[i],
+          traversalCount: traversals.length,
+          type: 'multiple'
+        });
+      }
+    }
+
+    // Convert coordinates to string set for easier lookup
+    const occupiedCellsSet = new Set<string>();
+    for (const [r, c] of occupiedCells) {
+      occupiedCellsSet.add(`${r},${c}`);
+    }
+
+    return {
+      warnings,
+      hasAllValidWords: hasAllValidWords && warnings.length === 0,
+      occupiedCells: occupiedCellsSet
+    };
+  }, [wordList, gridData]);
+
+  if (gridData.length === 0 || wordList.length === 0) {
+    return null;
+  }
+
+  return (
+    <AnimatePresence mode="wait">
+      {analysisResult.warnings.length > 0 && (
+        <motion.div
+          key="warnings"
+          initial={{ opacity: 0, y: -10, scale: 0.95 }}
+          animate={{ opacity: 1, y: 0, scale: 1 }}
+          exit={{ opacity: 0, y: -10, scale: 0.95 }}
+          transition={{ duration: 0.3, ease: 'easeOut' }}
+          className={cn(
+            'rounded-lg border p-3',
+            'border-amber-200 bg-amber-50 dark:border-amber-800 dark:bg-amber-950'
+          )}
+        >
+          <motion.div
+            initial={{ opacity: 0 }}
+            animate={{ opacity: 1 }}
+            transition={{ delay: 0.1, duration: 0.2 }}
+            className="flex items-start space-x-2"
+          >
+            <div>
+              <div className={`mt-1 text-sm`}>
+                {analysisResult.warnings.map((warning, idx) => (
+                  <motion.div
+                    key={warning.wordIndex}
+                    initial={{ opacity: 0, x: -10 }}
+                    animate={{ opacity: 1, x: 0 }}
+                    transition={{ delay: 0.2 + idx * 0.1, duration: 0.2 }}
+                    className={cn('mb-1', 'text-amber-700 dark:text-amber-300')}
+                  >
+                    {warning.type === 'none' ? (
+                      <>
+                        "<span className="font-semibold">{warning.word}</span>" इति शब्दः
+                        स्थानपट्टिकायाम् न प्राप्यते ।
+                      </>
+                    ) : (
+                      <>
+                        "<span className="font-semibold">{warning.word}</span>" इत्यस्य एकाधिको (
+                        {warning.traversalCount}) मार्गाः सन्ति ।
+                      </>
+                    )}
+                  </motion.div>
+                ))}
+              </div>
+            </div>
+          </motion.div>
+        </motion.div>
+      )}
+
+      {analysisResult.hasAllValidWords && (
+        <motion.div
+          key="success"
+          initial={{ opacity: 0, y: -10, scale: 0.95 }}
+          animate={{ opacity: 1, y: 0, scale: 1 }}
+          exit={{ opacity: 0, y: -10, scale: 0.95 }}
+          transition={{ duration: 0.3, ease: 'easeOut' }}
+          className="rounded-lg border border-green-200 bg-green-50 p-3 dark:border-green-800 dark:bg-green-950"
+        >
+          <motion.div
+            initial={{ opacity: 0 }}
+            animate={{ opacity: 1 }}
+            transition={{ delay: 0.1, duration: 0.2 }}
+            className="flex items-center space-x-2"
+          >
+            <motion.div
+              initial={{ scale: 0 }}
+              animate={{ scale: 1 }}
+              transition={{ delay: 0.2, duration: 0.3, type: 'spring' }}
+              className="h-2 w-2 flex-shrink-0 rounded-full bg-green-500"
+            ></motion.div>
+            <p className="text-sm font-medium text-green-800 dark:text-green-200">
+              सर्वे शब्दाः सम्यगवस्थिताः !
+            </p>
+          </motion.div>
+        </motion.div>
+      )}
+    </AnimatePresence>
   );
 };
 
@@ -179,7 +327,31 @@ const WordList = () => {
 
 const GridData = () => {
   const [gridData, setGridData] = useAtom(grid_data_atom);
+  const [wordList] = useAtom(word_list_atom);
   const cols = gridData.length > 0 ? gridData[0].length : 0;
+
+  const occupiedCells = useMemo(() => {
+    if (gridData.length === 0 || wordList.length === 0) {
+      return new Set<string>();
+    }
+
+    // Filter out empty strings from wordList
+    const validWords = wordList.filter((word) => word.trim() !== '');
+
+    if (validWords.length === 0) {
+      return new Set<string>();
+    }
+
+    const gridDimensions: [number, number] = [gridData.length, gridData[0]?.length || 0];
+    const traversalsMap = findAllTraversals(gridData, gridDimensions, validWords);
+    const occupiedCellsCoords = getOccupiedCells(traversalsMap);
+
+    const occupiedCellsSet = new Set<string>();
+    for (const [r, c] of occupiedCellsCoords) {
+      occupiedCellsSet.add(`${r},${c}`);
+    }
+    return occupiedCellsSet;
+  }, [gridData, wordList]);
 
   const updateCell = (r: number, c: number, value: string, e: any) => {
     setGridData((prev) => {
@@ -204,6 +376,15 @@ const GridData = () => {
     );
   };
 
+  const getCellClassName = (r: number, c: number) => {
+    const isOccupied = occupiedCells.has(`${r},${c}`);
+    return `rounded text-center transition-all duration-200 ${
+      isOccupied
+        ? 'ring-1 ring-blue-300 ring-opacity-50 shadow-sm dark:ring-blue-500 dark:ring-opacity-40'
+        : ''
+    }`;
+  };
+
   return (
     <div>
       <Label className="mb-2 block font-medium">स्थानपट्टिका</Label>
@@ -217,7 +398,7 @@ const GridData = () => {
               key={`${r}-${c}`}
               type="text"
               minLength={1}
-              className="rounded text-center"
+              className={getCellClassName(r, c)}
               value={cell}
               onChange={(e) => updateCell(r, c, e.target.value, e)}
             />
