@@ -86,6 +86,6 @@ export const FONT_INFO: Record<ScriptType, { className: string; fontSize: number
   },
   Romanized: {
     className: robotoSans.className,
-    fontSize: 1.1
+    fontSize: 0.93
   }
 };

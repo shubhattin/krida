@@ -27,7 +27,7 @@ import { FiSave } from 'react-icons/fi';
 import { MdDeleteOutline } from 'react-icons/md';
 import { useRouter } from 'next/navigation';
 import { Info, ArrowRight } from 'lucide-react';
-import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from '@/components/ui/tooltip';
+import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover';
 import { AtomsHydrator } from '~/components/AtomsHydrator';
 import { findAllTraversals, getOccupiedCells, type Coordinate } from '~/tools/puzzle/puzzle_tools';
 import { cn } from '~/lib/utils';
@@ -219,35 +219,33 @@ const TraversalAnalysis = () => {
                           "<span className="font-semibold">{warning.word}</span>" इत्यस्य एकाधिको (
                           {warning.traversalCount}) मार्गाः सन्ति ।
                         </span>
-                        <TooltipProvider>
-                          <Tooltip>
-                            <TooltipTrigger asChild>
-                              <Info className="-mt-1 h-4 w-4 cursor-help text-amber-600 dark:text-amber-400" />
-                            </TooltipTrigger>
-                            <TooltipContent className="max-w-xs">
-                              {warning.paths?.map((path, pIdx) => (
-                                <div key={pIdx} className="flex items-center space-x-1 text-xs">
-                                  <span className="font-semibold">Path {pIdx + 1}:</span>
-                                  <div className="flex items-center space-x-1">
-                                    {path.map(([r, c], idx) => (
-                                      <div
-                                        key={idx}
-                                        className="flex items-center justify-center space-x-1"
-                                      >
-                                        <span className="font-semibold">
-                                          {r + 1},{c + 1}
-                                        </span>
-                                        {idx < path.length - 1 && (
-                                          <ArrowRight className="-mt-1 h-3 w-3" />
-                                        )}
-                                      </div>
-                                    ))}
-                                  </div>
+                        <Popover>
+                          <PopoverTrigger asChild>
+                            <Info className="-mt-1 size-4.5 text-amber-600 dark:text-amber-400" />
+                          </PopoverTrigger>
+                          <PopoverContent className="max-w-xs">
+                            {warning.paths?.map((path, pIdx) => (
+                              <div key={pIdx} className="flex items-center space-x-1 text-xs">
+                                <span className="font-semibold">Path {pIdx + 1}:</span>
+                                <div className="flex items-center space-x-1">
+                                  {path.map(([r, c], idx) => (
+                                    <div
+                                      key={idx}
+                                      className="flex items-center justify-center space-x-1"
+                                    >
+                                      <span className="font-semibold">
+                                        {r + 1},{c + 1}
+                                      </span>
+                                      {idx < path.length - 1 && (
+                                        <ArrowRight className="-mt-1 size-3" />
+                                      )}
+                                    </div>
+                                  ))}
                                 </div>
-                              ))}
-                            </TooltipContent>
-                          </Tooltip>
-                        </TooltipProvider>
+                              </div>
+                            ))}
+                          </PopoverContent>
+                        </Popover>
                       </div>
                     )}
                   </motion.div>
