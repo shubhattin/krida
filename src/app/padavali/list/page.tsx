@@ -9,6 +9,7 @@ import { db } from '~/db/db';
 import get_seesion_from_cookie from '~/lib/get_auth_from_cookie';
 import dayjs from 'dayjs';
 import relativeTime from 'dayjs/plugin/relativeTime';
+import { CalendarIcon, RefreshCwIcon } from 'lucide-react';
 
 dayjs.extend(relativeTime);
 
@@ -22,7 +23,8 @@ const List = async () => {
       id: true,
       uuid: true,
       title: true,
-      created_at: true
+      created_at: true,
+      updated_at: true
     },
     // limit: 10,
     orderBy: ({ created_at }, { desc }) => desc(created_at)
@@ -50,7 +52,22 @@ const List = async () => {
               <Card className="p-2 transition duration-200 hover:bg-gray-100 hover:dark:bg-gray-800">
                 <CardHeader>
                   <CardTitle>{item.title}</CardTitle>
-                  <CardDescription>{dayjs(item.created_at).fromNow()}</CardDescription>
+                  <CardDescription className="flex flex-col space-y-1 sm:flex-row sm:items-center sm:space-y-0 sm:space-x-2">
+                    {item.updated_at &&
+                      item.updated_at.getTime() !== item.created_at.getTime() &&
+                      item.updated_at.getTime() !== 0 && (
+                        <>
+                          <span className="text-sm text-muted-foreground">
+                            {/* <RefreshCwIcon className="mr-1 inline-block h-3 w-3" /> */}
+                            Updated: {dayjs(item.updated_at).fromNow()}
+                          </span>
+                        </>
+                      )}
+                    <span className="text-sm text-muted-foreground">
+                      <CalendarIcon className="mr-1 inline-block h-3 w-3" />
+                      {dayjs(item.created_at).format('MMM D, YYYY')}
+                    </span>
+                  </CardDescription>
                 </CardHeader>
               </Card>
             </Link>
