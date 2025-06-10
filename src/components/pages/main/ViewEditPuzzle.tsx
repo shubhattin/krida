@@ -26,6 +26,8 @@ import { atom, useAtom } from 'jotai';
 import { FiSave } from 'react-icons/fi';
 import { MdDeleteOutline } from 'react-icons/md';
 import { useRouter } from 'next/navigation';
+import { Info } from 'lucide-react';
+import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from '@/components/ui/tooltip';
 import { AtomsHydrator } from '~/components/AtomsHydrator';
 import { findAllTraversals, getOccupiedCells, type Coordinate } from '~/tools/puzzle/puzzle_tools';
 import { cn } from '~/lib/utils';
@@ -134,6 +136,7 @@ const TraversalAnalysis = () => {
       word: string;
       traversalCount: number;
       type: 'none' | 'multiple';
+      paths?: Coordinate[][];
     }[] = [];
     let hasAllValidWords = true;
 
@@ -152,7 +155,8 @@ const TraversalAnalysis = () => {
           wordIndex: i,
           word: validWords[i],
           traversalCount: traversals.length,
-          type: 'multiple'
+          type: 'multiple',
+          paths: traversals
         });
       }
     }
@@ -210,10 +214,27 @@ const TraversalAnalysis = () => {
                         स्थानपट्टिकायाम् न प्राप्यते ।
                       </>
                     ) : (
-                      <>
-                        "<span className="font-semibold">{warning.word}</span>" इत्यस्य एकाधिको (
-                        {warning.traversalCount}) मार्गाः सन्ति ।
-                      </>
+                      <div className="flex items-center justify-center gap-2">
+                        <span>
+                          "<span className="font-semibold">{warning.word}</span>" इत्यस्य एकाधिको (
+                          {warning.traversalCount}) मार्गाः सन्ति ।
+                        </span>
+                        <TooltipProvider>
+                          <Tooltip>
+                            <TooltipTrigger asChild>
+                              <Info className="-mt-1 h-4 w-4 cursor-help text-amber-600 dark:text-amber-400" />
+                            </TooltipTrigger>
+                            <TooltipContent className="max-w-xs">
+                              {warning.paths?.map((path, pIdx) => (
+                                <p key={pIdx} className="text-xs">
+                                  <span className="font-semibold">Path {pIdx + 1}:</span>{' '}
+                                  {path.map(([r, c]) => `(${r},${c})`).join(' → ')}
+                                </p>
+                              ))}
+                            </TooltipContent>
+                          </Tooltip>
+                        </TooltipProvider>
+                      </div>
                     )}
                   </motion.div>
                 ))}
