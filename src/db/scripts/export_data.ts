@@ -1,8 +1,8 @@
 import { dbClient_ext as db, queryClient } from './client';
 import { readFile } from 'fs/promises';
 import { dbMode, take_input } from '~/tools/kry.server';
-import { word_puzzles } from '~/db/schema';
-import { WordPuzzleSchemaZod } from '~/db/schema_zod';
+import { puzzle_gameplay_stats, word_puzzles } from '~/db/schema';
+import { WordPuzzleSchemaZod, PuzzleGamePlayStatsSchemaZod } from '~/db/schema_zod';
 import { z } from 'zod';
 import { sql } from 'drizzle-orm';
 import chalk from 'chalk';
@@ -25,18 +25,21 @@ const main = async () => {
 
   const data = z
     .object({
-      word_puzzles: WordPuzzleSchemaZod.array()
+      word_puzzles: WordPuzzleSchemaZod.array(),
+      puzzle_gameplay_stats: PuzzleGamePlayStatsSchemaZod.array()
     })
     .parse(JSON.parse((await readFile(`./out/${in_file_name}`)).toString()));
 
   // deleting all the tables initially
   try {
     await db.delete(word_puzzles);
+    await db.delete(puzzle_gameplay_stats);
     console.log(chalk.green('✓ Deleted All Tables Successfully'));
   } catch (e) {
     console.log(chalk.red('✗ Error while deleting tables:'), chalk.yellow(e));
   }
-  // inserting user
+
+  // inserting word_puzzles
   try {
     await db.insert(word_puzzles).values(data.word_puzzles);
     console.log(
@@ -47,10 +50,24 @@ const main = async () => {
     console.log(chalk.red('✗ Error while inserting word_puzzles:'), chalk.yellow(e));
   }
 
+  // inserting puzzle_gameplay_stats
+  try {
+    await db.insert(puzzle_gameplay_stats).values(data.puzzle_gameplay_stats);
+    console.log(
+      chalk.green('✓ Successfully added values into table'),
+      chalk.blue('`puzzle_gameplay_stats`')
+    );
+  } catch (e) {
+    console.log(chalk.red('✗ Error while inserting puzzle_gameplay_stats:'), chalk.yellow(e));
+  }
+
   // resetting SERIAL
   try {
     await db.execute(
       sql`SELECT setval('"word_puzzles_id_seq"', (select MAX(id) from "word_puzzles"))`
+    );
+    await db.execute(
+      sql`SELECT setval('"puzzle_gameplay_stats_id_seq"', (select MAX(id) from "puzzle_gameplay_stats"))`
     );
     console.log(chalk.green('✓ Successfully resetted ALL SERIAL'));
   } catch (e) {
