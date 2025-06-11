@@ -6,11 +6,11 @@ import { IoMdArrowRoundBack } from 'react-icons/io';
 import { FiPlus } from 'react-icons/fi';
 import { db } from '~/db/db';
 import get_seesion_from_cookie from '~/lib/get_auth_from_cookie';
-import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
+import ListSchedules from './ListSchedules';
 import dayjs from 'dayjs';
 import relativeTime from 'dayjs/plugin/relativeTime';
-import { ClockIcon } from 'lucide-react';
+import { Card, CardContent } from '~/components/ui/card';
 
 dayjs.extend(relativeTime);
 
@@ -65,7 +65,6 @@ const Main = async () => {
           </Link>
         </Button>
       </div>
-
       {schedules.length === 0 ? (
         <Card>
           <CardContent className="flex flex-col items-center justify-center py-12 text-center">
@@ -85,26 +84,7 @@ const Main = async () => {
           </CardContent>
         </Card>
       ) : (
-        <div className="grid gap-4 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4">
-          {schedules.map((schedule) => (
-            <Card key={schedule.id} className="transition-shadow hover:shadow-md">
-              <CardHeader>
-                <CardTitle className="text-lg">{schedule.puzzle.title}</CardTitle>
-              </CardHeader>
-              <CardContent className="-mt-6">
-                <div className="space-y-2">
-                  <div className="text-xs">
-                    {formatDate(schedule.start_time)} - {formatDate(schedule.end_time)}
-                  </div>
-                  <div className="flex items-center gap-2 text-sm text-muted-foreground">
-                    <ClockIcon className="-mt-1 size-4" />
-                    <span>{dayjs(schedule.created_at).fromNow()}</span>
-                  </div>
-                </div>
-              </CardContent>
-            </Card>
-          ))}
-        </div>
+        <ListSchedules schedules={schedules} />
       )}
     </div>
   );

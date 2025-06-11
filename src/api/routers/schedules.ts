@@ -3,6 +3,7 @@ import { z } from 'zod';
 import { db } from '~/db/db';
 import { puzzle_game_schedules } from '~/db/schema';
 import { revalidatePath } from 'next/cache';
+import { eq } from 'drizzle-orm';
 
 const add_puzzle_schedule_route = protectedAdminProcedure
   .input(
@@ -61,6 +62,16 @@ const add_puzzle_schedule_route = protectedAdminProcedure
     };
   });
 
+const delete_puzzle_schedule_route = protectedAdminProcedure
+  .input(z.object({ schedule_id: z.number().int() }))
+  .mutation(async ({ input: { schedule_id } }) => {
+    revalidatePath('/padavali/schedules');
+    await db.delete(puzzle_game_schedules).where(eq(puzzle_game_schedules.id, schedule_id));
+
+    return { success: true };
+  });
+
 export const schedules_router = t.router({
-  add_puzzle_schedule: add_puzzle_schedule_route
+  add_puzzle_schedule: add_puzzle_schedule_route,
+  delete_puzzle_schedule: delete_puzzle_schedule_route
 });
