@@ -47,7 +47,7 @@ const add_puzzle_schedule_route = protectedAdminProcedure
       return { success: false, error_code: 'already_exists_in_time_range' };
     }
 
-    revalidatePath('/padavali/schedules/add');
+    revalidatePath('/padavali/schedules');
     const schedule = await db
       .insert(puzzle_game_schedules)
       .values({

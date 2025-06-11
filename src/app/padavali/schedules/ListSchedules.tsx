@@ -13,14 +13,13 @@ import {
 } from '@/components/ui/alert-dialog';
 import dayjs from 'dayjs';
 import { ClockIcon } from 'lucide-react';
-import Link from 'next/link';
-import { FiPlus } from 'react-icons/fi';
-import { Button } from '~/components/ui/button';
 import { Card, CardContent, CardTitle, CardHeader, CardAction } from '~/components/ui/card';
 import relativeTime from 'dayjs/plugin/relativeTime';
 import { MdDeleteOutline } from 'react-icons/md';
 import { client_q } from '~/api/client';
 import { toast } from 'sonner';
+import { useTransition } from 'react';
+import { invalidatePage } from '~/tools/invalidate_nextjs_server_route';
 
 dayjs.extend(relativeTime);
 
@@ -45,9 +44,14 @@ const formatDate = (date: Date) => {
 };
 
 const ListSchedules = ({ schedules }: Props) => {
+  const [isPending, startTransition] = useTransition();
+
   const del_schedule_mutation = client_q.schedules.delete_puzzle_schedule.useMutation({
     onSuccess() {
-      toast.success('Successfully deleted schedule');
+      startTransition(async () => {
+        toast.success('Successfully deleted schedule');
+        await invalidatePage('/padavali/schedules');
+      });
     },
     onError() {
       toast.error('Failed to delete schedule');

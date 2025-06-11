@@ -14,18 +14,10 @@ import { Card, CardContent } from '~/components/ui/card';
 
 dayjs.extend(relativeTime);
 
-const formatDate = (date: Date) => {
-  return date.toLocaleDateString('en-GB', {
-    day: 'numeric',
-    month: 'long',
-    year: 'numeric'
-  });
-};
-
 const Main = async () => {
   const session = await get_seesion_from_cookie((await headers()).get('cookie') ?? '');
   if (!session) redirect('/padavali');
-  if (session.user.role !== 'admin' || !session.user.is_approved) redirect('/');
+  if (session.user.role !== 'admin' || !session.user.is_approved) redirect('/padavali');
 
   const schedules = await db.query.puzzle_game_schedules.findMany({
     columns: {

@@ -16,7 +16,7 @@ dayjs.extend(relativeTime);
 const List = async () => {
   const session = await get_seesion_from_cookie((await headers()).get('cookie') ?? '');
   if (!session) redirect('/padavali');
-  if (session.user.role !== 'admin' || !session.user.is_approved) redirect('/');
+  if (session.user.role !== 'admin' || !session.user.is_approved) redirect('/padavali');
 
   const list = await db.query.word_puzzles.findMany({
     columns: {
