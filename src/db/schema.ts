@@ -17,6 +17,7 @@ export const word_puzzles = pgTable(
     id: serial().primaryKey(),
     uuid: uuid().notNull().defaultRandom(),
     title: text().notNull(),
+    description: text(),
     created_at: timestamp({ withTimezone: true }).notNull().defaultNow(),
     updated_at: timestamp({ withTimezone: true }), // NULL for not updated
     word_list: jsonb().notNull().$type<string[]>(),
