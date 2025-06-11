@@ -23,9 +23,11 @@ import { useRouter } from 'next/navigation';
 const DEFAULT_START_END_TIME = '05:00';
 
 const AddSchedule = ({ puzzle_list }: { puzzle_list: { id: number; title: string }[] }) => {
-  const [startTime, setStartDate] = useState<Date | undefined>(undefined);
-  const [endTime, setEndDate] = useState<Date | undefined>(undefined);
+  const [startDate, setStartDate] = useState<Date | undefined>(undefined);
+  const [endDate, setEndDate] = useState<Date | undefined>(undefined);
   const [puzzleId, setPuzzleId] = useState<number | undefined>(undefined);
+
+  const [startEndTime, setStartEndTime] = useState<string>(DEFAULT_START_END_TIME + ':00');
 
   const router = useRouter();
 
@@ -44,14 +46,14 @@ const AddSchedule = ({ puzzle_list }: { puzzle_list: { id: number; title: string
   });
 
   const invalid_state_condition =
-    !puzzleId || !startTime || !endTime || startTime > endTime || startTime === endTime;
+    !puzzleId || !startDate || !endDate || startDate > endDate || startDate === endDate;
 
   const handle_add_schedule = () => {
     if (invalid_state_condition) {
       toast.error('Please fill all the fields correctly');
       return;
     }
-    add_schedule_mut.mutate({ puzzle_id: puzzleId, start_time: startTime, end_time: endTime });
+    add_schedule_mut.mutate({ puzzle_id: puzzleId, start_time: startDate, end_time: endDate });
   };
 
   return (
@@ -60,16 +62,18 @@ const AddSchedule = ({ puzzle_list }: { puzzle_list: { id: number; title: string
         <h3 className="text-lg font-semibold">Select Date Range</h3>
         <div className="flex gap-4">
           <ISTDateTimePicker
-            date={startTime}
+            date={startDate}
             setDate={setStartDate}
             label="Start Date"
-            start_end_time={DEFAULT_START_END_TIME}
+            start_end_time={startEndTime}
+            type="start"
           />
           <ISTDateTimePicker
-            date={endTime}
+            date={endDate}
             setDate={setEndDate}
             label="End Date"
-            start_end_time={DEFAULT_START_END_TIME}
+            start_end_time={startEndTime}
+            type="end"
           />
         </div>
       </div>
@@ -82,7 +86,8 @@ const AddSchedule = ({ puzzle_list }: { puzzle_list: { id: number; title: string
             type="time"
             id="time"
             step="1"
-            defaultValue={DEFAULT_START_END_TIME}
+            value={startEndTime}
+            onChange={(e) => setStartEndTime(e.target.value)}
             className="appearance-none bg-background [&::-webkit-calendar-picker-indicator]:hidden [&::-webkit-calendar-picker-indicator]:appearance-none"
           />
         </div>
@@ -126,9 +131,16 @@ interface DatePickerProps {
   label: string;
   id?: string;
   start_end_time: string;
+  type: 'start' | 'end';
 }
 
-const ISTDateTimePicker: React.FC<DatePickerProps> = ({ date, setDate, label, start_end_time }) => {
+const ISTDateTimePicker: React.FC<DatePickerProps> = ({
+  date,
+  setDate,
+  label,
+  start_end_time,
+  type
+}) => {
   const [open, setOpen] = useState(false);
   const [internalDate, setInternalDate] = useState<Date | undefined>(date);
 
@@ -141,7 +153,10 @@ const ISTDateTimePicker: React.FC<DatePickerProps> = ({ date, setDate, label, st
 
     // making the IST date string manually to prevent any timezone issues
     const dateStr = `${year}-${String(month + 1).padStart(2, '0')}-${String(selectedDate).padStart(2, '0')}`;
-    const timeStr = `${String(hours || 0).padStart(2, '0')}:${String(minutes || 0).padStart(2, '0')}:00`;
+    const timeStr =
+      `${String(hours || 0).padStart(2, '0')}:${String(minutes || 0).padStart(2, '0')}:` +
+      (type === 'start' ? '01' : '00');
+    // the starting part is delayed 1 second to differentiate
     const istDateString = `${dateStr}T${timeStr}+05:30`;
 
     const dateInIST = new Date(istDateString);

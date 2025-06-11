@@ -31,16 +31,12 @@ const add_puzzle_schedule_route = protectedAdminProcedure
       columns: {
         id: true
       },
-      where: (table, { and, gte, lte, or }) =>
-        or(
-          // New schedule's start_time falls within existing schedule
-          and(gte(table.start_time, start_time), lte(table.start_time, end_time)),
-          // New schedule's end_time falls within existing schedule
-          and(gte(table.end_time, start_time), lte(table.end_time, end_time)),
-          // Existing schedule completely contains new schedule
-          and(lte(table.start_time, start_time), gte(table.end_time, end_time)),
-          // New schedule completely contains existing schedule
-          and(gte(table.start_time, start_time), lte(table.end_time, end_time))
+      where: (table, { and, gte, lte }) =>
+        and(
+          // Existing starts before or when New ends
+          lte(table.start_time, end_time),
+          // Existing ends after or when New starts
+          gte(table.end_time, start_time)
         )
     });
     if (existing_schedule) {

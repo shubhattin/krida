@@ -8,11 +8,7 @@ import { db } from '~/db/db';
 import get_seesion_from_cookie from '~/lib/get_auth_from_cookie';
 import { Button } from '@/components/ui/button';
 import ListSchedules from './ListSchedules';
-import dayjs from 'dayjs';
-import relativeTime from 'dayjs/plugin/relativeTime';
 import { Card, CardContent } from '~/components/ui/card';
-
-dayjs.extend(relativeTime);
 
 const Main = async () => {
   const session = await get_seesion_from_cookie((await headers()).get('cookie') ?? '');
@@ -48,7 +44,6 @@ const Main = async () => {
       <div className="mb-6 flex items-center justify-between">
         <div>
           <h1 className="text-2xl font-bold">कालबन्धानि</h1>
-          <p className="mt-1 text-muted-foreground">खेलकालीना कालबन्धानानि</p>
         </div>
         <Button asChild variant={'outline'}>
           <Link href="/padavali/schedules/add" className="flex items-center gap-2">

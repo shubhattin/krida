@@ -4,6 +4,8 @@ import get_seesion_from_cookie from '~/lib/get_auth_from_cookie';
 import AddSchedule from './AddSchedule';
 import { Metadata } from 'next';
 import { db } from '~/db/db';
+import Link from 'next/link';
+import { IoMdArrowRoundBack } from 'react-icons/io';
 
 const Main = async () => {
   const session = await get_seesion_from_cookie((await headers()).get('cookie') ?? '');
@@ -20,6 +22,12 @@ const Main = async () => {
 
   return (
     <div className="mt-4">
+      <div className="my-2 mb-4 px-2">
+        <Link href="/padavali/schedules" className="flex items-center gap-1 text-lg font-semibold">
+          <IoMdArrowRoundBack className="inline-block text-xl" />
+          <span>कालबन्धनसूची</span>
+        </Link>
+      </div>
       <div className="my-4 text-xs dark:text-red-400">
         * All Date and Time entered here will saved according to IST.
       </div>
