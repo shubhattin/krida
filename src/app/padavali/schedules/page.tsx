@@ -8,6 +8,11 @@ import { db } from '~/db/db';
 import get_seesion_from_cookie from '~/lib/get_auth_from_cookie';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
+import dayjs from 'dayjs';
+import relativeTime from 'dayjs/plugin/relativeTime';
+import { ClockIcon } from 'lucide-react';
+
+dayjs.extend(relativeTime);
 
 const formatDate = (date: Date) => {
   return date.toLocaleDateString('en-GB', {
@@ -23,10 +28,20 @@ const Main = async () => {
   if (session.user.role !== 'admin' || !session.user.is_approved) redirect('/');
 
   const schedules = await db.query.puzzle_game_schedules.findMany({
-    with: {
-      puzzle: true
+    columns: {
+      id: true,
+      start_time: true,
+      end_time: true,
+      created_at: true
     },
-    orderBy: (schedules, { desc }) => [desc(schedules.start_time)]
+    with: {
+      puzzle: {
+        columns: {
+          title: true
+        }
+      }
+    },
+    orderBy: (schedules, { desc }) => [desc(schedules.created_at)]
   });
 
   return (
@@ -70,26 +85,20 @@ const Main = async () => {
           </CardContent>
         </Card>
       ) : (
-        <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-3">
+        <div className="grid gap-4 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4">
           {schedules.map((schedule) => (
             <Card key={schedule.id} className="transition-shadow hover:shadow-md">
               <CardHeader>
                 <CardTitle className="text-lg">{schedule.puzzle.title}</CardTitle>
               </CardHeader>
-              <CardContent>
+              <CardContent className="-mt-6">
                 <div className="space-y-2">
-                  <div>
-                    <span className="text-sm font-medium text-muted-foreground">आरम्भकालः:</span>
-                    <p className="text-sm">{formatDate(schedule.start_time)}</p>
+                  <div className="text-xs">
+                    {formatDate(schedule.start_time)} - {formatDate(schedule.end_time)}
                   </div>
-                  <div>
-                    <span className="text-sm font-medium text-muted-foreground">समाप्तिकालः:</span>
-                    <p className="text-sm">{formatDate(schedule.end_time)}</p>
-                  </div>
-                  <div className="border-t pt-2">
-                    <span className="text-xs text-muted-foreground">
-                      {formatDate(schedule.start_time)} - {formatDate(schedule.end_time)}
-                    </span>
+                  <div className="flex items-center gap-2 text-sm text-muted-foreground">
+                    <ClockIcon className="-mt-1 size-4" />
+                    <span>{dayjs(schedule.created_at).fromNow()}</span>
                   </div>
                 </div>
               </CardContent>

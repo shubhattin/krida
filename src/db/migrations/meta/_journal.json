@@ -15,13 +15,6 @@
       "when": 1748535188261,
       "tag": "0001_known_doctor_doom",
       "breakpoints": true
-    },
-    {
-      "idx": 2,
-      "version": "7",
-      "when": 1749643694312,
-      "tag": "0002_robust_rocket_raccoon",
-      "breakpoints": true
     }
   ]
 }
