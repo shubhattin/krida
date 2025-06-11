@@ -38,10 +38,16 @@ const List = async () => {
           मुख्यपृष्ठं
         </Link>
       </div>
-      <div className="mt-2 mb-5 flex items-center justify-center px-2">
+      <div className="mt-2 mb-5 flex items-center justify-center gap-4 px-2">
+        <Link href="/padavali/schedules">
+          <Button variant={'outline'} className="flex items-center gap-2 text-base font-semibold">
+            <CalendarIcon className="-mt-1 inline-block size-4" />
+            कालबन्धानि
+          </Button>
+        </Link>
         <Link href="/padavali/add">
-          <Button variant="blue" className="gap-2 text-lg font-semibold">
-            <IoMdAdd className="text-lh" /> नवप्रहेलिकां युञ्जतु
+          <Button variant={'outline'} className="gap-2 text-lg font-semibold">
+            <IoMdAdd className="size-5.5" /> नवप्रहेलिकां युञ्जतु
           </Button>
         </Link>
       </div>
@@ -64,7 +70,7 @@ const List = async () => {
                         </>
                       )}
                     <span className="text-sm text-muted-foreground">
-                      <CalendarIcon className="mr-1 inline-block h-3 w-3" />
+                      <CalendarIcon className="mr-1 inline-block size-3" />
                       {dayjs(item.created_at).format('MMM D, YYYY')}
                     </span>
                   </CardDescription>
