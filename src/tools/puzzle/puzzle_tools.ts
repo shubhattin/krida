@@ -28,12 +28,16 @@ export function findAllTraversals(
   for (let wIdx = 0; wIdx < wordList.length; wIdx++) {
     const word = wordList[wIdx];
     const traversals: Traversal[] = [];
-
+    if (word.trim() === '') {
+      result.set(wIdx, traversals);
+      continue;
+    }
     // Visited matrix to track cells used in current path
     const visited: boolean[][] = Array.from({ length: rows }, () => Array(cols).fill(false));
 
     function dfs(r: number, c: number, pos: number, path: Coordinate[]) {
       const cellStr = gridData[r][c];
+      if (cellStr.trim() === '') return;
       // Check if the segment matches at current position
       if (!word.startsWith(cellStr, pos)) return;
 
