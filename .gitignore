@@ -44,3 +44,5 @@ next-env.d.ts
 src/db/scripts/out/
 src/db/scripts/backup/
 tmp
+
+**/a.ts

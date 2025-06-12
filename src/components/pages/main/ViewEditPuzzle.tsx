@@ -70,7 +70,7 @@ const ViewEditPuzzle = ({ word_puzzle }: { word_puzzle: z.infer<typeof puzzle_sc
           <div className="space-y-4">
             <Title />
             <WordList />
-            {/* <TraversalAnalysis /> */}
+            <TraversalAnalysis />
             <GridData />
             <SaveButton word_puzzle={word_puzzle} />
           </div>
@@ -360,31 +360,31 @@ const WordList = () => {
 
 const GridData = () => {
   const [gridData, setGridData] = useAtom(grid_data_atom);
-  // const [wordList] = useAtom(word_list_atom);
+  const [wordList] = useAtom(word_list_atom);
   const cols = gridData.length > 0 ? gridData[0].length : 0;
 
-  // const occupiedCells = useMemo(() => {
-  //   if (gridData.length === 0 || wordList.length === 0) {
-  //     return new Set<string>();
-  //   }
+  const occupiedCells = useMemo(() => {
+    if (gridData.length === 0 || wordList.length === 0) {
+      return new Set<string>();
+    }
 
-  //   // Filter out empty strings from wordList
-  //   const validWords = wordList.filter((word) => word.trim() !== '');
+    // Filter out empty strings from wordList
+    const validWords = wordList.filter((word) => word.trim() !== '');
 
-  //   if (validWords.length === 0) {
-  //     return new Set<string>();
-  //   }
+    if (validWords.length === 0) {
+      return new Set<string>();
+    }
 
-  //   const gridDimensions: [number, number] = [gridData.length, gridData[0]?.length || 0];
-  //   const traversalsMap = findAllTraversals(gridData, gridDimensions, validWords);
-  //   const occupiedCellsCoords = getOccupiedCells(traversalsMap);
+    const gridDimensions: [number, number] = [gridData.length, gridData[0]?.length || 0];
+    const traversalsMap = findAllTraversals(gridData, gridDimensions, validWords);
+    const occupiedCellsCoords = getOccupiedCells(traversalsMap);
 
-  //   const occupiedCellsSet = new Set<string>();
-  //   for (const [r, c] of occupiedCellsCoords) {
-  //     occupiedCellsSet.add(`${r},${c}`);
-  //   }
-  //   return occupiedCellsSet;
-  // }, [gridData, wordList]);
+    const occupiedCellsSet = new Set<string>();
+    for (const [r, c] of occupiedCellsCoords) {
+      occupiedCellsSet.add(`${r},${c}`);
+    }
+    return occupiedCellsSet;
+  }, [gridData, wordList]);
 
   const updateCell = (r: number, c: number, value: string, e: any) => {
     setGridData((prev) => {
@@ -409,14 +409,14 @@ const GridData = () => {
     );
   };
 
-  // const getCellClassName = (r: number, c: number) => {
-  //   const isOccupied = occupiedCells.has(`${r},${c}`);
-  //   return `rounded text-center transition-all duration-200 ${
-  //     isOccupied
-  //       ? 'ring-1 ring-blue-300 ring-opacity-50 shadow-sm dark:ring-blue-500 dark:ring-opacity-40'
-  //       : ''
-  //   }`;
-  // };
+  const getCellClassName = (r: number, c: number) => {
+    const isOccupied = occupiedCells.has(`${r},${c}`);
+    return `rounded text-center transition-all duration-200 ${
+      isOccupied
+        ? 'ring-1 ring-blue-300 ring-opacity-50 shadow-sm dark:ring-blue-500 dark:ring-opacity-40'
+        : ''
+    }`;
+  };
 
   return (
     <div>
@@ -430,11 +430,11 @@ const GridData = () => {
             <Input
               key={`${r}-${c}`}
               type="text"
+              className={getCellClassName(r, c)}
               minLength={1}
               value={cell}
               onChange={(e) => updateCell(r, c, e.target.value, e)}
             />
-            // className={getCellClassName(r, c)}
           ))
         )}
       </div>
