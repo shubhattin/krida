@@ -70,10 +70,12 @@ const AddSchedule = ({ puzzle_list }: { puzzle_list: { id: number; title: string
           />
           <ISTDateTimePicker
             date={endDate}
+            disabled={!startDate}
             setDate={setEndDate}
             label="End Date"
             start_end_time={startEndTime}
             type="end"
+            disable_before={startDate}
           />
         </div>
       </div>
@@ -132,6 +134,8 @@ interface DatePickerProps {
   id?: string;
   start_end_time: string;
   type: 'start' | 'end';
+  disabled?: boolean;
+  disable_before?: Date;
 }
 
 const ISTDateTimePicker: React.FC<DatePickerProps> = ({
@@ -139,7 +143,9 @@ const ISTDateTimePicker: React.FC<DatePickerProps> = ({
   setDate,
   label,
   start_end_time,
-  type
+  type,
+  disabled,
+  disable_before
 }) => {
   const [open, setOpen] = useState(false);
   const [internalDate, setInternalDate] = useState<Date | undefined>(date);
@@ -168,7 +174,11 @@ const ISTDateTimePicker: React.FC<DatePickerProps> = ({
       <Label className="px-1">{label}</Label>
       <Popover open={open} onOpenChange={setOpen}>
         <PopoverTrigger asChild>
-          <Button variant="outline" className="w-32 justify-between font-normal">
+          <Button
+            variant="outline"
+            className="w-32 justify-between font-normal"
+            disabled={disabled}
+          >
             {internalDate
               ? internalDate.toLocaleDateString('en-GB', {
                   day: '2-digit',
@@ -187,6 +197,12 @@ const ISTDateTimePicker: React.FC<DatePickerProps> = ({
             onSelect={(_date) => {
               setInternalDate(_date);
               setOpen(false);
+            }}
+            disabled={(date) => {
+              if (disable_before && date < disable_before) return true;
+              const today = new Date();
+              today.setHours(0, 0, 0, 0);
+              return date < today;
             }}
           />
         </PopoverContent>
