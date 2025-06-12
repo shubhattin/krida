@@ -29,7 +29,12 @@ import { useRouter } from 'next/navigation';
 import { Info, ArrowRight } from 'lucide-react';
 import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover';
 import { AtomsHydrator } from '~/components/AtomsHydrator';
-import { findAllTraversals, getOccupiedCells, type Coordinate } from '~/tools/puzzle/puzzle_tools';
+import {
+  findAllTraversals,
+  getOccupiedCells,
+  type Traversal,
+  type Coordinate
+} from '~/tools/puzzle/puzzle_tools';
 import { cn } from '~/lib/utils';
 
 const puzzle_schema = z.object({
@@ -70,8 +75,7 @@ const ViewEditPuzzle = ({ word_puzzle }: { word_puzzle: z.infer<typeof puzzle_sc
           <div className="space-y-4">
             <Title />
             <WordList />
-            <TraversalAnalysis />
-            <GridData />
+            <TraversalAndGridData grid_dimensions={word_puzzle.grid_dimensions} />
             <SaveButton word_puzzle={word_puzzle} />
           </div>
         </CardContent>
@@ -111,25 +115,57 @@ const Title = () => {
   );
 };
 
-const TraversalAnalysis = () => {
+const getTraversalsInfo = (
+  gridData: string[][],
+  wordList: string[],
+  gridDimensions: [number, number]
+) => {
+  const validWords = wordList.filter((word) => word.trim() !== '');
+  const traversalsMap = findAllTraversals(gridData, gridDimensions, validWords);
+  return {
+    validWords,
+    traversalsMap,
+    occupiedCells: getOccupiedCells(traversalsMap)
+  };
+};
+
+const TraversalAndGridData = ({ grid_dimensions }: { grid_dimensions: [number, number] }) => {
   const [wordList] = useAtom(word_list_atom);
   const [gridData] = useAtom(grid_data_atom);
 
-  const analysisResult = useMemo(() => {
-    if (gridData.length === 0 || wordList.length === 0) {
+  const { traversalsMap, validWords, occupiedCells } = getTraversalsInfo(
+    gridData,
+    wordList,
+    grid_dimensions
+  );
+
+  return (
+    <>
+      <TraversalAnalysis
+        grid_dimensions={grid_dimensions}
+        traversalsMap={traversalsMap}
+        validWords={validWords}
+      />
+      <GridData grid_dimensions={grid_dimensions} occupiedCells={occupiedCells} />
+    </>
+  );
+};
+
+const TraversalAnalysis = ({
+  traversalsMap,
+  validWords
+}: {
+  grid_dimensions: [number, number];
+  traversalsMap: Map<number, Traversal[]>;
+  validWords: string[];
+}) => {
+  const [wordList] = useAtom(word_list_atom);
+  const [gridData] = useAtom(grid_data_atom);
+
+  const analysisResult = (() => {
+    if (gridData.length === 0 || wordList.length === 0 || validWords.length === 0) {
       return { warnings: [], hasAllValidWords: false, occupiedCells: new Set<string>() };
     }
-
-    // Filter out empty strings from wordList
-    const validWords = wordList.filter((word) => word.trim() !== '');
-
-    if (validWords.length === 0) {
-      return { warnings: [], hasAllValidWords: false, occupiedCells: new Set<string>() };
-    }
-
-    const gridDimensions: [number, number] = [gridData.length, gridData[0]?.length || 0];
-    const traversalsMap = findAllTraversals(gridData, gridDimensions, validWords);
-    const occupiedCells = getOccupiedCells(traversalsMap);
 
     const warnings: {
       wordIndex: number;
@@ -161,18 +197,11 @@ const TraversalAnalysis = () => {
       }
     }
 
-    // Convert coordinates to string set for easier lookup
-    const occupiedCellsSet = new Set<string>();
-    for (const [r, c] of occupiedCells) {
-      occupiedCellsSet.add(`${r},${c}`);
-    }
-
     return {
       warnings,
-      hasAllValidWords: hasAllValidWords && warnings.length === 0,
-      occupiedCells: occupiedCellsSet
+      hasAllValidWords: hasAllValidWords && warnings.length === 0
     };
-  }, [wordList, gridData]);
+  })();
 
   if (gridData.length === 0 || wordList.length === 0) {
     return null;
@@ -358,33 +387,30 @@ const WordList = () => {
   );
 };
 
-const GridData = () => {
+const GridData = ({
+  grid_dimensions,
+  occupiedCells
+}: {
+  grid_dimensions: [number, number];
+  occupiedCells: Set<Coordinate>;
+}) => {
   const [gridData, setGridData] = useAtom(grid_data_atom);
   const [wordList] = useAtom(word_list_atom);
-  const cols = gridData.length > 0 ? gridData[0].length : 0;
+  const cols = grid_dimensions[1];
 
-  const occupiedCells = useMemo(() => {
+  const occupiedCellsStrList = (() => {
     if (gridData.length === 0 || wordList.length === 0) {
       return new Set<string>();
     }
 
-    // Filter out empty strings from wordList
-    const validWords = wordList.filter((word) => word.trim() !== '');
-
-    if (validWords.length === 0) {
-      return new Set<string>();
-    }
-
-    const gridDimensions: [number, number] = [gridData.length, gridData[0]?.length || 0];
-    const traversalsMap = findAllTraversals(gridData, gridDimensions, validWords);
-    const occupiedCellsCoords = getOccupiedCells(traversalsMap);
+    const occupiedCellsCoords = occupiedCells;
 
     const occupiedCellsSet = new Set<string>();
     for (const [r, c] of occupiedCellsCoords) {
       occupiedCellsSet.add(`${r},${c}`);
     }
     return occupiedCellsSet;
-  }, [gridData, wordList]);
+  })();
 
   const updateCell = (r: number, c: number, value: string, e: any) => {
     setGridData((prev) => {
@@ -410,7 +436,7 @@ const GridData = () => {
   };
 
   const getCellClassName = (r: number, c: number) => {
-    const isOccupied = occupiedCells.has(`${r},${c}`);
+    const isOccupied = occupiedCellsStrList.has(`${r},${c}`);
     return `rounded text-center transition-all duration-200 ${
       isOccupied
         ? 'ring-1 ring-blue-300 ring-opacity-50 shadow-sm dark:ring-blue-500 dark:ring-opacity-40'
