@@ -6,6 +6,7 @@ import { IoMdArrowRoundBack } from 'react-icons/io';
 import ViewEditPuzzle from '~/components/pages/main/ViewEditPuzzle';
 import { type Puzzle } from '~/components/pages/main/ViewEditPuzzle';
 import get_seesion_from_cookie from '~/lib/get_auth_from_cookie';
+import { Provider as JotaiProvider } from 'jotai';
 
 const Add = async () => {
   const session = await get_seesion_from_cookie((await headers()).get('cookie') ?? '');
@@ -36,7 +37,9 @@ const Add = async () => {
         </Link>
       </div>
       <div className="ml-3 text-xl font-bold">नवप्रहेलिकायाः योजनम्</div>
-      <ViewEditPuzzle word_puzzle={word_puzzle} key={word_puzzle.id} />
+      <JotaiProvider key="add">
+        <ViewEditPuzzle word_puzzle={word_puzzle} key="add" />
+      </JotaiProvider>
     </>
   );
 };
