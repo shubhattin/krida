@@ -239,13 +239,13 @@ const TraversalAnalysis = ({
                   >
                     {warning.type === 'none' ? (
                       <>
-                        "<span className="font-semibold">{warning.word}</span>" इति शब्दः
-                        स्थानपट्टिकायाम् न प्राप्यते ।
+                        "<span className="font-semibold">{warning.word}</span>" इति शब्दं
+                        स्थानपट्टिकायां न प्राप्यते ।
                       </>
                     ) : (
                       <div className="flex items-center justify-center gap-2">
                         <span>
-                          "<span className="font-semibold">{warning.word}</span>" इत्यस्य एकाधिको (
+                          "<span className="font-semibold">{warning.word}</span>" इत्यस्य एकाधिकाः (
                           {warning.traversalCount}) मार्गाः सन्ति ।
                         </span>
                         <Popover>
