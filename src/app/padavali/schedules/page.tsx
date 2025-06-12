@@ -29,7 +29,8 @@ const Main = async () => {
         }
       }
     },
-    orderBy: (schedules, { desc }) => [desc(schedules.created_at)]
+    orderBy: (schedules, { desc }) => [desc(schedules.created_at)],
+    where: (schedules, { eq }) => eq(schedules.completed, false)
   });
 
   return (
