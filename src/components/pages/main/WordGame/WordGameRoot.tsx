@@ -33,8 +33,6 @@ import {
 } from './game_state';
 import { AtomsHydrator } from '~/components/AtomsHydrator';
 import { Popover, PopoverContent, PopoverTrigger } from '@radix-ui/react-popover';
-import { BsThreeDots } from 'react-icons/bs';
-import { Button } from '~/components/ui/button';
 
 export type WordGameProps = {
   grid_data: string[][];
@@ -43,6 +41,7 @@ export type WordGameProps = {
   title: string;
   description: string | null;
   id: number;
+  uuid: string;
   children?: React.ReactNode;
   initial_script_data: {
     word_msgs: typeof word_game_msgs;
@@ -95,7 +94,8 @@ function WordGame({
   id: puzzle_id,
   title: org_title,
   grid_data: org_grid_data,
-  description
+  description,
+  uuid
 }: WordGameProps & { id: number }) {
   const [script] = useAtom(script_atom);
   const [, setGridData] = useAtom(grid_data_current_atom);
@@ -250,6 +250,7 @@ function WordGame({
                 original_grid_data={org_grid_data}
                 puzzle_id={puzzle_id}
                 timerRef={timerRef}
+                puzzle_uuid={uuid}
               />
             </div>
           </div>

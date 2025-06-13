@@ -11,6 +11,7 @@ import { Button } from '~/components/ui/button';
 import { ArrowLeftIcon, PuzzleIcon, CalendarIcon, ArchiveIcon, Sparkles } from 'lucide-react';
 import { IoExtensionPuzzleSharp } from 'react-icons/io5';
 import WordGameRoot from '~/components/pages/main/WordGame/WordGameRoot';
+import Link from 'next/link';
 
 type Props = {
   archived_puzzles: { id: number; uuid: string; title: string }[];
@@ -92,6 +93,21 @@ const PuzzleListView = ({
   return (
     <div className="min-h-screen w-full bg-gradient-to-br from-slate-50 via-blue-50 to-indigo-50 dark:from-slate-900 dark:via-slate-800 dark:to-slate-900">
       <div className="container mx-auto max-w-4xl px-4 py-8">
+        {/* Back to Home button */}
+        <motion.div
+          initial={{ opacity: 0, x: -20 }}
+          animate={{ opacity: 1, x: 0 }}
+          transition={{ duration: 0.4 }}
+          className="mb-6"
+        >
+          <Button asChild variant="ghost" className="gap-2">
+            <Link href="/padavali">
+              <ArrowLeftIcon className="h-4 w-4" />
+              Back to Home
+            </Link>
+          </Button>
+        </motion.div>
+
         <motion.div
           initial={{ opacity: 0, y: -20 }}
           animate={{ opacity: 1, y: 0 }}

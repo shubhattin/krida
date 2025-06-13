@@ -23,7 +23,9 @@ export const word_puzzles = pgTable(
     word_list: jsonb().notNull().$type<string[]>(),
     grid_data: jsonb().notNull().$type<string[][]>(),
     grid_dimensions: jsonb().notNull().$type<[number, number]>(),
-    archived: boolean().notNull().default(false)
+    archived: boolean().notNull().default(false),
+    //
+    games_started: integer().notNull().default(0)
   },
   (table) => [index().on(table.created_at)]
 );

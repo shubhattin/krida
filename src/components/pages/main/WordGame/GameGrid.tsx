@@ -25,9 +25,10 @@ type Props = {
   puzzle_id: number;
   timerRef: RefObject<NodeJS.Timeout | null>;
   original_grid_data: string[][];
+  puzzle_uuid: string;
 };
 
-export const GameGrid = ({ puzzle_id, timerRef, original_grid_data }: Props) => {
+export const GameGrid = ({ puzzle_id, timerRef, original_grid_data, puzzle_uuid }: Props) => {
   const [script] = useAtom(script_atom);
   const [started] = useAtom(started_atom);
   const [completed, setCompleted] = useAtom(completed_atom);
@@ -44,13 +45,23 @@ export const GameGrid = ({ puzzle_id, timerRef, original_grid_data }: Props) => 
   const gridRef = useRef<HTMLDivElement>(null);
 
   const font_info = FONT_INFO[script!];
-  const [turnstileToken, setTurnstileToken] = useState('');
+  const [turnstileToken, setTurnstileToken] = useState<string | null>(null);
   const turnstile = useTurnstile();
   const submit_stats_mut = client_q.padavali.stats.submit_stats.useMutation({
     onSuccess() {
       turnstile.reset();
     }
   });
+  const update_games_started_mut = client_q.padavali.stats.update_games_started.useMutation();
+  useEffect(() => {
+    if (started && turnstileToken) {
+      update_games_started_mut.mutate({
+        id: puzzle_id,
+        uuid: puzzle_uuid,
+        turnstile_token: turnstileToken
+      });
+    }
+  }, [started, turnstileToken]);
   const PROD = process.env.NODE_ENV === 'production';
   const submit_stats = async () => {
     if (!turnstileToken || !PROD) return;
