@@ -17,13 +17,28 @@ const get_rand_num = (a: number, b: number) => {
 };
 
 export default async function Home() {
-  // const currentTime = new Date();
   const list = await db.query.word_puzzles.findMany({
     columns: {
       id: true
     },
     limit: 10,
     orderBy: ({ created_at }, { desc }) => desc(created_at)
+  });
+
+  const currentTime = new Date();
+  const current_schedule = await db.query.puzzle_game_schedules.findFirst({
+    columns: {
+      id: true
+    },
+    where: (tbl, { eq, and, lte, gte }) =>
+      and(
+        lte(tbl.start_time, currentTime),
+        gte(tbl.end_time, currentTime),
+        eq(tbl.completed, false)
+      ),
+    with: {
+      puzzle: true
+    }
   });
 
   const randomIndex = get_rand_num(0, list.length - 1);

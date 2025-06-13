@@ -14,7 +14,9 @@ const schema = z.object({
   updated_at: z.coerce.date().nullable(),
   word_list: z.string().min(2).array(),
   grid_data: z.string().min(1).array().array(),
-  grid_dimensions: z.tuple([z.number().int(), z.number().int()])
+  grid_dimensions: z.tuple([z.number().int(), z.number().int()]),
+  archived: z.boolean(),
+  description: z.string().nullable()
 });
 
 const update_puzzle_route = protectedAdminProcedure.input(schema).mutation(async ({ input }) => {
@@ -56,9 +58,20 @@ const delete_puzzle_route = protectedAdminProcedure
     };
   });
 
+const update_puzzle_archived_status_route = protectedAdminProcedure
+  .input(z.object({ id: z.number().int(), archived: z.boolean() }))
+  .mutation(async ({ input: { archived, id } }) => {
+    revalidatePath('/padavali/list');
+    await db.update(word_puzzles).set({ archived }).where(eq(word_puzzles.id, id));
+    return {
+      success: true
+    };
+  });
+
 export const padavali_router = t.router({
   update_puzzle: update_puzzle_route,
   add_puzzle: add_puzzle_route,
   delete_puzzle: delete_puzzle_route,
-  stats: padavali_stats_router
+  stats: padavali_stats_router,
+  update_puzzle_archived_status: update_puzzle_archived_status_route
 });
