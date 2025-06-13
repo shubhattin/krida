@@ -15,6 +15,7 @@ import { cn } from '~/lib/utils';
 import Icon from '~/tools/Icon';
 import { LanguageIcon } from '~/components/icons';
 import { ArchiveIcon, ArrowRightIcon, InfoIcon } from 'lucide-react';
+import { IoStop } from 'react-icons/io5';
 import Link from 'next/link';
 import { motion } from 'framer-motion';
 import {
@@ -33,6 +34,7 @@ import {
 } from './game_state';
 import { AtomsHydrator } from '~/components/AtomsHydrator';
 import { Popover, PopoverContent, PopoverTrigger } from '@radix-ui/react-popover';
+import { FaRegStopCircle } from 'react-icons/fa';
 
 export type WordGameProps = {
   grid_data: string[][];
@@ -49,6 +51,7 @@ export type WordGameProps = {
     grid_data: string[][];
   };
   location: 'view_page' | 'main_page' | 'archive_page';
+  onScriptChange?: (script: ScriptType) => void;
 };
 
 export default function WordGameRoot(
@@ -89,13 +92,65 @@ export default function WordGameRoot(
   );
 }
 
+// Compact Stop Button Component
+const CompactStopButton = ({
+  timerRef,
+  className
+}: {
+  timerRef: React.RefObject<NodeJS.Timeout | null>;
+  className?: string;
+}) => {
+  const [script] = useAtom(script_atom);
+  const [started] = useAtom(started_atom);
+  const [completed] = useAtom(completed_atom);
+  const [, setStarted] = useAtom(started_atom);
+  const [wordMsgs] = useAtom(word_msgs_atom);
+
+  const font_info = FONT_INFO[script!];
+
+  const handleStop = () => {
+    setStarted(false);
+    if (timerRef.current) {
+      clearInterval(timerRef.current);
+      timerRef.current = null;
+    }
+  };
+
+  if (!started || completed) return null;
+
+  return (
+    <>
+      {/* Stop Button for <lg screens - centered below game controls */}
+      <div className="flex justify-center sm:-mb-2">
+        <motion.button
+          onClick={handleStop}
+          initial={{ opacity: 0, scale: 0.9 }}
+          animate={{ opacity: 1, scale: 1 }}
+          transition={{ duration: 0.3, ease: 'easeInOut' }}
+          className={cn(
+            'group relative overflow-hidden bg-red-500',
+            'rounded-lg px-3 py-1.5 font-medium text-white shadow-md hover:shadow-lg',
+            'transform transition-all duration-200 hover:scale-105 active:scale-95',
+            'flex items-center justify-center gap-2 text-base',
+            font_info.className
+          )}
+        >
+          <FaRegStopCircle className="-mt-1 size-4.5" />
+          <span>{wordMsgs.stop}</span>
+        </motion.button>
+      </div>
+    </>
+  );
+};
+
 function WordGame({
   children,
   id: puzzle_id,
   title: org_title,
   grid_data: org_grid_data,
   description,
-  uuid
+  uuid,
+  onScriptChange
 }: WordGameProps & { id: number }) {
   const [script] = useAtom(script_atom);
   const [, setGridData] = useAtom(grid_data_current_atom);
@@ -107,6 +162,12 @@ function WordGame({
   const font_info = FONT_INFO[script as ScriptType];
 
   const timerRef = useRef<NodeJS.Timeout | null>(null);
+
+  useEffect(() => {
+    if (onScriptChange) {
+      onScriptChange(script);
+    }
+  }, [script]);
 
   // transliteration
   useEffect(() => {
@@ -226,7 +287,8 @@ function WordGame({
           <div
             className={cn(
               'order-1 flex items-center justify-center lg:order-1 lg:col-span-3',
-              !started && 'lg:mt-12 lg:items-start'
+              !started && 'lg:mt-12 lg:items-start',
+              started && 'flex-col'
             )}
           >
             <div
@@ -240,6 +302,11 @@ function WordGame({
             >
               <GameContoller timerRef={timerRef} />
               {(started || completed) && <GameInfo />}
+            </div>
+
+            {/* Stop Button for <lg screens */}
+            <div className="pt-3 sm:pt-5">
+              <CompactStopButton timerRef={timerRef} />
             </div>
           </div>
 

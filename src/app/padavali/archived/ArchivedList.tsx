@@ -1,17 +1,18 @@
 'use client';
 
 import { useQuery } from '@tanstack/react-query';
-import { useState } from 'react';
+import { useRef, useState } from 'react';
 import { client_q } from '~/api/client';
 import { get_transliterated_word_game_msgs } from '~/components/pages/main/WordGame/msgs';
 import { lipi_parivartak } from '~/tools/lipi_lekhika';
 import { DEFAULT_DATA_SCRIPT, type ScriptType } from '~/state/script_font_data';
 import { motion } from 'framer-motion';
 import { Button } from '~/components/ui/button';
-import { ArrowLeftIcon, PuzzleIcon, CalendarIcon, ArchiveIcon, Sparkles } from 'lucide-react';
+import { ArrowLeftIcon, ArchiveIcon, Sparkles } from 'lucide-react';
 import { IoExtensionPuzzleSharp } from 'react-icons/io5';
 import WordGameRoot from '~/components/pages/main/WordGame/WordGameRoot';
 import Link from 'next/link';
+import { Provider } from 'jotai';
 
 type Props = {
   archived_puzzles: { id: number; uuid: string; title: string }[];
@@ -19,8 +20,9 @@ type Props = {
 };
 
 // Main component that handles the state and conditional rendering
-export const ArchivedList = ({ archived_puzzles, script }: Props) => {
+export const ArchivedList = ({ archived_puzzles, script: script_init }: Props) => {
   const [selectedPuzzle, setSelectedPuzzle] = useState<{ id: number; uuid: string } | null>(null);
+  const script_ref = useRef<ScriptType>(script_init);
 
   const word_puzzle_q = client_q.padavali.get_puzzle_data.useQuery(
     {
@@ -33,8 +35,9 @@ export const ArchivedList = ({ archived_puzzles, script }: Props) => {
   );
 
   const initial_script_data_q = useQuery({
-    queryKey: ['initial_script_data', selectedPuzzle?.id, script],
+    queryKey: ['initial_script_data', selectedPuzzle?.id, script_ref],
     queryFn: async () => {
+      const script = script_ref.current;
       const word_puzzle = word_puzzle_q.data!;
       const word_game_msgs = await get_transliterated_word_game_msgs(script);
       const title = await lipi_parivartak(word_puzzle.title, DEFAULT_DATA_SCRIPT, script);
@@ -59,13 +62,37 @@ export const ArchivedList = ({ archived_puzzles, script }: Props) => {
 
   // Show the game when everything is loaded
   if (selectedPuzzle && word_puzzle_q.data && initial_script_data_q.data) {
+    const puzzle = word_puzzle_q.data;
     return (
-      <PuzzleGameView
-        puzzle={word_puzzle_q.data}
-        initialScriptData={initial_script_data_q.data}
-        script={script}
-        onBack={() => setSelectedPuzzle(null)}
-      />
+      <div className="relative">
+        <div className="absolute top-4 left-4 z-10 sm:top-6 sm:left-6">
+          <Button
+            onClick={() => setSelectedPuzzle(null)}
+            variant="ghost"
+            className="gap-2 bg-white/80 backdrop-blur-sm hover:bg-white dark:bg-slate-800/80 dark:hover:bg-slate-800"
+          >
+            <ArrowLeftIcon className="h-4 w-4" />
+            Back
+          </Button>
+        </div>
+        <Provider key={`${puzzle.id}-${puzzle.uuid}`}>
+          <WordGameRoot
+            location="archive_page"
+            script={script_ref.current}
+            id={puzzle.id}
+            uuid={puzzle.uuid}
+            title={puzzle.title}
+            description={puzzle.description}
+            grid_data={puzzle.grid_data}
+            dims={puzzle.grid_dimensions}
+            word_list={puzzle.word_list}
+            initial_script_data={initial_script_data_q.data}
+            onScriptChange={(v) => {
+              script_ref.current = v;
+            }}
+          />
+        </Provider>
+      </div>
     );
   }
 
@@ -249,46 +276,6 @@ const EmptyPuzzleList = () => {
           </div>
         </motion.div>
       </div>
-    </div>
-  );
-};
-
-// Component that renders the actual game
-const PuzzleGameView = ({
-  puzzle,
-  initialScriptData,
-  script,
-  onBack
-}: {
-  puzzle: any;
-  initialScriptData: any;
-  script: ScriptType;
-  onBack: () => void;
-}) => {
-  return (
-    <div className="relative">
-      <div className="absolute top-4 left-4 z-10 sm:top-6 sm:left-6">
-        <Button
-          onClick={onBack}
-          variant="ghost"
-          className="gap-2 bg-white/80 backdrop-blur-sm hover:bg-white dark:bg-slate-800/80 dark:hover:bg-slate-800"
-        >
-          <ArrowLeftIcon className="h-4 w-4" />
-          Back
-        </Button>
-      </div>
-
-      <WordGameRoot
-        location="archive_page"
-        script={script}
-        id={puzzle.id}
-        title={puzzle.title}
-        description={puzzle.description}
-        grid_data={puzzle.grid_data}
-        dims={puzzle.grid_dimensions}
-        word_list={puzzle.word_list}
-        initial_script_data={initialScriptData}
-      />
     </div>
   );
 };
