@@ -1,5 +1,5 @@
 import { z } from 'zod';
-import { protectedAdminProcedure, t } from '../trpc_init';
+import { protectedAdminProcedure, publicProcedure, t } from '../trpc_init';
 import { db } from '~/db/db';
 import { word_puzzles } from '~/db/schema';
 import { and, eq } from 'drizzle-orm';
@@ -68,10 +68,20 @@ const update_puzzle_archived_status_route = protectedAdminProcedure
     };
   });
 
+const get_puzzle_data_route = publicProcedure
+  .input(z.object({ id: z.number().int(), uuid: z.string().uuid() }))
+  .query(async ({ input: { id, uuid } }) => {
+    const puzzle = await db.query.word_puzzles.findFirst({
+      where: and(eq(word_puzzles.id, id), eq(word_puzzles.uuid, uuid))
+    });
+    return puzzle!;
+  });
+
 export const padavali_router = t.router({
   update_puzzle: update_puzzle_route,
   add_puzzle: add_puzzle_route,
   delete_puzzle: delete_puzzle_route,
   stats: padavali_stats_router,
-  update_puzzle_archived_status: update_puzzle_archived_status_route
+  update_puzzle_archived_status: update_puzzle_archived_status_route,
+  get_puzzle_data: get_puzzle_data_route
 });
