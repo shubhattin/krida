@@ -60,6 +60,7 @@ const MainEdit = async ({ params }: Props) => {
               script={script}
               id={word_puzzle.id}
               title={word_puzzle.title}
+              description={word_puzzle.description}
               word_list={word_puzzle.word_list}
               dims={word_puzzle.grid_dimensions}
               grid_data={word_puzzle.grid_data}

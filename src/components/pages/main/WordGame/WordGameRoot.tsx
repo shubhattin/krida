@@ -14,7 +14,7 @@ import { ScriptSelector } from '~/components/pages/main/ScriptSelector';
 import { cn } from '~/lib/utils';
 import Icon from '~/tools/Icon';
 import { LanguageIcon } from '~/components/icons';
-import { ArchiveIcon, ArrowRightIcon } from 'lucide-react';
+import { ArchiveIcon, ArrowRightIcon, InfoIcon } from 'lucide-react';
 import Link from 'next/link';
 import { motion } from 'framer-motion';
 import {
@@ -32,12 +32,16 @@ import {
   original_word_list_atom
 } from './game_state';
 import { AtomsHydrator } from '~/components/AtomsHydrator';
+import { Popover, PopoverContent, PopoverTrigger } from '@radix-ui/react-popover';
+import { BsThreeDots } from 'react-icons/bs';
+import { Button } from '~/components/ui/button';
 
 export type WordGameProps = {
   grid_data: string[][];
   dims: number[];
   word_list: string[];
   title: string;
+  description: string | null;
   id: number;
   children?: React.ReactNode;
   initial_script_data: {
@@ -90,7 +94,8 @@ function WordGame({
   children,
   id: puzzle_id,
   title: org_title,
-  grid_data: org_grid_data
+  grid_data: org_grid_data,
+  description
 }: WordGameProps & { id: number }) {
   const [script] = useAtom(script_atom);
   const [, setGridData] = useAtom(grid_data_current_atom);
@@ -184,14 +189,30 @@ function WordGame({
           <div className="inline-flex items-center gap-2 rounded-xl bg-gradient-to-r from-yellow-600 to-orange-400 px-5 py-1 text-white shadow-lg">
             <span className="text-sm font-semibold tracking-wide uppercase">Hint</span>
           </div>
-          <h1
+          <div
             className={cn(
-              'bg-gradient-to-r from-slate-800 to-slate-600 bg-clip-text py-1 text-2xl font-bold text-transparent sm:text-3xl md:text-4xl dark:from-slate-100 dark:to-slate-300',
+              'bg-gradient-to-r from-slate-800 to-slate-600 bg-clip-text py-1 text-2xl font-bold sm:text-3xl md:text-4xl dark:from-slate-100 dark:to-slate-300',
               font_info.className
             )}
           >
             {title}
-          </h1>
+            {description && (
+              <Popover>
+                <PopoverTrigger asChild>
+                  <button className="ml-3 outline-none hover:brightness-75">
+                    <InfoIcon className="size-3 sm:size-4" />
+                  </button>
+                </PopoverTrigger>
+                <PopoverContent
+                  side="top"
+                  align="end"
+                  className="z-80 overflow-hidden rounded-xl border-slate-200 bg-gradient-to-r from-amber-50 to-orange-50 px-3 py-2 shadow-xl outline-none dark:border-slate-700 dark:from-teal-950/80 dark:to-green-950/80"
+                >
+                  <div className="text-sm text-stone-600 dark:text-stone-200">{description}</div>
+                </PopoverContent>
+              </Popover>
+            )}
+          </div>
         </div>
 
         {/* Main Game Container */}

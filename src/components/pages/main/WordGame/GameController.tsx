@@ -78,7 +78,6 @@ export const GameContoller = ({ timerRef }: Props) => {
           <span className="text-xl sm:text-2xl">{wordMsgs.play}</span>
         </button>
       )}
-
       {completed && (
         <div>
           <motion.button

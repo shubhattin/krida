@@ -7,7 +7,7 @@ import { Popover, PopoverContent, PopoverTrigger } from '~/components/ui/popover
 import { type ScriptType } from '~/state/script_font_data';
 import { type Puzzle } from '~/components/pages/main/ViewEditPuzzle';
 import { BsThreeDots } from 'react-icons/bs';
-import { ArchiveIcon, ArrowRightIcon } from 'lucide-react';
+import { ArchiveIcon, ArrowRightIcon, Sparkles } from 'lucide-react';
 import Link from 'next/link';
 
 type Props = {
@@ -43,10 +43,11 @@ const MainPagePadavali = ({ script, word_puzzle, initial_script_data }: Props) =
           <div className="flex items-center justify-center">
             <div className="flex items-center gap-3 sm:gap-4">
               <div className="flex items-center gap-4">
-                <div className="rounded-xl bg-gradient-to-r from-emerald-500 to-blue-500 p-2 shadow-lg">
+                {/* <div className="rounded-xl bg-gradient-to-r from-emerald-500 to-blue-500 p-2 shadow-lg">
                   <IoExtensionPuzzleSharp className="size-5 text-white" />
-                </div>
-                <div>
+                </div> */}
+                <div className="flex items-center gap-2">
+                  <Sparkles className="-mt-1 size-5 sm:size-5.5" />
                   <h2 className="bg-gradient-to-r from-slate-800 to-blue-600 bg-clip-text text-base font-bold text-transparent sm:text-lg dark:from-slate-100 dark:to-blue-400">
                     Current Week's Puzzle
                   </h2>
@@ -106,6 +107,7 @@ const MainPagePadavali = ({ script, word_puzzle, initial_script_data }: Props) =
         script={script}
         id={word_puzzle.id!}
         title={word_puzzle.title}
+        description={word_puzzle.description}
         grid_data={word_puzzle.grid_data}
         dims={word_puzzle.grid_dimensions}
         word_list={word_puzzle.word_list}

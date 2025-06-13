@@ -284,7 +284,7 @@ const TraversalAnalysis = ({
                           <PopoverTrigger asChild>
                             <Info className="-mt-1 size-4.5 text-amber-600 dark:text-amber-400" />
                           </PopoverTrigger>
-                          <PopoverContent className="max-w-xs">
+                          <PopoverContent className="max-w-xs" align="center">
                             {warning.paths?.map((path, pIdx) => (
                               <div key={pIdx} className="flex items-center space-x-1 text-xs">
                                 <span className="font-semibold">Path {pIdx + 1}:</span>
@@ -534,19 +534,19 @@ const Description = () => {
           value={description || ''}
           onChange={(e) => {
             setDescription(e.target.value);
-            if (lipi_lekhika_active) {
-              lekhika_typing_tool(
-                e.nativeEvent.target,
-                // @ts-ignore
-                e.nativeEvent.data,
-                BASE_SCRIPT,
-                true,
-                // @ts-ignore
-                (val) => {
-                  setDescription(val);
-                }
-              );
-            }
+            // if (lipi_lekhika_active) {
+            //   lekhika_typing_tool(
+            //     e.nativeEvent.target,
+            //     // @ts-ignore
+            //     e.nativeEvent.data,
+            //     BASE_SCRIPT,
+            //     true,
+            //     // @ts-ignore
+            //     (val) => {
+            //       setDescription(val);
+            //     }
+            //   );
+            // }
           }}
           placeholder="प्रहेलिकायाः वर्णनं लिखतु..."
         />
