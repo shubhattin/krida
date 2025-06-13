@@ -1,5 +1,5 @@
 import { db } from '~/db/db';
-import { ArchivedList } from './ArchibeList';
+import { ArchivedList } from './ArchivedList';
 import { get_lang_from_cookie, SCRIPT_DATA_COOKIE_KEY } from '~/state/script_font_data';
 import { cookies } from 'next/headers';
 import { Metadata } from 'next';
