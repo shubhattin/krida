@@ -14,6 +14,10 @@ import { ScriptSelector } from '~/components/pages/main/ScriptSelector';
 import { cn } from '~/lib/utils';
 import Icon from '~/tools/Icon';
 import { LanguageIcon } from '~/components/icons';
+import { ArchiveIcon, ArrowRightIcon, InfoIcon } from 'lucide-react';
+import { IoStop } from 'react-icons/io5';
+import Link from 'next/link';
+import { motion } from 'framer-motion';
 import {
   completed_atom,
   grid_data_current_atom,
@@ -29,20 +33,26 @@ import {
   original_word_list_atom
 } from './game_state';
 import { AtomsHydrator } from '~/components/AtomsHydrator';
+import { Popover, PopoverContent, PopoverTrigger } from '@radix-ui/react-popover';
+import { FaRegStopCircle } from 'react-icons/fa';
 
-interface WordGameProps {
+export type WordGameProps = {
   grid_data: string[][];
   dims: number[];
   word_list: string[];
   title: string;
+  description: string | null;
   id: number;
+  uuid: string;
   children?: React.ReactNode;
   initial_script_data: {
     word_msgs: typeof word_game_msgs;
     title: string;
     grid_data: string[][];
   };
-}
+  location: 'view_page' | 'main_page' | 'archive_page';
+  onScriptChange?: (script: ScriptType) => void;
+};
 
 export default function WordGameRoot(
   props: WordGameProps & {
@@ -82,11 +92,65 @@ export default function WordGameRoot(
   );
 }
 
+// Compact Stop Button Component
+const CompactStopButton = ({
+  timerRef,
+  className
+}: {
+  timerRef: React.RefObject<NodeJS.Timeout | null>;
+  className?: string;
+}) => {
+  const [script] = useAtom(script_atom);
+  const [started] = useAtom(started_atom);
+  const [completed] = useAtom(completed_atom);
+  const [, setStarted] = useAtom(started_atom);
+  const [wordMsgs] = useAtom(word_msgs_atom);
+
+  const font_info = FONT_INFO[script!];
+
+  const handleStop = () => {
+    setStarted(false);
+    if (timerRef.current) {
+      clearInterval(timerRef.current);
+      timerRef.current = null;
+    }
+  };
+
+  if (!started || completed) return null;
+
+  return (
+    <>
+      {/* Stop Button for <lg screens - centered below game controls */}
+      <div className="flex justify-center sm:-mb-2">
+        <motion.button
+          onClick={handleStop}
+          initial={{ opacity: 0, scale: 0.9 }}
+          animate={{ opacity: 1, scale: 1 }}
+          transition={{ duration: 0.3, ease: 'easeInOut' }}
+          className={cn(
+            'group relative overflow-hidden bg-red-500',
+            'rounded-lg px-3 py-1.5 font-medium text-white shadow-md hover:shadow-lg',
+            'transform transition-all duration-200 hover:scale-105 active:scale-95',
+            'flex items-center justify-center gap-2 text-base',
+            font_info.className
+          )}
+        >
+          <FaRegStopCircle className="-mt-1 size-4.5" />
+          <span>{wordMsgs.stop}</span>
+        </motion.button>
+      </div>
+    </>
+  );
+};
+
 function WordGame({
   children,
   id: puzzle_id,
   title: org_title,
-  grid_data: org_grid_data
+  grid_data: org_grid_data,
+  description,
+  uuid,
+  onScriptChange
 }: WordGameProps & { id: number }) {
   const [script] = useAtom(script_atom);
   const [, setGridData] = useAtom(grid_data_current_atom);
@@ -98,6 +162,12 @@ function WordGame({
   const font_info = FONT_INFO[script as ScriptType];
 
   const timerRef = useRef<NodeJS.Timeout | null>(null);
+
+  useEffect(() => {
+    if (onScriptChange) {
+      onScriptChange(script);
+    }
+  }, [script]);
 
   // transliteration
   useEffect(() => {
@@ -164,6 +234,8 @@ function WordGame({
       }}
     >
       {children}
+      {/* Archived Games Section - Appears after game completion */}
+      {completed && <ArchivedGamesPrompt />}
       <div
         className={cn('flex items-center justify-center pt-2.5 sm:pt-4 lg:pt-5', 'mb-2.5 sm:mb-4')}
       >
@@ -178,14 +250,30 @@ function WordGame({
           <div className="inline-flex items-center gap-2 rounded-xl bg-gradient-to-r from-yellow-600 to-orange-400 px-5 py-1 text-white shadow-lg">
             <span className="text-sm font-semibold tracking-wide uppercase">Hint</span>
           </div>
-          <h1
+          <div
             className={cn(
-              'bg-gradient-to-r from-slate-800 to-slate-600 bg-clip-text py-1 text-2xl font-bold text-transparent sm:text-3xl md:text-4xl dark:from-slate-100 dark:to-slate-300',
+              'bg-gradient-to-r from-slate-800 to-slate-600 bg-clip-text py-1 text-2xl font-bold sm:text-3xl md:text-4xl dark:from-slate-100 dark:to-slate-300',
               font_info.className
             )}
           >
             {title}
-          </h1>
+            {description && (
+              <Popover>
+                <PopoverTrigger asChild>
+                  <button className="ml-3 outline-none hover:brightness-75">
+                    <InfoIcon className="size-3 sm:size-4" />
+                  </button>
+                </PopoverTrigger>
+                <PopoverContent
+                  side="top"
+                  align="end"
+                  className="z-80 overflow-hidden rounded-xl border-slate-200 bg-gradient-to-r from-amber-50 to-orange-50 px-3 py-2 shadow-xl outline-none dark:border-slate-700 dark:from-teal-950/80 dark:to-green-950/80"
+                >
+                  <div className="text-sm text-stone-600 dark:text-stone-200">{description}</div>
+                </PopoverContent>
+              </Popover>
+            )}
+          </div>
         </div>
 
         {/* Main Game Container */}
@@ -199,7 +287,8 @@ function WordGame({
           <div
             className={cn(
               'order-1 flex items-center justify-center lg:order-1 lg:col-span-3',
-              !started && 'lg:mt-12 lg:items-start'
+              !started && 'lg:mt-12 lg:items-start',
+              started && 'flex-col'
             )}
           >
             <div
@@ -214,6 +303,11 @@ function WordGame({
               <GameContoller timerRef={timerRef} />
               {(started || completed) && <GameInfo />}
             </div>
+
+            {/* Stop Button for <lg screens */}
+            <div className="pt-3 sm:pt-5">
+              <CompactStopButton timerRef={timerRef} />
+            </div>
           </div>
 
           {/* Game Grid - Center */}
@@ -223,6 +317,7 @@ function WordGame({
                 original_grid_data={org_grid_data}
                 puzzle_id={puzzle_id}
                 timerRef={timerRef}
+                puzzle_uuid={uuid}
               />
             </div>
           </div>
@@ -240,3 +335,62 @@ function WordGame({
     </div>
   );
 }
+
+export const ArchivedGamesPrompt = () => {
+  return (
+    <motion.div
+      initial={{ opacity: 0, y: 20 }}
+      animate={{ opacity: 1, y: 0 }}
+      transition={{ duration: 0.5, ease: 'easeOut' }}
+      className="mb-3 flex justify-center px-4 sm:mb-4"
+    >
+      <div className="w-full max-w-lg">
+        <motion.div
+          initial={{ scale: 0.95 }}
+          animate={{ scale: 1 }}
+          transition={{ duration: 0.3, delay: 0.2 }}
+          className="rounded-xl border border-slate-200 bg-white p-3 shadow-lg sm:rounded-2xl sm:p-4 sm:shadow-xl md:p-6 dark:border-slate-700 dark:bg-slate-800"
+        >
+          <motion.div
+            initial={{ opacity: 0 }}
+            animate={{ opacity: 1 }}
+            transition={{ duration: 0.4, delay: 0.4 }}
+            className="mb-3 text-center sm:mb-4"
+          >
+            <p className="text-xs text-slate-600 sm:text-sm dark:text-slate-400">
+              Want to play more puzzles while you wait for the next one?
+            </p>
+          </motion.div>
+
+          <motion.div
+            initial={{ opacity: 0, y: 10 }}
+            animate={{ opacity: 1, y: 0 }}
+            transition={{ duration: 0.4, delay: 0.6 }}
+          >
+            <Link
+              href="/padavali/archived"
+              className="group flex items-center gap-2 rounded-lg border border-amber-200/50 bg-gradient-to-r from-amber-50 to-orange-50 p-3 text-amber-800 shadow-sm transition-all duration-200 hover:scale-[1.02] hover:from-amber-100 hover:to-orange-100 hover:shadow-md sm:gap-3 sm:rounded-xl sm:p-4 dark:border-amber-800/30 dark:from-amber-950/50 dark:to-orange-950/50 dark:text-amber-200 dark:hover:from-amber-900/60 dark:hover:to-orange-900/60"
+            >
+              <motion.div
+                whileHover={{ rotate: 5 }}
+                transition={{ duration: 0.2 }}
+                className="rounded-md bg-gradient-to-r from-amber-500 to-orange-500 p-1.5 shadow-sm sm:rounded-lg sm:p-2"
+              >
+                <ArchiveIcon className="h-3 w-3 text-white sm:h-4 sm:w-4 md:h-5 md:w-5" />
+              </motion.div>
+              <div className="flex-1 text-left">
+                <div className="text-sm font-semibold text-amber-900 sm:text-base dark:text-amber-100">
+                  Play Archived Puzzles
+                </div>
+                <div className="text-xs text-amber-700 sm:text-sm dark:text-amber-300">
+                  Explore our collection of past puzzles
+                </div>
+              </div>
+              <ArrowRightIcon className="h-3 w-3 text-amber-600 transition-transform group-hover:translate-x-1 sm:h-4 sm:w-4 dark:text-amber-400" />
+            </Link>
+          </motion.div>
+        </motion.div>
+      </div>
+    </motion.div>
+  );
+};

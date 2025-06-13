@@ -33,7 +33,7 @@ export async function generateMetadata({ params }: Props): Promise<Metadata> {
 const MainEdit = async ({ params }: Props) => {
   const session = await get_seesion_from_cookie((await headers()).get('cookie') ?? '');
   if (!session) redirect('/padavali');
-  if (session.user.role !== 'admin' || !session.user.is_approved) redirect('/');
+  if (session.user.role !== 'admin' || !session.user.is_approved) redirect('/padavali');
 
   const id = z.coerce
     .number()

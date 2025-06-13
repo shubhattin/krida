@@ -186,3 +186,7 @@ export function deepCopy<T>(value: T): T {
   // Fallback: other object types (class instances, functions, etc.)
   return value;
 }
+
+export const get_rand_num = (a: number, b: number) => {
+  return Math.trunc(Math.random() * (b - a + 1)) + a;
+};

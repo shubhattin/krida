@@ -1,8 +1,12 @@
 import { dbClient_ext as db, queryClient } from './client';
 import { readFile } from 'fs/promises';
 import { dbMode, take_input } from '~/tools/kry.server';
-import { puzzle_gameplay_stats, word_puzzles } from '~/db/schema';
-import { WordPuzzleSchemaZod, PuzzleGamePlayStatsSchemaZod } from '~/db/schema_zod';
+import { puzzle_game_schedules, puzzle_gameplay_stats, word_puzzles } from '~/db/schema';
+import {
+  WordPuzzleSchemaZod,
+  PuzzleGamePlayStatsSchemaZod,
+  PuzzleGameScheduleSchemaZod
+} from '~/db/schema_zod';
 import { z } from 'zod';
 import { sql } from 'drizzle-orm';
 import chalk from 'chalk';
@@ -26,7 +30,8 @@ const main = async () => {
   const data = z
     .object({
       word_puzzles: WordPuzzleSchemaZod.array(),
-      puzzle_gameplay_stats: PuzzleGamePlayStatsSchemaZod.array()
+      puzzle_gameplay_stats: PuzzleGamePlayStatsSchemaZod.array(),
+      puzzle_game_schedules: PuzzleGameScheduleSchemaZod.array()
     })
     .parse(JSON.parse((await readFile(`./out/${in_file_name}`)).toString()));
 
@@ -34,6 +39,7 @@ const main = async () => {
   try {
     await db.delete(word_puzzles);
     await db.delete(puzzle_gameplay_stats);
+    await db.delete(puzzle_game_schedules);
     console.log(chalk.green('✓ Deleted All Tables Successfully'));
   } catch (e) {
     console.log(chalk.red('✗ Error while deleting tables:'), chalk.yellow(e));
@@ -61,6 +67,17 @@ const main = async () => {
     console.log(chalk.red('✗ Error while inserting puzzle_gameplay_stats:'), chalk.yellow(e));
   }
 
+  // inserting puzzle_game_schedules
+  try {
+    await db.insert(puzzle_game_schedules).values(data.puzzle_game_schedules);
+    console.log(
+      chalk.green('✓ Successfully added values into table'),
+      chalk.blue('`puzzle_game_schedules`')
+    );
+  } catch (e) {
+    console.log(chalk.red('✗ Error while inserting puzzle_game_schedules:'), chalk.yellow(e));
+  }
+
   // resetting SERIAL
   try {
     await db.execute(
@@ -68,6 +85,9 @@ const main = async () => {
     );
     await db.execute(
       sql`SELECT setval('"puzzle_gameplay_stats_id_seq"', (select MAX(id) from "puzzle_gameplay_stats"))`
+    );
+    await db.execute(
+      sql`SELECT setval('"puzzle_game_schedules_id_seq"', (select MAX(id) from "puzzle_game_schedules"))`
     );
     console.log(chalk.green('✓ Successfully resetted ALL SERIAL'));
   } catch (e) {

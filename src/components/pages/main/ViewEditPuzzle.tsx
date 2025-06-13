@@ -7,6 +7,7 @@ import { Card, CardContent } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Label } from '@/components/ui/label';
 import { Input } from '@/components/ui/input';
+import { Switch } from '@/components/ui/switch';
 import {
   AlertDialog,
   AlertDialogTrigger,
@@ -45,7 +46,9 @@ const puzzle_schema = z.object({
   updated_at: z.date().nullable(),
   word_list: z.string().min(2).array(),
   grid_data: z.string().min(1).array().array(),
-  grid_dimensions: z.tuple([z.number().int(), z.number().int()])
+  grid_dimensions: z.tuple([z.number().int(), z.number().int()]),
+  archived: z.boolean(),
+  description: z.string().nullable()
 });
 export type Puzzle = z.infer<typeof puzzle_schema>;
 
@@ -54,6 +57,9 @@ const BASE_SCRIPT = 'Sanskrit';
 const title_atom = atom<string>('');
 const word_list_atom = atom<string[]>([]);
 const grid_data_atom = atom<string[][]>([]);
+const archived_atom = atom<boolean>(false);
+const description_atom = atom<string | null>(null);
+const lipi_lekhika_active_atom = atom<boolean>(true);
 
 const ViewEditPuzzle = ({ word_puzzle }: { word_puzzle: z.infer<typeof puzzle_schema> }) => {
   useEffect(() => {
@@ -67,13 +73,19 @@ const ViewEditPuzzle = ({ word_puzzle }: { word_puzzle: z.infer<typeof puzzle_sc
       atomValues={[
         [title_atom, word_puzzle.title],
         [word_list_atom, [...word_puzzle.word_list]],
-        [grid_data_atom, word_puzzle.grid_data.map((row) => [...row])]
+        [grid_data_atom, word_puzzle.grid_data.map((row) => [...row])],
+        [archived_atom, word_puzzle.archived],
+        [description_atom, word_puzzle.description],
+        [lipi_lekhika_active_atom, true]
       ]}
     >
       <Card className="space-y-1.5">
         <CardContent>
           <div className="space-y-4">
+            <LipiLekhikaSwitch />
             <Title />
+            <ArchivedSwitch />
+            <Description />
             <WordList />
             <TraversalAndGridData grid_dimensions={word_puzzle.grid_dimensions} />
             <SaveButton word_puzzle={word_puzzle} />
@@ -86,6 +98,7 @@ const ViewEditPuzzle = ({ word_puzzle }: { word_puzzle: z.infer<typeof puzzle_sc
 
 const Title = () => {
   const [title, setTitle] = useAtom(title_atom);
+  const [lipi_lekhika_active] = useAtom(lipi_lekhika_active_atom);
 
   return (
     <div>
@@ -97,19 +110,38 @@ const Title = () => {
           value={title}
           onInput={(e) => {
             setTitle(e.currentTarget.value);
-            lekhika_typing_tool(
-              e.nativeEvent.target,
-              // @ts-ignore
-              e.nativeEvent.data,
-              BASE_SCRIPT,
-              true,
-              // @ts-ignore
-              (val) => {
-                setTitle(val);
-              }
-            );
+            if (lipi_lekhika_active) {
+              lekhika_typing_tool(
+                e.nativeEvent.target,
+                // @ts-ignore
+                e.nativeEvent.data,
+                BASE_SCRIPT,
+                true,
+                // @ts-ignore
+                (val) => {
+                  setTitle(val);
+                }
+              );
+            }
           }}
         />
+      </Label>
+    </div>
+  );
+};
+
+const LipiLekhikaSwitch = () => {
+  const [lipi_lekhika_active, setLipiLekhikaActive] = useAtom(lipi_lekhika_active_atom);
+
+  return (
+    <div className="flex justify-center">
+      <Label className="inline-flex items-center justify-center gap-2 font-medium">
+        <Switch
+          checked={lipi_lekhika_active}
+          onCheckedChange={setLipiLekhikaActive}
+          className="-mt-1"
+        />
+        <span className="text-lg font-bold">देवनागरीलेखनम्</span>
       </Label>
     </div>
   );
@@ -239,20 +271,20 @@ const TraversalAnalysis = ({
                   >
                     {warning.type === 'none' ? (
                       <>
-                        "<span className="font-semibold">{warning.word}</span>" इति शब्दः
-                        स्थानपट्टिकायाम् न प्राप्यते ।
+                        "<span className="font-semibold">{warning.word}</span>" इति शब्दं
+                        स्थानपट्टिकायां न प्राप्यते ।
                       </>
                     ) : (
                       <div className="flex items-center justify-center gap-2">
                         <span>
-                          "<span className="font-semibold">{warning.word}</span>" इत्यस्य एकाधिको (
+                          "<span className="font-semibold">{warning.word}</span>" इत्यस्य एकाधिकाः (
                           {warning.traversalCount}) मार्गाः सन्ति ।
                         </span>
                         <Popover>
                           <PopoverTrigger asChild>
                             <Info className="-mt-1 size-4.5 text-amber-600 dark:text-amber-400" />
                           </PopoverTrigger>
-                          <PopoverContent className="max-w-xs">
+                          <PopoverContent className="max-w-xs" align="center">
                             {warning.paths?.map((path, pIdx) => (
                               <div key={pIdx} className="flex items-center space-x-1 text-xs">
                                 <span className="font-semibold">Path {pIdx + 1}:</span>
@@ -318,22 +350,25 @@ const TraversalAnalysis = ({
 
 const WordList = () => {
   const [wordList, setWordList] = useAtom(word_list_atom);
+  const [lipi_lekhika_active] = useAtom(lipi_lekhika_active_atom);
 
   const addWord = () => setWordList((prev) => [...prev, '']);
   const removeWord = (index: number) => setWordList((prev) => prev.filter((_, i) => i !== index));
   const updateWord = (index: number, value: string, e: any) => {
     setWordList((prev) => prev.map((w, i) => (i === index ? value : w)));
-    lekhika_typing_tool(
-      e.nativeEvent.target,
-      // @ts-ignore
-      e.nativeEvent.data,
-      BASE_SCRIPT,
-      true,
-      // @ts-ignore
-      (val) => {
-        setWordList((prev) => prev.map((w, i) => (i === index ? val : w)));
-      }
-    );
+    if (lipi_lekhika_active) {
+      lekhika_typing_tool(
+        e.nativeEvent.target,
+        // @ts-ignore
+        e.nativeEvent.data,
+        BASE_SCRIPT,
+        true,
+        // @ts-ignore
+        (val) => {
+          setWordList((prev) => prev.map((w, i) => (i === index ? val : w)));
+        }
+      );
+    }
   };
 
   return (
@@ -397,6 +432,7 @@ const GridData = ({
   const [gridData, setGridData] = useAtom(grid_data_atom);
   const [wordList] = useAtom(word_list_atom);
   const cols = grid_dimensions[1];
+  const [lipi_lekhika_active] = useAtom(lipi_lekhika_active_atom);
 
   const occupiedCellsStrList = (() => {
     if (gridData.length === 0 || wordList.length === 0) {
@@ -418,21 +454,23 @@ const GridData = ({
       newGrid[r][c] = value;
       return newGrid;
     });
-    lekhika_typing_tool(
-      e.nativeEvent.target,
-      // @ts-ignore
-      e.nativeEvent.data,
-      BASE_SCRIPT,
-      true,
-      // @ts-ignore
-      (val) => {
-        setGridData((prev) => {
-          const newGrid = prev.map((row) => [...row]);
-          newGrid[r][c] = val;
-          return newGrid;
-        });
-      }
-    );
+    if (lipi_lekhika_active) {
+      lekhika_typing_tool(
+        e.nativeEvent.target,
+        // @ts-ignore
+        e.nativeEvent.data,
+        BASE_SCRIPT,
+        true,
+        // @ts-ignore
+        (val) => {
+          setGridData((prev) => {
+            const newGrid = prev.map((row) => [...row]);
+            newGrid[r][c] = val;
+            return newGrid;
+          });
+        }
+      );
+    }
   };
 
   const getCellClassName = (r: number, c: number) => {
@@ -468,6 +506,55 @@ const GridData = ({
   );
 };
 
+const ArchivedSwitch = () => {
+  const [archived, setArchived] = useAtom(archived_atom);
+
+  return (
+    <div>
+      <Label className="inline-flex items-center gap-2 font-medium">
+        <Switch checked={archived} onCheckedChange={setArchived} />
+        <span className="text-lg font-bold">संग्रहीतम्</span>
+      </Label>
+    </div>
+  );
+};
+
+const Description = () => {
+  const [description, setDescription] = useAtom(description_atom);
+  const [lipi_lekhika_active] = useAtom(lipi_lekhika_active_atom);
+  return (
+    <div>
+      <Label className="block font-medium">
+        <span className="text-lg font-bold">
+          वर्णनम्
+          <span className="ml-3 text-xs text-gray-500 dark:text-gray-400">ऐच्छिक</span>
+        </span>
+        <Input
+          className="mt-1 w-full sm:w-[90%] md:w-2/3 lg:w-1/2"
+          value={description || ''}
+          onChange={(e) => {
+            setDescription(e.target.value);
+            // if (lipi_lekhika_active) {
+            //   lekhika_typing_tool(
+            //     e.nativeEvent.target,
+            //     // @ts-ignore
+            //     e.nativeEvent.data,
+            //     BASE_SCRIPT,
+            //     true,
+            //     // @ts-ignore
+            //     (val) => {
+            //       setDescription(val);
+            //     }
+            //   );
+            // }
+          }}
+          placeholder="प्रहेलिकायाः वर्णनं लिखतु..."
+        />
+      </Label>
+    </div>
+  );
+};
+
 const SaveButton = ({ word_puzzle }: { word_puzzle: z.infer<typeof puzzle_schema> }) => {
   const [title] = useAtom(title_atom);
   const [wordList] = useAtom(word_list_atom);
@@ -475,8 +562,12 @@ const SaveButton = ({ word_puzzle }: { word_puzzle: z.infer<typeof puzzle_schema
   const initialRef = useRef({
     title: word_puzzle.title,
     wordList: word_puzzle.word_list,
-    gridData: word_puzzle.grid_data
+    gridData: word_puzzle.grid_data,
+    archived: word_puzzle.archived,
+    description: word_puzzle.description
   });
+  const [archived] = useAtom(archived_atom);
+  const [description] = useAtom(description_atom);
 
   const router = useRouter();
 
@@ -486,7 +577,9 @@ const SaveButton = ({ word_puzzle }: { word_puzzle: z.infer<typeof puzzle_schema
       initialRef.current = {
         title,
         wordList,
-        gridData
+        gridData,
+        archived,
+        description
       };
     },
     onError() {
@@ -518,9 +611,11 @@ const SaveButton = ({ word_puzzle }: { word_puzzle: z.infer<typeof puzzle_schema
     return (
       title !== initialRef.current.title ||
       JSON.stringify(wordList) !== JSON.stringify(initialRef.current.wordList) ||
-      JSON.stringify(gridData) !== JSON.stringify(initialRef.current.gridData)
+      JSON.stringify(gridData) !== JSON.stringify(initialRef.current.gridData) ||
+      archived !== initialRef.current.archived ||
+      description !== initialRef.current.description
     );
-  }, [title, wordList, gridData]);
+  }, [title, wordList, gridData, archived, description]);
 
   const is_addition = word_puzzle.id === null || word_puzzle.id === undefined;
 
@@ -534,14 +629,18 @@ const SaveButton = ({ word_puzzle }: { word_puzzle: z.infer<typeof puzzle_schema
         updated_at: new Date(),
         word_list: wordList,
         grid_data: gridData,
-        grid_dimensions: word_puzzle.grid_dimensions
+        grid_dimensions: word_puzzle.grid_dimensions,
+        archived,
+        description: description !== '' ? description : null
       });
     } else {
       await add_word_puzzle_mut.mutateAsync({
         title,
         word_list: wordList,
         grid_data: gridData,
-        grid_dimensions: word_puzzle.grid_dimensions
+        grid_dimensions: word_puzzle.grid_dimensions,
+        archived,
+        description: description !== '' ? description : null
       });
     }
   };

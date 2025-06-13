@@ -2,7 +2,7 @@ import Turnstile from 'react-turnstile';
 import { useEffect, useState, type Dispatch, type SetStateAction } from 'react';
 
 type Props = {
-  setToken: Dispatch<SetStateAction<string>>;
+  setToken: Dispatch<SetStateAction<string | null>>;
 };
 
 export default function TurnstileWidget({ setToken }: Props) {

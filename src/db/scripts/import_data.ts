@@ -9,10 +9,12 @@ const main = async () => {
 
   const word_puzzles = await db.query.word_puzzles.findMany();
   const puzzle_gameplay_stats = await db.query.puzzle_gameplay_stats.findMany();
+  const puzzle_game_schedules = await db.query.puzzle_game_schedules.findMany();
 
   const json_data = {
     word_puzzles,
-    puzzle_gameplay_stats
+    puzzle_gameplay_stats,
+    puzzle_game_schedules
   };
 
   await make_dir('./out');

@@ -10,8 +10,8 @@ import { Provider as JotaiProvider } from 'jotai';
 
 const Add = async () => {
   const session = await get_seesion_from_cookie((await headers()).get('cookie') ?? '');
-  if (!session) redirect('/');
-  if (session.user.role !== 'admin' || !session.user.is_approved) redirect('/');
+  if (!session) redirect('/padavali');
+  if (session.user.role !== 'admin' || !session.user.is_approved) redirect('/padavali');
 
   const DIMS = [6, 6];
 
@@ -23,7 +23,9 @@ const Add = async () => {
     title: '',
     word_list: ['', ''],
     grid_data: Array.from({ length: DIMS[0] }, () => Array.from({ length: DIMS[1] }, () => '')),
-    grid_dimensions: [DIMS[0], DIMS[1]]
+    grid_dimensions: [DIMS[0], DIMS[1]],
+    archived: false,
+    description: null
   };
   return (
     <>
