@@ -63,7 +63,7 @@ const AddSchedule = ({ puzzle_list }: { puzzle_list: { id: number; title: string
         <div className="flex gap-4">
           <ISTDateTimePicker
             date={startDate}
-            setDate={setStartDate}
+            onChangeDate={setStartDate}
             label="Start Date"
             start_end_time={startEndTime}
             type="start"
@@ -71,7 +71,7 @@ const AddSchedule = ({ puzzle_list }: { puzzle_list: { id: number; title: string
           <ISTDateTimePicker
             date={endDate}
             disabled={!startDate}
-            setDate={setEndDate}
+            onChangeDate={setEndDate}
             label="End Date"
             start_end_time={startEndTime}
             type="end"
@@ -129,7 +129,7 @@ export default AddSchedule;
 
 interface DatePickerProps {
   date: Date | undefined;
-  setDate: (date: Date | undefined) => void;
+  onChangeDate: (date: Date | undefined) => void;
   label: string;
   id?: string;
   start_end_time: string;
@@ -140,7 +140,7 @@ interface DatePickerProps {
 
 const ISTDateTimePicker: React.FC<DatePickerProps> = ({
   date,
-  setDate,
+  onChangeDate,
   label,
   start_end_time,
   type,
@@ -166,8 +166,8 @@ const ISTDateTimePicker: React.FC<DatePickerProps> = ({
     const istDateString = `${dateStr}T${timeStr}+05:30`;
 
     const dateInIST = new Date(istDateString);
-    setDate(dateInIST);
-  }, [internalDate, start_end_time, setDate]);
+    onChangeDate(dateInIST);
+  }, [internalDate, start_end_time]);
 
   return (
     <div className="flex flex-col gap-3">

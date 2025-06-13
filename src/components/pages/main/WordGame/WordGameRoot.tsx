@@ -14,6 +14,9 @@ import { ScriptSelector } from '~/components/pages/main/ScriptSelector';
 import { cn } from '~/lib/utils';
 import Icon from '~/tools/Icon';
 import { LanguageIcon } from '~/components/icons';
+import { ArchiveIcon, ArrowRightIcon } from 'lucide-react';
+import Link from 'next/link';
+import { motion } from 'framer-motion';
 import {
   completed_atom,
   grid_data_current_atom,
@@ -30,7 +33,7 @@ import {
 } from './game_state';
 import { AtomsHydrator } from '~/components/AtomsHydrator';
 
-interface WordGameProps {
+export type WordGameProps = {
   grid_data: string[][];
   dims: number[];
   word_list: string[];
@@ -42,7 +45,8 @@ interface WordGameProps {
     title: string;
     grid_data: string[][];
   };
-}
+  location: 'view_page' | 'main_page' | 'archive_page';
+};
 
 export default function WordGameRoot(
   props: WordGameProps & {
@@ -164,6 +168,8 @@ function WordGame({
       }}
     >
       {children}
+      {/* Archived Games Section - Appears after game completion */}
+      {completed && <ArchivedGamesPrompt />}
       <div
         className={cn('flex items-center justify-center pt-2.5 sm:pt-4 lg:pt-5', 'mb-2.5 sm:mb-4')}
       >
@@ -240,3 +246,62 @@ function WordGame({
     </div>
   );
 }
+
+export const ArchivedGamesPrompt = () => {
+  return (
+    <motion.div
+      initial={{ opacity: 0, y: 20 }}
+      animate={{ opacity: 1, y: 0 }}
+      transition={{ duration: 0.5, ease: 'easeOut' }}
+      className="mb-3 flex justify-center px-4 sm:mb-4"
+    >
+      <div className="w-full max-w-lg">
+        <motion.div
+          initial={{ scale: 0.95 }}
+          animate={{ scale: 1 }}
+          transition={{ duration: 0.3, delay: 0.2 }}
+          className="rounded-xl border border-slate-200 bg-white p-3 shadow-lg sm:rounded-2xl sm:p-4 sm:shadow-xl md:p-6 dark:border-slate-700 dark:bg-slate-800"
+        >
+          <motion.div
+            initial={{ opacity: 0 }}
+            animate={{ opacity: 1 }}
+            transition={{ duration: 0.4, delay: 0.4 }}
+            className="mb-3 text-center sm:mb-4"
+          >
+            <p className="text-xs text-slate-600 sm:text-sm dark:text-slate-400">
+              Want to play more puzzles while you wait for the next one?
+            </p>
+          </motion.div>
+
+          <motion.div
+            initial={{ opacity: 0, y: 10 }}
+            animate={{ opacity: 1, y: 0 }}
+            transition={{ duration: 0.4, delay: 0.6 }}
+          >
+            <Link
+              href="/padavali/archived"
+              className="group flex items-center gap-2 rounded-lg border border-amber-200/50 bg-gradient-to-r from-amber-50 to-orange-50 p-3 text-amber-800 shadow-sm transition-all duration-200 hover:scale-[1.02] hover:from-amber-100 hover:to-orange-100 hover:shadow-md sm:gap-3 sm:rounded-xl sm:p-4 dark:border-amber-800/30 dark:from-amber-950/50 dark:to-orange-950/50 dark:text-amber-200 dark:hover:from-amber-900/60 dark:hover:to-orange-900/60"
+            >
+              <motion.div
+                whileHover={{ rotate: 5 }}
+                transition={{ duration: 0.2 }}
+                className="rounded-md bg-gradient-to-r from-amber-500 to-orange-500 p-1.5 shadow-sm sm:rounded-lg sm:p-2"
+              >
+                <ArchiveIcon className="h-3 w-3 text-white sm:h-4 sm:w-4 md:h-5 md:w-5" />
+              </motion.div>
+              <div className="flex-1 text-left">
+                <div className="text-sm font-semibold text-amber-900 sm:text-base dark:text-amber-100">
+                  Play Archived Puzzles
+                </div>
+                <div className="text-xs text-amber-700 sm:text-sm dark:text-amber-300">
+                  Explore our collection of past puzzles
+                </div>
+              </div>
+              <ArrowRightIcon className="h-3 w-3 text-amber-600 transition-transform group-hover:translate-x-1 sm:h-4 sm:w-4 dark:text-amber-400" />
+            </Link>
+          </motion.div>
+        </motion.div>
+      </div>
+    </motion.div>
+  );
+};
