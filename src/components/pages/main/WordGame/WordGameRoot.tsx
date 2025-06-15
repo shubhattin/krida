@@ -32,7 +32,7 @@ import {
 } from './game_state';
 import { Popover, PopoverContent, PopoverTrigger } from '@radix-ui/react-popover';
 import { FaRegStopCircle } from 'react-icons/fa';
-import { ScriptContext } from '~/components/ScriptContext';
+import { AppContext } from '~/components/AppDataContext';
 
 export type WordGameProps = {
   grid_data: string[][];
@@ -89,7 +89,7 @@ const CompactStopButton = ({
   timerRef: React.RefObject<NodeJS.Timeout | null>;
   className?: string;
 }) => {
-  const { script } = useContext(ScriptContext);
+  const { script } = useContext(AppContext);
   const [started] = useAtom(started_atom);
   const [completed] = useAtom(completed_atom);
   const [, setStarted] = useAtom(started_atom);
@@ -141,7 +141,7 @@ function WordGame({
   uuid,
   onChangeCompleted
 }: WordGameProps & { id: number }) {
-  const { script, setScript } = useContext(ScriptContext);
+  const { script, setScript } = useContext(AppContext);
   const [, setGridData] = useAtom(grid_data_current_atom);
   const [title, setTitle] = useAtom(title_current_atom);
   const [, setWordMsgs] = useAtom(word_msgs_atom);

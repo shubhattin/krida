@@ -13,7 +13,7 @@ import {
   found_words_atom,
   word_msgs_atom
 } from './game_state';
-import { ScriptContext } from '~/components/ScriptContext';
+import { AppContext } from '~/components/AppDataContext';
 
 // Format seconds to mm:ss
 export const formatTime = (totalSeconds: number) => {
@@ -27,7 +27,7 @@ type Props = {
 };
 
 export const GameContoller = ({ timerRef }: Props) => {
-  const { script } = useContext(ScriptContext);
+  const { script } = useContext(AppContext);
   const [started, setStarted] = useAtom(started_atom);
   const [completed, setCompleted] = useAtom(completed_atom);
   const [seconds, setSeconds] = useAtom(seconds_atom);

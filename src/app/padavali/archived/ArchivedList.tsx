@@ -15,7 +15,7 @@ import Link from 'next/link';
 import { ScriptSelector } from '~/components/pages/main/ScriptSelector';
 import Icon from '~/tools/Icon';
 import { LanguageIcon } from '~/components/icons';
-import { ScriptContext } from '~/components/ScriptContext';
+import { AppContext } from '~/components/AppDataContext';
 
 type Props = {
   archived_puzzles: { id: number; uuid: string; title: string }[];
@@ -29,7 +29,7 @@ export const ArchivedList = ({
   archived_puzzles_init_transliterlated
 }: Props) => {
   const [selectedPuzzle, setSelectedPuzzle] = useState<{ id: number; uuid: string } | null>(null);
-  const { script } = useContext(ScriptContext);
+  const { script } = useContext(AppContext);
 
   const archived_puuzle_list_q = useQuery({
     queryKey: ['archived_puuzle_list', script],
@@ -134,7 +134,7 @@ const PuzzleListView = ({
     return <EmptyPuzzleList />;
   }
 
-  const { script, setScript } = useContext(ScriptContext);
+  const { script, setScript } = useContext(AppContext);
 
   return (
     <div className="min-h-screen w-full bg-gradient-to-br from-slate-50 via-blue-50 to-indigo-50 dark:from-slate-900 dark:via-slate-800 dark:to-slate-900">

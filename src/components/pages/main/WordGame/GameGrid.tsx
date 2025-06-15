@@ -19,7 +19,7 @@ import {
   correct_attempts_atom,
   original_word_list_atom
 } from './game_state';
-import { ScriptContext } from '~/components/ScriptContext';
+import { AppContext } from '~/components/AppDataContext';
 
 type Props = {
   puzzle_id: number;
@@ -29,7 +29,7 @@ type Props = {
 };
 
 export const GameGrid = ({ puzzle_id, timerRef, original_grid_data, puzzle_uuid }: Props) => {
-  const { script } = useContext(ScriptContext);
+  const { script } = useContext(AppContext);
   const [started] = useAtom(started_atom);
   const [completed, setCompleted] = useAtom(completed_atom);
   const [seconds] = useAtom(seconds_atom);

@@ -17,11 +17,11 @@ import {
   word_msgs_atom,
   original_word_list_atom
 } from './game_state';
-import { ScriptContext } from '~/components/ScriptContext';
+import { AppContext } from '~/components/AppDataContext';
 import { useContext } from 'react';
 
 export const GameInfo = () => {
-  const { script } = useContext(ScriptContext);
+  const { script } = useContext(AppContext);
   const [started] = useAtom(started_atom);
   const [completed] = useAtom(completed_atom);
   const [seconds] = useAtom(seconds_atom);
