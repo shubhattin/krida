@@ -7,12 +7,17 @@ import { Toaster } from '@/components/ui/sonner';
 import { Metadata } from 'next';
 import PosthogInit from '~/components/PosthogInit';
 import TRPCProvider from '~/api/TRPCProvider';
+import { get_lang_from_cookie, SCRIPT_DATA_COOKIE_KEY } from '~/state/script_font_data';
+import { cookies } from 'next/headers';
+import { ScriptProvider } from '~/components/ScriptContext';
 
 export default async function RootLayout({
   children
 }: Readonly<{
   children: React.ReactNode;
 }>) {
+  const script = get_lang_from_cookie((await cookies()).get(SCRIPT_DATA_COOKIE_KEY)?.value);
+
   return (
     <html lang="en" suppressHydrationWarning className="dark" style={{ colorScheme: 'dark' }}>
       <body
@@ -31,7 +36,7 @@ export default async function RootLayout({
         >
           <div className="container mx-auto mb-1">
             <TRPCProvider>
-              {children}
+              <ScriptProvider initialScript={script}>{children}</ScriptProvider>
               <Toaster richColors={true} />
             </TRPCProvider>
           </div>

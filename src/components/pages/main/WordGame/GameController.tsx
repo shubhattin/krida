@@ -1,12 +1,11 @@
 import { MdReplay } from 'react-icons/md';
 import { cn } from '~/lib/utils';
-import { type RefObject, useEffect } from 'react';
+import { type RefObject, useContext, useEffect } from 'react';
 import { GoStopwatch } from 'react-icons/go';
 import { motion } from 'framer-motion';
 import { FONT_INFO } from '~/state/script_font_data';
 import { IoExtensionPuzzleSharp } from 'react-icons/io5';
 import { useAtom } from 'jotai';
-import { script_atom } from '~/state/main.state';
 import {
   started_atom,
   completed_atom,
@@ -14,6 +13,7 @@ import {
   found_words_atom,
   word_msgs_atom
 } from './game_state';
+import { ScriptContext } from '~/components/ScriptContext';
 
 // Format seconds to mm:ss
 export const formatTime = (totalSeconds: number) => {
@@ -27,7 +27,7 @@ type Props = {
 };
 
 export const GameContoller = ({ timerRef }: Props) => {
-  const [script] = useAtom(script_atom);
+  const { script } = useContext(ScriptContext);
   const [started, setStarted] = useAtom(started_atom);
   const [completed, setCompleted] = useAtom(completed_atom);
   const [seconds, setSeconds] = useAtom(seconds_atom);

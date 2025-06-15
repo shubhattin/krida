@@ -12,7 +12,6 @@ import { ClockIcon, CalendarIcon, ArchiveIcon, ArrowRightIcon } from 'lucide-rea
 import { IoExtensionPuzzleSharp } from 'react-icons/io5';
 import Link from 'next/link';
 import MainPagePadavali from './MainPagePadavali';
-
 export const dynamic = 'force-dynamic';
 
 export default async function Home() {

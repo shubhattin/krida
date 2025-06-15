@@ -1,7 +1,7 @@
 'use client';
 
 import { useQuery } from '@tanstack/react-query';
-import { useRef, useState } from 'react';
+import { useContext, useState } from 'react';
 import { client_q } from '~/api/client';
 import { get_transliterated_word_game_msgs } from '~/components/pages/main/WordGame/msgs';
 import { lipi_parivartak } from '~/tools/lipi_lekhika';
@@ -12,7 +12,10 @@ import { ArrowLeftIcon, ArchiveIcon, Sparkles } from 'lucide-react';
 import { IoExtensionPuzzleSharp } from 'react-icons/io5';
 import WordGameRoot from '~/components/pages/main/WordGame/WordGameRoot';
 import Link from 'next/link';
-import { Provider } from 'jotai';
+import { ScriptSelector } from '~/components/pages/main/ScriptSelector';
+import Icon from '~/tools/Icon';
+import { LanguageIcon } from '~/components/icons';
+import { ScriptContext } from '~/components/ScriptContext';
 
 type Props = {
   archived_puzzles: { id: number; uuid: string; title: string }[];
@@ -22,7 +25,7 @@ type Props = {
 // Main component that handles the state and conditional rendering
 export const ArchivedList = ({ archived_puzzles, script: script_init }: Props) => {
   const [selectedPuzzle, setSelectedPuzzle] = useState<{ id: number; uuid: string } | null>(null);
-  const script_ref = useRef<ScriptType>(script_init);
+  const { script } = useContext(ScriptContext);
 
   const word_puzzle_q = client_q.padavali.get_puzzle_data.useQuery(
     {
@@ -35,9 +38,8 @@ export const ArchivedList = ({ archived_puzzles, script: script_init }: Props) =
   );
 
   const initial_script_data_q = useQuery({
-    queryKey: ['initial_script_data', selectedPuzzle?.id, script_ref],
+    queryKey: ['initial_script_data', selectedPuzzle?.id],
     queryFn: async () => {
-      const script = script_ref.current;
       const word_puzzle = word_puzzle_q.data!;
       const word_game_msgs = await get_transliterated_word_game_msgs(script);
       const title = await lipi_parivartak(word_puzzle.title, DEFAULT_DATA_SCRIPT, script);
@@ -75,23 +77,19 @@ export const ArchivedList = ({ archived_puzzles, script: script_init }: Props) =
             Back
           </Button>
         </div>
-        <Provider key={`${puzzle.id}-${puzzle.uuid}`}>
-          <WordGameRoot
-            location="archive_page"
-            script={script_ref.current}
-            id={puzzle.id}
-            uuid={puzzle.uuid}
-            title={puzzle.title}
-            description={puzzle.description}
-            grid_data={puzzle.grid_data}
-            dims={puzzle.grid_dimensions}
-            word_list={puzzle.word_list}
-            initial_script_data={initial_script_data_q.data}
-            onScriptChange={(v) => {
-              script_ref.current = v;
-            }}
-          />
-        </Provider>
+
+        <WordGameRoot
+          location="archive_page"
+          script={script}
+          id={puzzle.id}
+          uuid={puzzle.uuid}
+          title={puzzle.title}
+          description={puzzle.description}
+          grid_data={puzzle.grid_data}
+          dims={puzzle.grid_dimensions}
+          word_list={puzzle.word_list}
+          initial_script_data={initial_script_data_q.data}
+        />
       </div>
     );
   }
@@ -117,6 +115,8 @@ const PuzzleListView = ({
     return <EmptyPuzzleList />;
   }
 
+  const { script, setScript } = useContext(ScriptContext);
+
   return (
     <div className="min-h-screen w-full bg-gradient-to-br from-slate-50 via-blue-50 to-indigo-50 dark:from-slate-900 dark:via-slate-800 dark:to-slate-900">
       <div className="container mx-auto max-w-4xl px-4 py-8">
@@ -139,7 +139,7 @@ const PuzzleListView = ({
           initial={{ opacity: 0, y: -20 }}
           animate={{ opacity: 1, y: 0 }}
           transition={{ duration: 0.5 }}
-          className="mb-8 text-center"
+          className="mb-4 text-center sm:mb-6 lg:mb-8"
         >
           <div className="mb-4 flex justify-center">
             <div className="rounded-xl bg-gradient-to-r from-amber-500 to-orange-500 p-3 shadow-lg">
@@ -150,8 +150,11 @@ const PuzzleListView = ({
             Archived Puzzles
           </h1>
           <p className="text-slate-600 dark:text-slate-400">Play Previous Puzzles</p>
+          <div className="mt-2 flex items-start justify-center gap-2 sm:mt-3">
+            <Icon className="size-7" src={LanguageIcon} />
+            <ScriptSelector script={script} onScriptChange={setScript} />
+          </div>
         </motion.div>
-
         <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
           {puzzles.map((puzzle, index) => (
             <motion.div

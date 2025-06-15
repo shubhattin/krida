@@ -29,7 +29,6 @@ import { MdDeleteOutline } from 'react-icons/md';
 import { useRouter } from 'next/navigation';
 import { Info, ArrowRight } from 'lucide-react';
 import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover';
-import { AtomsHydrator } from '~/components/AtomsHydrator';
 import {
   findAllTraversals,
   getOccupiedCells,
@@ -37,6 +36,7 @@ import {
   type Coordinate
 } from '~/tools/puzzle/puzzle_tools';
 import { cn } from '~/lib/utils';
+import { useHydrateAtoms } from 'jotai/utils';
 
 const puzzle_schema = z.object({
   id: z.number().int().nullable(),
@@ -68,31 +68,29 @@ const ViewEditPuzzle = ({ word_puzzle }: { word_puzzle: z.infer<typeof puzzle_sc
     }
   }, []);
 
+  useHydrateAtoms([
+    [title_atom, word_puzzle.title],
+    [word_list_atom, [...word_puzzle.word_list]],
+    [grid_data_atom, word_puzzle.grid_data.map((row) => [...row])],
+    [archived_atom, word_puzzle.archived],
+    [description_atom, word_puzzle.description],
+    [lipi_lekhika_active_atom, true]
+  ]);
+
   return (
-    <AtomsHydrator
-      atomValues={[
-        [title_atom, word_puzzle.title],
-        [word_list_atom, [...word_puzzle.word_list]],
-        [grid_data_atom, word_puzzle.grid_data.map((row) => [...row])],
-        [archived_atom, word_puzzle.archived],
-        [description_atom, word_puzzle.description],
-        [lipi_lekhika_active_atom, true]
-      ]}
-    >
-      <Card className="space-y-1.5">
-        <CardContent>
-          <div className="space-y-4">
-            <LipiLekhikaSwitch />
-            <Title />
-            <ArchivedSwitch />
-            <Description />
-            <WordList />
-            <TraversalAndGridData grid_dimensions={word_puzzle.grid_dimensions} />
-            <SaveButton word_puzzle={word_puzzle} />
-          </div>
-        </CardContent>
-      </Card>
-    </AtomsHydrator>
+    <Card className="space-y-1.5">
+      <CardContent>
+        <div className="space-y-4">
+          <LipiLekhikaSwitch />
+          <Title />
+          <ArchivedSwitch />
+          <Description />
+          <WordList />
+          <TraversalAndGridData grid_dimensions={word_puzzle.grid_dimensions} />
+          <SaveButton word_puzzle={word_puzzle} />
+        </div>
+      </CardContent>
+    </Card>
   );
 };
 

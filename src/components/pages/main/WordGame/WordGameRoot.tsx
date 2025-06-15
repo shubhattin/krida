@@ -1,6 +1,6 @@
 'use client';
 
-import { useRef, useEffect } from 'react';
+import { useRef, useEffect, useMemo, useContext } from 'react';
 import { lipi_parivartak } from '~/tools/lipi_lekhika';
 import { DEFAULT_DATA_SCRIPT, FONT_INFO, type ScriptType } from '~/state/script_font_data';
 import { get_transliterated_word_game_msgs, type word_game_msgs } from './msgs';
@@ -9,13 +9,11 @@ import { GameInfo } from './GameInfo';
 import { GameGrid } from './GameGrid';
 import { GameHelp } from './Help';
 import { createStore, Provider, useAtom } from 'jotai';
-import { script_atom } from '~/state/main.state';
 import { ScriptSelector } from '~/components/pages/main/ScriptSelector';
 import { cn } from '~/lib/utils';
 import Icon from '~/tools/Icon';
 import { LanguageIcon } from '~/components/icons';
 import { ArchiveIcon, ArrowRightIcon, InfoIcon } from 'lucide-react';
-import { IoStop } from 'react-icons/io5';
 import Link from 'next/link';
 import { motion } from 'framer-motion';
 import {
@@ -32,9 +30,9 @@ import {
   word_msgs_atom,
   original_word_list_atom
 } from './game_state';
-import { AtomsHydrator } from '~/components/AtomsHydrator';
 import { Popover, PopoverContent, PopoverTrigger } from '@radix-ui/react-popover';
 import { FaRegStopCircle } from 'react-icons/fa';
+import { ScriptContext } from '~/components/ScriptContext';
 
 export type WordGameProps = {
   grid_data: string[][];
@@ -51,7 +49,6 @@ export type WordGameProps = {
     grid_data: string[][];
   };
   location: 'view_page' | 'main_page' | 'archive_page';
-  onScriptChange?: (script: ScriptType) => void;
 };
 
 export default function WordGameRoot(
@@ -59,35 +56,26 @@ export default function WordGameRoot(
     script: ScriptType;
   }
 ) {
-  const jotaiStore = (() => {
+  const jotaiStore = useMemo(() => {
     const store = createStore();
-    store.set(script_atom, props.script);
+    store.set(title_current_atom, props.initial_script_data.title);
+    store.set(grid_data_current_atom, props.initial_script_data.grid_data);
+    store.set(grid_dimensions_atom, [props.dims[0], props.dims[1]]);
+    store.set(started_atom, false);
+    store.set(completed_atom, false);
+    store.set(current_selection_atom, []);
+    store.set(found_words_atom, []);
+    store.set(seconds_atom, 0);
+    store.set(total_attempts_atom, 0);
+    store.set(correct_attempts_atom, 0);
+    store.set(word_msgs_atom, props.initial_script_data.word_msgs);
+    store.set(original_word_list_atom, props.word_list);
     return store;
-  })();
-
-  const { initial_script_data } = props;
+  }, []);
 
   return (
-    <Provider store={jotaiStore} key={props.id}>
-      <AtomsHydrator
-        atomValues={[
-          [title_current_atom, initial_script_data.title],
-          [grid_data_current_atom, initial_script_data.grid_data],
-          [grid_dimensions_atom, props.dims],
-          [started_atom, false],
-          [completed_atom, false],
-          [current_selection_atom, []],
-          [found_words_atom, []],
-          [seconds_atom, 0],
-          [total_attempts_atom, 0],
-          [correct_attempts_atom, 0],
-          [word_msgs_atom, initial_script_data.word_msgs],
-          [original_word_list_atom, props.word_list],
-          [script_atom, props.script]
-        ]}
-      >
-        <WordGame {...props} />
-      </AtomsHydrator>
+    <Provider store={jotaiStore} key={`${props.id}-${props.location}`}>
+      <WordGame {...props} />
     </Provider>
   );
 }
@@ -100,7 +88,7 @@ const CompactStopButton = ({
   timerRef: React.RefObject<NodeJS.Timeout | null>;
   className?: string;
 }) => {
-  const [script] = useAtom(script_atom);
+  const { script } = useContext(ScriptContext);
   const [started] = useAtom(started_atom);
   const [completed] = useAtom(completed_atom);
   const [, setStarted] = useAtom(started_atom);
@@ -149,10 +137,9 @@ function WordGame({
   title: org_title,
   grid_data: org_grid_data,
   description,
-  uuid,
-  onScriptChange
+  uuid
 }: WordGameProps & { id: number }) {
-  const [script] = useAtom(script_atom);
+  const { script, setScript } = useContext(ScriptContext);
   const [, setGridData] = useAtom(grid_data_current_atom);
   const [title, setTitle] = useAtom(title_current_atom);
   const [, setWordMsgs] = useAtom(word_msgs_atom);
@@ -162,12 +149,6 @@ function WordGame({
   const font_info = FONT_INFO[script as ScriptType];
 
   const timerRef = useRef<NodeJS.Timeout | null>(null);
-
-  useEffect(() => {
-    if (onScriptChange) {
-      onScriptChange(script);
-    }
-  }, [script]);
 
   // transliteration
   useEffect(() => {
@@ -240,8 +221,8 @@ function WordGame({
         className={cn('flex items-center justify-center pt-2.5 sm:pt-4 lg:pt-5', 'mb-2.5 sm:mb-4')}
       >
         <label className="space-x-2">
-          <Icon className="h-7 w-7" src={LanguageIcon} />
-          <ScriptSelector />
+          <Icon className="size-7" src={LanguageIcon} />
+          <ScriptSelector script={script} onScriptChange={setScript} />
         </label>
       </div>
       <div className="container mx-auto my-2.5 max-w-7xl px-2 sm:my-3.5 sm:px-4 md:my-4 md:px-6 lg:my-5">

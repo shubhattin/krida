@@ -6,7 +6,6 @@ import { GoStopwatch } from 'react-icons/go';
 import { motion } from 'framer-motion';
 import { FONT_INFO } from '~/state/script_font_data';
 import { useAtom } from 'jotai';
-import { script_atom } from '~/state/main.state';
 import {
   started_atom,
   completed_atom,
@@ -18,9 +17,11 @@ import {
   word_msgs_atom,
   original_word_list_atom
 } from './game_state';
+import { ScriptContext } from '~/components/ScriptContext';
+import { useContext } from 'react';
 
 export const GameInfo = () => {
-  const [script] = useAtom(script_atom);
+  const { script } = useContext(ScriptContext);
   const [started] = useAtom(started_atom);
   const [completed] = useAtom(completed_atom);
   const [seconds] = useAtom(seconds_atom);

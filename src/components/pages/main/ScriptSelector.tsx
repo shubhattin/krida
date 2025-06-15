@@ -8,12 +8,13 @@ import {
 } from '~/state/script_font_data';
 import Cookies from 'js-cookie';
 import { cn } from '~/lib/utils';
-import { useAtom } from 'jotai';
-import { script_atom } from '~/state/main.state';
 
-export const ScriptSelector = () => {
-  const [script, setScript] = useAtom(script_atom);
+type Props = {
+  script: ScriptType;
+  onScriptChange: (script: ScriptType) => void;
+};
 
+export const ScriptSelector = ({ script, onScriptChange }: Props) => {
   return (
     <>
       <select
@@ -24,7 +25,7 @@ export const ScriptSelector = () => {
           'w-28 px-2 py-1 text-xs'
         )}
         onChange={(e) => {
-          setScript(e.target.value as ScriptType);
+          onScriptChange(e.target.value as ScriptType);
           Cookies.set(SCRIPT_DATA_COOKIE_KEY, e.target.value, {
             expires: 365 // 1 year
           });
@@ -35,7 +36,6 @@ export const ScriptSelector = () => {
             key={s}
             value={s}
             onClick={() => {
-              setScript(s as ScriptType);
               Cookies.set(SCRIPT_DATA_COOKIE_KEY, s, {
                 expires: 365 // 1 year
               });

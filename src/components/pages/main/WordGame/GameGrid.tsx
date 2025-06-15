@@ -1,12 +1,11 @@
 import { useDrag } from '@use-gesture/react';
-import { useEffect, useState, useRef, type RefObject } from 'react';
+import { useEffect, useState, useRef, type RefObject, useContext } from 'react';
 import { FONT_INFO } from '~/state/script_font_data';
 import { cn } from '~/lib/utils';
 import TurnstileWidget from '~/components/Turnstile';
 import { client_q } from '~/api/client';
 import { useTurnstile } from 'react-turnstile';
 import { useAtom } from 'jotai';
-import { script_atom } from '~/state/main.state';
 import {
   type CellPosition,
   started_atom,
@@ -20,6 +19,7 @@ import {
   correct_attempts_atom,
   original_word_list_atom
 } from './game_state';
+import { ScriptContext } from '~/components/ScriptContext';
 
 type Props = {
   puzzle_id: number;
@@ -29,7 +29,7 @@ type Props = {
 };
 
 export const GameGrid = ({ puzzle_id, timerRef, original_grid_data, puzzle_uuid }: Props) => {
-  const [script] = useAtom(script_atom);
+  const { script } = useContext(ScriptContext);
   const [started] = useAtom(started_atom);
   const [completed, setCompleted] = useAtom(completed_atom);
   const [seconds] = useAtom(seconds_atom);

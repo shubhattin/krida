@@ -63,7 +63,7 @@ const MainEdit = async ({ params }: Props) => {
           क्रीड्यताम्
         </Link>
       </div>
-      <JotaiProvider key={word_puzzle.id}>
+      <JotaiProvider key={`edit_${word_puzzle.id}`}>
         <ViewEditPuzzle word_puzzle={word_puzzle} key={word_puzzle.id} />
       </JotaiProvider>
     </>
