@@ -19,8 +19,7 @@ import {
 import { SiGithub } from 'react-icons/si';
 import { FaYoutube, FaInstagram } from 'react-icons/fa';
 import { useTheme } from 'next-themes';
-import { signOut, signIn, useSession } from '~/lib/auth-client';
-import { useRouter } from 'next/navigation';
+import { signOut, signIn } from '~/lib/auth-client';
 
 import { Button } from '@/components/ui/button';
 import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover';
@@ -205,25 +204,20 @@ export function MenuButton() {
             {user_info ? (
               <>
                 <div className="flex items-center gap-2">
-                  <User className="h-4 w-4 text-slate-600 dark:text-slate-400" />
+                  <User className="-mt-1 size-4 text-slate-600 dark:text-slate-400" />
                   <span className="text-sm font-medium text-slate-700 dark:text-slate-300">
-                    Account
+                    {user_info.name}
                   </span>
                 </div>
 
                 <div className="space-y-2">
                   {/* User Info */}
-                  <div className="flex items-center gap-3 rounded-lg border border-slate-200 bg-gradient-to-r from-blue-50 to-indigo-50 p-3 dark:border-slate-700 dark:from-blue-950/30 dark:to-indigo-950/30">
-                    <div className="flex h-8 w-8 items-center justify-center rounded-lg bg-gradient-to-br from-blue-500 to-indigo-600">
-                      <User className="h-4 w-4 text-white" />
-                    </div>
-                    <div className="min-w-0 flex-1">
-                      <div className="truncate text-sm font-medium text-slate-800 dark:text-slate-200">
-                        {user_info.name || user_info.email}
-                      </div>
-                      <div className="text-xs text-slate-500 dark:text-slate-400">Signed in</div>
-                    </div>
-                  </div>
+                  {/* <div className="flex items-center gap-2">
+                    <User className="h-4 w-4 text-slate-600 dark:text-slate-400" />
+                    <span className="text-sm font-medium text-slate-700 dark:text-slate-300">
+                      {user_info.name}
+                    </span>
+                  </div> */}
 
                   {/* Admin Actions */}
                   {user_info.role === 'admin' && user_info.is_approved && (
