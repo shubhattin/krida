@@ -17,7 +17,7 @@ export const dynamic = 'force-dynamic';
 
 export default async function Home() {
   const currentTime = new Date();
-  const current_schedule = await db.query.puzzle_game_schedules.findFirst({
+  const current_schedule_pr = db.query.puzzle_game_schedules.findFirst({
     columns: {
       id: true,
       start_time: true,
@@ -33,8 +33,7 @@ export default async function Home() {
       puzzle: true
     }
   });
-
-  const next_schedule = await db.query.puzzle_game_schedules.findFirst({
+  const next_schedule_pr = db.query.puzzle_game_schedules.findFirst({
     columns: {
       id: true,
       start_time: true
@@ -50,6 +49,10 @@ export default async function Home() {
       }
     }
   });
+  const [current_schedule, next_schedule] = await Promise.all([
+    current_schedule_pr,
+    next_schedule_pr
+  ]);
 
   if (!current_schedule) {
     return (

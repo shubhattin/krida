@@ -33,9 +33,28 @@ const MainEdit = async ({ params }: Props) => {
   const [uuid_str, id_str] = decodeURIComponent((await params).uuid_id).split(':');
   const id = z.coerce.number().int().parse(id_str);
   const uuid = z.string().uuid().parse(uuid_str);
-  const word_puzzle = await db.query.word_puzzles.findFirst({
+
+  const currentTime = new Date();
+  const word_puzzle_pr = db.query.word_puzzles.findFirst({
     where: (tbl, { eq, and }) => and(eq(tbl.id, id), eq(tbl.uuid, uuid))
   });
+  const next_schedule_pr = db.query.puzzle_game_schedules.findFirst({
+    columns: {
+      id: true,
+      start_time: true
+    },
+    where: (tbl, { eq, and, gt }) => and(gt(tbl.start_time, currentTime), eq(tbl.completed, false)),
+    orderBy: (tbl, { asc }) => asc(tbl.start_time),
+    with: {
+      puzzle: {
+        columns: {
+          id: true,
+          title: true
+        }
+      }
+    }
+  });
+  const [word_puzzle, next_schedule] = await Promise.all([word_puzzle_pr, next_schedule_pr]);
 
   const script = await getCachedScript();
   const word_game_msgs = await get_transliterated_word_game_msgs(script);
@@ -62,6 +81,7 @@ const MainEdit = async ({ params }: Props) => {
               dims={word_puzzle.grid_dimensions}
               grid_data={word_puzzle.grid_data}
               initial_script_data={{ word_msgs: word_game_msgs, title, grid_data }}
+              next_schedule={next_schedule}
             >
               <div className="my-3 mb-3 px-4">
                 <Link href="/padavali" className="flex items-center gap-1 text-lg font-semibold">
