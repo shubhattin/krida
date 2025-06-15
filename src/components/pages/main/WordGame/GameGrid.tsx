@@ -58,7 +58,8 @@ export const GameGrid = ({ puzzle_id, timerRef, original_grid_data, puzzle_uuid 
     }
   });
   useEffect(() => {
-    if (started && turnstileToken) {
+    if (started && turnstileToken && !update_games_started_mut.isSuccess) {
+      // only update games started if not already done
       update_games_started_mut.mutate({
         id: puzzle_id,
         uuid: puzzle_uuid,
