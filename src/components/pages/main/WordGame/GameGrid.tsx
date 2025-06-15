@@ -52,7 +52,11 @@ export const GameGrid = ({ puzzle_id, timerRef, original_grid_data, puzzle_uuid 
       turnstile.reset();
     }
   });
-  const update_games_started_mut = client_q.padavali.stats.update_games_started.useMutation();
+  const update_games_started_mut = client_q.padavali.stats.update_games_started.useMutation({
+    onSuccess() {
+      turnstile.reset();
+    }
+  });
   useEffect(() => {
     if (started && turnstileToken) {
       update_games_started_mut.mutate({
