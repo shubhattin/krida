@@ -17,7 +17,8 @@ const Main = async () => {
       id: true,
       title: true
     },
-    orderBy: ({ created_at }, { desc }) => desc(created_at)
+    orderBy: ({ created_at }, { desc }) => desc(created_at),
+    where: ({ archived }, { eq }) => eq(archived, false)
   });
 
   return (

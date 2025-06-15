@@ -20,7 +20,8 @@ const Main = async () => {
       id: true,
       start_time: true,
       end_time: true,
-      created_at: true
+      created_at: true,
+      puzzle_id: true
     },
     with: {
       puzzle: {
@@ -59,7 +60,7 @@ const Main = async () => {
             <div className="mb-4 text-muted-foreground">
               <FiPlus className="mx-auto mb-2 h-12 w-12 opacity-50" />
             </div>
-            <h3 className="mb-2 text-lg font-semibold">कालबन्धानि नास्ति</h3>
+            <h3 className="mb-2 text-lg font-semibold">कालबन्धानि न सन्ति</h3>
             <p className="mb-4 text-muted-foreground">
               अत्र कोऽपि कालबन्धनं नास्ति। कृपया प्रथमं कालबन्धनं योजयतु।
             </p>

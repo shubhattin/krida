@@ -56,6 +56,11 @@ const AddSchedule = ({ puzzle_list }: { puzzle_list: { id: number; title: string
     add_schedule_mut.mutate({ puzzle_id: puzzleId, start_time: startDate, end_time: endDate });
   };
 
+  const set_seconds_in_time_string = (time_string: string, seconds: number) => {
+    const [hours, minutes] = time_string.split(':');
+    return `${hours}:${minutes}:${String(seconds).padStart(2, '0')}`;
+  };
+
   return (
     <div className="flex flex-col gap-6">
       <div className="flex flex-col gap-4">
@@ -92,6 +97,14 @@ const AddSchedule = ({ puzzle_list }: { puzzle_list: { id: number; title: string
             onChange={(e) => setStartEndTime(e.target.value)}
             className="appearance-none bg-background [&::-webkit-calendar-picker-indicator]:hidden [&::-webkit-calendar-picker-indicator]:appearance-none"
           />
+        </div>
+        <div className="text-sm text-gray-500 dark:text-gray-400">
+          <div>
+            Start Time: <span>{set_seconds_in_time_string(startEndTime, 1)}</span>
+          </div>
+          <div>
+            End Time: <span>{set_seconds_in_time_string(startEndTime, 0)}</span>
+          </div>
         </div>
       </div>
       <div className="flex flex-col gap-3">

@@ -194,7 +194,7 @@ const get_share_msg = (name: string, time_taken: string, accuracy: number) => {
     `💪🏽I challenge you to beat my record!`,
     `Play it NOW at https://krida.thesanskritchannel.org/padavali`,
     `Play in your own script! Supports 8 Indian scripts!`,
-    `नमस्ते - నమస్తే - ನಮಸ್తೇ - નમસ્તે - নমস্তে - ନମସ୍ତେ - നമസ്തേ - நமஸ்தே`
+    `नमस्ते - నమస్తే - ನಮಸ್ತೇ - નમસ્તે - নমস্তে - ନମସ୍ତେ - നമസ്തേ - நமஸ்தே`
   ].join('\n');
 
   return msg;

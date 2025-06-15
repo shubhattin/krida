@@ -12,7 +12,7 @@ import {
   AlertDialogTrigger
 } from '@/components/ui/alert-dialog';
 import dayjs from 'dayjs';
-import { ClockIcon } from 'lucide-react';
+import { ClockIcon, SquareArrowOutUpRightIcon } from 'lucide-react';
 import { Card, CardContent, CardTitle, CardHeader, CardAction } from '~/components/ui/card';
 import relativeTime from 'dayjs/plugin/relativeTime';
 import { MdDeleteOutline } from 'react-icons/md';
@@ -26,6 +26,7 @@ dayjs.extend(relativeTime);
 type Props = {
   schedules: {
     id: number;
+    puzzle_id: number;
     start_time: Date;
     end_time: Date;
     created_at: Date;
@@ -63,7 +64,12 @@ const ListSchedules = ({ schedules }: Props) => {
       {schedules.map((schedule) => (
         <Card key={schedule.id} className="transition-shadow hover:shadow-md">
           <CardHeader>
-            <CardTitle className="text-lg">{schedule.puzzle.title}</CardTitle>
+            <CardTitle className="flex items-center gap-x-3 text-lg">
+              {schedule.puzzle.title}
+              <a href={`/padavali/edit/${schedule.puzzle_id}`} target="_blank">
+                <SquareArrowOutUpRightIcon className="-mt-2 size-4 hover:text-blue-500" />
+              </a>
+            </CardTitle>
             <CardAction>
               <AlertDialog>
                 <AlertDialogTrigger asChild>
@@ -98,8 +104,11 @@ const ListSchedules = ({ schedules }: Props) => {
           </CardHeader>
           <CardContent className="-mt-6">
             <div className="space-y-2">
-              <div className="text-xs">
-                {formatDate(schedule.start_time)} - {formatDate(schedule.end_time)}
+              <div className="space-x-1 text-sm">
+                <span>
+                  {formatDate(schedule.start_time)} - {formatDate(schedule.end_time)},
+                </span>
+                <span className="text-xs">{dayjs(schedule.start_time).format('HH:mm')}</span>
               </div>
               <div className="flex items-center gap-2 text-sm text-muted-foreground">
                 <ClockIcon className="-mt-1 size-4" />
