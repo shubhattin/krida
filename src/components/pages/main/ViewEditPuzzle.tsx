@@ -381,8 +381,7 @@ const WordList = () => {
               animate={{ opacity: 1, height: 'auto', x: 0 }}
               exit={{ opacity: 0, height: 0, x: 20 }}
               transition={{
-                duration: 0.2,
-                exit: { duration: 0.15 }
+                duration: 0.2
               }}
               className="flex items-center space-x-2 overflow-hidden"
             >
