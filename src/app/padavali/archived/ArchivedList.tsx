@@ -20,12 +20,31 @@ import { ScriptContext } from '~/components/ScriptContext';
 type Props = {
   archived_puzzles: { id: number; uuid: string; title: string }[];
   script: ScriptType;
+  archived_puzzles_init_transliterlated: { id: number; uuid: string; title: string }[];
 };
 
 // Main component that handles the state and conditional rendering
-export const ArchivedList = ({ archived_puzzles, script: script_init }: Props) => {
+export const ArchivedList = ({
+  archived_puzzles: archived_puzzles_org,
+  archived_puzzles_init_transliterlated
+}: Props) => {
   const [selectedPuzzle, setSelectedPuzzle] = useState<{ id: number; uuid: string } | null>(null);
   const { script } = useContext(ScriptContext);
+
+  const archived_puuzle_list_q = useQuery({
+    queryKey: ['archived_puuzle_list', script],
+    queryFn: async () => {
+      return await Promise.all(
+        archived_puzzles_org.map(async (puzzle) => ({
+          ...puzzle,
+          title: await lipi_parivartak(puzzle.title, DEFAULT_DATA_SCRIPT, script)
+        }))
+      );
+    },
+    placeholderData: archived_puzzles_init_transliterlated,
+    enabled: true
+  });
+  const archived_puzzles = archived_puuzle_list_q.data!;
 
   const word_puzzle_q = client_q.padavali.get_puzzle_data.useQuery(
     {
@@ -63,7 +82,7 @@ export const ArchivedList = ({ archived_puzzles, script: script_init }: Props) =
   }
 
   // Show the game when everything is loaded
-  if (selectedPuzzle && word_puzzle_q.data && initial_script_data_q.data) {
+  if (selectedPuzzle && word_puzzle_q.isSuccess && initial_script_data_q.data) {
     const puzzle = word_puzzle_q.data;
     return (
       <div className="relative">

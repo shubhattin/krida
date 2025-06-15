@@ -1,6 +1,5 @@
 'use client';
 
-import { IoExtensionPuzzleSharp } from 'react-icons/io5';
 import WordGameRoot, { type WordGameProps } from '~/components/pages/main/WordGame/WordGameRoot';
 import { Button } from '~/components/ui/button';
 import { Popover, PopoverContent, PopoverTrigger } from '~/components/ui/popover';
