@@ -33,6 +33,10 @@ import {
 import { Popover, PopoverContent, PopoverTrigger } from '@radix-ui/react-popover';
 import { FaRegStopCircle } from 'react-icons/fa';
 import { AppContext } from '~/components/AppDataContext';
+import dayjs from 'dayjs';
+import relativeTime from 'dayjs/plugin/relativeTime';
+
+dayjs.extend(relativeTime);
 
 export type WordGameProps = {
   grid_data: string[][];
@@ -50,6 +54,14 @@ export type WordGameProps = {
   };
   location: 'view_page' | 'main_page' | 'archive_page';
   onChangeCompleted?: (completed: boolean) => void;
+  next_schedule?: {
+    id: number;
+    start_time: Date;
+    puzzle: {
+      id: number;
+      title: string;
+    };
+  };
 };
 
 export default function WordGameRoot(
@@ -139,7 +151,8 @@ function WordGame({
   grid_data: org_grid_data,
   description,
   uuid,
-  onChangeCompleted
+  onChangeCompleted,
+  next_schedule
 }: WordGameProps & { id: number }) {
   const { script, setScript } = useContext(AppContext);
   const [, setGridData] = useAtom(grid_data_current_atom);
@@ -224,7 +237,7 @@ function WordGame({
     >
       {children}
       {/* Archived Games Section - Appears after game completion */}
-      {completed && <ArchivedGamesPrompt />}
+      {completed && <ArchivedGamesPrompt next_schedule={next_schedule} />}
       <div
         className={cn('flex items-center justify-center pt-2.5 sm:pt-4 lg:pt-5', 'mb-2.5 sm:mb-4')}
       >
@@ -325,7 +338,11 @@ function WordGame({
   );
 }
 
-export const ArchivedGamesPrompt = () => {
+export const ArchivedGamesPrompt = ({
+  next_schedule
+}: {
+  next_schedule: WordGameProps['next_schedule'];
+}) => {
   return (
     <motion.div
       initial={{ opacity: 0, y: 20 }}
@@ -346,9 +363,17 @@ export const ArchivedGamesPrompt = () => {
             transition={{ duration: 0.4, delay: 0.4 }}
             className="mb-3 text-center sm:mb-4"
           >
-            <p className="text-xs text-slate-600 sm:text-sm dark:text-slate-400">
+            {next_schedule && (
+              <div className="text-base font-semibold text-slate-600 dark:text-slate-400">
+                Next puzzle in{' '}
+                <span className="bg-gradient-to-r from-emerald-600 to-green-500 bg-clip-text font-bold text-transparent dark:from-emerald-400 dark:to-green-300">
+                  {dayjs(next_schedule.start_time).fromNow()}
+                </span>
+              </div>
+            )}
+            <div className="text-xs text-slate-600 sm:text-sm dark:text-slate-400">
               Want to play more puzzles while you wait for the next one?
-            </p>
+            </div>
           </motion.div>
 
           <motion.div

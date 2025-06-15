@@ -10,14 +10,26 @@ import { ArchiveIcon, ArrowRightIcon, Sparkles } from 'lucide-react';
 import Link from 'next/link';
 import { useState } from 'react';
 import { motion } from 'framer-motion';
+import dayjs from 'dayjs';
+import { cn } from '~/lib/utils';
 
 type Props = {
   script: ScriptType;
   word_puzzle: Puzzle;
   initial_script_data: WordGameProps['initial_script_data'];
+  next_schedule:
+    | {
+        id: number;
+        start_time: Date;
+        puzzle: {
+          id: number;
+          title: string;
+        };
+      }
+    | undefined;
 };
 
-const MainPagePadavali = ({ script, word_puzzle, initial_script_data }: Props) => {
+const MainPagePadavali = ({ script, word_puzzle, initial_script_data, next_schedule }: Props) => {
   // Format dates for display
   const formatDate = (date: Date) => {
     return date.toLocaleDateString('en-US', {
@@ -84,10 +96,6 @@ const MainPagePadavali = ({ script, word_puzzle, initial_script_data }: Props) =
                   >
                     Current Week's Puzzle
                   </motion.h2>
-                  {/* <p className="text-sm text-slate-600 dark:text-slate-400">
-                  {formatDate(current_schedule.start_time)} -{' '}
-                  {formatDate(current_schedule.end_time)}
-                  </p> */}
                 </motion.div>
               </div>
 
@@ -101,7 +109,17 @@ const MainPagePadavali = ({ script, word_puzzle, initial_script_data }: Props) =
                   align="end"
                   className="w-72 overflow-hidden border-slate-200 bg-white p-0 shadow-xl sm:w-80 dark:border-slate-700 dark:bg-slate-800"
                 >
-                  <div className="p-0 sm:p-0">
+                  <div className={cn('p-0 sm:p-0', next_schedule && 'p-1.5 pt-0 sm:p-2.5 sm:pt-0')}>
+                    {next_schedule && (
+                      <div className="flex items-center justify-center p-2">
+                        <div className="text-sm font-semibold text-amber-900 sm:text-base dark:text-amber-100">
+                          Next puzzle in{' '}
+                          <span className="bg-gradient-to-r from-emerald-600 to-green-500 bg-clip-text font-bold text-transparent dark:from-emerald-400 dark:to-green-300">
+                            {dayjs(next_schedule.start_time).fromNow()}
+                          </span>
+                        </div>
+                      </div>
+                    )}
                     <Link
                       href="/padavali/archived"
                       className="group flex items-center gap-2 rounded-xl border border-amber-200/50 bg-gradient-to-r from-amber-50 to-orange-50 p-3 text-amber-800 shadow-sm transition-all duration-200 hover:scale-[1.02] hover:from-amber-100 hover:to-orange-100 hover:shadow-md sm:gap-3 sm:p-4 dark:border-amber-800/30 dark:from-amber-950/50 dark:to-orange-950/50 dark:text-amber-200 dark:hover:from-amber-900/60 dark:hover:to-orange-900/60"
@@ -123,15 +141,6 @@ const MainPagePadavali = ({ script, word_puzzle, initial_script_data }: Props) =
                 </PopoverContent>
               </Popover>
             </div>
-
-            {/* <div className="hidden items-center gap-3 text-sm text-slate-600 sm:flex dark:text-slate-400">
-              <div className="flex items-center gap-1">
-                <ClockIcon className="h-4 w-4" />
-                <span>Ends {formatTime(current_schedule.end_time)}</span>
-              </div>
-              <div className="flex h-2 w-2 animate-pulse rounded-full bg-green-500"></div>
-              <span className="font-medium text-green-600 dark:text-green-400">Live</span>
-            </div> */}
           </div>
         </motion.div>
       )}
@@ -147,6 +156,7 @@ const MainPagePadavali = ({ script, word_puzzle, initial_script_data }: Props) =
         word_list={word_puzzle.word_list}
         initial_script_data={initial_script_data}
         onChangeCompleted={setCompleted}
+        next_schedule={next_schedule}
       ></WordGameRoot>
     </div>
   );

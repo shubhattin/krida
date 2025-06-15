@@ -8,6 +8,11 @@ import { IoExtensionPuzzleSharp } from 'react-icons/io5';
 import Link from 'next/link';
 import MainPagePadavali from './MainPagePadavali';
 import { getCachedScript } from '~/lib/cache_server_data';
+import dayjs from 'dayjs';
+import relativeTime from 'dayjs/plugin/relativeTime';
+
+dayjs.extend(relativeTime);
+
 export const dynamic = 'force-dynamic';
 
 export default async function Home() {
@@ -26,6 +31,23 @@ export default async function Home() {
       ),
     with: {
       puzzle: true
+    }
+  });
+
+  const next_schedule = await db.query.puzzle_game_schedules.findFirst({
+    columns: {
+      id: true,
+      start_time: true
+    },
+    where: (tbl, { eq, and, gt }) => and(gt(tbl.start_time, currentTime), eq(tbl.completed, false)),
+    orderBy: (tbl, { asc }) => asc(tbl.start_time),
+    with: {
+      puzzle: {
+        columns: {
+          id: true,
+          title: true
+        }
+      }
     }
   });
 
@@ -59,8 +81,17 @@ export default async function Home() {
 
             <div className="space-y-4">
               <div className="inline-flex items-center gap-2 rounded-xl bg-gradient-to-r from-emerald-100 to-blue-100 px-6 py-3 text-emerald-700 shadow-lg dark:from-emerald-900/30 dark:to-blue-900/30 dark:text-emerald-300">
-                <IoExtensionPuzzleSharp className="h-5 w-5" />
-                <span className="font-medium">New puzzles coming soon!</span>
+                <IoExtensionPuzzleSharp className="-mt-1 size-5" />
+                {next_schedule ? (
+                  <span className="font-semibold">
+                    Next puzzle in{' '}
+                    <span className="bg-gradient-to-r from-emerald-600 to-green-500 bg-clip-text font-bold text-transparent dark:from-emerald-400 dark:to-green-300">
+                      {dayjs(next_schedule.start_time).fromNow()}
+                    </span>
+                  </span>
+                ) : (
+                  <span className="font-medium">New puzzles coming soon!</span>
+                )}
               </div>
 
               <div className="flex items-center justify-center">
@@ -104,6 +135,7 @@ export default async function Home() {
       script={script}
       word_puzzle={word_puzzle}
       initial_script_data={{ word_msgs: word_game_msgs, title, grid_data }}
+      next_schedule={next_schedule}
     />
   );
 }
