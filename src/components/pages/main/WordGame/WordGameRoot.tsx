@@ -367,7 +367,12 @@ export const ArchivedGamesPrompt = ({
               <div className="text-base font-semibold text-slate-600 dark:text-slate-400">
                 Next puzzle in{' '}
                 <span className="bg-gradient-to-r from-emerald-600 to-green-500 bg-clip-text font-bold text-transparent dark:from-emerald-400 dark:to-green-300">
-                  {dayjs(next_schedule.start_time).fromNow()}
+                  {dayjs(next_schedule.start_time)
+                    .fromNow(true)
+                    .replace(
+                      /\b(day|days|week|weeks|month|months|year|years)\b/gi,
+                      (word) => word.charAt(0).toUpperCase() + word.slice(1)
+                    )}
                 </span>
               </div>
             )}

@@ -50,6 +50,8 @@ export const GameGrid = ({ puzzle_id, timerRef, original_grid_data, puzzle_uuid 
   const submit_stats_mut = client_q.padavali.stats.submit_stats.useMutation({
     onSuccess() {
       turnstile.reset();
+      update_games_started_mut.reset();
+      submit_stats_mut.reset();
     }
   });
   const update_games_started_mut = client_q.padavali.stats.update_games_started.useMutation({

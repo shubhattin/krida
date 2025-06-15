@@ -115,7 +115,12 @@ const MainPagePadavali = ({ script, word_puzzle, initial_script_data, next_sched
                         <div className="text-sm font-semibold text-amber-900 sm:text-base dark:text-amber-100">
                           Next puzzle in{' '}
                           <span className="bg-gradient-to-r from-emerald-600 to-green-500 bg-clip-text font-bold text-transparent dark:from-emerald-400 dark:to-green-300">
-                            {dayjs(next_schedule.start_time).fromNow()}
+                            {dayjs(next_schedule.start_time)
+                              .fromNow(true)
+                              .replace(
+                                /\b(day|days|week|weeks|month|months|year|years)\b/gi,
+                                (word) => word.charAt(0).toUpperCase() + word.slice(1)
+                              )}
                           </span>
                         </div>
                       </div>
