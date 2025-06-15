@@ -9,6 +9,7 @@ import Link from 'next/link';
 import { IoMdArrowRoundBack } from 'react-icons/io';
 import { FaPlay } from 'react-icons/fa';
 import { Provider as JotaiProvider } from 'jotai';
+import { getCachedSession } from '~/lib/cache_server_data';
 
 type Props = { params: Promise<{ id: string }> };
 
@@ -31,9 +32,8 @@ export async function generateMetadata({ params }: Props): Promise<Metadata> {
 }
 
 const MainEdit = async ({ params }: Props) => {
-  const session = await get_seesion_from_cookie((await headers()).get('cookie') ?? '');
-  if (!session) redirect('/padavali');
-  if (session.user.role !== 'admin' || !session.user.is_approved) redirect('/padavali');
+  const session = await getCachedSession();
+  if (!session || session.user.role !== 'admin' || !session.user.is_approved) redirect('/padavali');
 
   const id = z.coerce
     .number()
