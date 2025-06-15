@@ -26,11 +26,12 @@ type Props = {
   timerRef: RefObject<NodeJS.Timeout | null>;
   original_grid_data: string[][];
   puzzle_uuid: string;
+  location: string;
 };
 
-export const GameGrid = ({ puzzle_id, timerRef, original_grid_data, puzzle_uuid }: Props) => {
+export const GameGrid = ({ puzzle_id, timerRef, original_grid_data, location }: Props) => {
   const { script } = useContext(AppContext);
-  const [started, setStarted] = useAtom(started_atom);
+  const [started] = useAtom(started_atom);
   const [completed, setCompleted] = useAtom(completed_atom);
   const [seconds] = useAtom(seconds_atom);
   const [currentSelection, setCurrentSelection] = useAtom(current_selection_atom);
@@ -66,7 +67,7 @@ export const GameGrid = ({ puzzle_id, timerRef, original_grid_data, puzzle_uuid 
       // only update games started if not already done
       update_games_started_mut.mutate({
         id: puzzle_id,
-        uuid: puzzle_uuid,
+        location,
         turnstile_token: turnstileToken
       });
     }
@@ -84,6 +85,7 @@ export const GameGrid = ({ puzzle_id, timerRef, original_grid_data, puzzle_uuid 
         turnstile_token: turnstileToken,
         info: {
           puzzle_id: puzzle_id,
+          session_id: update_games_started_mut.data.session_id,
           time_taken: seconds,
           accuracy: Math.trunc((correctAttempts / totalAttempts) * 100),
           correct_attempts: correctAttempts,

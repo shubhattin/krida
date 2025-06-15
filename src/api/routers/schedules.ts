@@ -87,8 +87,7 @@ const get_past_schedules_route = protectedAdminProcedure.query(async () => {
       }
     },
     orderBy: (schedules, { desc }) => [desc(schedules.created_at)],
-    where: (schedules, { eq, and, lt }) =>
-      and(eq(schedules.completed, false), lt(schedules.end_time, current_time))
+    where: (schedules, { lt }) => lt(schedules.end_time, current_time)
   });
 
   return past_schedules;

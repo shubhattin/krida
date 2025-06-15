@@ -30,8 +30,7 @@ const Main = async () => {
       }
     },
     orderBy: (schedules, { desc }) => [desc(schedules.created_at)],
-    where: (schedules, { eq, and, or, gte }) =>
-      and(eq(schedules.completed, false), gte(schedules.end_time, current_time))
+    where: (schedules, { gte }) => gte(schedules.end_time, current_time)
   });
 
   return (

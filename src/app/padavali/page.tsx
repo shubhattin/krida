@@ -23,12 +23,8 @@ export default async function Home() {
       start_time: true,
       end_time: true
     },
-    where: (tbl, { eq, and, lte, gte }) =>
-      and(
-        lte(tbl.start_time, currentTime),
-        gte(tbl.end_time, currentTime),
-        eq(tbl.completed, false)
-      ),
+    where: (tbl, { and, lte, gte }) =>
+      and(lte(tbl.start_time, currentTime), gte(tbl.end_time, currentTime)),
     with: {
       puzzle: true
     }
@@ -38,7 +34,7 @@ export default async function Home() {
       id: true,
       start_time: true
     },
-    where: (tbl, { eq, and, gt }) => and(gt(tbl.start_time, currentTime), eq(tbl.completed, false)),
+    where: (tbl, { gt }) => gt(tbl.start_time, currentTime),
     orderBy: (tbl, { asc }) => asc(tbl.start_time),
     with: {
       puzzle: {

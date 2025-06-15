@@ -43,7 +43,7 @@ const MainEdit = async ({ params }: Props) => {
       id: true,
       start_time: true
     },
-    where: (tbl, { eq, and, gt }) => and(gt(tbl.start_time, currentTime), eq(tbl.completed, false)),
+    where: (tbl, { gt }) => gt(tbl.start_time, currentTime),
     orderBy: (tbl, { asc }) => asc(tbl.start_time),
     with: {
       puzzle: {

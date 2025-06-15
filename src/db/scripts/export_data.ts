@@ -1,11 +1,17 @@
 import { dbClient_ext as db, queryClient } from './client';
 import { readFile } from 'fs/promises';
 import { dbMode, take_input } from '~/tools/kry.server';
-import { puzzle_game_schedules, puzzle_gameplay_stats, word_puzzles } from '~/db/schema';
+import {
+  puzzle_game_schedules,
+  puzzle_gameplay_stats,
+  word_puzzles,
+  puzzle_gameplay_sessions
+} from '~/db/schema';
 import {
   WordPuzzleSchemaZod,
   PuzzleGamePlayStatsSchemaZod,
-  PuzzleGameScheduleSchemaZod
+  PuzzleGameScheduleSchemaZod,
+  PuzzleGamePlaySessionSchemaZod
 } from '~/db/schema_zod';
 import { z } from 'zod';
 import { sql } from 'drizzle-orm';
@@ -31,7 +37,8 @@ const main = async () => {
     .object({
       word_puzzles: WordPuzzleSchemaZod.array(),
       puzzle_gameplay_stats: PuzzleGamePlayStatsSchemaZod.array(),
-      puzzle_game_schedules: PuzzleGameScheduleSchemaZod.array()
+      puzzle_game_schedules: PuzzleGameScheduleSchemaZod.array(),
+      puzzle_gameplay_sessions: PuzzleGamePlaySessionSchemaZod.array()
     })
     .parse(JSON.parse((await readFile(`./out/${in_file_name}`)).toString()));
 
@@ -40,6 +47,7 @@ const main = async () => {
     await db.delete(word_puzzles);
     await db.delete(puzzle_gameplay_stats);
     await db.delete(puzzle_game_schedules);
+    await db.delete(puzzle_gameplay_sessions);
     console.log(chalk.green('✓ Deleted All Tables Successfully'));
   } catch (e) {
     console.log(chalk.red('✗ Error while deleting tables:'), chalk.yellow(e));
@@ -56,17 +64,6 @@ const main = async () => {
     console.log(chalk.red('✗ Error while inserting word_puzzles:'), chalk.yellow(e));
   }
 
-  // inserting puzzle_gameplay_stats
-  try {
-    await db.insert(puzzle_gameplay_stats).values(data.puzzle_gameplay_stats);
-    console.log(
-      chalk.green('✓ Successfully added values into table'),
-      chalk.blue('`puzzle_gameplay_stats`')
-    );
-  } catch (e) {
-    console.log(chalk.red('✗ Error while inserting puzzle_gameplay_stats:'), chalk.yellow(e));
-  }
-
   // inserting puzzle_game_schedules
   try {
     await db.insert(puzzle_game_schedules).values(data.puzzle_game_schedules);
@@ -76,6 +73,28 @@ const main = async () => {
     );
   } catch (e) {
     console.log(chalk.red('✗ Error while inserting puzzle_game_schedules:'), chalk.yellow(e));
+  }
+
+  // inserting puzzle_gameplay_sessions
+  try {
+    await db.insert(puzzle_gameplay_sessions).values(data.puzzle_gameplay_sessions);
+    console.log(
+      chalk.green('✓ Successfully added values into table'),
+      chalk.blue('`puzzle_gameplay_sessions`')
+    );
+  } catch (e) {
+    console.log(chalk.red('✗ Error while inserting puzzle_gameplay_sessions:'), chalk.yellow(e));
+  }
+
+  // inserting puzzle_gameplay_stats
+  try {
+    await db.insert(puzzle_gameplay_stats).values(data.puzzle_gameplay_stats);
+    console.log(
+      chalk.green('✓ Successfully added values into table'),
+      chalk.blue('`puzzle_gameplay_stats`')
+    );
+  } catch (e) {
+    console.log(chalk.red('✗ Error while inserting puzzle_gameplay_stats:'), chalk.yellow(e));
   }
 
   // resetting SERIAL
@@ -88,6 +107,9 @@ const main = async () => {
     );
     await db.execute(
       sql`SELECT setval('"puzzle_game_schedules_id_seq"', (select MAX(id) from "puzzle_game_schedules"))`
+    );
+    await db.execute(
+      sql`SELECT setval('"puzzle_gameplay_sessions_id_seq"', (select MAX(id) from "puzzle_gameplay_sessions"))`
     );
     console.log(chalk.green('✓ Successfully resetted ALL SERIAL'));
   } catch (e) {

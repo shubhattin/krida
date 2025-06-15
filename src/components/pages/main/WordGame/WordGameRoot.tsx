@@ -152,7 +152,8 @@ function WordGame({
   description,
   uuid,
   onChangeCompleted,
-  next_schedule
+  next_schedule,
+  location
 }: WordGameProps & { id: number }) {
   const { script, setScript } = useContext(AppContext);
   const [, setGridData] = useAtom(grid_data_current_atom);
@@ -320,6 +321,7 @@ function WordGame({
                 puzzle_id={puzzle_id}
                 timerRef={timerRef}
                 puzzle_uuid={uuid}
+                location={location}
               />
             </div>
           </div>
