@@ -49,6 +49,7 @@ export type WordGameProps = {
     grid_data: string[][];
   };
   location: 'view_page' | 'main_page' | 'archive_page';
+  onChangeCompleted?: (completed: boolean) => void;
 };
 
 export default function WordGameRoot(
@@ -137,7 +138,8 @@ function WordGame({
   title: org_title,
   grid_data: org_grid_data,
   description,
-  uuid
+  uuid,
+  onChangeCompleted
 }: WordGameProps & { id: number }) {
   const { script, setScript } = useContext(ScriptContext);
   const [, setGridData] = useAtom(grid_data_current_atom);
@@ -149,6 +151,12 @@ function WordGame({
   const font_info = FONT_INFO[script as ScriptType];
 
   const timerRef = useRef<NodeJS.Timeout | null>(null);
+
+  useEffect(() => {
+    if (onChangeCompleted) {
+      onChangeCompleted(completed);
+    }
+  }, [completed]);
 
   // transliteration
   useEffect(() => {

@@ -9,6 +9,8 @@ import { type Puzzle } from '~/components/pages/main/ViewEditPuzzle';
 import { BsThreeDots } from 'react-icons/bs';
 import { ArchiveIcon, ArrowRightIcon, Sparkles } from 'lucide-react';
 import Link from 'next/link';
+import { useState } from 'react';
+import { motion } from 'framer-motion';
 
 type Props = {
   script: ScriptType;
@@ -35,27 +37,56 @@ const MainPagePadavali = ({ script, word_puzzle, initial_script_data }: Props) =
     });
   };
 
+  const [completed, setCompleted] = useState(false);
+
   return (
-    <>
+    <div className="px-4 py-4 sm:px-6 sm:py-6">
       {/* Current Game Banner */}
-      <div className="w-full border-b border-slate-200/60 bg-gradient-to-r from-emerald-50 via-blue-50 to-purple-50 dark:border-slate-700/60 dark:from-emerald-950/30 dark:via-blue-950/30 dark:to-purple-950/30">
-        <div className="container mx-auto max-w-7xl px-4 py-4 sm:px-6 sm:py-6">
+      {!completed && (
+        <motion.div
+          initial={{ opacity: 0, y: -20 }}
+          animate={{ opacity: 1, y: 0 }}
+          transition={{ duration: 0.5, ease: 'easeOut' }}
+          className="w-full border-b border-slate-200/60 bg-gradient-to-r from-emerald-50 via-blue-50 to-purple-50 dark:border-slate-700/60 dark:from-emerald-950/30 dark:via-blue-950/30 dark:to-purple-950/30"
+        >
           <div className="flex items-center justify-center">
             <div className="flex items-center gap-3 sm:gap-4">
               <div className="flex items-center gap-4">
                 {/* <div className="rounded-xl bg-gradient-to-r from-emerald-500 to-blue-500 p-2 shadow-lg">
                   <IoExtensionPuzzleSharp className="size-5 text-white" />
                 </div> */}
-                <div className="flex items-center gap-2">
-                  <Sparkles className="-mt-1 size-5 sm:size-5.5" />
-                  <h2 className="bg-gradient-to-r from-slate-800 to-blue-600 bg-clip-text text-base font-bold text-transparent sm:text-lg dark:from-slate-100 dark:to-blue-400">
+                <motion.div
+                  initial={{ scale: 0.8 }}
+                  animate={{ scale: 1 }}
+                  transition={{ duration: 0.3, delay: 0.2 }}
+                  className="flex items-center gap-2"
+                >
+                  <motion.div
+                    animate={{
+                      rotate: [0, 15, -15, 0],
+                      scale: [1, 1.1, 1]
+                    }}
+                    transition={{
+                      duration: 1,
+                      repeat: Infinity,
+                      repeatDelay: 3
+                    }}
+                  >
+                    <Sparkles className="-mt-1 size-5 sm:size-5.5" />
+                  </motion.div>
+                  <motion.h2
+                    initial={{ x: -20, opacity: 0 }}
+                    animate={{ x: 0, opacity: 1 }}
+                    transition={{ duration: 0.4, delay: 0.3 }}
+                    className="bg-gradient-to-r from-slate-800 to-blue-600 bg-clip-text text-base font-bold text-transparent sm:text-lg dark:from-slate-100 dark:to-blue-400"
+                  >
                     Current Week's Puzzle
-                  </h2>
+                  </motion.h2>
                   {/* <p className="text-sm text-slate-600 dark:text-slate-400">
                   {formatDate(current_schedule.start_time)} -{' '}
                   {formatDate(current_schedule.end_time)}
                   </p> */}
-                </div>
+                </motion.div>
               </div>
 
               <Popover>
@@ -100,8 +131,8 @@ const MainPagePadavali = ({ script, word_puzzle, initial_script_data }: Props) =
               <span className="font-medium text-green-600 dark:text-green-400">Live</span>
             </div> */}
           </div>
-        </div>
-      </div>
+        </motion.div>
+      )}
       <WordGameRoot
         location="main_page"
         script={script}
@@ -113,8 +144,9 @@ const MainPagePadavali = ({ script, word_puzzle, initial_script_data }: Props) =
         dims={word_puzzle.grid_dimensions}
         word_list={word_puzzle.word_list}
         initial_script_data={initial_script_data}
+        onChangeCompleted={setCompleted}
       ></WordGameRoot>
-    </>
+    </div>
   );
 };
 
