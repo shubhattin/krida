@@ -1,6 +1,4 @@
 import { redirect } from 'next/navigation';
-import { headers } from 'next/headers';
-import get_seesion_from_cookie from '~/lib/get_auth_from_cookie';
 import { z } from 'zod';
 import { db } from '~/db/db';
 import ViewEditPuzzle from '~/components/pages/main/ViewEditPuzzle';

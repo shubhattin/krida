@@ -4,14 +4,10 @@ import { type Metadata } from 'next';
 import Link from 'next/link';
 import { IoMdArrowRoundBack } from 'react-icons/io';
 import WordGame from '~/components/pages/main/WordGame/WordGameRoot';
-import {
-  DEFAULT_DATA_SCRIPT,
-  get_lang_from_cookie,
-  SCRIPT_DATA_COOKIE_KEY
-} from '~/state/script_font_data';
-import { cookies } from 'next/headers';
+import { DEFAULT_DATA_SCRIPT } from '~/state/script_font_data';
 import { get_transliterated_word_game_msgs } from '~/components/pages/main/WordGame/msgs';
 import { lipi_parivartak } from '~/tools/lipi_lekhika';
+import { getCachedScript } from '~/lib/cache_server_data';
 
 type Props = { params: Promise<{ uuid_id: string }> };
 
@@ -41,7 +37,7 @@ const MainEdit = async ({ params }: Props) => {
     where: (tbl, { eq, and }) => and(eq(tbl.id, id), eq(tbl.uuid, uuid))
   });
 
-  const script = get_lang_from_cookie((await cookies()).get(SCRIPT_DATA_COOKIE_KEY)?.value);
+  const script = await getCachedScript();
   const word_game_msgs = await get_transliterated_word_game_msgs(script);
   const title = await lipi_parivartak(word_puzzle?.title ?? '', DEFAULT_DATA_SCRIPT, script);
   const grid_data = await Promise.all(

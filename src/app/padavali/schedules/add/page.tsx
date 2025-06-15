@@ -1,16 +1,14 @@
-import { headers } from 'next/headers';
 import { redirect } from 'next/navigation';
-import get_seesion_from_cookie from '~/lib/get_auth_from_cookie';
 import AddSchedule from './AddSchedule';
 import { Metadata } from 'next';
 import { db } from '~/db/db';
 import Link from 'next/link';
 import { IoMdArrowRoundBack } from 'react-icons/io';
+import { getCachedSession } from '~/lib/cache_server_data';
 
 const Main = async () => {
-  const session = await get_seesion_from_cookie((await headers()).get('cookie') ?? '');
-  if (!session) redirect('/padavali');
-  if (session.user.role !== 'admin' || !session.user.is_approved) redirect('/padavali');
+  const session = await getCachedSession();
+  if (!session || session.user.role !== 'admin' || !session.user.is_approved) redirect('/padavali');
 
   const puzzle_list = await db.query.word_puzzles.findMany({
     columns: {
