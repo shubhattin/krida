@@ -75,7 +75,9 @@ export const GameGrid = ({ puzzle_id, timerRef, original_grid_data, puzzle_uuid 
     if (
       !turnstileToken ||
       update_games_started_mut.isPending ||
-      !update_games_started_mut.isSuccess
+      !update_games_started_mut.isSuccess ||
+      submit_stats_mut.isPending ||
+      submit_stats_mut.isSuccess
     )
       return;
     submit_stats_mut.mutateAsync({
@@ -88,7 +90,7 @@ export const GameGrid = ({ puzzle_id, timerRef, original_grid_data, puzzle_uuid 
         total_attempts: totalAttempts
       }
     });
-  }, [turnstileToken, update_games_started_mut]);
+  }, [turnstileToken, update_games_started_mut, submit_stats_mut]);
 
   // Prevent pull-to-refresh and other navigation gestures
   useEffect(() => {
