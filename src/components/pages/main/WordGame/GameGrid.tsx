@@ -62,35 +62,37 @@ export const GameGrid = ({ puzzle_id, timerRef, original_grid_data, puzzle_uuid 
     }
   });
   useEffect(() => {
-    if (started && turnstileToken && !update_games_started_mut.isSuccess) {
-      // only update games started if not already done
-      update_games_started_mut.mutate({
-        id: puzzle_id,
-        uuid: puzzle_uuid,
-        turnstile_token: turnstileToken
-      });
-    }
+    return;
+    // if (started && turnstileToken && !update_games_started_mut.isSuccess) {
+    //   // only update games started if not already done
+    //   update_games_started_mut.mutate({
+    //     id: puzzle_id,
+    //     uuid: puzzle_uuid,
+    //     turnstile_token: turnstileToken
+    //   });
+    // }
   }, [started, turnstileToken]);
   useEffect(() => {
-    if (
-      completed &&
-      turnstileToken &&
-      !update_games_started_mut.isPending &&
-      update_games_started_mut.isSuccess &&
-      !submit_stats_mut.isPending &&
-      !submit_stats_mut.isSuccess
-    ) {
-      submit_stats_mut.mutateAsync({
-        turnstile_token: turnstileToken,
-        info: {
-          puzzle_id: puzzle_id,
-          time_taken: seconds,
-          accuracy: Math.trunc((correctAttempts / totalAttempts) * 100),
-          correct_attempts: correctAttempts,
-          total_attempts: totalAttempts
-        }
-      });
-    }
+    return;
+    // if (
+    //   completed &&
+    //   turnstileToken &&
+    //   !update_games_started_mut.isPending &&
+    //   update_games_started_mut.isSuccess &&
+    //   !submit_stats_mut.isPending &&
+    //   !submit_stats_mut.isSuccess
+    // ) {
+    //   submit_stats_mut.mutateAsync({
+    //     turnstile_token: turnstileToken,
+    //     info: {
+    //       puzzle_id: puzzle_id,
+    //       time_taken: seconds,
+    //       accuracy: Math.trunc((correctAttempts / totalAttempts) * 100),
+    //       correct_attempts: correctAttempts,
+    //       total_attempts: totalAttempts
+    //     }
+    //   });
+    // }
   }, [turnstileToken, update_games_started_mut, submit_stats_mut, started, completed]);
 
   // Prevent pull-to-refresh and other navigation gestures
