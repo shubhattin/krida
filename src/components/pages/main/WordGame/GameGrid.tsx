@@ -73,6 +73,7 @@ export const GameGrid = ({ puzzle_id, timerRef, original_grid_data, puzzle_uuid 
   }, [started, turnstileToken]);
   useEffect(() => {
     if (
+      completed &&
       turnstileToken &&
       !update_games_started_mut.isPending &&
       update_games_started_mut.isSuccess &&
@@ -90,7 +91,7 @@ export const GameGrid = ({ puzzle_id, timerRef, original_grid_data, puzzle_uuid 
         }
       });
     }
-  }, [turnstileToken, update_games_started_mut, submit_stats_mut]);
+  }, [turnstileToken, update_games_started_mut, submit_stats_mut, started, completed]);
 
   // Prevent pull-to-refresh and other navigation gestures
   useEffect(() => {
@@ -298,7 +299,6 @@ export const GameGrid = ({ puzzle_id, timerRef, original_grid_data, puzzle_uuid 
   useEffect(() => {
     if (foundWords.length === wordList.length && foundWords.length > 0 && started) {
       setCompleted(true);
-      setStarted(false);
       if (timerRef.current) {
         clearInterval(timerRef.current);
       }
