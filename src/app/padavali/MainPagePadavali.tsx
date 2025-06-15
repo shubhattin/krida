@@ -46,6 +46,7 @@ const MainPagePadavali = ({ script, word_puzzle, initial_script_data }: Props) =
         <motion.div
           initial={{ opacity: 0, y: -20 }}
           animate={{ opacity: 1, y: 0 }}
+          exit={{ opacity: 0, y: -20 }}
           transition={{ duration: 0.5, ease: 'easeOut' }}
           className="w-full border-b border-slate-200/60 bg-gradient-to-r from-emerald-50 via-blue-50 to-purple-50 dark:border-slate-700/60 dark:from-emerald-950/30 dark:via-blue-950/30 dark:to-purple-950/30"
         >
@@ -58,6 +59,7 @@ const MainPagePadavali = ({ script, word_puzzle, initial_script_data }: Props) =
                 <motion.div
                   initial={{ scale: 0.8 }}
                   animate={{ scale: 1 }}
+                  exit={{ scale: 0.8, opacity: 0 }}
                   transition={{ duration: 0.3, delay: 0.2 }}
                   className="flex items-center gap-2"
                 >
@@ -77,6 +79,7 @@ const MainPagePadavali = ({ script, word_puzzle, initial_script_data }: Props) =
                   <motion.h2
                     initial={{ x: -20, opacity: 0 }}
                     animate={{ x: 0, opacity: 1 }}
+                    exit={{ x: -20, opacity: 0 }}
                     transition={{ duration: 0.4, delay: 0.3 }}
                     className="bg-gradient-to-r from-slate-800 to-blue-600 bg-clip-text text-base font-bold text-transparent sm:text-lg dark:from-slate-100 dark:to-blue-400"
                   >
