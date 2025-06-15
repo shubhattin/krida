@@ -1,17 +1,15 @@
 import { Metadata } from 'next';
-import { headers } from 'next/headers';
 import Link from 'next/link';
 import { redirect } from 'next/navigation';
 import { IoMdArrowRoundBack } from 'react-icons/io';
 import ViewEditPuzzle from '~/components/pages/main/ViewEditPuzzle';
 import { type Puzzle } from '~/components/pages/main/ViewEditPuzzle';
-import get_seesion_from_cookie from '~/lib/get_auth_from_cookie';
 import { Provider as JotaiProvider } from 'jotai';
+import { getCachedSession } from '~/lib/cache_server_data';
 
 const Add = async () => {
-  const session = await get_seesion_from_cookie((await headers()).get('cookie') ?? '');
-  if (!session) redirect('/padavali');
-  if (session.user.role !== 'admin' || !session.user.is_approved) redirect('/padavali');
+  const session = await getCachedSession();
+  if (!session || session.user.role !== 'admin' || !session.user.is_approved) redirect('/padavali');
 
   const DIMS = [6, 6];
 

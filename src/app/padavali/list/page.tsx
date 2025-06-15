@@ -1,22 +1,20 @@
 import { Metadata } from 'next';
-import { headers } from 'next/headers';
 import Link from 'next/link';
 import { redirect } from 'next/navigation';
 import { IoMdAdd, IoMdArrowRoundBack } from 'react-icons/io';
 import { Button } from '~/components/ui/button';
 import { Card, CardDescription, CardHeader, CardTitle } from '~/components/ui/card';
 import { db } from '~/db/db';
-import get_seesion_from_cookie from '~/lib/get_auth_from_cookie';
 import dayjs from 'dayjs';
 import relativeTime from 'dayjs/plugin/relativeTime';
-import { CalendarIcon, RefreshCwIcon } from 'lucide-react';
+import { CalendarIcon } from 'lucide-react';
+import { getCachedSession } from '~/lib/cache_server_data';
 
 dayjs.extend(relativeTime);
 
 const List = async () => {
-  const session = await get_seesion_from_cookie((await headers()).get('cookie') ?? '');
-  if (!session) redirect('/padavali');
-  if (session.user.role !== 'admin' || !session.user.is_approved) redirect('/padavali');
+  const session = await getCachedSession();
+  if (!session || session.user.role !== 'admin' || !session.user.is_approved) redirect('/padavali');
 
   const list = await db.query.word_puzzles.findMany({
     columns: {

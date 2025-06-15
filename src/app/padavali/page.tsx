@@ -1,17 +1,13 @@
 import { db } from '~/db/db';
 import { Metadata } from 'next';
-import { cookies } from 'next/headers';
-import {
-  DEFAULT_DATA_SCRIPT,
-  get_lang_from_cookie,
-  SCRIPT_DATA_COOKIE_KEY
-} from '~/state/script_font_data';
+import { DEFAULT_DATA_SCRIPT } from '~/state/script_font_data';
 import { get_transliterated_word_game_msgs } from '~/components/pages/main/WordGame/msgs';
 import { lipi_parivartak } from '~/tools/lipi_lekhika';
 import { ClockIcon, CalendarIcon, ArchiveIcon, ArrowRightIcon } from 'lucide-react';
 import { IoExtensionPuzzleSharp } from 'react-icons/io5';
 import Link from 'next/link';
 import MainPagePadavali from './MainPagePadavali';
+import { getCachedScript } from '~/lib/cache_server_data';
 export const dynamic = 'force-dynamic';
 
 export default async function Home() {
@@ -95,7 +91,7 @@ export default async function Home() {
 
   const word_puzzle = current_schedule.puzzle;
 
-  const script = get_lang_from_cookie((await cookies()).get(SCRIPT_DATA_COOKIE_KEY)?.value);
+  const script = await getCachedScript();
   const word_game_msgs = await get_transliterated_word_game_msgs(script);
   const title = await lipi_parivartak(word_puzzle.title, DEFAULT_DATA_SCRIPT, script);
   const grid_data = await Promise.all(

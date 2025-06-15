@@ -1,6 +1,6 @@
 'use client';
 
-import { useState } from 'react';
+import { useContext, useState } from 'react';
 import {
   Moon,
   Sun,
@@ -19,19 +19,18 @@ import {
 import { SiGithub } from 'react-icons/si';
 import { FaYoutube, FaInstagram } from 'react-icons/fa';
 import { useTheme } from 'next-themes';
-import { signOut, signIn, useSession } from '~/lib/auth-client';
-import { useRouter } from 'next/navigation';
+import { signOut, signIn } from '~/lib/auth-client';
 
 import { Button } from '@/components/ui/button';
 import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover';
 import { Separator } from '@/components/ui/separator';
 import { cn } from '~/lib/utils';
 import Link from 'next/link';
+import { AppContext } from '../AppDataContext';
 
 export function MenuButton() {
   const { theme, setTheme } = useTheme();
-  const session = useSession();
-  const router = useRouter();
+  const { user_info } = useContext(AppContext);
   const [open, setOpen] = useState(false);
 
   const themeOptions = [
@@ -202,31 +201,26 @@ export function MenuButton() {
 
           {/* Account Section */}
           <div className="space-y-3">
-            {session.data?.user ? (
+            {user_info ? (
               <>
                 <div className="flex items-center gap-2">
-                  <User className="h-4 w-4 text-slate-600 dark:text-slate-400" />
+                  <User className="-mt-1 size-4 text-slate-600 dark:text-slate-400" />
                   <span className="text-sm font-medium text-slate-700 dark:text-slate-300">
-                    Account
+                    {user_info.name}
                   </span>
                 </div>
 
                 <div className="space-y-2">
                   {/* User Info */}
-                  <div className="flex items-center gap-3 rounded-lg border border-slate-200 bg-gradient-to-r from-blue-50 to-indigo-50 p-3 dark:border-slate-700 dark:from-blue-950/30 dark:to-indigo-950/30">
-                    <div className="flex h-8 w-8 items-center justify-center rounded-lg bg-gradient-to-br from-blue-500 to-indigo-600">
-                      <User className="h-4 w-4 text-white" />
-                    </div>
-                    <div className="min-w-0 flex-1">
-                      <div className="truncate text-sm font-medium text-slate-800 dark:text-slate-200">
-                        {session.data.user.name || session.data.user.email}
-                      </div>
-                      <div className="text-xs text-slate-500 dark:text-slate-400">Signed in</div>
-                    </div>
-                  </div>
+                  {/* <div className="flex items-center gap-2">
+                    <User className="h-4 w-4 text-slate-600 dark:text-slate-400" />
+                    <span className="text-sm font-medium text-slate-700 dark:text-slate-300">
+                      {user_info.name}
+                    </span>
+                  </div> */}
 
                   {/* Admin Actions */}
-                  {session.data.user.role === 'admin' && session.data.user.is_approved && (
+                  {user_info.role === 'admin' && user_info.is_approved && (
                     <Link
                       onClick={() => {
                         setOpen(false);
@@ -283,17 +277,16 @@ export function MenuButton() {
                   </button>
                 </div>
 
-                {session.data.user &&
-                  (session.data.user.role !== 'admin' || !session.data.user.is_approved) && (
-                    <div className="rounded-lg border border-orange-200 bg-orange-50 p-3 dark:border-orange-800 dark:bg-orange-950/30">
-                      <div className="text-sm font-medium text-orange-800 dark:text-orange-300">
-                        Unauthorized Account
-                      </div>
-                      <div className="text-xs text-orange-600 dark:text-orange-400">
-                        Contact admin for approval
-                      </div>
+                {user_info && (user_info.role !== 'admin' || !user_info.is_approved) && (
+                  <div className="rounded-lg border border-orange-200 bg-orange-50 p-3 dark:border-orange-800 dark:bg-orange-950/30">
+                    <div className="text-sm font-medium text-orange-800 dark:text-orange-300">
+                      Unauthorized Account
                     </div>
-                  )}
+                    <div className="text-xs text-orange-600 dark:text-orange-400">
+                      Contact admin for approval
+                    </div>
+                  </div>
+                )}
               </>
             ) : (
               <div className="flex justify-center">

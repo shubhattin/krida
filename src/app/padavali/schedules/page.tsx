@@ -1,19 +1,17 @@
 import { type Metadata } from 'next';
-import { headers } from 'next/headers';
 import Link from 'next/link';
 import { redirect } from 'next/navigation';
 import { IoMdArrowRoundBack } from 'react-icons/io';
 import { FiPlus } from 'react-icons/fi';
 import { db } from '~/db/db';
-import get_seesion_from_cookie from '~/lib/get_auth_from_cookie';
 import { Button } from '@/components/ui/button';
 import ListSchedules, { PastSchedules } from './ListSchedules';
 import { Card, CardContent } from '~/components/ui/card';
+import { getCachedSession } from '~/lib/cache_server_data';
 
 const Main = async () => {
-  const session = await get_seesion_from_cookie((await headers()).get('cookie') ?? '');
-  if (!session) redirect('/padavali');
-  if (session.user.role !== 'admin' || !session.user.is_approved) redirect('/padavali');
+  const session = await getCachedSession();
+  if (!session || session.user.role !== 'admin' || !session.user.is_approved) redirect('/padavali');
 
   const current_time = new Date();
   const uncomming_schedules = await db.query.puzzle_game_schedules.findMany({
