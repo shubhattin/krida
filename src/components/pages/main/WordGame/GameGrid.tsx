@@ -93,7 +93,7 @@ export const GameGrid = ({ puzzle_id, timerRef, original_grid_data, location }: 
         }
       });
     }
-  }, [turnstileToken, update_games_started_mut, started, completed]);
+  }, [turnstileToken, update_games_started_mut, completed]);
 
   // Prevent pull-to-refresh and other navigation gestures
   useEffect(() => {
