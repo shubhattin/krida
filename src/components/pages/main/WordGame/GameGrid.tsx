@@ -30,7 +30,7 @@ type Props = {
 
 export const GameGrid = ({ puzzle_id, timerRef, original_grid_data, puzzle_uuid }: Props) => {
   const { script } = useContext(AppContext);
-  const [started] = useAtom(started_atom);
+  const [started, setStarted] = useAtom(started_atom);
   const [completed, setCompleted] = useAtom(completed_atom);
   const [seconds] = useAtom(seconds_atom);
   const [currentSelection, setCurrentSelection] = useAtom(current_selection_atom);
@@ -49,16 +49,16 @@ export const GameGrid = ({ puzzle_id, timerRef, original_grid_data, puzzle_uuid 
   const turnstile = useTurnstile();
   const submit_stats_mut = client_q.padavali.stats.submit_stats.useMutation({
     onSuccess() {
-      turnstile.reset();
       setTurnstileToken(null);
+      turnstile.reset();
       update_games_started_mut.reset();
       submit_stats_mut.reset();
     }
   });
   const update_games_started_mut = client_q.padavali.stats.update_games_started.useMutation({
     onSuccess() {
-      turnstile.reset();
       setTurnstileToken(null);
+      turnstile.reset();
     }
   });
   useEffect(() => {
@@ -73,23 +73,23 @@ export const GameGrid = ({ puzzle_id, timerRef, original_grid_data, puzzle_uuid 
   }, [started, turnstileToken]);
   useEffect(() => {
     if (
-      !turnstileToken ||
-      update_games_started_mut.isPending ||
-      !update_games_started_mut.isSuccess ||
-      submit_stats_mut.isPending ||
-      submit_stats_mut.isSuccess
-    )
-      return;
-    submit_stats_mut.mutateAsync({
-      turnstile_token: turnstileToken,
-      info: {
-        puzzle_id: puzzle_id,
-        time_taken: seconds,
-        accuracy: Math.trunc((correctAttempts / totalAttempts) * 100),
-        correct_attempts: correctAttempts,
-        total_attempts: totalAttempts
-      }
-    });
+      turnstileToken &&
+      !update_games_started_mut.isPending &&
+      update_games_started_mut.isSuccess &&
+      !submit_stats_mut.isPending &&
+      !submit_stats_mut.isSuccess
+    ) {
+      submit_stats_mut.mutateAsync({
+        turnstile_token: turnstileToken,
+        info: {
+          puzzle_id: puzzle_id,
+          time_taken: seconds,
+          accuracy: Math.trunc((correctAttempts / totalAttempts) * 100),
+          correct_attempts: correctAttempts,
+          total_attempts: totalAttempts
+        }
+      });
+    }
   }, [turnstileToken, update_games_started_mut, submit_stats_mut]);
 
   // Prevent pull-to-refresh and other navigation gestures
@@ -298,6 +298,7 @@ export const GameGrid = ({ puzzle_id, timerRef, original_grid_data, puzzle_uuid 
   useEffect(() => {
     if (foundWords.length === wordList.length && foundWords.length > 0 && started) {
       setCompleted(true);
+      setStarted(false);
       if (timerRef.current) {
         clearInterval(timerRef.current);
       }

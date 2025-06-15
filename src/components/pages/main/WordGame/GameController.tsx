@@ -63,7 +63,7 @@ export const GameContoller = ({ timerRef }: Props) => {
 
   return (
     <>
-      {!started && (
+      {!started && !completed && (
         <button
           onClick={handleStart}
           className={cn(
