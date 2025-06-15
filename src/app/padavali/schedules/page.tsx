@@ -7,7 +7,7 @@ import { FiPlus } from 'react-icons/fi';
 import { db } from '~/db/db';
 import get_seesion_from_cookie from '~/lib/get_auth_from_cookie';
 import { Button } from '@/components/ui/button';
-import ListSchedules from './ListSchedules';
+import ListSchedules, { PastSchedules } from './ListSchedules';
 import { Card, CardContent } from '~/components/ui/card';
 
 const Main = async () => {
@@ -15,7 +15,8 @@ const Main = async () => {
   if (!session) redirect('/padavali');
   if (session.user.role !== 'admin' || !session.user.is_approved) redirect('/padavali');
 
-  const schedules = await db.query.puzzle_game_schedules.findMany({
+  const current_time = new Date();
+  const uncomming_schedules = await db.query.puzzle_game_schedules.findMany({
     columns: {
       id: true,
       start_time: true,
@@ -31,7 +32,8 @@ const Main = async () => {
       }
     },
     orderBy: (schedules, { desc }) => [desc(schedules.created_at)],
-    where: (schedules, { eq }) => eq(schedules.completed, false)
+    where: (schedules, { eq, and, or, gte }) =>
+      and(eq(schedules.completed, false), gte(schedules.end_time, current_time))
   });
 
   return (
@@ -54,27 +56,33 @@ const Main = async () => {
           </Link>
         </Button>
       </div>
-      {schedules.length === 0 ? (
-        <Card>
-          <CardContent className="flex flex-col items-center justify-center py-12 text-center">
-            <div className="mb-4 text-muted-foreground">
-              <FiPlus className="mx-auto mb-2 h-12 w-12 opacity-50" />
-            </div>
-            <h3 className="mb-2 text-lg font-semibold">कालबन्धानि न सन्ति</h3>
-            <p className="mb-4 text-muted-foreground">
-              अत्र कोऽपि कालबन्धनं नास्ति। कृपया प्रथमं कालबन्धनं योजयतु।
-            </p>
-            <Button asChild variant="link">
-              <Link href="/padavali/schedules/add" className="flex items-center gap-2">
-                <FiPlus className="h-4 w-4" />
-                प्रथमकालबन्धनं योजय
-              </Link>
-            </Button>
-          </CardContent>
-        </Card>
-      ) : (
-        <ListSchedules schedules={schedules} />
-      )}
+
+      {/* Upcoming Schedules Section */}
+      <div className="mb-8">
+        <h2 className="mb-4 text-xl font-semibold">आगामिकालबन्धानि</h2>
+        {uncomming_schedules.length === 0 ? (
+          <Card>
+            <CardContent className="flex flex-col items-center justify-center py-12 text-center">
+              <div className="mb-4 text-muted-foreground">
+                <FiPlus className="mx-auto mb-2 h-12 w-12 opacity-50" />
+              </div>
+              <h3 className="mb-2 text-lg font-semibold">आगामिकालबन्धानि न सन्ति</h3>
+              <p className="mb-4 text-muted-foreground">
+                अत्र कोऽपि आगामिकालबन्धनं नास्ति। कृपया प्रथमं कालबन्धनं योजयतु।
+              </p>
+              <Button asChild variant="link">
+                <Link href="/padavali/schedules/add" className="flex items-center gap-2">
+                  <FiPlus className="h-4 w-4" />
+                  प्रथमकालबन्धनं योजय
+                </Link>
+              </Button>
+            </CardContent>
+          </Card>
+        ) : (
+          <ListSchedules upcomming_schedules={uncomming_schedules} />
+        )}
+        <PastSchedules />
+      </div>
     </div>
   );
 };

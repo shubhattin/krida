@@ -4,6 +4,7 @@ import { db } from '~/db/db';
 import { puzzle_game_schedules } from '~/db/schema';
 import { revalidatePath } from 'next/cache';
 import { eq } from 'drizzle-orm';
+import { delay } from '~/tools/delay';
 
 const add_puzzle_schedule_route = protectedAdminProcedure
   .input(
@@ -67,7 +68,34 @@ const delete_puzzle_schedule_route = protectedAdminProcedure
     return { success: true };
   });
 
+const get_past_schedules_route = protectedAdminProcedure.query(async () => {
+  await delay(500);
+  const current_time = new Date();
+  const past_schedules = await db.query.puzzle_game_schedules.findMany({
+    columns: {
+      id: true,
+      start_time: true,
+      end_time: true,
+      created_at: true,
+      puzzle_id: true
+    },
+    with: {
+      puzzle: {
+        columns: {
+          title: true
+        }
+      }
+    },
+    orderBy: (schedules, { desc }) => [desc(schedules.created_at)],
+    where: (schedules, { eq, and, lt }) =>
+      and(eq(schedules.completed, false), lt(schedules.end_time, current_time))
+  });
+
+  return past_schedules;
+});
+
 export const schedules_router = t.router({
   add_puzzle_schedule: add_puzzle_schedule_route,
-  delete_puzzle_schedule: delete_puzzle_schedule_route
+  delete_puzzle_schedule: delete_puzzle_schedule_route,
+  get_past_schedules: get_past_schedules_route
 });
