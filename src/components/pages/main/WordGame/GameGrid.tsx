@@ -50,6 +50,7 @@ export const GameGrid = ({ puzzle_id, timerRef, original_grid_data, puzzle_uuid 
   const submit_stats_mut = client_q.padavali.stats.submit_stats.useMutation({
     onSuccess() {
       turnstile.reset();
+      setTurnstileToken(null);
       update_games_started_mut.reset();
       submit_stats_mut.reset();
     }
@@ -57,6 +58,7 @@ export const GameGrid = ({ puzzle_id, timerRef, original_grid_data, puzzle_uuid 
   const update_games_started_mut = client_q.padavali.stats.update_games_started.useMutation({
     onSuccess() {
       turnstile.reset();
+      setTurnstileToken(null);
     }
   });
   useEffect(() => {
@@ -69,10 +71,14 @@ export const GameGrid = ({ puzzle_id, timerRef, original_grid_data, puzzle_uuid 
       });
     }
   }, [started, turnstileToken]);
-  const PROD = process.env.NODE_ENV === 'production';
-  const submit_stats = async () => {
-    if (!turnstileToken || !PROD) return;
-    await submit_stats_mut.mutateAsync({
+  useEffect(() => {
+    if (
+      !turnstileToken ||
+      update_games_started_mut.isPending ||
+      !update_games_started_mut.isSuccess
+    )
+      return;
+    submit_stats_mut.mutateAsync({
       turnstile_token: turnstileToken,
       info: {
         puzzle_id: puzzle_id,
@@ -82,7 +88,7 @@ export const GameGrid = ({ puzzle_id, timerRef, original_grid_data, puzzle_uuid 
         total_attempts: totalAttempts
       }
     });
-  };
+  }, [turnstileToken, update_games_started_mut]);
 
   // Prevent pull-to-refresh and other navigation gestures
   useEffect(() => {
@@ -290,7 +296,6 @@ export const GameGrid = ({ puzzle_id, timerRef, original_grid_data, puzzle_uuid 
   useEffect(() => {
     if (foundWords.length === wordList.length && foundWords.length > 0 && started) {
       setCompleted(true);
-      submit_stats();
       if (timerRef.current) {
         clearInterval(timerRef.current);
       }
