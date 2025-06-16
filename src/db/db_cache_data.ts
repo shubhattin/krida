@@ -24,9 +24,21 @@ type CurrentScheduleType =
   | undefined;
 
 export const get_current_schedule = async () => {
-  const cache = await redis.get<CurrentScheduleType>(REDIS_CACHE_KEYS.current_schedule());
+  const cache = await redis.get<CurrentScheduleType | string>(REDIS_CACHE_KEYS.current_schedule());
   if (cache) {
-    return cache;
+    if (cache === 'undefined') return undefined;
+    else if (typeof cache === 'object' && cache) {
+      return {
+        ...cache,
+        start_time: new Date(cache.start_time),
+        end_time: new Date(cache.end_time),
+        puzzle: {
+          ...cache.puzzle,
+          created_at: new Date(cache.puzzle.created_at),
+          updated_at: cache.puzzle.updated_at ? new Date(cache.puzzle.updated_at) : null
+        }
+      } satisfies CurrentScheduleType;
+    }
   }
 
   const currentTime = new Date();
@@ -67,9 +79,15 @@ type NextScheduleType =
   | undefined;
 
 export const get_next_schedule = async () => {
-  const cache = await redis.get<NextScheduleType>(REDIS_CACHE_KEYS.next_schedule());
+  const cache = await redis.get<NextScheduleType | string>(REDIS_CACHE_KEYS.next_schedule());
   if (cache) {
-    return cache;
+    if (cache === 'undefined') return undefined;
+    else if (typeof cache === 'object' && cache) {
+      return {
+        ...cache,
+        start_time: new Date(cache.start_time)
+      } satisfies NextScheduleType;
+    }
   }
   const currentTime = new Date();
   const data = await db.query.puzzle_game_schedules.findFirst({
@@ -131,9 +149,13 @@ export const get_archived_puzzles = async () => {
 };
 
 export const get_word_puzzle = async (id: number, uuid: string) => {
-  const cache = await redis.get<PuzzleType | undefined>(REDIS_CACHE_KEYS.word_puzzle(id, uuid));
+  const cache = await redis.get<PuzzleType>(REDIS_CACHE_KEYS.word_puzzle(id, uuid));
   if (cache) {
-    return cache;
+    return {
+      ...cache,
+      created_at: new Date(cache.created_at),
+      updated_at: cache.updated_at ? new Date(cache.updated_at) : null
+    } satisfies PuzzleType;
   }
 
   const data = await db.query.word_puzzles.findFirst({
