@@ -1,3 +1,4 @@
+import ms from 'ms';
 import { db } from '~/db/db';
 import { redis, REDIS_CACHE_KEYS } from '~/db/redis';
 
@@ -42,7 +43,13 @@ export const get_current_schedule = async () => {
   });
 
   // setting cache
-  await redis.set(REDIS_CACHE_KEYS.current_schedule(), data ?? 'undefined');
+  await redis.set(
+    REDIS_CACHE_KEYS.current_schedule(),
+    data ?? 'undefined',
+    data && {
+      exat: data.end_time.getTime() / 1000
+    }
+  );
 
   return data satisfies CurrentScheduleType;
 };
@@ -82,7 +89,13 @@ export const get_next_schedule = async () => {
   });
 
   // setting cache
-  await redis.set(REDIS_CACHE_KEYS.next_schedule(), data ?? 'undefined');
+  await redis.set(
+    REDIS_CACHE_KEYS.next_schedule(),
+    data ?? 'undefined',
+    data && {
+      exat: data.start_time.getTime() / 1000
+    }
+  );
 
   return data satisfies NextScheduleType;
 };
@@ -109,7 +122,9 @@ export const get_archived_puzzles = async () => {
   });
 
   // setting cache
-  await redis.set(REDIS_CACHE_KEYS.archived_puzzle_list(), data);
+  await redis.set(REDIS_CACHE_KEYS.archived_puzzle_list(), data, {
+    ex: ms('20days') / 1000
+  });
 
   return data satisfies ArchivedPuzzlesType;
 };
