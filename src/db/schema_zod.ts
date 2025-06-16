@@ -6,6 +6,7 @@ import {
   puzzle_gameplay_sessions
 } from './schema';
 import { createSelectSchema } from 'drizzle-zod';
+import { location_list_enum } from './types';
 
 export const WordPuzzleSchemaZod = createSelectSchema(word_puzzles, {
   created_at: z.coerce.date(),
@@ -23,5 +24,6 @@ export const PuzzleGameScheduleSchemaZod = createSelectSchema(puzzle_game_schedu
 });
 
 export const PuzzleGamePlaySessionSchemaZod = createSelectSchema(puzzle_gameplay_sessions, {
-  created_at: z.coerce.date()
+  created_at: z.coerce.date(),
+  location: location_list_enum
 });
