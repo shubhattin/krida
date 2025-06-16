@@ -6,8 +6,8 @@ export const redis = new Redis({
 });
 
 export const REDIS_CACHE_KEYS = {
-  current_schedule: () => 'current_schedule',
-  next_schedule: () => 'next_schedule',
-  word_puzzle: (id: number, uuid: string) => `word_puzzle:${id}-${uuid}`,
-  archived_puzzle_list: () => 'archived_puzzle_list'
+  current_schedule: () => 'padavali:current_schedule',
+  next_schedule: () => 'padavali:next_schedule',
+  word_puzzle: (id: number, uuid: string) => `padavali:word_puzzle:${id}-${uuid}`,
+  archived_puzzle_list: () => 'padavali:archived_puzzle_list'
 };
