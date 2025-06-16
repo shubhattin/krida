@@ -168,6 +168,7 @@ const MainPagePadavali = ({ script, word_puzzle, initial_script_data, next_sched
         initial_script_data={initial_script_data}
         onChangeCompleted={setCompleted}
         next_schedule={next_schedule}
+        discussion_url={word_puzzle.discussion_url}
       ></WordGameRoot>
     </div>
   );

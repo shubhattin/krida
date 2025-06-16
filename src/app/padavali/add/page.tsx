@@ -23,7 +23,8 @@ const Add = async () => {
     grid_data: Array.from({ length: DIMS[0] }, () => Array.from({ length: DIMS[1] }, () => '')),
     grid_dimensions: [DIMS[0], DIMS[1]],
     archived: false,
-    description: null
+    description: null,
+    discussion_url: null
   };
   return (
     <>

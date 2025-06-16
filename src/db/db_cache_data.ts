@@ -13,6 +13,7 @@ type PuzzleType = {
   grid_data: string[][];
   grid_dimensions: [number, number];
   archived: boolean;
+  discussion_url: string | null;
 };
 type CurrentScheduleType =
   | {

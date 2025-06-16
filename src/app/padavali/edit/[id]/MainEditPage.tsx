@@ -37,7 +37,7 @@ const PuzzleStatsSkeleton = () => (
 
 const MainEditPage = ({ word_puzzle, location }: ViewEditProps) => {
   const [value, setValue] = useState('edit');
-
+  if (location !== 'edit_page') return <></>;
   return (
     <Tabs defaultValue={value} onValueChange={setValue}>
       <TabsList>
@@ -49,13 +49,7 @@ const MainEditPage = ({ word_puzzle, location }: ViewEditProps) => {
       </TabsContent>
       <TabsContent value="stats">
         <Suspense fallback={<PuzzleStatsSkeleton />}>
-          {word_puzzle.id ? (
-            <PuzzleStats puzzleId={word_puzzle.id} />
-          ) : (
-            <div className="py-8 text-center">
-              <div className="text-muted-foreground">Puzzle ID not available</div>
-            </div>
-          )}
+          <PuzzleStats puzzleId={word_puzzle.id} />
         </Suspense>
       </TabsContent>
     </Tabs>

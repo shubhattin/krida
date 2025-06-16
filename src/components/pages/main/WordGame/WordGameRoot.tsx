@@ -13,7 +13,7 @@ import { ScriptSelector } from '~/components/pages/main/ScriptSelector';
 import { cn } from '~/lib/utils';
 import Icon from '~/tools/Icon';
 import { LanguageIcon } from '~/components/icons';
-import { ArchiveIcon, ArrowRightIcon, Calendar, InfoIcon } from 'lucide-react';
+import { ArchiveIcon, ArrowRightIcon, Calendar, InfoIcon, MessageCircleIcon } from 'lucide-react';
 import Link from 'next/link';
 import { motion } from 'framer-motion';
 import {
@@ -31,11 +31,13 @@ import {
   original_word_list_atom
 } from './game_state';
 import { Popover, PopoverContent, PopoverTrigger } from '@radix-ui/react-popover';
-import { FaRegStopCircle } from 'react-icons/fa';
+import { FaRegStopCircle, FaYoutube } from 'react-icons/fa';
 import { AppContext } from '~/components/AppDataContext';
 import dayjs from 'dayjs';
 import relativeTime from 'dayjs/plugin/relativeTime';
 import type { location_list_type } from '~/db/types';
+import { Button } from '~/components/ui/button';
+import { FiYoutube } from 'react-icons/fi';
 
 dayjs.extend(relativeTime);
 
@@ -54,6 +56,7 @@ export type WordGameProps = {
     grid_data: string[][];
   };
   location: location_list_type;
+  discussion_url: string | null;
   onChangeCompleted?: (completed: boolean) => void;
   next_schedule?: {
     id: number;
@@ -153,7 +156,8 @@ function WordGame({
   uuid,
   onChangeCompleted,
   next_schedule,
-  location
+  location,
+  discussion_url
 }: WordGameProps & { id: number }) {
   const { script, setScript } = useContext(AppContext);
   const [, setGridData] = useAtom(grid_data_current_atom);
@@ -335,6 +339,7 @@ function WordGame({
 
           {/* Help Section - Right Sidebar on large screens, bottom on mobile */}
           <div className="order-3 lg:col-span-3 lg:ml-2 xl:ml-3.5">
+            <DiscussionUrl discussion_url={discussion_url} />
             <div className="lg:sticky lg:top-6 lg:mt-12">
               <div className="overflow-hidden rounded-2xl border border-slate-200 bg-white shadow-xl dark:border-slate-700 dark:bg-slate-800">
                 <GameHelp />
@@ -460,5 +465,28 @@ export const NextPuzzleTimePopup = ({
         </span>
       </PopoverContent>
     </Popover>
+  );
+};
+
+const DiscussionUrl = ({
+  discussion_url,
+  className
+}: {
+  discussion_url: string | null;
+  className?: string;
+}) => {
+  console.log(discussion_url);
+  if (!discussion_url) return null;
+  return (
+    <div className={cn('mt-2 mb-4 flex items-center justify-center', className)}>
+      <Link href={discussion_url ?? ''} target="_blank" rel="noopener noreferrer">
+        <Button variant="ghost" className="gap-2 rounded-md text-base font-semibold">
+          <FiYoutube className="-mt-1 size-6 text-red-600 dark:text-red-400" />
+          <span className="bg-gradient-to-r from-orange-500 via-amber-500 to-yellow-600 bg-clip-text font-extrabold text-transparent drop-shadow-sm dark:from-amber-300 dark:via-orange-300 dark:to-yellow-200">
+            Solve Together & Discuss
+          </span>
+        </Button>
+      </Link>
+    </div>
   );
 };

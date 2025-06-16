@@ -63,6 +63,7 @@ const MainEdit = async ({ params }: Props) => {
               grid_data={word_puzzle.grid_data}
               initial_script_data={{ word_msgs: word_game_msgs, title, grid_data }}
               next_schedule={next_schedule}
+              discussion_url={word_puzzle.discussion_url}
             >
               <div className="my-3 mb-3 px-4">
                 <Link href="/padavali" className="flex items-center gap-1 text-lg font-semibold">

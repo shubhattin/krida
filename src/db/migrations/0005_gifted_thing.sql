@@ -1,0 +1,1 @@
+ALTER TABLE "word_puzzles" ADD COLUMN "discussion_url" text;

@@ -26,7 +26,8 @@ export const word_puzzles = pgTable(
     word_list: jsonb().notNull().$type<string[]>(),
     grid_data: jsonb().notNull().$type<string[][]>(),
     grid_dimensions: jsonb().notNull().$type<[number, number]>(),
-    archived: boolean().notNull().default(false)
+    archived: boolean().notNull().default(false),
+    discussion_url: text()
   },
   (table) => [
     uniqueIndex('word_puzzles_uuid_idx').on(table.uuid),

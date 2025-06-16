@@ -48,8 +48,10 @@ const puzzle_schema = z.object({
   grid_data: z.string().min(1).array().array(),
   grid_dimensions: z.tuple([z.number().int(), z.number().int()]),
   archived: z.boolean(),
-  description: z.string().nullable()
+  description: z.string().nullable(),
+  discussion_url: z.string().nullable()
 });
+
 export type Puzzle = z.infer<typeof puzzle_schema>;
 
 const BASE_SCRIPT = 'Sanskrit';
@@ -60,11 +62,20 @@ const grid_data_atom = atom<string[][]>([]);
 const archived_atom = atom<boolean>(false);
 const description_atom = atom<string | null>(null);
 const lipi_lekhika_active_atom = atom<boolean>(true);
+const discussion_url_atom = atom<string | null>(null);
 
-export type ViewEditProps = {
-  word_puzzle: z.infer<typeof puzzle_schema>;
-  location: 'add_page' | 'edit_page';
-};
+export type ViewEditProps =
+  | {
+      word_puzzle: z.infer<typeof puzzle_schema>;
+      location: 'add_page';
+    }
+  | {
+      word_puzzle: z.infer<typeof puzzle_schema> & {
+        id: number;
+        uuid: string;
+      };
+      location: 'edit_page';
+    };
 
 const ViewEditPuzzle = ({ word_puzzle }: ViewEditProps) => {
   useEffect(() => {
@@ -79,7 +90,8 @@ const ViewEditPuzzle = ({ word_puzzle }: ViewEditProps) => {
     [grid_data_atom, word_puzzle.grid_data.map((row) => [...row])],
     [archived_atom, word_puzzle.archived],
     [description_atom, word_puzzle.description],
-    [lipi_lekhika_active_atom, true]
+    [lipi_lekhika_active_atom, true],
+    [discussion_url_atom, word_puzzle.discussion_url]
   ]);
 
   return (
@@ -90,6 +102,7 @@ const ViewEditPuzzle = ({ word_puzzle }: ViewEditProps) => {
           <Title />
           <ArchivedSwitch />
           <Description />
+          <DiscussionUrl />
           <WordList />
           <TraversalAndGridData grid_dimensions={word_puzzle.grid_dimensions} />
           <SaveButton word_puzzle={word_puzzle} />
@@ -126,6 +139,28 @@ const Title = () => {
                 }
               );
             }
+          }}
+        />
+      </Label>
+    </div>
+  );
+};
+
+const DiscussionUrl = () => {
+  const [discussion_url, setDiscussionUrl] = useAtom(discussion_url_atom);
+  return (
+    <div>
+      <Label className="block">
+        <span className="text-lg font-bold">
+          चर्चायाः स्थानसञ्चितः
+          <span className="ml-3 text-xs text-gray-500 dark:text-gray-400">ऐच्छिक</span>
+        </span>
+        <Input
+          type="url"
+          className="mt-1 w-full text-sm sm:w-[90%] md:w-2/3 lg:w-1/2"
+          value={discussion_url ?? ''}
+          onInput={(e) => {
+            setDiscussionUrl(e.currentTarget.value);
           }}
         />
       </Label>
@@ -619,10 +654,12 @@ const SaveButton = ({ word_puzzle }: { word_puzzle: z.infer<typeof puzzle_schema
     wordList: word_puzzle.word_list,
     gridData: word_puzzle.grid_data,
     archived: word_puzzle.archived,
-    description: word_puzzle.description
+    description: word_puzzle.description,
+    discussion_url: word_puzzle.discussion_url
   });
   const [archived] = useAtom(archived_atom);
   const [description] = useAtom(description_atom);
+  const [discussion_url] = useAtom(discussion_url_atom);
 
   const router = useRouter();
 
@@ -634,7 +671,8 @@ const SaveButton = ({ word_puzzle }: { word_puzzle: z.infer<typeof puzzle_schema
         wordList,
         gridData,
         archived,
-        description
+        description,
+        discussion_url
       };
     },
     onError() {
@@ -668,9 +706,10 @@ const SaveButton = ({ word_puzzle }: { word_puzzle: z.infer<typeof puzzle_schema
       JSON.stringify(wordList) !== JSON.stringify(initialRef.current.wordList) ||
       JSON.stringify(gridData) !== JSON.stringify(initialRef.current.gridData) ||
       archived !== initialRef.current.archived ||
-      description !== initialRef.current.description
+      description !== initialRef.current.description ||
+      discussion_url !== initialRef.current.discussion_url
     );
-  }, [title, wordList, gridData, archived, description]);
+  }, [title, wordList, gridData, archived, description, discussion_url]);
 
   const is_addition = word_puzzle.id === null || word_puzzle.id === undefined;
 
@@ -686,7 +725,8 @@ const SaveButton = ({ word_puzzle }: { word_puzzle: z.infer<typeof puzzle_schema
         grid_data: gridData,
         grid_dimensions: word_puzzle.grid_dimensions,
         archived,
-        description: description !== '' ? description : null
+        description: description !== '' ? description : null,
+        discussion_url: discussion_url !== '' ? discussion_url : null
       });
     } else {
       await add_word_puzzle_mut.mutateAsync({
@@ -695,7 +735,8 @@ const SaveButton = ({ word_puzzle }: { word_puzzle: z.infer<typeof puzzle_schema
         grid_data: gridData,
         grid_dimensions: word_puzzle.grid_dimensions,
         archived,
-        description: description !== '' ? description : null
+        description: description !== '' ? description : null,
+        discussion_url: discussion_url !== '' ? discussion_url : null
       });
     }
   };

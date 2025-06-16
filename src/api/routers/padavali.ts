@@ -18,7 +18,8 @@ const schema = z.object({
   grid_data: z.string().min(1).array().array(),
   grid_dimensions: z.tuple([z.number().int(), z.number().int()]),
   archived: z.boolean(),
-  description: z.string().nullable()
+  description: z.string().nullable(),
+  discussion_url: z.string().url().nullable()
 });
 
 const update_puzzle_route = protectedAdminProcedure.input(schema).mutation(async ({ input }) => {
