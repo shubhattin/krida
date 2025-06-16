@@ -86,3 +86,30 @@ export const get_next_schedule = async () => {
 
   return data satisfies NextScheduleType;
 };
+
+type ArchivedPuzzlesType = {
+  id: number;
+  uuid: string;
+  title: string;
+}[];
+
+export const get_archived_puzzles = async () => {
+  const cache = await redis.get<ArchivedPuzzlesType>(REDIS_CACHE_KEYS.archived_puzzle_list());
+  if (cache) {
+    return cache;
+  }
+  const data = await db.query.word_puzzles.findMany({
+    columns: {
+      id: true,
+      uuid: true,
+      title: true
+    },
+    where: ({ archived }, { eq }) => eq(archived, true),
+    orderBy: ({ created_at }, { desc }) => desc(created_at)
+  });
+
+  // setting cache
+  await redis.set(REDIS_CACHE_KEYS.archived_puzzle_list(), data);
+
+  return data satisfies ArchivedPuzzlesType;
+};

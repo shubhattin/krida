@@ -73,7 +73,7 @@ const delete_puzzle_schedule_route = protectedAdminProcedure
   .mutation(async ({ input: { schedule_id } }) => {
     revalidatePath('/padavali/schedules');
 
-    await Promise.all([
+    await Promise.allSettled([
       db.delete(puzzle_game_schedules).where(eq(puzzle_game_schedules.id, schedule_id)),
       // invalidate cache
       redis.del(REDIS_CACHE_KEYS.current_schedule()),
