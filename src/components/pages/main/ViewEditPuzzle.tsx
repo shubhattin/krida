@@ -698,7 +698,8 @@ const SaveButton = ({ word_puzzle }: { word_puzzle: z.infer<typeof puzzle_schema
   const handleDelete = async () => {
     if (!is_addition) {
       await delete_word_puzzle_mut.mutateAsync({
-        id: word_puzzle.id!
+        id: word_puzzle.id!,
+        uuid: word_puzzle.uuid!
       });
     }
   };

@@ -2,23 +2,24 @@ import ms from 'ms';
 import { db } from '~/db/db';
 import { redis, REDIS_CACHE_KEYS } from '~/db/redis';
 
+type PuzzleType = {
+  id: number;
+  uuid: string;
+  title: string;
+  description: string | null;
+  created_at: Date;
+  updated_at: Date | null;
+  word_list: string[];
+  grid_data: string[][];
+  grid_dimensions: [number, number];
+  archived: boolean;
+};
 type CurrentScheduleType =
   | {
       id: number;
       start_time: Date;
       end_time: Date;
-      puzzle: {
-        id: number;
-        uuid: string;
-        title: string;
-        description: string | null;
-        created_at: Date;
-        updated_at: Date | null;
-        word_list: string[];
-        grid_data: string[][];
-        grid_dimensions: [number, number];
-        archived: boolean;
-      };
+      puzzle: PuzzleType;
     }
   | undefined;
 
@@ -127,4 +128,21 @@ export const get_archived_puzzles = async () => {
   });
 
   return data satisfies ArchivedPuzzlesType;
+};
+
+export const get_word_puzzle = async (id: number, uuid: string) => {
+  const cache = await redis.get<PuzzleType | undefined>(REDIS_CACHE_KEYS.word_puzzle(id, uuid));
+  if (cache) {
+    return cache;
+  }
+
+  const data = await db.query.word_puzzles.findFirst({
+    where: (tbl, { eq, and }) => and(eq(tbl.id, id), eq(tbl.uuid, uuid))
+  });
+  if (data) {
+    await redis.set(REDIS_CACHE_KEYS.word_puzzle(id, uuid), data, {
+      ex: ms('20days') / 1000
+    });
+  }
+  return data satisfies PuzzleType | undefined;
 };

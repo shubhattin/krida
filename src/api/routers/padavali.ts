@@ -6,6 +6,7 @@ import { and, eq } from 'drizzle-orm';
 import { revalidatePath } from 'next/cache';
 import { padavali_stats_router } from './padavali_stats';
 import { redis, REDIS_CACHE_KEYS } from '~/db/redis';
+import { get_word_puzzle } from '~/db/db_cache_data';
 
 const schema = z.object({
   id: z.number().int(),
@@ -37,7 +38,8 @@ const update_puzzle_route = protectedAdminProcedure.input(schema).mutation(async
       .set(input)
       .where(and(eq(word_puzzles.id, input.id), eq(word_puzzles.uuid, input.uuid))),
     (input.archived || prev_archived !== input.archived) &&
-      redis.del(REDIS_CACHE_KEYS.archived_puzzle_list())
+      redis.del(REDIS_CACHE_KEYS.archived_puzzle_list()),
+    redis.del(REDIS_CACHE_KEYS.word_puzzle(input.id, input.uuid))
   ]);
   return {
     success: true
@@ -67,8 +69,8 @@ const add_puzzle_route = protectedAdminProcedure
   });
 
 const delete_puzzle_route = protectedAdminProcedure
-  .input(z.object({ id: z.number().int() }))
-  .mutation(async ({ input: { id } }) => {
+  .input(z.object({ id: z.number().int(), uuid: z.string().uuid() }))
+  .mutation(async ({ input: { id, uuid } }) => {
     revalidatePath('/padavali/list');
     const { archived } = (await db.query.word_puzzles.findFirst({
       columns: {
@@ -80,7 +82,8 @@ const delete_puzzle_route = protectedAdminProcedure
     await Promise.allSettled([
       db.delete(word_puzzles).where(eq(word_puzzles.id, id)),
       // only invalidate list when puzzle is archived
-      archived && redis.del(REDIS_CACHE_KEYS.archived_puzzle_list())
+      archived && redis.del(REDIS_CACHE_KEYS.archived_puzzle_list()),
+      redis.del(REDIS_CACHE_KEYS.word_puzzle(id, uuid))
     ]);
     return {
       success: true
@@ -90,9 +93,7 @@ const delete_puzzle_route = protectedAdminProcedure
 const get_puzzle_data_route = publicProcedure
   .input(z.object({ id: z.number().int(), uuid: z.string().uuid() }))
   .query(async ({ input: { id, uuid } }) => {
-    const puzzle = await db.query.word_puzzles.findFirst({
-      where: and(eq(word_puzzles.id, id), eq(word_puzzles.uuid, uuid))
-    });
+    const puzzle = await get_word_puzzle(id, uuid);
     return puzzle!;
   });
 
