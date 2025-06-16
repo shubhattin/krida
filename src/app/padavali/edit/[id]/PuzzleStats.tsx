@@ -15,20 +15,10 @@ import {
 } from '~/components/ui/select';
 import { Card, CardContent, CardHeader, CardTitle } from '~/components/ui/card';
 import { ChartContainer, ChartTooltip, ChartTooltipContent } from '~/components/ui/chart';
-import {
-  BarChart,
-  Bar,
-  XAxis,
-  YAxis,
-  CartesianGrid,
-  LineChart,
-  Line,
-  ResponsiveContainer
-} from 'recharts';
+import { XAxis, YAxis, CartesianGrid, LineChart, Line } from 'recharts';
 import { CalendarIcon, TrendingUpIcon, UsersIcon, ClockIcon, TargetIcon } from 'lucide-react';
 import { cn } from '~/lib/utils';
 import { format } from 'date-fns';
-import { location_list_type } from '~/db/types';
 
 type DateRange = {
   from: Date | undefined;
@@ -71,17 +61,21 @@ const StatsLoadingSkeleton = () => (
     </div>
 
     {/* Charts skeleton */}
-    <div className="grid grid-cols-1 gap-6 lg:grid-cols-2">
-      {[...Array(2)].map((_, i) => (
-        <Card key={i}>
-          <CardHeader>
-            <Skeleton className="h-6 w-32" />
-          </CardHeader>
-          <CardContent>
-            <Skeleton className="h-80 w-full" />
-          </CardContent>
-        </Card>
-      ))}
+    <div className="w-full">
+      <div className="container mx-auto px-4 sm:px-6 lg:px-8">
+        <div className="flex justify-center">
+          <div className="w-full max-w-xs sm:max-w-md md:max-w-2xl lg:max-w-4xl xl:max-w-5xl">
+            <Card>
+              <CardHeader>
+                <Skeleton className="mx-auto h-6 w-32 sm:mx-0" />
+              </CardHeader>
+              <CardContent className="p-2 sm:p-6">
+                <Skeleton className="h-64 w-full sm:h-72 md:h-80 lg:h-96" />
+              </CardContent>
+            </Card>
+          </div>
+        </div>
+      </div>
     </div>
   </div>
 );
@@ -161,11 +155,6 @@ const DateRangeControls = ({
                 mode="single"
                 selected={dateRange.to}
                 onSelect={(date) => setDateRange((prev) => ({ ...prev, to: date }))}
-                // disabled={(date) =>
-                //   date > new Date() ||
-                //   date < new Date('1900-01-01') ||
-                //   (dateRange.from && date < dateRange.from)
-                // }
               />
             </PopoverContent>
           </Popover>
@@ -215,46 +204,80 @@ const SummaryCards = ({ summaryStats }: { summaryStats: any }) => (
 
 // Charts section component
 const ChartsSection = ({ chartData, chartConfig }: { chartData: any; chartConfig: any }) => (
-  <div className="grid grid-cols-1 gap-6 lg:grid-cols-2">
-    {/* Daily Activity Chart */}
-    <Card>
-      <CardHeader>
-        <CardTitle>Daily Activity</CardTitle>
-      </CardHeader>
-      <CardContent>
-        <ChartContainer config={chartConfig} className="h-80">
-          <BarChart data={chartData.dailyStats}>
-            <CartesianGrid strokeDasharray="3 3" />
-            <XAxis dataKey="date" tickFormatter={(value) => format(new Date(value), 'MMM dd')} />
-            <YAxis />
-            <ChartTooltip
-              content={<ChartTooltipContent />}
-              labelFormatter={(value) => format(new Date(value as string), 'PPP')}
-            />
-            <Bar dataKey="sessions" fill="var(--color-sessions)" />
-            <Bar dataKey="completions" fill="var(--color-completions)" />
-          </BarChart>
-        </ChartContainer>
-      </CardContent>
-    </Card>
-
-    {/* Location Distribution Chart */}
-    <Card>
-      <CardHeader>
-        <CardTitle>Sessions by Location</CardTitle>
-      </CardHeader>
-      <CardContent>
-        <ChartContainer config={chartConfig} className="h-80">
-          <BarChart data={chartData.locationStats} layout="horizontal">
-            <CartesianGrid strokeDasharray="3 3" />
-            <XAxis type="number" />
-            <YAxis dataKey="location" type="category" width={100} />
-            <ChartTooltip content={<ChartTooltipContent />} />
-            <Bar dataKey="count" fill="var(--color-count)" />
-          </BarChart>
-        </ChartContainer>
-      </CardContent>
-    </Card>
+  <div className="w-full">
+    <div className="container mx-auto px-4 sm:px-6 lg:px-8">
+      <div className="flex justify-center">
+        <div className="w-full max-w-xs sm:max-w-md md:max-w-2xl lg:max-w-4xl xl:max-w-5xl">
+          {/* Daily Activity Chart */}
+          <Card>
+            <CardHeader>
+              <CardTitle className="text-center sm:text-left">Daily Activity</CardTitle>
+            </CardHeader>
+            <CardContent className="p-2 sm:p-6">
+              <ChartContainer config={chartConfig} className="h-64 sm:h-72 md:h-80 lg:h-96">
+                <LineChart data={chartData.dailyStats}>
+                  <CartesianGrid strokeDasharray="3 3" className="stroke-muted/50" />
+                  <XAxis
+                    dataKey="date"
+                    tickFormatter={(value) => format(new Date(value), 'MMM dd')}
+                    className="stroke-muted-foreground"
+                    tick={{ className: 'fill-muted-foreground', fontSize: 12 }}
+                    interval="preserveStartEnd"
+                  />
+                  <YAxis
+                    className="stroke-muted-foreground"
+                    tick={{ className: 'fill-muted-foreground', fontSize: 12 }}
+                    width={40}
+                  />
+                  <ChartTooltip
+                    content={<ChartTooltipContent />}
+                    labelFormatter={(value) => format(new Date(value as string), 'PPP')}
+                  />
+                  <Line
+                    dataKey="sessions"
+                    stroke="hsl(217 91% 60%)"
+                    strokeWidth={3}
+                    dot={{
+                      fill: 'hsl(217 91% 60%)',
+                      strokeWidth: 2,
+                      r: 5,
+                      stroke: 'hsl(217 91% 60%)',
+                      className: 'drop-shadow-sm'
+                    }}
+                    activeDot={{
+                      r: 7,
+                      fill: 'hsl(217 91% 60%)',
+                      stroke: 'white',
+                      strokeWidth: 2,
+                      className: 'drop-shadow-md'
+                    }}
+                  />
+                  <Line
+                    dataKey="completions"
+                    stroke="hsl(240 100% 70%)"
+                    strokeWidth={3}
+                    dot={{
+                      fill: 'hsl(240 100% 70%)',
+                      strokeWidth: 2,
+                      r: 5,
+                      stroke: 'hsl(240 100% 70%)',
+                      className: 'drop-shadow-sm'
+                    }}
+                    activeDot={{
+                      r: 7,
+                      fill: 'hsl(240 100% 70%)',
+                      stroke: 'white',
+                      strokeWidth: 2,
+                      className: 'drop-shadow-md'
+                    }}
+                  />
+                </LineChart>
+              </ChartContainer>
+            </CardContent>
+          </Card>
+        </div>
+      </div>
+    </div>
   </div>
 );
 
@@ -301,7 +324,7 @@ const PuzzleStats = ({ puzzleId }: { puzzleId: number }) => {
 
   // Process data for charts
   const chartData = useMemo(() => {
-    if (!statsQuery.data) return { dailyStats: [], locationStats: [] };
+    if (!statsQuery.data) return { dailyStats: [] };
 
     const { sessions, stats } = statsQuery.data;
 
@@ -324,19 +347,7 @@ const PuzzleStats = ({ puzzleId }: { puzzleId: number }) => {
 
     const dailyStats = Array.from(dailyMap.values()).sort((a, b) => a.date.localeCompare(b.date));
 
-    // Create location aggregation
-    const locationMap = new Map<location_list_type, number>();
-    sessions.forEach((session) => {
-      const count = locationMap.get(session.location!) || 0;
-      locationMap.set(session.location!, count + 1);
-    });
-
-    const locationStats = Array.from(locationMap.entries()).map(([location, count]) => ({
-      location,
-      count
-    }));
-
-    return { dailyStats, locationStats };
+    return { dailyStats };
   }, [statsQuery.data]);
 
   // Summary statistics
@@ -354,16 +365,12 @@ const PuzzleStats = ({ puzzleId }: { puzzleId: number }) => {
 
   const chartConfig = {
     sessions: {
-      label: 'Sessions',
-      color: 'hsl(var(--chart-1))'
+      label: 'Started',
+      color: 'hsl(217 91% 60%)'
     },
     completions: {
-      label: 'Completions',
-      color: 'hsl(var(--chart-2))'
-    },
-    count: {
-      label: 'Count',
-      color: 'hsl(var(--chart-3))'
+      label: 'Completed',
+      color: 'hsl(240 100% 70%)'
     }
   };
 
