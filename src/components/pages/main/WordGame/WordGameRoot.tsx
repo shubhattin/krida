@@ -35,6 +35,7 @@ import { FaRegStopCircle } from 'react-icons/fa';
 import { AppContext } from '~/components/AppDataContext';
 import dayjs from 'dayjs';
 import relativeTime from 'dayjs/plugin/relativeTime';
+import type { location_list_type } from '~/db/types';
 
 dayjs.extend(relativeTime);
 
@@ -52,7 +53,7 @@ export type WordGameProps = {
     title: string;
     grid_data: string[][];
   };
-  location: 'view_page' | 'main_page' | 'archive_page';
+  location: location_list_type;
   onChangeCompleted?: (completed: boolean) => void;
   next_schedule?: {
     id: number;

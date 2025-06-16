@@ -20,13 +20,14 @@ import {
   original_word_list_atom
 } from './game_state';
 import { AppContext } from '~/components/AppDataContext';
+import type { location_list_type } from '~/db/types';
 
 type Props = {
   puzzle_id: number;
   timerRef: RefObject<NodeJS.Timeout | null>;
   original_grid_data: string[][];
   puzzle_uuid: string;
-  location: string;
+  location: location_list_type;
 };
 
 export const GameGrid = ({ puzzle_id, timerRef, original_grid_data, location }: Props) => {

@@ -11,6 +11,7 @@ import {
   varchar
 } from 'drizzle-orm/pg-core';
 import { relations } from 'drizzle-orm';
+import type { location_list_type } from './types';
 
 export const word_puzzles = pgTable(
   'word_puzzles',
@@ -35,7 +36,7 @@ export const puzzle_gameplay_sessions = pgTable('puzzle_gameplay_sessions', {
     .notNull()
     .references(() => word_puzzles.id, { onDelete: 'cascade' }),
   created_at: timestamp({ withTimezone: true }).notNull().defaultNow(),
-  location: varchar({ length: 25 })
+  location: varchar({ length: 25 }).$type<location_list_type>()
 });
 
 export const puzzle_gameplay_stats = pgTable('puzzle_gameplay_stats', {

@@ -3,6 +3,7 @@ import { publicProcedure, t, verify_cloudflare_turnstile_token } from '../trpc_i
 import { z } from 'zod';
 import { puzzle_gameplay_sessions, puzzle_gameplay_stats } from '~/db/schema';
 import { db } from '~/db/db';
+import { location_list_enum } from '~/db/types';
 
 const submit_stats_route = publicProcedure
   .input(
@@ -40,7 +41,13 @@ const submit_stats_route = publicProcedure
   });
 
 const update_games_started_route = publicProcedure
-  .input(z.object({ turnstile_token: z.string(), id: z.number().int(), location: z.string() }))
+  .input(
+    z.object({
+      turnstile_token: z.string(),
+      id: z.number().int(),
+      location: location_list_enum
+    })
+  )
   .mutation(async ({ input: { turnstile_token, id, location } }) => {
     const is_valid = await verify_cloudflare_turnstile_token(turnstile_token);
     if (!is_valid) {
