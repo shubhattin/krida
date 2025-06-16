@@ -8,6 +8,7 @@ import { DEFAULT_DATA_SCRIPT } from '~/state/script_font_data';
 import { get_transliterated_word_game_msgs } from '~/components/pages/main/WordGame/msgs';
 import { lipi_parivartak } from '~/tools/lipi_lekhika';
 import { getCachedScript } from '~/lib/cache_server_route_data';
+import { get_next_schedule } from '~/db/db_cache_data';
 
 type Props = { params: Promise<{ uuid_id: string }> };
 
@@ -34,27 +35,10 @@ const MainEdit = async ({ params }: Props) => {
   const id = z.coerce.number().int().parse(id_str);
   const uuid = z.string().uuid().parse(uuid_str);
 
-  const currentTime = new Date();
   const word_puzzle_pr = db.query.word_puzzles.findFirst({
     where: (tbl, { eq, and }) => and(eq(tbl.id, id), eq(tbl.uuid, uuid))
   });
-  const next_schedule_pr = db.query.puzzle_game_schedules.findFirst({
-    columns: {
-      id: true,
-      start_time: true
-    },
-    where: (tbl, { gt }) => gt(tbl.start_time, currentTime),
-    orderBy: (tbl, { asc }) => asc(tbl.start_time),
-    with: {
-      puzzle: {
-        columns: {
-          id: true,
-          title: true
-        }
-      }
-    }
-  });
-  const [word_puzzle, next_schedule] = await Promise.all([word_puzzle_pr, next_schedule_pr]);
+  const [word_puzzle, next_schedule] = await Promise.all([word_puzzle_pr, get_next_schedule()]);
 
   const script = await getCachedScript();
   const word_game_msgs = await get_transliterated_word_game_msgs(script);

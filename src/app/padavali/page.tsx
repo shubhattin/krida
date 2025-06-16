@@ -1,4 +1,3 @@
-import { db } from '~/db/db';
 import { Metadata } from 'next';
 import { DEFAULT_DATA_SCRIPT } from '~/state/script_font_data';
 import { get_transliterated_word_game_msgs } from '~/components/pages/main/WordGame/msgs';
@@ -10,44 +9,16 @@ import MainPagePadavali from './MainPagePadavali';
 import { getCachedScript } from '~/lib/cache_server_route_data';
 import dayjs from 'dayjs';
 import relativeTime from 'dayjs/plugin/relativeTime';
+import { get_current_schedule, get_next_schedule } from '~/db/db_cache_data';
 
 dayjs.extend(relativeTime);
 
 export const dynamic = 'force-dynamic';
 
 export default async function Home() {
-  const currentTime = new Date();
-  const current_schedule_pr = db.query.puzzle_game_schedules.findFirst({
-    columns: {
-      id: true,
-      start_time: true,
-      end_time: true
-    },
-    where: (tbl, { and, lte, gte }) =>
-      and(lte(tbl.start_time, currentTime), gte(tbl.end_time, currentTime)),
-    with: {
-      puzzle: true
-    }
-  });
-  const next_schedule_pr = db.query.puzzle_game_schedules.findFirst({
-    columns: {
-      id: true,
-      start_time: true
-    },
-    where: (tbl, { gt }) => gt(tbl.start_time, currentTime),
-    orderBy: (tbl, { asc }) => asc(tbl.start_time),
-    with: {
-      puzzle: {
-        columns: {
-          id: true,
-          title: true
-        }
-      }
-    }
-  });
   const [current_schedule, next_schedule] = await Promise.all([
-    current_schedule_pr,
-    next_schedule_pr
+    get_current_schedule(),
+    get_next_schedule()
   ]);
 
   if (!current_schedule) {
