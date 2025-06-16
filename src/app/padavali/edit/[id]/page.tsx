@@ -7,7 +7,7 @@ import Link from 'next/link';
 import { IoMdArrowRoundBack } from 'react-icons/io';
 import { FaPlay } from 'react-icons/fa';
 import { Provider as JotaiProvider } from 'jotai';
-import { getCachedSession } from '~/lib/cache_server_data';
+import { getCachedSession } from '~/lib/cache_server_route_data';
 
 type Props = { params: Promise<{ id: string }> };
 

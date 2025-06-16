@@ -7,7 +7,7 @@ import { db } from '~/db/db';
 import { Button } from '@/components/ui/button';
 import ListSchedules, { PastSchedules } from './ListSchedules';
 import { Card, CardContent } from '~/components/ui/card';
-import { getCachedSession } from '~/lib/cache_server_data';
+import { getCachedSession } from '~/lib/cache_server_route_data';
 
 const Main = async () => {
   const session = await getCachedSession();

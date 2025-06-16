@@ -7,7 +7,7 @@ import { ClockIcon, CalendarIcon, ArchiveIcon, ArrowRightIcon } from 'lucide-rea
 import { IoExtensionPuzzleSharp } from 'react-icons/io5';
 import Link from 'next/link';
 import MainPagePadavali from './MainPagePadavali';
-import { getCachedScript } from '~/lib/cache_server_data';
+import { getCachedScript } from '~/lib/cache_server_route_data';
 import dayjs from 'dayjs';
 import relativeTime from 'dayjs/plugin/relativeTime';
 

@@ -4,7 +4,7 @@ import { Metadata } from 'next';
 import { db } from '~/db/db';
 import Link from 'next/link';
 import { IoMdArrowRoundBack } from 'react-icons/io';
-import { getCachedSession } from '~/lib/cache_server_data';
+import { getCachedSession } from '~/lib/cache_server_route_data';
 
 const Main = async () => {
   const session = await getCachedSession();

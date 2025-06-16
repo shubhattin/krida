@@ -5,7 +5,7 @@ import { IoMdArrowRoundBack } from 'react-icons/io';
 import ViewEditPuzzle from '~/components/pages/main/ViewEditPuzzle';
 import { type Puzzle } from '~/components/pages/main/ViewEditPuzzle';
 import { Provider as JotaiProvider } from 'jotai';
-import { getCachedSession } from '~/lib/cache_server_data';
+import { getCachedSession } from '~/lib/cache_server_route_data';
 
 const Add = async () => {
   const session = await getCachedSession();

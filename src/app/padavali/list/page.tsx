@@ -8,7 +8,7 @@ import { db } from '~/db/db';
 import dayjs from 'dayjs';
 import relativeTime from 'dayjs/plugin/relativeTime';
 import { CalendarIcon } from 'lucide-react';
-import { getCachedSession } from '~/lib/cache_server_data';
+import { getCachedSession } from '~/lib/cache_server_route_data';
 
 dayjs.extend(relativeTime);
 

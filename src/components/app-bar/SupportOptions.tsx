@@ -81,14 +81,14 @@ const SupportOptionsContent: React.FC = () => {
     <div>
       <div className="text-sm font-semibold underline">One-Time Contributions :</div>
       <div className="mt-2">
-        <div className="flex justify-center text-center text-sm">
+        <div className="mb-0.5 flex justify-center text-center text-sm">
           <a
             href={UPI_ID_LINK}
             target="_blank"
             className="ml-1 outline-hidden select-none"
             rel="noopener noreferrer"
           >
-            <Icon src={UPIIcon} className="-mt-1.5 text-3xl" /> UPI :
+            <Icon src={UPIIcon} className="-mt-1.5 text-3xl" /> UPI :{' '}
             <span className="text-sm text-blue-600 outline-hidden hover:text-blue-500 dark:text-blue-400 dark:hover:text-blue-300">
               {UPI_ID}
             </span>
@@ -107,7 +107,7 @@ const SupportOptionsContent: React.FC = () => {
           >
             <ImageSpan
               src={`data:image/png;base64,${tsc_icon_24_base64}`}
-              className="h-10 w-10 rounded-full bg-white p-1 shadow-md"
+              className="size-10 rounded-full bg-white p-1 shadow-md"
             />
           </div>
         </div>
