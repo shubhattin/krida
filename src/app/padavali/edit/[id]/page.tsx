@@ -1,13 +1,13 @@
 import { redirect } from 'next/navigation';
 import { z } from 'zod';
 import { db } from '~/db/db';
-import ViewEditPuzzle from '~/components/pages/main/ViewEditPuzzle';
 import { type Metadata } from 'next';
 import Link from 'next/link';
 import { IoMdArrowRoundBack } from 'react-icons/io';
 import { FaPlay } from 'react-icons/fa';
 import { Provider as JotaiProvider } from 'jotai';
 import { getCachedSession } from '~/lib/cache_server_route_data';
+import MainEditPage from './MainEditPage';
 
 type Props = { params: Promise<{ id: string }> };
 
@@ -62,7 +62,7 @@ const MainEdit = async ({ params }: Props) => {
         </Link>
       </div>
       <JotaiProvider key={`edit_${word_puzzle.id}`}>
-        <ViewEditPuzzle word_puzzle={word_puzzle} key={word_puzzle.id} />
+        <MainEditPage word_puzzle={word_puzzle} key={word_puzzle.id} location="edit_page" />
       </JotaiProvider>
     </>
   );

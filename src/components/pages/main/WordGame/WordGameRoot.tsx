@@ -60,7 +60,6 @@ export type WordGameProps = {
     start_time: Date;
     puzzle: {
       id: number;
-      title: string;
     };
   };
 };

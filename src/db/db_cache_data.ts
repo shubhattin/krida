@@ -73,7 +73,6 @@ type NextScheduleType =
       start_time: Date;
       puzzle: {
         id: number;
-        title: string;
       };
     }
   | undefined;
@@ -100,8 +99,7 @@ export const get_next_schedule = async () => {
     with: {
       puzzle: {
         columns: {
-          id: true,
-          title: true
+          id: true
         }
       }
     }

@@ -61,7 +61,12 @@ const archived_atom = atom<boolean>(false);
 const description_atom = atom<string | null>(null);
 const lipi_lekhika_active_atom = atom<boolean>(true);
 
-const ViewEditPuzzle = ({ word_puzzle }: { word_puzzle: z.infer<typeof puzzle_schema> }) => {
+export type ViewEditProps = {
+  word_puzzle: z.infer<typeof puzzle_schema>;
+  location: 'add_page' | 'edit_page';
+};
+
+const ViewEditPuzzle = ({ word_puzzle }: ViewEditProps) => {
   useEffect(() => {
     if (typeof window !== 'undefined') {
       load_parivartak_lang_data(BASE_SCRIPT);

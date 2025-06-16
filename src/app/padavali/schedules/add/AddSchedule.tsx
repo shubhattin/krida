@@ -100,10 +100,28 @@ const AddSchedule = ({ puzzle_list }: { puzzle_list: { id: number; title: string
         </div>
         <div className="text-sm text-gray-500 dark:text-gray-400">
           <div>
-            Start Time: <span>{set_seconds_in_time_string(startEndTime, 1)}</span>
+            Start Time:{' '}
+            <span>
+              {startDate?.toLocaleDateString('en-GB', {
+                day: 'numeric',
+                month: 'short',
+                year: 'numeric'
+              })}
+              {', '}
+              {set_seconds_in_time_string(startEndTime, 1)}
+            </span>
           </div>
           <div>
-            End Time: <span>{set_seconds_in_time_string(startEndTime, 0)}</span>
+            End Time:{' '}
+            <span>
+              {endDate?.toLocaleDateString('en-GB', {
+                day: '2-digit',
+                month: 'short',
+                year: 'numeric'
+              })}
+              {', '}
+              {set_seconds_in_time_string(startEndTime, 0)}
+            </span>
           </div>
         </div>
       </div>

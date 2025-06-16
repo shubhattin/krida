@@ -26,7 +26,6 @@ type Props = {
         start_time: Date;
         puzzle: {
           id: number;
-          title: string;
         };
       }
     | undefined;

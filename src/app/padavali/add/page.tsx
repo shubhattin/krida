@@ -38,7 +38,7 @@ const Add = async () => {
       </div>
       <div className="ml-3 text-xl font-bold">नवप्रहेलिकायाः योजनम्</div>
       <JotaiProvider key="add">
-        <ViewEditPuzzle word_puzzle={word_puzzle} key="add" />
+        <ViewEditPuzzle word_puzzle={word_puzzle} key="add" location="add_page" />
       </JotaiProvider>
     </>
   );
