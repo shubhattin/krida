@@ -6,7 +6,7 @@ import { and, eq } from 'drizzle-orm';
 import { revalidatePath } from 'next/cache';
 import { padavali_stats_router } from './padavali_stats';
 import { redis, REDIS_CACHE_KEYS } from '~/db/redis';
-import { get_word_puzzle } from '~/db/db_cache_data';
+import { get_word_puzzle, type CurrentScheduleType } from '~/db/db_cache_data';
 
 const schema = z.object({
   id: z.number().int(),
@@ -21,6 +21,16 @@ const schema = z.object({
   description: z.string().nullable(),
   discussion_url: z.string().url().nullable()
 });
+
+const puzzle_in_current_schedule = async (id: number, uuid: string) => {
+  const cache = await redis.get<CurrentScheduleType | string>(REDIS_CACHE_KEYS.current_schedule());
+  console.log(cache);
+  if (!cache || cache === 'undefined') return false;
+  if (typeof cache === 'object') {
+    return cache.puzzle.id === id && cache.puzzle.uuid === uuid && cache.puzzle.archived === false;
+  }
+  return false;
+};
 
 const update_puzzle_route = protectedAdminProcedure.input(schema).mutation(async ({ input }) => {
   revalidatePath('/padavali/list');
@@ -40,7 +50,9 @@ const update_puzzle_route = protectedAdminProcedure.input(schema).mutation(async
       .where(and(eq(word_puzzles.id, input.id), eq(word_puzzles.uuid, input.uuid))),
     (input.archived || prev_archived !== input.archived) &&
       redis.del(REDIS_CACHE_KEYS.archived_puzzle_list()),
-    redis.del(REDIS_CACHE_KEYS.word_puzzle(input.id, input.uuid))
+    redis.del(REDIS_CACHE_KEYS.word_puzzle(input.id, input.uuid)),
+    (await puzzle_in_current_schedule(input.id, input.uuid)) &&
+      redis.del(REDIS_CACHE_KEYS.current_schedule())
   ]);
   return {
     success: true
@@ -84,7 +96,8 @@ const delete_puzzle_route = protectedAdminProcedure
       db.delete(word_puzzles).where(eq(word_puzzles.id, id)),
       // only invalidate list when puzzle is archived
       archived && redis.del(REDIS_CACHE_KEYS.archived_puzzle_list()),
-      redis.del(REDIS_CACHE_KEYS.word_puzzle(id, uuid))
+      redis.del(REDIS_CACHE_KEYS.word_puzzle(id, uuid)),
+      (await puzzle_in_current_schedule(id, uuid)) && redis.del(REDIS_CACHE_KEYS.current_schedule())
     ]);
     return {
       success: true

@@ -15,7 +15,7 @@ type PuzzleType = {
   archived: boolean;
   discussion_url: string | null;
 };
-type CurrentScheduleType =
+export type CurrentScheduleType =
   | {
       id: number;
       start_time: Date;

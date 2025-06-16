@@ -475,7 +475,6 @@ const DiscussionUrl = ({
   discussion_url: string | null;
   className?: string;
 }) => {
-  console.log(discussion_url);
   if (!discussion_url) return null;
   return (
     <div className={cn('mt-2 mb-4 flex items-center justify-center', className)}>
