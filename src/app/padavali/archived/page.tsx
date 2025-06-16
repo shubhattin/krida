@@ -12,7 +12,8 @@ const ArchivedPage = async () => {
       uuid: true,
       title: true
     },
-    where: ({ archived }, { eq }) => eq(archived, true)
+    where: ({ archived }, { eq }) => eq(archived, true),
+    orderBy: ({ created_at }, { desc }) => desc(created_at)
   });
 
   const script = await getCachedScript();
