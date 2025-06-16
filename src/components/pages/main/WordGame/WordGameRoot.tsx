@@ -302,24 +302,27 @@ function WordGame({
           >
             <div
               className={cn(
-                'inline-flex items-center justify-center rounded-2xl border border-slate-200 bg-white shadow-xl dark:border-slate-700 dark:bg-slate-800',
+                'inline-flex items-center justify-center',
+                started &&
+                  'rounded-2xl border border-slate-200 bg-white shadow-xl dark:border-slate-700 dark:bg-slate-800',
                 'px-5 py-3 lg:px-2 lg:py-6',
                 'space-x-3.5 sm:space-x-5 md:space-x-5 lg:flex lg:flex-col lg:space-y-5 lg:space-x-0',
                 completed && 'flex flex-col space-y-3 sm:flex-row lg:flex-col',
-                !started && 'px-2.5 sm:px-3 lg:px-4.5'
+                !started && '-mb-4 px-2.5 sm:-mb-6 sm:px-3 md:-mb-7 lg:mb-0 lg:px-4.5'
               )}
             >
               <GameContoller timerRef={timerRef} />
               {(started || completed) && <GameInfo />}
+            </div>
+            <div className="pt-3 sm:pt-5">
+              <CompactStopButton timerRef={timerRef} />
             </div>
           </div>
 
           {/* Game Grid - Center */}
           <div className="order-2 flex flex-col items-center justify-center lg:order-2 lg:col-span-6">
             {/* Stop Button for <lg screens */}
-            <div className="mb-3 sm:mb-4 md:mb-5 lg:mb-6">
-              <CompactStopButton timerRef={timerRef} />
-            </div>
+
             <div className="w-full max-w-lg">
               <GameGrid
                 original_grid_data={org_grid_data}
