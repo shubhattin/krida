@@ -22,19 +22,22 @@ const schema = z.object({
 
 const update_puzzle_route = protectedAdminProcedure.input(schema).mutation(async ({ input }) => {
   revalidatePath('/padavali/list');
-  const { archived: prev_archived } = (await db.query.word_puzzles.findFirst({
-    columns: {
-      archived: true
-    },
-    where: (tbl, { eq }) => eq(tbl.id, input.id)
-  }))!;
+  const prev_archived = !input.archived
+    ? (await db.query.word_puzzles.findFirst({
+        columns: {
+          archived: true
+        },
+        where: (tbl, { eq }) => eq(tbl.id, input.id)
+      }))!.archived
+    : null;
 
   await Promise.allSettled([
     db
       .update(word_puzzles)
       .set(input)
       .where(and(eq(word_puzzles.id, input.id), eq(word_puzzles.uuid, input.uuid))),
-    prev_archived !== input.archived && redis.del(REDIS_CACHE_KEYS.archived_puzzle_list())
+    (input.archived || prev_archived !== input.archived) &&
+      redis.del(REDIS_CACHE_KEYS.archived_puzzle_list())
   ]);
   return {
     success: true
