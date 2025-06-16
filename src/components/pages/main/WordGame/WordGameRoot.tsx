@@ -230,7 +230,10 @@ function WordGame({
 
   return (
     <div
-      className="min-h-screen w-full bg-gradient-to-br from-slate-50 via-blue-50 to-indigo-50 dark:from-slate-900 dark:via-slate-800 dark:to-slate-900"
+      className={cn(
+        'min-h-screen w-full bg-gradient-to-br from-slate-50 via-blue-50 to-indigo-50 dark:from-slate-900 dark:via-slate-800 dark:to-slate-900',
+        'pb-1 sm:pb-3 md:pb-4 lg:pb-4.5'
+      )}
       style={{
         // Prevent iOS Safari bounce and zoom during game
         WebkitOverflowScrolling: 'touch',

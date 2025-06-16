@@ -464,6 +464,7 @@ const GridCell = ({
         fontInfo.className,
         !started && 'blur-sm',
         started && 'cursor-pointer',
+        'text-base',
         'flex items-center justify-center rounded-3xl px-[1px] py-0 text-center font-bold sm:rounded-2xl',
         'aspect-square border-2 sm:p-1 md:p-2',
         'transform transition-all duration-300 ease-out',
