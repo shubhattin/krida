@@ -201,10 +201,36 @@ const TraversalAnalysis = ({
       wordIndex: number;
       word: string;
       traversalCount: number;
-      type: 'none' | 'multiple';
+      type: 'none' | 'multiple' | 'duplicate';
       paths?: Coordinate[][];
+      duplicateIndices?: number[];
     }[] = [];
     let hasAllValidWords = true;
+
+    // Check for duplicate words in validWords
+    const wordCountMap = new Map<string, number[]>();
+    validWords.forEach((word, index) => {
+      if (!wordCountMap.has(word)) {
+        wordCountMap.set(word, []);
+      }
+      wordCountMap.get(word)!.push(index);
+    });
+
+    // Add warnings for duplicate words
+    const processedDuplicates = new Set<string>();
+    wordCountMap.forEach((indices, word) => {
+      if (indices.length > 1 && !processedDuplicates.has(word)) {
+        processedDuplicates.add(word);
+        // Add warning for the first occurrence, referencing all duplicates
+        warnings.push({
+          wordIndex: indices[0],
+          word: word,
+          traversalCount: indices.length,
+          type: 'duplicate',
+          duplicateIndices: indices
+        });
+      }
+    });
 
     for (let i = 0; i < validWords.length; i++) {
       const traversals = traversalsMap.get(i) || [];
@@ -272,6 +298,33 @@ const TraversalAnalysis = ({
                         "<span className="font-semibold">{warning.word}</span>" इति शब्दं
                         स्थानपट्टिकायां न प्राप्यते ।
                       </>
+                    ) : warning.type === 'duplicate' ? (
+                      <div className="flex items-center justify-center gap-2">
+                        <span>
+                          "<span className="font-semibold">{warning.word}</span>" इति शब्दः
+                          शब्दसूच्यां एकाधिकवारं ({warning.traversalCount}) पुनरावृत्तः ।
+                        </span>
+                        <Popover>
+                          <PopoverTrigger asChild>
+                            <Info className="-mt-1 size-4.5 text-amber-600 dark:text-amber-400" />
+                          </PopoverTrigger>
+                          <PopoverContent className="max-w-xs" align="center">
+                            <div className="text-xs">
+                              <span className="font-semibold">स्थानाङ्काः:</span>
+                              <div className="mt-1 flex flex-wrap gap-1">
+                                {warning.duplicateIndices?.map((index, idx) => (
+                                  <span
+                                    key={idx}
+                                    className="rounded bg-amber-100 px-1.5 py-0.5 text-amber-800 dark:bg-amber-900 dark:text-amber-200"
+                                  >
+                                    {index + 1}
+                                  </span>
+                                ))}
+                              </div>
+                            </div>
+                          </PopoverContent>
+                        </Popover>
+                      </div>
                     ) : (
                       <div className="flex items-center justify-center gap-2">
                         <span>
