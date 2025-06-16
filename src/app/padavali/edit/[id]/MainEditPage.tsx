@@ -49,7 +49,13 @@ const MainEditPage = ({ word_puzzle, location }: ViewEditProps) => {
       </TabsContent>
       <TabsContent value="stats">
         <Suspense fallback={<PuzzleStatsSkeleton />}>
-          <PuzzleStats />
+          {word_puzzle.id ? (
+            <PuzzleStats puzzleId={word_puzzle.id} />
+          ) : (
+            <div className="py-8 text-center">
+              <div className="text-muted-foreground">Puzzle ID not available</div>
+            </div>
+          )}
         </Suspense>
       </TabsContent>
     </Tabs>

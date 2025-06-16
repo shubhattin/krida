@@ -1,5 +1,10 @@
 import { TRPCError } from '@trpc/server';
-import { publicProcedure, t, verify_cloudflare_turnstile_token } from '../trpc_init';
+import {
+  protectedAdminProcedure,
+  publicProcedure,
+  t,
+  verify_cloudflare_turnstile_token
+} from '../trpc_init';
 import { z } from 'zod';
 import { puzzle_gameplay_sessions, puzzle_gameplay_stats } from '~/db/schema';
 import { db } from '~/db/db';
@@ -65,7 +70,46 @@ const update_games_started_route = publicProcedure
     return { success: true, session_id: session_id };
   });
 
+const get_stats_data_route = protectedAdminProcedure
+  .input(
+    z.object({
+      puzzle_id: z.number().int(),
+      start_date: z.date(),
+      end_date: z.date()
+    })
+  )
+  .query(async ({ input: { puzzle_id, start_date, end_date } }) => {
+    const sessions = await db.query.puzzle_gameplay_sessions.findMany({
+      columns: {
+        id: true,
+        created_at: true,
+        location: true
+      },
+      where: (tbl, { and, eq, gte, lte }) =>
+        and(
+          eq(tbl.puzzle_id, puzzle_id),
+          gte(tbl.created_at, start_date),
+          lte(tbl.created_at, end_date)
+        )
+    });
+    const stats = await db.query.puzzle_gameplay_stats.findMany({
+      columns: {
+        id: true,
+        created_at: true,
+        session_id: true
+      },
+      where: (tbl, { and, eq, gte, lte }) =>
+        and(
+          eq(tbl.puzzle_id, puzzle_id),
+          gte(tbl.created_at, start_date),
+          lte(tbl.created_at, end_date)
+        )
+    });
+    return { sessions, stats };
+  });
+
 export const padavali_stats_router = t.router({
   submit_stats: submit_stats_route,
-  update_games_started: update_games_started_route
+  update_games_started: update_games_started_route,
+  get_stats_data: get_stats_data_route
 });
