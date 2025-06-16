@@ -13,7 +13,7 @@ import { ScriptSelector } from '~/components/pages/main/ScriptSelector';
 import { cn } from '~/lib/utils';
 import Icon from '~/tools/Icon';
 import { LanguageIcon } from '~/components/icons';
-import { ArchiveIcon, ArrowRightIcon, InfoIcon } from 'lucide-react';
+import { ArchiveIcon, ArrowRightIcon, Calendar, InfoIcon } from 'lucide-react';
 import Link from 'next/link';
 import { motion } from 'framer-motion';
 import {
@@ -372,7 +372,7 @@ export const ArchivedGamesPrompt = ({
             className="mb-3 text-center sm:mb-4"
           >
             {next_schedule && (
-              <div className="text-base font-semibold text-slate-600 dark:text-slate-400">
+              <div className="flex items-center justify-center text-base font-semibold text-slate-600 dark:text-slate-400">
                 Next puzzle in{' '}
                 <span className="bg-gradient-to-r from-emerald-600 to-green-500 bg-clip-text font-bold text-transparent dark:from-emerald-400 dark:to-green-300">
                   {dayjs(next_schedule.start_time)
@@ -382,6 +382,10 @@ export const ArchivedGamesPrompt = ({
                       (word) => word.charAt(0).toUpperCase() + word.slice(1)
                     )}
                 </span>
+                <NextPuzzleTimePopup
+                  next_puzzle_start_time={next_schedule.start_time}
+                  className="ml-2 text-blue-500 dark:text-sky-200"
+                />
               </div>
             )}
             <div className="text-xs text-slate-600 sm:text-sm dark:text-slate-400">
@@ -419,5 +423,41 @@ export const ArchivedGamesPrompt = ({
         </motion.div>
       </div>
     </motion.div>
+  );
+};
+
+export const NextPuzzleTimePopup = ({
+  next_puzzle_start_time,
+  className
+}: {
+  next_puzzle_start_time: Date;
+  className?: string;
+}) => {
+  return (
+    <Popover>
+      <PopoverTrigger asChild>
+        <button className={cn('outline-none hover:brightness-75', className)}>
+          <InfoIcon className="-mt-1 size-3 sm:size-4" />
+        </button>
+      </PopoverTrigger>
+      <PopoverContent
+        align="center"
+        className="z-100 flex items-center gap-2 overflow-hidden rounded-xl border border-amber-200/50 bg-gradient-to-r from-amber-50 to-orange-50 px-3 py-2 shadow-xl outline-none dark:border-slate-700 dark:from-teal-950/80 dark:to-green-950/80"
+      >
+        <Calendar className="-mt-1 size-4" />
+        <span className="bg-gradient-to-r from-amber-700 to-orange-500 bg-clip-text text-xs font-bold text-transparent brightness-95 dark:bg-gradient-to-r dark:from-amber-300 dark:to-orange-300">
+          {next_puzzle_start_time.toLocaleDateString('en-GB', {
+            day: 'numeric',
+            month: 'long'
+          })}
+          ,{' '}
+          {next_puzzle_start_time.toLocaleTimeString('en-US', {
+            hour: 'numeric',
+            minute: '2-digit',
+            hour12: true
+          })}
+        </span>
+      </PopoverContent>
+    </Popover>
   );
 };

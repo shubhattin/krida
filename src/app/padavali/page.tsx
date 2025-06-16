@@ -63,6 +63,20 @@ export default async function Home() {
                           (word) => word.charAt(0).toUpperCase() + word.slice(1)
                         )}
                     </span>
+                    <span className="ml-1.5 text-xs font-bold brightness-95">
+                      (
+                      {next_schedule.start_time.toLocaleDateString('en-GB', {
+                        day: 'numeric',
+                        month: 'long'
+                      })}
+                      ,{' '}
+                      {next_schedule.start_time.toLocaleTimeString('en-US', {
+                        hour: 'numeric',
+                        minute: '2-digit',
+                        hour12: true
+                      })}
+                      )
+                    </span>
                   </span>
                 ) : (
                   <span className="font-medium">New puzzles coming soon!</span>

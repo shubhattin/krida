@@ -1,6 +1,9 @@
 'use client';
 
-import WordGameRoot, { type WordGameProps } from '~/components/pages/main/WordGame/WordGameRoot';
+import WordGameRoot, {
+  NextPuzzleTimePopup,
+  type WordGameProps
+} from '~/components/pages/main/WordGame/WordGameRoot';
 import { Button } from '~/components/ui/button';
 import { Popover, PopoverContent, PopoverTrigger } from '~/components/ui/popover';
 import { type ScriptType } from '~/state/script_font_data';
@@ -112,7 +115,7 @@ const MainPagePadavali = ({ script, word_puzzle, initial_script_data, next_sched
                   <div className={cn('p-0 sm:p-0', next_schedule && 'p-1.5 pt-0 sm:p-2.5 sm:pt-0')}>
                     {next_schedule && (
                       <div className="flex items-center justify-center p-2">
-                        <div className="text-sm font-semibold text-amber-900 sm:text-base dark:text-amber-100">
+                        <div className="flex items-center justify-center space-x-2 text-sm font-semibold text-amber-900 sm:text-base dark:text-amber-100">
                           Next puzzle in{' '}
                           <span className="bg-gradient-to-r from-emerald-600 to-green-500 bg-clip-text font-bold text-transparent dark:from-emerald-400 dark:to-green-300">
                             {dayjs(next_schedule.start_time)
@@ -122,6 +125,10 @@ const MainPagePadavali = ({ script, word_puzzle, initial_script_data, next_sched
                                 (word) => word.charAt(0).toUpperCase() + word.slice(1)
                               )}
                           </span>
+                          <NextPuzzleTimePopup
+                            next_puzzle_start_time={next_schedule.start_time}
+                            className="text-blue-500 dark:text-sky-200"
+                          />
                         </div>
                       </div>
                     )}
