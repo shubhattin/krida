@@ -1,5 +1,4 @@
 import { z } from 'zod';
-import { db } from '~/db/db';
 import { type Metadata } from 'next';
 import Link from 'next/link';
 import { IoMdArrowRoundBack } from 'react-icons/io';
@@ -9,23 +8,21 @@ import { get_transliterated_word_game_msgs } from '~/components/pages/main/WordG
 import { lipi_parivartak } from '~/tools/lipi_lekhika';
 import { getCachedScript } from '~/lib/cache_server_route_data';
 import { get_next_schedule, get_word_puzzle } from '~/db/db_cache_data';
+import { cache } from 'react';
 
 type Props = { params: Promise<{ uuid_id: string }> };
+
+const word_puzzle_get_cached_func = cache(get_word_puzzle);
 
 export async function generateMetadata({ params }: Props): Promise<Metadata> {
   const [uuid_str, id_str] = decodeURIComponent((await params).uuid_id).split(':');
   const id = z.coerce.number().int().parse(id_str);
   const uuid = z.string().uuid().parse(uuid_str);
 
-  const word_puzzle = (await db.query.word_puzzles.findFirst({
-    where: (tbl, { eq, and }) => and(eq(tbl.id, id), eq(tbl.uuid, uuid)),
-    columns: {
-      title: true
-    }
-  }))!;
+  const word_puzzle = await word_puzzle_get_cached_func(id, uuid);
 
   return {
-    title: word_puzzle.title + ' | पदावली',
+    title: word_puzzle ? word_puzzle.title + ' | पदावली' : 'Not Found',
     robots: 'noindex'
   };
 }
@@ -36,7 +33,7 @@ const MainEdit = async ({ params }: Props) => {
   const uuid = z.string().uuid().parse(uuid_str);
 
   const [word_puzzle, next_schedule] = await Promise.all([
-    get_word_puzzle(id, uuid),
+    word_puzzle_get_cached_func(id, uuid),
     get_next_schedule()
   ]);
 
