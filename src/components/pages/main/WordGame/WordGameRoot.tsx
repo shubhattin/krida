@@ -305,22 +305,21 @@ function WordGame({
                 'inline-flex items-center justify-center rounded-2xl border border-slate-200 bg-white shadow-xl dark:border-slate-700 dark:bg-slate-800',
                 'px-5 py-3 lg:px-2 lg:py-6',
                 'space-x-3.5 sm:space-x-5 md:space-x-5 lg:flex lg:flex-col lg:space-y-5 lg:space-x-0',
-                completed && 'flex-col space-y-3',
+                completed && 'flex flex-col space-y-3 sm:flex-row lg:flex-col',
                 !started && 'px-2.5 sm:px-3 lg:px-4.5'
               )}
             >
               <GameContoller timerRef={timerRef} />
               {(started || completed) && <GameInfo />}
             </div>
-
-            {/* Stop Button for <lg screens */}
-            <div className="pt-3 sm:pt-5">
-              <CompactStopButton timerRef={timerRef} />
-            </div>
           </div>
 
           {/* Game Grid - Center */}
-          <div className="order-2 flex justify-center lg:order-2 lg:col-span-6">
+          <div className="order-2 flex flex-col items-center justify-center lg:order-2 lg:col-span-6">
+            {/* Stop Button for <lg screens */}
+            <div className="mb-3 sm:mb-4 md:mb-5 lg:mb-6">
+              <CompactStopButton timerRef={timerRef} />
+            </div>
             <div className="w-full max-w-lg">
               <GameGrid
                 original_grid_data={org_grid_data}
@@ -373,8 +372,8 @@ export const ArchivedGamesPrompt = ({
           >
             {next_schedule && (
               <div className="flex items-center justify-center text-base font-semibold text-slate-600 dark:text-slate-400">
-                Next puzzle in{' '}
-                <span className="bg-gradient-to-r from-emerald-600 to-green-500 bg-clip-text font-bold text-transparent dark:from-emerald-400 dark:to-green-300">
+                Next puzzle in
+                <span className="ml-1 bg-gradient-to-r from-emerald-600 to-green-500 bg-clip-text font-bold text-transparent dark:from-emerald-400 dark:to-green-300">
                   {dayjs(next_schedule.start_time)
                     .fromNow(true)
                     .replace(
