@@ -5,6 +5,8 @@ import { word_puzzles } from '~/db/schema';
 import { and, eq } from 'drizzle-orm';
 import { revalidatePath } from 'next/cache';
 import { padavali_stats_router } from './padavali_stats';
+import { redis, REDIS_CACHE_KEYS } from '~/db/redis';
+import { get_word_puzzle } from '~/db/db_cache_data';
 
 const schema = z.object({
   id: z.number().int(),
@@ -21,10 +23,24 @@ const schema = z.object({
 
 const update_puzzle_route = protectedAdminProcedure.input(schema).mutation(async ({ input }) => {
   revalidatePath('/padavali/list');
-  await db
-    .update(word_puzzles)
-    .set(input)
-    .where(and(eq(word_puzzles.id, input.id), eq(word_puzzles.uuid, input.uuid)));
+  const prev_archived = !input.archived
+    ? (await db.query.word_puzzles.findFirst({
+        columns: {
+          archived: true
+        },
+        where: (tbl, { eq }) => eq(tbl.id, input.id)
+      }))!.archived
+    : null;
+
+  await Promise.allSettled([
+    db
+      .update(word_puzzles)
+      .set(input)
+      .where(and(eq(word_puzzles.id, input.id), eq(word_puzzles.uuid, input.uuid))),
+    (input.archived || prev_archived !== input.archived) &&
+      redis.del(REDIS_CACHE_KEYS.archived_puzzle_list()),
+    redis.del(REDIS_CACHE_KEYS.word_puzzle(input.id, input.uuid))
+  ]);
   return {
     success: true
   };
@@ -41,7 +57,11 @@ const add_puzzle_route = protectedAdminProcedure
   )
   .mutation(async ({ input }) => {
     revalidatePath('/padavali/list');
-    const info = await db.insert(word_puzzles).values(input).returning();
+    const [info] = await Promise.all([
+      db.insert(word_puzzles).values(input).returning(),
+      // only invalidate list when puzzle is archived
+      input.archived && redis.del(REDIS_CACHE_KEYS.archived_puzzle_list())
+    ]);
     return {
       id: info[0].id,
       uuid: info[0].uuid
@@ -49,20 +69,22 @@ const add_puzzle_route = protectedAdminProcedure
   });
 
 const delete_puzzle_route = protectedAdminProcedure
-  .input(z.object({ id: z.number().int() }))
-  .mutation(async ({ input }) => {
+  .input(z.object({ id: z.number().int(), uuid: z.string().uuid() }))
+  .mutation(async ({ input: { id, uuid } }) => {
     revalidatePath('/padavali/list');
-    await db.delete(word_puzzles).where(eq(word_puzzles.id, input.id));
-    return {
-      success: true
-    };
-  });
+    const { archived } = (await db.query.word_puzzles.findFirst({
+      columns: {
+        archived: true
+      },
+      where: (tbl, { eq }) => eq(tbl.id, id)
+    }))!;
 
-const update_puzzle_archived_status_route = protectedAdminProcedure
-  .input(z.object({ id: z.number().int(), archived: z.boolean() }))
-  .mutation(async ({ input: { archived, id } }) => {
-    revalidatePath('/padavali/list');
-    await db.update(word_puzzles).set({ archived }).where(eq(word_puzzles.id, id));
+    await Promise.allSettled([
+      db.delete(word_puzzles).where(eq(word_puzzles.id, id)),
+      // only invalidate list when puzzle is archived
+      archived && redis.del(REDIS_CACHE_KEYS.archived_puzzle_list()),
+      redis.del(REDIS_CACHE_KEYS.word_puzzle(id, uuid))
+    ]);
     return {
       success: true
     };
@@ -71,9 +93,7 @@ const update_puzzle_archived_status_route = protectedAdminProcedure
 const get_puzzle_data_route = publicProcedure
   .input(z.object({ id: z.number().int(), uuid: z.string().uuid() }))
   .query(async ({ input: { id, uuid } }) => {
-    const puzzle = await db.query.word_puzzles.findFirst({
-      where: and(eq(word_puzzles.id, id), eq(word_puzzles.uuid, uuid))
-    });
+    const puzzle = await get_word_puzzle(id, uuid);
     return puzzle!;
   });
 
@@ -82,6 +102,5 @@ export const padavali_router = t.router({
   add_puzzle: add_puzzle_route,
   delete_puzzle: delete_puzzle_route,
   stats: padavali_stats_router,
-  update_puzzle_archived_status: update_puzzle_archived_status_route,
   get_puzzle_data: get_puzzle_data_route
 });

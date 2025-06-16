@@ -2,7 +2,7 @@ import { type ReactNode } from 'react';
 import TRPCProvider from '~/api/TRPCProvider';
 import AppBar from '~/components/app-bar/AppBar';
 import { AppContextProvider } from '~/components/AppDataContext';
-import { getCachedScript, getCachedSession } from '~/lib/cache_server_data';
+import { getCachedScript, getCachedSession } from '~/lib/cache_server_route_data';
 
 export default async function PadavaliLayout({ children }: { children: ReactNode }) {
   const script = await getCachedScript();

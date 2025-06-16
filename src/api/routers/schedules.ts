@@ -5,6 +5,7 @@ import { puzzle_game_schedules } from '~/db/schema';
 import { revalidatePath } from 'next/cache';
 import { eq } from 'drizzle-orm';
 import { delay } from '~/tools/delay';
+import { redis, REDIS_CACHE_KEYS } from '~/db/redis';
 
 const add_puzzle_schedule_route = protectedAdminProcedure
   .input(
@@ -45,7 +46,7 @@ const add_puzzle_schedule_route = protectedAdminProcedure
     }
 
     revalidatePath('/padavali/schedules');
-    const schedule = await db
+    const schedule_pr = db
       .insert(puzzle_game_schedules)
       .values({
         puzzle_id,
@@ -53,6 +54,14 @@ const add_puzzle_schedule_route = protectedAdminProcedure
         end_time
       })
       .returning();
+
+    const [schedule] = await Promise.all([
+      schedule_pr,
+      // invalidate cache
+      redis.del(REDIS_CACHE_KEYS.current_schedule()),
+      redis.del(REDIS_CACHE_KEYS.next_schedule())
+    ]);
+
     return {
       success: true,
       schedule_id: schedule[0].id
@@ -63,7 +72,13 @@ const delete_puzzle_schedule_route = protectedAdminProcedure
   .input(z.object({ schedule_id: z.number().int() }))
   .mutation(async ({ input: { schedule_id } }) => {
     revalidatePath('/padavali/schedules');
-    await db.delete(puzzle_game_schedules).where(eq(puzzle_game_schedules.id, schedule_id));
+
+    await Promise.allSettled([
+      db.delete(puzzle_game_schedules).where(eq(puzzle_game_schedules.id, schedule_id)),
+      // invalidate cache
+      redis.del(REDIS_CACHE_KEYS.current_schedule()),
+      redis.del(REDIS_CACHE_KEYS.next_schedule())
+    ]);
 
     return { success: true };
   });

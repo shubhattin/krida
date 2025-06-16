@@ -242,7 +242,9 @@ function WordGame({
     >
       {children}
       {/* Archived Games Section - Appears after game completion */}
-      {completed && <ArchivedGamesPrompt next_schedule={next_schedule} />}
+      {completed && location !== 'archive_page' && (
+        <ArchivedGamesPrompt next_schedule={next_schedule} />
+      )}
       <div
         className={cn('flex items-center justify-center pt-2.5 sm:pt-4 lg:pt-5', 'mb-2.5 sm:mb-4')}
       >

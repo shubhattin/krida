@@ -8,7 +8,8 @@ import {
   uuid,
   integer,
   boolean,
-  varchar
+  varchar,
+  uniqueIndex
 } from 'drizzle-orm/pg-core';
 import { relations } from 'drizzle-orm';
 import type { location_list_type } from './types';
@@ -17,7 +18,7 @@ export const word_puzzles = pgTable(
   'word_puzzles',
   {
     id: serial().primaryKey(),
-    uuid: uuid().notNull().defaultRandom(),
+    uuid: uuid().unique().notNull().defaultRandom(),
     title: text().notNull(),
     description: text(),
     created_at: timestamp({ withTimezone: true }).notNull().defaultNow(),
@@ -27,42 +28,67 @@ export const word_puzzles = pgTable(
     grid_dimensions: jsonb().notNull().$type<[number, number]>(),
     archived: boolean().notNull().default(false)
   },
-  (table) => [index().on(table.created_at)]
+  (table) => [
+    uniqueIndex('word_puzzles_uuid_idx').on(table.uuid),
+    index('word_puzzles_archived_created_at_idx').on(table.archived, table.created_at)
+  ]
 );
 
-export const puzzle_gameplay_sessions = pgTable('puzzle_gameplay_sessions', {
-  id: serial().primaryKey(),
-  puzzle_id: integer()
-    .notNull()
-    .references(() => word_puzzles.id, { onDelete: 'cascade' }),
-  created_at: timestamp({ withTimezone: true }).notNull().defaultNow(),
-  location: varchar({ length: 25 }).$type<location_list_type>()
-});
+export const puzzle_gameplay_sessions = pgTable(
+  'puzzle_gameplay_sessions',
+  {
+    id: serial().primaryKey(),
+    puzzle_id: integer()
+      .notNull()
+      .references(() => word_puzzles.id, { onDelete: 'cascade' }),
+    created_at: timestamp({ withTimezone: true }).notNull().defaultNow(),
+    location: varchar({ length: 25 }).$type<location_list_type>()
+  },
+  (table) => [
+    index('puzzle_gameplay_sessions_puzzle_id_created_at_idx').on(table.puzzle_id, table.created_at)
+  ]
+);
 
-export const puzzle_gameplay_stats = pgTable('puzzle_gameplay_stats', {
-  id: serial().primaryKey(),
-  puzzle_id: integer()
-    .notNull()
-    .references(() => word_puzzles.id, { onDelete: 'cascade' }),
-  session_id: integer()
-    .notNull()
-    .references(() => puzzle_gameplay_sessions.id, { onDelete: 'cascade' }),
-  created_at: timestamp({ withTimezone: true }).notNull().defaultNow(),
-  time_taken: integer().notNull(),
-  accuracy: integer().notNull(),
-  correct_attempts: integer().notNull(),
-  total_attempts: integer().notNull()
-});
+export const puzzle_gameplay_stats = pgTable(
+  'puzzle_gameplay_stats',
+  {
+    id: serial().primaryKey(),
+    puzzle_id: integer()
+      .notNull()
+      .references(() => word_puzzles.id, { onDelete: 'cascade' }),
+    session_id: integer()
+      .notNull()
+      .references(() => puzzle_gameplay_sessions.id, { onDelete: 'cascade' }),
+    created_at: timestamp({ withTimezone: true }).notNull().defaultNow(),
+    time_taken: integer().notNull(),
+    accuracy: integer().notNull(),
+    correct_attempts: integer().notNull(),
+    total_attempts: integer().notNull()
+  },
+  (table) => [
+    index('puzzle_gameplay_stats_puzzle_id_created_at_idx').on(table.puzzle_id, table.created_at),
+    uniqueIndex('puzzle_gameplay_stats_session_id_idx').on(table.session_id)
+  ]
+);
 
-export const puzzle_game_schedules = pgTable('puzzle_game_schedules', {
-  id: serial().primaryKey(),
-  puzzle_id: integer()
-    .notNull()
-    .references(() => word_puzzles.id, { onDelete: 'cascade' }),
-  start_time: timestamp({ withTimezone: true }).notNull(),
-  end_time: timestamp({ withTimezone: true }).notNull(),
-  created_at: timestamp({ withTimezone: true }).notNull().defaultNow()
-});
+export const puzzle_game_schedules = pgTable(
+  'puzzle_game_schedules',
+  {
+    id: serial().primaryKey(),
+    puzzle_id: integer()
+      .notNull()
+      .references(() => word_puzzles.id, { onDelete: 'cascade' }),
+    start_time: timestamp({ withTimezone: true }).notNull(),
+    end_time: timestamp({ withTimezone: true }).notNull(),
+    created_at: timestamp({ withTimezone: true }).notNull().defaultNow()
+  },
+  (table) => [
+    index('puzzle_game_schedules_start_time_end_time_idx').on(table.start_time, table.end_time),
+    index('puzzle_game_schedules_end_time_idx').on(table.end_time),
+    index('puzzle_game_schedules_puzzle_id_created_at_idx').on(table.puzzle_id, table.created_at),
+    index('puzzle_game_schedules_created_at_idx').on(table.created_at)
+  ]
+);
 
 // relations
 
