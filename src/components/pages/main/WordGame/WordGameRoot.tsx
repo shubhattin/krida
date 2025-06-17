@@ -38,6 +38,7 @@ import relativeTime from 'dayjs/plugin/relativeTime';
 import type { location_list_type } from '~/db/types';
 import { Button } from '~/components/ui/button';
 import { FiYoutube } from 'react-icons/fi';
+import GameMetricsCollector from './GameMetricsCollector';
 
 dayjs.extend(relativeTime);
 
@@ -348,6 +349,7 @@ function WordGame({
           </div>
         </div>
       </div>
+      <GameMetricsCollector puzzle_id={puzzle_id} location={location} />
     </div>
   );
 }

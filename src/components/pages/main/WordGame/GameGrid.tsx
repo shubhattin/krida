@@ -1,16 +1,12 @@
 import { useDrag } from '@use-gesture/react';
-import { useEffect, useState, useRef, type RefObject, useContext } from 'react';
+import { useEffect, useRef, type RefObject, useContext } from 'react';
 import { FONT_INFO } from '~/state/script_font_data';
 import { cn } from '~/lib/utils';
-import TurnstileWidget from '~/components/Turnstile';
-import { client_q } from '~/api/client';
-import { useTurnstile } from 'react-turnstile';
 import { useAtom } from 'jotai';
 import {
   type CellPosition,
   started_atom,
   completed_atom,
-  seconds_atom,
   current_selection_atom,
   found_words_atom,
   grid_data_current_atom,
@@ -34,67 +30,18 @@ export const GameGrid = ({ puzzle_id, timerRef, original_grid_data, location }: 
   const { script } = useContext(AppContext);
   const [started] = useAtom(started_atom);
   const [completed, setCompleted] = useAtom(completed_atom);
-  const [seconds] = useAtom(seconds_atom);
   const [currentSelection, setCurrentSelection] = useAtom(current_selection_atom);
   const [foundWords, setFoundWords] = useAtom(found_words_atom);
   const [gridData] = useAtom(grid_data_current_atom);
   const [gridDimensions] = useAtom(grid_dimensions_atom);
-  const [totalAttempts, setTotalAttempts] = useAtom(total_attempts_atom);
-  const [correctAttempts, setCorrectAttempts] = useAtom(correct_attempts_atom);
+  const [, setTotalAttempts] = useAtom(total_attempts_atom);
+  const [, setCorrectAttempts] = useAtom(correct_attempts_atom);
   const [wordList] = useAtom(original_word_list_atom);
 
   const [rows, cols] = gridDimensions;
   const gridRef = useRef<HTMLDivElement>(null);
 
   const font_info = FONT_INFO[script!];
-  const [turnstileToken, setTurnstileToken] = useState<string | null>(null);
-  const turnstile = useTurnstile();
-  const submit_stats_mut = client_q.padavali.stats.submit_stats.useMutation({
-    onSuccess() {
-      setTurnstileToken(null);
-      turnstile.reset();
-      update_games_started_mut.reset();
-      submit_stats_mut.reset();
-    }
-  });
-  const update_games_started_mut = client_q.padavali.stats.update_games_started.useMutation({
-    onSuccess() {
-      setTurnstileToken(null);
-      turnstile.reset();
-    }
-  });
-  useEffect(() => {
-    if (started && !completed && turnstileToken && !update_games_started_mut.isSuccess) {
-      // only update games started if not already done
-      update_games_started_mut.mutate({
-        id: puzzle_id,
-        location,
-        turnstile_token: turnstileToken
-      });
-    }
-  }, [started, turnstileToken, completed]);
-  useEffect(() => {
-    if (
-      completed &&
-      turnstileToken &&
-      !update_games_started_mut.isPending &&
-      update_games_started_mut.isSuccess &&
-      !submit_stats_mut.isPending &&
-      !submit_stats_mut.isSuccess
-    ) {
-      submit_stats_mut.mutateAsync({
-        turnstile_token: turnstileToken,
-        info: {
-          puzzle_id: puzzle_id,
-          session_id: update_games_started_mut.data.session_id,
-          time_taken: seconds,
-          accuracy: Math.trunc((correctAttempts / totalAttempts) * 100),
-          correct_attempts: correctAttempts,
-          total_attempts: totalAttempts
-        }
-      });
-    }
-  }, [turnstileToken, update_games_started_mut, completed]);
 
   // Prevent pull-to-refresh and other navigation gestures
   useEffect(() => {
@@ -310,7 +257,6 @@ export const GameGrid = ({ puzzle_id, timerRef, original_grid_data, location }: 
 
   return (
     <>
-      <TurnstileWidget setToken={setTurnstileToken} />
       <div className="w-full">
         {/* Game Grid Card */}
         <div className="overflow-hidden rounded-3xl border border-slate-200 bg-white p-2.5 shadow-2xl sm:p-4 md:p-6 dark:border-slate-700 dark:bg-slate-800">
