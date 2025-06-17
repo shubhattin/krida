@@ -346,7 +346,7 @@ function WordGame({
             )}
           >
             <DiscussionUrl
-              discussion_url={discussion_url ?? 'https://www.youtube.com/live/YeC5P0-vxOQ'}
+              youtube_url={discussion_url ?? 'https://www.youtube.com/live/YeC5P0-vxOQ'}
             />
           </div>
 
@@ -505,21 +505,27 @@ const getYouTubeVideoId = (url: string): string | null => {
 };
 
 const DiscussionUrl = ({
-  discussion_url,
+  youtube_url,
   className
 }: {
-  discussion_url: string | null;
+  youtube_url: string | null;
   className?: string;
 }) => {
-  if (!discussion_url) return null;
+  if (!youtube_url) return null;
 
-  const videoId = getYouTubeVideoId(discussion_url);
+  const videoId = getYouTubeVideoId(youtube_url);
 
   if (!videoId) return null;
 
   return (
-    <div className={cn('mt-2 mb-4 w-full', className)}>
-      <div className="text=start mb-3 flex items-start justify-center gap-2">
+    <div
+      className={cn(
+        'w-full space-y-0.5 p-1 sm:space-y-1',
+        'flex flex-col items-center justify-center',
+        className
+      )}
+    >
+      <div className="text=start flex items-start justify-center gap-2">
         <FiYoutube className="-mt-1 size-7 text-red-600 dark:text-red-400" />
         <span className="bg-gradient-to-r from-orange-500 via-amber-500 to-yellow-600 bg-clip-text text-center text-base font-extrabold text-transparent drop-shadow-sm dark:from-amber-300 dark:via-orange-300 dark:to-yellow-200">
           Solve Together & Discuss the Puzzle
