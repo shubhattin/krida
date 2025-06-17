@@ -13,10 +13,14 @@ import {
   grid_dimensions_atom,
   total_attempts_atom,
   correct_attempts_atom,
-  original_word_list_atom
+  original_word_list_atom,
+  word_msgs_atom,
+  seconds_atom
 } from './game_state';
 import { AppContext } from '~/components/AppDataContext';
 import type { location_list_type } from '~/db/types';
+import { IoExtensionPuzzleSharp } from 'react-icons/io5';
+import { FaPlay } from 'react-icons/fa';
 
 type Props = {
   puzzle_id: number;
@@ -42,6 +46,25 @@ export const GameGrid = ({ puzzle_id, timerRef, original_grid_data, location }: 
   const gridRef = useRef<HTMLDivElement>(null);
 
   const font_info = FONT_INFO[script!];
+  const [wordMsgs] = useAtom(word_msgs_atom);
+  const [, setStarted] = useAtom(started_atom);
+  const [, setSeconds] = useAtom(seconds_atom);
+
+  // Start the game
+  const handleStart = () => {
+    setStarted(true);
+    setSeconds(0);
+    setFoundWords([]);
+    setCompleted(false);
+
+    if (timerRef.current) {
+      clearInterval(timerRef.current);
+    }
+
+    timerRef.current = setInterval(() => {
+      setSeconds((prev) => prev + 1);
+    }, 1000);
+  };
 
   // Prevent pull-to-refresh and other navigation gestures
   useEffect(() => {
@@ -262,8 +285,6 @@ export const GameGrid = ({ puzzle_id, timerRef, original_grid_data, location }: 
         <div className="overflow-hidden rounded-3xl border border-slate-200 bg-white p-2.5 shadow-2xl sm:p-4 md:p-6 dark:border-slate-700 dark:bg-slate-800">
           {/* relative wrapper for grid + overlay */}
           <div className="relative">
-            {/* Grid Header */}
-
             {/* Game Grid */}
             <div
               ref={gridRef}
@@ -359,6 +380,26 @@ export const GameGrid = ({ puzzle_id, timerRef, original_grid_data, location }: 
                 </g>
               )}
             </svg>
+
+            {/* Play Button Overlay - centered over the grid */}
+            {!started && (
+              <button
+                onClick={handleStart}
+                className={cn(
+                  // Blue gradient with light and dark variants
+                  'group absolute inset-0 z-20 m-auto size-fit overflow-hidden',
+                  'bg-gradient-to-r from-blue-500 to-indigo-500 hover:from-blue-600 hover:to-indigo-600',
+                  'dark:from-blue-700 dark:to-indigo-700 dark:hover:from-blue-800 dark:hover:to-indigo-800',
+                  'rounded-xl px-3 pt-2.5 pb-1 font-bold text-white shadow-lg hover:shadow-xl sm:rounded-2xl sm:px-5 sm:py-4 sm:pb-2',
+                  'transform transition-all duration-200 hover:scale-105 active:scale-95',
+                  'flex items-center justify-center space-x-2 sm:space-x-3',
+                  font_info.className
+                )}
+              >
+                <FaPlay className="-mt-2 size-5 sm:size-6 md:size-6.5 lg:size-7" />
+                <span className="text-xl sm:text-2xl">{wordMsgs.play}</span>
+              </button>
+            )}
           </div>
         </div>
       </div>

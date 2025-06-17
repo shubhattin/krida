@@ -36,7 +36,6 @@ import { AppContext } from '~/components/AppDataContext';
 import dayjs from 'dayjs';
 import relativeTime from 'dayjs/plugin/relativeTime';
 import type { location_list_type } from '~/db/types';
-import { Button } from '~/components/ui/button';
 import { FiYoutube } from 'react-icons/fi';
 import GameMetricsCollector from './GameMetricsCollector';
 
@@ -288,43 +287,71 @@ function WordGame({
             )}
           </div>
         </div>
+        {started && (
+          <motion.div
+            className="flex flex-col items-center justify-center"
+            initial={{ opacity: 0, y: 40 }}
+            animate={{ opacity: 1, y: 0 }}
+            exit={{ opacity: 0, y: 40 }}
+            transition={{ type: 'spring', stiffness: 350, damping: 32, duration: 0.5 }}
+          >
+            <motion.div
+              className={cn(
+                'flex items-center justify-center',
+                started &&
+                  'space-x-3.5 rounded-2xl border border-slate-200 bg-white px-5 py-3 shadow-xl sm:space-x-5 sm:px-6 md:space-x-5 md:px-8 dark:border-slate-700 dark:bg-slate-800',
+                completed && 'flex-col space-y-3 sm:flex-row sm:space-y-0'
+              )}
+              initial={{ opacity: 0, y: 32 }}
+              animate={{ opacity: 1, y: 0 }}
+              transition={{
+                delay: 0.08,
+                type: 'spring',
+                stiffness: 300,
+                damping: 30,
+                duration: 0.45
+              }}
+            >
+              <GameContoller timerRef={timerRef} />
+              {(started || completed) && <GameInfo />}
+            </motion.div>
+            <motion.div
+              className="mb-4.5 pt-3 sm:mb-5.5 sm:pt-5 md:mb-6"
+              initial={{ opacity: 0, y: 24 }}
+              animate={{ opacity: 1, y: 0 }}
+              transition={{
+                delay: 0.18,
+                type: 'spring',
+                stiffness: 300,
+                damping: 30,
+                duration: 0.4
+              }}
+            >
+              <CompactStopButton timerRef={timerRef} />
+            </motion.div>
+          </motion.div>
+        )}
 
         {/* Main Game Container */}
         <div
           className={cn(
-            'grid grid-cols-1 lg:grid-cols-12 lg:gap-8',
-            'gap-3.5 sm:gap-5 md:gap-6 lg:gap-3'
+            'grid grid-cols-1 gap-y-3.5 sm:gap-y-5 md:gap-y-6 lg:grid-cols-12 lg:gap-x-0 xl:gap-x-0 2xl:gap-x-0'
           )}
         >
           {/* Game Controls & Progress - Left Sidebar on large screens, top on mobile */}
           <div
             className={cn(
-              'order-1 flex items-center justify-center lg:order-1 lg:col-span-3',
-              !started && 'lg:mt-12 lg:items-start',
-              started && 'flex-col'
+              'order-2 lg:order-1 lg:col-span-3',
+              !started && 'lg:mt-10 lg:items-start'
             )}
           >
-            <div
-              className={cn(
-                'inline-flex items-center justify-center',
-                started &&
-                  'rounded-2xl border border-slate-200 bg-white shadow-xl dark:border-slate-700 dark:bg-slate-800',
-                'px-5 py-3 lg:px-2 lg:py-6',
-                'space-x-3.5 sm:space-x-5 md:space-x-5 lg:flex lg:flex-col lg:space-y-5 lg:space-x-0',
-                completed && 'flex flex-col space-y-3 sm:flex-row lg:flex-col',
-                !started && '-mb-4 px-2.5 sm:-mb-6 sm:px-3 md:-mb-7 lg:mb-0 lg:px-4.5'
-              )}
-            >
-              <GameContoller timerRef={timerRef} />
-              {(started || completed) && <GameInfo />}
-            </div>
-            <div className="pt-3 sm:pt-5">
-              <CompactStopButton timerRef={timerRef} />
-            </div>
+            <DiscussionUrl
+              discussion_url={discussion_url ?? 'https://www.youtube.com/live/YeC5P0-vxOQ'}
+            />
           </div>
 
           {/* Game Grid - Center */}
-          <div className="order-2 flex flex-col items-center justify-center lg:order-2 lg:col-span-6">
+          <div className="order-1 flex flex-col items-center justify-center lg:order-2 lg:col-span-6">
             {/* Stop Button for <lg screens */}
 
             <div className="w-full max-w-lg">
@@ -339,8 +366,7 @@ function WordGame({
           </div>
 
           {/* Help Section - Right Sidebar on large screens, bottom on mobile */}
-          <div className="order-3 lg:col-span-3 lg:ml-2 xl:ml-3.5">
-            <DiscussionUrl discussion_url={discussion_url} />
+          <div className="order-3 lg:col-span-3 lg:ml-0 xl:ml-0 2xl:ml-0">
             <div className="lg:sticky lg:top-6 lg:mt-12">
               <div className="overflow-hidden rounded-2xl border border-slate-200 bg-white shadow-xl dark:border-slate-700 dark:bg-slate-800">
                 <GameHelp />
@@ -470,6 +496,14 @@ export const NextPuzzleTimePopup = ({
   );
 };
 
+// Extract video ID from YouTube URL (including live videos)
+const getYouTubeVideoId = (url: string): string | null => {
+  const regex =
+    /(?:youtube\.com\/(?:[^\/]+\/.+\/|(?:v|e(?:mbed)?)\/|live\/|.*[?&]v=)|youtu\.be\/)([^"&?\/\s]{11})/;
+  const match = url.match(regex);
+  return match ? match[1] : null;
+};
+
 const DiscussionUrl = ({
   discussion_url,
   className
@@ -478,16 +512,29 @@ const DiscussionUrl = ({
   className?: string;
 }) => {
   if (!discussion_url) return null;
+
+  const videoId = getYouTubeVideoId(discussion_url);
+  console.log([discussion_url, videoId]);
+
+  if (!videoId) return null;
+
   return (
-    <div className={cn('mt-2 mb-4 flex items-center justify-center', className)}>
-      <Link href={discussion_url ?? ''} target="_blank" rel="noopener noreferrer">
-        <Button variant="ghost" className="gap-2 rounded-md text-base font-semibold">
-          <FiYoutube className="-mt-1 size-6 text-red-600 dark:text-red-400" />
-          <span className="bg-gradient-to-r from-orange-500 via-amber-500 to-yellow-600 bg-clip-text font-extrabold text-transparent drop-shadow-sm dark:from-amber-300 dark:via-orange-300 dark:to-yellow-200">
-            Solve Together & Discuss
-          </span>
-        </Button>
-      </Link>
+    <div className={cn('mt-2 mb-4 w-full', className)}>
+      <div className="mb-3 flex items-center justify-center gap-2">
+        <FiYoutube className="-mt-1 size-6 text-red-600 dark:text-red-400" />
+        <span className="bg-gradient-to-r from-orange-500 via-amber-500 to-yellow-600 bg-clip-text text-center text-base font-extrabold text-transparent drop-shadow-sm dark:from-amber-300 dark:via-orange-300 dark:to-yellow-200">
+          Solve Together & Discuss
+        </span>
+      </div>
+      <div className="w-full max-w-md overflow-hidden rounded-lg shadow-lg">
+        <iframe
+          src={`https://www.youtube.com/embed/${videoId}`}
+          title="Discussion Video"
+          allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture; web-share"
+          allowFullScreen
+          className="aspect-video w-full border-0"
+        />
+      </div>
     </div>
   );
 };

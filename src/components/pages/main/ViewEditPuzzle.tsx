@@ -154,6 +154,7 @@ const DiscussionUrl = () => {
         <span className="text-lg font-bold">
           चर्चायाः स्थानसञ्चितः
           <span className="ml-3 text-xs text-gray-500 dark:text-gray-400">ऐच्छिक</span>
+          <span className="ml-3 text-xs text-red-500 dark:text-red-400">* Only Youtube links</span>
         </span>
         <Input
           type="url"
