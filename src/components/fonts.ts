@@ -7,7 +7,8 @@ import {
   Noto_Sans_Bengali,
   Noto_Sans_Oriya,
   Noto_Sans_Tamil,
-  Noto_Sans_Malayalam
+  Noto_Sans_Malayalam,
+  Noto_Sans_Gurmukhi
 } from 'next/font/google';
 
 export const robotoSans = Roboto({
@@ -61,5 +62,11 @@ export const notoSansTamil = Noto_Sans_Tamil({
 export const notoSansMalayalam = Noto_Sans_Malayalam({
   variable: '--font-noto-sans-malayalam',
   subsets: ['malayalam'],
+  weight: ['400', '500', '700']
+});
+
+export const notoSansGurumukhi = Noto_Sans_Gurmukhi({
+  variable: '--font-noto-sans-gurumukhi',
+  subsets: ['gurmukhi'],
   weight: ['400', '500', '700']
 });

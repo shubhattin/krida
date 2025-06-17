@@ -7,7 +7,8 @@ import {
   notoSansOdia,
   notoSansTamil,
   notoSansMalayalam,
-  robotoSans
+  robotoSans,
+  notoSansGurumukhi
 } from '~/components/fonts';
 
 export const SCRIPT_LIST = [
@@ -20,6 +21,7 @@ export const SCRIPT_LIST = [
   'Malayalam',
   'Tamil-Extended',
   'Assamese',
+  'Gurumukhi',
   'Romanized'
 ] as const;
 export type ScriptType = (typeof SCRIPT_LIST)[number];
@@ -34,7 +36,8 @@ export const SCRIPT_NAMES: Record<ScriptType, string> = {
   Malayalam: 'Malayalam',
   Assamese: 'Assamese',
   'Tamil-Extended': 'Tamil',
-  Romanized: 'Romanized'
+  Romanized: 'Romanized',
+  Gurumukhi: 'Gurumukhi'
 };
 
 export const DEFAULT_DATA_SCRIPT: ScriptType = 'Devanagari';
@@ -92,5 +95,9 @@ export const FONT_INFO: Record<
   Romanized: {
     className: robotoSans.className,
     fontSize: 0.92
+  },
+  Gurumukhi: {
+    className: notoSansGurumukhi.className,
+    fontSize: 1.12
   }
 };
