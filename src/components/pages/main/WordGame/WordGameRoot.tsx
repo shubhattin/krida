@@ -288,6 +288,23 @@ function WordGame({
             )}
           </div>
         </div>
+        {started && (
+          <div className="flex flex-col items-center justify-center">
+            <div
+              className={cn(
+                'flex items-center justify-center',
+                started &&
+                  'space-x-3.5 rounded-2xl border border-slate-200 bg-white px-5 py-3 shadow-xl sm:space-x-5 sm:px-6 md:space-x-5 md:px-8 dark:border-slate-700 dark:bg-slate-800'
+              )}
+            >
+              <GameContoller timerRef={timerRef} />
+              {(started || completed) && <GameInfo />}
+            </div>
+            <div className="mb-4.5 pt-3 sm:mb-5.5 sm:pt-5 md:mb-6">
+              <CompactStopButton timerRef={timerRef} />
+            </div>
+          </div>
+        )}
 
         {/* Main Game Container */}
         <div
@@ -299,32 +316,17 @@ function WordGame({
           {/* Game Controls & Progress - Left Sidebar on large screens, top on mobile */}
           <div
             className={cn(
-              'order-1 flex items-center justify-center lg:order-1 lg:col-span-3',
-              !started && 'lg:mt-12 lg:items-start',
-              started && 'flex-col'
+              'order-2 flex items-center justify-center lg:order-1 lg:col-span-3',
+              !started && 'lg:mt-12 lg:items-start'
             )}
           >
-            <div
-              className={cn(
-                'inline-flex items-center justify-center',
-                started &&
-                  'rounded-2xl border border-slate-200 bg-white shadow-xl dark:border-slate-700 dark:bg-slate-800',
-                'px-5 py-3 lg:px-2 lg:py-6',
-                'space-x-3.5 sm:space-x-5 md:space-x-5 lg:flex lg:flex-col lg:space-y-5 lg:space-x-0',
-                completed && 'flex flex-col space-y-3 sm:flex-row lg:flex-col',
-                !started && '-mb-4 px-2.5 sm:-mb-6 sm:px-3 md:-mb-7 lg:mb-0 lg:px-4.5'
-              )}
-            >
-              <GameContoller timerRef={timerRef} />
-              {(started || completed) && <GameInfo />}
-            </div>
-            <div className="pt-3 sm:pt-5">
-              <CompactStopButton timerRef={timerRef} />
-            </div>
+            <DiscussionUrl
+              discussion_url={discussion_url ?? 'https://www.youtube.com/live/YeC5P0-vxOQ'}
+            />
           </div>
 
           {/* Game Grid - Center */}
-          <div className="order-2 flex flex-col items-center justify-center lg:order-2 lg:col-span-6">
+          <div className="order-1 flex flex-col items-center justify-center lg:order-2 lg:col-span-6">
             {/* Stop Button for <lg screens */}
 
             <div className="w-full max-w-lg">
@@ -340,7 +342,6 @@ function WordGame({
 
           {/* Help Section - Right Sidebar on large screens, bottom on mobile */}
           <div className="order-3 lg:col-span-3 lg:ml-2 xl:ml-3.5">
-            <DiscussionUrl discussion_url={discussion_url} />
             <div className="lg:sticky lg:top-6 lg:mt-12">
               <div className="overflow-hidden rounded-2xl border border-slate-200 bg-white shadow-xl dark:border-slate-700 dark:bg-slate-800">
                 <GameHelp />
