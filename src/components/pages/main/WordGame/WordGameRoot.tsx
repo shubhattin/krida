@@ -335,7 +335,7 @@ function WordGame({
         {/* Main Game Container */}
         <div
           className={cn(
-            'grid grid-cols-1 gap-y-3.5 sm:gap-y-5 md:gap-y-6 lg:grid-cols-12 lg:gap-x-0 xl:gap-x-0 2xl:gap-x-0'
+            'grid grid-cols-1 gap-y-3.5 sm:gap-y-5 md:gap-y-6 lg:grid-cols-12 lg:gap-x-3 xl:gap-x-4 2xl:gap-x-6'
           )}
         >
           {/* Game Controls & Progress - Left Sidebar on large screens, top on mobile */}
@@ -514,16 +514,15 @@ const DiscussionUrl = ({
   if (!discussion_url) return null;
 
   const videoId = getYouTubeVideoId(discussion_url);
-  console.log([discussion_url, videoId]);
 
   if (!videoId) return null;
 
   return (
     <div className={cn('mt-2 mb-4 w-full', className)}>
-      <div className="mb-3 flex items-center justify-center gap-2">
-        <FiYoutube className="-mt-1 size-6 text-red-600 dark:text-red-400" />
+      <div className="text=start mb-3 flex items-start justify-center gap-2">
+        <FiYoutube className="-mt-1 size-7 text-red-600 dark:text-red-400" />
         <span className="bg-gradient-to-r from-orange-500 via-amber-500 to-yellow-600 bg-clip-text text-center text-base font-extrabold text-transparent drop-shadow-sm dark:from-amber-300 dark:via-orange-300 dark:to-yellow-200">
-          Solve Together & Discuss
+          Solve Together & Discuss the Puzzle
         </span>
       </div>
       <div className="w-full max-w-md overflow-hidden rounded-lg shadow-lg">
