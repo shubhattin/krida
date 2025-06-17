@@ -335,7 +335,7 @@ function WordGame({
         {/* Main Game Container */}
         <div
           className={cn(
-            'grid grid-cols-1 gap-y-3.5 sm:gap-y-5 md:gap-y-6 lg:grid-cols-12 lg:gap-x-3 xl:gap-x-4 2xl:gap-x-6'
+            'grid grid-cols-1 gap-y-3.5 sm:gap-y-5 md:gap-y-6 lg:grid-cols-12 lg:gap-x-4 xl:gap-x-5'
           )}
         >
           {/* Game Controls & Progress - Left Sidebar on large screens, top on mobile */}
