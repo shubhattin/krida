@@ -47,7 +47,10 @@ export const get_lang_from_cookie = (value?: string) => {
   }
 };
 
-export const FONT_INFO: Record<ScriptType, { className: string; fontSize: number }> = {
+export const FONT_INFO: Record<
+  ScriptType,
+  { className: string; fontSize: number; experimental?: boolean }
+> = {
   Devanagari: {
     className: notoSansDevanagari.className,
     fontSize: 1.25
@@ -58,7 +61,7 @@ export const FONT_INFO: Record<ScriptType, { className: string; fontSize: number
   },
   Kannada: {
     className: notoSansKannada.className,
-    fontSize: 1.0
+    fontSize: 0.98
   },
   Bengali: {
     className: notoSansBengali.className,
@@ -78,14 +81,16 @@ export const FONT_INFO: Record<ScriptType, { className: string; fontSize: number
   },
   Malayalam: {
     className: notoSansMalayalam.className,
-    fontSize: 0.93
+    fontSize: 0.93,
+    experimental: true
   },
   'Tamil-Extended': {
     className: notoSansTamil.className,
-    fontSize: 0.85
+    fontSize: 0.84,
+    experimental: true
   },
   Romanized: {
     className: robotoSans.className,
-    fontSize: 0.93
+    fontSize: 0.92
   }
 };

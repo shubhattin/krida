@@ -251,9 +251,14 @@ function WordGame({
       <div
         className={cn('flex items-center justify-center pt-2.5 sm:pt-4 lg:pt-5', 'mb-2.5 sm:mb-4')}
       >
-        <label className="space-x-2">
+        <label className="flex items-center space-x-2">
           <Icon className="size-7" src={LanguageIcon} />
           <ScriptSelector script={script} onScriptChange={setScript} />
+          {font_info.experimental && (
+            <span className="inline-flex items-center rounded-full bg-orange-100 px-1 py-0.5 text-xs font-medium text-orange-800 dark:bg-orange-900/20 dark:text-orange-400">
+              Beta
+            </span>
+          )}
         </label>
       </div>
       <div className="container mx-auto my-2.5 max-w-7xl px-2 sm:my-3.5 sm:px-4 md:my-4 md:px-6 lg:my-5">
@@ -516,6 +521,7 @@ const DiscussionUrl = ({
   const videoId = getYouTubeVideoId(youtube_url);
 
   if (!videoId) return null;
+  const PROD = process.env.NODE_ENV === 'production';
 
   return (
     <div
@@ -531,15 +537,17 @@ const DiscussionUrl = ({
           Solve Together & Discuss the Puzzle
         </span>
       </div>
-      <div className="w-full max-w-md overflow-hidden rounded-lg shadow-lg">
-        <iframe
-          src={`https://www.youtube.com/embed/${videoId}`}
-          title="Discussion Video"
-          allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture; web-share"
-          allowFullScreen
-          className="aspect-video w-full border-0"
-        />
-      </div>
+      {PROD ? (
+        <div className="w-full max-w-md overflow-hidden rounded-lg shadow-lg">
+          <iframe
+            src={`https://www.youtube.com/embed/${videoId}`}
+            title="Discussion Video"
+            allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture; web-share"
+            allowFullScreen
+            className="aspect-video w-full border-0"
+          />
+        </div>
+      ) : null}
     </div>
   );
 };
