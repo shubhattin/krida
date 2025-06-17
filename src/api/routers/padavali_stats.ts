@@ -96,7 +96,11 @@ const get_stats_data_route = protectedAdminProcedure
       columns: {
         id: true,
         created_at: true,
-        session_id: true
+        session_id: true,
+        time_taken: true,
+        accuracy: true,
+        correct_attempts: true,
+        total_attempts: true
       },
       where: (tbl, { and, eq, gte, lte }) =>
         and(

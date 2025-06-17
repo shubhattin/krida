@@ -19,6 +19,7 @@ import { XAxis, YAxis, CartesianGrid, LineChart, Line } from 'recharts';
 import { CalendarIcon, TrendingUpIcon, UsersIcon, ClockIcon, TargetIcon } from 'lucide-react';
 import { cn } from '~/lib/utils';
 import { format } from 'date-fns';
+import pretty_ms from 'pretty-ms';
 
 type DateRange = {
   from: Date | undefined;
@@ -26,6 +27,7 @@ type DateRange = {
 };
 
 type PeriodType = 'last7days' | 'custom';
+type ChartType = 'sessions-completions' | 'avg-time' | 'avg-accuracy' | 'attempts';
 
 // Loading skeleton component
 const StatsLoadingSkeleton = () => (
@@ -45,16 +47,16 @@ const StatsLoadingSkeleton = () => (
     </div>
 
     {/* Summary cards skeleton */}
-    <div className="grid grid-cols-1 gap-4 md:grid-cols-3">
-      {[...Array(3)].map((_, i) => (
+    <div className="grid grid-cols-1 gap-3 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-5">
+      {[...Array(5)].map((_, i) => (
         <Card key={i}>
           <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-            <Skeleton className="h-4 w-24" />
-            <Skeleton className="h-4 w-4" />
+            <Skeleton className="h-3 w-20" />
+            <Skeleton className="h-3 w-3" />
           </CardHeader>
           <CardContent>
-            <Skeleton className="mb-2 h-8 w-16" />
-            <Skeleton className="h-3 w-32" />
+            <Skeleton className="mb-1 h-6 w-12" />
+            <Skeleton className="h-2 w-24" />
           </CardContent>
         </Card>
       ))}
@@ -166,44 +168,102 @@ const DateRangeControls = ({
 
 // Summary cards component
 const SummaryCards = ({ summaryStats }: { summaryStats: any }) => (
-  <div className="grid grid-cols-1 gap-4 md:grid-cols-3">
-    <Card>
+  <div className="grid grid-cols-1 gap-3 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-5">
+    <Card className="transition-shadow hover:shadow-md">
       <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-        <CardTitle className="text-sm font-medium">Total Sessions</CardTitle>
-        <UsersIcon className="h-4 w-4 text-muted-foreground" />
+        <CardTitle className="text-xs font-medium">Total Started</CardTitle>
+        <UsersIcon className="h-3 w-3 text-muted-foreground" />
       </CardHeader>
       <CardContent>
-        <div className="text-2xl font-bold">{summaryStats.totalSessions}</div>
-        <p className="text-xs text-muted-foreground">Game sessions started</p>
+        <div className="text-xl font-bold">{summaryStats.totalSessions}</div>
+        <p className="text-xs text-muted-foreground">Games started</p>
       </CardContent>
     </Card>
 
-    <Card>
+    <Card className="transition-shadow hover:shadow-md">
       <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-        <CardTitle className="text-sm font-medium">Completions</CardTitle>
-        <TargetIcon className="h-4 w-4 text-muted-foreground" />
+        <CardTitle className="text-xs font-medium">Completions</CardTitle>
+        <TargetIcon className="h-3 w-3 text-muted-foreground" />
       </CardHeader>
       <CardContent>
-        <div className="text-2xl font-bold">{summaryStats.totalCompletions}</div>
+        <div className="text-xl font-bold">{summaryStats.totalCompletions}</div>
         <p className="text-xs text-muted-foreground">Puzzles completed</p>
       </CardContent>
     </Card>
 
-    <Card>
+    <Card className="transition-shadow hover:shadow-md">
       <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-        <CardTitle className="text-sm font-medium">Completion Rate</CardTitle>
-        <TrendingUpIcon className="h-4 w-4 text-muted-foreground" />
+        <CardTitle className="text-xs font-medium">Completion Rate</CardTitle>
+        <TrendingUpIcon className="h-3 w-3 text-muted-foreground" />
       </CardHeader>
       <CardContent>
-        <div className="text-2xl font-bold">{summaryStats.completionRate}%</div>
-        <p className="text-xs text-muted-foreground">Of started sessions</p>
+        <div className="text-xl font-bold">{summaryStats.completionRate}%</div>
+        <p className="text-xs text-muted-foreground">Of started games</p>
+      </CardContent>
+    </Card>
+
+    <Card className="transition-shadow hover:shadow-md">
+      <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+        <CardTitle className="text-xs font-medium">Avg Time</CardTitle>
+        <ClockIcon className="h-3 w-3 text-muted-foreground" />
+      </CardHeader>
+      <CardContent>
+        <div className="text-xl font-bold">{pretty_ms(summaryStats.avgTimeTaken * 1000)}s</div>
+        <p className="text-xs text-muted-foreground">Per completion</p>
+      </CardContent>
+    </Card>
+
+    <Card className="transition-shadow hover:shadow-md">
+      <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+        <CardTitle className="text-xs font-medium">Avg Accuracy</CardTitle>
+        <TargetIcon className="h-3 w-3 text-muted-foreground" />
+      </CardHeader>
+      <CardContent>
+        <div className="text-xl font-bold">{summaryStats.avgAccuracy}%</div>
+        <p className="text-xs text-muted-foreground">per completetione</p>
       </CardContent>
     </Card>
   </div>
 );
 
+// Chart selector component
+const ChartSelector = ({
+  chartType,
+  setChartType
+}: {
+  chartType: ChartType;
+  setChartType: (chartType: ChartType) => void;
+}) => (
+  <div className="flex w-full items-center justify-between">
+    <div className="flex items-center gap-2">
+      <label className="text-sm font-medium text-muted-foreground">View:</label>
+      <Select value={chartType} onValueChange={(value: ChartType) => setChartType(value)}>
+        <SelectTrigger className="w-56">
+          <SelectValue />
+        </SelectTrigger>
+        <SelectContent>
+          <SelectItem value="sessions-completions">Started and Completed</SelectItem>
+          <SelectItem value="avg-time">Average Time</SelectItem>
+          <SelectItem value="avg-accuracy">Average Accuracy</SelectItem>
+          <SelectItem value="attempts">Total and Correct Attempts</SelectItem>
+        </SelectContent>
+      </Select>
+    </div>
+  </div>
+);
+
 // Charts section component
-const ChartsSection = ({ chartData, chartConfig }: { chartData: any; chartConfig: any }) => (
+const ChartsSection = ({
+  chartData,
+  chartConfig,
+  chartType,
+  setChartType
+}: {
+  chartData: any;
+  chartConfig: any;
+  chartType: ChartType;
+  setChartType: (chartType: ChartType) => void;
+}) => (
   <div className="w-full">
     <div className="container mx-auto px-4 sm:px-6 lg:px-8">
       <div className="flex justify-center">
@@ -211,7 +271,7 @@ const ChartsSection = ({ chartData, chartConfig }: { chartData: any; chartConfig
           {/* Daily Activity Chart */}
           <Card>
             <CardHeader>
-              <CardTitle className="text-center sm:text-left">Daily Activity</CardTitle>
+              <ChartSelector chartType={chartType} setChartType={setChartType} />
             </CardHeader>
             <CardContent className="p-2 sm:p-6">
               <ChartContainer config={chartConfig} className="h-64 sm:h-72 md:h-80 lg:h-96">
@@ -233,44 +293,134 @@ const ChartsSection = ({ chartData, chartConfig }: { chartData: any; chartConfig
                     content={<ChartTooltipContent />}
                     labelFormatter={(value) => format(new Date(value as string), 'PPP')}
                   />
-                  <Line
-                    dataKey="sessions"
-                    stroke="hsl(217 91% 60%)"
-                    strokeWidth={3}
-                    dot={{
-                      fill: 'hsl(217 91% 60%)',
-                      strokeWidth: 2,
-                      r: 5,
-                      stroke: 'hsl(217 91% 60%)',
-                      className: 'drop-shadow-sm'
-                    }}
-                    activeDot={{
-                      r: 7,
-                      fill: 'hsl(217 91% 60%)',
-                      stroke: 'white',
-                      strokeWidth: 2,
-                      className: 'drop-shadow-md'
-                    }}
-                  />
-                  <Line
-                    dataKey="completions"
-                    stroke="hsl(240 100% 70%)"
-                    strokeWidth={3}
-                    dot={{
-                      fill: 'hsl(240 100% 70%)',
-                      strokeWidth: 2,
-                      r: 5,
-                      stroke: 'hsl(240 100% 70%)',
-                      className: 'drop-shadow-sm'
-                    }}
-                    activeDot={{
-                      r: 7,
-                      fill: 'hsl(240 100% 70%)',
-                      stroke: 'white',
-                      strokeWidth: 2,
-                      className: 'drop-shadow-md'
-                    }}
-                  />
+
+                  {/* Sessions and Completions Lines */}
+                  {chartType === 'sessions-completions' && (
+                    <Line
+                      dataKey="sessions"
+                      stroke="hsl(210, 100%, 45%)" // blue
+                      strokeWidth={3}
+                      dot={{
+                        fill: 'hsl(210, 100%, 45%)',
+                        strokeWidth: 2,
+                        r: 5,
+                        stroke: 'hsl(210, 100%, 45%)',
+                        className: 'drop-shadow-sm'
+                      }}
+                      activeDot={{
+                        r: 7,
+                        fill: 'hsl(210, 100%, 45%)',
+                        stroke: 'white',
+                        strokeWidth: 2,
+                        className: 'drop-shadow-md'
+                      }}
+                    />
+                  )}
+                  {chartType === 'sessions-completions' && (
+                    <Line
+                      dataKey="completions"
+                      stroke="hsl(140, 70%, 40%)" // green
+                      strokeWidth={3}
+                      dot={{
+                        fill: 'hsl(140, 70%, 40%)',
+                        strokeWidth: 2,
+                        r: 5,
+                        stroke: 'hsl(140, 70%, 40%)',
+                        className: 'drop-shadow-sm'
+                      }}
+                      activeDot={{
+                        r: 7,
+                        fill: 'hsl(140, 70%, 40%)',
+                        stroke: 'white',
+                        strokeWidth: 2,
+                        className: 'drop-shadow-md'
+                      }}
+                    />
+                  )}
+                  {chartType === 'avg-time' && (
+                    <Line
+                      dataKey="avgTimeTaken"
+                      stroke="hsl(120 100% 40%)"
+                      strokeWidth={3}
+                      dot={{
+                        fill: 'hsl(120 100% 40%)',
+                        strokeWidth: 2,
+                        r: 5,
+                        stroke: 'hsl(120 100% 40%)',
+                        className: 'drop-shadow-sm'
+                      }}
+                      activeDot={{
+                        r: 7,
+                        fill: 'hsl(120 100% 40%)',
+                        stroke: 'white',
+                        strokeWidth: 2,
+                        className: 'drop-shadow-md'
+                      }}
+                    />
+                  )}
+                  {chartType === 'avg-accuracy' && (
+                    <Line
+                      dataKey="avgAccuracy"
+                      stroke="hsl(30 100% 50%)"
+                      strokeWidth={3}
+                      dot={{
+                        fill: 'hsl(30 100% 50%)',
+                        strokeWidth: 2,
+                        r: 5,
+                        stroke: 'hsl(30 100% 50%)',
+                        className: 'drop-shadow-sm'
+                      }}
+                      activeDot={{
+                        r: 7,
+                        fill: 'hsl(30 100% 50%)',
+                        stroke: 'white',
+                        strokeWidth: 2,
+                        className: 'drop-shadow-md'
+                      }}
+                    />
+                  )}
+                  {chartType === 'attempts' && (
+                    <Line
+                      dataKey="avgTotalAttempts"
+                      stroke="hsl(200 100% 50%)"
+                      strokeWidth={3}
+                      dot={{
+                        fill: 'hsl(200 100% 50%)',
+                        strokeWidth: 2,
+                        r: 5,
+                        stroke: 'hsl(200 100% 50%)',
+                        className: 'drop-shadow-sm'
+                      }}
+                      activeDot={{
+                        r: 7,
+                        fill: 'hsl(200 100% 50%)',
+                        stroke: 'white',
+                        strokeWidth: 2,
+                        className: 'drop-shadow-md'
+                      }}
+                    />
+                  )}
+                  {chartType === 'attempts' && (
+                    <Line
+                      dataKey="avgCorrectAttempts"
+                      stroke="hsl(150 100% 40%)"
+                      strokeWidth={3}
+                      dot={{
+                        fill: 'hsl(150 100% 40%)',
+                        strokeWidth: 2,
+                        r: 5,
+                        stroke: 'hsl(150 100% 40%)',
+                        className: 'drop-shadow-sm'
+                      }}
+                      activeDot={{
+                        r: 7,
+                        fill: 'hsl(150 100% 40%)',
+                        stroke: 'white',
+                        strokeWidth: 2,
+                        className: 'drop-shadow-md'
+                      }}
+                    />
+                  )}
                 </LineChart>
               </ChartContainer>
             </CardContent>
@@ -284,7 +434,9 @@ const ChartsSection = ({ chartData, chartConfig }: { chartData: any; chartConfig
 // Main component
 const PuzzleStats = ({ puzzleId }: { puzzleId: number }) => {
   const [period, setPeriod] = useState<PeriodType>('last7days');
+  const [chartType, setChartType] = useState<ChartType>('sessions-completions');
   const [dateRange, setDateRange] = useState<DateRange>(() => {
+    // default to last 7 days
     const today = new Date();
     const sevenDaysAgo = new Date(today);
     sevenDaysAgo.setDate(today.getDate() - 7);
@@ -329,23 +481,77 @@ const PuzzleStats = ({ puzzleId }: { puzzleId: number }) => {
     const { sessions, stats } = statsQuery.data;
 
     // Create daily aggregation
-    const dailyMap = new Map<string, { date: string; sessions: number; completions: number }>();
+    const dailyMap = new Map<
+      string,
+      {
+        date: string;
+        sessions: number;
+        completions: number;
+        totalTimeTaken: number;
+        totalAccuracy: number;
+        totalTotalAttempts: number;
+        totalCorrectAttempts: number;
+        avgTimeTaken: number;
+        avgAccuracy: number;
+        avgTotalAttempts: number;
+        avgCorrectAttempts: number;
+      }
+    >();
 
     sessions.forEach((session) => {
       const dateKey = format(new Date(session.created_at), 'yyyy-MM-dd');
-      const existing = dailyMap.get(dateKey) || { date: dateKey, sessions: 0, completions: 0 };
+      const existing = dailyMap.get(dateKey) || {
+        date: dateKey,
+        sessions: 0,
+        completions: 0,
+        totalTimeTaken: 0,
+        totalAccuracy: 0,
+        totalTotalAttempts: 0,
+        totalCorrectAttempts: 0,
+        avgTimeTaken: 0,
+        avgAccuracy: 0,
+        avgTotalAttempts: 0,
+        avgCorrectAttempts: 0
+      };
       existing.sessions += 1;
       dailyMap.set(dateKey, existing);
     });
 
     stats.forEach((stat) => {
       const dateKey = format(new Date(stat.created_at), 'yyyy-MM-dd');
-      const existing = dailyMap.get(dateKey) || { date: dateKey, sessions: 0, completions: 0 };
+      const existing = dailyMap.get(dateKey) || {
+        date: dateKey,
+        sessions: 0,
+        completions: 0,
+        totalTimeTaken: 0,
+        totalAccuracy: 0,
+        totalTotalAttempts: 0,
+        totalCorrectAttempts: 0,
+        avgTimeTaken: 0,
+        avgAccuracy: 0,
+        avgTotalAttempts: 0,
+        avgCorrectAttempts: 0
+      };
       existing.completions += 1;
+      existing.totalTimeTaken += stat.time_taken;
+      existing.totalAccuracy += stat.accuracy;
+      existing.totalTotalAttempts += stat.total_attempts;
+      existing.totalCorrectAttempts += stat.correct_attempts;
       dailyMap.set(dateKey, existing);
     });
 
-    const dailyStats = Array.from(dailyMap.values()).sort((a, b) => a.date.localeCompare(b.date));
+    // Calculate averages for each day
+    const dailyStats = Array.from(dailyMap.values())
+      .map((day) => ({
+        ...day,
+        avgTimeTaken: day.completions > 0 ? Math.round(day.totalTimeTaken / day.completions) : 0,
+        avgAccuracy: day.completions > 0 ? Math.round(day.totalAccuracy / day.completions) : 0,
+        avgTotalAttempts:
+          day.completions > 0 ? Math.round(day.totalTotalAttempts / day.completions) : 0,
+        avgCorrectAttempts:
+          day.completions > 0 ? Math.round(day.totalCorrectAttempts / day.completions) : 0
+      }))
+      .sort((a, b) => a.date.localeCompare(b.date));
 
     return { dailyStats };
   }, [statsQuery.data]);
@@ -356,23 +562,56 @@ const PuzzleStats = ({ puzzleId }: { puzzleId: number }) => {
 
     const { sessions, stats } = statsQuery.data;
 
+    // Calculate averages from completed sessions
+    const avgTimeTaken =
+      stats.length > 0
+        ? Math.round(stats.reduce((sum, stat) => sum + stat.time_taken, 0) / stats.length)
+        : 0;
+
+    const avgAccuracy =
+      stats.length > 0
+        ? Math.round(stats.reduce((sum, stat) => sum + stat.accuracy, 0) / stats.length)
+        : 0;
+
     return {
       totalSessions: sessions.length,
       totalCompletions: stats.length,
-      completionRate: sessions.length > 0 ? Math.round((stats.length / sessions.length) * 100) : 0
+      completionRate: sessions.length > 0 ? Math.round((stats.length / sessions.length) * 100) : 0,
+      avgTimeTaken,
+      avgAccuracy
     };
   }, [statsQuery.data]);
 
-  const chartConfig = {
-    sessions: {
-      label: 'Started',
-      color: 'hsl(217 91% 60%)'
-    },
-    completions: {
-      label: 'Completed',
-      color: 'hsl(240 100% 70%)'
-    }
-  };
+  const chartConfig = useMemo(() => {
+    // Always include all possible data keys in config
+    // The conditional rendering will handle which lines to show
+    return {
+      sessions: {
+        label: 'Started',
+        color: 'hsl(217 91% 60%)'
+      },
+      completions: {
+        label: 'Completed',
+        color: 'hsl(240 100% 70%)'
+      },
+      avgTimeTaken: {
+        label: 'Avg Time (s)',
+        color: 'hsl(120 100% 40%)'
+      },
+      avgAccuracy: {
+        label: 'Avg Accuracy (%)',
+        color: 'hsl(30 100% 50%)'
+      },
+      avgTotalAttempts: {
+        label: 'Total Attempts',
+        color: 'hsl(200 100% 50%)'
+      },
+      avgCorrectAttempts: {
+        label: 'Correct Attempts',
+        color: 'hsl(150 100% 40%)'
+      }
+    };
+  }, []);
 
   // Loading state
   if (statsQuery.isLoading) {
@@ -411,7 +650,12 @@ const PuzzleStats = ({ puzzleId }: { puzzleId: number }) => {
           <SummaryCards summaryStats={summaryStats} />
 
           {/* Charts */}
-          <ChartsSection chartData={chartData} chartConfig={chartConfig} />
+          <ChartsSection
+            chartData={chartData}
+            chartConfig={chartConfig}
+            chartType={chartType}
+            setChartType={setChartType}
+          />
 
           {/* No Data State */}
           {summaryStats.totalSessions === 0 && (
