@@ -13,7 +13,7 @@ import { ScriptSelector } from '~/components/pages/main/ScriptSelector';
 import { cn } from '~/lib/utils';
 import Icon from '~/tools/Icon';
 import { LanguageIcon } from '~/components/icons';
-import { ArchiveIcon, ArrowRightIcon, Calendar, InfoIcon, MessageCircleIcon } from 'lucide-react';
+import { ArchiveIcon, ArrowRightIcon, Calendar, InfoIcon } from 'lucide-react';
 import Link from 'next/link';
 import { motion } from 'framer-motion';
 import {
@@ -31,7 +31,7 @@ import {
   original_word_list_atom
 } from './game_state';
 import { Popover, PopoverContent, PopoverTrigger } from '@radix-ui/react-popover';
-import { FaRegStopCircle, FaYoutube } from 'react-icons/fa';
+import { FaRegStopCircle } from 'react-icons/fa';
 import { AppContext } from '~/components/AppDataContext';
 import dayjs from 'dayjs';
 import relativeTime from 'dayjs/plugin/relativeTime';

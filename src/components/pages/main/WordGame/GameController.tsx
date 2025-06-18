@@ -42,8 +42,7 @@ export const GameContoller = ({ timerRef }: Props) => {
 
   const font_info = FONT_INFO[script!];
 
-  // Start the game
-  const handleStart = () => {
+  const handleRestart = () => {
     setStarted(true);
     setSeconds(0);
     setCurrentSelection([]);
@@ -65,7 +64,7 @@ export const GameContoller = ({ timerRef }: Props) => {
       {completed && (
         <div>
           <motion.button
-            onClick={handleStart}
+            onClick={handleRestart}
             initial={{ opacity: 0, scale: 0.9 }}
             animate={{ opacity: 1, scale: 1 }}
             transition={{ duration: 0.3, ease: 'easeInOut' }}

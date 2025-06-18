@@ -19,7 +19,6 @@ import {
 } from './game_state';
 import { AppContext } from '~/components/AppDataContext';
 import type { location_list_type } from '~/db/types';
-import { IoExtensionPuzzleSharp } from 'react-icons/io5';
 import { FaPlay } from 'react-icons/fa';
 
 type Props = {
@@ -30,7 +29,7 @@ type Props = {
   location: location_list_type;
 };
 
-export const GameGrid = ({ puzzle_id, timerRef, original_grid_data, location }: Props) => {
+export const GameGrid = ({ timerRef, original_grid_data }: Props) => {
   const { script } = useContext(AppContext);
   const [started] = useAtom(started_atom);
   const [completed, setCompleted] = useAtom(completed_atom);
