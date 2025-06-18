@@ -106,14 +106,26 @@ const CompactStopButton = ({
 }) => {
   const { script } = useContext(AppContext);
   const [started] = useAtom(started_atom);
-  const [completed] = useAtom(completed_atom);
+  const [completed, setCompleted] = useAtom(completed_atom);
   const [, setStarted] = useAtom(started_atom);
   const [wordMsgs] = useAtom(word_msgs_atom);
+  const [, setFoundWords] = useAtom(found_words_atom);
+  const [, setSeconds] = useAtom(seconds_atom);
+  const [, setCurrentSelection] = useAtom(current_selection_atom);
+  const [, setTotalAttempts] = useAtom(total_attempts_atom);
+  const [, setCorrectAttempts] = useAtom(correct_attempts_atom);
 
   const font_info = FONT_INFO[script!];
 
   const handleStop = () => {
     setStarted(false);
+    setFoundWords([]);
+    setCurrentSelection([]);
+    setTotalAttempts(0);
+    setCorrectAttempts(0);
+    setCompleted(false);
+    setSeconds(0);
+
     if (timerRef.current) {
       clearInterval(timerRef.current);
       timerRef.current = null;

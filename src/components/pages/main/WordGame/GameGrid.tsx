@@ -50,17 +50,18 @@ export const GameGrid = ({ puzzle_id, timerRef, original_grid_data, location }: 
   const [, setStarted] = useAtom(started_atom);
   const [, setSeconds] = useAtom(seconds_atom);
 
-  // Start the game
   const handleStart = () => {
     setStarted(true);
     setSeconds(0);
+    setCurrentSelection([]);
     setFoundWords([]);
+    setTotalAttempts(0);
+    setCorrectAttempts(0);
     setCompleted(false);
 
     if (timerRef.current) {
       clearInterval(timerRef.current);
     }
-
     timerRef.current = setInterval(() => {
       setSeconds((prev) => prev + 1);
     }, 1000);
