@@ -1,5 +1,5 @@
 import { useAtom } from 'jotai';
-import { useEffect, useState } from 'react';
+import { useContext, useEffect, useState } from 'react';
 import { useTurnstile } from 'react-turnstile';
 import { client_q } from '~/api/client';
 import {
@@ -11,6 +11,7 @@ import {
 } from './game_state';
 import { location_list_type } from '~/db/types';
 import TurnstileWidget from '~/components/Turnstile';
+import { AppContext } from '~/components/AppDataContext';
 
 const GameMetricsCollector = ({
   puzzle_id,
@@ -24,6 +25,7 @@ const GameMetricsCollector = ({
   const [correctAttempts] = useAtom(correct_attempts_atom);
   const [totalAttempts] = useAtom(total_attempts_atom);
   const [seconds] = useAtom(seconds_atom);
+  const { script } = useContext(AppContext);
 
   const [turnstileToken, setTurnstileToken] = useState<string | null>(null);
   const turnstile = useTurnstile();
@@ -45,9 +47,10 @@ const GameMetricsCollector = ({
     if (started && !completed && turnstileToken && !update_games_started_mut.isSuccess) {
       // only update games started if not already done
       update_games_started_mut.mutate({
+        turnstile_token: turnstileToken,
         id: puzzle_id,
         location,
-        turnstile_token: turnstileToken
+        script: script
       });
     }
   }, [started, turnstileToken, completed]);

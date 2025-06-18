@@ -1,3 +1,4 @@
+import { z } from 'zod';
 import {
   notoSansDevanagari,
   notoSansKannada,
@@ -39,6 +40,7 @@ export const SCRIPT_NAMES: Record<ScriptType, string> = {
   Romanized: 'Romanized',
   Gurumukhi: 'Gurumukhi'
 };
+export const script_list_enum = z.enum(SCRIPT_LIST);
 
 export const DEFAULT_DATA_SCRIPT: ScriptType = 'Devanagari';
 export const SCRIPT_DATA_COOKIE_KEY = 'data_script';

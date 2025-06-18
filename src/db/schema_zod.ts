@@ -7,6 +7,7 @@ import {
 } from './schema';
 import { createSelectSchema } from 'drizzle-zod';
 import { location_list_enum } from './types';
+import { script_list_enum } from '~/state/script_font_data';
 
 export const WordPuzzleSchemaZod = createSelectSchema(word_puzzles, {
   created_at: z.coerce.date(),
@@ -25,5 +26,6 @@ export const PuzzleGameScheduleSchemaZod = createSelectSchema(puzzle_game_schedu
 
 export const PuzzleGamePlaySessionSchemaZod = createSelectSchema(puzzle_gameplay_sessions, {
   created_at: z.coerce.date(),
-  location: location_list_enum
+  location: location_list_enum,
+  script: script_list_enum
 });

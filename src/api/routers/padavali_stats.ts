@@ -9,6 +9,7 @@ import { z } from 'zod';
 import { puzzle_gameplay_sessions, puzzle_gameplay_stats } from '~/db/schema';
 import { db } from '~/db/db';
 import { location_list_enum } from '~/db/types';
+import { script_list_enum } from '~/state/script_font_data';
 
 const submit_stats_route = publicProcedure
   .input(
@@ -50,10 +51,11 @@ const update_games_started_route = publicProcedure
     z.object({
       turnstile_token: z.string(),
       id: z.number().int(),
-      location: location_list_enum
+      location: location_list_enum,
+      script: script_list_enum
     })
   )
-  .mutation(async ({ input: { turnstile_token, id, location } }) => {
+  .mutation(async ({ input: { turnstile_token, id, location, script } }) => {
     const is_valid = await verify_cloudflare_turnstile_token(turnstile_token);
     if (!is_valid) {
       throw new TRPCError({ code: 'BAD_REQUEST', message: 'Invalid turnstile token' });
@@ -63,7 +65,8 @@ const update_games_started_route = publicProcedure
       .insert(puzzle_gameplay_sessions)
       .values({
         puzzle_id: id,
-        location
+        location,
+        script
       })
       .returning();
 
@@ -83,7 +86,8 @@ const get_stats_data_route = protectedAdminProcedure
       columns: {
         id: true,
         created_at: true,
-        location: true
+        location: true,
+        script: true
       },
       where: (tbl, { and, eq, gte, lte }) =>
         and(

@@ -13,6 +13,7 @@ import {
 } from 'drizzle-orm/pg-core';
 import { relations } from 'drizzle-orm';
 import type { location_list_type } from './types';
+import { type ScriptType } from '~/state/script_font_data';
 
 export const word_puzzles = pgTable(
   'word_puzzles',
@@ -43,7 +44,9 @@ export const puzzle_gameplay_sessions = pgTable(
       .notNull()
       .references(() => word_puzzles.id, { onDelete: 'cascade' }),
     created_at: timestamp({ withTimezone: true }).notNull().defaultNow(),
-    location: varchar({ length: 25 }).$type<location_list_type>()
+    location: varchar({ length: 25 }).$type<location_list_type>(),
+    script: text().$type<ScriptType>()
+    // as the script field was added late, we have handle it accordingly in th code
   },
   (table) => [
     index('puzzle_gameplay_sessions_puzzle_id_created_at_idx').on(table.puzzle_id, table.created_at)

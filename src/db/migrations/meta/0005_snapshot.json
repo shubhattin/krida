@@ -1,5 +1,5 @@
 {
-  "id": "85e072bc-1c57-4d6c-ad77-247d9c820147",
+  "id": "db49baab-9747-40a4-9a23-df4009d41021",
   "prevId": "d14121f0-4ee1-4a26-89ec-fab6c9dfb145",
   "version": "7",
   "dialect": "postgresql",
@@ -161,6 +161,12 @@
         "location": {
           "name": "location",
           "type": "varchar(25)",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "script": {
+          "name": "script",
+          "type": "text",
           "primaryKey": false,
           "notNull": false
         }
