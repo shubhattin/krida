@@ -63,7 +63,7 @@ const DEFAULT_CHART_CONFIG = {
   },
   frequency: {
     label: 'Frequency',
-    color: 'hsl(280 100% 60%)'
+    color: 'hsl(170 100% 45%)'
   }
 };
 
@@ -89,6 +89,92 @@ type ChartDataType = {
     name: string;
     frequency: number;
   }[];
+};
+
+// Custom tooltip for sessions-completions chart
+const SessionsCompletionsTooltip = ({ active, payload, label }: any) => {
+  if (active && payload && payload.length) {
+    const data = payload[0].payload;
+    const sessions = data.sessions || 0;
+    const completions = data.completions || 0;
+    const completionRate = sessions > 0 ? Math.round((completions / sessions) * 100) : 0;
+
+    return (
+      <div className="rounded-lg border bg-background p-2 shadow-md">
+        <div className="grid gap-2">
+          <div className="flex flex-col">
+            <span className="text-[0.70rem] text-muted-foreground uppercase">
+              {format(new Date(label), 'PPP')}
+            </span>
+          </div>
+          <div className="grid gap-1">
+            <div className="flex items-center gap-2">
+              <div
+                className="h-2.5 w-2.5 shrink-0 rounded-[2px]"
+                style={{ backgroundColor: 'hsl(210, 100%, 45%)' }}
+              />
+              <span className="text-sm">Started: {sessions}</span>
+            </div>
+            <div className="flex items-center gap-2">
+              <div
+                className="h-2.5 w-2.5 shrink-0 rounded-[2px]"
+                style={{ backgroundColor: 'hsl(140, 70%, 40%)' }}
+              />
+              <span className="text-sm">Completed: {completions}</span>
+            </div>
+            <div className="mt-1 flex items-center gap-2 border-t pt-1">
+              <span className="text-sm font-medium">Completion Rate: {completionRate}%</span>
+            </div>
+          </div>
+        </div>
+      </div>
+    );
+  }
+
+  return null;
+};
+
+// Custom tooltip for attempts chart
+const AttemptsTooltip = ({ active, payload, label }: any) => {
+  if (active && payload && payload.length) {
+    const data = payload[0].payload;
+    const totalAttempts = data.avgTotalAttempts || 0;
+    const correctAttempts = data.avgCorrectAttempts || 0;
+    const accuracy = totalAttempts > 0 ? Math.round((correctAttempts / totalAttempts) * 100) : 0;
+
+    return (
+      <div className="rounded-lg border bg-background p-2 shadow-md">
+        <div className="grid gap-2">
+          <div className="flex flex-col">
+            <span className="text-[0.70rem] text-muted-foreground uppercase">
+              {format(new Date(label), 'PPP')}
+            </span>
+          </div>
+          <div className="grid gap-1">
+            <div className="flex items-center gap-2">
+              <div
+                className="h-2.5 w-2.5 shrink-0 rounded-[2px]"
+                style={{ backgroundColor: 'hsl(200 100% 50%)' }}
+              />
+              <span className="text-sm">Total Attempts: {totalAttempts}</span>
+            </div>
+            <div className="flex items-center gap-2">
+              <div
+                className="h-2.5 w-2.5 shrink-0 rounded-[2px]"
+                style={{ backgroundColor: 'hsl(150 100% 40%)' }}
+              />
+              <span className="text-sm">Correct Attempts: {correctAttempts}</span>
+            </div>
+            <div className="mt-1 flex items-center gap-2 border-t pt-1">
+              <span className="text-sm font-medium">Accuracy: {accuracy}%</span>
+            </div>
+          </div>
+        </div>
+      </div>
+    );
+  }
+
+  return null;
 };
 
 // Main component
@@ -362,7 +448,11 @@ const ChartsSection = ({
                       width={40}
                     />
                     <ChartTooltip content={<ChartTooltipContent />} />
-                    <Bar dataKey="frequency" fill="hsl(280 100% 60%)" radius={[4, 4, 0, 0]} />
+                    <Bar
+                      dataKey="frequency"
+                      fill={chartConfig.frequency.color}
+                      radius={[4, 4, 0, 0]}
+                    />
                   </BarChart>
                 ) : (
                   <LineChart data={chartData.dailyStats}>
@@ -380,7 +470,15 @@ const ChartsSection = ({
                       width={40}
                     />
                     <ChartTooltip
-                      content={<ChartTooltipContent />}
+                      content={
+                        chartType === 'sessions-completions' ? (
+                          <SessionsCompletionsTooltip />
+                        ) : chartType === 'attempts' ? (
+                          <AttemptsTooltip />
+                        ) : (
+                          <ChartTooltipContent />
+                        )
+                      }
                       labelFormatter={(value) => format(new Date(value as string), 'PPP')}
                     />
 
