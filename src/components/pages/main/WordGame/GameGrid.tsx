@@ -52,8 +52,8 @@ export const GameGrid = ({ puzzle_id, timerRef, original_grid_data, location }: 
 
   // SVG dimensions and layout calculations
   const cellSize = 100; // Base cell size in SVG units
-  const cellGap = 8; // Gap between cells in SVG units
-  const cellRadius = 20; // Border radius for cells
+  const cellGap = 15; // Gap between cells in SVG units (restored to original spacing)
+  const cellRadius = 20; // Border radius for cells (restored to original)
   const svgWidth = cols * cellSize + (cols - 1) * cellGap;
   const svgHeight = rows * cellSize + (rows - 1) * cellGap;
 
@@ -295,6 +295,7 @@ export const GameGrid = ({ puzzle_id, timerRef, original_grid_data, location }: 
               {...bind()}
               data-game-grid
               viewBox={`0 0 ${svgWidth} ${svgHeight}`}
+              preserveAspectRatio="xMidYMid meet"
               className={cn(
                 'relative z-10 mx-auto h-full w-full select-none',
                 // Enhanced touch handling for all states
@@ -302,6 +303,7 @@ export const GameGrid = ({ puzzle_id, timerRef, original_grid_data, location }: 
               )}
               style={{
                 maxWidth: 'min(100%, min(90vw, 450px))',
+                aspectRatio: `${svgWidth} / ${svgHeight}`,
                 // Additional CSS properties for mobile gesture prevention
                 WebkitTouchCallout: 'none',
                 WebkitUserSelect: 'none',
@@ -313,17 +315,17 @@ export const GameGrid = ({ puzzle_id, timerRef, original_grid_data, location }: 
             >
               {/* SVG Definitions for gradients, filters, and effects */}
               <defs>
-                {/* Default cell gradients */}
+                {/* Default cell gradients - with subtle bluish tint */}
                 <linearGradient id="defaultGradient" x1="0%" y1="0%" x2="100%" y2="100%">
-                  <stop offset="0%" stopColor="white" />
-                  <stop offset="100%" stopColor="#f8fafc" />
+                  <stop offset="0%" stopColor="#ffffff" />
+                  <stop offset="100%" stopColor="#f1f5f9" />
                 </linearGradient>
                 <linearGradient id="defaultGradientDark" x1="0%" y1="0%" x2="100%" y2="100%">
                   <stop offset="0%" stopColor="#334155" />
                   <stop offset="100%" stopColor="#1e293b" />
                 </linearGradient>
 
-                {/* Current selection gradients */}
+                {/* Current selection gradients - blue theme */}
                 <linearGradient id="currentGradient" x1="0%" y1="0%" x2="100%" y2="100%">
                   <stop offset="0%" stopColor="#dbeafe" />
                   <stop offset="100%" stopColor="#c7d2fe" />
@@ -333,7 +335,7 @@ export const GameGrid = ({ puzzle_id, timerRef, original_grid_data, location }: 
                   <stop offset="100%" stopColor="#3730a3" />
                 </linearGradient>
 
-                {/* Found words gradients */}
+                {/* Found words gradients - green theme */}
                 <linearGradient id="foundGradient" x1="0%" y1="0%" x2="100%" y2="100%">
                   <stop offset="0%" stopColor="#dcfce7" />
                   <stop offset="100%" stopColor="#bbf7d0" />
@@ -353,74 +355,131 @@ export const GameGrid = ({ puzzle_id, timerRef, original_grid_data, location }: 
                   <stop offset="100%" stopColor="#334155" />
                 </linearGradient>
 
-                {/* Shadow filters */}
+                {/* Enhanced shadow filters */}
                 <filter id="cellShadow" x="-50%" y="-50%" width="200%" height="200%">
-                  <feDropShadow dx="0" dy="4" stdDeviation="3" floodOpacity="0.1" />
+                  <feDropShadow
+                    dx="0"
+                    dy="2"
+                    stdDeviation="4"
+                    floodOpacity="0.1"
+                    floodColor="#000000"
+                  />
+                  <feDropShadow
+                    dx="0"
+                    dy="1"
+                    stdDeviation="2"
+                    floodOpacity="0.06"
+                    floodColor="#000000"
+                  />
                 </filter>
                 <filter id="cellShadowHover" x="-50%" y="-50%" width="200%" height="200%">
-                  <feDropShadow dx="0" dy="8" stdDeviation="6" floodOpacity="0.15" />
+                  <feDropShadow
+                    dx="0"
+                    dy="4"
+                    stdDeviation="6"
+                    floodOpacity="0.15"
+                    floodColor="#000000"
+                  />
+                  <feDropShadow
+                    dx="0"
+                    dy="2"
+                    stdDeviation="4"
+                    floodOpacity="0.1"
+                    floodColor="#000000"
+                  />
+                </filter>
+
+                {/* Enhanced shadow for found words */}
+                <filter id="foundShadow" x="-50%" y="-50%" width="200%" height="200%">
+                  <feDropShadow
+                    dx="0"
+                    dy="2"
+                    stdDeviation="4"
+                    floodOpacity="0.1"
+                    floodColor="#059669"
+                  />
+                  <feDropShadow
+                    dx="0"
+                    dy="1"
+                    stdDeviation="2"
+                    floodOpacity="0.06"
+                    floodColor="#047857"
+                  />
+                </filter>
+
+                {/* Enhanced shadow for current selection */}
+                <filter id="currentShadow" x="-50%" y="-50%" width="200%" height="200%">
+                  <feDropShadow
+                    dx="0"
+                    dy="2"
+                    stdDeviation="4"
+                    floodOpacity="0.1"
+                    floodColor="#2563eb"
+                  />
+                  <feDropShadow
+                    dx="0"
+                    dy="1"
+                    stdDeviation="2"
+                    floodOpacity="0.06"
+                    floodColor="#1d4ed8"
+                  />
                 </filter>
 
                 {/* Blur filter for when game hasn't started */}
                 <filter id="blur">
-                  <feGaussianBlur stdDeviation="2" />
+                  <feGaussianBlur stdDeviation="1.5" />
                 </filter>
 
                 {/* Ring filter for last selected cell */}
-                <filter id="ring" x="-20%" y="-20%" width="140%" height="140%">
-                  <feDropShadow
-                    dx="0"
-                    dy="0"
-                    stdDeviation="0"
-                    floodColor="#93c5fd"
-                    floodOpacity="0.5"
-                  />
+                <filter id="ring" x="-50%" y="-50%" width="200%" height="200%">
                   <feDropShadow
                     dx="0"
                     dy="0"
                     stdDeviation="2"
                     floodColor="#3b82f6"
-                    floodOpacity="0.3"
-                  />
-                </filter>
-                <filter id="ringDark" x="-20%" y="-20%" width="140%" height="140%">
-                  <feDropShadow
-                    dx="0"
-                    dy="0"
-                    stdDeviation="0"
-                    floodColor="#2563eb"
                     floodOpacity="0.5"
                   />
                   <feDropShadow
                     dx="0"
                     dy="0"
-                    stdDeviation="2"
-                    floodColor="#1d4ed8"
+                    stdDeviation="4"
+                    floodColor="#93c5fd"
                     floodOpacity="0.3"
+                  />
+                  <feDropShadow
+                    dx="0"
+                    dy="2"
+                    stdDeviation="4"
+                    floodOpacity="0.1"
+                    floodColor="#2563eb"
+                  />
+                </filter>
+                <filter id="ringDark" x="-50%" y="-50%" width="200%" height="200%">
+                  <feDropShadow
+                    dx="0"
+                    dy="0"
+                    stdDeviation="2"
+                    floodColor="#2563eb"
+                    floodOpacity="0.6"
+                  />
+                  <feDropShadow
+                    dx="0"
+                    dy="0"
+                    stdDeviation="4"
+                    floodColor="#60a5fa"
+                    floodOpacity="0.4"
+                  />
+                  <feDropShadow
+                    dx="0"
+                    dy="2"
+                    stdDeviation="4"
+                    floodOpacity="0.1"
+                    floodColor="#1d4ed8"
                   />
                 </filter>
               </defs>
 
-              {/* Render grid cells */}
-              {gridData.map((row, ri) =>
-                row.map((letter, ci) => (
-                  <GridCellSVG
-                    key={`${ri}-${ci}`}
-                    row={ri}
-                    col={ci}
-                    letter={letter}
-                    fontInfo={font_info}
-                    started={started}
-                    currentSelection={currentSelection}
-                    foundWords={foundWords}
-                    cellSize={cellSize}
-                    cellRadius={cellRadius}
-                    getCellPosition={getCellPosition}
-                  />
-                ))
-              )}
-
-              {/* Selection trails */}
+              {/* Selection trails - rendered first so they appear behind cells */}
               {/* Found words trails in green with glow effect */}
               {foundWords.map((sel, i) => (
                 <g key={i}>
@@ -469,6 +528,25 @@ export const GameGrid = ({ puzzle_id, timerRef, original_grid_data, location }: 
                     strokeLinejoin="round"
                   />
                 </g>
+              )}
+
+              {/* Render grid cells - rendered after trails so they appear on top */}
+              {gridData.map((row, ri) =>
+                row.map((letter, ci) => (
+                  <GridCellSVG
+                    key={`${ri}-${ci}`}
+                    row={ri}
+                    col={ci}
+                    letter={letter}
+                    fontInfo={font_info}
+                    started={started}
+                    currentSelection={currentSelection}
+                    foundWords={foundWords}
+                    cellSize={cellSize}
+                    cellRadius={cellRadius}
+                    getCellPosition={getCellPosition}
+                  />
+                ))
               )}
             </svg>
 
@@ -535,19 +613,39 @@ const GridCellSVG = ({
 
   const { x, y } = getCellPosition(row, col);
 
-  // Determine colors and fill based on state
-  let fill = 'url(#defaultGradient)';
-  let stroke = '#cbd5e1';
-  let textFill = '#1e293b';
+  // Simple dark mode detection
+  const isDarkMode =
+    typeof window !== 'undefined' &&
+    (document.documentElement.classList.contains('dark') ||
+      window.matchMedia('(prefers-color-scheme: dark)').matches);
+
+  // Determine colors, fill, and filters based on state and theme
+  let fill = isDarkMode ? 'url(#defaultGradientDark)' : 'url(#defaultGradient)';
+  let stroke = isDarkMode ? '#475569' : '#cbd5e1'; // slate-600 : slate-300
+  let strokeWidth = 2;
+  let textFill = isDarkMode ? '#e2e8f0' : '#1e293b'; // slate-200 : slate-800
+  let shadowFilter = 'url(#cellShadow)';
 
   if (isInFound) {
-    fill = 'url(#foundGradient)';
-    stroke = '#4ade80';
-    textFill = '#064e3b';
+    fill = isDarkMode ? 'url(#foundGradientDark)' : 'url(#foundGradient)';
+    stroke = isDarkMode ? '#10b981' : '#4ade80'; // emerald-500 : emerald-400
+    textFill = isDarkMode ? '#a7f3d0' : '#064e3b'; // emerald-200 : emerald-800
+    shadowFilter = 'url(#foundShadow)';
   } else if (isInCurrent) {
-    fill = 'url(#currentGradient)';
-    stroke = '#60a5fa';
-    textFill = '#1e40af';
+    fill = isDarkMode ? 'url(#currentGradientDark)' : 'url(#currentGradient)';
+    stroke = isDarkMode ? '#3b82f6' : '#60a5fa'; // blue-500 : blue-400
+    textFill = isDarkMode ? '#bfdbfe' : '#1e40af'; // blue-200 : blue-800
+    shadowFilter = 'url(#currentShadow)';
+  }
+
+  // Determine the appropriate filter
+  let filter = 'none';
+  if (!started) {
+    filter = 'url(#blur)';
+  } else if (isLast) {
+    filter = isDarkMode ? 'url(#ringDark)' : 'url(#ring)';
+  } else {
+    filter = shadowFilter;
   }
 
   return (
@@ -562,19 +660,40 @@ const GridCellSVG = ({
         ry={cellRadius}
         fill={fill}
         stroke={stroke}
-        strokeWidth={2}
-        filter={
-          !started ? 'url(#blur)' : isLast ? 'url(#ring)' : started ? 'url(#cellShadow)' : 'none'
-        }
+        strokeWidth={strokeWidth}
+        filter={filter}
         className={cn(
           'transition-all duration-300 ease-out',
           started && 'cursor-pointer',
-          started && !isInCurrent && !isInFound && 'hover:filter-[url(#cellShadowHover)]'
+          started && !isInFound && 'hover:scale-105 active:scale-95'
         )}
         style={{
-          transformOrigin: `${x + cellSize / 2}px ${y + cellSize / 2}px`
+          transformOrigin: `${x + cellSize / 2}px ${y + cellSize / 2}px`,
+          transformBox: 'fill-box'
         }}
       />
+
+      {/* Hover effect rectangle (invisible but interactive) */}
+      {started && !isInCurrent && !isInFound && (
+        <rect
+          x={x}
+          y={y}
+          width={cellSize}
+          height={cellSize}
+          rx={cellRadius}
+          ry={cellRadius}
+          fill="transparent"
+          stroke="transparent"
+          className={cn(
+            'cursor-pointer transition-all duration-200',
+            isDarkMode ? 'hover:fill-[url(#hoverGradientDark)]' : 'hover:fill-[url(#hoverGradient)]'
+          )}
+          style={{
+            transformOrigin: `${x + cellSize / 2}px ${y + cellSize / 2}px`,
+            transformBox: 'fill-box'
+          }}
+        />
+      )}
 
       {/* Cell text */}
       <text
@@ -583,8 +702,8 @@ const GridCellSVG = ({
         textAnchor="middle"
         dominantBaseline="central"
         fill={textFill}
-        fontSize={fontInfo.fontSize * 16} // Convert rem to px equivalent
-        fontWeight="bold"
+        fontSize={fontInfo.fontSize * 14} // Adjusted font size calculation
+        fontWeight="700"
         className={cn(
           fontInfo.className,
           'pointer-events-none transition-all duration-300 select-none',
@@ -592,7 +711,8 @@ const GridCellSVG = ({
         )}
         style={{
           WebkitTouchCallout: 'none',
-          WebkitUserSelect: 'none'
+          WebkitUserSelect: 'none',
+          userSelect: 'none'
         }}
       >
         {letter}
