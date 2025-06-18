@@ -15,11 +15,12 @@ import {
 } from '~/components/ui/select';
 import { Card, CardContent, CardHeader, CardTitle } from '~/components/ui/card';
 import { ChartContainer, ChartTooltip, ChartTooltipContent } from '~/components/ui/chart';
-import { XAxis, YAxis, CartesianGrid, LineChart, Line } from 'recharts';
+import { XAxis, YAxis, CartesianGrid, LineChart, Line, BarChart, Bar } from 'recharts';
 import { CalendarIcon, TrendingUpIcon, UsersIcon, ClockIcon, TargetIcon } from 'lucide-react';
 import { cn } from '~/lib/utils';
 import { format } from 'date-fns';
 import pretty_ms from 'pretty-ms';
+import { DEFAULT_DATA_SCRIPT } from '~/state/script_font_data';
 
 type DateRange = {
   from: Date | undefined;
@@ -27,7 +28,13 @@ type DateRange = {
 };
 
 type PeriodType = 'last7days' | 'custom';
-type ChartType = 'sessions-completions' | 'avg-time' | 'avg-accuracy' | 'attempts';
+type ChartType =
+  | 'sessions-completions'
+  | 'avg-time'
+  | 'avg-accuracy'
+  | 'attempts'
+  | 'location'
+  | 'script';
 
 const DEFAULT_CHART_CONFIG = {
   sessions: {
@@ -53,6 +60,10 @@ const DEFAULT_CHART_CONFIG = {
   avgCorrectAttempts: {
     label: 'Correct Attempts',
     color: 'hsl(150 100% 40%)'
+  },
+  frequency: {
+    label: 'Frequency',
+    color: 'hsl(280 100% 60%)'
   }
 };
 
@@ -69,6 +80,14 @@ type ChartDataType = {
     totalAccuracy: number;
     totalTotalAttempts: number;
     totalCorrectAttempts: number;
+  }[];
+  locationFrequency: {
+    name: string;
+    frequency: number;
+  }[];
+  scriptFrequency: {
+    name: string;
+    frequency: number;
   }[];
 };
 
@@ -117,7 +136,7 @@ const PuzzleStats = ({ puzzleId }: { puzzleId: number }) => {
 
   // Process data for charts
   const chartData = useMemo(() => {
-    if (!statsQuery.data) return { dailyStats: [] };
+    if (!statsQuery.data) return { dailyStats: [], locationFrequency: [], scriptFrequency: [] };
 
     const { sessions, stats } = statsQuery.data;
 
@@ -194,7 +213,30 @@ const PuzzleStats = ({ puzzleId }: { puzzleId: number }) => {
       }))
       .sort((a, b) => a.date.localeCompare(b.date));
 
-    return { dailyStats };
+    // Calculate location frequency (ignore null values)
+    const locationMap = new Map<string, number>();
+    sessions.forEach((session) => {
+      if (session.location !== null) {
+        const count = locationMap.get(session.location) || 0;
+        locationMap.set(session.location, count + 1);
+      }
+    });
+    const locationFrequency = Array.from(locationMap.entries())
+      .map(([name, frequency]) => ({ name, frequency }))
+      .sort((a, b) => b.frequency - a.frequency);
+
+    // Calculate script frequency (use DEFAULT_DATA_SCRIPT for null values)
+    const scriptMap = new Map<string, number>();
+    sessions.forEach((session) => {
+      const script = session.script ?? DEFAULT_DATA_SCRIPT;
+      const count = scriptMap.get(script) || 0;
+      scriptMap.set(script, count + 1);
+    });
+    const scriptFrequency = Array.from(scriptMap.entries())
+      .map(([name, frequency]) => ({ name, frequency }))
+      .sort((a, b) => b.frequency - a.frequency);
+
+    return { dailyStats, locationFrequency, scriptFrequency };
   }, [statsQuery.data]);
 
   // Summary statistics
@@ -297,153 +339,180 @@ const ChartsSection = ({
             </CardHeader>
             <CardContent className="p-2 sm:p-6">
               <ChartContainer config={chartConfig} className="h-64 sm:h-72 md:h-80 lg:h-96">
-                <LineChart data={chartData.dailyStats}>
-                  <CartesianGrid strokeDasharray="3 3" className="stroke-muted/50" />
-                  <XAxis
-                    dataKey="date"
-                    tickFormatter={(value) => format(new Date(value), 'MMM dd')}
-                    className="stroke-muted-foreground"
-                    tick={{ className: 'fill-muted-foreground', fontSize: 12 }}
-                    interval="preserveStartEnd"
-                  />
-                  <YAxis
-                    className="stroke-muted-foreground"
-                    tick={{ className: 'fill-muted-foreground', fontSize: 12 }}
-                    width={40}
-                  />
-                  <ChartTooltip
-                    content={<ChartTooltipContent />}
-                    labelFormatter={(value) => format(new Date(value as string), 'PPP')}
-                  />
+                {chartType === 'location' || chartType === 'script' ? (
+                  <BarChart
+                    data={
+                      chartType === 'location'
+                        ? chartData.locationFrequency
+                        : chartData.scriptFrequency
+                    }
+                  >
+                    <CartesianGrid strokeDasharray="3 3" className="stroke-muted/50" />
+                    <XAxis
+                      dataKey="name"
+                      className="stroke-muted-foreground"
+                      tick={{ className: 'fill-muted-foreground', fontSize: 12 }}
+                      angle={-45}
+                      textAnchor="end"
+                      height={60}
+                    />
+                    <YAxis
+                      className="stroke-muted-foreground"
+                      tick={{ className: 'fill-muted-foreground', fontSize: 12 }}
+                      width={40}
+                    />
+                    <ChartTooltip content={<ChartTooltipContent />} />
+                    <Bar dataKey="frequency" fill="hsl(280 100% 60%)" radius={[4, 4, 0, 0]} />
+                  </BarChart>
+                ) : (
+                  <LineChart data={chartData.dailyStats}>
+                    <CartesianGrid strokeDasharray="3 3" className="stroke-muted/50" />
+                    <XAxis
+                      dataKey="date"
+                      tickFormatter={(value) => format(new Date(value), 'MMM dd')}
+                      className="stroke-muted-foreground"
+                      tick={{ className: 'fill-muted-foreground', fontSize: 12 }}
+                      interval="preserveStartEnd"
+                    />
+                    <YAxis
+                      className="stroke-muted-foreground"
+                      tick={{ className: 'fill-muted-foreground', fontSize: 12 }}
+                      width={40}
+                    />
+                    <ChartTooltip
+                      content={<ChartTooltipContent />}
+                      labelFormatter={(value) => format(new Date(value as string), 'PPP')}
+                    />
 
-                  {/* Sessions and Completions Lines */}
-                  {chartType === 'sessions-completions' && (
-                    <Line
-                      dataKey="sessions"
-                      stroke="hsl(210, 100%, 45%)" // blue
-                      strokeWidth={3}
-                      dot={{
-                        fill: 'hsl(210, 100%, 45%)',
-                        strokeWidth: 2,
-                        r: 5,
-                        stroke: 'hsl(210, 100%, 45%)',
-                        className: 'drop-shadow-sm'
-                      }}
-                      activeDot={{
-                        r: 7,
-                        fill: 'hsl(210, 100%, 45%)',
-                        stroke: 'white',
-                        strokeWidth: 2,
-                        className: 'drop-shadow-md'
-                      }}
-                    />
-                  )}
-                  {chartType === 'sessions-completions' && (
-                    <Line
-                      dataKey="completions"
-                      stroke="hsl(140, 70%, 40%)" // green
-                      strokeWidth={3}
-                      dot={{
-                        fill: 'hsl(140, 70%, 40%)',
-                        strokeWidth: 2,
-                        r: 5,
-                        stroke: 'hsl(140, 70%, 40%)',
-                        className: 'drop-shadow-sm'
-                      }}
-                      activeDot={{
-                        r: 7,
-                        fill: 'hsl(140, 70%, 40%)',
-                        stroke: 'white',
-                        strokeWidth: 2,
-                        className: 'drop-shadow-md'
-                      }}
-                    />
-                  )}
-                  {chartType === 'avg-time' && (
-                    <Line
-                      dataKey="avgTimeTaken"
-                      stroke="hsl(120 100% 40%)"
-                      strokeWidth={3}
-                      dot={{
-                        fill: 'hsl(120 100% 40%)',
-                        strokeWidth: 2,
-                        r: 5,
-                        stroke: 'hsl(120 100% 40%)',
-                        className: 'drop-shadow-sm'
-                      }}
-                      activeDot={{
-                        r: 7,
-                        fill: 'hsl(120 100% 40%)',
-                        stroke: 'white',
-                        strokeWidth: 2,
-                        className: 'drop-shadow-md'
-                      }}
-                    />
-                  )}
-                  {chartType === 'avg-accuracy' && (
-                    <Line
-                      dataKey="avgAccuracy"
-                      stroke="hsl(30 100% 50%)"
-                      strokeWidth={3}
-                      dot={{
-                        fill: 'hsl(30 100% 50%)',
-                        strokeWidth: 2,
-                        r: 5,
-                        stroke: 'hsl(30 100% 50%)',
-                        className: 'drop-shadow-sm'
-                      }}
-                      activeDot={{
-                        r: 7,
-                        fill: 'hsl(30 100% 50%)',
-                        stroke: 'white',
-                        strokeWidth: 2,
-                        className: 'drop-shadow-md'
-                      }}
-                    />
-                  )}
-                  {chartType === 'attempts' && (
-                    <Line
-                      dataKey="avgTotalAttempts"
-                      stroke="hsl(200 100% 50%)"
-                      strokeWidth={3}
-                      dot={{
-                        fill: 'hsl(200 100% 50%)',
-                        strokeWidth: 2,
-                        r: 5,
-                        stroke: 'hsl(200 100% 50%)',
-                        className: 'drop-shadow-sm'
-                      }}
-                      activeDot={{
-                        r: 7,
-                        fill: 'hsl(200 100% 50%)',
-                        stroke: 'white',
-                        strokeWidth: 2,
-                        className: 'drop-shadow-md'
-                      }}
-                    />
-                  )}
-                  {chartType === 'attempts' && (
-                    <Line
-                      dataKey="avgCorrectAttempts"
-                      stroke="hsl(150 100% 40%)"
-                      strokeWidth={3}
-                      dot={{
-                        fill: 'hsl(150 100% 40%)',
-                        strokeWidth: 2,
-                        r: 5,
-                        stroke: 'hsl(150 100% 40%)',
-                        className: 'drop-shadow-sm'
-                      }}
-                      activeDot={{
-                        r: 7,
-                        fill: 'hsl(150 100% 40%)',
-                        stroke: 'white',
-                        strokeWidth: 2,
-                        className: 'drop-shadow-md'
-                      }}
-                    />
-                  )}
-                </LineChart>
+                    {/* Sessions and Completions Lines */}
+                    {chartType === 'sessions-completions' && (
+                      <Line
+                        dataKey="sessions"
+                        stroke="hsl(210, 100%, 45%)" // blue
+                        strokeWidth={3}
+                        dot={{
+                          fill: 'hsl(210, 100%, 45%)',
+                          strokeWidth: 2,
+                          r: 5,
+                          stroke: 'hsl(210, 100%, 45%)',
+                          className: 'drop-shadow-sm'
+                        }}
+                        activeDot={{
+                          r: 7,
+                          fill: 'hsl(210, 100%, 45%)',
+                          stroke: 'white',
+                          strokeWidth: 2,
+                          className: 'drop-shadow-md'
+                        }}
+                      />
+                    )}
+                    {chartType === 'sessions-completions' && (
+                      <Line
+                        dataKey="completions"
+                        stroke="hsl(140, 70%, 40%)" // green
+                        strokeWidth={3}
+                        dot={{
+                          fill: 'hsl(140, 70%, 40%)',
+                          strokeWidth: 2,
+                          r: 5,
+                          stroke: 'hsl(140, 70%, 40%)',
+                          className: 'drop-shadow-sm'
+                        }}
+                        activeDot={{
+                          r: 7,
+                          fill: 'hsl(140, 70%, 40%)',
+                          stroke: 'white',
+                          strokeWidth: 2,
+                          className: 'drop-shadow-md'
+                        }}
+                      />
+                    )}
+                    {chartType === 'avg-time' && (
+                      <Line
+                        dataKey="avgTimeTaken"
+                        stroke="hsl(120 100% 40%)"
+                        strokeWidth={3}
+                        dot={{
+                          fill: 'hsl(120 100% 40%)',
+                          strokeWidth: 2,
+                          r: 5,
+                          stroke: 'hsl(120 100% 40%)',
+                          className: 'drop-shadow-sm'
+                        }}
+                        activeDot={{
+                          r: 7,
+                          fill: 'hsl(120 100% 40%)',
+                          stroke: 'white',
+                          strokeWidth: 2,
+                          className: 'drop-shadow-md'
+                        }}
+                      />
+                    )}
+                    {chartType === 'avg-accuracy' && (
+                      <Line
+                        dataKey="avgAccuracy"
+                        stroke="hsl(30 100% 50%)"
+                        strokeWidth={3}
+                        dot={{
+                          fill: 'hsl(30 100% 50%)',
+                          strokeWidth: 2,
+                          r: 5,
+                          stroke: 'hsl(30 100% 50%)',
+                          className: 'drop-shadow-sm'
+                        }}
+                        activeDot={{
+                          r: 7,
+                          fill: 'hsl(30 100% 50%)',
+                          stroke: 'white',
+                          strokeWidth: 2,
+                          className: 'drop-shadow-md'
+                        }}
+                      />
+                    )}
+                    {chartType === 'attempts' && (
+                      <Line
+                        dataKey="avgTotalAttempts"
+                        stroke="hsl(200 100% 50%)"
+                        strokeWidth={3}
+                        dot={{
+                          fill: 'hsl(200 100% 50%)',
+                          strokeWidth: 2,
+                          r: 5,
+                          stroke: 'hsl(200 100% 50%)',
+                          className: 'drop-shadow-sm'
+                        }}
+                        activeDot={{
+                          r: 7,
+                          fill: 'hsl(200 100% 50%)',
+                          stroke: 'white',
+                          strokeWidth: 2,
+                          className: 'drop-shadow-md'
+                        }}
+                      />
+                    )}
+                    {chartType === 'attempts' && (
+                      <Line
+                        dataKey="avgCorrectAttempts"
+                        stroke="hsl(150 100% 40%)"
+                        strokeWidth={3}
+                        dot={{
+                          fill: 'hsl(150 100% 40%)',
+                          strokeWidth: 2,
+                          r: 5,
+                          stroke: 'hsl(150 100% 40%)',
+                          className: 'drop-shadow-sm'
+                        }}
+                        activeDot={{
+                          r: 7,
+                          fill: 'hsl(150 100% 40%)',
+                          stroke: 'white',
+                          strokeWidth: 2,
+                          className: 'drop-shadow-md'
+                        }}
+                      />
+                    )}
+                  </LineChart>
+                )}
               </ChartContainer>
             </CardContent>
           </Card>
@@ -658,6 +727,8 @@ const ChartSelector = ({
           <SelectItem value="avg-time">Average Time</SelectItem>
           <SelectItem value="avg-accuracy">Average Accuracy</SelectItem>
           <SelectItem value="attempts">Total and Correct Attempts</SelectItem>
+          <SelectItem value="location">Location</SelectItem>
+          <SelectItem value="script">Script</SelectItem>
         </SelectContent>
       </Select>
     </div>
