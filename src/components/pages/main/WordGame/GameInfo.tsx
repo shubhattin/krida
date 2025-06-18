@@ -13,7 +13,6 @@ import {
   found_words_atom,
   title_current_atom,
   total_attempts_atom,
-  correct_attempts_atom,
   word_msgs_atom,
   original_word_list_atom
 } from './game_state';
@@ -28,7 +27,6 @@ export const GameInfo = () => {
   const [foundWords] = useAtom(found_words_atom);
   const [title] = useAtom(title_current_atom);
   const [totalAttempts] = useAtom(total_attempts_atom);
-  const [correctAttempts] = useAtom(correct_attempts_atom);
   const [wordMsgs] = useAtom(word_msgs_atom);
   const [wordList] = useAtom(original_word_list_atom);
 
@@ -147,7 +145,7 @@ export const GameInfo = () => {
               <span className="text-lg">🎯</span>
               <div className="text-center">
                 <p className="font-mono text-xl font-bold text-green-800 dark:text-green-200">
-                  {totalAttempts > 0 ? Math.round((correctAttempts / totalAttempts) * 100) : 0}%
+                  {totalAttempts > 0 ? Math.round((wordList.length / totalAttempts) * 100) : 0}%
                 </p>
               </div>
             </motion.div>
@@ -163,7 +161,7 @@ export const GameInfo = () => {
                   onClick={async () => {
                     if (navigator?.share) {
                       const accuracy =
-                        totalAttempts > 0 ? Math.round((correctAttempts / totalAttempts) * 100) : 0;
+                        totalAttempts > 0 ? Math.round((wordList.length / totalAttempts) * 100) : 0;
                       await navigator
                         .share({
                           title: `${title} - पदावली-शब्द-क्रीडनम्`,

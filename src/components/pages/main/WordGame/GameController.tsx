@@ -13,7 +13,6 @@ import {
   found_words_atom,
   word_msgs_atom,
   total_attempts_atom,
-  correct_attempts_atom,
   current_selection_atom
 } from './game_state';
 import { AppContext } from '~/components/AppDataContext';
@@ -37,7 +36,6 @@ export const GameContoller = ({ timerRef }: Props) => {
   const [, setCurrentSelection] = useAtom(current_selection_atom);
   const [, setFoundWords] = useAtom(found_words_atom);
   const [, setTotalAttempts] = useAtom(total_attempts_atom);
-  const [, setCorrectAttempts] = useAtom(correct_attempts_atom);
   const [wordMsgs] = useAtom(word_msgs_atom);
 
   const font_info = FONT_INFO[script!];
@@ -48,7 +46,6 @@ export const GameContoller = ({ timerRef }: Props) => {
     setCurrentSelection([]);
     setFoundWords([]);
     setTotalAttempts(0);
-    setCorrectAttempts(0);
     setCompleted(false);
 
     if (timerRef.current) {

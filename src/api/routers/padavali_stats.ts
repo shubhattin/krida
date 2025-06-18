@@ -113,7 +113,13 @@ const get_stats_data_route = protectedAdminProcedure
           lte(tbl.created_at, end_date)
         )
     });
-    return { sessions, stats };
+    const total_words = (await db.query.word_puzzles.findFirst({
+      columns: {
+        word_list: true
+      },
+      where: (tbl, { eq }) => eq(tbl.id, puzzle_id)
+    }))!.word_list.length;
+    return { sessions, stats, correct_attempts: total_words };
   });
 
 export const padavali_stats_router = t.router({

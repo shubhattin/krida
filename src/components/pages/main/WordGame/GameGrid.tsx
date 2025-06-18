@@ -12,7 +12,6 @@ import {
   grid_data_current_atom,
   grid_dimensions_atom,
   total_attempts_atom,
-  correct_attempts_atom,
   original_word_list_atom,
   word_msgs_atom,
   seconds_atom
@@ -38,7 +37,6 @@ export const GameGrid = ({ timerRef, original_grid_data }: Props) => {
   const [gridData] = useAtom(grid_data_current_atom);
   const [gridDimensions] = useAtom(grid_dimensions_atom);
   const [, setTotalAttempts] = useAtom(total_attempts_atom);
-  const [, setCorrectAttempts] = useAtom(correct_attempts_atom);
   const [wordList] = useAtom(original_word_list_atom);
 
   const [rows, cols] = gridDimensions;
@@ -55,7 +53,6 @@ export const GameGrid = ({ timerRef, original_grid_data }: Props) => {
     setCurrentSelection([]);
     setFoundWords([]);
     setTotalAttempts(0);
-    setCorrectAttempts(0);
     setCompleted(false);
 
     if (timerRef.current) {
@@ -230,7 +227,6 @@ export const GameGrid = ({ timerRef, original_grid_data }: Props) => {
 
           if (wordList.includes(word)) {
             setFoundWords((prev) => [...prev, { cells: [...currentSelection], word }]);
-            setCorrectAttempts((prev) => prev + 1);
           }
         }
         setCurrentSelection([]);

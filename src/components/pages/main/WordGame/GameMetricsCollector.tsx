@@ -4,7 +4,7 @@ import { useTurnstile } from 'react-turnstile';
 import { client_q } from '~/api/client';
 import {
   completed_atom,
-  correct_attempts_atom,
+  original_word_list_atom,
   seconds_atom,
   started_atom,
   total_attempts_atom
@@ -22,9 +22,9 @@ const GameMetricsCollector = ({
 }) => {
   const [started] = useAtom(started_atom);
   const [completed] = useAtom(completed_atom);
-  const [correctAttempts] = useAtom(correct_attempts_atom);
   const [totalAttempts] = useAtom(total_attempts_atom);
   const [seconds] = useAtom(seconds_atom);
+  const [wordList] = useAtom(original_word_list_atom);
   const { script } = useContext(AppContext);
 
   const [turnstileToken, setTurnstileToken] = useState<string | null>(null);
@@ -69,8 +69,8 @@ const GameMetricsCollector = ({
           puzzle_id: puzzle_id,
           session_id: update_games_started_mut.data.session_id,
           time_taken: seconds,
-          accuracy: Math.trunc((correctAttempts / totalAttempts) * 100),
-          correct_attempts: correctAttempts,
+          accuracy: Math.trunc((wordList.length / totalAttempts) * 100),
+          correct_attempts: wordList.length,
           total_attempts: totalAttempts
         }
       });

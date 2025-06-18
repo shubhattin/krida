@@ -19,7 +19,6 @@ import { motion } from 'framer-motion';
 import {
   completed_atom,
   grid_data_current_atom,
-  correct_attempts_atom,
   seconds_atom,
   started_atom,
   title_current_atom,
@@ -83,7 +82,6 @@ export default function WordGameRoot(
     store.set(found_words_atom, []);
     store.set(seconds_atom, 0);
     store.set(total_attempts_atom, 0);
-    store.set(correct_attempts_atom, 0);
     store.set(word_msgs_atom, props.initial_script_data.word_msgs);
     store.set(original_word_list_atom, props.word_list);
     return store;
@@ -113,7 +111,6 @@ const CompactStopButton = ({
   const [, setSeconds] = useAtom(seconds_atom);
   const [, setCurrentSelection] = useAtom(current_selection_atom);
   const [, setTotalAttempts] = useAtom(total_attempts_atom);
-  const [, setCorrectAttempts] = useAtom(correct_attempts_atom);
 
   const font_info = FONT_INFO[script!];
 
@@ -122,7 +119,6 @@ const CompactStopButton = ({
     setFoundWords([]);
     setCurrentSelection([]);
     setTotalAttempts(0);
-    setCorrectAttempts(0);
     setCompleted(false);
     setSeconds(0);
 
