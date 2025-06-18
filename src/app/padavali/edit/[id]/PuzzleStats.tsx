@@ -177,6 +177,37 @@ const AttemptsTooltip = ({ active, payload, label }: any) => {
   return null;
 };
 
+// Custom tooltip for average time chart
+const AvgTimeTooltip = ({ active, payload, label }: any) => {
+  if (active && payload && payload.length) {
+    const data = payload[0].payload;
+    const avgTimeTaken = data.avgTimeTaken || 0;
+
+    return (
+      <div className="rounded-lg border bg-background p-2 shadow-md">
+        <div className="grid gap-2">
+          <div className="flex flex-col">
+            <span className="text-[0.70rem] text-muted-foreground uppercase">
+              {format(new Date(label), 'PPP')}
+            </span>
+          </div>
+          <div className="grid gap-1">
+            <div className="flex items-center gap-2">
+              <div
+                className="h-2.5 w-2.5 shrink-0 rounded-[2px]"
+                style={{ backgroundColor: 'hsl(120 100% 40%)' }}
+              />
+              <span className="text-sm">Average Time: {pretty_ms(avgTimeTaken * 1000)}</span>
+            </div>
+          </div>
+        </div>
+      </div>
+    );
+  }
+
+  return null;
+};
+
 // Main component
 const PuzzleStats = ({ puzzleId }: { puzzleId: number }) => {
   const [period, setPeriod] = useState<PeriodType>('last7days');
@@ -475,6 +506,8 @@ const ChartsSection = ({
                           <SessionsCompletionsTooltip />
                         ) : chartType === 'attempts' ? (
                           <AttemptsTooltip />
+                        ) : chartType === 'avg-time' ? (
+                          <AvgTimeTooltip />
                         ) : (
                           <ChartTooltipContent />
                         )

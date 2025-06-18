@@ -538,7 +538,7 @@ const DiscussionUrl = ({
   return (
     <div
       className={cn(
-        'w-full space-y-0.5 p-1 sm:space-y-1',
+        'w-full space-y-1.5 p-1 sm:space-y-2',
         'flex flex-col items-center justify-center',
         className
       )}
