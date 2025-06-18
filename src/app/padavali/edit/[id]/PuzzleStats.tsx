@@ -57,6 +57,10 @@ const DEFAULT_CHART_CONFIG = {
     label: 'Total Attempts',
     color: 'hsl(200 100% 50%)'
   },
+  avgCorrectAttempts: {
+    label: 'Correct Attempts',
+    color: 'hsl(150 100% 40%)'
+  },
   frequency: {
     label: 'Frequency',
     color: 'hsl(170 100% 45%)'
@@ -68,12 +72,14 @@ type ChartDataType = {
     avgTimeTaken: number;
     avgAccuracy: number;
     avgTotalAttempts: number;
+    avgCorrectAttempts: number;
     date: string;
     sessions: number;
     completions: number;
     totalTimeTaken: number;
     totalAccuracy: number;
     totalTotalAttempts: number;
+    totalCorrectAttempts: number;
   }[];
   locationFrequency: {
     name: string;
@@ -129,10 +135,11 @@ const SessionsCompletionsTooltip = ({ active, payload, label }: any) => {
 };
 
 // Custom tooltip for attempts chart
-const AttemptsTooltip = ({ active, payload, label, correctAttempts }: any) => {
+const AttemptsTooltip = ({ active, payload, label }: any) => {
   if (active && payload && payload.length) {
     const data = payload[0].payload;
     const totalAttempts = data.avgTotalAttempts || 0;
+    const correctAttempts = data.avgCorrectAttempts || 0;
     const accuracy = totalAttempts > 0 ? Math.round((correctAttempts / totalAttempts) * 100) : 0;
 
     return (
@@ -160,6 +167,37 @@ const AttemptsTooltip = ({ active, payload, label, correctAttempts }: any) => {
             </div>
             <div className="mt-1 flex items-center gap-2 border-t pt-1">
               <span className="text-sm font-medium">Accuracy: {accuracy}%</span>
+            </div>
+          </div>
+        </div>
+      </div>
+    );
+  }
+
+  return null;
+};
+
+// Custom tooltip for average time chart
+const AvgTimeTooltip = ({ active, payload, label }: any) => {
+  if (active && payload && payload.length) {
+    const data = payload[0].payload;
+    const avgTimeTaken = data.avgTimeTaken || 0;
+
+    return (
+      <div className="rounded-lg border bg-background p-2 shadow-md">
+        <div className="grid gap-2">
+          <div className="flex flex-col">
+            <span className="text-[0.70rem] text-muted-foreground uppercase">
+              {format(new Date(label), 'PPP')}
+            </span>
+          </div>
+          <div className="grid gap-1">
+            <div className="flex items-center gap-2">
+              <div
+                className="h-2.5 w-2.5 shrink-0 rounded-[2px]"
+                style={{ backgroundColor: 'hsl(120 100% 40%)' }}
+              />
+              <span className="text-sm">Average Time: {pretty_ms(avgTimeTaken * 1000)}</span>
             </div>
           </div>
         </div>
@@ -229,9 +267,11 @@ const PuzzleStats = ({ puzzleId }: { puzzleId: number }) => {
         totalTimeTaken: number;
         totalAccuracy: number;
         totalTotalAttempts: number;
+        totalCorrectAttempts: number;
         avgTimeTaken: number;
         avgAccuracy: number;
         avgTotalAttempts: number;
+        avgCorrectAttempts: number;
       }
     >();
 
@@ -244,9 +284,11 @@ const PuzzleStats = ({ puzzleId }: { puzzleId: number }) => {
         totalTimeTaken: 0,
         totalAccuracy: 0,
         totalTotalAttempts: 0,
+        totalCorrectAttempts: 0,
         avgTimeTaken: 0,
         avgAccuracy: 0,
-        avgTotalAttempts: 0
+        avgTotalAttempts: 0,
+        avgCorrectAttempts: 0
       };
       existing.sessions += 1;
       dailyMap.set(dateKey, existing);
@@ -261,14 +303,17 @@ const PuzzleStats = ({ puzzleId }: { puzzleId: number }) => {
         totalTimeTaken: 0,
         totalAccuracy: 0,
         totalTotalAttempts: 0,
+        totalCorrectAttempts: 0,
         avgTimeTaken: 0,
         avgAccuracy: 0,
-        avgTotalAttempts: 0
+        avgTotalAttempts: 0,
+        avgCorrectAttempts: 0
       };
       existing.completions += 1;
       existing.totalTimeTaken += stat.time_taken;
       existing.totalAccuracy += stat.accuracy;
       existing.totalTotalAttempts += stat.total_attempts;
+      existing.totalCorrectAttempts += stat.correct_attempts;
       dailyMap.set(dateKey, existing);
     });
 
@@ -279,7 +324,9 @@ const PuzzleStats = ({ puzzleId }: { puzzleId: number }) => {
         avgTimeTaken: day.completions > 0 ? Math.round(day.totalTimeTaken / day.completions) : 0,
         avgAccuracy: day.completions > 0 ? Math.round(day.totalAccuracy / day.completions) : 0,
         avgTotalAttempts:
-          day.completions > 0 ? Math.round(day.totalTotalAttempts / day.completions) : 0
+          day.completions > 0 ? Math.round(day.totalTotalAttempts / day.completions) : 0,
+        avgCorrectAttempts:
+          day.completions > 0 ? Math.round(day.totalCorrectAttempts / day.completions) : 0
       }))
       .sort((a, b) => a.date.localeCompare(b.date));
 
@@ -368,7 +415,6 @@ const PuzzleStats = ({ puzzleId }: { puzzleId: number }) => {
             chartConfig={DEFAULT_CHART_CONFIG}
             chartType={chartType}
             setChartType={setChartType}
-            correctAttempts={statsQuery.data.correct_attempts}
           />
 
           {/* No Data State */}
@@ -392,14 +438,12 @@ const ChartsSection = ({
   chartData,
   chartConfig,
   chartType,
-  setChartType,
-  correctAttempts
+  setChartType
 }: {
   chartData: ChartDataType;
   chartConfig: typeof DEFAULT_CHART_CONFIG;
   chartType: ChartType;
   setChartType: (chartType: ChartType) => void;
-  correctAttempts: number;
 }) => (
   <div className="w-full">
     <div className="container mx-auto px-4 sm:px-6 lg:px-8">
@@ -461,7 +505,9 @@ const ChartsSection = ({
                         chartType === 'sessions-completions' ? (
                           <SessionsCompletionsTooltip />
                         ) : chartType === 'attempts' ? (
-                          <AttemptsTooltip correctAttempts={correctAttempts} />
+                          <AttemptsTooltip />
+                        ) : chartType === 'avg-time' ? (
+                          <AvgTimeTooltip />
                         ) : (
                           <ChartTooltipContent />
                         )
@@ -577,12 +623,23 @@ const ChartsSection = ({
                     )}
                     {chartType === 'attempts' && (
                       <Line
-                        type="linear"
-                        dataKey={() => correctAttempts}
+                        dataKey="avgCorrectAttempts"
                         stroke="hsl(150 100% 40%)"
-                        strokeWidth={2}
-                        dot={false}
-                        isAnimationActive={false}
+                        strokeWidth={3}
+                        dot={{
+                          fill: 'hsl(150 100% 40%)',
+                          strokeWidth: 2,
+                          r: 5,
+                          stroke: 'hsl(150 100% 40%)',
+                          className: 'drop-shadow-sm'
+                        }}
+                        activeDot={{
+                          r: 7,
+                          fill: 'hsl(150 100% 40%)',
+                          stroke: 'white',
+                          strokeWidth: 2,
+                          className: 'drop-shadow-md'
+                        }}
                       />
                     )}
                   </LineChart>
@@ -800,7 +857,7 @@ const ChartSelector = ({
           <SelectItem value="sessions-completions">Started and Completed</SelectItem>
           <SelectItem value="avg-time">Average Time</SelectItem>
           <SelectItem value="avg-accuracy">Average Accuracy</SelectItem>
-          <SelectItem value="attempts">Total vs Correct Attempts</SelectItem>
+          <SelectItem value="attempts">Total and Correct Attempts</SelectItem>
           <SelectItem value="location">Location</SelectItem>
           <SelectItem value="script">Script</SelectItem>
         </SelectContent>
