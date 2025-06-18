@@ -427,7 +427,7 @@ export const GameGrid = ({ puzzle_id, timerRef, original_grid_data, location }: 
 
                 {/* Blur filter for when game hasn't started */}
                 <filter id="blur">
-                  <feGaussianBlur stdDeviation="1.5" />
+                  <feGaussianBlur stdDeviation="2.5" />
                 </filter>
 
                 {/* Ring filter for last selected cell */}
