@@ -43,12 +43,19 @@ export const GameGrid = ({ puzzle_id, timerRef, original_grid_data, location }: 
   const [wordList] = useAtom(original_word_list_atom);
 
   const [rows, cols] = gridDimensions;
-  const gridRef = useRef<HTMLDivElement>(null);
+  const gridRef = useRef<SVGSVGElement>(null);
 
   const font_info = FONT_INFO[script!];
   const [wordMsgs] = useAtom(word_msgs_atom);
   const [, setStarted] = useAtom(started_atom);
   const [, setSeconds] = useAtom(seconds_atom);
+
+  // SVG dimensions and layout calculations
+  const cellSize = 100; // Base cell size in SVG units
+  const cellGap = 8; // Gap between cells in SVG units
+  const cellRadius = 20; // Border radius for cells
+  const svgWidth = cols * cellSize + (cols - 1) * cellGap;
+  const svgHeight = rows * cellSize + (rows - 1) * cellGap;
 
   // Start the game
   const handleStart = () => {
@@ -129,26 +136,23 @@ export const GameGrid = ({ puzzle_id, timerRef, original_grid_data, location }: 
     };
   }, [started, completed]);
 
+  // Helper to get cell position in SVG coordinates
+  const getCellPosition = (row: number, col: number) => {
+    const x = col * (cellSize + cellGap);
+    const y = row * (cellSize + cellGap);
+    return { x, y };
+  };
+
   // helper to go from a cell index to its pixel center
   const getCenter = ({ row, col }: CellPosition) => {
-    if (!gridRef.current) return { x: 0, y: 0 };
-
-    // Always use fresh getBoundingClientRect for most accurate positioning,
-    // especially important on mobile devices where viewport can change dynamically
-    const parentRect = gridRef.current.getBoundingClientRect();
-    const cell = gridRef.current.querySelector<HTMLElement>(
-      `[data-row="${row}"][data-col="${col}"]`
-    );
-    if (!cell) return { x: 0, y: 0 };
-
-    const cellRect = cell.getBoundingClientRect();
+    const { x, y } = getCellPosition(row, col);
     return {
-      x: cellRect.left + cellRect.width / 2 - parentRect.left,
-      y: cellRect.top + cellRect.height / 2 - parentRect.top
+      x: x + cellSize / 2,
+      y: y + cellSize / 2
     };
   };
 
-  // hit-test using elementFromPoint (as before)
+  // hit-test using elementFromPoint (adapted for SVG)
   const getCellFromEvent = (e: any): CellPosition | null => {
     const clientX = e.clientX ?? e.touches?.[0]?.clientX;
     const clientY = e.clientY ?? e.touches?.[0]?.clientY;
@@ -156,7 +160,7 @@ export const GameGrid = ({ puzzle_id, timerRef, original_grid_data, location }: 
 
     const target = document
       .elementFromPoint(clientX, clientY)
-      ?.closest<HTMLElement>('[data-row][data-col]');
+      ?.closest<SVGElement>('[data-row][data-col]');
     if (!target) return null;
 
     const row = parseInt(target.dataset.row!, 10);
@@ -285,20 +289,18 @@ export const GameGrid = ({ puzzle_id, timerRef, original_grid_data, location }: 
         <div className="overflow-hidden rounded-3xl border border-slate-200 bg-white p-2.5 shadow-2xl sm:p-4 md:p-6 dark:border-slate-700 dark:bg-slate-800">
           {/* relative wrapper for grid + overlay */}
           <div className="relative">
-            {/* Game Grid */}
-            <div
+            {/* SVG Game Grid */}
+            <svg
               ref={gridRef}
               {...bind()}
               data-game-grid
+              viewBox={`0 0 ${svgWidth} ${svgHeight}`}
               className={cn(
-                'relative z-10 mx-auto grid h-full w-full select-none',
-                'gap-1.5 sm:gap-2.5 md:gap-3',
+                'relative z-10 mx-auto h-full w-full select-none',
                 // Enhanced touch handling for all states
                 'touch-none'
               )}
               style={{
-                gridTemplateColumns: `repeat(${cols}, 1fr)`,
-                gridTemplateRows: `repeat(${rows}, 1fr)`,
                 maxWidth: 'min(100%, min(90vw, 450px))',
                 // Additional CSS properties for mobile gesture prevention
                 WebkitTouchCallout: 'none',
@@ -309,9 +311,100 @@ export const GameGrid = ({ puzzle_id, timerRef, original_grid_data, location }: 
                 overscrollBehavior: 'contain'
               }}
             >
+              {/* SVG Definitions for gradients, filters, and effects */}
+              <defs>
+                {/* Default cell gradients */}
+                <linearGradient id="defaultGradient" x1="0%" y1="0%" x2="100%" y2="100%">
+                  <stop offset="0%" stopColor="white" />
+                  <stop offset="100%" stopColor="#f8fafc" />
+                </linearGradient>
+                <linearGradient id="defaultGradientDark" x1="0%" y1="0%" x2="100%" y2="100%">
+                  <stop offset="0%" stopColor="#334155" />
+                  <stop offset="100%" stopColor="#1e293b" />
+                </linearGradient>
+
+                {/* Current selection gradients */}
+                <linearGradient id="currentGradient" x1="0%" y1="0%" x2="100%" y2="100%">
+                  <stop offset="0%" stopColor="#dbeafe" />
+                  <stop offset="100%" stopColor="#c7d2fe" />
+                </linearGradient>
+                <linearGradient id="currentGradientDark" x1="0%" y1="0%" x2="100%" y2="100%">
+                  <stop offset="0%" stopColor="#1e3a8a" />
+                  <stop offset="100%" stopColor="#3730a3" />
+                </linearGradient>
+
+                {/* Found words gradients */}
+                <linearGradient id="foundGradient" x1="0%" y1="0%" x2="100%" y2="100%">
+                  <stop offset="0%" stopColor="#dcfce7" />
+                  <stop offset="100%" stopColor="#bbf7d0" />
+                </linearGradient>
+                <linearGradient id="foundGradientDark" x1="0%" y1="0%" x2="100%" y2="100%">
+                  <stop offset="0%" stopColor="#064e3b" />
+                  <stop offset="100%" stopColor="#14532d" />
+                </linearGradient>
+
+                {/* Hover gradients */}
+                <linearGradient id="hoverGradient" x1="0%" y1="0%" x2="100%" y2="100%">
+                  <stop offset="0%" stopColor="#f1f5f9" />
+                  <stop offset="100%" stopColor="#e2e8f0" />
+                </linearGradient>
+                <linearGradient id="hoverGradientDark" x1="0%" y1="0%" x2="100%" y2="100%">
+                  <stop offset="0%" stopColor="#475569" />
+                  <stop offset="100%" stopColor="#334155" />
+                </linearGradient>
+
+                {/* Shadow filters */}
+                <filter id="cellShadow" x="-50%" y="-50%" width="200%" height="200%">
+                  <feDropShadow dx="0" dy="4" stdDeviation="3" floodOpacity="0.1" />
+                </filter>
+                <filter id="cellShadowHover" x="-50%" y="-50%" width="200%" height="200%">
+                  <feDropShadow dx="0" dy="8" stdDeviation="6" floodOpacity="0.15" />
+                </filter>
+
+                {/* Blur filter for when game hasn't started */}
+                <filter id="blur">
+                  <feGaussianBlur stdDeviation="2" />
+                </filter>
+
+                {/* Ring filter for last selected cell */}
+                <filter id="ring" x="-20%" y="-20%" width="140%" height="140%">
+                  <feDropShadow
+                    dx="0"
+                    dy="0"
+                    stdDeviation="0"
+                    floodColor="#93c5fd"
+                    floodOpacity="0.5"
+                  />
+                  <feDropShadow
+                    dx="0"
+                    dy="0"
+                    stdDeviation="2"
+                    floodColor="#3b82f6"
+                    floodOpacity="0.3"
+                  />
+                </filter>
+                <filter id="ringDark" x="-20%" y="-20%" width="140%" height="140%">
+                  <feDropShadow
+                    dx="0"
+                    dy="0"
+                    stdDeviation="0"
+                    floodColor="#2563eb"
+                    floodOpacity="0.5"
+                  />
+                  <feDropShadow
+                    dx="0"
+                    dy="0"
+                    stdDeviation="2"
+                    floodColor="#1d4ed8"
+                    floodOpacity="0.3"
+                  />
+                </filter>
+              </defs>
+
+              {/* Render grid cells */}
               {gridData.map((row, ri) =>
                 row.map((letter, ci) => (
-                  <GridCell
+                  <GridCellSVG
                     key={`${ri}-${ci}`}
                     row={ri}
                     col={ci}
@@ -320,16 +413,14 @@ export const GameGrid = ({ puzzle_id, timerRef, original_grid_data, location }: 
                     started={started}
                     currentSelection={currentSelection}
                     foundWords={foundWords}
+                    cellSize={cellSize}
+                    cellRadius={cellRadius}
+                    getCellPosition={getCellPosition}
                   />
                 ))
               )}
-            </div>
 
-            {/* Overlay SVG for trails */}
-            <svg
-              className="pointer-events-none absolute inset-0 h-full w-full"
-              xmlns="http://www.w3.org/2000/svg"
-            >
+              {/* Selection trails */}
               {/* Found words trails in green with glow effect */}
               {foundWords.map((sel, i) => (
                 <g key={i}>
@@ -337,7 +428,7 @@ export const GameGrid = ({ puzzle_id, timerRef, original_grid_data, location }: 
                   <polyline
                     points={buildPoints(sel.cells)}
                     fill="none"
-                    className="stroke-emerald-300 dark:stroke-emerald-400"
+                    stroke="#6ee7b7"
                     strokeWidth={12}
                     strokeLinecap="round"
                     strokeLinejoin="round"
@@ -347,7 +438,7 @@ export const GameGrid = ({ puzzle_id, timerRef, original_grid_data, location }: 
                   <polyline
                     points={buildPoints(sel.cells)}
                     fill="none"
-                    className="stroke-emerald-500 dark:stroke-emerald-400"
+                    stroke="#10b981"
                     strokeWidth={6}
                     strokeLinecap="round"
                     strokeLinejoin="round"
@@ -362,7 +453,7 @@ export const GameGrid = ({ puzzle_id, timerRef, original_grid_data, location }: 
                   <polyline
                     points={buildPoints(currentSelection)}
                     fill="none"
-                    className="stroke-blue-300 dark:stroke-blue-400"
+                    stroke="#93c5fd"
                     strokeWidth={12}
                     strokeLinecap="round"
                     strokeLinejoin="round"
@@ -372,7 +463,7 @@ export const GameGrid = ({ puzzle_id, timerRef, original_grid_data, location }: 
                   <polyline
                     points={buildPoints(currentSelection)}
                     fill="none"
-                    className="stroke-blue-500 dark:stroke-blue-400"
+                    stroke="#3b82f6"
                     strokeWidth={6}
                     strokeLinecap="round"
                     strokeLinejoin="round"
@@ -407,7 +498,7 @@ export const GameGrid = ({ puzzle_id, timerRef, original_grid_data, location }: 
   );
 };
 
-type GridCellProps = {
+type GridCellSVGProps = {
   row: number;
   col: number;
   letter: string;
@@ -415,17 +506,23 @@ type GridCellProps = {
   started: boolean;
   currentSelection: CellPosition[];
   foundWords: { cells: CellPosition[]; word: string }[];
+  cellSize: number;
+  cellRadius: number;
+  getCellPosition: (row: number, col: number) => { x: number; y: number };
 };
 
-const GridCell = ({
+const GridCellSVG = ({
   row,
   col,
   letter,
   fontInfo,
   started,
   currentSelection,
-  foundWords
-}: GridCellProps) => {
+  foundWords,
+  cellSize,
+  cellRadius,
+  getCellPosition
+}: GridCellSVGProps) => {
   const isInCurrent = currentSelection.some((cell) => cell.row === row && cell.col === col);
   const isInFound = foundWords.some((sel) =>
     sel.cells.some((cell) => cell.row === row && cell.col === col)
@@ -436,49 +533,70 @@ const GridCell = ({
     currentSelection.at(-1)?.row === row &&
     currentSelection.at(-1)?.col === col;
 
+  const { x, y } = getCellPosition(row, col);
+
+  // Determine colors and fill based on state
+  let fill = 'url(#defaultGradient)';
+  let stroke = '#cbd5e1';
+  let textFill = '#1e293b';
+
+  if (isInFound) {
+    fill = 'url(#foundGradient)';
+    stroke = '#4ade80';
+    textFill = '#064e3b';
+  } else if (isInCurrent) {
+    fill = 'url(#currentGradient)';
+    stroke = '#60a5fa';
+    textFill = '#1e40af';
+  }
+
   return (
-    <div
-      data-row={row}
-      data-col={col}
-      data-game-grid
-      style={{
-        fontSize: `${fontInfo.fontSize}rem`,
-        // Additional mobile gesture prevention
-        WebkitTouchCallout: 'none',
-        WebkitUserSelect: 'none'
-      }}
-      className={cn(
-        fontInfo.className,
-        !started && 'blur-sm',
-        started && 'cursor-pointer',
-        'text-base',
-        'flex items-center justify-center rounded-3xl px-[1px] py-0 text-center font-bold sm:rounded-2xl',
-        'aspect-square border-2 sm:p-1 md:p-2',
-        'transform transition-all duration-300 ease-out',
-        'hover:scale-105 active:scale-95',
-        'border-slate-300 bg-gradient-to-br from-white to-slate-50 dark:border-slate-600 dark:from-slate-700 dark:to-slate-800',
-        'shadow-lg hover:shadow-xl',
-        isInFound && [
-          'border-emerald-400 dark:border-emerald-500',
-          'bg-gradient-to-br from-emerald-100 to-green-200 dark:from-emerald-900 dark:to-green-800',
-          'text-emerald-800 dark:text-emerald-100',
-          'shadow-emerald-200 dark:shadow-emerald-900'
-        ],
-        isInCurrent &&
-          !isInFound && [
-            'border-blue-400 dark:border-blue-500',
-            'bg-gradient-to-br from-blue-100 to-indigo-200 dark:from-blue-900 dark:to-indigo-800',
-            'text-blue-800 dark:text-blue-100',
-            'shadow-blue-200 dark:shadow-blue-900'
-          ],
-        isLast && 'ring-opacity-50 ring-4 ring-blue-300 dark:ring-blue-600',
-        !isInCurrent &&
-          !isInFound &&
-          started &&
-          'hover:bg-gradient-to-br hover:from-slate-100 hover:to-slate-200 dark:hover:from-slate-600 dark:hover:to-slate-700'
-      )}
-    >
-      {letter}
-    </div>
+    <g data-row={row} data-col={col} data-game-grid>
+      {/* Cell background rectangle */}
+      <rect
+        x={x}
+        y={y}
+        width={cellSize}
+        height={cellSize}
+        rx={cellRadius}
+        ry={cellRadius}
+        fill={fill}
+        stroke={stroke}
+        strokeWidth={2}
+        filter={
+          !started ? 'url(#blur)' : isLast ? 'url(#ring)' : started ? 'url(#cellShadow)' : 'none'
+        }
+        className={cn(
+          'transition-all duration-300 ease-out',
+          started && 'cursor-pointer',
+          started && !isInCurrent && !isInFound && 'hover:filter-[url(#cellShadowHover)]'
+        )}
+        style={{
+          transformOrigin: `${x + cellSize / 2}px ${y + cellSize / 2}px`
+        }}
+      />
+
+      {/* Cell text */}
+      <text
+        x={x + cellSize / 2}
+        y={y + cellSize / 2}
+        textAnchor="middle"
+        dominantBaseline="central"
+        fill={textFill}
+        fontSize={fontInfo.fontSize * 16} // Convert rem to px equivalent
+        fontWeight="bold"
+        className={cn(
+          fontInfo.className,
+          'pointer-events-none transition-all duration-300 select-none',
+          !started && 'filter-[url(#blur)]'
+        )}
+        style={{
+          WebkitTouchCallout: 'none',
+          WebkitUserSelect: 'none'
+        }}
+      >
+        {letter}
+      </text>
+    </g>
   );
 };
