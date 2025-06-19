@@ -1,0 +1,24 @@
+{
+  "name": "Padavali",
+  "short_name": "Padavali",
+  "description": "Padavali is a Sanskrit word to learn Sanskrit in an interactive way and",
+  "theme_color": "#181e20",
+  "background_color": "#333",
+  "display": "standalone",
+  "start_url": "/padavali",
+  "scope": "/padavali",
+  "id": "/?padavali=1",
+  "display_override": ["standalone"],
+  "icons": [
+    {
+      "src": "img/icon_128.png",
+      "sizes": "128x128",
+      "type": "image/png"
+    },
+    {
+      "src": "img/icon_512.png",
+      "sizes": "512x512",
+      "type": "image/png"
+    }
+  ]
+}

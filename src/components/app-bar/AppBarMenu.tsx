@@ -27,11 +27,14 @@ import { Separator } from '@/components/ui/separator';
 import { cn } from '~/lib/utils';
 import Link from 'next/link';
 import { AppContext } from '../AppDataContext';
+import { pwa_state_atom } from '../PWA/pwa_state';
+import { useAtom } from 'jotai';
 
 export function MenuButton() {
   const { theme, setTheme } = useTheme();
   const { user_info } = useContext(AppContext);
   const [open, setOpen] = useState(false);
+  const [pwa_state] = useAtom(pwa_state_atom);
 
   const themeOptions = [
     {
@@ -118,6 +121,39 @@ export function MenuButton() {
 
           <Separator className="my-4 bg-slate-200 dark:bg-slate-700" />
 
+          {pwa_state.install_event_fired && (
+            <>
+              {/* App Installation Section */}
+              <div className="space-y-3">
+                <div className="flex items-center gap-2">
+                  <LogIn className="h-4 w-4 text-slate-600 dark:text-slate-400" />
+                  <span className="text-sm font-medium text-slate-700 dark:text-slate-300">
+                    App Installation
+                  </span>
+                </div>
+
+                <button
+                  onClick={async () => {
+                    setOpen(false);
+                    if (pwa_state.event_triggerer) pwa_state.event_triggerer.prompt();
+                  }}
+                  className="flex w-full items-center gap-3 rounded-lg border-2 border-green-200 bg-gradient-to-r from-green-50 to-emerald-50 p-3 text-left text-sm font-medium text-green-700 transition-all duration-200 hover:scale-[1.02] hover:border-green-300 hover:from-green-100 hover:to-emerald-100 hover:shadow-md active:scale-[0.98] dark:border-green-800 dark:from-green-950/30 dark:to-emerald-950/30 dark:text-green-300 dark:hover:border-green-700 dark:hover:from-green-900/40 dark:hover:to-emerald-900/40"
+                  title="Install PWA App for offline access"
+                >
+                  <div className="flex h-8 w-8 items-center justify-center rounded-lg bg-gradient-to-br from-green-500 to-emerald-600 shadow-sm">
+                    <LogIn className="h-4 w-4 text-white" />
+                  </div>
+                  <div className="flex-1">
+                    <div className="font-semibold">Install App</div>
+                    {/* <div className="text-xs text-green-600 dark:text-green-400">
+                      Get offline access & faster loading
+                    </div> */}
+                  </div>
+                </button>
+              </div>
+              <Separator className="my-4 bg-slate-200 dark:bg-slate-700" />
+            </>
+          )}
           {/* Links Section */}
           <div className="space-y-3">
             <div className="flex items-center gap-2">
