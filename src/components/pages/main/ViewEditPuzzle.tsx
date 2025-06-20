@@ -37,6 +37,8 @@ import {
 } from '~/tools/puzzle/puzzle_tools';
 import { cn } from '~/lib/utils';
 import { useHydrateAtoms } from 'jotai/utils';
+import Icon from '~/tools/Icon';
+import { LanguageIcon } from '~/components/icons';
 
 const puzzle_schema = z.object({
   id: z.number().int().nullable(),
@@ -180,7 +182,8 @@ const LipiLekhikaSwitch = () => {
           onCheckedChange={setLipiLekhikaActive}
           className="-mt-1"
         />
-        <span className="text-lg font-bold">देवनागरीलेखनम्</span>
+        <Icon src={LanguageIcon} className="-mt-1 size-6.5" />
+        <span className="text-base font-bold">देवनागरी</span>
       </Label>
     </div>
   );
@@ -625,19 +628,19 @@ const Description = () => {
           value={description || ''}
           onChange={(e) => {
             setDescription(e.target.value);
-            // if (lipi_lekhika_active) {
-            //   lekhika_typing_tool(
-            //     e.nativeEvent.target,
-            //     // @ts-ignore
-            //     e.nativeEvent.data,
-            //     BASE_SCRIPT,
-            //     true,
-            //     // @ts-ignore
-            //     (val) => {
-            //       setDescription(val);
-            //     }
-            //   );
-            // }
+            if (lipi_lekhika_active) {
+              lekhika_typing_tool(
+                e.nativeEvent.target,
+                // @ts-ignore
+                e.nativeEvent.data,
+                BASE_SCRIPT,
+                true,
+                // @ts-ignore
+                (val) => {
+                  setDescription(val);
+                }
+              );
+            }
           }}
           placeholder="प्रहेलिकायाः वर्णनं लिखतु..."
         />
