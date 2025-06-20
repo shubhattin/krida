@@ -19,6 +19,17 @@ import { ChevronDownIcon, PlusIcon } from 'lucide-react';
 import { client_q } from '~/api/client';
 import { toast } from 'sonner';
 import { useRouter } from 'next/navigation';
+import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+  AlertDialogTrigger
+} from '~/components/ui/alert-dialog';
 
 const DEFAULT_START_END_TIME = '05:00';
 
@@ -27,7 +38,8 @@ const AddSchedule = ({ puzzle_list }: { puzzle_list: { id: number; title: string
   const [endDate, setEndDate] = useState<Date | undefined>(undefined);
   const [puzzleId, setPuzzleId] = useState<number | undefined>(undefined);
 
-  const [startEndTime, setStartEndTime] = useState<string>(DEFAULT_START_END_TIME + ':00');
+  const [startTime, setStartTime] = useState<string>(DEFAULT_START_END_TIME + ':00');
+  const [endTime, setEndTime] = useState<string>(DEFAULT_START_END_TIME + ':00');
 
   const router = useRouter();
 
@@ -56,11 +68,6 @@ const AddSchedule = ({ puzzle_list }: { puzzle_list: { id: number; title: string
     add_schedule_mut.mutate({ puzzle_id: puzzleId, start_time: startDate, end_time: endDate });
   };
 
-  const set_seconds_in_time_string = (time_string: string, seconds: number) => {
-    const [hours, minutes] = time_string.split(':');
-    return `${hours}:${minutes}:${String(seconds).padStart(2, '0')}`;
-  };
-
   return (
     <div className="flex flex-col gap-6">
       <div className="flex flex-col gap-4">
@@ -70,60 +77,85 @@ const AddSchedule = ({ puzzle_list }: { puzzle_list: { id: number; title: string
             date={startDate}
             onChangeDate={setStartDate}
             label="Start Date"
-            start_end_time={startEndTime}
+            start_end_time={startTime}
             type="start"
           />
+          <div className="flex w-32 flex-col gap-3">
+            <Label htmlFor="time" className="px-1">
+              Start Time
+            </Label>
+            <Input
+              type="time"
+              id="time"
+              step="1"
+              value={startTime}
+              onChange={(e) => setStartTime(e.target.value)}
+              className="appearance-none bg-background [&::-webkit-calendar-picker-indicator]:hidden [&::-webkit-calendar-picker-indicator]:appearance-none"
+            />
+          </div>
+        </div>
+        <div className="flex gap-4">
           <ISTDateTimePicker
             date={endDate}
             disabled={!startDate}
             onChangeDate={setEndDate}
             label="End Date"
-            start_end_time={startEndTime}
+            start_end_time={endTime}
             type="end"
             disable_before={startDate}
           />
+          <div className="flex w-32 flex-col gap-3">
+            <Label htmlFor="time" className="px-1">
+              End Time
+            </Label>
+            <Input
+              type="time"
+              id="time"
+              step="1"
+              value={endTime}
+              onChange={(e) => setEndTime(e.target.value)}
+              className="appearance-none bg-background [&::-webkit-calendar-picker-indicator]:hidden [&::-webkit-calendar-picker-indicator]:appearance-none"
+            />
+          </div>
         </div>
       </div>
       <div className="flex flex-col gap-4">
-        <div className="flex w-32 flex-col gap-3">
-          <Label htmlFor="time" className="px-1">
-            Start/End Time
-          </Label>
-          <Input
-            type="time"
-            id="time"
-            step="1"
-            value={startEndTime}
-            onChange={(e) => setStartEndTime(e.target.value)}
-            className="appearance-none bg-background [&::-webkit-calendar-picker-indicator]:hidden [&::-webkit-calendar-picker-indicator]:appearance-none"
-          />
-        </div>
-        <div className="text-sm text-gray-500 dark:text-gray-400">
-          <div>
-            Start Time:{' '}
-            <span>
-              {startDate?.toLocaleDateString('en-GB', {
-                day: 'numeric',
-                month: 'short',
-                year: 'numeric'
-              })}
-              {', '}
-              {set_seconds_in_time_string(startEndTime, 1)}
-            </span>
+        {startDate && endDate && (
+          <div className="text-sm text-gray-500 dark:text-gray-400">
+            <div>
+              Start Time:{' '}
+              <span>
+                {startDate.toLocaleDateString('en-GB', {
+                  day: 'numeric',
+                  month: 'short',
+                  year: 'numeric'
+                })}
+                {', '}
+                {startDate.toLocaleTimeString('en-US', {
+                  hour: 'numeric',
+                  minute: '2-digit',
+                  second: '2-digit'
+                })}
+              </span>
+            </div>
+            <div>
+              End Time:{' '}
+              <span>
+                {endDate.toLocaleDateString('en-GB', {
+                  day: '2-digit',
+                  month: 'short',
+                  year: 'numeric'
+                })}
+                {', '}
+                {endDate.toLocaleTimeString('en-US', {
+                  hour: 'numeric',
+                  minute: '2-digit',
+                  second: '2-digit'
+                })}
+              </span>
+            </div>
           </div>
-          <div>
-            End Time:{' '}
-            <span>
-              {endDate?.toLocaleDateString('en-GB', {
-                day: '2-digit',
-                month: 'short',
-                year: 'numeric'
-              })}
-              {', '}
-              {set_seconds_in_time_string(startEndTime, 0)}
-            </span>
-          </div>
-        </div>
+        )}
       </div>
       <div className="flex flex-col gap-3">
         <Label className="px-1">Select Puzzle</Label>
@@ -143,15 +175,37 @@ const AddSchedule = ({ puzzle_list }: { puzzle_list: { id: number; title: string
           </SelectContent>
         </Select>
       </div>
-      <Button
-        onClick={handle_add_schedule}
-        className="w-32 gap-1 font-bold text-amber-500"
-        variant="outline"
-        disabled={add_schedule_mut.isPending}
-      >
-        <PlusIcon className="-mt-1 inline-block size-5" />
-        {add_schedule_mut.isPending ? 'Adding...' : 'Add Schedule'}
-      </Button>
+      <AlertDialog>
+        <AlertDialogTrigger asChild>
+          <Button
+            className="w-32 gap-1 font-bold text-amber-500"
+            variant="outline"
+            disabled={add_schedule_mut.isPending || invalid_state_condition}
+          >
+            <PlusIcon className="-mt-1 inline-block size-5" />
+            {add_schedule_mut.isPending ? 'Adding...' : 'Add Schedule'}
+          </Button>
+        </AlertDialogTrigger>
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle>Add Schedule</AlertDialogTitle>
+            <AlertDialogDescription>
+              Are you sure you want to add this schedule?
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel>Cancel</AlertDialogCancel>
+            <AlertDialogAction
+              onClick={() => {
+                handle_add_schedule();
+              }}
+              className="bg-amber-600 font-bold text-white dark:bg-amber-600"
+            >
+              Add Schedule
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
     </div>
   );
 };
@@ -230,7 +284,11 @@ const ISTDateTimePicker: React.FC<DatePickerProps> = ({
               setOpen(false);
             }}
             disabled={(date) => {
-              if (disable_before && date < disable_before) return true;
+              if (disable_before) {
+                let disable_before_date = new Date(disable_before);
+                disable_before_date.setHours(0, 0, 0, 0);
+                if (date < disable_before_date) return true;
+              }
               const today = new Date();
               today.setHours(0, 0, 0, 0);
               return date < today;
