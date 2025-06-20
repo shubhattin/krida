@@ -6,7 +6,7 @@ export const word_game_msgs = {
   replay: 'पुनः',
   stop: 'विरमतु',
   time_taken: 'गृहीत-कालम्',
-  found_words: 'लब्ध-शब्दानि',
+  found_words: 'लब्ध-शब्दाः',
   time_elapsed: 'अतीत-समयः'
 };
 

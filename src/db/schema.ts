@@ -85,7 +85,8 @@ export const puzzle_game_schedules = pgTable(
       .references(() => word_puzzles.id, { onDelete: 'cascade' }),
     start_time: timestamp({ withTimezone: true }).notNull(),
     end_time: timestamp({ withTimezone: true }).notNull(),
-    created_at: timestamp({ withTimezone: true }).notNull().defaultNow()
+    created_at: timestamp({ withTimezone: true }).notNull().defaultNow(),
+    updated_at: timestamp({ withTimezone: true })
   },
   (table) => [
     index('puzzle_game_schedules_start_time_end_time_idx').on(table.start_time, table.end_time),

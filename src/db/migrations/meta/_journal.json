@@ -43,6 +43,13 @@
       "when": 1750208591332,
       "tag": "0005_short_mordo",
       "breakpoints": true
+    },
+    {
+      "idx": 6,
+      "version": "7",
+      "when": 1750432252352,
+      "tag": "0006_condemned_thunderbolt",
+      "breakpoints": true
     }
   ]
 }

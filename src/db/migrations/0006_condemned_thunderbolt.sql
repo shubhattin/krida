@@ -1,0 +1,1 @@
+ALTER TABLE "puzzle_game_schedules" ADD COLUMN "updated_at" timestamp with time zone;

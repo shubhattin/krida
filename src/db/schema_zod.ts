@@ -20,6 +20,7 @@ export const PuzzleGamePlayStatsSchemaZod = createSelectSchema(puzzle_gameplay_s
 
 export const PuzzleGameScheduleSchemaZod = createSelectSchema(puzzle_game_schedules, {
   created_at: z.coerce.date(),
+  updated_at: z.coerce.date().optional(),
   start_time: z.coerce.date(),
   end_time: z.coerce.date()
 });

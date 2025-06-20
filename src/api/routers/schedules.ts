@@ -97,7 +97,7 @@ const update_puzzle_schedule_route = protectedAdminProcedure
     await Promise.allSettled([
       db
         .update(puzzle_game_schedules)
-        .set({ start_time, end_time })
+        .set({ start_time, end_time, updated_at: new Date() })
         .where(eq(puzzle_game_schedules.id, schedule_id)),
       // invalidate cache
       redis.del(REDIS_CACHE_KEYS.current_schedule()),
