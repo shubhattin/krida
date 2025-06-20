@@ -69,8 +69,22 @@ export function MenuButton() {
         </Button>
       </PopoverTrigger>
       <PopoverContent
-        className="w-80 border-slate-200/80 bg-white/95 p-0 backdrop-blur-md dark:border-slate-700/80 dark:bg-slate-800/95"
+        className="scrollbar-hide w-80 border-slate-200/80 bg-white/95 p-0 backdrop-blur-md dark:border-slate-700/80 dark:bg-slate-800/95"
         align="end"
+        // Add max-h and overflow for scrollability on small screens, and hide scrollbar
+        style={{
+          maxHeight: '90vh',
+          overflowY: 'auto',
+          scrollbarWidth: 'none', // Firefox
+          msOverflowStyle: 'none' // IE and Edge
+        }}
+        // @ts-ignore
+        // Hide scrollbar for Webkit browsers
+        css={{
+          '&::-webkit-scrollbar': {
+            display: 'none'
+          }
+        }}
       >
         <div className="p-4">
           {/* Header */}

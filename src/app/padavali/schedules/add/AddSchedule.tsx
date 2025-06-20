@@ -191,16 +191,12 @@ const AddSchedule = (props: Props) => {
                   day: 'numeric',
                   month: 'short',
                   year: 'numeric',
-                  timeZone: 'Asia/Kolkata'
-                })}
-                {', '}
-                {startDate.toLocaleTimeString('en-US', {
-                  hour: 'numeric',
+                  timeZone: 'Asia/Kolkata',
+                  hour: '2-digit',
                   minute: '2-digit',
                   second: '2-digit',
-                  timeZone: 'Asia/Kolkata',
-                  hour12: false,
-                  timeZoneName: 'short'
+                  timeZoneName: 'short',
+                  hour12: false
                 })}
               </span>
             </div>
@@ -211,16 +207,12 @@ const AddSchedule = (props: Props) => {
                   day: '2-digit',
                   month: 'short',
                   year: 'numeric',
-                  timeZone: 'Asia/Kolkata'
-                })}
-                {', '}
-                {endDate.toLocaleTimeString('en-US', {
-                  hour: 'numeric',
+                  timeZone: 'Asia/Kolkata',
+                  hour: '2-digit',
                   minute: '2-digit',
                   second: '2-digit',
-                  timeZone: 'Asia/Kolkata',
-                  hour12: false,
-                  timeZoneName: 'short'
+                  timeZoneName: 'short',
+                  hour12: false
                 })}
               </span>
             </div>
