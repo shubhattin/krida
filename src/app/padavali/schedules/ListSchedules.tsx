@@ -112,11 +112,16 @@ const ListSchedules = ({ upcomming_schedules }: Props) => {
             </CardHeader>
             <CardContent className="-mt-6">
               <div className="space-y-2">
-                <div className="space-x-1 text-sm">
-                  <span>
-                    {formatDate(schedule.start_time)} - {formatDate(schedule.end_time)},
-                  </span>
-                  <span className="text-xs">{dayjs(schedule.start_time).format('HH:mm')}</span>
+                <div className="flex items-center gap-x-1 text-sm">
+                  <div>
+                    {formatDate(schedule.start_time)},
+                    <span className="ml-1">{dayjs(schedule.start_time).format('HH:mm')}</span>
+                  </div>
+                  <div>-</div>
+                  <div>
+                    {formatDate(schedule.end_time)},
+                    <span className="">{dayjs(schedule.end_time).format('HH:mm')}</span>
+                  </div>
                 </div>
                 <div className="flex items-center gap-2 text-sm text-muted-foreground">
                   <ClockIcon className="-mt-1 size-4" />
