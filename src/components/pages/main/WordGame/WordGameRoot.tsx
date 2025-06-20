@@ -379,7 +379,7 @@ function WordGame({
           <div className="order-1 flex flex-col items-center justify-center lg:order-2 lg:col-span-6">
             {/* Stop Button for <lg screens */}
 
-            <div className="w-full max-w-lg">
+            <div className={cn('w-full max-w-lg', font_info.experimental && 'max-w-full')}>
               <GameGrid
                 original_grid_data={org_grid_data}
                 puzzle_id={puzzle_id}
