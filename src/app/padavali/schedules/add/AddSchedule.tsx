@@ -247,7 +247,9 @@ const AddSchedule = (props: Props) => {
           <Button
             className="w-40 gap-1 font-bold text-amber-500"
             variant="outline"
-            disabled={add_schedule_mut.isPending || invalid_state_condition}
+            disabled={
+              add_schedule_mut.isPending || update_schedule_mut.isPending || invalid_state_condition
+            }
           >
             <PlusIcon className="-mt-1 inline-block size-5" />
             {type === 'add'

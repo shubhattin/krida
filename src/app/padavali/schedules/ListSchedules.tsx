@@ -120,7 +120,7 @@ const ListSchedules = ({ upcomming_schedules }: Props) => {
             </CardHeader>
             <CardContent className="-mt-6">
               <div className="space-y-2">
-                <div className="flex items-center gap-x-1 text-sm">
+                <div className="flex items-center gap-x-0.5 text-sm">
                   <div>
                     {formatDate(schedule.start_time)},
                     <span className="ml-1">{dayjs(schedule.start_time).format('HH:mm')}</span>
@@ -128,7 +128,7 @@ const ListSchedules = ({ upcomming_schedules }: Props) => {
                   <div>-</div>
                   <div>
                     {formatDate(schedule.end_time)},
-                    <span className="">{dayjs(schedule.end_time).format('HH:mm')}</span>
+                    <span className="ml-1">{dayjs(schedule.end_time).format('HH:mm')}</span>
                   </div>
                 </div>
                 <div className="flex items-center gap-2 text-sm text-muted-foreground">
