@@ -190,13 +190,17 @@ const AddSchedule = (props: Props) => {
                 {startDate.toLocaleDateString('en-GB', {
                   day: 'numeric',
                   month: 'short',
-                  year: 'numeric'
+                  year: 'numeric',
+                  timeZone: 'Asia/Kolkata'
                 })}
                 {', '}
                 {startDate.toLocaleTimeString('en-US', {
                   hour: 'numeric',
                   minute: '2-digit',
-                  second: '2-digit'
+                  second: '2-digit',
+                  timeZone: 'Asia/Kolkata',
+                  hour12: false,
+                  timeZoneName: 'short'
                 })}
               </span>
             </div>
@@ -206,13 +210,17 @@ const AddSchedule = (props: Props) => {
                 {endDate.toLocaleDateString('en-GB', {
                   day: '2-digit',
                   month: 'short',
-                  year: 'numeric'
+                  year: 'numeric',
+                  timeZone: 'Asia/Kolkata'
                 })}
                 {', '}
                 {endDate.toLocaleTimeString('en-US', {
                   hour: 'numeric',
                   minute: '2-digit',
-                  second: '2-digit'
+                  second: '2-digit',
+                  timeZone: 'Asia/Kolkata',
+                  hour12: false,
+                  timeZoneName: 'short'
                 })}
               </span>
             </div>
