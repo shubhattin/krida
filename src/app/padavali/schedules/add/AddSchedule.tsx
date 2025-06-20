@@ -31,15 +31,41 @@ import {
   AlertDialogTrigger
 } from '~/components/ui/alert-dialog';
 
-const DEFAULT_START_END_TIME = '05:00';
+export const DEFAULT_START_END_TIME = '21:00';
 
-const AddSchedule = ({ puzzle_list }: { puzzle_list: { id: number; title: string }[] }) => {
-  const [startDate, setStartDate] = useState<Date | undefined>(undefined);
-  const [endDate, setEndDate] = useState<Date | undefined>(undefined);
+type Props =
+  | {
+      type: 'add';
+      puzzle_list: { id: number; title: string }[];
+    }
+  | {
+      init: {
+        start_date: Date;
+        end_date: Date;
+        start_time_string: string;
+        end_time_string: string;
+      };
+      type: 'edit';
+      puzzle_title: string;
+      schedule_id: number;
+    };
+
+const AddSchedule = (props: Props) => {
+  const { type } = props;
+  const [startDate, setStartDate] = useState<Date | undefined>(
+    type === 'edit' ? props.init.start_date : undefined
+  );
+  const [endDate, setEndDate] = useState<Date | undefined>(
+    type === 'edit' ? props.init.end_date : undefined
+  );
   const [puzzleId, setPuzzleId] = useState<number | undefined>(undefined);
 
-  const [startTime, setStartTime] = useState<string>(DEFAULT_START_END_TIME + ':00');
-  const [endTime, setEndTime] = useState<string>(DEFAULT_START_END_TIME + ':00');
+  const [startTime, setStartTime] = useState<string>(
+    (type === 'edit' ? props.init.start_time_string : DEFAULT_START_END_TIME) + ':00'
+  );
+  const [endTime, setEndTime] = useState<string>(
+    (type === 'edit' ? props.init.end_time_string : DEFAULT_START_END_TIME) + ':00'
+  );
 
   const router = useRouter();
 
@@ -57,19 +83,55 @@ const AddSchedule = ({ puzzle_list }: { puzzle_list: { id: number; title: string
     }
   });
 
+  const update_schedule_mut = client_q.schedules.update_puzzle_schedule.useMutation({
+    onSuccess(data) {
+      if (data.success) {
+        toast.success('Schedule updated successfully');
+        router.push(`/padavali/schedules`);
+      }
+    },
+    onError(error) {
+      toast.error('Failed to update schedule');
+    }
+  });
+
   const invalid_state_condition =
-    !puzzleId || !startDate || !endDate || startDate > endDate || startDate === endDate;
+    (type === 'add' && !puzzleId) ||
+    !startDate ||
+    !endDate ||
+    startDate > endDate ||
+    startDate === endDate;
 
   const handle_add_schedule = () => {
-    if (invalid_state_condition) {
+    if (type !== 'add') return;
+    if (invalid_state_condition || !puzzleId) {
       toast.error('Please fill all the fields correctly');
       return;
     }
     add_schedule_mut.mutate({ puzzle_id: puzzleId, start_time: startDate, end_time: endDate });
   };
 
+  const handle_update_schedule = () => {
+    if (type !== 'edit') return;
+    if (invalid_state_condition) {
+      toast.error('Please fill all the fields correctly');
+      return;
+    }
+    update_schedule_mut.mutate({
+      schedule_id: props.schedule_id,
+      start_time: startDate,
+      end_time: endDate
+    });
+  };
+
   return (
     <div className="flex flex-col gap-6">
+      {type === 'edit' && (
+        <div className="text-lg font-bold">
+          {props.puzzle_title},{' '}
+          <span className="text-sm font-semibold">Schedule ID: {props.schedule_id}</span>
+        </div>
+      )}
       <div className="flex flex-col gap-4">
         <h3 className="text-lg font-semibold">Select Date Range</h3>
         <div className="flex gap-4">
@@ -157,51 +219,70 @@ const AddSchedule = ({ puzzle_list }: { puzzle_list: { id: number; title: string
           </div>
         )}
       </div>
-      <div className="flex flex-col gap-3">
-        <Label className="px-1">Select Puzzle</Label>
-        <Select value={puzzleId?.toString()} onValueChange={(value) => setPuzzleId(Number(value))}>
-          <SelectTrigger className="w-64">
-            <SelectValue placeholder="Choose a puzzle" />
-          </SelectTrigger>
-          <SelectContent>
-            <SelectGroup>
-              <SelectLabel>Puzzles</SelectLabel>
-              {puzzle_list.map((puzzle) => (
-                <SelectItem key={puzzle.id} value={puzzle.id.toString()}>
-                  {puzzle.title}
-                </SelectItem>
-              ))}
-            </SelectGroup>
-          </SelectContent>
-        </Select>
-      </div>
+      {type === 'add' && (
+        <div className="flex flex-col gap-3">
+          <Label className="px-1">Select Puzzle</Label>
+          <Select
+            value={puzzleId?.toString()}
+            onValueChange={(value) => setPuzzleId(Number(value))}
+          >
+            <SelectTrigger className="w-64">
+              <SelectValue placeholder="Choose a puzzle" />
+            </SelectTrigger>
+            <SelectContent>
+              <SelectGroup>
+                <SelectLabel>Puzzles</SelectLabel>
+                {props.puzzle_list.map((puzzle) => (
+                  <SelectItem key={puzzle.id} value={puzzle.id.toString()}>
+                    {puzzle.title}
+                  </SelectItem>
+                ))}
+              </SelectGroup>
+            </SelectContent>
+          </Select>
+        </div>
+      )}
       <AlertDialog>
         <AlertDialogTrigger asChild>
           <Button
-            className="w-32 gap-1 font-bold text-amber-500"
+            className="w-40 gap-1 font-bold text-amber-500"
             variant="outline"
             disabled={add_schedule_mut.isPending || invalid_state_condition}
           >
             <PlusIcon className="-mt-1 inline-block size-5" />
-            {add_schedule_mut.isPending ? 'Adding...' : 'Add Schedule'}
+            {type === 'add'
+              ? add_schedule_mut.isPending
+                ? 'Adding...'
+                : 'Add Schedule'
+              : update_schedule_mut.isPending
+                ? 'Updating...'
+                : 'Update Schedule'}
           </Button>
         </AlertDialogTrigger>
         <AlertDialogContent>
           <AlertDialogHeader>
-            <AlertDialogTitle>Add Schedule</AlertDialogTitle>
+            <AlertDialogTitle>
+              {type === 'add' ? 'Add Schedule' : 'Update Schedule'}
+            </AlertDialogTitle>
             <AlertDialogDescription>
-              Are you sure you want to add this schedule?
+              {type === 'add'
+                ? 'Are you sure you want to add this schedule?'
+                : 'Are you sure you want to update this schedule?'}
             </AlertDialogDescription>
           </AlertDialogHeader>
           <AlertDialogFooter>
             <AlertDialogCancel>Cancel</AlertDialogCancel>
             <AlertDialogAction
               onClick={() => {
-                handle_add_schedule();
+                if (type === 'add') {
+                  handle_add_schedule();
+                } else {
+                  handle_update_schedule();
+                }
               }}
               className="bg-amber-600 font-bold text-white dark:bg-amber-600"
             >
-              Add Schedule
+              {type === 'add' ? 'Add Schedule' : 'Update Schedule'}
             </AlertDialogAction>
           </AlertDialogFooter>
         </AlertDialogContent>

@@ -83,6 +83,30 @@ const delete_puzzle_schedule_route = protectedAdminProcedure
     return { success: true };
   });
 
+const update_puzzle_schedule_route = protectedAdminProcedure
+  .input(
+    z.object({
+      schedule_id: z.number().int(),
+      start_time: z.coerce.date(),
+      end_time: z.coerce.date()
+    })
+  )
+  .mutation(async ({ input: { schedule_id, start_time, end_time } }) => {
+    revalidatePath('/padavali/schedules');
+
+    await Promise.allSettled([
+      db
+        .update(puzzle_game_schedules)
+        .set({ start_time, end_time })
+        .where(eq(puzzle_game_schedules.id, schedule_id)),
+      // invalidate cache
+      redis.del(REDIS_CACHE_KEYS.current_schedule()),
+      redis.del(REDIS_CACHE_KEYS.next_schedule())
+    ]);
+
+    return { success: true };
+  });
+
 const get_past_schedules_route = protectedAdminProcedure.query(async () => {
   await delay(500);
   const current_time = new Date();
@@ -111,5 +135,6 @@ const get_past_schedules_route = protectedAdminProcedure.query(async () => {
 export const schedules_router = t.router({
   add_puzzle_schedule: add_puzzle_schedule_route,
   delete_puzzle_schedule: delete_puzzle_schedule_route,
-  get_past_schedules: get_past_schedules_route
+  get_past_schedules: get_past_schedules_route,
+  update_puzzle_schedule: update_puzzle_schedule_route
 });

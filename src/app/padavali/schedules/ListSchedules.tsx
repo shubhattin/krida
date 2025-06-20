@@ -19,7 +19,7 @@ import {
 } from '@/components/ui/accordion';
 import { Skeleton } from '@/components/ui/skeleton';
 import dayjs from 'dayjs';
-import { ClockIcon, SquareArrowOutUpRightIcon } from 'lucide-react';
+import { ClockIcon, PencilIcon, SquareArrowOutUpRightIcon } from 'lucide-react';
 import { Card, CardContent, CardTitle, CardHeader, CardAction } from '~/components/ui/card';
 import relativeTime from 'dayjs/plugin/relativeTime';
 import { MdDeleteOutline } from 'react-icons/md';
@@ -27,6 +27,8 @@ import { client_q } from '~/api/client';
 import { toast } from 'sonner';
 import { useState, useTransition } from 'react';
 import { invalidatePage } from '~/tools/invalidate_nextjs_server_route';
+import { Button } from '~/components/ui/button';
+import Link from 'next/link';
 
 dayjs.extend(relativeTime);
 
@@ -78,7 +80,13 @@ const ListSchedules = ({ upcomming_schedules }: Props) => {
                   <SquareArrowOutUpRightIcon className="-mt-2 size-4 hover:text-blue-500" />
                 </a>
               </CardTitle>
-              <CardAction>
+              <CardAction className="flex items-center gap-x-2">
+                <Link
+                  href={`/padavali/schedules/edit/${schedule.id}`}
+                  className="hover:text-blue-500"
+                >
+                  <PencilIcon className="size-4" />
+                </Link>
                 <AlertDialog>
                   <AlertDialogTrigger asChild>
                     <button
