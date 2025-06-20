@@ -63,7 +63,7 @@ export default async function Home() {
                           (word) => word.charAt(0).toUpperCase() + word.slice(1)
                         )}
                     </span>
-                    <span className="ml-1.5 text-xs font-bold brightness-95">
+                    {/* <span className="ml-1.5 text-xs font-bold brightness-95">
                       (
                       {next_schedule.start_time.toLocaleDateString('en-GB', {
                         day: 'numeric',
@@ -76,7 +76,7 @@ export default async function Home() {
                         hour12: true
                       })}
                       )
-                    </span>
+                    </span> */}
                   </span>
                 ) : (
                   <span className="font-medium">New puzzles coming soon!</span>
