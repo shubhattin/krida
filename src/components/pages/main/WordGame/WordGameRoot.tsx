@@ -1,6 +1,6 @@
 'use client';
 
-import { useRef, useEffect, useMemo, useContext } from 'react';
+import { useRef, useEffect, useMemo, useContext, useState } from 'react';
 import { lipi_parivartak } from '~/tools/lipi_lekhika';
 import { DEFAULT_DATA_SCRIPT, FONT_INFO, type ScriptType } from '~/state/script_font_data';
 import { get_transliterated_word_game_msgs, type word_game_msgs } from './msgs';
@@ -177,6 +177,7 @@ function WordGame({
   const font_info = FONT_INFO[script as ScriptType];
 
   const timerRef = useRef<NodeJS.Timeout | null>(null);
+  const [description_transliterated, setDescriptionTransliterated] = useState(description);
 
   useEffect(() => {
     if (onChangeCompleted) {
@@ -199,6 +200,11 @@ function WordGame({
     get_transliterated_word_game_msgs(script!).then((word_msgs) => {
       setWordMsgs(word_msgs);
     });
+    if (description) {
+      lipi_parivartak(description, DEFAULT_DATA_SCRIPT, script!).then((description) => {
+        setDescriptionTransliterated(description);
+      });
+    }
   }, [script]);
 
   // Prevent page refresh/navigation during active game
@@ -291,10 +297,15 @@ function WordGame({
                 </PopoverTrigger>
                 <PopoverContent
                   side="top"
-                  align="end"
-                  className="z-80 overflow-hidden rounded-xl border-slate-200 bg-gradient-to-r from-amber-50 to-orange-50 px-3 py-2 shadow-xl outline-none dark:border-slate-700 dark:from-teal-950/80 dark:to-green-950/80"
+                  align="center"
+                  className={cn(
+                    'z-80 w-fit overflow-hidden rounded-xl border-slate-200 bg-gradient-to-r from-amber-50 to-orange-50 px-3 py-2 shadow-xl outline-none dark:border-slate-700 dark:from-teal-950/80 dark:to-green-950/80',
+                    'w-72 sm:w-xl md:w-2xl lg:w-3xl'
+                  )}
                 >
-                  <div className="text-sm text-stone-600 dark:text-stone-200">{description}</div>
+                  <div className="text-sm text-stone-600 dark:text-stone-200">
+                    {description_transliterated}
+                  </div>
                 </PopoverContent>
               </Popover>
             )}

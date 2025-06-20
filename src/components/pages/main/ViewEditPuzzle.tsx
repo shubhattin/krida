@@ -755,14 +755,22 @@ const SaveButton = ({ word_puzzle }: { word_puzzle: z.infer<typeof puzzle_schema
     <div className="mx-2 mt-2 flex items-center justify-between sm:mx-4">
       <AlertDialog>
         <AlertDialogTrigger asChild>
-          <Button disabled={!isEdited} className="flex text-lg" variant={'outline'}>
+          <Button
+            disabled={
+              !isEdited || add_word_puzzle_mut.isPending || update_word_puzzle_mut.isPending
+            }
+            className="flex text-lg"
+            variant={'outline'}
+          >
             {is_addition ? (
               <>
-                <IoMdAdd className="text-lg" /> योज्यताम्
+                <IoMdAdd className="text-lg" />{' '}
+                {!add_word_puzzle_mut.isPending ? 'योज्यताम्' : 'योज्यमानम्'}
               </>
             ) : (
               <>
-                <FiSave className="text-lg" /> रक्ष्यताम्
+                <FiSave className="text-lg" />{' '}
+                {!update_word_puzzle_mut.isPending ? 'रक्ष्यताम्' : 'रक्ष्यमानम्'}
               </>
             )}
           </Button>
