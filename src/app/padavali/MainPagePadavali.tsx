@@ -6,7 +6,7 @@ import WordGameRoot, {
 } from '~/components/pages/main/WordGame/WordGameRoot';
 import { Button } from '~/components/ui/button';
 import { Popover, PopoverContent, PopoverTrigger } from '~/components/ui/popover';
-import { type ScriptType } from '~/state/script_font_data';
+import { type ScriptType } from '~/state/script_list';
 import { type Puzzle } from '~/components/pages/main/ViewEditPuzzle';
 import { BsThreeDots } from 'react-icons/bs';
 import { ArchiveIcon, ArrowRightIcon, Sparkles } from 'lucide-react';

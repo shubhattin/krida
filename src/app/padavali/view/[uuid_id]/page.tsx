@@ -3,7 +3,7 @@ import { type Metadata } from 'next';
 import Link from 'next/link';
 import { IoMdArrowRoundBack } from 'react-icons/io';
 import WordGame from '~/components/pages/main/WordGame/WordGameRoot';
-import { DEFAULT_DATA_SCRIPT } from '~/state/script_font_data';
+import { DEFAULT_DATA_SCRIPT } from '~/state/script_list';
 import { get_transliterated_word_game_msgs } from '~/components/pages/main/WordGame/msgs';
 import { lipi_parivartak } from '~/tools/lipi_lekhika';
 import { getCachedScript } from '~/lib/cache_server_route_data';

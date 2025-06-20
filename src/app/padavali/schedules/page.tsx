@@ -87,5 +87,5 @@ const Main = async () => {
 export default Main;
 
 export const metadata: Metadata = {
-  title: 'कालबन्धानि'
+  title: 'कालबन्धानां सूची'
 };

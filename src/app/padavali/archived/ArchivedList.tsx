@@ -5,7 +5,7 @@ import { useContext, useState } from 'react';
 import { client_q } from '~/api/client';
 import { get_transliterated_word_game_msgs } from '~/components/pages/main/WordGame/msgs';
 import { lipi_parivartak } from '~/tools/lipi_lekhika';
-import { DEFAULT_DATA_SCRIPT, type ScriptType } from '~/state/script_font_data';
+import { DEFAULT_DATA_SCRIPT, type ScriptType } from '~/state/script_list';
 import { motion } from 'framer-motion';
 import { Button } from '~/components/ui/button';
 import { ArrowLeftIcon, ArchiveIcon, Sparkles } from 'lucide-react';

@@ -9,7 +9,7 @@ import { z } from 'zod';
 import { puzzle_gameplay_sessions, puzzle_gameplay_stats } from '~/db/schema';
 import { db } from '~/db/db';
 import { location_list_enum } from '~/db/types';
-import { script_list_enum } from '~/state/script_font_data';
+import { script_list_enum } from '~/state/script_list';
 
 const submit_stats_route = publicProcedure
   .input(

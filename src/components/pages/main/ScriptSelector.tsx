@@ -5,7 +5,7 @@ import {
   SCRIPT_LIST,
   SCRIPT_NAMES,
   type ScriptType
-} from '~/state/script_font_data';
+} from '~/state/script_list';
 import Cookies from 'js-cookie';
 import { cn } from '~/lib/utils';
 

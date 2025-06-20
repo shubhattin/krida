@@ -1,4 +1,4 @@
-import { type ScriptType, DEFAULT_DATA_SCRIPT } from '~/state/script_font_data';
+import { type ScriptType, DEFAULT_DATA_SCRIPT } from '~/state/script_list';
 import { lipi_parivartak } from '~/tools/lipi_lekhika';
 
 export const word_game_msgs = {

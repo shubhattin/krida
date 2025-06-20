@@ -1,5 +1,5 @@
 import { ArchivedList } from './ArchivedList';
-import { DEFAULT_DATA_SCRIPT } from '~/state/script_font_data';
+import { DEFAULT_DATA_SCRIPT } from '~/state/script_list';
 import { Metadata } from 'next';
 import { lipi_parivartak } from '~/tools/lipi_lekhika';
 import { getCachedScript } from '~/lib/cache_server_route_data';

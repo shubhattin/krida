@@ -2,7 +2,8 @@
 
 import { useRef, useEffect, useMemo, useContext, useState } from 'react';
 import { lipi_parivartak } from '~/tools/lipi_lekhika';
-import { DEFAULT_DATA_SCRIPT, FONT_INFO, type ScriptType } from '~/state/script_font_data';
+import { DEFAULT_DATA_SCRIPT, type ScriptType } from '~/state/script_list';
+import { FONT_INFO } from '~/state/script_font_data';
 import { get_transliterated_word_game_msgs, type word_game_msgs } from './msgs';
 import { GameContoller } from './GameController';
 import { GameInfo } from './GameInfo';

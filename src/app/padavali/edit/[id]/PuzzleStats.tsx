@@ -20,7 +20,7 @@ import { CalendarIcon, TrendingUpIcon, UsersIcon, ClockIcon, TargetIcon } from '
 import { cn } from '~/lib/utils';
 import { format } from 'date-fns';
 import pretty_ms from 'pretty-ms';
-import { DEFAULT_DATA_SCRIPT } from '~/state/script_font_data';
+import { DEFAULT_DATA_SCRIPT } from '~/state/script_list';
 
 type DateRange = {
   from: Date | undefined;

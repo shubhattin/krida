@@ -13,7 +13,8 @@ import {
 } from 'drizzle-orm/pg-core';
 import { relations } from 'drizzle-orm';
 import type { location_list_type } from './types';
-import { type ScriptType } from '~/state/script_font_data';
+
+import { type ScriptType } from '~/state/script_list';
 
 export const word_puzzles = pgTable(
   'word_puzzles',
