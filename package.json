@@ -87,6 +87,7 @@
     "prettier-plugin-tailwindcss": "^0.6.12",
     "sass": "^1.89.2",
     "tailwindcss": "^4.1.10",
+    "tsx": "^4.20.3",
     "tw-animate-css": "^1.3.4",
     "typescript": "^5.8.3",
     "vite-node": "^3.2.3",
