@@ -93,20 +93,14 @@ async function uploadFile(bucketName: string, key: string, filePath: string) {
   }
 }
 
+const BACKUP_FOLDER_NAME = 'padavali_backups';
+
 async function main() {
   await backup_data();
-  const current_date_key =
-    new Date().toISOString() +
-    ' : ' +
-    new Date().toLocaleString('en-IN', {
-      year: 'numeric',
-      month: 'short',
-      day: '2-digit',
-      timeZone: 'Asia/Kolkata'
-    });
+  const current_date_key = new Date().toISOString();
   await uploadFile(
     envs.AWS_DB_BACKUP_BUCKET_NAME,
-    `padavali_backups/${current_date_key}.zip`,
+    `${BACKUP_FOLDER_NAME}/${current_date_key}.zip`,
     './backup/backup.zip'
   );
 }
