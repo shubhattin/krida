@@ -12,6 +12,7 @@ import {
 import { location_list_type } from '~/db/types';
 import TurnstileWidget from '~/components/Turnstile';
 import { AppContext } from '~/components/AppDataContext';
+import { load_posthog } from '~/components/PosthogInit';
 
 const GameMetricsCollector = ({
   puzzle_id,
@@ -52,6 +53,13 @@ const GameMetricsCollector = ({
         location,
         script: script
       });
+      load_posthog((posthog) => {
+        posthog.capture('gameplay_started', {
+          puzzle_id: puzzle_id,
+          location: location,
+          script: script
+        });
+      });
     }
   }, [started, turnstileToken, completed]);
   useEffect(() => {
@@ -73,6 +81,15 @@ const GameMetricsCollector = ({
           correct_attempts: wordList.length,
           total_attempts: totalAttempts
         }
+      });
+      load_posthog((posthog) => {
+        posthog.capture('gameplay_completed', {
+          puzzle_id: puzzle_id,
+          time_taken: seconds,
+          accuracy: Math.trunc((wordList.length / totalAttempts) * 100),
+          correct_attempts: wordList.length,
+          total_attempts: totalAttempts
+        });
       });
     }
   }, [turnstileToken, update_games_started_mut, completed]);
