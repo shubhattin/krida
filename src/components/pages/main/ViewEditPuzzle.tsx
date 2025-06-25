@@ -39,20 +39,26 @@ import { cn } from '~/lib/utils';
 import { useHydrateAtoms } from 'jotai/utils';
 import Icon from '~/tools/Icon';
 import { LanguageIcon } from '~/components/icons';
+import { puzzle_schema as _puzzle_schema, attachment_schema } from '~/db/db_shared_vals';
 
-const puzzle_schema = z.object({
-  id: z.number().int().nullable(),
-  uuid: z.string().uuid().nullable(),
-  title: z.string(),
-  created_at: z.date(),
-  updated_at: z.date().nullable(),
-  word_list: z.string().min(2).array(),
-  grid_data: z.string().min(1).array().array(),
-  grid_dimensions: z.tuple([z.number().int(), z.number().int()]),
-  archived: z.boolean(),
-  description: z.string().nullable(),
-  discussion_url: z.string().nullable()
-});
+const puzzle_schema = _puzzle_schema
+  .extend({
+    id: z.number().int().nullable(),
+    uuid: z.string().uuid().nullable()
+  })
+  .omit({
+    attachments: true
+  })
+  .and(
+    z.object({
+      attachments: attachment_schema
+        .omit({ id: true })
+        .extend({
+          id: z.number().int().nullable()
+        })
+        .array()
+    })
+  );
 
 export type Puzzle = z.infer<typeof puzzle_schema>;
 
@@ -64,15 +70,15 @@ const grid_data_atom = atom<string[][]>([]);
 const archived_atom = atom<boolean>(false);
 const description_atom = atom<string | null>(null);
 const lipi_lekhika_active_atom = atom<boolean>(true);
-const discussion_url_atom = atom<string | null>(null);
+const attachments_atom = atom<Puzzle['attachments']>([]);
 
 export type ViewEditProps =
   | {
-      word_puzzle: z.infer<typeof puzzle_schema>;
+      word_puzzle: Puzzle;
       location: 'add_page';
     }
   | {
-      word_puzzle: z.infer<typeof puzzle_schema> & {
+      word_puzzle: Puzzle & {
         id: number;
         uuid: string;
       };
@@ -93,7 +99,7 @@ const ViewEditPuzzle = ({ word_puzzle }: ViewEditProps) => {
     [archived_atom, word_puzzle.archived],
     [description_atom, word_puzzle.description],
     [lipi_lekhika_active_atom, true],
-    [discussion_url_atom, word_puzzle.discussion_url]
+    [attachments_atom, word_puzzle.attachments]
   ]);
 
   return (
@@ -149,26 +155,27 @@ const Title = () => {
 };
 
 const DiscussionUrl = () => {
-  const [discussion_url, setDiscussionUrl] = useAtom(discussion_url_atom);
-  return (
-    <div>
-      <Label className="block">
-        <span className="text-lg font-bold">
-          चर्चायाः स्थानसञ्चितः
-          <span className="ml-3 text-xs text-gray-500 dark:text-gray-400">ऐच्छिक</span>
-          <span className="ml-3 text-xs text-red-500 dark:text-red-400">* Only Youtube links</span>
-        </span>
-        <Input
-          type="url"
-          className="mt-1 w-full text-sm sm:w-[90%] md:w-2/3 lg:w-1/2"
-          value={discussion_url ?? ''}
-          onInput={(e) => {
-            setDiscussionUrl(e.currentTarget.value);
-          }}
-        />
-      </Label>
-    </div>
-  );
+  return null;
+  // const [discussion_url, setDiscussionUrl] = useAtom(discussion_url_atom);
+  // return (
+  //   <div>
+  //     <Label className="block">
+  //       <span className="text-lg font-bold">
+  //         चर्चायाः स्थानसञ्चितः
+  //         <span className="ml-3 text-xs text-gray-500 dark:text-gray-400">ऐच्छिक</span>
+  //         <span className="ml-3 text-xs text-red-500 dark:text-red-400">* Only Youtube links</span>
+  //       </span>
+  //       <Input
+  //         type="url"
+  //         className="mt-1 w-full text-sm sm:w-[90%] md:w-2/3 lg:w-1/2"
+  //         value={discussion_url ?? ''}
+  //         onInput={(e) => {
+  //           setDiscussionUrl(e.currentTarget.value);
+  //         }}
+  //       />
+  //     </Label>
+  //   </div>
+  // );
 };
 
 const LipiLekhikaSwitch = () => {
@@ -653,17 +660,17 @@ const SaveButton = ({ word_puzzle }: { word_puzzle: z.infer<typeof puzzle_schema
   const [title] = useAtom(title_atom);
   const [wordList] = useAtom(word_list_atom);
   const [gridData] = useAtom(grid_data_atom);
+  const [attachments] = useAtom(attachments_atom);
   const initialRef = useRef({
     title: word_puzzle.title,
     wordList: word_puzzle.word_list,
     gridData: word_puzzle.grid_data,
     archived: word_puzzle.archived,
     description: word_puzzle.description,
-    discussion_url: word_puzzle.discussion_url
+    attachments: word_puzzle.attachments
   });
   const [archived] = useAtom(archived_atom);
   const [description] = useAtom(description_atom);
-  const [discussion_url] = useAtom(discussion_url_atom);
 
   const router = useRouter();
 
@@ -676,7 +683,7 @@ const SaveButton = ({ word_puzzle }: { word_puzzle: z.infer<typeof puzzle_schema
         gridData,
         archived,
         description,
-        discussion_url
+        attachments
       };
     },
     onError() {
@@ -711,9 +718,9 @@ const SaveButton = ({ word_puzzle }: { word_puzzle: z.infer<typeof puzzle_schema
       JSON.stringify(gridData) !== JSON.stringify(initialRef.current.gridData) ||
       archived !== initialRef.current.archived ||
       description !== initialRef.current.description ||
-      discussion_url !== initialRef.current.discussion_url
+      JSON.stringify(attachments) !== JSON.stringify(initialRef.current.attachments)
     );
-  }, [title, wordList, gridData, archived, description, discussion_url]);
+  }, [title, wordList, gridData, archived, description, attachments]);
 
   const is_addition = word_puzzle.id === null || word_puzzle.id === undefined;
 
@@ -727,7 +734,8 @@ const SaveButton = ({ word_puzzle }: { word_puzzle: z.infer<typeof puzzle_schema
           archived,
           word_list: wordList,
           grid_data: gridData,
-          description: description !== '' ? description : null
+          description: description !== '' ? description : null,
+          attachments
         }
       });
     } else {
@@ -737,7 +745,8 @@ const SaveButton = ({ word_puzzle }: { word_puzzle: z.infer<typeof puzzle_schema
         grid_data: gridData,
         grid_dimensions: word_puzzle.grid_dimensions,
         archived,
-        description: description !== '' ? description : null
+        description: description !== '' ? description : null,
+        attachments
       });
     }
   };

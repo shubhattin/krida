@@ -15,7 +15,7 @@ export const ATTACHMENT_TYPE_NAMES: Record<attachment_list_type, string> = {
 };
 
 export const DEFAULT_YOUTUBE_EMBED = {
-  title: undefined,
+  title: null,
   type: 'youtube_embed' as const,
   url: 'https://www.youtube.com/watch?v=YeC5P0-vxOQ'
 };

@@ -38,6 +38,8 @@ import relativeTime from 'dayjs/plugin/relativeTime';
 import type { location_list_type } from '~/db/types';
 import { FiYoutube } from 'react-icons/fi';
 import GameMetricsCollector from './GameMetricsCollector';
+import { attachment_schema, DEFAULT_YOUTUBE_EMBED } from '~/db/db_shared_vals';
+import { z } from 'zod';
 
 dayjs.extend(relativeTime);
 
@@ -50,13 +52,13 @@ export type WordGameProps = {
   id: number;
   uuid: string;
   children?: React.ReactNode;
+  attachments: z.infer<typeof attachment_schema>[];
   initial_script_data: {
     word_msgs: typeof word_game_msgs;
     title: string;
     grid_data: string[][];
   };
   location: location_list_type;
-  discussion_url: string | null;
   onChangeCompleted?: (completed: boolean) => void;
   next_schedule?: {
     id: number;
@@ -166,7 +168,7 @@ function WordGame({
   onChangeCompleted,
   next_schedule,
   location,
-  discussion_url
+  attachments
 }: WordGameProps & { id: number }) {
   const { script, setScript } = useContext(AppContext);
   const [, setGridData] = useAtom(grid_data_current_atom);
@@ -370,8 +372,27 @@ function WordGame({
               !started && 'lg:mt-10 lg:items-start'
             )}
           >
-            <DiscussionUrl
-              youtube_url={discussion_url ?? 'https://www.youtube.com/live/YeC5P0-vxOQ'}
+            <MediaAttachments
+              attachments={(() => {
+                const list = attachments.map((v) => v);
+                const default_attachment = {
+                  id: 0,
+                  ...DEFAULT_YOUTUBE_EMBED,
+                  order_index: 1
+                } satisfies z.infer<typeof attachment_schema>;
+                // if no then the default one
+                if (list.length === 0) {
+                  return [default_attachment];
+                }
+                const any_youtube_embed = list.some((v) => v.type === 'youtube_embed');
+                if (any_youtube_embed) {
+                  list.push({
+                    ...default_attachment,
+                    order_index: list.length + 1
+                  });
+                }
+                return list;
+              })()}
             />
           </div>
 
@@ -529,18 +550,18 @@ const getYouTubeVideoId = (url: string): string | null => {
   return match ? match[1] : null;
 };
 
-const DiscussionUrl = ({
-  youtube_url,
+const MediaAttachments = ({
+  attachments,
   className
 }: {
-  youtube_url: string | null;
+  attachments: z.infer<typeof attachment_schema>[];
   className?: string;
 }) => {
-  if (!youtube_url) return null;
+  // if (!youtube_url) return null;
 
-  const videoId = getYouTubeVideoId(youtube_url);
+  // const videoId = getYouTubeVideoId(youtube_url);
 
-  if (!videoId) return null;
+  // if (!videoId) return null;
   const PROD = process.env.NODE_ENV === 'production';
 
   return (
@@ -557,7 +578,7 @@ const DiscussionUrl = ({
           Solve Together & Discuss the Puzzle
         </span>
       </div>
-      {PROD ? (
+      {/* {PROD ? (
         <div className="w-full max-w-md overflow-hidden rounded-lg shadow-lg">
           <iframe
             src={`https://www.youtube.com/embed/${videoId}`}
@@ -567,7 +588,7 @@ const DiscussionUrl = ({
             className="aspect-video w-full border-0"
           />
         </div>
-      ) : null}
+      ) : null} */}
     </div>
   );
 };

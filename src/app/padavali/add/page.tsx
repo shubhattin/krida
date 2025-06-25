@@ -24,7 +24,7 @@ const Add = async () => {
     grid_dimensions: [DIMS[0], DIMS[1]],
     archived: false,
     description: null,
-    discussion_url: null
+    attachments: []
   };
   return (
     <>

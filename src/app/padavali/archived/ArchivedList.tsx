@@ -108,7 +108,7 @@ export const ArchivedList = ({
           dims={puzzle.grid_dimensions}
           word_list={puzzle.word_list}
           initial_script_data={initial_script_data_q.data}
-          discussion_url={puzzle.discussion_url}
+          attachments={puzzle.attachments}
         />
       </div>
     );

@@ -7,7 +7,6 @@ import WordGameRoot, {
 import { Button } from '~/components/ui/button';
 import { Popover, PopoverContent, PopoverTrigger } from '~/components/ui/popover';
 import { type ScriptType } from '~/state/script_list';
-import { type Puzzle } from '~/components/pages/main/ViewEditPuzzle';
 import { BsThreeDots } from 'react-icons/bs';
 import { ArchiveIcon, ArrowRightIcon, Sparkles } from 'lucide-react';
 import Link from 'next/link';
@@ -15,10 +14,12 @@ import { useState } from 'react';
 import { motion } from 'framer-motion';
 import dayjs from 'dayjs';
 import { cn } from '~/lib/utils';
+import { puzzle_schema } from '~/db/db_shared_vals';
+import { z } from 'zod';
 
 type Props = {
   script: ScriptType;
-  word_puzzle: Puzzle;
+  word_puzzle: z.infer<typeof puzzle_schema>;
   initial_script_data: WordGameProps['initial_script_data'];
   next_schedule:
     | {
@@ -168,7 +169,7 @@ const MainPagePadavali = ({ script, word_puzzle, initial_script_data, next_sched
         initial_script_data={initial_script_data}
         onChangeCompleted={setCompleted}
         next_schedule={next_schedule}
-        discussion_url={word_puzzle.discussion_url}
+        attachments={word_puzzle.attachments}
       ></WordGameRoot>
     </div>
   );

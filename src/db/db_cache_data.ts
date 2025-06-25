@@ -52,7 +52,8 @@ export const get_current_schedule = async () => {
               type: true,
               url: true,
               order_index: true
-            }
+            },
+            orderBy: (tbl, { asc }) => asc(tbl.order_index)
           }
         }
       }
@@ -170,7 +171,8 @@ export const get_word_puzzle = async (id: number, uuid: string) => {
           type: true,
           url: true,
           order_index: true
-        }
+        },
+        orderBy: (tbl, { asc }) => asc(tbl.order_index)
       }
     }
   });
