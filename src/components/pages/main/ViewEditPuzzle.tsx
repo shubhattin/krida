@@ -720,17 +720,15 @@ const SaveButton = ({ word_puzzle }: { word_puzzle: z.infer<typeof puzzle_schema
   const handleSave = async () => {
     if (!is_addition) {
       await update_word_puzzle_mut.mutateAsync({
-        id: word_puzzle.id!,
-        uuid: word_puzzle.uuid!,
-        title,
-        created_at: word_puzzle.created_at,
-        updated_at: new Date(),
-        word_list: wordList,
-        grid_data: gridData,
-        grid_dimensions: word_puzzle.grid_dimensions,
-        archived,
-        description: description !== '' ? description : null,
-        discussion_url: discussion_url !== '' ? discussion_url : null
+        puzzle_id: word_puzzle.id!,
+        puzzle_uuid: word_puzzle.uuid!,
+        puzzle_data: {
+          title,
+          archived,
+          word_list: wordList,
+          grid_data: gridData,
+          description: description !== '' ? description : null
+        }
       });
     } else {
       await add_word_puzzle_mut.mutateAsync({
@@ -739,8 +737,7 @@ const SaveButton = ({ word_puzzle }: { word_puzzle: z.infer<typeof puzzle_schema
         grid_data: gridData,
         grid_dimensions: word_puzzle.grid_dimensions,
         archived,
-        description: description !== '' ? description : null,
-        discussion_url: discussion_url !== '' ? discussion_url : null
+        description: description !== '' ? description : null
       });
     }
   };

@@ -9,12 +9,13 @@ import {
   integer,
   boolean,
   varchar,
-  uniqueIndex
+  uniqueIndex,
+  pgEnum,
+  smallint
 } from 'drizzle-orm/pg-core';
 import { relations } from 'drizzle-orm';
 import type { location_list_type } from './types';
-
-import { type ScriptType } from '~/state/script_list';
+import { ATTACHMENT_TYPE_LIST, type ScriptType } from '~/state/script_list';
 
 export const word_puzzles = pgTable(
   'word_puzzles',
@@ -24,17 +25,34 @@ export const word_puzzles = pgTable(
     title: text().notNull(),
     description: text(),
     created_at: timestamp({ withTimezone: true }).notNull().defaultNow(),
-    updated_at: timestamp({ withTimezone: true }), // NULL for not updated
+    updated_at: timestamp({ withTimezone: true }).$onUpdate(() => new Date()), // NULL for not updated
     word_list: jsonb().notNull().$type<string[]>(),
     grid_data: jsonb().notNull().$type<string[][]>(),
     grid_dimensions: jsonb().notNull().$type<[number, number]>(),
-    archived: boolean().notNull().default(false),
-    discussion_url: text()
+    archived: boolean().notNull().default(false)
   },
   (table) => [
     uniqueIndex('word_puzzles_uuid_idx').on(table.uuid),
     index('word_puzzles_archived_created_at_idx').on(table.archived, table.created_at)
   ]
+);
+
+export const attachment_type_enum = pgEnum('attachment_type', ATTACHMENT_TYPE_LIST);
+export const word_puzzle_attachments = pgTable(
+  'word_puzzle_attachments',
+  {
+    id: serial().primaryKey(),
+    puzzle_id: integer()
+      .notNull()
+      .references(() => word_puzzles.id, { onDelete: 'cascade' }),
+    type: attachment_type_enum().notNull(),
+    url: text().notNull(),
+    title: text(),
+    order_index: smallint().notNull().default(1), // starts from 1
+    created_at: timestamp({ withTimezone: true }).notNull().defaultNow(),
+    updated_at: timestamp({ withTimezone: true }).$onUpdate(() => new Date())
+  },
+  (table) => [index('word_puzzle_attachments_puzzle_id_idx').on(table.puzzle_id)]
 );
 
 export const puzzle_gameplay_sessions = pgTable(
@@ -86,7 +104,7 @@ export const puzzle_game_schedules = pgTable(
     start_time: timestamp({ withTimezone: true }).notNull(),
     end_time: timestamp({ withTimezone: true }).notNull(),
     created_at: timestamp({ withTimezone: true }).notNull().defaultNow(),
-    updated_at: timestamp({ withTimezone: true })
+    updated_at: timestamp({ withTimezone: true }).$onUpdate(() => new Date())
   },
   (table) => [
     index('puzzle_game_schedules_start_time_end_time_idx').on(table.start_time, table.end_time),

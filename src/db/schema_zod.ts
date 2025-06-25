@@ -3,7 +3,8 @@ import {
   word_puzzles,
   puzzle_gameplay_stats,
   puzzle_game_schedules,
-  puzzle_gameplay_sessions
+  puzzle_gameplay_sessions,
+  word_puzzle_attachments
 } from './schema';
 import { createSelectSchema } from 'drizzle-zod';
 import { location_list_enum } from './types';
@@ -29,4 +30,9 @@ export const PuzzleGamePlaySessionSchemaZod = createSelectSchema(puzzle_gameplay
   created_at: z.coerce.date(),
   location: location_list_enum,
   script: script_list_enum.nullable().optional()
+});
+
+export const WordPuzzleAttachmentSchemaZod = createSelectSchema(word_puzzle_attachments, {
+  created_at: z.coerce.date(),
+  updated_at: z.coerce.date().optional().nullable()
 });

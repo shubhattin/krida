@@ -18,8 +18,7 @@ const schema = z.object({
   grid_data: z.string().min(1).array().array(),
   grid_dimensions: z.tuple([z.number().int(), z.number().int()]),
   archived: z.boolean(),
-  description: z.string().nullable(),
-  discussion_url: z.string().url().nullable()
+  description: z.string().nullable()
 });
 
 const puzzle_in_current_schedule = async (id: number, uuid: string) => {
@@ -31,32 +30,46 @@ const puzzle_in_current_schedule = async (id: number, uuid: string) => {
   return false;
 };
 
-const update_puzzle_route = protectedAdminProcedure.input(schema).mutation(async ({ input }) => {
-  revalidatePath('/padavali/list');
-  const prev_archived = !input.archived
-    ? (await db.query.word_puzzles.findFirst({
-        columns: {
-          archived: true
-        },
-        where: (tbl, { eq }) => eq(tbl.id, input.id)
-      }))!.archived
-    : null;
+const update_puzzle_route = protectedAdminProcedure
+  .input(
+    z.object({
+      puzzle_id: z.number().int(),
+      puzzle_uuid: z.string().uuid(),
+      puzzle_data: schema.pick({
+        title: true,
+        word_list: true,
+        grid_data: true,
+        archived: true,
+        description: true
+      })
+    })
+  )
+  .mutation(async ({ input: { puzzle_id, puzzle_data, puzzle_uuid } }) => {
+    revalidatePath('/padavali/list');
+    const prev_archived = !puzzle_data.archived
+      ? (await db.query.word_puzzles.findFirst({
+          columns: {
+            archived: true
+          },
+          where: (tbl, { eq }) => eq(tbl.id, puzzle_id)
+        }))!.archived
+      : null;
 
-  await Promise.allSettled([
-    db
-      .update(word_puzzles)
-      .set(input)
-      .where(and(eq(word_puzzles.id, input.id), eq(word_puzzles.uuid, input.uuid))),
-    (input.archived || prev_archived !== input.archived) &&
-      redis.del(REDIS_CACHE_KEYS.archived_puzzle_list()),
-    redis.del(REDIS_CACHE_KEYS.word_puzzle(input.id, input.uuid)),
-    (await puzzle_in_current_schedule(input.id, input.uuid)) &&
-      redis.del(REDIS_CACHE_KEYS.current_schedule())
-  ]);
-  return {
-    success: true
-  };
-});
+    await Promise.allSettled([
+      db
+        .update(word_puzzles)
+        .set(puzzle_data)
+        .where(and(eq(word_puzzles.id, puzzle_id), eq(word_puzzles.uuid, puzzle_uuid))),
+      (puzzle_data.archived || prev_archived !== puzzle_data.archived) &&
+        redis.del(REDIS_CACHE_KEYS.archived_puzzle_list()),
+      redis.del(REDIS_CACHE_KEYS.word_puzzle(puzzle_id, puzzle_uuid)),
+      (await puzzle_in_current_schedule(puzzle_id, puzzle_uuid)) &&
+        redis.del(REDIS_CACHE_KEYS.current_schedule())
+    ]);
+    return {
+      success: true
+    };
+  });
 
 const add_puzzle_route = protectedAdminProcedure
   .input(
