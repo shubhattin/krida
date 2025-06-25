@@ -660,7 +660,7 @@ const SaveButton = ({ word_puzzle }: { word_puzzle: z.infer<typeof puzzle_schema
   const [title] = useAtom(title_atom);
   const [wordList] = useAtom(word_list_atom);
   const [gridData] = useAtom(grid_data_atom);
-  const [attachments] = useAtom(attachments_atom);
+  const [attachments, setAttachments] = useAtom(attachments_atom);
   const initialRef = useRef({
     title: word_puzzle.title,
     wordList: word_puzzle.word_list,
@@ -676,15 +676,32 @@ const SaveButton = ({ word_puzzle }: { word_puzzle: z.infer<typeof puzzle_schema
 
   const update_word_puzzle_mut = client_q.padavali.update_puzzle.useMutation({
     onSuccess: (data) => {
-      toast.success('Puzzle updated successfully');
-      initialRef.current = {
-        title,
-        wordList,
-        gridData,
-        archived,
-        description,
-        attachments
-      };
+      if (data.success) {
+        toast.success('Puzzle updated successfully');
+
+        const { newly_added_index_ids } = data;
+        if (newly_added_index_ids.length > 0) {
+          // after update for the newly added attachemnts filling
+          // in the null values for thier ids
+          setAttachments((prev) => {
+            return prev.map((val, i) => ({
+              ...val,
+              ...(!val.id && newly_added_index_ids.some(({ index }) => index === i)
+                ? { id: newly_added_index_ids[i].index }
+                : {})
+            }));
+          });
+        }
+
+        initialRef.current = {
+          title,
+          wordList,
+          gridData,
+          archived,
+          description,
+          attachments
+        };
+      }
     },
     onError() {
       toast.error('Failed to update puzzle, check the entered data');
@@ -726,7 +743,7 @@ const SaveButton = ({ word_puzzle }: { word_puzzle: z.infer<typeof puzzle_schema
 
   const handleSave = async () => {
     if (!is_addition) {
-      await update_word_puzzle_mut.mutateAsync({
+      const data = {
         puzzle_id: word_puzzle.id!,
         puzzle_uuid: word_puzzle.uuid!,
         puzzle_data: {
@@ -737,9 +754,14 @@ const SaveButton = ({ word_puzzle }: { word_puzzle: z.infer<typeof puzzle_schema
           description: description !== '' ? description : null,
           attachments
         }
-      });
+      };
+      if (puzzle_schema.safeParse(data).success) {
+        await update_word_puzzle_mut.mutateAsync(data);
+      } else {
+        toast.error('Failed to update puzzle, fix the entered data');
+      }
     } else {
-      await add_word_puzzle_mut.mutateAsync({
+      const data = {
         title,
         word_list: wordList,
         grid_data: gridData,
@@ -747,7 +769,12 @@ const SaveButton = ({ word_puzzle }: { word_puzzle: z.infer<typeof puzzle_schema
         archived,
         description: description !== '' ? description : null,
         attachments
-      });
+      };
+      if (puzzle_schema.safeParse(data).success) {
+        await add_word_puzzle_mut.mutateAsync(data);
+      } else {
+        toast.error('Failed to add puzzle, fix the entered data');
+      }
     }
   };
 
