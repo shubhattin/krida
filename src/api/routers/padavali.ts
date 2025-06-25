@@ -1,25 +1,13 @@
 import { z } from 'zod';
 import { protectedAdminProcedure, publicProcedure, t } from '../trpc_init';
 import { db } from '~/db/db';
-import { word_puzzles } from '~/db/schema';
-import { and, eq } from 'drizzle-orm';
+import { word_puzzle_attachments, word_puzzles } from '~/db/schema';
+import { and, eq, inArray } from 'drizzle-orm';
 import { revalidatePath } from 'next/cache';
 import { padavali_stats_router } from './padavali_stats';
 import { redis, REDIS_CACHE_KEYS } from '~/db/redis';
 import { get_word_puzzle, type CurrentScheduleType } from '~/db/db_cache_data';
-
-const schema = z.object({
-  id: z.number().int(),
-  uuid: z.string().uuid(),
-  title: z.string(),
-  created_at: z.coerce.date(),
-  updated_at: z.coerce.date().nullable(),
-  word_list: z.string().min(2).array(),
-  grid_data: z.string().min(1).array().array(),
-  grid_dimensions: z.tuple([z.number().int(), z.number().int()]),
-  archived: z.boolean(),
-  description: z.string().nullable()
-});
+import { attachment_schema, puzzle_schema } from '~/db/db_shared_vals';
 
 const puzzle_in_current_schedule = async (id: number, uuid: string) => {
   const cache = await redis.get<CurrentScheduleType | string>(REDIS_CACHE_KEYS.current_schedule());
@@ -35,13 +23,23 @@ const update_puzzle_route = protectedAdminProcedure
     z.object({
       puzzle_id: z.number().int(),
       puzzle_uuid: z.string().uuid(),
-      puzzle_data: schema.pick({
-        title: true,
-        word_list: true,
-        grid_data: true,
-        archived: true,
-        description: true
-      })
+      puzzle_data: puzzle_schema
+        .pick({
+          title: true,
+          word_list: true,
+          grid_data: true,
+          archived: true,
+          description: true
+        })
+        .and(
+          z.object({
+            attachments: z.array(
+              attachment_schema.extend({
+                id: z.number().int().optional().nullable()
+              })
+            )
+          })
+        )
     })
   )
   .mutation(async ({ input: { puzzle_id, puzzle_data, puzzle_uuid } }) => {
@@ -53,13 +51,84 @@ const update_puzzle_route = protectedAdminProcedure
           },
           where: (tbl, { eq }) => eq(tbl.id, puzzle_id)
         }))!.archived
-      : null;
+      : false;
+    const { attachments, ...puzzle_data_rest } = puzzle_data;
 
-    await Promise.allSettled([
+    async function update_puzzle_attachments() {
+      const current_attachments = await db.query.word_puzzle_attachments.findMany({
+        where: (tbl, { eq }) => eq(tbl.puzzle_id, puzzle_id)
+      });
+      const new_attachments = attachments
+        .map((attachment, i) => ({
+          index: i,
+          data: attachment
+        }))
+        .filter((attachment) => !attachment.data.id);
+      const existing_attachments = attachments.filter((attachment) => attachment.id);
+      const updated_attachments = existing_attachments.filter((attachment) =>
+        current_attachments.some((a) => a.id === attachment.id)
+      );
+      const deleted_attachments = current_attachments.filter(
+        (attachment) => !attachments.some((a) => a.id === attachment.id)
+      );
+      const [new_attachments_inserted] = await Promise.all([
+        // inserting new attachments
+        db
+          .insert(word_puzzle_attachments)
+          .values(
+            new_attachments.map((a) => ({
+              puzzle_id,
+              type: a.data.type,
+              url: a.data.url,
+              order_index: a.index,
+              title: a.data.title
+            }))
+          )
+          .returning(),
+        // deleting attachments
+        db.delete(word_puzzle_attachments).where(
+          and(
+            eq(word_puzzle_attachments.puzzle_id, puzzle_id),
+            inArray(
+              word_puzzle_attachments.id,
+              deleted_attachments.map((a) => a.id)
+            )
+          )
+        ),
+        // updating existing attachments
+        updated_attachments.map(
+          async (a) =>
+            await db
+              .update(word_puzzle_attachments)
+              .set({
+                type: a.type,
+                url: a.url,
+                order_index: a.order_index,
+                title: a.title
+              })
+              .where(
+                and(
+                  eq(word_puzzle_attachments.id, a.id!),
+                  eq(word_puzzle_attachments.puzzle_id, puzzle_id)
+                )
+              )
+        )
+      ]);
+
+      return {
+        newly_added_index_ids: new_attachments_inserted.map((a, i) => ({
+          id: a.id,
+          index: new_attachments[i].index
+        }))
+      };
+    }
+
+    const out = await Promise.allSettled([
       db
         .update(word_puzzles)
-        .set(puzzle_data)
+        .set(puzzle_data_rest)
         .where(and(eq(word_puzzles.id, puzzle_id), eq(word_puzzles.uuid, puzzle_uuid))),
+      update_puzzle_attachments(),
       (puzzle_data.archived || prev_archived !== puzzle_data.archived) &&
         redis.del(REDIS_CACHE_KEYS.archived_puzzle_list()),
       redis.del(REDIS_CACHE_KEYS.word_puzzle(puzzle_id, puzzle_uuid)),
@@ -67,29 +136,60 @@ const update_puzzle_route = protectedAdminProcedure
         redis.del(REDIS_CACHE_KEYS.current_schedule())
     ]);
     return {
-      success: true
+      success: true,
+      newly_added_index_ids: out[1].status === 'fulfilled' ? out[1].value.newly_added_index_ids : []
     };
   });
 
 const add_puzzle_route = protectedAdminProcedure
   .input(
-    schema.omit({
-      id: true,
-      uuid: true,
-      created_at: true,
-      updated_at: true
-    })
+    puzzle_schema
+      .omit({
+        id: true,
+        uuid: true,
+        created_at: true,
+        updated_at: true,
+        attachments: true
+      })
+      .and(
+        z.object({
+          attachments: z.array(
+            attachment_schema.omit({ id: true }).extend({
+              id: z.number().int().optional().nullable()
+            })
+          )
+        })
+      )
   )
   .mutation(async ({ input }) => {
     revalidatePath('/padavali/list');
+    const { attachments, ...puzzle_data_rest } = input;
     const [info] = await Promise.all([
-      db.insert(word_puzzles).values(input).returning(),
+      db.insert(word_puzzles).values(puzzle_data_rest).returning(),
       // only invalidate list when puzzle is archived
       input.archived && redis.del(REDIS_CACHE_KEYS.archived_puzzle_list())
     ]);
+    const new_attachment_ids =
+      attachments.length > 0
+        ? (
+            await db
+              .insert(word_puzzle_attachments)
+              .values(
+                attachments.map((attachment) => {
+                  const { id, ...rest } = attachment;
+                  return {
+                    ...rest,
+                    puzzle_id: info[0].id
+                  };
+                })
+              )
+              .returning()
+          ).map((a) => a.id)
+        : [];
     return {
       id: info[0].id,
-      uuid: info[0].uuid
+      uuid: info[0].uuid,
+      newly_added_index_ids: new_attachment_ids
     };
   });
 

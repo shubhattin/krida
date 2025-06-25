@@ -15,7 +15,8 @@ import {
 } from 'drizzle-orm/pg-core';
 import { relations } from 'drizzle-orm';
 import type { location_list_type } from './types';
-import { ATTACHMENT_TYPE_LIST, type ScriptType } from '~/state/script_list';
+import { type ScriptType } from '~/state/script_list';
+import { ATTACHMENT_TYPE_LIST } from './db_shared_vals';
 
 export const word_puzzles = pgTable(
   'word_puzzles',
@@ -119,7 +120,15 @@ export const puzzle_game_schedules = pgTable(
 export const word_puzzlesRelations = relations(word_puzzles, ({ many }) => ({
   stats: many(puzzle_gameplay_stats),
   schedules: many(puzzle_game_schedules),
-  sessions: many(puzzle_gameplay_sessions)
+  sessions: many(puzzle_gameplay_sessions),
+  attachments: many(word_puzzle_attachments)
+}));
+
+export const word_puzzle_attachmentsRelations = relations(word_puzzle_attachments, ({ one }) => ({
+  puzzle: one(word_puzzles, {
+    fields: [word_puzzle_attachments.puzzle_id],
+    references: [word_puzzles.id]
+  })
 }));
 
 export const puzzle_gameplay_sessionsRelations = relations(puzzle_gameplay_sessions, ({ one }) => ({
