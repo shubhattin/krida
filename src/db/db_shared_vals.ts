@@ -24,7 +24,7 @@ export const attachment_schema = z.object({
   id: z.number().int(),
   type: z.enum(ATTACHMENT_TYPE_LIST),
   title: z.string().nullable(),
-  url: z.string(),
+  url: z.string().url(),
   order_index: z.number().int()
 });
 export const puzzle_schema = z.object({

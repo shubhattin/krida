@@ -39,7 +39,25 @@ import { cn } from '~/lib/utils';
 import { useHydrateAtoms } from 'jotai/utils';
 import Icon from '~/tools/Icon';
 import { LanguageIcon } from '~/components/icons';
-import { puzzle_schema as _puzzle_schema, attachment_schema } from '~/db/db_shared_vals';
+import {
+  puzzle_schema as _puzzle_schema,
+  attachment_schema,
+  ATTACHMENT_TYPE_LIST,
+  ATTACHMENT_TYPE_NAMES
+} from '~/db/db_shared_vals';
+import {
+  Accordion,
+  AccordionContent,
+  AccordionItem,
+  AccordionTrigger
+} from '~/components/ui/accordion';
+import {
+  Select,
+  SelectValue,
+  SelectTrigger,
+  SelectItem,
+  SelectContent
+} from '~/components/ui/select';
 
 const puzzle_schema = _puzzle_schema
   .extend({
@@ -110,7 +128,7 @@ const ViewEditPuzzle = ({ word_puzzle }: ViewEditProps) => {
           <Title />
           <ArchivedSwitch />
           <Description />
-          <DiscussionUrl />
+          <Attachments />
           <WordList />
           <TraversalAndGridData grid_dimensions={word_puzzle.grid_dimensions} />
           <SaveButton word_puzzle={word_puzzle} />
@@ -154,28 +172,135 @@ const Title = () => {
   );
 };
 
-const DiscussionUrl = () => {
-  return null;
-  // const [discussion_url, setDiscussionUrl] = useAtom(discussion_url_atom);
-  // return (
-  //   <div>
-  //     <Label className="block">
-  //       <span className="text-lg font-bold">
-  //         चर्चायाः स्थानसञ्चितः
-  //         <span className="ml-3 text-xs text-gray-500 dark:text-gray-400">ऐच्छिक</span>
-  //         <span className="ml-3 text-xs text-red-500 dark:text-red-400">* Only Youtube links</span>
-  //       </span>
-  //       <Input
-  //         type="url"
-  //         className="mt-1 w-full text-sm sm:w-[90%] md:w-2/3 lg:w-1/2"
-  //         value={discussion_url ?? ''}
-  //         onInput={(e) => {
-  //           setDiscussionUrl(e.currentTarget.value);
-  //         }}
-  //       />
-  //     </Label>
-  //   </div>
-  // );
+const Attachments = () => {
+  const [attachments, setAttachments] = useAtom(attachments_atom);
+
+  const addAttachment = () => {
+    setAttachments((prev) => [
+      ...prev,
+      { type: 'youtube_embed', url: '', title: null, order_index: attachments.length + 1, id: null }
+    ]);
+  };
+
+  const removeAttachment = (index: number) => {
+    setAttachments((prev) => prev.filter((_, i) => i !== index));
+  };
+  useEffect(() => {
+    console.log(attachments);
+  }, [attachments]);
+
+  return (
+    <Accordion type="single" collapsible className="w-fit">
+      <AccordionItem value="item-1">
+        <AccordionTrigger className="text-md font-semibold">Media Attachments</AccordionTrigger>
+        <AccordionContent>
+          <div className="space-y-4">
+            {attachments.map((attachment, index) => (
+              <div key={index} className="space-y-2">
+                <div className="flex items-center">
+                  <span className="flex items-center gap-x-2">
+                    <Label className="text-sm font-semibold">Option Index</Label>
+                    <Input
+                      type="number"
+                      className="h-7 w-16"
+                      value={attachment.order_index}
+                      onInput={(e) => {
+                        setAttachments((prev) =>
+                          prev.map((a, i) =>
+                            i === index ? { ...a, order_index: Number(e.currentTarget.value) } : a
+                          )
+                        );
+                      }}
+                    />
+                  </span>
+                  <Button
+                    variant="ghost"
+                    size="icon"
+                    className="ml-10"
+                    onClick={() => removeAttachment(index)}
+                  >
+                    <IoMdClose className="size-4" />
+                  </Button>
+                </div>
+                <div className="flex items-center space-x-3">
+                  <div className="flex items-center justify-center space-x-1">
+                    <Label>Type</Label>
+                    <Select
+                      value={attachment.type}
+                      onValueChange={(value) => {
+                        setAttachments((prev) =>
+                          prev.map((a, i) =>
+                            i === index
+                              ? { ...a, type: value as (typeof ATTACHMENT_TYPE_LIST)[number] }
+                              : a
+                          )
+                        );
+                      }}
+                    >
+                      <SelectTrigger className="w-40">
+                        <SelectValue placeholder="Select attachment type" />
+                      </SelectTrigger>
+                      <SelectContent>
+                        {Object.entries(ATTACHMENT_TYPE_NAMES).map(([key, value]) => (
+                          <SelectItem key={key} value={key}>
+                            {value}
+                          </SelectItem>
+                        ))}
+                      </SelectContent>
+                    </Select>
+                  </div>
+                  <div className="flex items-center justify-center space-x-1">
+                    <Label>URL</Label>
+                    <Input
+                      type="text"
+                      className="w-64 text-sm"
+                      value={attachment.url}
+                      onInput={(e) => {
+                        setAttachments((prev) =>
+                          prev.map((a, i) =>
+                            i === index ? { ...a, url: e.currentTarget.value } : a
+                          )
+                        );
+                      }}
+                    />
+                  </div>
+                </div>
+                <div className="flex items-center justify-center space-x-2">
+                  <Label>Title</Label>
+                  <Input
+                    type="text"
+                    className="w-full text-sm"
+                    value={attachment.title ?? ''}
+                    onInput={(e) => {
+                      setAttachments((prev) =>
+                        prev.map((a, i) =>
+                          i === index
+                            ? {
+                                ...a,
+                                title: e.currentTarget.value === '' ? null : e.currentTarget.value
+                              }
+                            : a
+                        )
+                      );
+                    }}
+                  />
+                </div>
+              </div>
+            ))}
+          </div>
+          <Button
+            variant="outline"
+            size="sm"
+            className={cn(attachments.length > 0 && 'mt-4')}
+            onClick={addAttachment}
+          >
+            <IoMdAdd />
+            Add Attachment
+          </Button>
+        </AccordionContent>
+      </AccordionItem>
+    </Accordion>
+  );
 };
 
 const LipiLekhikaSwitch = () => {
@@ -755,9 +880,34 @@ const SaveButton = ({ word_puzzle }: { word_puzzle: z.infer<typeof puzzle_schema
           attachments
         }
       };
-      if (puzzle_schema.safeParse(data).success) {
-        await update_word_puzzle_mut.mutateAsync(data);
+      const parse = z
+        .object({
+          puzzle_id: z.number().int(),
+          puzzle_uuid: z.string().uuid(),
+          puzzle_data: _puzzle_schema
+            .pick({
+              title: true,
+              archived: true,
+              word_list: true,
+              grid_data: true,
+              description: true
+            })
+            .and(
+              z.object({
+                attachments: attachment_schema
+                  .omit({ id: true })
+                  .extend({
+                    id: z.number().int().nullable()
+                  })
+                  .array()
+              })
+            )
+        })
+        .safeParse(data);
+      if (parse.success) {
+        await update_word_puzzle_mut.mutateAsync(parse.data);
       } else {
+        console.log(parse.error);
         toast.error('Failed to update puzzle, fix the entered data');
       }
     } else {
@@ -770,9 +920,11 @@ const SaveButton = ({ word_puzzle }: { word_puzzle: z.infer<typeof puzzle_schema
         description: description !== '' ? description : null,
         attachments
       };
-      if (puzzle_schema.safeParse(data).success) {
-        await add_word_puzzle_mut.mutateAsync(data);
+      const parse = puzzle_schema.safeParse(data);
+      if (parse.success) {
+        await add_word_puzzle_mut.mutateAsync(parse.data);
       } else {
+        console.log(parse.error);
         toast.error('Failed to add puzzle, fix the entered data');
       }
     }
