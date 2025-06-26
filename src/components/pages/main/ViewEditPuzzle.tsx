@@ -365,7 +365,9 @@ const Attachments = () => {
   return (
     <Accordion type="single" collapsible className="w-fit">
       <AccordionItem value="item-1">
-        <AccordionTrigger className="text-md font-semibold">Media Attachments</AccordionTrigger>
+        <AccordionTrigger className="text-base font-semibold">
+          Media Attachments ({attachments.length})
+        </AccordionTrigger>
         <AccordionContent>
           <DndContext
             sensors={sensors}
@@ -701,7 +703,7 @@ const WordList = () => {
 
   return (
     <div>
-      <Label className="mb-2 block font-medium">शब्दानां सूची</Label>
+      <Label className="mb-2 block text-lg font-semibold">शब्दानां सूची</Label>
       <div className="grid max-w-7xl grid-cols-2 gap-2 space-y-2 sm:grid-cols-4 md:grid-cols-5 lg:grid-cols-6">
         <AnimatePresence mode="popLayout">
           {wordList.map((word, idx) => (
@@ -811,7 +813,7 @@ const GridData = ({
 
   return (
     <div>
-      <Label className="mb-2 block font-medium">स्थानपट्टिका</Label>
+      <Label className="mb-2 block text-lg font-semibold">स्थानपट्टिका</Label>
       <div
         className="md:3/5 grid w-full gap-1 sm:w-4/5 md:w-3/5 lg:w-2/5"
         style={{ gridTemplateColumns: `repeat(${cols}, minmax(0, 1fr))` }}
