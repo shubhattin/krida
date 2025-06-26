@@ -43,7 +43,9 @@ import {
   puzzle_schema as _puzzle_schema,
   attachment_schema,
   ATTACHMENT_TYPE_LIST,
-  ATTACHMENT_TYPE_NAMES
+  ATTACHMENT_TYPE_NAMES,
+  puzzle_add_input_schema,
+  puzzle_update_input_schema
 } from '~/db/db_shared_vals';
 import {
   Accordion,
@@ -185,9 +187,6 @@ const Attachments = () => {
   const removeAttachment = (index: number) => {
     setAttachments((prev) => prev.filter((_, i) => i !== index));
   };
-  useEffect(() => {
-    console.log(attachments);
-  }, [attachments]);
 
   return (
     <Accordion type="single" collapsible className="w-fit">
@@ -811,9 +810,10 @@ const SaveButton = ({ word_puzzle }: { word_puzzle: z.infer<typeof puzzle_schema
           setAttachments((prev) => {
             return prev.map((val, i) => ({
               ...val,
-              ...(!val.id && newly_added_index_ids.some(({ index }) => index === i)
-                ? { id: newly_added_index_ids[i].index }
-                : {})
+              ...(() => {
+                const elm = newly_added_index_ids.find(({ index }) => index === i);
+                return elm ? { id: elm.id } : {};
+              })()
             }));
           });
         }
@@ -880,30 +880,7 @@ const SaveButton = ({ word_puzzle }: { word_puzzle: z.infer<typeof puzzle_schema
           attachments
         }
       };
-      const parse = z
-        .object({
-          puzzle_id: z.number().int(),
-          puzzle_uuid: z.string().uuid(),
-          puzzle_data: _puzzle_schema
-            .pick({
-              title: true,
-              archived: true,
-              word_list: true,
-              grid_data: true,
-              description: true
-            })
-            .and(
-              z.object({
-                attachments: attachment_schema
-                  .omit({ id: true })
-                  .extend({
-                    id: z.number().int().nullable()
-                  })
-                  .array()
-              })
-            )
-        })
-        .safeParse(data);
+      const parse = puzzle_update_input_schema.safeParse(data);
       if (parse.success) {
         await update_word_puzzle_mut.mutateAsync(parse.data);
       } else {
@@ -920,7 +897,7 @@ const SaveButton = ({ word_puzzle }: { word_puzzle: z.infer<typeof puzzle_schema
         description: description !== '' ? description : null,
         attachments
       };
-      const parse = puzzle_schema.safeParse(data);
+      const parse = puzzle_add_input_schema.safeParse(data);
       if (parse.success) {
         await add_word_puzzle_mut.mutateAsync(parse.data);
       } else {
@@ -953,12 +930,12 @@ const SaveButton = ({ word_puzzle }: { word_puzzle: z.infer<typeof puzzle_schema
             {is_addition ? (
               <>
                 <IoMdAdd className="text-lg" />{' '}
-                {!add_word_puzzle_mut.isPending ? 'योज्यताम्' : 'योज्यमानम्'}
+                {!add_word_puzzle_mut.isPending ? 'योज्यताम्' : 'योज्यमानम्...'}
               </>
             ) : (
               <>
                 <FiSave className="text-lg" />{' '}
-                {!update_word_puzzle_mut.isPending ? 'रक्ष्यताम्' : 'रक्ष्यमानम्'}
+                {!update_word_puzzle_mut.isPending ? 'रक्ष्यताम्' : 'रक्ष्यमानम्...'}
               </>
             )}
           </Button>

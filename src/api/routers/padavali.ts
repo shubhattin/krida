@@ -7,7 +7,12 @@ import { revalidatePath } from 'next/cache';
 import { padavali_stats_router } from './padavali_stats';
 import { redis, REDIS_CACHE_KEYS } from '~/db/redis';
 import { get_word_puzzle, type CurrentScheduleType } from '~/db/db_cache_data';
-import { attachment_schema, puzzle_schema } from '~/db/db_shared_vals';
+import {
+  attachment_schema,
+  puzzle_add_input_schema,
+  puzzle_schema,
+  puzzle_update_input_schema
+} from '~/db/db_shared_vals';
 
 const puzzle_in_current_schedule = async (id: number, uuid: string) => {
   const cache = await redis.get<CurrentScheduleType | string>(REDIS_CACHE_KEYS.current_schedule());
@@ -19,29 +24,7 @@ const puzzle_in_current_schedule = async (id: number, uuid: string) => {
 };
 
 const update_puzzle_route = protectedAdminProcedure
-  .input(
-    z.object({
-      puzzle_id: z.number().int(),
-      puzzle_uuid: z.string().uuid(),
-      puzzle_data: puzzle_schema
-        .pick({
-          title: true,
-          word_list: true,
-          grid_data: true,
-          archived: true,
-          description: true
-        })
-        .and(
-          z.object({
-            attachments: z.array(
-              attachment_schema.extend({
-                id: z.number().int().optional().nullable()
-              })
-            )
-          })
-        )
-    })
-  )
+  .input(puzzle_update_input_schema)
   .mutation(async ({ input: { puzzle_id, puzzle_data, puzzle_uuid } }) => {
     revalidatePath('/padavali/list');
     const prev_archived = !puzzle_data.archived
@@ -73,18 +56,20 @@ const update_puzzle_route = protectedAdminProcedure
       );
       const [new_attachments_inserted] = await Promise.all([
         // inserting new attachments
-        db
-          .insert(word_puzzle_attachments)
-          .values(
-            new_attachments.map((a) => ({
-              puzzle_id,
-              type: a.data.type,
-              url: a.data.url,
-              order_index: a.index,
-              title: a.data.title
-            }))
-          )
-          .returning(),
+        new_attachments.length > 0
+          ? db
+              .insert(word_puzzle_attachments)
+              .values(
+                new_attachments.map((a) => ({
+                  puzzle_id,
+                  type: a.data.type,
+                  url: a.data.url,
+                  order_index: a.data.order_index,
+                  title: a.data.title
+                }))
+              )
+              .returning()
+          : ([] as { id: number }[]),
         // deleting attachments
         db.delete(word_puzzle_attachments).where(
           and(
@@ -142,25 +127,7 @@ const update_puzzle_route = protectedAdminProcedure
   });
 
 const add_puzzle_route = protectedAdminProcedure
-  .input(
-    puzzle_schema
-      .omit({
-        id: true,
-        uuid: true,
-        created_at: true,
-        updated_at: true,
-        attachments: true
-      })
-      .and(
-        z.object({
-          attachments: z.array(
-            attachment_schema.omit({ id: true }).extend({
-              id: z.number().int().optional().nullable()
-            })
-          )
-        })
-      )
-  )
+  .input(puzzle_add_input_schema)
   .mutation(async ({ input }) => {
     revalidatePath('/padavali/list');
     const { attachments, ...puzzle_data_rest } = input;

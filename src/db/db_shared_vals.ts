@@ -40,3 +40,44 @@ export const puzzle_schema = z.object({
   description: z.string().nullable(),
   attachments: z.array(attachment_schema)
 });
+
+export const puzzle_update_input_schema = z.object({
+  puzzle_id: z.number().int(),
+  puzzle_uuid: z.string().uuid(),
+  puzzle_data: puzzle_schema
+    .pick({
+      title: true,
+      archived: true,
+      word_list: true,
+      grid_data: true,
+      description: true
+    })
+    .and(
+      z.object({
+        attachments: attachment_schema
+          .omit({ id: true })
+          .extend({
+            id: z.number().int().nullable()
+          })
+          .array()
+      })
+    )
+});
+
+export const puzzle_add_input_schema = puzzle_schema
+  .omit({
+    id: true,
+    uuid: true,
+    created_at: true,
+    updated_at: true,
+    attachments: true
+  })
+  .and(
+    z.object({
+      attachments: z.array(
+        attachment_schema.omit({ id: true }).extend({
+          id: z.number().int().optional().nullable()
+        })
+      )
+    })
+  );
