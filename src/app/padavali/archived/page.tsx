@@ -13,7 +13,10 @@ const ArchivedPage = async () => {
   const archived_puzzles_init_transliterlated = await Promise.all(
     archived_puzzles.map(async (puzzle) => ({
       ...puzzle,
-      title: await lipi_parivartak(puzzle.title, DEFAULT_DATA_SCRIPT, script)
+      title: await lipi_parivartak(puzzle.title, DEFAULT_DATA_SCRIPT, script),
+      description: puzzle.description
+        ? await lipi_parivartak(puzzle.description, DEFAULT_DATA_SCRIPT, script)
+        : null
     }))
   );
 
