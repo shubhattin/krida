@@ -25,9 +25,26 @@ import { toast } from 'sonner';
 import { IoMdAdd, IoMdClose } from 'react-icons/io';
 import { atom, useAtom } from 'jotai';
 import { FiSave } from 'react-icons/fi';
-import { MdDeleteOutline } from 'react-icons/md';
+import { MdDeleteOutline, MdDragIndicator } from 'react-icons/md';
 import { useRouter } from 'next/navigation';
 import { Info, ArrowRight } from 'lucide-react';
+import {
+  DndContext,
+  closestCenter,
+  KeyboardSensor,
+  PointerSensor,
+  useSensor,
+  useSensors,
+  type DragEndEvent
+} from '@dnd-kit/core';
+import {
+  arrayMove,
+  SortableContext,
+  sortableKeyboardCoordinates,
+  verticalListSortingStrategy,
+  useSortable
+} from '@dnd-kit/sortable';
+import { CSS } from '@dnd-kit/utilities';
 import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover';
 import {
   findAllTraversals,
@@ -174,119 +191,202 @@ const Title = () => {
   );
 };
 
+// Sortable item component for individual attachments
+const SortableAttachmentItem = ({
+  attachment,
+  index,
+  onUpdate,
+  onRemove
+}: {
+  attachment: Puzzle['attachments'][0];
+  index: number;
+  onUpdate: (field: string, value: any, event: any) => void;
+  onRemove: () => void;
+}) => {
+  const { attributes, listeners, setNodeRef, transform, transition, isDragging } = useSortable({
+    id: `attachment-${index}`
+  });
+
+  const style = {
+    transform: CSS.Transform.toString(transform),
+    transition,
+    opacity: isDragging ? 0.5 : 1
+  };
+
+  return (
+    <div
+      ref={setNodeRef}
+      style={style}
+      className={cn(
+        'space-y-2 rounded-md border p-3',
+        isDragging && 'border-blue-300 bg-blue-50 dark:border-blue-700 dark:bg-blue-950'
+      )}
+    >
+      <div className="flex items-center">
+        <div className="flex items-center gap-x-2">
+          <Button
+            variant="ghost"
+            size="icon"
+            className="h-6 w-6 cursor-grab touch-none"
+            {...attributes}
+            {...listeners}
+          >
+            <MdDragIndicator className="size-4 text-gray-500" />
+          </Button>
+          <span className="flex items-center gap-x-2">
+            <Label className="text-sm font-semibold">Order Index</Label>
+            <span className="flex h-7 w-16 items-center justify-center rounded-md border bg-gray-50 px-2 text-sm dark:bg-gray-900">
+              {attachment.order_index}
+            </span>
+          </span>
+        </div>
+        <Button variant="ghost" size="icon" className="ml-auto" onClick={onRemove}>
+          <IoMdClose className="size-4" />
+        </Button>
+      </div>
+      <div className="flex items-center space-x-3">
+        <div className="flex items-center justify-center space-x-1">
+          <Label>Type</Label>
+          <Select value={attachment.type} onValueChange={(value) => onUpdate('type', value, null)}>
+            <SelectTrigger className="w-40">
+              <SelectValue placeholder="Select attachment type" />
+            </SelectTrigger>
+            <SelectContent>
+              {Object.entries(ATTACHMENT_TYPE_NAMES).map(([key, value]) => (
+                <SelectItem key={key} value={key}>
+                  {value}
+                </SelectItem>
+              ))}
+            </SelectContent>
+          </Select>
+        </div>
+        <div className="flex items-center justify-center space-x-1">
+          <Label>URL</Label>
+          <Input
+            type="text"
+            className="w-64 text-sm"
+            value={attachment.url}
+            onInput={(e) => onUpdate('url', e.currentTarget.value, null)}
+          />
+        </div>
+      </div>
+      <div className="flex items-center justify-center space-x-2">
+        <Label>Title</Label>
+        <Input
+          type="text"
+          className="w-full text-sm"
+          value={attachment.title ?? ''}
+          onInput={(e) =>
+            onUpdate('title', e.currentTarget.value === '' ? null : e.currentTarget.value, e)
+          }
+        />
+      </div>
+    </div>
+  );
+};
+
 const Attachments = () => {
   const [attachments, setAttachments] = useAtom(attachments_atom);
+  const [lipi_lekhika_active] = useAtom(lipi_lekhika_active_atom);
+
+  const sensors = useSensors(
+    useSensor(PointerSensor),
+    useSensor(KeyboardSensor, {
+      coordinateGetter: sortableKeyboardCoordinates
+    })
+  );
 
   const addAttachment = () => {
     setAttachments((prev) => [
       ...prev,
-      { type: 'youtube_embed', url: '', title: null, order_index: attachments.length + 1, id: null }
+      {
+        type: 'youtube_embed',
+        url: '',
+        title: null,
+        order_index: prev.length + 1,
+        id: null
+      }
     ]);
   };
 
   const removeAttachment = (index: number) => {
-    setAttachments((prev) => prev.filter((_, i) => i !== index));
+    setAttachments((prev) => {
+      const filtered = prev.filter((_, i) => i !== index);
+      // Reassign order_index after removal
+      return filtered.map((attachment, i) => ({
+        ...attachment,
+        order_index: i + 1
+      }));
+    });
   };
+
+  const updateAttachment = (index: number, field: string, value: any, e: any) => {
+    setAttachments((prev) => prev.map((a, i) => (i === index ? { ...a, [field]: value } : a)));
+    if (field === 'title' && lipi_lekhika_active) {
+      lekhika_typing_tool(
+        e.nativeEvent.target,
+        // @ts-ignore
+        e.nativeEvent.data,
+        BASE_SCRIPT,
+        true,
+        // @ts-ignore
+        (val) => {
+          setAttachments((prev) => prev.map((a, i) => (i === index ? { ...a, [field]: val } : a)));
+        }
+      );
+    }
+  };
+
+  const handleDragEnd = (event: DragEndEvent) => {
+    const { active, over } = event;
+
+    if (over && active.id !== over.id) {
+      setAttachments((items) => {
+        const oldIndex = items.findIndex((_, i) => `attachment-${i}` === active.id);
+        const newIndex = items.findIndex((_, i) => `attachment-${i}` === over.id);
+
+        const newItems = arrayMove(items, oldIndex, newIndex);
+
+        // Reassign order_index after reordering
+        return newItems.map((attachment, i) => ({
+          ...attachment,
+          order_index: i + 1
+        }));
+      });
+    }
+  };
+
+  // useEffect(() => {
+  //   console.log(attachments);
+  // }, [attachments]);
 
   return (
     <Accordion type="single" collapsible className="w-fit">
       <AccordionItem value="item-1">
         <AccordionTrigger className="text-md font-semibold">Media Attachments</AccordionTrigger>
         <AccordionContent>
-          <div className="space-y-4">
-            {attachments.map((attachment, index) => (
-              <div key={index} className="space-y-2">
-                <div className="flex items-center">
-                  <span className="flex items-center gap-x-2">
-                    <Label className="text-sm font-semibold">Option Index</Label>
-                    <Input
-                      type="number"
-                      className="h-7 w-16"
-                      value={attachment.order_index}
-                      onInput={(e) => {
-                        setAttachments((prev) =>
-                          prev.map((a, i) =>
-                            i === index ? { ...a, order_index: Number(e.currentTarget.value) } : a
-                          )
-                        );
-                      }}
-                    />
-                  </span>
-                  <Button
-                    variant="ghost"
-                    size="icon"
-                    className="ml-10"
-                    onClick={() => removeAttachment(index)}
-                  >
-                    <IoMdClose className="size-4" />
-                  </Button>
-                </div>
-                <div className="flex items-center space-x-3">
-                  <div className="flex items-center justify-center space-x-1">
-                    <Label>Type</Label>
-                    <Select
-                      value={attachment.type}
-                      onValueChange={(value) => {
-                        setAttachments((prev) =>
-                          prev.map((a, i) =>
-                            i === index
-                              ? { ...a, type: value as (typeof ATTACHMENT_TYPE_LIST)[number] }
-                              : a
-                          )
-                        );
-                      }}
-                    >
-                      <SelectTrigger className="w-40">
-                        <SelectValue placeholder="Select attachment type" />
-                      </SelectTrigger>
-                      <SelectContent>
-                        {Object.entries(ATTACHMENT_TYPE_NAMES).map(([key, value]) => (
-                          <SelectItem key={key} value={key}>
-                            {value}
-                          </SelectItem>
-                        ))}
-                      </SelectContent>
-                    </Select>
-                  </div>
-                  <div className="flex items-center justify-center space-x-1">
-                    <Label>URL</Label>
-                    <Input
-                      type="text"
-                      className="w-64 text-sm"
-                      value={attachment.url}
-                      onInput={(e) => {
-                        setAttachments((prev) =>
-                          prev.map((a, i) =>
-                            i === index ? { ...a, url: e.currentTarget.value } : a
-                          )
-                        );
-                      }}
-                    />
-                  </div>
-                </div>
-                <div className="flex items-center justify-center space-x-2">
-                  <Label>Title</Label>
-                  <Input
-                    type="text"
-                    className="w-full text-sm"
-                    value={attachment.title ?? ''}
-                    onInput={(e) => {
-                      setAttachments((prev) =>
-                        prev.map((a, i) =>
-                          i === index
-                            ? {
-                                ...a,
-                                title: e.currentTarget.value === '' ? null : e.currentTarget.value
-                              }
-                            : a
-                        )
-                      );
-                    }}
+          <DndContext
+            sensors={sensors}
+            collisionDetection={closestCenter}
+            onDragEnd={handleDragEnd}
+          >
+            <SortableContext
+              items={attachments.map((_, i) => `attachment-${i}`)}
+              strategy={verticalListSortingStrategy}
+            >
+              <div className="space-y-4">
+                {attachments.map((attachment, index) => (
+                  <SortableAttachmentItem
+                    key={`attachment-${index}`}
+                    attachment={attachment}
+                    index={index}
+                    onUpdate={(field, value, event) => updateAttachment(index, field, value, event)}
+                    onRemove={() => removeAttachment(index)}
                   />
-                </div>
+                ))}
               </div>
-            ))}
-          </div>
+            </SortableContext>
+          </DndContext>
           <Button
             variant="outline"
             size="sm"
