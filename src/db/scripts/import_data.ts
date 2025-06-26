@@ -2,18 +2,20 @@ import { dbClient_ext as db, queryClient } from './client';
 import { writeFile } from 'fs/promises';
 import { dbMode, make_dir, take_input } from '~/tools/kry.server';
 
-const main = async () => {
-  if (!(await confirm_environemnt())) return;
+export const import_data = async (confirm_env = true) => {
+  if (confirm_env && !(await confirm_environemnt())) return;
 
   console.log(`Fetching Data from ${dbMode} Database...`);
 
   const word_puzzles = await db.query.word_puzzles.findMany();
+  const word_puzzle_attachments = await db.query.word_puzzle_attachments.findMany();
   const puzzle_gameplay_stats = await db.query.puzzle_gameplay_stats.findMany();
   const puzzle_game_schedules = await db.query.puzzle_game_schedules.findMany();
   const puzzle_gameplay_sessions = await db.query.puzzle_gameplay_sessions.findMany();
 
   const json_data = {
     word_puzzles,
+    word_puzzle_attachments,
     puzzle_game_schedules,
     puzzle_gameplay_sessions,
     puzzle_gameplay_stats
@@ -27,9 +29,12 @@ const main = async () => {
   }[dbMode];
   await writeFile(`./out/${out_file_name}`, JSON.stringify(json_data, null, 2));
 };
-main().then(() => {
-  queryClient.end();
-});
+
+if (require.main === module) {
+  import_data().then(() => {
+    queryClient.end();
+  });
+}
 
 async function confirm_environemnt() {
   let confirmation: string = await take_input(`Are you sure SELECT from ${dbMode} ? `);

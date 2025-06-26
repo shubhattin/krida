@@ -9,7 +9,7 @@ import { z } from 'zod';
 import { puzzle_gameplay_sessions, puzzle_gameplay_stats } from '~/db/schema';
 import { db } from '~/db/db';
 import { location_list_enum } from '~/db/types';
-import { script_list_enum } from '~/state/script_font_data';
+import { script_list_enum } from '~/state/script_list';
 
 const submit_stats_route = publicProcedure
   .input(
@@ -113,7 +113,13 @@ const get_stats_data_route = protectedAdminProcedure
           lte(tbl.created_at, end_date)
         )
     });
-    return { sessions, stats };
+    const total_words = (await db.query.word_puzzles.findFirst({
+      columns: {
+        word_list: true
+      },
+      where: (tbl, { eq }) => eq(tbl.id, puzzle_id)
+    }))!.word_list.length;
+    return { sessions, stats, correct_attempts: total_words };
   });
 
 export const padavali_stats_router = t.router({

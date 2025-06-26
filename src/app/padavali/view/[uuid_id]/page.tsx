@@ -3,7 +3,7 @@ import { type Metadata } from 'next';
 import Link from 'next/link';
 import { IoMdArrowRoundBack } from 'react-icons/io';
 import WordGame from '~/components/pages/main/WordGame/WordGameRoot';
-import { DEFAULT_DATA_SCRIPT } from '~/state/script_font_data';
+import { DEFAULT_DATA_SCRIPT } from '~/state/script_list';
 import { get_transliterated_word_game_msgs } from '~/components/pages/main/WordGame/msgs';
 import { lipi_parivartak } from '~/tools/lipi_lekhika';
 import { getCachedScript } from '~/lib/cache_server_route_data';
@@ -47,37 +47,35 @@ const MainEdit = async ({ params }: Props) => {
   );
 
   return (
-    <main className="flex flex-1 items-center justify-center">
-      <>
-        {word_puzzle ? (
-          <>
-            <WordGame
-              location="view_page"
-              script={script}
-              id={word_puzzle.id}
-              uuid={word_puzzle.uuid}
-              title={word_puzzle.title}
-              description={word_puzzle.description}
-              word_list={word_puzzle.word_list}
-              dims={word_puzzle.grid_dimensions}
-              grid_data={word_puzzle.grid_data}
-              initial_script_data={{ word_msgs: word_game_msgs, title, grid_data }}
-              next_schedule={next_schedule}
-              discussion_url={word_puzzle.discussion_url}
-            >
-              <div className="my-3 mb-3 px-4">
-                <Link href="/padavali" className="flex items-center gap-1 text-lg font-semibold">
-                  <IoMdArrowRoundBack className="inline-block text-xl" />
-                  मुख्यपृष्ठम्
-                </Link>
-              </div>
-            </WordGame>
-          </>
-        ) : (
-          <div>अनुचित ID</div>
-        )}
-      </>
-    </main>
+    <>
+      {word_puzzle ? (
+        <>
+          <WordGame
+            location="view_page"
+            script={script}
+            id={word_puzzle.id}
+            uuid={word_puzzle.uuid}
+            title={word_puzzle.title}
+            description={word_puzzle.description}
+            word_list={word_puzzle.word_list}
+            dims={word_puzzle.grid_dimensions}
+            grid_data={word_puzzle.grid_data}
+            initial_script_data={{ word_msgs: word_game_msgs, title, grid_data }}
+            next_schedule={next_schedule}
+            attachments={word_puzzle.attachments}
+          >
+            <div className="my-3 mb-3 px-4">
+              <Link href="/padavali" className="flex items-center gap-1 text-lg font-semibold">
+                <IoMdArrowRoundBack className="inline-block text-xl" />
+                मुख्यपृष्ठम्
+              </Link>
+            </div>
+          </WordGame>
+        </>
+      ) : (
+        <div>अनुचित ID</div>
+      )}
+    </>
   );
 };
 

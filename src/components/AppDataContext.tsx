@@ -2,7 +2,7 @@
 
 import { createContext, useEffect, useState } from 'react';
 import { authClient, useSession } from '~/lib/auth-client';
-import { type ScriptType, DEFAULT_DATA_SCRIPT } from '~/state/script_font_data';
+import { type ScriptType, DEFAULT_DATA_SCRIPT } from '~/state/script_list';
 
 type SessionType = (typeof authClient.$Infer.Session)['user'] | null;
 export const AppContext = createContext<{

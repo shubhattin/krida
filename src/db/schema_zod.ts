@@ -3,11 +3,12 @@ import {
   word_puzzles,
   puzzle_gameplay_stats,
   puzzle_game_schedules,
-  puzzle_gameplay_sessions
+  puzzle_gameplay_sessions,
+  word_puzzle_attachments
 } from './schema';
 import { createSelectSchema } from 'drizzle-zod';
 import { location_list_enum } from './types';
-import { script_list_enum } from '~/state/script_font_data';
+import { script_list_enum } from '~/state/script_list';
 
 export const WordPuzzleSchemaZod = createSelectSchema(word_puzzles, {
   created_at: z.coerce.date(),
@@ -20,6 +21,7 @@ export const PuzzleGamePlayStatsSchemaZod = createSelectSchema(puzzle_gameplay_s
 
 export const PuzzleGameScheduleSchemaZod = createSelectSchema(puzzle_game_schedules, {
   created_at: z.coerce.date(),
+  updated_at: z.coerce.date().optional(),
   start_time: z.coerce.date(),
   end_time: z.coerce.date()
 });
@@ -27,5 +29,10 @@ export const PuzzleGameScheduleSchemaZod = createSelectSchema(puzzle_game_schedu
 export const PuzzleGamePlaySessionSchemaZod = createSelectSchema(puzzle_gameplay_sessions, {
   created_at: z.coerce.date(),
   location: location_list_enum,
-  script: script_list_enum
+  script: script_list_enum.nullable().optional()
+});
+
+export const WordPuzzleAttachmentSchemaZod = createSelectSchema(word_puzzle_attachments, {
+  created_at: z.coerce.date(),
+  updated_at: z.coerce.date().optional().nullable()
 });

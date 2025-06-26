@@ -25,9 +25,26 @@ import { toast } from 'sonner';
 import { IoMdAdd, IoMdClose } from 'react-icons/io';
 import { atom, useAtom } from 'jotai';
 import { FiSave } from 'react-icons/fi';
-import { MdDeleteOutline } from 'react-icons/md';
+import { MdDeleteOutline, MdDragIndicator } from 'react-icons/md';
 import { useRouter } from 'next/navigation';
 import { Info, ArrowRight } from 'lucide-react';
+import {
+  DndContext,
+  closestCenter,
+  KeyboardSensor,
+  PointerSensor,
+  useSensor,
+  useSensors,
+  type DragEndEvent
+} from '@dnd-kit/core';
+import {
+  arrayMove,
+  SortableContext,
+  sortableKeyboardCoordinates,
+  verticalListSortingStrategy,
+  useSortable
+} from '@dnd-kit/sortable';
+import { CSS } from '@dnd-kit/utilities';
 import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover';
 import {
   findAllTraversals,
@@ -37,20 +54,48 @@ import {
 } from '~/tools/puzzle/puzzle_tools';
 import { cn } from '~/lib/utils';
 import { useHydrateAtoms } from 'jotai/utils';
+import Icon from '~/tools/Icon';
+import { LanguageIcon } from '~/components/icons';
+import {
+  puzzle_schema as _puzzle_schema,
+  attachment_schema,
+  ATTACHMENT_TYPE_LIST,
+  ATTACHMENT_TYPE_NAMES,
+  puzzle_add_input_schema,
+  puzzle_update_input_schema
+} from '~/db/db_shared_vals';
+import {
+  Accordion,
+  AccordionContent,
+  AccordionItem,
+  AccordionTrigger
+} from '~/components/ui/accordion';
+import {
+  Select,
+  SelectValue,
+  SelectTrigger,
+  SelectItem,
+  SelectContent
+} from '~/components/ui/select';
 
-const puzzle_schema = z.object({
-  id: z.number().int().nullable(),
-  uuid: z.string().uuid().nullable(),
-  title: z.string(),
-  created_at: z.date(),
-  updated_at: z.date().nullable(),
-  word_list: z.string().min(2).array(),
-  grid_data: z.string().min(1).array().array(),
-  grid_dimensions: z.tuple([z.number().int(), z.number().int()]),
-  archived: z.boolean(),
-  description: z.string().nullable(),
-  discussion_url: z.string().nullable()
-});
+const puzzle_schema = _puzzle_schema
+  .extend({
+    id: z.number().int().nullable(),
+    uuid: z.string().uuid().nullable()
+  })
+  .omit({
+    attachments: true
+  })
+  .and(
+    z.object({
+      attachments: attachment_schema
+        .omit({ id: true })
+        .extend({
+          id: z.number().int().nullable()
+        })
+        .array()
+    })
+  );
 
 export type Puzzle = z.infer<typeof puzzle_schema>;
 
@@ -62,15 +107,15 @@ const grid_data_atom = atom<string[][]>([]);
 const archived_atom = atom<boolean>(false);
 const description_atom = atom<string | null>(null);
 const lipi_lekhika_active_atom = atom<boolean>(true);
-const discussion_url_atom = atom<string | null>(null);
+const attachments_atom = atom<Puzzle['attachments']>([]);
 
 export type ViewEditProps =
   | {
-      word_puzzle: z.infer<typeof puzzle_schema>;
+      word_puzzle: Puzzle;
       location: 'add_page';
     }
   | {
-      word_puzzle: z.infer<typeof puzzle_schema> & {
+      word_puzzle: Puzzle & {
         id: number;
         uuid: string;
       };
@@ -91,7 +136,7 @@ const ViewEditPuzzle = ({ word_puzzle }: ViewEditProps) => {
     [archived_atom, word_puzzle.archived],
     [description_atom, word_puzzle.description],
     [lipi_lekhika_active_atom, true],
-    [discussion_url_atom, word_puzzle.discussion_url]
+    [attachments_atom, word_puzzle.attachments]
   ]);
 
   return (
@@ -102,7 +147,7 @@ const ViewEditPuzzle = ({ word_puzzle }: ViewEditProps) => {
           <Title />
           <ArchivedSwitch />
           <Description />
-          <DiscussionUrl />
+          <Attachments />
           <WordList />
           <TraversalAndGridData grid_dimensions={word_puzzle.grid_dimensions} />
           <SaveButton word_puzzle={word_puzzle} />
@@ -146,26 +191,218 @@ const Title = () => {
   );
 };
 
-const DiscussionUrl = () => {
-  const [discussion_url, setDiscussionUrl] = useAtom(discussion_url_atom);
+// Sortable item component for individual attachments
+const SortableAttachmentItem = ({
+  attachment,
+  index,
+  onUpdate,
+  onRemove
+}: {
+  attachment: Puzzle['attachments'][0];
+  index: number;
+  onUpdate: (field: string, value: any, event: any) => void;
+  onRemove: () => void;
+}) => {
+  const { attributes, listeners, setNodeRef, transform, transition, isDragging } = useSortable({
+    id: `attachment-${index}`
+  });
+
+  const style = {
+    transform: CSS.Transform.toString(transform),
+    transition,
+    opacity: isDragging ? 0.5 : 1
+  };
+
   return (
-    <div>
-      <Label className="block">
-        <span className="text-lg font-bold">
-          चर्चायाः स्थानसञ्चितः
-          <span className="ml-3 text-xs text-gray-500 dark:text-gray-400">ऐच्छिक</span>
-          <span className="ml-3 text-xs text-red-500 dark:text-red-400">* Only Youtube links</span>
-        </span>
+    <div
+      ref={setNodeRef}
+      style={style}
+      className={cn(
+        'space-y-2 rounded-md border p-3',
+        isDragging && 'border-blue-300 bg-blue-50 dark:border-blue-700 dark:bg-blue-950'
+      )}
+    >
+      <div className="flex items-center">
+        <div className="flex items-center gap-x-2">
+          <Button
+            variant="ghost"
+            size="icon"
+            className="h-6 w-6 cursor-grab touch-none"
+            {...attributes}
+            {...listeners}
+          >
+            <MdDragIndicator className="size-4 text-gray-500" />
+          </Button>
+          <span className="flex items-center gap-x-2">
+            <Label className="text-sm font-semibold">Order Index</Label>
+            <span className="flex h-7 w-16 items-center justify-center rounded-md border bg-gray-50 px-2 text-sm dark:bg-gray-900">
+              {attachment.order_index}
+            </span>
+          </span>
+        </div>
+        <Button variant="ghost" size="icon" className="ml-auto" onClick={onRemove}>
+          <IoMdClose className="size-4" />
+        </Button>
+      </div>
+      <div className="flex items-center space-x-3">
+        <div className="flex items-center justify-center space-x-1">
+          <Label>Type</Label>
+          <Select value={attachment.type} onValueChange={(value) => onUpdate('type', value, null)}>
+            <SelectTrigger className="w-40">
+              <SelectValue placeholder="Select attachment type" />
+            </SelectTrigger>
+            <SelectContent>
+              {Object.entries(ATTACHMENT_TYPE_NAMES).map(([key, value]) => (
+                <SelectItem key={key} value={key}>
+                  {value}
+                </SelectItem>
+              ))}
+            </SelectContent>
+          </Select>
+        </div>
+        <div className="flex items-center justify-center space-x-1">
+          <Label>URL</Label>
+          <Input
+            type="text"
+            className="w-64 text-sm"
+            value={attachment.url}
+            onInput={(e) => onUpdate('url', e.currentTarget.value, null)}
+          />
+        </div>
+      </div>
+      <div className="flex items-center justify-center space-x-2">
+        <Label>
+          Title <span className="text-xs text-gray-500 dark:text-gray-400">ऐच्छिक</span>
+        </Label>
         <Input
-          type="url"
-          className="mt-1 w-full text-sm sm:w-[90%] md:w-2/3 lg:w-1/2"
-          value={discussion_url ?? ''}
-          onInput={(e) => {
-            setDiscussionUrl(e.currentTarget.value);
-          }}
+          type="text"
+          className="w-full text-sm"
+          value={attachment.title ?? ''}
+          onInput={(e) =>
+            onUpdate('title', e.currentTarget.value === '' ? null : e.currentTarget.value, e)
+          }
         />
-      </Label>
+      </div>
     </div>
+  );
+};
+
+const Attachments = () => {
+  const [attachments, setAttachments] = useAtom(attachments_atom);
+  const [lipi_lekhika_active] = useAtom(lipi_lekhika_active_atom);
+
+  const sensors = useSensors(
+    useSensor(PointerSensor),
+    useSensor(KeyboardSensor, {
+      coordinateGetter: sortableKeyboardCoordinates
+    })
+  );
+
+  const addAttachment = () => {
+    setAttachments((prev) => [
+      ...prev,
+      {
+        type: 'youtube_embed',
+        url: '',
+        title: null,
+        order_index: prev.length + 1,
+        id: null
+      }
+    ]);
+  };
+
+  const removeAttachment = (index: number) => {
+    setAttachments((prev) => {
+      const filtered = prev.filter((_, i) => i !== index);
+      // Reassign order_index after removal
+      return filtered.map((attachment, i) => ({
+        ...attachment,
+        order_index: i + 1
+      }));
+    });
+  };
+
+  const updateAttachment = (index: number, field: string, value: any, e: any) => {
+    setAttachments((prev) => prev.map((a, i) => (i === index ? { ...a, [field]: value } : a)));
+    // if (field === 'title' && lipi_lekhika_active) {
+    //   lekhika_typing_tool(
+    //     e.nativeEvent.target,
+    //     // @ts-ignore
+    //     e.nativeEvent.data,
+    //     BASE_SCRIPT,
+    //     true,
+    //     // @ts-ignore
+    //     (val) => {
+    //       setAttachments((prev) => prev.map((a, i) => (i === index ? { ...a, [field]: val } : a)));
+    //     }
+    //   );
+    // }
+  };
+
+  const handleDragEnd = (event: DragEndEvent) => {
+    const { active, over } = event;
+
+    if (over && active.id !== over.id) {
+      setAttachments((items) => {
+        const oldIndex = items.findIndex((_, i) => `attachment-${i}` === active.id);
+        const newIndex = items.findIndex((_, i) => `attachment-${i}` === over.id);
+
+        const newItems = arrayMove(items, oldIndex, newIndex);
+
+        // Reassign order_index after reordering
+        return newItems.map((attachment, i) => ({
+          ...attachment,
+          order_index: i + 1
+        }));
+      });
+    }
+  };
+
+  // useEffect(() => {
+  //   console.log(attachments);
+  // }, [attachments]);
+
+  return (
+    <Accordion type="single" collapsible className="w-fit">
+      <AccordionItem value="item-1">
+        <AccordionTrigger className="text-base font-semibold">
+          Media Attachments ({attachments.length})
+        </AccordionTrigger>
+        <AccordionContent>
+          <DndContext
+            sensors={sensors}
+            collisionDetection={closestCenter}
+            onDragEnd={handleDragEnd}
+          >
+            <SortableContext
+              items={attachments.map((_, i) => `attachment-${i}`)}
+              strategy={verticalListSortingStrategy}
+            >
+              <div className="space-y-4">
+                {attachments.map((attachment, index) => (
+                  <SortableAttachmentItem
+                    key={`attachment-${index}`}
+                    attachment={attachment}
+                    index={index}
+                    onUpdate={(field, value, event) => updateAttachment(index, field, value, event)}
+                    onRemove={() => removeAttachment(index)}
+                  />
+                ))}
+              </div>
+            </SortableContext>
+          </DndContext>
+          <Button
+            variant="outline"
+            size="sm"
+            className={cn(attachments.length > 0 && 'mt-4')}
+            onClick={addAttachment}
+          >
+            <IoMdAdd />
+            Add Attachment
+          </Button>
+        </AccordionContent>
+      </AccordionItem>
+    </Accordion>
   );
 };
 
@@ -180,7 +417,8 @@ const LipiLekhikaSwitch = () => {
           onCheckedChange={setLipiLekhikaActive}
           className="-mt-1"
         />
-        <span className="text-lg font-bold">देवनागरीलेखनम्</span>
+        <Icon src={LanguageIcon} className="-mt-1 size-6.5" />
+        <span className="text-base font-bold">देवनागरी</span>
       </Label>
     </div>
   );
@@ -465,7 +703,7 @@ const WordList = () => {
 
   return (
     <div>
-      <Label className="mb-2 block font-medium">शब्दानां सूची</Label>
+      <Label className="mb-2 block text-lg font-semibold">शब्दानां सूची</Label>
       <div className="grid max-w-7xl grid-cols-2 gap-2 space-y-2 sm:grid-cols-4 md:grid-cols-5 lg:grid-cols-6">
         <AnimatePresence mode="popLayout">
           {wordList.map((word, idx) => (
@@ -575,7 +813,7 @@ const GridData = ({
 
   return (
     <div>
-      <Label className="mb-2 block font-medium">स्थानपट्टिका</Label>
+      <Label className="mb-2 block text-lg font-semibold">स्थानपट्टिका</Label>
       <div
         className="md:3/5 grid w-full gap-1 sm:w-4/5 md:w-3/5 lg:w-2/5"
         style={{ gridTemplateColumns: `repeat(${cols}, minmax(0, 1fr))` }}
@@ -625,19 +863,19 @@ const Description = () => {
           value={description || ''}
           onChange={(e) => {
             setDescription(e.target.value);
-            // if (lipi_lekhika_active) {
-            //   lekhika_typing_tool(
-            //     e.nativeEvent.target,
-            //     // @ts-ignore
-            //     e.nativeEvent.data,
-            //     BASE_SCRIPT,
-            //     true,
-            //     // @ts-ignore
-            //     (val) => {
-            //       setDescription(val);
-            //     }
-            //   );
-            // }
+            if (lipi_lekhika_active) {
+              lekhika_typing_tool(
+                e.nativeEvent.target,
+                // @ts-ignore
+                e.nativeEvent.data,
+                BASE_SCRIPT,
+                true,
+                // @ts-ignore
+                (val) => {
+                  setDescription(val);
+                }
+              );
+            }
           }}
           placeholder="प्रहेलिकायाः वर्णनं लिखतु..."
         />
@@ -650,31 +888,49 @@ const SaveButton = ({ word_puzzle }: { word_puzzle: z.infer<typeof puzzle_schema
   const [title] = useAtom(title_atom);
   const [wordList] = useAtom(word_list_atom);
   const [gridData] = useAtom(grid_data_atom);
+  const [attachments, setAttachments] = useAtom(attachments_atom);
   const initialRef = useRef({
     title: word_puzzle.title,
     wordList: word_puzzle.word_list,
     gridData: word_puzzle.grid_data,
     archived: word_puzzle.archived,
     description: word_puzzle.description,
-    discussion_url: word_puzzle.discussion_url
+    attachments: word_puzzle.attachments
   });
   const [archived] = useAtom(archived_atom);
   const [description] = useAtom(description_atom);
-  const [discussion_url] = useAtom(discussion_url_atom);
 
   const router = useRouter();
 
   const update_word_puzzle_mut = client_q.padavali.update_puzzle.useMutation({
     onSuccess: (data) => {
-      toast.success('Puzzle updated successfully');
-      initialRef.current = {
-        title,
-        wordList,
-        gridData,
-        archived,
-        description,
-        discussion_url
-      };
+      if (data.success) {
+        toast.success('Puzzle updated successfully');
+
+        const { newly_added_index_ids } = data;
+        if (newly_added_index_ids.length > 0) {
+          // after update for the newly added attachemnts filling
+          // in the null values for thier ids
+          setAttachments((prev) => {
+            return prev.map((val, i) => ({
+              ...val,
+              ...(() => {
+                const elm = newly_added_index_ids.find(({ index }) => index === i);
+                return elm ? { id: elm.id } : {};
+              })()
+            }));
+          });
+        }
+
+        initialRef.current = {
+          title,
+          wordList,
+          gridData,
+          archived,
+          description,
+          attachments
+        };
+      }
     },
     onError() {
       toast.error('Failed to update puzzle, check the entered data');
@@ -708,37 +964,50 @@ const SaveButton = ({ word_puzzle }: { word_puzzle: z.infer<typeof puzzle_schema
       JSON.stringify(gridData) !== JSON.stringify(initialRef.current.gridData) ||
       archived !== initialRef.current.archived ||
       description !== initialRef.current.description ||
-      discussion_url !== initialRef.current.discussion_url
+      JSON.stringify(attachments) !== JSON.stringify(initialRef.current.attachments)
     );
-  }, [title, wordList, gridData, archived, description, discussion_url]);
+  }, [title, wordList, gridData, archived, description, attachments]);
 
   const is_addition = word_puzzle.id === null || word_puzzle.id === undefined;
 
   const handleSave = async () => {
     if (!is_addition) {
-      await update_word_puzzle_mut.mutateAsync({
-        id: word_puzzle.id!,
-        uuid: word_puzzle.uuid!,
-        title,
-        created_at: word_puzzle.created_at,
-        updated_at: new Date(),
-        word_list: wordList,
-        grid_data: gridData,
-        grid_dimensions: word_puzzle.grid_dimensions,
-        archived,
-        description: description !== '' ? description : null,
-        discussion_url: discussion_url !== '' ? discussion_url : null
-      });
+      const data = {
+        puzzle_id: word_puzzle.id!,
+        puzzle_uuid: word_puzzle.uuid!,
+        puzzle_data: {
+          title,
+          archived,
+          word_list: wordList,
+          grid_data: gridData,
+          description: description !== '' ? description : null,
+          attachments
+        }
+      };
+      const parse = puzzle_update_input_schema.safeParse(data);
+      if (parse.success) {
+        await update_word_puzzle_mut.mutateAsync(parse.data);
+      } else {
+        console.log(parse.error);
+        toast.error('Failed to update puzzle, fix the entered data');
+      }
     } else {
-      await add_word_puzzle_mut.mutateAsync({
+      const data = {
         title,
         word_list: wordList,
         grid_data: gridData,
         grid_dimensions: word_puzzle.grid_dimensions,
         archived,
         description: description !== '' ? description : null,
-        discussion_url: discussion_url !== '' ? discussion_url : null
-      });
+        attachments
+      };
+      const parse = puzzle_add_input_schema.safeParse(data);
+      if (parse.success) {
+        await add_word_puzzle_mut.mutateAsync(parse.data);
+      } else {
+        console.log(parse.error);
+        toast.error('Failed to add puzzle, fix the entered data');
+      }
     }
   };
 
@@ -755,14 +1024,22 @@ const SaveButton = ({ word_puzzle }: { word_puzzle: z.infer<typeof puzzle_schema
     <div className="mx-2 mt-2 flex items-center justify-between sm:mx-4">
       <AlertDialog>
         <AlertDialogTrigger asChild>
-          <Button disabled={!isEdited} className="flex text-lg" variant={'outline'}>
+          <Button
+            disabled={
+              !isEdited || add_word_puzzle_mut.isPending || update_word_puzzle_mut.isPending
+            }
+            className="flex text-lg"
+            variant={'outline'}
+          >
             {is_addition ? (
               <>
-                <IoMdAdd className="text-lg" /> योज्यताम्
+                <IoMdAdd className="text-lg" />{' '}
+                {!add_word_puzzle_mut.isPending ? 'योज्यताम्' : 'योज्यमानम्...'}
               </>
             ) : (
               <>
-                <FiSave className="text-lg" /> रक्ष्यताम्
+                <FiSave className="text-lg" />{' '}
+                {!update_word_puzzle_mut.isPending ? 'रक्ष्यताम्' : 'रक्ष्यमानम्...'}
               </>
             )}
           </Button>

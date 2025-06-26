@@ -12,14 +12,12 @@ import {
   grid_data_current_atom,
   grid_dimensions_atom,
   total_attempts_atom,
-  correct_attempts_atom,
   original_word_list_atom,
   word_msgs_atom,
   seconds_atom
 } from './game_state';
 import { AppContext } from '~/components/AppDataContext';
 import type { location_list_type } from '~/db/types';
-import { IoExtensionPuzzleSharp } from 'react-icons/io5';
 import { FaPlay } from 'react-icons/fa';
 
 type Props = {
@@ -30,7 +28,7 @@ type Props = {
   location: location_list_type;
 };
 
-export const GameGrid = ({ puzzle_id, timerRef, original_grid_data, location }: Props) => {
+export const GameGrid = ({ timerRef, original_grid_data }: Props) => {
   const { script } = useContext(AppContext);
   const [started] = useAtom(started_atom);
   const [completed, setCompleted] = useAtom(completed_atom);
@@ -39,7 +37,6 @@ export const GameGrid = ({ puzzle_id, timerRef, original_grid_data, location }: 
   const [gridData] = useAtom(grid_data_current_atom);
   const [gridDimensions] = useAtom(grid_dimensions_atom);
   const [, setTotalAttempts] = useAtom(total_attempts_atom);
-  const [, setCorrectAttempts] = useAtom(correct_attempts_atom);
   const [wordList] = useAtom(original_word_list_atom);
 
   const [rows, cols] = gridDimensions;
@@ -61,13 +58,14 @@ export const GameGrid = ({ puzzle_id, timerRef, original_grid_data, location }: 
   const handleStart = () => {
     setStarted(true);
     setSeconds(0);
+    setCurrentSelection([]);
     setFoundWords([]);
+    setTotalAttempts(0);
     setCompleted(false);
 
     if (timerRef.current) {
       clearInterval(timerRef.current);
     }
-
     timerRef.current = setInterval(() => {
       setSeconds((prev) => prev + 1);
     }, 1000);
@@ -234,7 +232,6 @@ export const GameGrid = ({ puzzle_id, timerRef, original_grid_data, location }: 
 
           if (wordList.includes(word)) {
             setFoundWords((prev) => [...prev, { cells: [...currentSelection], word }]);
-            setCorrectAttempts((prev) => prev + 1);
           }
         }
         setCurrentSelection([]);

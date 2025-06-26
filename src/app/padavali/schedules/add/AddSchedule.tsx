@@ -19,15 +19,53 @@ import { ChevronDownIcon, PlusIcon } from 'lucide-react';
 import { client_q } from '~/api/client';
 import { toast } from 'sonner';
 import { useRouter } from 'next/navigation';
+import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+  AlertDialogTrigger
+} from '~/components/ui/alert-dialog';
 
-const DEFAULT_START_END_TIME = '05:00';
+export const DEFAULT_START_END_TIME = '21:00';
 
-const AddSchedule = ({ puzzle_list }: { puzzle_list: { id: number; title: string }[] }) => {
-  const [startDate, setStartDate] = useState<Date | undefined>(undefined);
-  const [endDate, setEndDate] = useState<Date | undefined>(undefined);
+type Props =
+  | {
+      type: 'add';
+      puzzle_list: { id: number; title: string }[];
+    }
+  | {
+      init: {
+        start_date: Date;
+        end_date: Date;
+        start_time_string: string;
+        end_time_string: string;
+      };
+      type: 'edit';
+      puzzle_title: string;
+      schedule_id: number;
+    };
+
+const AddSchedule = (props: Props) => {
+  const { type } = props;
+  const [startDate, setStartDate] = useState<Date | undefined>(
+    type === 'edit' ? props.init.start_date : undefined
+  );
+  const [endDate, setEndDate] = useState<Date | undefined>(
+    type === 'edit' ? props.init.end_date : undefined
+  );
   const [puzzleId, setPuzzleId] = useState<number | undefined>(undefined);
 
-  const [startEndTime, setStartEndTime] = useState<string>(DEFAULT_START_END_TIME + ':00');
+  const [startTime, setStartTime] = useState<string>(
+    (type === 'edit' ? props.init.start_time_string : DEFAULT_START_END_TIME) + ':00'
+  );
+  const [endTime, setEndTime] = useState<string>(
+    (type === 'edit' ? props.init.end_time_string : DEFAULT_START_END_TIME) + ':00'
+  );
 
   const router = useRouter();
 
@@ -45,24 +83,55 @@ const AddSchedule = ({ puzzle_list }: { puzzle_list: { id: number; title: string
     }
   });
 
+  const update_schedule_mut = client_q.schedules.update_puzzle_schedule.useMutation({
+    onSuccess(data) {
+      if (data.success) {
+        toast.success('Schedule updated successfully');
+        router.push(`/padavali/schedules`);
+      }
+    },
+    onError(error) {
+      toast.error('Failed to update schedule');
+    }
+  });
+
   const invalid_state_condition =
-    !puzzleId || !startDate || !endDate || startDate > endDate || startDate === endDate;
+    (type === 'add' && !puzzleId) ||
+    !startDate ||
+    !endDate ||
+    startDate > endDate ||
+    startDate === endDate;
 
   const handle_add_schedule = () => {
-    if (invalid_state_condition) {
+    if (type !== 'add') return;
+    if (invalid_state_condition || !puzzleId) {
       toast.error('Please fill all the fields correctly');
       return;
     }
     add_schedule_mut.mutate({ puzzle_id: puzzleId, start_time: startDate, end_time: endDate });
   };
 
-  const set_seconds_in_time_string = (time_string: string, seconds: number) => {
-    const [hours, minutes] = time_string.split(':');
-    return `${hours}:${minutes}:${String(seconds).padStart(2, '0')}`;
+  const handle_update_schedule = () => {
+    if (type !== 'edit') return;
+    if (invalid_state_condition) {
+      toast.error('Please fill all the fields correctly');
+      return;
+    }
+    update_schedule_mut.mutate({
+      schedule_id: props.schedule_id,
+      start_time: startDate,
+      end_time: endDate
+    });
   };
 
   return (
     <div className="flex flex-col gap-6">
+      {type === 'edit' && (
+        <div className="text-lg font-bold">
+          {props.puzzle_title},{' '}
+          <span className="text-sm font-semibold">Schedule ID: {props.schedule_id}</span>
+        </div>
+      )}
       <div className="flex flex-col gap-4">
         <h3 className="text-lg font-semibold">Select Date Range</h3>
         <div className="flex gap-4">
@@ -70,88 +139,156 @@ const AddSchedule = ({ puzzle_list }: { puzzle_list: { id: number; title: string
             date={startDate}
             onChangeDate={setStartDate}
             label="Start Date"
-            start_end_time={startEndTime}
+            start_end_time={startTime}
             type="start"
           />
+          <div className="flex w-32 flex-col gap-3">
+            <Label htmlFor="time" className="px-1">
+              Start Time
+            </Label>
+            <Input
+              type="time"
+              id="time"
+              step="1"
+              value={startTime}
+              onChange={(e) => setStartTime(e.target.value)}
+              className="appearance-none bg-background [&::-webkit-calendar-picker-indicator]:hidden [&::-webkit-calendar-picker-indicator]:appearance-none"
+            />
+          </div>
+        </div>
+        <div className="flex gap-4">
           <ISTDateTimePicker
             date={endDate}
             disabled={!startDate}
             onChangeDate={setEndDate}
             label="End Date"
-            start_end_time={startEndTime}
+            start_end_time={endTime}
             type="end"
             disable_before={startDate}
           />
+          <div className="flex w-32 flex-col gap-3">
+            <Label htmlFor="time" className="px-1">
+              End Time
+            </Label>
+            <Input
+              type="time"
+              id="time"
+              step="1"
+              value={endTime}
+              onChange={(e) => setEndTime(e.target.value)}
+              className="appearance-none bg-background [&::-webkit-calendar-picker-indicator]:hidden [&::-webkit-calendar-picker-indicator]:appearance-none"
+            />
+          </div>
         </div>
       </div>
       <div className="flex flex-col gap-4">
-        <div className="flex w-32 flex-col gap-3">
-          <Label htmlFor="time" className="px-1">
-            Start/End Time
-          </Label>
-          <Input
-            type="time"
-            id="time"
-            step="1"
-            value={startEndTime}
-            onChange={(e) => setStartEndTime(e.target.value)}
-            className="appearance-none bg-background [&::-webkit-calendar-picker-indicator]:hidden [&::-webkit-calendar-picker-indicator]:appearance-none"
-          />
-        </div>
-        <div className="text-sm text-gray-500 dark:text-gray-400">
-          <div>
-            Start Time:{' '}
-            <span>
-              {startDate?.toLocaleDateString('en-GB', {
-                day: 'numeric',
-                month: 'short',
-                year: 'numeric'
-              })}
-              {', '}
-              {set_seconds_in_time_string(startEndTime, 1)}
-            </span>
+        {startDate && endDate && (
+          <div className="text-sm text-gray-500 dark:text-gray-400">
+            <div>
+              Start Time:{' '}
+              <span>
+                {startDate.toLocaleDateString('en-GB', {
+                  day: 'numeric',
+                  month: 'short',
+                  year: 'numeric',
+                  timeZone: 'Asia/Kolkata',
+                  hour: '2-digit',
+                  minute: '2-digit',
+                  second: '2-digit',
+                  timeZoneName: 'short',
+                  hour12: false
+                })}
+              </span>
+            </div>
+            <div>
+              End Time:{' '}
+              <span>
+                {endDate.toLocaleDateString('en-GB', {
+                  day: '2-digit',
+                  month: 'short',
+                  year: 'numeric',
+                  timeZone: 'Asia/Kolkata',
+                  hour: '2-digit',
+                  minute: '2-digit',
+                  second: '2-digit',
+                  timeZoneName: 'short',
+                  hour12: false
+                })}
+              </span>
+            </div>
           </div>
-          <div>
-            End Time:{' '}
-            <span>
-              {endDate?.toLocaleDateString('en-GB', {
-                day: '2-digit',
-                month: 'short',
-                year: 'numeric'
-              })}
-              {', '}
-              {set_seconds_in_time_string(startEndTime, 0)}
-            </span>
-          </div>
+        )}
+      </div>
+      {type === 'add' && (
+        <div className="flex flex-col gap-3">
+          <Label className="px-1">Select Puzzle</Label>
+          <Select
+            value={puzzleId?.toString()}
+            onValueChange={(value) => setPuzzleId(Number(value))}
+          >
+            <SelectTrigger className="w-64">
+              <SelectValue placeholder="Choose a puzzle" />
+            </SelectTrigger>
+            <SelectContent>
+              <SelectGroup>
+                <SelectLabel>Puzzles</SelectLabel>
+                {props.puzzle_list.map((puzzle) => (
+                  <SelectItem key={puzzle.id} value={puzzle.id.toString()}>
+                    {puzzle.title}
+                  </SelectItem>
+                ))}
+              </SelectGroup>
+            </SelectContent>
+          </Select>
         </div>
-      </div>
-      <div className="flex flex-col gap-3">
-        <Label className="px-1">Select Puzzle</Label>
-        <Select value={puzzleId?.toString()} onValueChange={(value) => setPuzzleId(Number(value))}>
-          <SelectTrigger className="w-64">
-            <SelectValue placeholder="Choose a puzzle" />
-          </SelectTrigger>
-          <SelectContent>
-            <SelectGroup>
-              <SelectLabel>Puzzles</SelectLabel>
-              {puzzle_list.map((puzzle) => (
-                <SelectItem key={puzzle.id} value={puzzle.id.toString()}>
-                  {puzzle.title}
-                </SelectItem>
-              ))}
-            </SelectGroup>
-          </SelectContent>
-        </Select>
-      </div>
-      <Button
-        onClick={handle_add_schedule}
-        className="w-32 gap-1 font-bold text-amber-500"
-        variant="outline"
-        disabled={add_schedule_mut.isPending}
-      >
-        <PlusIcon className="-mt-1 inline-block size-5" />
-        {add_schedule_mut.isPending ? 'Adding...' : 'Add Schedule'}
-      </Button>
+      )}
+      <AlertDialog>
+        <AlertDialogTrigger asChild>
+          <Button
+            className="w-40 gap-1 font-bold text-amber-500"
+            variant="outline"
+            disabled={
+              add_schedule_mut.isPending || update_schedule_mut.isPending || invalid_state_condition
+            }
+          >
+            <PlusIcon className="-mt-1 inline-block size-5" />
+            {type === 'add'
+              ? add_schedule_mut.isPending
+                ? 'Adding...'
+                : 'Add Schedule'
+              : update_schedule_mut.isPending
+                ? 'Updating...'
+                : 'Update Schedule'}
+          </Button>
+        </AlertDialogTrigger>
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle>
+              {type === 'add' ? 'Add Schedule' : 'Update Schedule'}
+            </AlertDialogTitle>
+            <AlertDialogDescription>
+              {type === 'add'
+                ? 'Are you sure you want to add this schedule?'
+                : 'Are you sure you want to update this schedule?'}
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel>Cancel</AlertDialogCancel>
+            <AlertDialogAction
+              onClick={() => {
+                if (type === 'add') {
+                  handle_add_schedule();
+                } else {
+                  handle_update_schedule();
+                }
+              }}
+              className="bg-amber-600 font-bold text-white dark:bg-amber-600"
+            >
+              {type === 'add' ? 'Add Schedule' : 'Update Schedule'}
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
     </div>
   );
 };
@@ -230,7 +367,11 @@ const ISTDateTimePicker: React.FC<DatePickerProps> = ({
               setOpen(false);
             }}
             disabled={(date) => {
-              if (disable_before && date < disable_before) return true;
+              if (disable_before) {
+                let disable_before_date = new Date(disable_before);
+                disable_before_date.setHours(0, 0, 0, 0);
+                if (date < disable_before_date) return true;
+              }
               const today = new Date();
               today.setHours(0, 0, 0, 0);
               return date < today;

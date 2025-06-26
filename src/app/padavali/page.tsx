@@ -1,5 +1,5 @@
 import { Metadata } from 'next';
-import { DEFAULT_DATA_SCRIPT } from '~/state/script_font_data';
+import { DEFAULT_DATA_SCRIPT } from '~/state/script_list';
 import { get_transliterated_word_game_msgs } from '~/components/pages/main/WordGame/msgs';
 import { lipi_parivartak } from '~/tools/lipi_lekhika';
 import { ClockIcon, CalendarIcon, ArchiveIcon, ArrowRightIcon } from 'lucide-react';
@@ -10,6 +10,7 @@ import { getCachedScript } from '~/lib/cache_server_route_data';
 import dayjs from 'dayjs';
 import relativeTime from 'dayjs/plugin/relativeTime';
 import { get_current_schedule, get_next_schedule } from '~/db/db_cache_data';
+import { NextPuzzleTimePopup } from '~/components/pages/main/WordGame/WordGameRoot';
 
 dayjs.extend(relativeTime);
 
@@ -53,9 +54,9 @@ export default async function Home() {
               <div className="inline-flex items-center gap-2 rounded-xl bg-gradient-to-r from-emerald-100 to-blue-100 px-6 py-3 text-emerald-700 shadow-lg dark:from-emerald-900/30 dark:to-blue-900/30 dark:text-emerald-300">
                 <IoExtensionPuzzleSharp className="-mt-1 size-5" />
                 {next_schedule ? (
-                  <span className="font-semibold">
-                    Next puzzle in{' '}
-                    <span className="bg-gradient-to-r from-emerald-600 to-green-500 bg-clip-text font-bold text-transparent dark:from-emerald-400 dark:to-green-300">
+                  <span className="flex items-center font-semibold">
+                    Next puzzle in
+                    <span className="ml-1 bg-gradient-to-r from-emerald-600 to-green-500 bg-clip-text font-bold text-transparent dark:from-emerald-400 dark:to-green-300">
                       {dayjs(next_schedule.start_time)
                         .fromNow(true)
                         .replace(
@@ -63,7 +64,11 @@ export default async function Home() {
                           (word) => word.charAt(0).toUpperCase() + word.slice(1)
                         )}
                     </span>
-                    <span className="ml-1.5 text-xs font-bold brightness-95">
+                    <NextPuzzleTimePopup
+                      next_puzzle_start_time={next_schedule.start_time}
+                      className="ml-2"
+                    />
+                    {/* <span className="ml-1.5 text-xs font-bold brightness-95">
                       (
                       {next_schedule.start_time.toLocaleDateString('en-GB', {
                         day: 'numeric',
@@ -76,7 +81,7 @@ export default async function Home() {
                         hour12: true
                       })}
                       )
-                    </span>
+                    </span> */}
                   </span>
                 ) : (
                   <span className="font-medium">New puzzles coming soon!</span>

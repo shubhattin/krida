@@ -8,8 +8,27 @@ import { FaPlay } from 'react-icons/fa';
 import { Provider as JotaiProvider } from 'jotai';
 import { getCachedSession } from '~/lib/cache_server_route_data';
 import MainEditPage from './MainEditPage';
+import { cache } from 'react';
 
 type Props = { params: Promise<{ id: string }> };
+
+const get_word_puzzle_cached_func = cache(async (id: number) => {
+  return await db.query.word_puzzles.findFirst({
+    where: (tbl, { eq }) => eq(tbl.id, id),
+    with: {
+      attachments: {
+        columns: {
+          id: true,
+          type: true,
+          url: true,
+          title: true,
+          order_index: true
+        },
+        orderBy: (tbl, { asc }) => asc(tbl.order_index)
+      }
+    }
+  });
+});
 
 export async function generateMetadata({ params }: Props): Promise<Metadata> {
   const id = z.coerce
@@ -17,15 +36,10 @@ export async function generateMetadata({ params }: Props): Promise<Metadata> {
     .int()
     .parse((await params).id);
 
-  const word_puzzle = (await db.query.word_puzzles.findFirst({
-    where: (tbl, { eq }) => eq(tbl.id, id),
-    columns: {
-      title: true
-    }
-  }))!;
+  const word_puzzle = await get_word_puzzle_cached_func(id);
 
   return {
-    title: word_puzzle.title + ' - Edit'
+    title: word_puzzle ? word_puzzle.title + ' - Edit' : 'Not Found'
   };
 }
 
@@ -38,9 +52,8 @@ const MainEdit = async ({ params }: Props) => {
     .int()
     .parse((await params).id);
 
-  const word_puzzle = (await db.query.word_puzzles.findFirst({
-    where: (tbl, { eq }) => eq(tbl.id, id)
-  }))!;
+  const word_puzzle = await get_word_puzzle_cached_func(id);
+  if (!word_puzzle) redirect('/padavali/list');
 
   return (
     <>

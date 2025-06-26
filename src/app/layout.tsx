@@ -45,5 +45,10 @@ export const metadata: Metadata = {
   icons: {
     icon: '/favicon.ico',
     apple: '/favicon.ico'
+  },
+  manifest: '/manifest.json',
+  appleWebApp: {
+    title: 'Padavali',
+    statusBarStyle: 'black-translucent'
   }
 };

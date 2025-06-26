@@ -5,9 +5,11 @@ import {
   SCRIPT_LIST,
   SCRIPT_NAMES,
   type ScriptType
-} from '~/state/script_font_data';
+} from '~/state/script_list';
 import Cookies from 'js-cookie';
 import { cn } from '~/lib/utils';
+import { useEffect } from 'react';
+import { load_posthog } from '~/components/PosthogInit';
 
 type Props = {
   script: ScriptType;
@@ -15,6 +17,12 @@ type Props = {
 };
 
 export const ScriptSelector = ({ script, onScriptChange }: Props) => {
+  useEffect(() => {
+    load_posthog((posthog) => {
+      posthog.capture('gameplay_script', { script: script });
+    });
+  }, [script]);
+
   return (
     <>
       <select

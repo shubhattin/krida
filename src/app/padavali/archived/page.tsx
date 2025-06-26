@@ -1,5 +1,5 @@
 import { ArchivedList } from './ArchivedList';
-import { DEFAULT_DATA_SCRIPT } from '~/state/script_font_data';
+import { DEFAULT_DATA_SCRIPT } from '~/state/script_list';
 import { Metadata } from 'next';
 import { lipi_parivartak } from '~/tools/lipi_lekhika';
 import { getCachedScript } from '~/lib/cache_server_route_data';
@@ -13,7 +13,10 @@ const ArchivedPage = async () => {
   const archived_puzzles_init_transliterlated = await Promise.all(
     archived_puzzles.map(async (puzzle) => ({
       ...puzzle,
-      title: await lipi_parivartak(puzzle.title, DEFAULT_DATA_SCRIPT, script)
+      title: await lipi_parivartak(puzzle.title, DEFAULT_DATA_SCRIPT, script),
+      description: puzzle.description
+        ? await lipi_parivartak(puzzle.description, DEFAULT_DATA_SCRIPT, script)
+        : null
     }))
   );
 

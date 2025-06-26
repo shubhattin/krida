@@ -30,7 +30,7 @@ const Main = async () => {
       <div className="my-4 text-xs dark:text-red-400">
         * All Date and Time entered here will saved according to IST.
       </div>
-      <AddSchedule puzzle_list={puzzle_list} />
+      <AddSchedule puzzle_list={puzzle_list} type="add" />
     </div>
   );
 };

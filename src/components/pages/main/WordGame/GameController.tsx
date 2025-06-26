@@ -11,7 +11,9 @@ import {
   completed_atom,
   seconds_atom,
   found_words_atom,
-  word_msgs_atom
+  word_msgs_atom,
+  total_attempts_atom,
+  current_selection_atom
 } from './game_state';
 import { AppContext } from '~/components/AppDataContext';
 
@@ -31,42 +33,35 @@ export const GameContoller = ({ timerRef }: Props) => {
   const [started, setStarted] = useAtom(started_atom);
   const [completed, setCompleted] = useAtom(completed_atom);
   const [seconds, setSeconds] = useAtom(seconds_atom);
+  const [, setCurrentSelection] = useAtom(current_selection_atom);
   const [, setFoundWords] = useAtom(found_words_atom);
+  const [, setTotalAttempts] = useAtom(total_attempts_atom);
   const [wordMsgs] = useAtom(word_msgs_atom);
 
   const font_info = FONT_INFO[script!];
 
-  // Start the game
-  const handleStart = () => {
+  const handleRestart = () => {
     setStarted(true);
     setSeconds(0);
+    setCurrentSelection([]);
     setFoundWords([]);
+    setTotalAttempts(0);
     setCompleted(false);
 
     if (timerRef.current) {
       clearInterval(timerRef.current);
     }
-
     timerRef.current = setInterval(() => {
       setSeconds((prev) => prev + 1);
     }, 1000);
   };
-
-  // Timer effect
-  useEffect(() => {
-    return () => {
-      if (timerRef.current) {
-        clearInterval(timerRef.current);
-      }
-    };
-  }, []);
 
   return (
     <>
       {completed && (
         <div>
           <motion.button
-            onClick={handleStart}
+            onClick={handleRestart}
             initial={{ opacity: 0, scale: 0.9 }}
             animate={{ opacity: 1, scale: 1 }}
             transition={{ duration: 0.3, ease: 'easeInOut' }}
