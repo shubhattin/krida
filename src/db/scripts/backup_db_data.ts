@@ -98,6 +98,7 @@ const BACKUP_FOLDER_NAME = 'padavali_backups';
 async function main() {
   await backup_data();
   const current_date_key = new Date().toISOString();
+  console.log(current_date_key);
   await uploadFile(
     envs.AWS_DB_BACKUP_BUCKET_NAME,
     `${BACKUP_FOLDER_NAME}/${current_date_key}.zip`,
