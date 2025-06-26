@@ -50,6 +50,13 @@
       "when": 1750432252352,
       "tag": "0006_condemned_thunderbolt",
       "breakpoints": true
+    },
+    {
+      "idx": 7,
+      "version": "7",
+      "when": 1750852992603,
+      "tag": "0007_square_betty_ross",
+      "breakpoints": true
     }
   ]
 }

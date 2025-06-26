@@ -31,13 +31,17 @@ import {
   original_word_list_atom
 } from './game_state';
 import { Popover, PopoverContent, PopoverTrigger } from '@radix-ui/react-popover';
-import { FaRegStopCircle } from 'react-icons/fa';
+import { FaLink, FaRegStopCircle } from 'react-icons/fa';
 import { AppContext } from '~/components/AppDataContext';
 import dayjs from 'dayjs';
 import relativeTime from 'dayjs/plugin/relativeTime';
 import type { location_list_type } from '~/db/types';
 import { FiYoutube } from 'react-icons/fi';
 import GameMetricsCollector from './GameMetricsCollector';
+import { attachment_schema, DEFAULT_YOUTUBE_EMBED } from '~/db/db_shared_vals';
+import { z } from 'zod';
+import { RiPlayList2Fill } from 'react-icons/ri';
+import { IoLogoYoutube } from 'react-icons/io';
 
 dayjs.extend(relativeTime);
 
@@ -50,13 +54,13 @@ export type WordGameProps = {
   id: number;
   uuid: string;
   children?: React.ReactNode;
+  attachments: z.infer<typeof attachment_schema>[];
   initial_script_data: {
     word_msgs: typeof word_game_msgs;
     title: string;
     grid_data: string[][];
   };
   location: location_list_type;
-  discussion_url: string | null;
   onChangeCompleted?: (completed: boolean) => void;
   next_schedule?: {
     id: number;
@@ -166,7 +170,7 @@ function WordGame({
   onChangeCompleted,
   next_schedule,
   location,
-  discussion_url
+  attachments
 }: WordGameProps & { id: number }) {
   const { script, setScript } = useContext(AppContext);
   const [, setGridData] = useAtom(grid_data_current_atom);
@@ -370,8 +374,27 @@ function WordGame({
               !started && 'lg:mt-10 lg:items-start'
             )}
           >
-            <DiscussionUrl
-              youtube_url={discussion_url ?? 'https://www.youtube.com/live/YeC5P0-vxOQ'}
+            <MediaAttachments
+              attachments={(() => {
+                const list = attachments.map((v) => v);
+                const default_attachment = {
+                  id: 0,
+                  ...DEFAULT_YOUTUBE_EMBED,
+                  order_index: 1
+                } satisfies z.infer<typeof attachment_schema>;
+                // if no then the default one
+                if (list.length === 0) {
+                  return [default_attachment];
+                }
+                const any_youtube_embed = list.some((v) => v.type === 'youtube_embed');
+                if (!any_youtube_embed) {
+                  list.push({
+                    ...default_attachment,
+                    order_index: list.length + 1
+                  });
+                }
+                return list;
+              })()}
             />
           </div>
 
@@ -529,18 +552,13 @@ const getYouTubeVideoId = (url: string): string | null => {
   return match ? match[1] : null;
 };
 
-const DiscussionUrl = ({
-  youtube_url,
+const MediaAttachments = ({
+  attachments,
   className
 }: {
-  youtube_url: string | null;
+  attachments: z.infer<typeof attachment_schema>[];
   className?: string;
 }) => {
-  if (!youtube_url) return null;
-
-  const videoId = getYouTubeVideoId(youtube_url);
-
-  if (!videoId) return null;
   const PROD = process.env.NODE_ENV === 'production';
 
   return (
@@ -557,17 +575,78 @@ const DiscussionUrl = ({
           Solve Together & Discuss the Puzzle
         </span>
       </div>
-      {PROD ? (
-        <div className="w-full max-w-md overflow-hidden rounded-lg shadow-lg">
-          <iframe
-            src={`https://www.youtube.com/embed/${videoId}`}
-            title="Discussion Video"
-            allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture; web-share"
-            allowFullScreen
-            className="aspect-video w-full border-0"
-          />
-        </div>
-      ) : null}
+      <div className="space-y-1.5 sm:space-y-3">
+        {attachments.map((attachment) => (
+          <div key={attachment.id}>
+            {attachment.type === 'link' && (
+              <div className="w-full">
+                <a
+                  href={attachment.url}
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  className="flex items-center justify-center gap-x-2 text-blue-500 hover:text-blue-600 dark:text-blue-400 dark:hover:text-blue-300"
+                >
+                  <FaLink className="size-4.5" />
+                  {attachment.title ?? attachment.url}
+                </a>
+              </div>
+            )}
+            {attachment.type === 'youtube_video' && (
+              <div className="w-full">
+                <a
+                  href={attachment.url}
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  className="group flex items-center justify-center gap-x-2"
+                >
+                  <IoLogoYoutube className="size-5 text-red-600 group-hover:text-red-500 dark:text-red-400 dark:group-hover:text-red-300" />
+                  <span className="text-blue-500 group-hover:text-blue-600 dark:text-blue-400 dark:group-hover:text-blue-300">
+                    {attachment.title ?? attachment.url}
+                  </span>
+                </a>
+              </div>
+            )}
+            {attachment.type === 'youtube_playlist' && (
+              <div className="w-full">
+                <a
+                  href={attachment.url}
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  className="group flex items-center justify-center gap-x-2"
+                >
+                  <RiPlayList2Fill className="size-5 text-red-600 group-hover:text-red-500 dark:text-red-400 dark:group-hover:text-red-300" />
+                  <span className="text-blue-500 group-hover:text-blue-600 dark:text-blue-400 dark:group-hover:text-blue-300">
+                    {attachment.title ?? attachment.url}
+                  </span>
+                </a>
+              </div>
+            )}
+            {attachment.type === 'youtube_embed' &&
+              (() => {
+                const videoId = getYouTubeVideoId(attachment.url);
+                if (!videoId) return null;
+                return PROD ? (
+                  <div className="w-full max-w-md gap-0.5 overflow-hidden rounded-lg shadow-lg">
+                    {attachment.title && (
+                      <div className="flex items-center justify-center font-semibold">
+                        {attachment.title}
+                      </div>
+                    )}
+                    <iframe
+                      src={`https://www.youtube.com/embed/${videoId}`}
+                      title="Discussion Video"
+                      allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture; web-share"
+                      allowFullScreen
+                      className="aspect-video w-full border-0"
+                    />
+                  </div>
+                ) : (
+                  <div className="text-sm">Youtube Embed ID: {videoId}</div>
+                );
+              })()}
+          </div>
+        ))}
+      </div>
     </div>
   );
 };

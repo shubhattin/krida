@@ -8,12 +8,14 @@ export const import_data = async (confirm_env = true) => {
   console.log(`Fetching Data from ${dbMode} Database...`);
 
   const word_puzzles = await db.query.word_puzzles.findMany();
+  const word_puzzle_attachments = await db.query.word_puzzle_attachments.findMany();
   const puzzle_gameplay_stats = await db.query.puzzle_gameplay_stats.findMany();
   const puzzle_game_schedules = await db.query.puzzle_game_schedules.findMany();
   const puzzle_gameplay_sessions = await db.query.puzzle_gameplay_sessions.findMany();
 
   const json_data = {
     word_puzzles,
+    word_puzzle_attachments,
     puzzle_game_schedules,
     puzzle_gameplay_sessions,
     puzzle_gameplay_stats

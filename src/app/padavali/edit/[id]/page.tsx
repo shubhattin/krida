@@ -14,7 +14,19 @@ type Props = { params: Promise<{ id: string }> };
 
 const get_word_puzzle_cached_func = cache(async (id: number) => {
   return await db.query.word_puzzles.findFirst({
-    where: (tbl, { eq }) => eq(tbl.id, id)
+    where: (tbl, { eq }) => eq(tbl.id, id),
+    with: {
+      attachments: {
+        columns: {
+          id: true,
+          type: true,
+          url: true,
+          title: true,
+          order_index: true
+        },
+        orderBy: (tbl, { asc }) => asc(tbl.order_index)
+      }
+    }
   });
 });
 

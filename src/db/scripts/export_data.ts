@@ -5,10 +5,12 @@ import {
   puzzle_game_schedules,
   puzzle_gameplay_stats,
   word_puzzles,
-  puzzle_gameplay_sessions
+  puzzle_gameplay_sessions,
+  word_puzzle_attachments
 } from '~/db/schema';
 import {
   WordPuzzleSchemaZod,
+  WordPuzzleAttachmentSchemaZod,
   PuzzleGamePlayStatsSchemaZod,
   PuzzleGameScheduleSchemaZod,
   PuzzleGamePlaySessionSchemaZod
@@ -38,13 +40,15 @@ const main = async () => {
       word_puzzles: WordPuzzleSchemaZod.array(),
       puzzle_gameplay_stats: PuzzleGamePlayStatsSchemaZod.array(),
       puzzle_game_schedules: PuzzleGameScheduleSchemaZod.array(),
-      puzzle_gameplay_sessions: PuzzleGamePlaySessionSchemaZod.array()
+      puzzle_gameplay_sessions: PuzzleGamePlaySessionSchemaZod.array(),
+      word_puzzle_attachments: WordPuzzleAttachmentSchemaZod.array()
     })
     .parse(JSON.parse((await readFile(`./out/${in_file_name}`)).toString()));
 
   // deleting all the tables initially
   try {
     await db.delete(word_puzzles);
+    await db.delete(word_puzzle_attachments);
     await db.delete(puzzle_gameplay_stats);
     await db.delete(puzzle_game_schedules);
     await db.delete(puzzle_gameplay_sessions);
@@ -62,6 +66,17 @@ const main = async () => {
     );
   } catch (e) {
     console.log(chalk.red('✗ Error while inserting word_puzzles:'), chalk.yellow(e));
+  }
+
+  // inserting word_puzzle_attachments
+  try {
+    await db.insert(word_puzzle_attachments).values(data.word_puzzle_attachments);
+    console.log(
+      chalk.green('✓ Successfully added values into table'),
+      chalk.blue('`word_puzzle_attachments`')
+    );
+  } catch (e) {
+    console.log(chalk.red('✗ Error while inserting word_puzzle_attachments:'), chalk.yellow(e));
   }
 
   // inserting puzzle_game_schedules
@@ -101,6 +116,9 @@ const main = async () => {
   try {
     await db.execute(
       sql`SELECT setval('"word_puzzles_id_seq"', (select MAX(id) from "word_puzzles"))`
+    );
+    await db.execute(
+      sql`SELECT setval('"word_puzzle_attachments_id_seq"', (select MAX(id) from "word_puzzle_attachments"))`
     );
     await db.execute(
       sql`SELECT setval('"puzzle_gameplay_stats_id_seq"', (select MAX(id) from "puzzle_gameplay_stats"))`
