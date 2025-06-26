@@ -271,7 +271,9 @@ const SortableAttachmentItem = ({
         </div>
       </div>
       <div className="flex items-center justify-center space-x-2">
-        <Label>Title</Label>
+        <Label>
+          Title <span className="text-xs text-gray-500 dark:text-gray-400">ऐच्छिक</span>
+        </Label>
         <Input
           type="text"
           className="w-full text-sm"
