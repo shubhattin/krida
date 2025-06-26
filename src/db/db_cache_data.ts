@@ -126,6 +126,7 @@ type ArchivedPuzzlesType = {
   id: number;
   uuid: string;
   title: string;
+  description: string | null;
 }[];
 
 export const get_archived_puzzles = async () => {
@@ -137,7 +138,8 @@ export const get_archived_puzzles = async () => {
     columns: {
       id: true,
       uuid: true,
-      title: true
+      title: true,
+      description: true
     },
     where: ({ archived }, { eq }) => eq(archived, true),
     orderBy: ({ created_at }, { desc }) => desc(created_at)

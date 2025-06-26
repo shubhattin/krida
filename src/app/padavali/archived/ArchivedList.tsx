@@ -2,25 +2,28 @@
 
 import { useQuery } from '@tanstack/react-query';
 import { useContext, useState } from 'react';
-import { client_q } from '~/api/client';
-import { get_transliterated_word_game_msgs } from '~/components/pages/main/WordGame/msgs';
 import { lipi_parivartak } from '~/tools/lipi_lekhika';
 import { DEFAULT_DATA_SCRIPT, type ScriptType } from '~/state/script_list';
 import { motion } from 'framer-motion';
 import { Button } from '~/components/ui/button';
 import { ArrowLeftIcon, ArchiveIcon, Sparkles } from 'lucide-react';
 import { IoExtensionPuzzleSharp } from 'react-icons/io5';
-import WordGameRoot from '~/components/pages/main/WordGame/WordGameRoot';
 import Link from 'next/link';
 import { ScriptSelector } from '~/components/pages/main/ScriptSelector';
 import Icon from '~/tools/Icon';
 import { LanguageIcon } from '~/components/icons';
 import { AppContext } from '~/components/AppDataContext';
+import { cn } from '~/lib/utils';
 
 type Props = {
-  archived_puzzles: { id: number; uuid: string; title: string }[];
+  archived_puzzles: { id: number; uuid: string; title: string; description: string | null }[];
   script: ScriptType;
-  archived_puzzles_init_transliterlated: { id: number; uuid: string; title: string }[];
+  archived_puzzles_init_transliterlated: {
+    id: number;
+    uuid: string;
+    title: string;
+    description: string | null;
+  }[];
 };
 
 // Main component that handles the state and conditional rendering
@@ -28,7 +31,6 @@ export const ArchivedList = ({
   archived_puzzles: archived_puzzles_org,
   archived_puzzles_init_transliterlated
 }: Props) => {
-  const [selectedPuzzle, setSelectedPuzzle] = useState<{ id: number; uuid: string } | null>(null);
   const { script } = useContext(AppContext);
 
   const archived_puuzle_list_q = useQuery({
@@ -37,7 +39,10 @@ export const ArchivedList = ({
       return await Promise.all(
         archived_puzzles_org.map(async (puzzle) => ({
           ...puzzle,
-          title: await lipi_parivartak(puzzle.title, DEFAULT_DATA_SCRIPT, script)
+          title: await lipi_parivartak(puzzle.title, DEFAULT_DATA_SCRIPT, script),
+          description: puzzle.description
+            ? await lipi_parivartak(puzzle.description, DEFAULT_DATA_SCRIPT, script)
+            : null
         }))
       );
     },
@@ -46,91 +51,11 @@ export const ArchivedList = ({
   });
   const archived_puzzles = archived_puuzle_list_q.data!;
 
-  const word_puzzle_q = client_q.padavali.get_puzzle_data.useQuery(
-    {
-      id: selectedPuzzle?.id ?? 0,
-      uuid: selectedPuzzle?.uuid ?? ''
-    },
-    {
-      enabled: !!selectedPuzzle
-    }
-  );
-
-  const initial_script_data_q = useQuery({
-    queryKey: ['initial_script_data', selectedPuzzle?.id],
-    queryFn: async () => {
-      const word_puzzle = word_puzzle_q.data!;
-      const word_game_msgs = await get_transliterated_word_game_msgs(script);
-      const title = await lipi_parivartak(word_puzzle.title, DEFAULT_DATA_SCRIPT, script);
-      const grid_data = await Promise.all(
-        word_puzzle.grid_data.map(
-          async (row) => await lipi_parivartak(row, DEFAULT_DATA_SCRIPT, script)
-        )
-      );
-      return {
-        word_msgs: word_game_msgs,
-        title,
-        grid_data
-      };
-    },
-    enabled: !!selectedPuzzle && word_puzzle_q.isSuccess
-  });
-
-  // Show loading skeleton while puzzle data is loading
-  if (selectedPuzzle && (word_puzzle_q.isLoading || initial_script_data_q.isLoading)) {
-    return <PuzzleLoadingSkeleton onBack={() => setSelectedPuzzle(null)} />;
-  }
-
-  // Show the game when everything is loaded
-  if (selectedPuzzle && word_puzzle_q.isSuccess && initial_script_data_q.data) {
-    const puzzle = word_puzzle_q.data;
-    return (
-      <div className="relative">
-        <div className="absolute top-4 left-4 z-10 sm:top-6 sm:left-6">
-          <Button
-            onClick={() => setSelectedPuzzle(null)}
-            variant="ghost"
-            className="gap-2 bg-white/80 backdrop-blur-sm hover:bg-white dark:bg-slate-800/80 dark:hover:bg-slate-800"
-          >
-            <ArrowLeftIcon className="h-4 w-4" />
-            Back
-          </Button>
-        </div>
-
-        <WordGameRoot
-          location="archive_page"
-          script={script}
-          id={puzzle.id}
-          uuid={puzzle.uuid}
-          title={puzzle.title}
-          description={puzzle.description}
-          grid_data={puzzle.grid_data}
-          dims={puzzle.grid_dimensions}
-          word_list={puzzle.word_list}
-          initial_script_data={initial_script_data_q.data}
-          attachments={puzzle.attachments}
-        />
-      </div>
-    );
-  }
-
-  // Show the list view
-  return (
-    <PuzzleListView
-      puzzles={archived_puzzles}
-      onSelectPuzzle={(puzzle) => setSelectedPuzzle({ id: puzzle.id, uuid: puzzle.uuid })}
-    />
-  );
+  return <PuzzleListView puzzles={archived_puzzles} />;
 };
 
 // Component that shows the list of archived puzzles
-const PuzzleListView = ({
-  puzzles,
-  onSelectPuzzle
-}: {
-  puzzles: Props['archived_puzzles'];
-  onSelectPuzzle: (puzzle: Props['archived_puzzles'][0]) => void;
-}) => {
+const PuzzleListView = ({ puzzles }: { puzzles: Props['archived_puzzles'] }) => {
   if (puzzles.length === 0) {
     return <EmptyPuzzleList />;
   }
@@ -183,7 +108,7 @@ const PuzzleListView = ({
               animate={{ opacity: 1, y: 0 }}
               transition={{ duration: 0.4, delay: index * 0.1 }}
             >
-              <PuzzleCard puzzle={puzzle} onSelect={() => onSelectPuzzle(puzzle)} />
+              <PuzzleCard puzzle={puzzle} />
             </motion.div>
           ))}
         </div>
@@ -193,76 +118,34 @@ const PuzzleListView = ({
 };
 
 // Individual puzzle card component
-const PuzzleCard = ({
-  puzzle,
-  onSelect
-}: {
-  puzzle: Props['archived_puzzles'][0];
-  onSelect: () => void;
-}) => {
+const PuzzleCard = ({ puzzle }: { puzzle: Props['archived_puzzles'][0] }) => {
   return (
-    <motion.button
-      onClick={onSelect}
-      whileHover={{ scale: 1.02, y: -2 }}
-      whileTap={{ scale: 0.98 }}
-      className="group w-full rounded-xl border border-slate-200 bg-white p-5 shadow-lg transition-all duration-200 hover:shadow-xl dark:border-slate-700 dark:bg-slate-800"
-    >
-      <div className="flex items-start gap-4">
-        <div className="rounded-lg bg-gradient-to-r from-blue-500 to-purple-500 p-2 shadow-md group-hover:from-blue-600 group-hover:to-purple-600">
-          <IoExtensionPuzzleSharp className="h-5 w-5 text-white" />
-        </div>
-        <div className="mt-2 flex-1 text-left">
-          <span className="mb-2 h-full font-semibold text-slate-900 group-hover:text-blue-600 dark:text-slate-100 dark:group-hover:text-blue-400">
-            {puzzle.title}
-          </span>
-        </div>
-        <div className="opacity-0 transition-opacity group-hover:opacity-100">
-          <Sparkles className="h-4 w-4 text-blue-500" />
-        </div>
-      </div>
-    </motion.button>
-  );
-};
-
-// Loading skeleton component
-const PuzzleLoadingSkeleton = ({ onBack }: { onBack: () => void }) => {
-  return (
-    <div className="min-h-screen w-full bg-gradient-to-br from-slate-50 via-blue-50 to-indigo-50 dark:from-slate-900 dark:via-slate-800 dark:to-slate-900">
-      <div className="container mx-auto max-w-7xl px-4 py-8">
-        <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} className="mb-6">
-          <Button onClick={onBack} variant="ghost" className="gap-2">
-            <ArrowLeftIcon className="h-4 w-4" />
-            Back
-          </Button>
-        </motion.div>
-
-        <div className="space-y-6">
-          {/* Header skeleton */}
-          <div className="text-center">
-            <div className="mx-auto mb-4 h-12 w-32 animate-pulse rounded-xl bg-slate-200 dark:bg-slate-700"></div>
-            <div className="mx-auto h-8 w-64 animate-pulse rounded-lg bg-slate-200 dark:bg-slate-700"></div>
+    <Link href={`/padavali/archived/${puzzle.id}:${puzzle.uuid}`}>
+      <motion.button
+        whileHover={{ scale: 1.02, y: -2 }}
+        whileTap={{ scale: 0.98 }}
+        className="group w-full rounded-xl border border-slate-200 bg-white p-2 pt-4 pl-3 shadow-lg transition-all duration-200 hover:shadow-xl dark:border-slate-700 dark:bg-slate-800"
+      >
+        <div className="flex items-start">
+          <div className="rounded-lg bg-gradient-to-r from-blue-500 to-indigo-600 p-2 shadow-md group-hover:from-blue-600 group-hover:to-blue-700">
+            <IoExtensionPuzzleSharp className="size-5.5 text-white" />
           </div>
-
-          {/* Game layout skeleton */}
-          <div className="grid grid-cols-1 gap-6 lg:grid-cols-12">
-            {/* Left sidebar skeleton */}
-            <div className="lg:col-span-3">
-              <div className="h-32 w-full animate-pulse rounded-2xl bg-slate-200 dark:bg-slate-700"></div>
+          <div className="ml-3 flex-1 space-y-0.5 text-left">
+            <div className="h-full font-semibold text-slate-900 group-hover:text-blue-600 dark:text-slate-100 dark:group-hover:text-blue-400">
+              {puzzle.title}
             </div>
-
-            {/* Game grid skeleton */}
-            <div className="lg:col-span-6">
-              <div className="mx-auto h-96 w-full max-w-lg animate-pulse rounded-3xl bg-slate-200 dark:bg-slate-700"></div>
-            </div>
-
-            {/* Right sidebar skeleton */}
-            <div className="lg:col-span-3">
-              <div className="h-64 w-full animate-pulse rounded-2xl bg-slate-200 dark:bg-slate-700"></div>
-            </div>
+            {puzzle.description && (
+              <div className={cn('text-xs text-slate-600 dark:text-slate-400', 'line-clamp-1')}>
+                {puzzle.description}
+              </div>
+            )}
+          </div>
+          <div className="opacity-0 transition-opacity group-hover:opacity-100">
+            <Sparkles className="size-4 text-blue-500" />
           </div>
         </div>
-      </div>
-    </div>
+      </motion.button>
+    </Link>
   );
 };
 
