@@ -7,7 +7,7 @@
 - **State Management**: Jotai
 - **API**: tRPC for type-safe APIs
 - **Animations**: Framer Motion
-- **Deployment**: Netlify (Edge Runtime)
+- **Deployment**: Netlify/Vercel (Edge Runtime)
 
 ## 🎮 How to Play
 

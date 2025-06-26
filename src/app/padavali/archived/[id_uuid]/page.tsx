@@ -59,7 +59,7 @@ const WordGameSuspense = async ({ id, uuid }: { id: number; uuid: string }) => {
     word_puzzle_get_cached_func(id, uuid),
     get_next_schedule()
   ]);
-  if (word_puzzle && !word_puzzle.archived) return <div>Puzzle {id} is not Archived.</div>;
+  if (word_puzzle && !word_puzzle.archived) return <div>Puzzle {id} is not Archived</div>;
 
   const script = await getCachedScript();
   const word_game_msgs = await get_transliterated_word_game_msgs(script);
