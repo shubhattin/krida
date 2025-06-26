@@ -324,19 +324,19 @@ const Attachments = () => {
 
   const updateAttachment = (index: number, field: string, value: any, e: any) => {
     setAttachments((prev) => prev.map((a, i) => (i === index ? { ...a, [field]: value } : a)));
-    if (field === 'title' && lipi_lekhika_active) {
-      lekhika_typing_tool(
-        e.nativeEvent.target,
-        // @ts-ignore
-        e.nativeEvent.data,
-        BASE_SCRIPT,
-        true,
-        // @ts-ignore
-        (val) => {
-          setAttachments((prev) => prev.map((a, i) => (i === index ? { ...a, [field]: val } : a)));
-        }
-      );
-    }
+    // if (field === 'title' && lipi_lekhika_active) {
+    //   lekhika_typing_tool(
+    //     e.nativeEvent.target,
+    //     // @ts-ignore
+    //     e.nativeEvent.data,
+    //     BASE_SCRIPT,
+    //     true,
+    //     // @ts-ignore
+    //     (val) => {
+    //       setAttachments((prev) => prev.map((a, i) => (i === index ? { ...a, [field]: val } : a)));
+    //     }
+    //   );
+    // }
   };
 
   const handleDragEnd = (event: DragEndEvent) => {
