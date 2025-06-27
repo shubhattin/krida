@@ -1,6 +1,6 @@
 'use client';
 
-import { useRef, useEffect, useMemo, useContext, useState } from 'react';
+import { useRef, useEffect, useMemo, useContext, useState, lazy, Suspense } from 'react';
 import { lipi_parivartak } from '~/tools/lipi_lekhika';
 import { DEFAULT_DATA_SCRIPT, type ScriptType } from '~/state/script_list';
 import { FONT_INFO } from '~/state/script_font_data';
@@ -160,6 +160,8 @@ const CompactStopButton = ({
   );
 };
 
+const AppAuthContextMenu = lazy(() => import('~/components/app-bar/AppAuthContextMenu'));
+
 function WordGame({
   children,
   id: puzzle_id,
@@ -250,6 +252,8 @@ function WordGame({
     };
   }, [started, completed]);
 
+  const HintJSX = <span className="text-sm font-semibold tracking-wide uppercase">Hint</span>;
+
   return (
     <div
       className={cn(
@@ -284,7 +288,9 @@ function WordGame({
         {/* Header Section */}
         <div className="mb-1 space-y-1 text-center sm:mb-2 sm:space-y-1.5 md:mb-3">
           <div className="inline-flex items-center gap-2 rounded-xl bg-gradient-to-r from-yellow-600 to-orange-400 px-5 py-1 text-white shadow-lg">
-            <span className="text-sm font-semibold tracking-wide uppercase">Hint</span>
+            <Suspense fallback={HintJSX}>
+              <AppAuthContextMenu>{HintJSX}</AppAuthContextMenu>
+            </Suspense>
           </div>
           <div
             className={cn(

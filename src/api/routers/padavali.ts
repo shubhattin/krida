@@ -39,7 +39,10 @@ const update_puzzle_route = protectedAdminProcedure
 
     async function update_puzzle_attachments() {
       const current_attachments = await db.query.word_puzzle_attachments.findMany({
-        where: (tbl, { eq }) => eq(tbl.puzzle_id, puzzle_id)
+        where: (tbl, { eq }) => eq(tbl.puzzle_id, puzzle_id),
+        columns: {
+          id: true
+        }
       });
       const new_attachments = attachments
         .map((attachment, i) => ({
