@@ -4,13 +4,21 @@ import {
   ContextMenuItem,
   ContextMenuTrigger
 } from '~/components/ui/context-menu';
-import { useContext, useState } from 'react';
+import { useContext } from 'react';
 import { AppContext } from '../AppDataContext';
-import { List, LogIn, LogOut, User } from 'lucide-react';
+import { List, LogIn, LogOut, User, Calendar, Edit } from 'lucide-react';
 import Link from 'next/link';
 import { signIn, signOut } from '~/lib/auth-client';
 
-const AppAuthContextMenu = ({ children }: { children: React.ReactNode }) => {
+const AppAuthContextMenu = ({
+  children,
+  id,
+  uuid
+}: {
+  children: React.ReactNode;
+  id: number;
+  uuid: string;
+}) => {
   const { user_info } = useContext(AppContext);
 
   return (
@@ -30,20 +38,52 @@ const AppAuthContextMenu = ({ children }: { children: React.ReactNode }) => {
 
             {/* Admin Actions */}
             {user_info.role === 'admin' && user_info.is_approved && (
-              <ContextMenuItem className="flex items-start justify-start gap-2" asChild>
-                <Link
-                  href="/padavali/list"
-                  className="gap-3 rounded-lg border border-slate-200 bg-slate-50 text-sm text-slate-700 transition-all duration-200 hover:scale-[1.02] hover:border-slate-300 hover:bg-slate-100 active:scale-[0.98] dark:border-slate-700 dark:bg-slate-800/50 dark:text-slate-300 dark:hover:border-slate-600 dark:hover:bg-slate-700/50"
-                >
-                  <div className="flex h-8 w-8 items-center justify-center rounded-lg bg-gradient-to-br from-purple-500 to-violet-600">
-                    <List className="h-4 w-4 text-white" />
-                  </div>
-                  <div>
-                    <div className="font-medium">सूची</div>
-                    <div className="text-xs text-slate-500 dark:text-slate-400">Admin panel</div>
-                  </div>
-                </Link>
-              </ContextMenuItem>
+              <>
+                <ContextMenuItem className="flex items-start justify-start gap-2" asChild>
+                  <Link
+                    href={`/padavali/edit/${id}`}
+                    className="gap-3 rounded-lg border border-slate-200 bg-slate-50 text-sm text-slate-700 transition-all duration-200 hover:scale-[1.02] hover:border-slate-300 hover:bg-slate-100 active:scale-[0.98] dark:border-slate-700 dark:bg-slate-800/50 dark:text-slate-300 dark:hover:border-slate-600 dark:hover:bg-slate-700/50"
+                  >
+                    <div className="flex h-8 w-8 items-center justify-center rounded-lg bg-gradient-to-br from-orange-500 to-amber-600">
+                      <Edit className="h-4 w-4 text-white" />
+                    </div>
+                    <div>
+                      <div className="font-medium">सम्पादनम्</div>
+                      <div className="text-xs text-slate-500 dark:text-slate-400">
+                        Edit/View Stats
+                      </div>
+                    </div>
+                  </Link>
+                </ContextMenuItem>
+                <ContextMenuItem className="flex items-start justify-start gap-2" asChild>
+                  <Link
+                    href="/padavali/list"
+                    className="gap-3 rounded-lg border border-slate-200 bg-slate-50 text-sm text-slate-700 transition-all duration-200 hover:scale-[1.02] hover:border-slate-300 hover:bg-slate-100 active:scale-[0.98] dark:border-slate-700 dark:bg-slate-800/50 dark:text-slate-300 dark:hover:border-slate-600 dark:hover:bg-slate-700/50"
+                  >
+                    <div className="flex h-8 w-8 items-center justify-center rounded-lg bg-gradient-to-br from-purple-500 to-violet-600">
+                      <List className="h-4 w-4 text-white" />
+                    </div>
+                    <div>
+                      <div className="font-medium">सूची</div>
+                      <div className="text-xs text-slate-500 dark:text-slate-400">Admin panel</div>
+                    </div>
+                  </Link>
+                </ContextMenuItem>
+                <ContextMenuItem className="flex items-start justify-start gap-2" asChild>
+                  <Link
+                    href="/padavali/schedules"
+                    className="gap-3 rounded-lg border border-slate-200 bg-slate-50 text-sm text-slate-700 transition-all duration-200 hover:scale-[1.02] hover:border-slate-300 hover:bg-slate-100 active:scale-[0.98] dark:border-slate-700 dark:bg-slate-800/50 dark:text-slate-300 dark:hover:border-slate-600 dark:hover:bg-slate-700/50"
+                  >
+                    <div className="flex h-8 w-8 items-center justify-center rounded-lg bg-gradient-to-br from-emerald-500 to-teal-600">
+                      <Calendar className="h-4 w-4 text-white" />
+                    </div>
+                    <div>
+                      <div className="font-medium">कार्यक्रमसूची</div>
+                      <div className="text-xs text-slate-500 dark:text-slate-400">Schedules</div>
+                    </div>
+                  </Link>
+                </ContextMenuItem>
+              </>
             )}
 
             {/* Profile */}
@@ -65,7 +105,13 @@ const AppAuthContextMenu = ({ children }: { children: React.ReactNode }) => {
             </ContextMenuItem>
 
             {/* Sign Out */}
-            <ContextMenuItem className="flex items-start justify-start gap-2" asChild>
+            <ContextMenuItem
+              className="flex items-start justify-start gap-2"
+              asChild
+              onClick={() => {
+                signOut();
+              }}
+            >
               <button className="flex w-full items-center gap-3 rounded-lg border border-red-200 bg-red-50 p-3 text-left text-sm font-medium text-red-700 transition-all duration-200 hover:scale-[1.02] hover:border-red-300 hover:bg-red-100 active:scale-[0.98] dark:border-red-800 dark:bg-red-950/30 dark:text-red-300 dark:hover:border-red-700 dark:hover:bg-red-900/30">
                 <div className="flex h-8 w-8 items-center justify-center rounded-lg bg-gradient-to-br from-red-500 to-rose-600">
                   <LogOut className="h-4 w-4 text-white" />
