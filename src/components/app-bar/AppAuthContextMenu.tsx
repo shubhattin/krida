@@ -65,7 +65,9 @@ const AppAuthContextMenu = ({
                     </div>
                     <div>
                       <div className="font-medium">सूची</div>
-                      <div className="text-xs text-slate-500 dark:text-slate-400">Admin panel</div>
+                      <div className="text-xs text-slate-500 dark:text-slate-400">
+                        Padavali List
+                      </div>
                     </div>
                   </Link>
                 </ContextMenuItem>
