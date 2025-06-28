@@ -11,7 +11,7 @@ export default function AppBar({ title }: { title: string }) {
           <div
             className="flex h-12 w-12 items-center justify-center shadow-lg"
             style={{
-              backgroundImage: "url('/img/icon_128.png')",
+              backgroundImage: "url('/img/icon_128_no_pad.png')",
               backgroundSize: 'cover',
               backgroundPosition: 'center'
             }}
