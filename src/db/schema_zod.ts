@@ -12,7 +12,8 @@ import { script_list_enum } from '~/state/script_list';
 
 export const WordPuzzleSchemaZod = createSelectSchema(word_puzzles, {
   created_at: z.coerce.date(),
-  updated_at: z.coerce.date().optional()
+  updated_at: z.coerce.date().optional(),
+  last_archived_at: z.coerce.date().optional().nullable()
 });
 
 export const PuzzleGamePlayStatsSchemaZod = createSelectSchema(puzzle_gameplay_stats, {

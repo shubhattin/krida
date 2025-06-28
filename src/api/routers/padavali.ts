@@ -7,12 +7,7 @@ import { revalidatePath } from 'next/cache';
 import { padavali_stats_router } from './padavali_stats';
 import { redis, REDIS_CACHE_KEYS } from '~/db/redis';
 import { get_word_puzzle, type CurrentScheduleType } from '~/db/db_cache_data';
-import {
-  attachment_schema,
-  puzzle_add_input_schema,
-  puzzle_schema,
-  puzzle_update_input_schema
-} from '~/db/db_shared_vals';
+import { puzzle_add_input_schema, puzzle_update_input_schema } from '~/db/db_shared_vals';
 
 const puzzle_in_current_schedule = async (id: number, uuid: string) => {
   const cache = await redis.get<CurrentScheduleType | string>(REDIS_CACHE_KEYS.current_schedule());
@@ -27,14 +22,12 @@ const update_puzzle_route = protectedAdminProcedure
   .input(puzzle_update_input_schema)
   .mutation(async ({ input: { puzzle_id, puzzle_data, puzzle_uuid } }) => {
     revalidatePath('/padavali/list');
-    const prev_archived = !puzzle_data.archived
-      ? (await db.query.word_puzzles.findFirst({
-          columns: {
-            archived: true
-          },
-          where: (tbl, { eq }) => eq(tbl.id, puzzle_id)
-        }))!.archived
-      : false;
+    const prev_archived = (await db.query.word_puzzles.findFirst({
+      columns: {
+        archived: true
+      },
+      where: (tbl, { eq }) => eq(tbl.id, puzzle_id)
+    }))!.archived;
     const { attachments, ...puzzle_data_rest } = puzzle_data;
 
     async function update_puzzle_attachments() {
@@ -117,6 +110,12 @@ const update_puzzle_route = protectedAdminProcedure
         .set(puzzle_data_rest)
         .where(and(eq(word_puzzles.id, puzzle_id), eq(word_puzzles.uuid, puzzle_uuid))),
       update_puzzle_attachments(),
+      !prev_archived &&
+        puzzle_data.archived &&
+        db
+          .update(word_puzzles)
+          .set({ last_archived_at: new Date() })
+          .where(and(eq(word_puzzles.id, puzzle_id), eq(word_puzzles.uuid, puzzle_uuid))),
       (puzzle_data.archived || prev_archived !== puzzle_data.archived) &&
         redis.del(REDIS_CACHE_KEYS.archived_puzzle_list()),
       redis.del(REDIS_CACHE_KEYS.word_puzzle(puzzle_id, puzzle_uuid)),
@@ -135,7 +134,13 @@ const add_puzzle_route = protectedAdminProcedure
     revalidatePath('/padavali/list');
     const { attachments, ...puzzle_data_rest } = input;
     const [info] = await Promise.all([
-      db.insert(word_puzzles).values(puzzle_data_rest).returning(),
+      db
+        .insert(word_puzzles)
+        .values({
+          ...puzzle_data_rest,
+          ...(puzzle_data_rest.archived ? { last_archived_at: new Date() } : {})
+        })
+        .returning(),
       // only invalidate list when puzzle is archived
       input.archived && redis.del(REDIS_CACHE_KEYS.archived_puzzle_list())
     ]);

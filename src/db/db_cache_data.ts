@@ -3,6 +3,7 @@ import { db } from '~/db/db';
 import { redis, REDIS_CACHE_KEYS } from '~/db/redis';
 import { puzzle_schema } from './db_shared_vals';
 import { z } from 'zod';
+import { sql } from 'drizzle-orm';
 
 type PuzzleType = z.infer<typeof puzzle_schema>;
 
@@ -142,7 +143,11 @@ export const get_archived_puzzles = async () => {
       description: true
     },
     where: ({ archived }, { eq }) => eq(archived, true),
-    orderBy: ({ created_at }, { desc }) => desc(created_at)
+    orderBy: ({ created_at, last_archived_at }, { desc }) => [
+      desc(sql`COALESCE(${last_archived_at}, '1970-01-01'::timestamp with time zone)`),
+      desc(created_at)
+      // fallback behaviour to created_at as `last_archived_at` was added later and can be null
+    ]
   });
 
   // setting cache

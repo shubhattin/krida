@@ -1,0 +1,2 @@
+ALTER TABLE "word_puzzles" ADD COLUMN "last_archived_at" timestamp with time zone;--> statement-breakpoint
+CREATE INDEX "word_puzzles_archived_last_archived_at_idx" ON "word_puzzles" USING btree ("archived","last_archived_at");

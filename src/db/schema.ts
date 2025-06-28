@@ -30,11 +30,13 @@ export const word_puzzles = pgTable(
     word_list: jsonb().notNull().$type<string[]>(),
     grid_data: jsonb().notNull().$type<string[][]>(),
     grid_dimensions: jsonb().notNull().$type<[number, number]>(),
-    archived: boolean().notNull().default(false)
+    archived: boolean().notNull().default(false),
+    last_archived_at: timestamp({ withTimezone: true })
   },
   (table) => [
     uniqueIndex('word_puzzles_uuid_idx').on(table.uuid),
-    index('word_puzzles_archived_created_at_idx').on(table.archived, table.created_at)
+    index('word_puzzles_archived_created_at_idx').on(table.archived, table.created_at),
+    index('word_puzzles_archived_last_archived_at_idx').on(table.archived, table.last_archived_at)
   ]
 );
 
