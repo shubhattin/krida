@@ -5,7 +5,7 @@ import { robotoSans, notoSansDevanagari } from '@/components/fonts';
 import { cn } from '@/lib/utils';
 import { Toaster } from '@/components/ui/sonner';
 import { Metadata } from 'next';
-import PosthogInit from '~/components/PosthogInit';
+import PosthogInit from '~/components/tags/PosthogInit';
 
 export default async function RootLayout({
   children

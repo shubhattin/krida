@@ -4,6 +4,7 @@ import { Metadata } from 'next';
 import { lipi_parivartak } from '~/tools/lipi_lekhika';
 import { getCachedScript } from '~/lib/cache_server_route_data';
 import { get_archived_puzzles } from '~/db/db_cache_data';
+import { getMetadata } from '~/components/tags/getPageMetaTags';
 
 const ArchivedPage = async () => {
   const archived_puzzles = await get_archived_puzzles();
@@ -32,6 +33,8 @@ const ArchivedPage = async () => {
 export default ArchivedPage;
 
 export const metadata: Metadata = {
-  title: 'Archived Puzzles',
-  description: 'Play Previous Padavali Word Game Puzzles'
+  ...getMetadata({
+    title: 'Archived Puzzles',
+    description: 'Play Previous Padavali Word Game Puzzles'
+  })
 };

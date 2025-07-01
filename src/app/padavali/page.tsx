@@ -11,6 +11,7 @@ import dayjs from 'dayjs';
 import relativeTime from 'dayjs/plugin/relativeTime';
 import { get_current_schedule, get_next_schedule } from '~/db/db_cache_data';
 import { NextPuzzleTimePopup } from '~/components/pages/main/WordGame/WordGameRoot';
+import { getMetadata } from '~/components/tags/getPageMetaTags';
 
 dayjs.extend(relativeTime);
 
@@ -135,8 +136,12 @@ export default async function Home() {
 }
 
 export const metadata: Metadata = {
-  title: 'पदावली',
-  description:
-    'Padavali is a fun, interactive Sanskrit Puzzle that tests your creativity, expands your vocabulary, ' +
-    'and lets you challenge your friends to try and beat your score.'
+  ...getMetadata({
+    title: 'पदावली',
+    description:
+      'Padavali is a fun, interactive Sanskrit Puzzle that tests your creativity, expands your vocabulary, ' +
+      'and lets you challenge your friends to try and beat your score.'
+  }),
+  keywords:
+    'Sanskrit, learning, games, Padavali, word puzzle, Devanagari, Telugu, Kannada, Gujarati, Bengali, Odia, Indian scripts'
 };

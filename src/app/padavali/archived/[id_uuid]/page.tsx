@@ -9,6 +9,7 @@ import { getCachedScript } from '~/lib/cache_server_route_data';
 import { get_next_schedule, get_word_puzzle } from '~/db/db_cache_data';
 import { cache, Suspense } from 'react';
 import { ArrowLeftIcon } from 'lucide-react';
+import { getMetadata } from '~/components/tags/getPageMetaTags';
 
 type Props = { params: Promise<{ id_uuid: string }> };
 
@@ -22,10 +23,13 @@ export async function generateMetadata({ params }: Props): Promise<Metadata> {
   const word_puzzle = await word_puzzle_get_cached_func(id, uuid);
 
   return {
-    title:
-      word_puzzle && word_puzzle.archived
-        ? word_puzzle.title + ' - Archiived Puzzle | पदावली'
-        : 'Not Found'
+    ...getMetadata({
+      title:
+        word_puzzle && word_puzzle.archived
+          ? word_puzzle.title + ' - Archiived Puzzle | पदावली'
+          : 'Not Found',
+      description: word_puzzle ? word_puzzle.description : null
+    })
   };
 }
 

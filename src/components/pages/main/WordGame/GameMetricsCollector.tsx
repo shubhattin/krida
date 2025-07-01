@@ -12,7 +12,7 @@ import {
 import { location_list_type } from '~/db/types';
 import TurnstileWidget from '~/components/Turnstile';
 import { AppContext } from '~/components/AppDataContext';
-import { load_posthog } from '~/components/PosthogInit';
+import { load_posthog } from '~/components/tags/PosthogInit';
 
 const GameMetricsCollector = ({
   puzzle_id,

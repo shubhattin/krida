@@ -9,7 +9,7 @@ import {
 import Cookies from 'js-cookie';
 import { cn } from '~/lib/utils';
 import { useEffect } from 'react';
-import { load_posthog } from '~/components/PosthogInit';
+import { load_posthog } from '~/components/tags/PosthogInit';
 
 type Props = {
   script: ScriptType;
