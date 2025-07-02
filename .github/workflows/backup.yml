@@ -31,7 +31,7 @@ jobs:
         with:
           postgresql-version: 16
 
-      - name: Load Translations and DB Dump
+      - name: Load Data and DB Dump
         run: |
           cd src/db/scripts/
           npx tsx backup_db_data.ts
