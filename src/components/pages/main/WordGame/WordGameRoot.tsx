@@ -298,6 +298,7 @@ function WordGame({
           </Suspense>
           <div
             className={cn(
+              'mt-1 sm:mt-1.5 md:mt-2',
               'bg-gradient-to-r from-slate-800 to-slate-600 bg-clip-text py-1 text-2xl font-bold sm:text-3xl md:text-4xl dark:from-slate-100 dark:to-slate-300',
               font_info.className
             )}
