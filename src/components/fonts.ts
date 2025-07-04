@@ -8,7 +8,12 @@ import {
   Noto_Sans_Oriya,
   Noto_Sans_Tamil,
   Noto_Sans_Malayalam,
-  Noto_Sans_Gurmukhi
+  Noto_Sans_Gurmukhi,
+  Noto_Sans_Brahmi,
+  Noto_Sans_Siddham,
+  Noto_Sans_Sinhala,
+  Noto_Sans_Sharada,
+  Noto_Sans_Grantha
 } from 'next/font/google';
 
 export const robotoSans = Roboto({
@@ -69,4 +74,36 @@ export const notoSansGurumukhi = Noto_Sans_Gurmukhi({
   variable: '--font-noto-sans-gurumukhi',
   subsets: ['gurmukhi'],
   weight: ['400', '500', '700']
+});
+
+export const notoSansSinhala = Noto_Sans_Sinhala({
+  variable: '--font-noto-sans-sinhala',
+  subsets: ['sinhala'],
+  weight: ['400', '500', '700']
+});
+
+// Ancient Scripts
+
+export const notoSansBrahmi = Noto_Sans_Brahmi({
+  variable: '--font-noto-sans-brahmi',
+  subsets: ['brahmi'],
+  weight: ['400']
+});
+
+export const notoSansSiddham = Noto_Sans_Siddham({
+  variable: '--font-noto-sans-siddham',
+  subsets: ['siddham'],
+  weight: ['400']
+});
+
+export const notoSansSharada = Noto_Sans_Sharada({
+  variable: '--font-noto-sans-sharada',
+  subsets: ['sharada'],
+  weight: ['400']
+});
+
+export const notoSansGrantha = Noto_Sans_Grantha({
+  variable: '--font-noto-sans-grantha',
+  subsets: ['grantha'],
+  weight: ['400']
 });

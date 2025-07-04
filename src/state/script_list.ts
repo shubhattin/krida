@@ -1,6 +1,6 @@
 import { z } from 'zod';
 
-export const SCRIPT_LIST = [
+export const SCRIPT_LIST_MAIN = [
   'Devanagari',
   'Telugu',
   'Kannada',
@@ -11,8 +11,14 @@ export const SCRIPT_LIST = [
   'Tamil-Extended',
   'Assamese',
   'Gurumukhi',
+  'Sinhala',
   'Romanized'
 ] as const;
+
+export const SCRIPT_LIST_ANCIENT = ['Brahmi', 'Granth', 'Siddham', 'Sharada'] as const;
+
+export const SCRIPT_LIST = [...SCRIPT_LIST_MAIN, ...SCRIPT_LIST_ANCIENT] as const;
+
 export type ScriptType = (typeof SCRIPT_LIST)[number];
 
 export const SCRIPT_NAMES: Record<ScriptType, string> = {
@@ -26,7 +32,12 @@ export const SCRIPT_NAMES: Record<ScriptType, string> = {
   Assamese: 'Assamese',
   'Tamil-Extended': 'Tamil',
   Romanized: 'Romanized',
-  Gurumukhi: 'Gurumukhi'
+  Gurumukhi: 'Gurumukhi',
+  Brahmi: 'Brahmi',
+  Siddham: 'Siddham',
+  Sinhala: 'Sinhala',
+  Sharada: 'Sharada',
+  Granth: 'Grantha'
 };
 export const script_list_enum = z.enum(SCRIPT_LIST);
 

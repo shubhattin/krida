@@ -3,6 +3,8 @@
 import {
   SCRIPT_DATA_COOKIE_KEY,
   SCRIPT_LIST,
+  SCRIPT_LIST_ANCIENT,
+  SCRIPT_LIST_MAIN,
   SCRIPT_NAMES,
   type ScriptType
 } from '~/state/script_list';
@@ -39,7 +41,7 @@ export const ScriptSelector = ({ script, onScriptChange }: Props) => {
           });
         }}
       >
-        {SCRIPT_LIST.map((s) => (
+        {SCRIPT_LIST_MAIN.map((s) => (
           <option
             key={s}
             value={s}
@@ -52,6 +54,13 @@ export const ScriptSelector = ({ script, onScriptChange }: Props) => {
             {SCRIPT_NAMES[s as ScriptType]}
           </option>
         ))}
+        <optgroup label="Ancient Scripts">
+          {SCRIPT_LIST_ANCIENT.map((s) => (
+            <option key={s} value={s}>
+              {SCRIPT_NAMES[s as ScriptType]}
+            </option>
+          ))}
+        </optgroup>
       </select>
     </>
   );

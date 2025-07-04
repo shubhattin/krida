@@ -1,4 +1,3 @@
-import { z } from 'zod';
 import {
   notoSansDevanagari,
   notoSansKannada,
@@ -9,7 +8,12 @@ import {
   notoSansTamil,
   notoSansMalayalam,
   robotoSans,
-  notoSansGurumukhi
+  notoSansGurumukhi,
+  notoSansBrahmi,
+  notoSansSinhala,
+  notoSansSiddham,
+  notoSansSharada,
+  notoSansGrantha
 } from '~/components/fonts';
 import { SCRIPT_LIST, ScriptType, DEFAULT_DATA_SCRIPT } from './script_list';
 
@@ -70,5 +74,30 @@ export const FONT_INFO: Record<
   Gurumukhi: {
     className: notoSansGurumukhi.className,
     fontSize: 1.12
+  },
+  Sinhala: {
+    className: notoSansSinhala.className,
+    fontSize: 1.09
+  },
+  // Ancient Scripts
+  Brahmi: {
+    className: notoSansBrahmi.className,
+    fontSize: 1.15,
+    experimental: true
+  },
+  Siddham: {
+    className: notoSansSiddham.className,
+    fontSize: 1.15,
+    experimental: true
+  },
+  Sharada: {
+    className: notoSansSharada.className,
+    fontSize: 1.15,
+    experimental: true
+  },
+  Granth: {
+    className: notoSansGrantha.className,
+    fontSize: 0.82,
+    experimental: true
   }
 };
