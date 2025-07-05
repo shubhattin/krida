@@ -77,7 +77,7 @@ export const FONT_INFO: Record<
   },
   Sinhala: {
     className: notoSansSinhala.className,
-    fontSize: 1.09
+    fontSize: 1.02
   },
   // Ancient Scripts
   Brahmi: {
