@@ -9,11 +9,11 @@ import {
   notoSansMalayalam,
   robotoSans,
   notoSansGurumukhi,
-  notoSansBrahmi,
   notoSansSinhala,
   notoSansSiddham,
   notoSansSharada,
-  notoSansGrantha
+  notoSansGrantha,
+  segoiUIHistoric
 } from '~/components/fonts';
 import { SCRIPT_LIST, ScriptType, DEFAULT_DATA_SCRIPT } from './script_list';
 
@@ -81,7 +81,7 @@ export const FONT_INFO: Record<
   },
   // Ancient Scripts
   Brahmi: {
-    className: notoSansBrahmi.className,
+    className: segoiUIHistoric.className,
     fontSize: 1.15,
     experimental: true
   },

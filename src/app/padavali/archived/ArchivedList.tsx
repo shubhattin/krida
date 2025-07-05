@@ -14,6 +14,7 @@ import Icon from '~/tools/Icon';
 import { LanguageIcon } from '~/components/icons';
 import { AppContext } from '~/components/AppDataContext';
 import { cn } from '~/lib/utils';
+import { FONT_INFO } from '~/state/script_font_data';
 
 type Props = {
   archived_puzzles: { id: number; uuid: string; title: string; description: string | null }[];
@@ -61,6 +62,7 @@ const PuzzleListView = ({ puzzles }: { puzzles: Props['archived_puzzles'] }) => 
   }
 
   const { script, setScript } = useContext(AppContext);
+  const font_info = FONT_INFO[script!];
 
   return (
     <div className="min-h-screen w-full bg-gradient-to-br from-slate-50 via-blue-50 to-indigo-50 dark:from-slate-900 dark:via-slate-800 dark:to-slate-900">
@@ -95,9 +97,14 @@ const PuzzleListView = ({ puzzles }: { puzzles: Props['archived_puzzles'] }) => 
             Archived Puzzles
           </h1>
           <p className="text-slate-600 dark:text-slate-400">Play Previous Puzzles</p>
-          <div className="mt-2 flex items-start justify-center gap-2 sm:mt-3">
+          <div className="mt-2 flex items-center justify-center gap-2 sm:mt-3">
             <Icon className="size-7" src={LanguageIcon} />
             <ScriptSelector script={script} onScriptChange={setScript} />
+            {font_info.experimental && (
+              <span className="inline-flex items-center rounded-full bg-orange-100 px-1 py-0.5 text-xs font-medium text-orange-800 dark:bg-orange-900/20 dark:text-orange-400">
+                Beta
+              </span>
+            )}
           </div>
         </motion.div>
         <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
@@ -119,6 +126,9 @@ const PuzzleListView = ({ puzzles }: { puzzles: Props['archived_puzzles'] }) => 
 
 // Individual puzzle card component
 const PuzzleCard = ({ puzzle }: { puzzle: Props['archived_puzzles'][0] }) => {
+  const { script } = useContext(AppContext);
+  const font_info = FONT_INFO[script!];
+
   return (
     <Link href={`/padavali/archived/${puzzle.id}:${puzzle.uuid}`}>
       <motion.button
@@ -131,11 +141,22 @@ const PuzzleCard = ({ puzzle }: { puzzle: Props['archived_puzzles'][0] }) => {
             <IoExtensionPuzzleSharp className="size-5.5 text-white" />
           </div>
           <div className="ml-3 flex-1 space-y-0.5 text-left">
-            <div className="h-full font-semibold text-slate-900 group-hover:text-blue-600 dark:text-slate-100 dark:group-hover:text-blue-400">
+            <div
+              className={cn(
+                'h-full font-semibold text-slate-900 group-hover:text-blue-600 dark:text-slate-100 dark:group-hover:text-blue-400',
+                font_info.className
+              )}
+            >
               {puzzle.title}
             </div>
             {puzzle.description && (
-              <div className={cn('text-xs text-slate-600 dark:text-slate-400', 'line-clamp-1')}>
+              <div
+                className={cn(
+                  'text-xs text-slate-600 dark:text-slate-400',
+                  'line-clamp-1',
+                  font_info.className
+                )}
+              >
                 {puzzle.description}
               </div>
             )}

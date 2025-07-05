@@ -15,6 +15,7 @@ import {
   Noto_Sans_Sharada,
   Noto_Sans_Grantha
 } from 'next/font/google';
+import localFont from 'next/font/local';
 
 export const robotoSans = Roboto({
   variable: '--font-roboto-sans',
@@ -106,4 +107,16 @@ export const notoSansGrantha = Noto_Sans_Grantha({
   variable: '--font-noto-sans-grantha',
   subsets: ['grantha'],
   weight: ['400']
+});
+
+export const segoiUIHistoric = localFont({
+  src: [
+    {
+      path: '../fonts/variable/woff2/SegoiUIHistoric.woff2',
+      weight: '100 900',
+      style: 'normal'
+    }
+  ],
+  variable: '--font-segoi-ui-historic',
+  display: 'swap'
 });
