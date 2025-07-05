@@ -83,7 +83,7 @@ export const FONT_INFO: Record<
   Brahmi: {
     className: segoiUIHistoric.className,
     fontSize: 1.15,
-    experimental: true
+    experimental: false
   },
   Siddham: {
     className: notoSansSiddham.className,
