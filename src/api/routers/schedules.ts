@@ -120,7 +120,9 @@ const update_puzzle_schedule_route = protectedAdminProcedure
             eq(puzzle_game_schedules.id, schedule_id),
             eq(puzzle_game_schedules.puzzle_id, puzzle_id)
           )
-        ),
+        )
+    ]);
+    await Promise.allSettled([
       publishScheduleArchivalQueue(
         {
           puzzle_id,
@@ -128,9 +130,7 @@ const update_puzzle_schedule_route = protectedAdminProcedure
           archival_verify_key
         },
         (end_time.getTime() - new Date().getTime()) / 1000 - 1 // delay
-      )
-    ]);
-    await Promise.allSettled([
+      ),
       // invalidate cache
       redis.del(REDIS_CACHE_KEYS.current_schedule()),
       redis.del(REDIS_CACHE_KEYS.next_schedule())

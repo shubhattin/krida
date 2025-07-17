@@ -6,6 +6,8 @@ on:
 env:
   NEXT_PUBLIC_BETTER_AUTH_URL: http://localhost:3000
   PG_DATABASE_URL: postgresql://postgres:postgres@localhost:5432/postgres
+  QSTASH_TOKEN: 1234567890
+  QSTASH_CURRENT_SIGNING_KEY: 1234567890
 
 jobs:
   type_build_check:
