@@ -59,8 +59,8 @@ const add_puzzle_schedule_route = protectedAdminProcedure
       })
       .returning();
 
-    const [schedule] = await Promise.all([
-      schedule_pr,
+    const [schedule] = await Promise.all([schedule_pr]);
+    await Promise.allSettled([
       // invalidate cache
       redis.del(REDIS_CACHE_KEYS.current_schedule()),
       redis.del(REDIS_CACHE_KEYS.next_schedule())
@@ -87,7 +87,9 @@ const delete_puzzle_schedule_route = protectedAdminProcedure
     revalidatePath('/padavali/schedules');
 
     await Promise.allSettled([
-      db.delete(puzzle_game_schedules).where(eq(puzzle_game_schedules.id, schedule_id)),
+      db.delete(puzzle_game_schedules).where(eq(puzzle_game_schedules.id, schedule_id))
+    ]);
+    await Promise.allSettled([
       // invalidate cache
       redis.del(REDIS_CACHE_KEYS.current_schedule()),
       redis.del(REDIS_CACHE_KEYS.next_schedule())
@@ -119,9 +121,6 @@ const update_puzzle_schedule_route = protectedAdminProcedure
             eq(puzzle_game_schedules.puzzle_id, puzzle_id)
           )
         ),
-      // invalidate cache
-      redis.del(REDIS_CACHE_KEYS.current_schedule()),
-      redis.del(REDIS_CACHE_KEYS.next_schedule()),
       publishScheduleArchivalQueue(
         {
           puzzle_id,
@@ -130,6 +129,11 @@ const update_puzzle_schedule_route = protectedAdminProcedure
         },
         (end_time.getTime() - new Date().getTime()) / 1000 - 1 // delay
       )
+    ]);
+    await Promise.allSettled([
+      // invalidate cache
+      redis.del(REDIS_CACHE_KEYS.current_schedule()),
+      redis.del(REDIS_CACHE_KEYS.next_schedule())
     ]);
 
     return { success: true };
