@@ -64,6 +64,13 @@
       "when": 1751086534339,
       "tag": "0008_clammy_hydra",
       "breakpoints": true
+    },
+    {
+      "idx": 9,
+      "version": "7",
+      "when": 1752748136977,
+      "tag": "0009_clear_white_queen",
+      "breakpoints": true
     }
   ]
 }
