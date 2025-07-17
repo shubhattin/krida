@@ -8,6 +8,8 @@ env:
   PG_DATABASE_URL: postgresql://postgres:postgres@localhost:5432/postgres
   QSTASH_TOKEN: 1234567890
   QSTASH_CURRENT_SIGNING_KEY: 1234567890
+  UPSTASH_REDIS_REST_URL: http://localhost:8080
+  UPSTASH_REDIS_REST_TOKEN: 1234567890
 
 jobs:
   type_build_check:
