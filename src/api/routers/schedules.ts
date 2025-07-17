@@ -3,9 +3,11 @@ import { z } from 'zod';
 import { db } from '~/db/db';
 import { puzzle_game_schedules } from '~/db/schema';
 import { revalidatePath } from 'next/cache';
-import { eq } from 'drizzle-orm';
+import { and, eq } from 'drizzle-orm';
 import { delay } from '~/tools/delay';
 import { redis, REDIS_CACHE_KEYS } from '~/db/redis';
+import { publishScheduleArchivalQueue } from '~/lib/qstash';
+import { generateRandomAlphanumeric } from '~/tools/kry';
 
 const add_puzzle_schedule_route = protectedAdminProcedure
   .input(
@@ -46,12 +48,14 @@ const add_puzzle_schedule_route = protectedAdminProcedure
     }
 
     revalidatePath('/padavali/schedules');
+    const archival_verify_key = generateRandomAlphanumeric(32);
     const schedule_pr = db
       .insert(puzzle_game_schedules)
       .values({
         puzzle_id,
         start_time,
-        end_time
+        end_time,
+        archival_verify_key
       })
       .returning();
 
@@ -61,6 +65,15 @@ const add_puzzle_schedule_route = protectedAdminProcedure
       redis.del(REDIS_CACHE_KEYS.current_schedule()),
       redis.del(REDIS_CACHE_KEYS.next_schedule())
     ]);
+
+    await publishScheduleArchivalQueue(
+      {
+        puzzle_id,
+        schedule_id: schedule[0].id,
+        archival_verify_key
+      },
+      (schedule[0].end_time.getTime() - new Date().getTime()) / 1000 - 1 // delay
+    );
 
     return {
       success: true,
@@ -87,21 +100,36 @@ const update_puzzle_schedule_route = protectedAdminProcedure
   .input(
     z.object({
       schedule_id: z.number().int(),
+      puzzle_id: z.number().int(),
       start_time: z.coerce.date(),
       end_time: z.coerce.date()
     })
   )
-  .mutation(async ({ input: { schedule_id, start_time, end_time } }) => {
+  .mutation(async ({ input: { schedule_id, puzzle_id, start_time, end_time } }) => {
     revalidatePath('/padavali/schedules');
 
+    const archival_verify_key = generateRandomAlphanumeric(32);
     await Promise.allSettled([
       db
         .update(puzzle_game_schedules)
-        .set({ start_time, end_time })
-        .where(eq(puzzle_game_schedules.id, schedule_id)),
+        .set({ start_time, end_time, archival_verify_key })
+        .where(
+          and(
+            eq(puzzle_game_schedules.id, schedule_id),
+            eq(puzzle_game_schedules.puzzle_id, puzzle_id)
+          )
+        ),
       // invalidate cache
       redis.del(REDIS_CACHE_KEYS.current_schedule()),
-      redis.del(REDIS_CACHE_KEYS.next_schedule())
+      redis.del(REDIS_CACHE_KEYS.next_schedule()),
+      publishScheduleArchivalQueue(
+        {
+          puzzle_id,
+          schedule_id,
+          archival_verify_key
+        },
+        (end_time.getTime() - new Date().getTime()) / 1000 - 1 // delay
+      )
     ]);
 
     return { success: true };
