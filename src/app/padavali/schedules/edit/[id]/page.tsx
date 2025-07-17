@@ -20,7 +20,8 @@ const Main = async ({ params }: Props) => {
     with: {
       puzzle: {
         columns: {
-          title: true
+          title: true,
+          id: true
         }
       }
     }
@@ -64,6 +65,7 @@ const Main = async ({ params }: Props) => {
         }}
         schedule_id={schedule_id}
         puzzle_title={schedule.puzzle.title}
+        puzzle_id={schedule.puzzle.id}
       />
     </div>
   );

@@ -48,6 +48,7 @@ type Props =
       type: 'edit';
       puzzle_title: string;
       schedule_id: number;
+      puzzle_id: number;
     };
 
 const AddSchedule = (props: Props) => {
@@ -119,6 +120,7 @@ const AddSchedule = (props: Props) => {
     }
     update_schedule_mut.mutate({
       schedule_id: props.schedule_id,
+      puzzle_id: props.puzzle_id,
       start_time: startDate,
       end_time: endDate
     });

@@ -115,7 +115,10 @@ const update_puzzle_route = protectedAdminProcedure
         db
           .update(word_puzzles)
           .set({ last_archived_at: new Date() })
-          .where(and(eq(word_puzzles.id, puzzle_id), eq(word_puzzles.uuid, puzzle_uuid))),
+          .where(and(eq(word_puzzles.id, puzzle_id), eq(word_puzzles.uuid, puzzle_uuid)))
+    ]);
+    // cache invalidation later
+    await Promise.allSettled([
       (puzzle_data.archived || prev_archived !== puzzle_data.archived) &&
         redis.del(REDIS_CACHE_KEYS.archived_puzzle_list()),
       redis.del(REDIS_CACHE_KEYS.word_puzzle(puzzle_id, puzzle_uuid)),
@@ -140,10 +143,10 @@ const add_puzzle_route = protectedAdminProcedure
           ...puzzle_data_rest,
           ...(puzzle_data_rest.archived ? { last_archived_at: new Date() } : {})
         })
-        .returning(),
-      // only invalidate list when puzzle is archived
-      input.archived && redis.del(REDIS_CACHE_KEYS.archived_puzzle_list())
+        .returning()
     ]);
+    // only invalidate list when puzzle is archived
+    input.archived && (await redis.del(REDIS_CACHE_KEYS.archived_puzzle_list()));
     const new_attachment_ids =
       attachments.length > 0
         ? (
@@ -179,8 +182,8 @@ const delete_puzzle_route = protectedAdminProcedure
       where: (tbl, { eq }) => eq(tbl.id, id)
     }))!;
 
+    await Promise.allSettled([db.delete(word_puzzles).where(eq(word_puzzles.id, id))]);
     await Promise.allSettled([
-      db.delete(word_puzzles).where(eq(word_puzzles.id, id)),
       // only invalidate list when puzzle is archived
       archived && redis.del(REDIS_CACHE_KEYS.archived_puzzle_list()),
       redis.del(REDIS_CACHE_KEYS.word_puzzle(id, uuid)),

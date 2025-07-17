@@ -190,3 +190,14 @@ export function deepCopy<T>(value: T): T {
 export const get_rand_num = (a: number, b: number) => {
   return Math.trunc(Math.random() * (b - a + 1)) + a;
 };
+
+export function generateRandomAlphanumeric(length: number) {
+  const characters = 'ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789';
+  let result = '';
+  const randomBytes = new Uint8Array(length);
+  crypto.getRandomValues(randomBytes);
+  for (let i = 0; i < length; i++) {
+    result += characters[randomBytes[i] % characters.length];
+  }
+  return result;
+}

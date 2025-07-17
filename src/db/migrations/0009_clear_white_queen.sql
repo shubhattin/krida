@@ -1,0 +1,1 @@
+ALTER TABLE "puzzle_game_schedules" ADD COLUMN "archival_verify_key" text;

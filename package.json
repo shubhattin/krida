@@ -39,6 +39,7 @@
     "@trpc/next": "^11.4.1",
     "@trpc/react-query": "^11.4.1",
     "@trpc/server": "^11.4.1",
+    "@upstash/qstash": "^2.8.1",
     "@upstash/redis": "^1.35.0",
     "@use-gesture/react": "^10.3.1",
     "better-auth": "^1.2.9",
