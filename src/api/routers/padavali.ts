@@ -13,7 +13,7 @@ const puzzle_in_current_schedule = async (id: number, uuid: string) => {
   const cache = await redis.get<CurrentScheduleType | string>(REDIS_CACHE_KEYS.current_schedule());
   if (!cache || cache === 'undefined') return false;
   if (typeof cache === 'object') {
-    return cache.puzzle.id === id && cache.puzzle.uuid === uuid && cache.puzzle.archived === false;
+    return cache.puzzle.id === id && cache.puzzle.uuid === uuid;
   }
   return false;
 };
