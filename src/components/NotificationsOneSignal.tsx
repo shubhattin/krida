@@ -34,8 +34,8 @@ export default function Page() {
               text: '#FFFFFF' // button text color
             },
             text: {
-              subscribe: 'Subscribe to Padavali notifications',
-              explanation: 'Subscribe to get notified for new Padavali puzzles'
+              subscribe: 'Subscribe to Padavali notifications'
+              // explanation: 'Subscribe to get notified for new Padavali puzzles'
             },
             unsubscribeEnabled: false
           }
