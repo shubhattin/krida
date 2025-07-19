@@ -4,6 +4,7 @@ import { db } from '~/db/db';
 import { redis, REDIS_CACHE_KEYS } from '~/db/redis';
 import { puzzle_game_schedules, word_puzzles } from '~/db/schema';
 import { and, eq } from 'drizzle-orm';
+import { notify_for_archived_puzzle } from '~/api/routers/padavali';
 
 export const POST = verifySignatureAppRouter(async (req: Request) => {
   console.log('QStash request received', new Date());
@@ -20,6 +21,15 @@ export const POST = verifySignatureAppRouter(async (req: Request) => {
       ),
     columns: {
       id: true
+    },
+    with: {
+      puzzle: {
+        columns: {
+          id: true,
+          title: true,
+          uuid: true
+        }
+      }
     }
   });
   if (!schedule) {
@@ -47,8 +57,11 @@ export const POST = verifySignatureAppRouter(async (req: Request) => {
         )
       )
   ]);
-  // Cache invalidation
-  await redis.del(REDIS_CACHE_KEYS.archived_puzzle_list());
+  await Promise.allSettled([
+    // Cache invalidation
+    redis.del(REDIS_CACHE_KEYS.archived_puzzle_list()),
+    notify_for_archived_puzzle(schedule.puzzle.title, schedule.puzzle.id, schedule.puzzle.uuid)
+  ]);
 
   console.log(`Puzzle ${puzzle_id} archived successfully for Schedule ${schedule_id}.`);
 
