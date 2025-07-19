@@ -156,7 +156,7 @@ export function MenuButton() {
                     </>
                   )}
                 </div>
-                {!pwa_state.is_installed && <PWAInstallButton setOpen={setOpen} />}
+                <PWAInstallButton setOpen={setOpen} />
               </div>
               <Separator className="my-4 bg-slate-200 dark:bg-slate-700" />
             </>

@@ -7,14 +7,13 @@ import { LogIn } from 'lucide-react';
 import {
   AlertDialog,
   AlertDialogAction,
-  AlertDialogCancel,
   AlertDialogContent,
   AlertDialogDescription,
   AlertDialogFooter,
   AlertDialogHeader,
-  AlertDialogTitle,
-  AlertDialogTrigger
+  AlertDialogTitle
 } from '~/components/ui/alert-dialog';
+import { motion } from 'framer-motion';
 
 export default function PWAInit() {
   const [, setPwaState] = useAtom(pwa_state_atom);
@@ -87,9 +86,16 @@ export const PWAInstallButton = ({ setOpen }: { setOpen?: (v: boolean) => void }
         .catch((err) => console.log('Error sharing:', err));
     }
   };
+  const showInstallButton = (pwa_state.install_event_fired || isIos) && !pwa_state.is_installed;
+  if (!showInstallButton) return null;
 
   return (
-    <>
+    <motion.div
+      initial={{ scale: 0.95, opacity: 0 }}
+      animate={{ scale: 1, opacity: 1 }}
+      exit={{ scale: 0.95, opacity: 0 }}
+      transition={{ type: 'spring', stiffness: 300, damping: 24 }}
+    >
       <button
         onClick={handleInstall}
         className="flex w-full items-center gap-3 rounded-lg border-2 border-green-200 bg-gradient-to-r from-green-50 to-emerald-50 p-3 text-left text-sm font-medium text-green-700 transition-all duration-200 hover:scale-[1.02] hover:border-green-300 hover:from-green-100 hover:to-emerald-100 hover:shadow-md active:scale-[0.98] dark:border-green-800 dark:from-green-950/30 dark:to-emerald-950/30 dark:text-green-300 dark:hover:border-green-700 dark:hover:from-green-900/40 dark:hover:to-emerald-900/40"
@@ -100,9 +106,7 @@ export const PWAInstallButton = ({ setOpen }: { setOpen?: (v: boolean) => void }
         </div>
         <div className="flex-1">
           <div className="font-semibold">Install App</div>
-          {/* <div className="text-xs text-green-600 dark:text-green-400">
-      Get offline access & faster loading
-      </div> */}
+          <div className="text-xs text-green-600 dark:text-green-400">For Quick Access</div>
         </div>
       </button>
 
@@ -122,6 +126,6 @@ export const PWAInstallButton = ({ setOpen }: { setOpen?: (v: boolean) => void }
           </AlertDialogContent>
         </AlertDialog>
       )}
-    </>
+    </motion.div>
   );
 };
