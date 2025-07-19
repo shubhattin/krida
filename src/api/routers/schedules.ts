@@ -12,14 +12,15 @@ import {
 } from '~/lib/qstash';
 import { generateRandomAlphanumeric } from '~/tools/kry';
 import { sendOneSignalNotification } from '~/lib/onesignal';
+import { DEFAULT_SHARE_IMAGE_INFO } from '~/components/tags/getPageMetaTags';
 
 export const notify_for_new_scheduled_puzzle = async (title: string) => {
   return await sendOneSignalNotification({
     headings: { en: '🧩 New Puzzle Added ! 🎉' },
     contents: { en: `"${title}" - Puzzle Added, Play Now! 🚀` },
     name: 'new_scheduled_puzzle',
-    url: `${process.env.NEXT_PUBLIC_SITE_URL}/padavali`
-    // with banner
+    url: `${process.env.NEXT_PUBLIC_SITE_URL}/padavali`,
+    chrome_web_image: DEFAULT_SHARE_IMAGE_INFO.url
   });
 };
 

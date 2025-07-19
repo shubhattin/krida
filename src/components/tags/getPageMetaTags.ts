@@ -12,7 +12,7 @@ interface Props {
   share_image_info?: ShareImageInfo;
 }
 
-const DEFAULT_SHARE_IMAGE_INFO: ShareImageInfo = {
+export const DEFAULT_SHARE_IMAGE_INFO: ShareImageInfo = {
   url: 'https://cdn.jsdelivr.net/gh/shubhattin/padavali@latest/src/images/banner/project_banner.jpg',
   width: 1200,
   height: 630
