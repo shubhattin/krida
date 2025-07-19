@@ -71,6 +71,13 @@
       "when": 1752748136977,
       "tag": "0009_clear_white_queen",
       "breakpoints": true
+    },
+    {
+      "idx": 10,
+      "version": "7",
+      "when": 1752947010968,
+      "tag": "0010_eminent_silver_samurai",
+      "breakpoints": true
     }
   ]
 }

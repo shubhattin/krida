@@ -8,6 +8,7 @@ import { padavali_stats_router } from './padavali_stats';
 import { redis, REDIS_CACHE_KEYS } from '~/db/redis';
 import { get_word_puzzle, type CurrentScheduleType } from '~/db/db_cache_data';
 import { puzzle_add_input_schema, puzzle_update_input_schema } from '~/db/db_shared_vals';
+import { sendOneSignalNotification } from '~/lib/onesignal';
 
 const puzzle_in_current_schedule = async (id: number, uuid: string) => {
   const cache = await redis.get<CurrentScheduleType | string>(REDIS_CACHE_KEYS.current_schedule());
@@ -16,6 +17,18 @@ const puzzle_in_current_schedule = async (id: number, uuid: string) => {
     return cache.puzzle.id === id && cache.puzzle.uuid === uuid;
   }
   return false;
+};
+
+export const notify_for_archived_puzzle = async (title: string, id: number, uuid: string) => {
+  return await sendOneSignalNotification({
+    headings: { en: '🧩 New Archived Puzzle Added! 🎉' },
+    contents: {
+      en: `"${title}" - Archived Puzzle Added, Play Now! 🚀`
+    },
+    name: 'new_archived_puzzle',
+    url: `${process.env.NEXT_PUBLIC_SITE_URL}/padavali/archived/${id}:${uuid}`,
+    chrome_web_image: null // no banner
+  });
 };
 
 const update_puzzle_route = protectedAdminProcedure
@@ -119,11 +132,13 @@ const update_puzzle_route = protectedAdminProcedure
     ]);
     // cache invalidation later
     await Promise.allSettled([
-      (puzzle_data.archived || prev_archived !== puzzle_data.archived) &&
+      (puzzle_data.archived || !prev_archived) &&
         redis.del(REDIS_CACHE_KEYS.archived_puzzle_list()),
       redis.del(REDIS_CACHE_KEYS.word_puzzle(puzzle_id, puzzle_uuid)),
       (await puzzle_in_current_schedule(puzzle_id, puzzle_uuid)) &&
-        redis.del(REDIS_CACHE_KEYS.current_schedule())
+        redis.del(REDIS_CACHE_KEYS.current_schedule()),
+      (puzzle_data.archived || !prev_archived) &&
+        notify_for_archived_puzzle(puzzle_data_rest.title, puzzle_id, puzzle_uuid)
     ]);
     return {
       success: true,
@@ -145,8 +160,11 @@ const add_puzzle_route = protectedAdminProcedure
         })
         .returning()
     ]);
-    // only invalidate list when puzzle is archived
-    input.archived && (await redis.del(REDIS_CACHE_KEYS.archived_puzzle_list()));
+    await Promise.allSettled([
+      // only invalidate list when puzzle is archived
+      input.archived && (await redis.del(REDIS_CACHE_KEYS.archived_puzzle_list())),
+      input.archived && notify_for_archived_puzzle(puzzle_data_rest.title, info[0].id, info[0].uuid)
+    ]);
     const new_attachment_ids =
       attachments.length > 0
         ? (

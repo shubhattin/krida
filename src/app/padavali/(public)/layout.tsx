@@ -17,6 +17,9 @@ export default async function PadavaliLayout({ children }: { children: ReactNode
           'bg-gradient-to-b from-slate-50 to-stone-50 dark:from-slate-900 dark:to-zinc-900'
         )}
       >
+        <div className="mb-2 flex items-center justify-center">
+          <div className="onesignal-customlink-container"></div>
+        </div>
         <div className="mb-4 flex items-center justify-center">
           <PWAInstallButton />
         </div>
