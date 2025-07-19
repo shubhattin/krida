@@ -131,12 +131,13 @@ const update_puzzle_route = protectedAdminProcedure
     ]);
     // cache invalidation later
     await Promise.allSettled([
-      (puzzle_data.archived || !prev_archived) &&
+      (puzzle_data.archived || prev_archived !== puzzle_data.archived) &&
         redis.del(REDIS_CACHE_KEYS.archived_puzzle_list()),
       redis.del(REDIS_CACHE_KEYS.word_puzzle(puzzle_id, puzzle_uuid)),
       (await puzzle_in_current_schedule(puzzle_id, puzzle_uuid)) &&
         redis.del(REDIS_CACHE_KEYS.current_schedule()),
-      (puzzle_data.archived || !prev_archived) &&
+      puzzle_data.archived &&
+        !prev_archived &&
         notify_for_archived_puzzle(puzzle_data_rest.title, puzzle_id, puzzle_uuid)
     ]);
     return {
