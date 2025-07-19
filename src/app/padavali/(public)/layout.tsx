@@ -26,7 +26,7 @@ export default async function PadavaliLayout({ children }: { children: ReactNode
         <div className="mx-auto max-w-4xl px-4">
           <div className="mb-8">
             <div className="mb-4 flex items-center justify-center gap-2">
-              <ExternalLink className="h-4 w-4 text-muted-foreground" />
+              <ExternalLink className="size-4 text-muted-foreground" />
               <span className="text-sm font-medium text-muted-foreground">Connect with us</span>
             </div>
 
