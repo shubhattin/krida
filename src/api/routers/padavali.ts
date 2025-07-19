@@ -23,7 +23,7 @@ export const notify_for_archived_puzzle = async (title: string, id: number, uuid
   return await sendOneSignalNotification({
     headings: { en: '🧩 New Archived Puzzle Added! 🎉' },
     contents: {
-      en: `"${title}" - Archived Puzzle Added ! Play Now! 🚀`
+      en: `"${title}" - Archived Puzzle Added, Play Now! 🚀`
     },
     name: 'new_archived_puzzle',
     url: `${process.env.NEXT_PUBLIC_SITE_URL}/padavali/archived/${id}:${uuid}`,

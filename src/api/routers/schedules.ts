@@ -6,8 +6,53 @@ import { revalidatePath } from 'next/cache';
 import { and, eq } from 'drizzle-orm';
 import { delay } from '~/tools/delay';
 import { redis, REDIS_CACHE_KEYS } from '~/db/redis';
-import { publishScheduleArchivalQueue } from '~/lib/qstash';
+import {
+  publishScheduleArchivalQueue,
+  publishScheduledPuzzleNotificationQueue
+} from '~/lib/qstash';
 import { generateRandomAlphanumeric } from '~/tools/kry';
+import { sendOneSignalNotification } from '~/lib/onesignal';
+
+export const notify_for_new_scheduled_puzzle = async (title: string) => {
+  return await sendOneSignalNotification({
+    headings: { en: '🧩 New Puzzle Added ! 🎉' },
+    contents: { en: `"${title}" - Puzzle Added, Play Now! 🚀` },
+    name: 'new_scheduled_puzzle',
+    url: `${process.env.NEXT_PUBLIC_SITE_URL}/padavali`
+    // with banner
+  });
+};
+
+const notify_new_puzzle = async (puzzle_id: number, schedule_id: number, start_time: Date) => {
+  const current_time = new Date();
+  if (current_time >= start_time) {
+    const title = (await db.query.word_puzzles.findFirst({
+      where: (table, { eq }) => eq(table.id, puzzle_id),
+      columns: {
+        title: true
+      }
+    }))!.title;
+    await notify_for_new_scheduled_puzzle(title);
+    return 'done';
+  }
+  const delay_s = (start_time.getTime() - current_time.getTime()) / 1000 - 2; // 2 seconds prior notification;
+  const notification_key = generateRandomAlphanumeric(32);
+  await db
+    .update(puzzle_game_schedules)
+    .set({ notification_key })
+    .where(
+      and(eq(puzzle_game_schedules.id, schedule_id), eq(puzzle_game_schedules.puzzle_id, puzzle_id))
+    );
+  await publishScheduledPuzzleNotificationQueue(
+    {
+      puzzle_id,
+      schedule_id,
+      notification_key
+    },
+    delay_s
+  );
+  return 'scheduled';
+};
 
 const add_puzzle_schedule_route = protectedAdminProcedure
   .input(
@@ -63,17 +108,17 @@ const add_puzzle_schedule_route = protectedAdminProcedure
     await Promise.allSettled([
       // invalidate cache
       redis.del(REDIS_CACHE_KEYS.current_schedule()),
-      redis.del(REDIS_CACHE_KEYS.next_schedule())
+      redis.del(REDIS_CACHE_KEYS.next_schedule()),
+      notify_new_puzzle(puzzle_id, schedule[0].id, start_time),
+      publishScheduleArchivalQueue(
+        {
+          puzzle_id,
+          schedule_id: schedule[0].id,
+          archival_verify_key
+        },
+        (schedule[0].end_time.getTime() - new Date().getTime()) / 1000 - 1 // delay
+      )
     ]);
-
-    await publishScheduleArchivalQueue(
-      {
-        puzzle_id,
-        schedule_id: schedule[0].id,
-        archival_verify_key
-      },
-      (schedule[0].end_time.getTime() - new Date().getTime()) / 1000 - 1 // delay
-    );
 
     return {
       success: true,
@@ -123,6 +168,7 @@ const update_puzzle_schedule_route = protectedAdminProcedure
         )
     ]);
     await Promise.allSettled([
+      notify_new_puzzle(puzzle_id, schedule_id, start_time),
       publishScheduleArchivalQueue(
         {
           puzzle_id,

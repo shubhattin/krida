@@ -108,7 +108,8 @@ export const puzzle_game_schedules = pgTable(
     end_time: timestamp({ withTimezone: true }).notNull(),
     created_at: timestamp({ withTimezone: true }).notNull().defaultNow(),
     updated_at: timestamp({ withTimezone: true }).$onUpdate(() => new Date()),
-    archival_verify_key: text()
+    archival_verify_key: text(),
+    notification_key: text()
   },
   (table) => [
     index('puzzle_game_schedules_start_time_end_time_idx').on(table.start_time, table.end_time),

@@ -26,6 +26,28 @@ export const publishScheduleArchivalQueue = async (
     body
   });
   console.log(
-    `Queue published for puzzle ${body.puzzle_id} with schedule ${body.schedule_id} (delay: ${delay_s}s)`
+    `Queue published for Archived Puzzle ${body.puzzle_id} with schedule ${body.schedule_id} (delay: ${delay_s}s)`
+  );
+};
+
+export const scheduled_puzzle_notification_publish_schema = z.object({
+  puzzle_id: z.number().int().positive(),
+  schedule_id: z.number().int().positive(),
+  notification_key: z.string().length(32)
+});
+export const publishScheduledPuzzleNotificationQueue = async (
+  data: z.infer<typeof scheduled_puzzle_notification_publish_schema>,
+  delay_s: number
+) => {
+  if (!QSTAHS_PUBLISH_BASE_URL) return;
+  const body = scheduled_puzzle_notification_publish_schema.parse(data);
+
+  await client.publishJSON({
+    url: QSTAHS_PUBLISH_BASE_URL + '/new_puzzle_notification',
+    delay: delay_s,
+    body
+  });
+  console.log(
+    `Queue published for New Puzzle ${body.puzzle_id} with schedule ${body.schedule_id} (delay: ${delay_s}s)`
   );
 };
