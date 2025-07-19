@@ -146,6 +146,9 @@ importers:
       react-icons:
         specifier: ^5.5.0
         version: 5.5.0(react@19.1.0)
+      react-onesignal:
+        specifier: ^3.2.3
+        version: 3.2.3
       react-turnstile:
         specifier: ^1.1.4
         version: 1.1.4(react-dom@19.1.0(react@19.1.0))(react@19.1.0)
@@ -2939,6 +2942,10 @@ packages:
 
   react-is@18.3.1:
     resolution: {integrity: sha512-/LLMVyas0ljjAtoYiPqYiL8VWXzUUdThrmU5+n20DZv+a+ClRoevUzw5JxU+Ieh5/c87ytoTBV9G1FiKfNJdmg==}
+
+  react-onesignal@3.2.3:
+    resolution: {integrity: sha512-5LIbQbybNTQ8ngaMeJEBB1EEzDEYJ8SS10L7hHKNCIIWrTmeKpYFhCgwjwb1QFdZ+eRjil5y+ujJR6syf7SVVw==}
+    engines: {node: '>=14', npm: '>=6'}
 
   react-remove-scroll-bar@2.3.8:
     resolution: {integrity: sha512-9r+yi9+mgU33AKcj6IbT9oRCO78WriSj6t/cF8DWBZJ9aOGPOTEDvdUDz1FwKim7QXWwmHqtdHnRJfhAxEG46Q==}
@@ -6002,6 +6009,8 @@ snapshots:
   react-is@16.13.1: {}
 
   react-is@18.3.1: {}
+
+  react-onesignal@3.2.3: {}
 
   react-remove-scroll-bar@2.3.8(@types/react@19.1.8)(react@19.1.0):
     dependencies:

@@ -3,7 +3,7 @@ import { z } from 'zod';
 
 const client = new Client(); // load from env
 
-const QSTAHS_PUBLISH_BASE_URL = process.env.QSTASH_PUBLISH_URL!;
+const QSTAHS_PUBLISH_BASE_URL = process.env.QSTASH_PUBLISH_URL;
 
 export const schedule_archival_publish_schema = z.object({
   puzzle_id: z.number().int().positive(),
@@ -17,6 +17,7 @@ export const publishScheduleArchivalQueue = async (
   data: z.infer<typeof schedule_archival_publish_schema>,
   delay_s: number
 ) => {
+  if (!QSTAHS_PUBLISH_BASE_URL) return;
   const body = schedule_archival_publish_schema.parse(data);
 
   await client.publishJSON({

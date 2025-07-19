@@ -4,6 +4,7 @@ import { httpBatchLink } from '@trpc/client';
 import { useState } from 'react';
 import transformer from './transformer';
 import { ReactQueryDevtools } from '@tanstack/react-query-devtools';
+import NotificationsOneSignal from '~/components/NotificationsOneSignal';
 
 import { client_q } from './client';
 import { queryClient as queryClientGlobal } from '~/state/queryClient';
@@ -26,6 +27,7 @@ export default function Provider({ children }: { children: React.ReactNode }) {
       <QueryClientProvider client={queryClient}>
         <ReactQueryDevtools initialIsOpen={false} />
         {children}
+        <NotificationsOneSignal />
       </QueryClientProvider>
     </client_q.Provider>
   );
