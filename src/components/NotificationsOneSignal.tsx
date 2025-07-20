@@ -34,7 +34,7 @@ export default function Page() {
               text: '#FFFFFF' // button text color
             },
             text: {
-              subscribe: 'Subscribe to Padavali notifications'
+              subscribe: '🔔 Subscribe to Padavali notifications'
               // explanation: 'Subscribe to get notified for new Padavali puzzles'
             },
             unsubscribeEnabled: false
@@ -42,8 +42,8 @@ export default function Page() {
         },
         welcomeNotification: {
           disable: false,
-          message: 'You are Successfully Subscribed to Padavali Updates',
-          title: 'Welcome!',
+          message: '🎉 You are Successfully Subscribed to Padavali Updates! 🧩',
+          title: '👋 Welcome!',
           url: 'https://krida.thesanskritchannel.org/padavali' // Optional
         }
       });
