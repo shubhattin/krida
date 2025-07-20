@@ -26,33 +26,55 @@ export const notify_for_new_scheduled_puzzle = async (title: string) => {
 
 const notify_new_puzzle = async (puzzle_id: number, schedule_id: number, start_time: Date) => {
   const current_time = new Date();
-  if (current_time >= start_time) {
+  if (current_time < start_time) {
+    const delay_s = (start_time.getTime() - current_time.getTime()) / 1000 - 2; // 2 seconds prior notification;
+    const notification_key = generateRandomAlphanumeric(32);
+    await db
+      .update(puzzle_game_schedules)
+      .set({ notification_key })
+      .where(
+        and(
+          eq(puzzle_game_schedules.id, schedule_id),
+          eq(puzzle_game_schedules.puzzle_id, puzzle_id)
+        )
+      );
+    await publishScheduledPuzzleNotificationQueue(
+      {
+        puzzle_id,
+        schedule_id,
+        notification_key
+      },
+      delay_s
+    );
+    return 'scheduled';
+  } else {
+    // current_time >= start_time
+
+    const prev_schedule = (await db.query.puzzle_game_schedules.findFirst({
+      where: (table, { eq, and }) => and(eq(table.id, schedule_id), eq(table.puzzle_id, puzzle_id)),
+      columns: {
+        start_time: true
+      }
+    }))!;
+    // if previous schedule is already before the current time, skip notification
+    // as it would have already been notified in the past
+    if (current_time >= prev_schedule.start_time) return 'skipped';
+
     const title = (await db.query.word_puzzles.findFirst({
       where: (table, { eq }) => eq(table.id, puzzle_id),
       columns: {
         title: true
       }
     }))!.title;
-    await notify_for_new_scheduled_puzzle(title);
+    await Promise.allSettled([
+      notify_for_new_scheduled_puzzle(title),
+      db
+        .update(puzzle_game_schedules)
+        .set({ notification_key: null })
+        .where(eq(puzzle_game_schedules.id, schedule_id))
+    ]);
     return 'done';
   }
-  const delay_s = (start_time.getTime() - current_time.getTime()) / 1000 - 2; // 2 seconds prior notification;
-  const notification_key = generateRandomAlphanumeric(32);
-  await db
-    .update(puzzle_game_schedules)
-    .set({ notification_key })
-    .where(
-      and(eq(puzzle_game_schedules.id, schedule_id), eq(puzzle_game_schedules.puzzle_id, puzzle_id))
-    );
-  await publishScheduledPuzzleNotificationQueue(
-    {
-      puzzle_id,
-      schedule_id,
-      notification_key
-    },
-    delay_s
-  );
-  return 'scheduled';
 };
 
 const add_puzzle_schedule_route = protectedAdminProcedure

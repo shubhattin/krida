@@ -131,6 +131,7 @@ const update_puzzle_route = protectedAdminProcedure
     ]);
     // cache invalidation later
     await Promise.allSettled([
+      // invalidate when archived state changes or when puzzle is archived (as title and description are stored in archived list)
       (puzzle_data.archived || prev_archived !== puzzle_data.archived) &&
         redis.del(REDIS_CACHE_KEYS.archived_puzzle_list()),
       redis.del(REDIS_CACHE_KEYS.word_puzzle(puzzle_id, puzzle_uuid)),
