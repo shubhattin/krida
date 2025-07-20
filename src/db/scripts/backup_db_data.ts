@@ -4,9 +4,13 @@ import { execSync } from 'child_process';
 import { import_data } from './import_data';
 import * as dotenv from 'dotenv';
 import { queryClient } from './client';
-import { S3Client, PutObjectCommand, StorageClass } from '@aws-sdk/client-s3';
+import {
+  S3Client,
+  PutObjectCommand,
+  StorageClass,
+  type PutObjectCommandInput
+} from '@aws-sdk/client-s3';
 import mime from 'mime-types';
-import ms from 'ms';
 
 // Load environment variables from .env
 dotenv.config({ path: '../../../.env' });
@@ -76,13 +80,12 @@ const s3 = new S3Client({
 async function uploadFile(bucketName: string, key: string, filePath: string) {
   const fileStream = fs.createReadStream(filePath);
 
-  const uploadParams = {
+  const uploadParams: PutObjectCommandInput = {
     Bucket: bucketName,
     Key: key,
     Body: fileStream,
     ContentType: mime.lookup(filePath) || 'application/octet-stream',
-    StorageClass: StorageClass.GLACIER_IR,
-    Expires: new Date(Date.now() + ms('70days'))
+    StorageClass: StorageClass.GLACIER_IR
   };
 
   try {
