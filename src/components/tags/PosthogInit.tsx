@@ -24,7 +24,7 @@ export default function PosthogInit() {
   useEffect(() => {
     load_posthog((posthog) => {
       posthog.init(process.env.NEXT_PUBLIC_POSTHOG_KEY!, {
-        api_host: `${process.env.NEXT_PUBLIC_POSTHOG_URL!}/ingest`,
+        api_host: `${process.env.NEXT_PUBLIC_POSTHOG_URL!}`,
         person_profiles: 'identified_only',
         ui_host: 'https://us.posthog.com'
       });
