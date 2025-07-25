@@ -92,8 +92,14 @@ export const PWAInstallButton = ({ setOpen }: { setOpen?: (v: boolean) => void }
   const handleIosInstall = async () => {
     setIsIosOpen(false);
     setOpen && setOpen(false);
-    // Don't use navigator.share() as it opens the wrong share menu
-    // Instead, users need to use Safari's native share button
+
+    // IMPORTANT: navigator.share() does NOT include "Add to Home Screen"
+    //
+    // The Web Share API is only for sharing content TO other apps (Twitter, Messages, etc.)
+    // PWA installation on iOS ONLY works through Safari's native share button in the toolbar
+    //
+    // There is no programmatic way to trigger PWA installation on iOS.
+    // Users must manually use: Safari toolbar → Share button → "Add to Home Screen"
   };
 
   const showInstallButton = (pwa_state.install_event_fired || isIos) && !pwa_state.is_installed;
@@ -169,7 +175,10 @@ export const PWAInstallButton = ({ setOpen }: { setOpen?: (v: boolean) => void }
                     <div className="rounded-lg bg-amber-50 p-3 dark:bg-amber-950/30">
                       <p className="text-sm">
                         Please open this page in <strong>Safari</strong> to install the app. Other
-                        browsers on iOS don't support app installation.
+                        browsers on iOS don't support PWA installation.
+                      </p>
+                      <p className="mt-2 text-sm">
+                        Use Safari's share button → "Add to Home Screen"
                       </p>
                     </div>
                   </div>

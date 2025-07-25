@@ -30,11 +30,7 @@ export function MenuButton() {
   const { theme, setTheme } = useTheme();
   const [open, setOpen] = useState(false);
   const [pwa_state] = useAtom(pwa_state_atom);
-  const [isIos, setIsIos] = useAtom(is_ios_atom);
-  useEffect(() => {
-    const ua = window.navigator.userAgent || '';
-    setIsIos(/iPad|iPhone|iPod/.test(ua));
-  }, []);
+  const [isIos] = useAtom(is_ios_atom);
 
   const themeOptions = [
     {
