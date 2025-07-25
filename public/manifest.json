@@ -1,24 +1,44 @@
 {
-  "name": "Padavali",
+  "name": "Padavali - Sanskrit Word Puzzle=",
   "short_name": "Padavali",
-  "description": "Padavali is a Sanskrit word to learn Sanskrit in an interactive way and",
+  "description": "Padavali is an interactive Sanskrit word learning game that helps you learn Sanskrit vocabulary through engaging puzzles",
   "theme_color": "#181e20",
-  "background_color": "#333",
+  "background_color": "#181e20",
   "display": "standalone",
+  "orientation": "portrait-primary",
   "start_url": "/padavali",
   "scope": "/padavali",
-  "id": "/?padavali=1",
-  "display_override": ["standalone"],
+  "id": "/padavali",
+  "display_override": ["standalone", "minimal-ui"],
+  "categories": ["education", "games"],
+  "lang": "en",
+  "dir": "ltr",
   "icons": [
     {
       "src": "img/icon_128.png",
       "sizes": "128x128",
-      "type": "image/png"
+      "type": "image/png",
+      "purpose": "any maskable"
     },
     {
       "src": "img/icon_512.png",
       "sizes": "512x512",
-      "type": "image/png"
+      "type": "image/png",
+      "purpose": "any maskable"
+    }
+  ],
+  "shortcuts": [
+    {
+      "name": "Play Today's Puzzle",
+      "short_name": "Today's Puzzle",
+      "description": "Jump directly to today's Sanskrit word puzzle",
+      "url": "/padavali",
+      "icons": [
+        {
+          "src": "img/icon_128.png",
+          "sizes": "128x128"
+        }
+      ]
     }
   ]
 }

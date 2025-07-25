@@ -1,9 +1,9 @@
 'use client';
 
 import { useEffect, useState } from 'react';
-import { is_ios_atom, pwa_state_atom } from './pwa_state';
+import { is_ios_atom, is_ios_safari_atom, pwa_state_atom } from './pwa_state';
 import { useAtom } from 'jotai';
-import { LogIn } from 'lucide-react';
+import { LogIn, Share, Smartphone } from 'lucide-react';
 import {
   AlertDialog,
   AlertDialogAction,
@@ -19,6 +19,20 @@ export default function PWAInit() {
   const [, setPwaState] = useAtom(pwa_state_atom);
 
   useEffect(() => {
+    // Register service worker
+    const registerServiceWorker = async () => {
+      if ('serviceWorker' in navigator) {
+        try {
+          const registration = await navigator.serviceWorker.register('/sw.js');
+          console.log('Service Worker registered successfully:', registration);
+        } catch (error) {
+          console.log('Service Worker registration failed:', error);
+        }
+      }
+    };
+
+    registerServiceWorker();
+
     // Check if the app is installed (running in standalone mode)
     const checkInstallStatus = () => {
       const isStandalone = window.matchMedia('(display-mode: standalone)').matches;
@@ -63,6 +77,7 @@ export default function PWAInit() {
 export const PWAInstallButton = ({ setOpen }: { setOpen?: (v: boolean) => void }) => {
   const [pwa_state] = useAtom(pwa_state_atom);
   const [isIos] = useAtom(is_ios_atom);
+  const [isIosSafari] = useAtom(is_ios_safari_atom);
   const [isIosOpen, setIsIosOpen] = useState(false);
 
   const handleInstall = async () => {
@@ -73,19 +88,14 @@ export const PWAInstallButton = ({ setOpen }: { setOpen?: (v: boolean) => void }
       if (pwa_state.event_triggerer) pwa_state.event_triggerer.prompt();
     }
   };
+
   const handleIosInstall = async () => {
     setIsIosOpen(false);
     setOpen && setOpen(false);
-    if (navigator?.share) {
-      await navigator
-        .share({
-          title: 'Padavali',
-          text: 'Padavali',
-          url: window.location.origin + '/padavali'
-        })
-        .catch((err) => console.log('Error sharing:', err));
-    }
+    // Don't use navigator.share() as it opens the wrong share menu
+    // Instead, users need to use Safari's native share button
   };
+
   const showInstallButton = (pwa_state.install_event_fired || isIos) && !pwa_state.is_installed;
   if (!showInstallButton) return null;
 
@@ -112,16 +122,62 @@ export const PWAInstallButton = ({ setOpen }: { setOpen?: (v: boolean) => void }
 
       {isIos && (
         <AlertDialog open={isIosOpen} onOpenChange={setIsIosOpen}>
-          <AlertDialogContent>
+          <AlertDialogContent className="max-w-md">
             <AlertDialogHeader>
-              <AlertDialogTitle>App Installation</AlertDialogTitle>
-              <AlertDialogDescription>
-                Select <span className="font-bold">"Add to Home Screen"</span> in the share menu to
-                install the <span className="italic">PWA</span> app.
+              <AlertDialogTitle className="flex items-center gap-2">
+                <Smartphone className="h-5 w-5" />
+                Install Padavali App
+              </AlertDialogTitle>
+              <AlertDialogDescription className="space-y-3 text-left">
+                {isIosSafari ? (
+                  <div className="space-y-3">
+                    <p>To install Padavali as an app on your iPhone/iPad:</p>
+                    <div className="space-y-2 rounded-lg bg-blue-50 p-3 dark:bg-blue-950/30">
+                      <div className="flex items-start gap-2">
+                        <span className="flex h-6 w-6 items-center justify-center rounded-full bg-blue-500 text-xs font-bold text-white">
+                          1
+                        </span>
+                        <div className="flex items-center gap-2">
+                          <span>Tap Safari's share button</span>
+                          <Share className="h-4 w-4" />
+                        </div>
+                      </div>
+                      <div className="flex items-start gap-2">
+                        <span className="flex h-6 w-6 items-center justify-center rounded-full bg-blue-500 text-xs font-bold text-white">
+                          2
+                        </span>
+                        <span>
+                          Scroll down and select <strong>"Add to Home Screen"</strong>
+                        </span>
+                      </div>
+                      <div className="flex items-start gap-2">
+                        <span className="flex h-6 w-6 items-center justify-center rounded-full bg-blue-500 text-xs font-bold text-white">
+                          3
+                        </span>
+                        <span>
+                          Tap <strong>"Add"</strong> to confirm
+                        </span>
+                      </div>
+                    </div>
+                    <p className="text-xs text-muted-foreground">
+                      Note: The share button is in Safari's toolbar (square with arrow pointing up)
+                    </p>
+                  </div>
+                ) : (
+                  <div className="space-y-3">
+                    <p>To install Padavali as an app:</p>
+                    <div className="rounded-lg bg-amber-50 p-3 dark:bg-amber-950/30">
+                      <p className="text-sm">
+                        Please open this page in <strong>Safari</strong> to install the app. Other
+                        browsers on iOS don't support app installation.
+                      </p>
+                    </div>
+                  </div>
+                )}
               </AlertDialogDescription>
             </AlertDialogHeader>
             <AlertDialogFooter>
-              <AlertDialogAction onClick={handleIosInstall}>Proceed</AlertDialogAction>
+              <AlertDialogAction onClick={handleIosInstall}>Got it!</AlertDialogAction>
             </AlertDialogFooter>
           </AlertDialogContent>
         </AlertDialog>
