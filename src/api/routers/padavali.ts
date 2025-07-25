@@ -25,7 +25,7 @@ export const notify_for_archived_puzzle = async (title: string, id: number, uuid
     contents: {
       en: `"${title}" - Archived Puzzle Added, Play Now! 🚀`
     },
-    name: 'new_archived_puzzle',
+    name: `new_archived_puzzle:${id}`,
     url: `${process.env.NEXT_PUBLIC_SITE_URL}/padavali/archived/${id}:${uuid}`
   });
 };
