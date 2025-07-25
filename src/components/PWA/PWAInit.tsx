@@ -135,41 +135,38 @@ export const PWAInstallButton = ({ setOpen }: { setOpen?: (v: boolean) => void }
                 Install Padavali App
               </AlertDialogTitle>
               <AlertDialogDescription className="space-y-3 text-left">
-                {isIosSafari ? (
-                  <div className="space-y-3">
-                    <p>To install Padavali as an app on your iPhone/iPad:</p>
-                    <div className="space-y-2 rounded-lg bg-blue-50 p-3 dark:bg-blue-950/30">
-                      <div className="flex items-start gap-2">
-                        <span className="flex h-6 w-6 items-center justify-center rounded-full bg-blue-500 text-xs font-bold text-white">
-                          1
-                        </span>
-                        <div className="flex items-center gap-2">
-                          <span>Tap Safari's share button</span>
-                          <Share className="h-4 w-4" />
-                        </div>
-                      </div>
-                      <div className="flex items-start gap-2">
-                        <span className="flex h-6 w-6 items-center justify-center rounded-full bg-blue-500 text-xs font-bold text-white">
-                          2
-                        </span>
-                        <span>
-                          Scroll down and select <strong>"Add to Home Screen"</strong>
-                        </span>
-                      </div>
-                      <div className="flex items-start gap-2">
-                        <span className="flex h-6 w-6 items-center justify-center rounded-full bg-blue-500 text-xs font-bold text-white">
-                          3
-                        </span>
-                        <span>
-                          Tap <strong>"Add"</strong> to confirm
-                        </span>
+                {/* {isIosSafari ? ( */}
+                <div className="space-y-3">
+                  <p>To install Padavali as an app on your iPhone/iPad:</p>
+                  <div className="space-y-2 rounded-lg bg-blue-50 p-3 dark:bg-blue-950/30">
+                    <div className="flex items-start gap-2">
+                      <span className="flex h-6 w-6 items-center justify-center rounded-full bg-blue-500 text-xs font-bold text-white">
+                        1
+                      </span>
+                      <div className="flex items-center gap-2">
+                        <span>Tap Safari/Chrome share button</span>
+                        <Share className="h-4 w-4" />
                       </div>
                     </div>
-                    <p className="text-xs text-muted-foreground">
-                      Note: The share button is in Safari's toolbar (square with arrow pointing up)
-                    </p>
+                    <div className="flex items-start gap-2">
+                      <span className="flex h-6 w-6 items-center justify-center rounded-full bg-blue-500 text-xs font-bold text-white">
+                        2
+                      </span>
+                      <span>
+                        Scroll down and select <strong>"Add to Home Screen"</strong>
+                      </span>
+                    </div>
+                    <div className="flex items-start gap-2">
+                      <span className="flex h-6 w-6 items-center justify-center rounded-full bg-blue-500 text-xs font-bold text-white">
+                        3
+                      </span>
+                      <span>
+                        Tap <strong>"Add"</strong> to confirm
+                      </span>
+                    </div>
                   </div>
-                ) : (
+                </div>
+                {/* ) : (
                   <div className="space-y-3">
                     <p>To install Padavali as an app:</p>
                     <div className="rounded-lg bg-amber-50 p-3 dark:bg-amber-950/30">
@@ -182,7 +179,7 @@ export const PWAInstallButton = ({ setOpen }: { setOpen?: (v: boolean) => void }
                       </p>
                     </div>
                   </div>
-                )}
+                )} */}
               </AlertDialogDescription>
             </AlertDialogHeader>
             <AlertDialogFooter>
