@@ -438,6 +438,55 @@ const getTraversalsInfo = (
   };
 };
 
+// New function to detect cell conflicts
+const getCellConflicts = (
+  traversalsMap: Map<number, Traversal[]>,
+  validWords: string[]
+): {
+  cellPosition: Coordinate;
+  conflictingWords: { wordIndex: number; word: string; traversalIndex: number }[];
+}[] => {
+  const cellUsageMap = new Map<
+    string,
+    { wordIndex: number; word: string; traversalIndex: number }[]
+  >();
+
+  // Track which words use each cell
+  traversalsMap.forEach((traversals, wordIndex) => {
+    traversals.forEach((traversal, traversalIndex) => {
+      traversal.forEach(([r, c]) => {
+        const cellKey = `${r},${c}`;
+        if (!cellUsageMap.has(cellKey)) {
+          cellUsageMap.set(cellKey, []);
+        }
+        cellUsageMap.get(cellKey)!.push({
+          wordIndex,
+          word: validWords[wordIndex],
+          traversalIndex
+        });
+      });
+    });
+  });
+
+  // Find cells with conflicts (used by multiple words)
+  const conflicts: {
+    cellPosition: Coordinate;
+    conflictingWords: { wordIndex: number; word: string; traversalIndex: number }[];
+  }[] = [];
+
+  cellUsageMap.forEach((wordUsages, cellKey) => {
+    if (wordUsages.length > 1) {
+      const [rStr, cStr] = cellKey.split(',');
+      conflicts.push({
+        cellPosition: [Number(rStr), Number(cStr)],
+        conflictingWords: wordUsages
+      });
+    }
+  });
+
+  return conflicts;
+};
+
 const TraversalAndGridData = ({ grid_dimensions }: { grid_dimensions: [number, number] }) => {
   const [wordList] = useAtom(word_list_atom);
   const [gridData] = useAtom(grid_data_atom);
@@ -473,7 +522,12 @@ const TraversalAnalysis = ({
 
   const analysisResult = (() => {
     if (gridData.length === 0 || wordList.length === 0 || validWords.length === 0) {
-      return { warnings: [], hasAllValidWords: false, occupiedCells: new Set<string>() };
+      return {
+        warnings: [],
+        cellConflicts: [],
+        hasAllValidWords: false,
+        occupiedCells: new Set<string>()
+      };
     }
 
     const warnings: {
@@ -485,6 +539,9 @@ const TraversalAnalysis = ({
       duplicateIndices?: number[];
     }[] = [];
     let hasAllValidWords = true;
+
+    // Get cell conflicts
+    const cellConflicts = getCellConflicts(traversalsMap, validWords);
 
     // Check for duplicate words in validWords
     const wordCountMap = new Map<string, number[]>();
@@ -534,7 +591,8 @@ const TraversalAnalysis = ({
 
     return {
       warnings,
-      hasAllValidWords: hasAllValidWords && warnings.length === 0
+      cellConflicts,
+      hasAllValidWords: hasAllValidWords && warnings.length === 0 && cellConflicts.length === 0
     };
   })();
 
@@ -639,6 +697,64 @@ const TraversalAnalysis = ({
                         </Popover>
                       </div>
                     )}
+                  </motion.div>
+                ))}
+              </div>
+            </div>
+          </motion.div>
+        </motion.div>
+      )}
+
+      {analysisResult.cellConflicts.length > 0 && (
+        <motion.div
+          key="cellConflicts"
+          initial={{ opacity: 0, y: -10, scale: 0.95 }}
+          animate={{ opacity: 1, y: 0, scale: 1 }}
+          exit={{ opacity: 0, y: -10, scale: 0.95 }}
+          transition={{ duration: 0.3, ease: 'easeOut' }}
+          className={cn(
+            'rounded-lg border p-3',
+            'border-red-200 bg-red-50 dark:border-red-800 dark:bg-red-950'
+          )}
+        >
+          <motion.div
+            initial={{ opacity: 0 }}
+            animate={{ opacity: 1 }}
+            transition={{ delay: 0.1, duration: 0.2 }}
+            className="flex items-start space-x-2"
+          >
+            <div>
+              <div className="mb-2 text-sm font-semibold text-red-800 dark:text-red-200">
+                कोष्ठसंघर्षाः ({analysisResult.cellConflicts.length})
+              </div>
+              <div className={`mt-1 text-sm`}>
+                {analysisResult.cellConflicts.map((conflict, idx) => (
+                  <motion.div
+                    key={`${conflict.cellPosition[0]}-${conflict.cellPosition[1]}`}
+                    initial={{ opacity: 0, x: -10 }}
+                    animate={{ opacity: 1, x: 0 }}
+                    transition={{ delay: 0.2 + idx * 0.1, duration: 0.2 }}
+                    className={cn('mb-2', 'text-red-700 dark:text-red-300')}
+                  >
+                    <div className="flex items-center gap-2">
+                      <span>
+                        कोष्ठं{' '}
+                        <span className="font-semibold">
+                          ({conflict.cellPosition[0] + 1},{conflict.cellPosition[1] + 1})
+                        </span>{' '}
+                        एकाधिकैः शब्दैः उपयुज्यते
+                      </span>
+                    </div>
+                    <div className="mt-1 flex flex-wrap gap-1">
+                      {conflict.conflictingWords.map((wordInfo, widx) => (
+                        <span
+                          key={widx}
+                          className="rounded bg-red-100 px-1.5 py-0.5 text-xs text-red-800 dark:bg-red-900 dark:text-red-200"
+                        >
+                          "{wordInfo.word}"
+                        </span>
+                      ))}
+                    </div>
                   </motion.div>
                 ))}
               </div>
