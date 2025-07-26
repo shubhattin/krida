@@ -17,28 +17,12 @@
     {
       "src": "img/icon_128.png",
       "sizes": "128x128",
-      "type": "image/png",
-      "purpose": "any maskable"
+      "type": "image/png"
     },
     {
       "src": "img/icon_512.png",
       "sizes": "512x512",
-      "type": "image/png",
-      "purpose": "any maskable"
-    }
-  ],
-  "shortcuts": [
-    {
-      "name": "Play Today's Puzzle",
-      "short_name": "Today's Puzzle",
-      "description": "Jump directly to today's Sanskrit word puzzle",
-      "url": "/padavali",
-      "icons": [
-        {
-          "src": "img/icon_128.png",
-          "sizes": "128x128"
-        }
-      ]
+      "type": "image/png"
     }
   ]
 }
