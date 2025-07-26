@@ -25,8 +25,8 @@ export default async function Home() {
 
   if (!current_schedule) {
     return (
-      <div className="min-h-screen w-full bg-gradient-to-br from-slate-50 via-blue-50 to-indigo-50 dark:from-slate-900 dark:via-slate-800 dark:to-slate-900">
-        <div className="flex min-h-screen justify-center px-4 pt-28">
+      <div className="w-full bg-gradient-to-br from-slate-50 via-blue-50 to-indigo-50 pb-24 sm:pb-28 dark:from-slate-900 dark:via-slate-800 dark:to-slate-900">
+        <div className="flex justify-center px-4 pt-28">
           <div className="mx-auto max-w-md text-center">
             <div className="mb-8 flex justify-center">
               <div className="relative">

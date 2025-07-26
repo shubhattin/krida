@@ -96,7 +96,7 @@ const WordGameSuspense = async ({ id, uuid }: { id: number; uuid: string }) => {
 // Loading skeleton component
 const PuzzleLoadingSkeleton = () => {
   return (
-    <div className="min-h-screen w-full bg-gradient-to-br from-slate-50 via-blue-50 to-indigo-50 dark:from-slate-900 dark:via-slate-800 dark:to-slate-900">
+    <div className="w-full bg-gradient-to-br from-slate-50 via-blue-50 to-indigo-50 dark:from-slate-900 dark:via-slate-800 dark:to-slate-900">
       <div className="container mx-auto max-w-7xl px-4 py-8">
         <div className="mb-6 w-fit">
           <Link

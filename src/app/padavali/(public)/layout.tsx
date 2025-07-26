@@ -13,7 +13,7 @@ export default async function PadavaliLayout({ children }: { children: ReactNode
       {/* Footer Section */}
       <footer
         className={cn(
-          'py-12',
+          'py-6 sm:py-8',
           'bg-gradient-to-b from-slate-50 to-stone-50 dark:from-slate-900 dark:to-zinc-900'
         )}
       >
