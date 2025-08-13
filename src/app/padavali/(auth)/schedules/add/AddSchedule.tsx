@@ -176,8 +176,11 @@ const AddSchedule = (props: Props) => {
     setPageLastId(undefined);
     setPageLastCreatedOrUpdatedAt(undefined);
     setMoreItemsToFetch(true);
-    // console.log('resetting', [debouncedSearchTitle]);
-    puzzle_list_q.refetch();
+    // console.log('resetting', /[debouncedSearchTitle]);
+    if (debouncedSearchTitle === '') {
+      // manually refetch when search is cleared
+      puzzle_list_q.refetch();
+    }
   }, [debouncedSearchTitle]);
 
   const handleLoadMore = () => {
