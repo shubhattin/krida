@@ -749,9 +749,9 @@ const TraversalAnalysis = ({
                       {conflict.conflictingWords.map((wordInfo, widx) => (
                         <span
                           key={widx}
-                          className="rounded bg-red-100 px-1.5 py-0.5 text-xs text-red-800 dark:bg-red-900 dark:text-red-200"
+                          className="rounded bg-red-100 px-1.5 pt-1 pb-0.5 text-xs text-red-800 dark:bg-red-900 dark:text-red-200"
                         >
-                          "{wordInfo.word}"
+                          {wordInfo.word}
                         </span>
                       ))}
                     </div>

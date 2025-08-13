@@ -220,10 +220,23 @@ const delete_puzzle_route = protectedAdminProcedure
 //     return puzzle!;
 //   });
 
+const get_archived_puzzle_list_route = protectedAdminProcedure.query(async () => {
+  const puzzles = await db.query.word_puzzles.findMany({
+    columns: {
+      id: true,
+      title: true
+    },
+    orderBy: ({ created_at }, { desc }) => desc(created_at),
+    where: ({ archived }, { eq }) => eq(archived, false)
+  });
+  return puzzles;
+});
+
 export const padavali_router = t.router({
   update_puzzle: update_puzzle_route,
   add_puzzle: add_puzzle_route,
   delete_puzzle: delete_puzzle_route,
-  stats: padavali_stats_router
+  stats: padavali_stats_router,
+  get_archived_puzzle_list: get_archived_puzzle_list_route
   // get_puzzle_data: get_puzzle_data_route
 });

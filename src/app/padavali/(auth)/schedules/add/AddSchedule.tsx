@@ -6,15 +6,6 @@ import { Button } from '~/components/ui/button';
 import { Calendar } from '~/components/ui/calendar';
 import { Input } from '~/components/ui/input';
 import { Label } from '~/components/ui/label';
-import {
-  Select,
-  SelectContent,
-  SelectItem,
-  SelectTrigger,
-  SelectValue,
-  SelectLabel,
-  SelectGroup
-} from '~/components/ui/select';
 import { ChevronDownIcon, PlusIcon } from 'lucide-react';
 import { client_q } from '~/api/client';
 import { toast } from 'sonner';
@@ -30,13 +21,15 @@ import {
   AlertDialogTitle,
   AlertDialogTrigger
 } from '~/components/ui/alert-dialog';
+import { RadioGroup, RadioGroupItem } from '~/components/ui/radio-group';
+import { Skeleton } from '@/components/ui/skeleton';
+import { cn } from '~/lib/utils';
 
 export const DEFAULT_START_END_TIME = '21:00';
 
 type Props =
   | {
       type: 'add';
-      puzzle_list: { id: number; title: string }[];
     }
   | {
       init: {
@@ -125,6 +118,8 @@ const AddSchedule = (props: Props) => {
       end_time: endDate
     });
   };
+
+  const puzzle_list_q = client_q.padavali.get_archived_puzzle_list.useQuery();
 
   return (
     <div className="flex flex-col gap-6">
@@ -223,25 +218,32 @@ const AddSchedule = (props: Props) => {
       </div>
       {type === 'add' && (
         <div className="flex flex-col gap-3">
-          <Label className="px-1">Select Puzzle</Label>
-          <Select
-            value={puzzleId?.toString()}
-            onValueChange={(value) => setPuzzleId(Number(value))}
-          >
-            <SelectTrigger className="w-64">
-              <SelectValue placeholder="Choose a puzzle" />
-            </SelectTrigger>
-            <SelectContent>
-              <SelectGroup>
-                <SelectLabel>Puzzles</SelectLabel>
-                {props.puzzle_list.map((puzzle) => (
-                  <SelectItem key={puzzle.id} value={puzzle.id.toString()}>
+          <Label className="px-1 text-lg font-bold">Select Puzzle</Label>
+          {(!puzzle_list_q.isSuccess || puzzle_list_q.isLoading) && (
+            <Skeleton className="h-72 w-full" />
+          )}
+          {puzzle_list_q.isSuccess && !puzzle_list_q.isLoading && (
+            <div className="space-y-3">
+              <div className="max-h-52 space-y-1 overflow-y-scroll">
+                {puzzle_list_q.data.map((puzzle) => (
+                  <Button
+                    variant="ghost"
+                    className={cn(
+                      'block w-full justify-start text-start',
+                      puzzleId === puzzle.id &&
+                        'bg-primary text-primary-foreground hover:bg-primary hover:text-primary hover:brightness-80'
+                    )}
+                    onClick={() => {
+                      if (puzzleId === puzzle.id) setPuzzleId(undefined);
+                      else setPuzzleId(puzzle.id);
+                    }}
+                  >
                     {puzzle.title}
-                  </SelectItem>
+                  </Button>
                 ))}
-              </SelectGroup>
-            </SelectContent>
-          </Select>
+              </div>
+            </div>
+          )}
         </div>
       )}
       <AlertDialog>
