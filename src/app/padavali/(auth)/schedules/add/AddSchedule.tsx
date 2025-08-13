@@ -21,7 +21,6 @@ import {
   AlertDialogTitle,
   AlertDialogTrigger
 } from '~/components/ui/alert-dialog';
-import { RadioGroup, RadioGroupItem } from '~/components/ui/radio-group';
 import { Skeleton } from '@/components/ui/skeleton';
 import { cn } from '~/lib/utils';
 
@@ -119,7 +118,9 @@ const AddSchedule = (props: Props) => {
     });
   };
 
-  const puzzle_list_q = client_q.padavali.get_archived_puzzle_list.useQuery();
+  const puzzle_list_q = client_q.puzzle.get_archived_puzzle_list.useQuery(undefined, {
+    enabled: type === 'add'
+  });
 
   return (
     <div className="flex flex-col gap-6">
@@ -224,14 +225,16 @@ const AddSchedule = (props: Props) => {
           )}
           {puzzle_list_q.isSuccess && !puzzle_list_q.isLoading && (
             <div className="space-y-3">
-              <div className="max-h-52 space-y-1 overflow-y-scroll">
+              <div className="grid max-h-52 grid-cols-2 gap-2 overflow-y-scroll rounded-md border border-gray-200 bg-gray-50/50 p-3 sm:grid-cols-3 lg:grid-cols-4 dark:border-gray-700 dark:bg-gray-800/50">
                 {puzzle_list_q.data.map((puzzle) => (
-                  <Button
-                    variant="ghost"
+                  <button
+                    key={puzzle.id}
                     className={cn(
-                      'block w-full justify-start text-start',
-                      puzzleId === puzzle.id &&
-                        'bg-primary text-primary-foreground hover:bg-primary hover:text-primary hover:brightness-80'
+                      'rounded-md border px-4 py-3 text-left text-sm font-semibold transition-all duration-200 ease-in-out outline-none',
+                      'hover:shadow-md focus:ring-2 focus:ring-blue-500/50',
+                      puzzleId === puzzle.id
+                        ? 'border-blue-400 bg-blue-100 text-blue-900 shadow-md dark:border-blue-500 dark:bg-blue-900/30 dark:text-blue-100'
+                        : 'border-gray-200 bg-white text-gray-700 hover:border-blue-300 hover:bg-blue-50 dark:border-gray-600 dark:bg-gray-700 dark:text-gray-200 dark:hover:border-blue-400 dark:hover:bg-blue-900/20'
                     )}
                     onClick={() => {
                       if (puzzleId === puzzle.id) setPuzzleId(undefined);
@@ -239,7 +242,7 @@ const AddSchedule = (props: Props) => {
                     }}
                   >
                     {puzzle.title}
-                  </Button>
+                  </button>
                 ))}
               </div>
             </div>

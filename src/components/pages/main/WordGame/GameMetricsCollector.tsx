@@ -30,7 +30,7 @@ const GameMetricsCollector = ({
 
   const [turnstileToken, setTurnstileToken] = useState<string | null>(null);
   const turnstile = useTurnstile();
-  const submit_stats_mut = client_q.padavali.stats.submit_stats.useMutation({
+  const submit_stats_mut = client_q.puzzle.stats.submit_stats.useMutation({
     onSuccess() {
       setTurnstileToken(null);
       turnstile.reset();
@@ -38,7 +38,7 @@ const GameMetricsCollector = ({
       submit_stats_mut.reset();
     }
   });
-  const update_games_started_mut = client_q.padavali.stats.update_games_started.useMutation({
+  const update_games_started_mut = client_q.puzzle.stats.update_games_started.useMutation({
     onSuccess() {
       setTurnstileToken(null);
       turnstile.reset();
