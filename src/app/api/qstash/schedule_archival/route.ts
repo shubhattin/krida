@@ -4,7 +4,7 @@ import { db } from '~/db/db';
 import { redis, REDIS_CACHE_KEYS } from '~/db/redis';
 import { puzzle_game_schedules, word_puzzles } from '~/db/schema';
 import { and, eq } from 'drizzle-orm';
-import { notify_for_archived_puzzle } from '~/api/routers/padavali';
+import { notify_for_archived_puzzle } from '~/api/routers/puzzle';
 
 export const POST = verifySignatureAppRouter(async (req: Request) => {
   console.log('QStash request received', new Date());

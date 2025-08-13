@@ -275,18 +275,6 @@ const get_puzzle_list_page_route = protectedAdminProcedure
   .input(get_puzzle_data_input_schema)
   .query(async ({ input }) => await get_puzzle_list_page(input));
 
-const get_archived_puzzle_list_route = protectedAdminProcedure.query(async () => {
-  const puzzles = await db.query.word_puzzles.findMany({
-    columns: {
-      id: true,
-      title: true
-    },
-    orderBy: ({ created_at }, { desc }) => desc(created_at),
-    where: ({ archived }, { eq }) => eq(archived, false)
-  });
-  return puzzles;
-});
-
 export const puzzle_router = t.router({
   update_puzzle: update_puzzle_route,
   add_puzzle: add_puzzle_route,
