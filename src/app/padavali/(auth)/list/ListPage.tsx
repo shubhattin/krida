@@ -1,7 +1,7 @@
 'use client';
 
 import { Card, CardDescription, CardHeader, CardTitle } from '~/components/ui/card';
-import { CalendarIcon, SearchIcon } from 'lucide-react';
+import { CalendarIcon, SearchIcon, ArchiveIcon, FilterIcon, ArrowUpDownIcon } from 'lucide-react';
 import Link from 'next/link';
 import dayjs from 'dayjs';
 import relativeTime from 'dayjs/plugin/relativeTime';
@@ -12,13 +12,6 @@ import { Button } from '~/components/ui/button';
 import { Input } from '~/components/ui/input';
 import { Label } from '~/components/ui/label';
 import { Switch } from '~/components/ui/switch';
-import {
-  Select,
-  SelectContent,
-  SelectItem,
-  SelectTrigger,
-  SelectValue
-} from '~/components/ui/select';
 import Icon from '~/tools/Icon';
 import { LanguageIcon } from '~/components/icons';
 import { lekhika_typing_tool, load_parivartak_lang_data } from '~/tools/lipi_lekhika';
@@ -40,6 +33,7 @@ const ListPage = () => {
     'all'
   );
   const [sort_by, setSortBy] = useState<'created_at' | 'updated_at'>('created_at');
+  const [order_by, setOrderBy] = useState<'asc' | 'desc'>('desc');
 
   // Ensure component is mounted before showing loading states
   useEffect(() => {
@@ -71,7 +65,8 @@ const ListPage = () => {
       sort_by: sort_by,
       last_id: pageLastId,
       last_created_or_updated_at: pageLastCreatedOrUpdatedAt,
-      search_title: debouncedSearchTitle !== '' ? debouncedSearchTitle : undefined
+      search_title: debouncedSearchTitle !== '' ? debouncedSearchTitle : undefined,
+      order_by: order_by
     },
     {
       placeholderData: (prev) => prev,
@@ -102,7 +97,7 @@ const ListPage = () => {
       // manually refetch when search is cleared
       puzzle_list_q.refetch();
     }
-  }, [debouncedSearchTitle, archived_filter_type, sort_by]);
+  }, [debouncedSearchTitle, archived_filter_type, sort_by, order_by]);
 
   const LoadingSkeletonJSX = () => (
     <>
@@ -124,7 +119,9 @@ const ListPage = () => {
     if (puzzle_list.length === 0) return;
     const last = puzzle_list[puzzle_list.length - 1];
     setPageLastId(last.id);
-    setPageLastCreatedOrUpdatedAt(last.created_at);
+    setPageLastCreatedOrUpdatedAt(
+      sort_by === 'updated_at' ? (last.updated_at ?? last.created_at) : last.created_at
+    );
   };
 
   return (
@@ -165,11 +162,14 @@ const ListPage = () => {
             </Label>
           </div>
         </div>
-        <div className="flex flex-wrap items-center gap-4">
-          <div className="flex items-center gap-2">
-            <Label className="px-1 text-xs font-semibold sm:text-sm">Archived</Label>
+        <div className="flex flex-wrap items-center justify-center gap-2 sm:gap-4">
+          <div className="flex items-center gap-1.5 sm:gap-2">
+            <Label className="px-1 text-xs font-semibold sm:text-sm" title="Archived filter">
+              <ArchiveIcon className="size-3.5 sm:size-4" />
+            </Label>
             <select
-              className="select w-24 rounded-md border border-gray-300 bg-white px-1 py-0.5 text-xs text-gray-900 shadow-sm transition-colors focus:border-blue-500 focus:ring-2 focus:ring-blue-500 focus:outline-none sm:text-sm dark:border-gray-700 dark:bg-gray-900 dark:text-gray-100 dark:focus:border-blue-400 dark:focus:ring-blue-400"
+              className="select w-20 rounded-md border border-gray-300 bg-white px-1 py-0.5 text-xs text-gray-900 shadow-sm transition-colors focus:border-blue-500 focus:ring-2 focus:ring-blue-500 focus:outline-none sm:w-24 sm:text-sm dark:border-gray-700 dark:bg-gray-900 dark:text-gray-100 dark:focus:border-blue-400 dark:focus:ring-blue-400"
+              aria-label="Archived filter"
               value={archived_filter_type}
               onChange={(e) =>
                 setArchivedFilterType(e.currentTarget.value as typeof archived_filter_type)
@@ -180,15 +180,32 @@ const ListPage = () => {
               <option value="unarchived">Unarchived</option>
             </select>
           </div>
-          <div className="flex items-center gap-2">
-            <Label className="px-1 text-xs font-semibold sm:text-sm">Sort By</Label>
+          <div className="flex items-center gap-1.5 sm:gap-2">
+            <Label className="px-1 text-xs font-semibold sm:text-sm" title="Sort field">
+              <FilterIcon className="size-3.5 sm:size-4" />
+            </Label>
             <select
-              className="select w-28 rounded-md border border-gray-300 bg-white px-1 py-0.5 text-xs text-gray-900 shadow-sm transition-colors focus:border-blue-500 focus:ring-2 focus:ring-blue-500 focus:outline-none sm:text-sm dark:border-gray-700 dark:bg-gray-900 dark:text-gray-100 dark:focus:border-blue-400 dark:focus:ring-blue-400"
+              className="select w-20 rounded-md border border-gray-300 bg-white px-1 py-0.5 text-xs text-gray-900 shadow-sm transition-colors focus:border-blue-500 focus:ring-2 focus:ring-blue-500 focus:outline-none sm:w-28 sm:text-sm dark:border-gray-700 dark:bg-gray-900 dark:text-gray-100 dark:focus:border-blue-400 dark:focus:ring-blue-400"
+              aria-label="Sort field"
               value={sort_by}
               onChange={(e) => setSortBy(e.currentTarget.value as typeof sort_by)}
             >
               <option value="created_at">Created</option>
               <option value="updated_at">Updated</option>
+            </select>
+          </div>
+          <div className="flex items-center gap-1.5 sm:gap-2">
+            <Label className="px-1 text-xs font-semibold sm:text-sm" title="Order">
+              <ArrowUpDownIcon className="size-3.5 sm:size-4" />
+            </Label>
+            <select
+              className="select w-20 rounded-md border border-gray-300 bg-white px-1 py-0.5 text-xs text-gray-900 shadow-sm transition-colors focus:border-blue-500 focus:ring-2 focus:ring-blue-500 focus:outline-none sm:w-28 sm:text-sm dark:border-gray-700 dark:bg-gray-900 dark:text-gray-100 dark:focus:border-blue-400 dark:focus:ring-blue-400"
+              aria-label="Order"
+              value={order_by}
+              onChange={(e) => setOrderBy(e.currentTarget.value as typeof order_by)}
+            >
+              <option value="desc">Latest</option>
+              <option value="asc">Oldest</option>
             </select>
           </div>
         </div>

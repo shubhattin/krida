@@ -6,7 +6,7 @@ import { and, eq, inArray } from 'drizzle-orm';
 import { revalidatePath } from 'next/cache';
 import { padavali_stats_router } from './padavali_stats';
 import { redis, REDIS_CACHE_KEYS } from '~/db/redis';
-import { get_word_puzzle, type CurrentScheduleType } from '~/db/db_cache_data';
+import { type CurrentScheduleType } from '~/db/db_cache_data';
 import { puzzle_add_input_schema, puzzle_update_input_schema } from '~/db/db_shared_vals';
 import { sendOneSignalNotification } from '~/lib/onesignal';
 import { delay } from '~/tools/delay';
@@ -220,12 +220,20 @@ const get_puzzle_data_input_schema = z.object({
   archived_filter: z.boolean().optional(),
   sort_by: z.enum(['created_at', 'updated_at']).optional(),
   last_created_or_updated_at: z.coerce.date().optional(),
-  last_id: z.number().int().optional()
+  last_id: z.number().int().optional(),
+  order_by: z.enum(['asc', 'desc']).optional().default('desc')
 });
 
 export const get_puzzle_list_page = async (input: z.input<typeof get_puzzle_data_input_schema>) => {
-  const { limit, search_title, archived_filter, sort_by, last_created_or_updated_at, last_id } =
-    input;
+  const {
+    limit,
+    search_title,
+    archived_filter,
+    sort_by,
+    last_created_or_updated_at,
+    last_id,
+    order_by
+  } = input;
 
   await delay(400);
   const rows = await db.query.word_puzzles.findMany({
@@ -238,7 +246,7 @@ export const get_puzzle_list_page = async (input: z.input<typeof get_puzzle_data
       created_at: true,
       updated_at: true
     },
-    where: (tbl, { and, or, eq, ilike, lt }) => {
+    where: (tbl, { and, or, eq, ilike, lt, gt }) => {
       const conds: ReturnType<typeof and>[] = [];
       if (typeof archived_filter === 'boolean') {
         conds.push(eq(tbl.archived, archived_filter));
@@ -248,22 +256,25 @@ export const get_puzzle_list_page = async (input: z.input<typeof get_puzzle_data
       }
       if (last_created_or_updated_at instanceof Date) {
         const sortCol = sort_by === 'updated_at' ? tbl.updated_at : tbl.created_at;
+        const comparator = order_by === 'desc' ? lt : gt;
         if (typeof last_id === 'number') {
           conds.push(
             or(
-              lt(sortCol, last_created_or_updated_at),
-              and(eq(sortCol, last_created_or_updated_at), lt(tbl.id, last_id))
+              comparator(sortCol, last_created_or_updated_at),
+              and(eq(sortCol, last_created_or_updated_at), comparator(tbl.id, last_id))
             )
           );
         } else {
-          conds.push(lt(sortCol, last_created_or_updated_at));
+          conds.push(comparator(sortCol, last_created_or_updated_at));
         }
       }
       return conds.length > 0 ? and(...conds) : undefined;
     },
-    orderBy: (tbl, { desc }) => {
+    orderBy: (tbl, { desc, asc }) => {
       const sortCol = sort_by === 'updated_at' ? tbl.updated_at : tbl.created_at;
-      return [desc(sortCol)];
+      const orderPrimary = order_by === 'desc' ? desc(sortCol) : asc(sortCol);
+      const orderTiebreaker = order_by === 'desc' ? desc(tbl.id) : asc(tbl.id);
+      return [orderPrimary, orderTiebreaker];
     },
     limit
   });
