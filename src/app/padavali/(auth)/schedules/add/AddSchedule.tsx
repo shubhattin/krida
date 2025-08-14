@@ -7,7 +7,7 @@ import { Calendar } from '~/components/ui/calendar';
 import { Input } from '~/components/ui/input';
 import { Label } from '~/components/ui/label';
 import { ChevronDownIcon, PlusIcon, SearchIcon } from 'lucide-react';
-import { client_q } from '~/api/client';
+import { client, client_q } from '~/api/client';
 import { toast } from 'sonner';
 import { useRouter } from 'next/navigation';
 import {
@@ -27,6 +27,7 @@ import { LanguageIcon } from '~/components/icons';
 import { Switch } from '~/components/ui/switch';
 import Icon from '~/tools/Icon';
 import { lekhika_typing_tool, load_parivartak_lang_data } from '~/tools/lipi_lekhika';
+import { useQuery } from '@tanstack/react-query';
 
 export const DEFAULT_START_END_TIME = '21:00';
 const PUZZLE_FETCH_LIMIT = 10;
@@ -145,22 +146,29 @@ const AddSchedule = (props: Props) => {
   );
   const [moreItemsToFetch, setMoreItemsToFetch] = useState(true);
 
-  const puzzle_list_q = client_q.puzzle.get_puzzle_list_page.useQuery(
-    {
-      limit: PUZZLE_FETCH_LIMIT,
-      archived_filter: false,
-      search_title: debouncedSearchTitle !== '' ? debouncedSearchTitle : undefined,
-      sort_by: 'created_at',
-      last_id: pageLastId,
-      last_created_or_updated_at: pageLastCreatedOrUpdatedAt
+  const puzzle_list_q = useQuery({
+    queryKey: ['puzzle_list_archived'],
+    queryFn: async () => {
+      const data = client.puzzle.get_puzzle_list_page.query({
+        limit: PUZZLE_FETCH_LIMIT,
+        archived_filter: false,
+        search_title: debouncedSearchTitle !== '' ? debouncedSearchTitle : undefined,
+        sort_by: 'created_at',
+        last_id: pageLastId,
+        last_created_or_updated_at: pageLastCreatedOrUpdatedAt
+      });
+      return data;
     },
-    {
-      enabled: type === 'add',
-      // keep old data while fetching next page to avoid UI flicker
-      placeholderData: (prev) => prev,
-      refetchOnWindowFocus: false
-    }
-  );
+    enabled: type === 'add',
+    // keep old data while fetching next page to avoid UI flicker
+    placeholderData: (prev) => prev,
+    refetchOnWindowFocus: false
+  });
+
+  useEffect(() => {
+    puzzle_list_q.refetch();
+  }, [debouncedSearchTitle, pageLastId, pageLastCreatedOrUpdatedAt]);
+
   const [puzzle_list, setPuzzleList] = useState<NonNullable<typeof puzzle_list_q.data>>([]);
   useEffect(() => {
     if (puzzle_list_q.isSuccess && !puzzle_list_q.isLoading) {
@@ -327,7 +335,7 @@ const AddSchedule = (props: Props) => {
               </div>
             </div>
           </div>
-          {puzzle_list_q.isLoading && <Skeleton className="h-72 w-full" />}
+          {puzzle_list_q.isLoading && <Skeleton className="h-52 w-full" />}
           {puzzle_list_q.isSuccess && !puzzle_list_q.isLoading && (
             <div className="space-y-3">
               <div className="grid max-h-52 grid-cols-2 gap-2 overflow-y-scroll rounded-md border border-gray-200 bg-gray-50/50 p-3 sm:grid-cols-3 lg:grid-cols-4 dark:border-gray-700 dark:bg-gray-800/50">

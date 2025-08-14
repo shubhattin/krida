@@ -15,6 +15,7 @@ import { Switch } from '~/components/ui/switch';
 import Icon from '~/tools/Icon';
 import { LanguageIcon } from '~/components/icons';
 import { lekhika_typing_tool, load_parivartak_lang_data } from '~/tools/lipi_lekhika';
+import { useQuery } from '@tanstack/react-query';
 
 dayjs.extend(relativeTime);
 
@@ -54,25 +55,38 @@ const ListPage = () => {
     return () => clearTimeout(timeoutId);
   }, [search_title]);
 
-  const puzzle_list_q = client_q.puzzle.get_puzzle_list_page.useQuery(
-    {
-      limit: PUZZLE_FETCH_LIMIT,
-      archived_filter: {
-        all: undefined,
-        archived: true,
-        unarchived: false
-      }[archived_filter_type],
-      sort_by: sort_by,
-      last_id: pageLastId,
-      last_created_or_updated_at: pageLastCreatedOrUpdatedAt,
-      search_title: debouncedSearchTitle !== '' ? debouncedSearchTitle : undefined,
-      order_by: order_by
+  const puzzle_list_q = useQuery({
+    queryKey: ['puzzle_list'],
+    queryFn: async () => {
+      const data = await client.puzzle.get_puzzle_list_page.query({
+        limit: PUZZLE_FETCH_LIMIT,
+        archived_filter: {
+          all: undefined,
+          archived: true,
+          unarchived: false
+        }[archived_filter_type],
+        sort_by: sort_by,
+        last_id: pageLastId,
+        last_created_or_updated_at: pageLastCreatedOrUpdatedAt,
+        search_title: debouncedSearchTitle !== '' ? debouncedSearchTitle : undefined,
+        order_by: order_by
+      });
+      return data;
     },
-    {
-      placeholderData: (prev) => prev,
-      refetchOnWindowFocus: false
-    }
-  );
+    placeholderData: (prev) => prev,
+    refetchOnWindowFocus: false
+  });
+
+  useEffect(() => {
+    puzzle_list_q.refetch();
+  }, [
+    debouncedSearchTitle,
+    archived_filter_type,
+    sort_by,
+    order_by,
+    pageLastId,
+    pageLastCreatedOrUpdatedAt
+  ]);
 
   const [puzzle_list, setPuuzleList] = useState<
     Awaited<ReturnType<typeof client.puzzle.get_puzzle_list_page.query>>
