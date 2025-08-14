@@ -6,7 +6,7 @@ import { Button } from '~/components/ui/button';
 import { Calendar } from '~/components/ui/calendar';
 import { Input } from '~/components/ui/input';
 import { Label } from '~/components/ui/label';
-import { ChevronDownIcon, PlusIcon } from 'lucide-react';
+import { ChevronDownIcon, PlusIcon, SearchIcon } from 'lucide-react';
 import { client_q } from '~/api/client';
 import { toast } from 'sonner';
 import { useRouter } from 'next/navigation';
@@ -176,6 +176,7 @@ const AddSchedule = (props: Props) => {
     setPageLastId(undefined);
     setPageLastCreatedOrUpdatedAt(undefined);
     setMoreItemsToFetch(true);
+    setPuzzleId(undefined);
     // console.log('resetting', /[debouncedSearchTitle]);
     if (debouncedSearchTitle === '') {
       // manually refetch when search is cleared
@@ -291,6 +292,7 @@ const AddSchedule = (props: Props) => {
           <div className="flex flex-col gap-3">
             <Label className="px-1 font-semibold">Search Puzzle</Label>
             <div className="flex items-center gap-4">
+              <SearchIcon className="size-5 text-muted-foreground" />
               <Input
                 value={search_title}
                 onInput={(e) => {
@@ -340,6 +342,7 @@ const AddSchedule = (props: Props) => {
                           ? 'border-blue-400 bg-blue-100 text-blue-900 shadow-md dark:border-blue-500 dark:bg-blue-900/30 dark:text-blue-100'
                           : 'border-gray-200 bg-white text-gray-700 hover:border-blue-300 hover:bg-blue-50 dark:border-gray-600 dark:bg-gray-700 dark:text-gray-200 dark:hover:border-blue-400 dark:hover:bg-blue-900/20'
                       )}
+                      disabled={puzzle_list_q.isLoading}
                       onClick={() => {
                         if (puzzleId === puzzle.id) setPuzzleId(undefined);
                         else setPuzzleId(puzzle.id);
