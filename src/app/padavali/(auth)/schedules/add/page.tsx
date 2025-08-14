@@ -10,15 +10,6 @@ const Main = async () => {
   const session = await getCachedSession();
   if (!session || session.user.role !== 'admin' || !session.user.is_approved) redirect('/padavali');
 
-  const puzzle_list = await db.query.word_puzzles.findMany({
-    columns: {
-      id: true,
-      title: true
-    },
-    orderBy: ({ created_at }, { desc }) => desc(created_at),
-    where: ({ archived }, { eq }) => eq(archived, false)
-  });
-
   return (
     <div className="mt-4">
       <div className="my-2 mb-4 px-2">
@@ -30,7 +21,7 @@ const Main = async () => {
       <div className="my-4 text-xs dark:text-red-400">
         * All Date and Time entered here will saved according to IST.
       </div>
-      <AddSchedule puzzle_list={puzzle_list} type="add" />
+      <AddSchedule type="add" />
     </div>
   );
 };

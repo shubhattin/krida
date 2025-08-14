@@ -240,7 +240,7 @@ const PuzzleStats = ({ puzzleId }: { puzzleId: number }) => {
   }, [period, dateRange]);
 
   // Fetch stats data
-  const statsQuery = client_q.padavali.stats.get_stats_data.useQuery(
+  const statsQuery = client_q.puzzle.stats.get_stats_data.useQuery(
     {
       puzzle_id: puzzleId,
       start_date: effectiveDateRange.from!,
