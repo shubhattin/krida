@@ -37,7 +37,7 @@ const AppAuthContextMenu = ({
             </div>
 
             {/* Admin Actions */}
-            {user_info.role === 'admin' && user_info.is_approved && (
+            {user_info.role === 'admin' && (
               <>
                 <ContextMenuItem className="flex items-start justify-start gap-2" asChild>
                   <Link
@@ -125,7 +125,7 @@ const AppAuthContextMenu = ({
               </button>
             </ContextMenuItem>
 
-            {user_info && (user_info.role !== 'admin' || !user_info.is_approved) && (
+            {user_info && user_info.role !== 'admin' && (
               <div className="rounded-lg border border-orange-200 bg-orange-50 p-3 dark:border-orange-800 dark:bg-orange-950/30">
                 <div className="text-sm font-medium text-orange-800 dark:text-orange-300">
                   Unauthorized Account

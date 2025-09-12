@@ -13,7 +13,7 @@ dayjs.extend(relativeTime);
 
 const List = async () => {
   const session = await getCachedSession();
-  if (!session || session.user.role !== 'admin' || !session.user.is_approved) redirect('/padavali');
+  if (!session || session.user.role !== 'admin') redirect('/padavali');
 
   return (
     <div className="container mx-auto p-4">

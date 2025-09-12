@@ -45,7 +45,7 @@ export async function generateMetadata({ params }: Props): Promise<Metadata> {
 
 const MainEdit = async ({ params }: Props) => {
   const session = await getCachedSession();
-  if (!session || session.user.role !== 'admin' || !session.user.is_approved) redirect('/padavali');
+  if (!session || session.user.role !== 'admin') redirect('/padavali');
 
   const id = z.coerce
     .number()

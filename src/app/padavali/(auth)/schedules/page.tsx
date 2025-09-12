@@ -11,7 +11,7 @@ import { getCachedSession } from '~/lib/cache_server_route_data';
 
 const Main = async () => {
   const session = await getCachedSession();
-  if (!session || session.user.role !== 'admin' || !session.user.is_approved) redirect('/padavali');
+  if (!session || session.user.role !== 'admin') redirect('/padavali');
 
   const current_time = new Date();
   const uncomming_schedules = await db.query.puzzle_game_schedules.findMany({

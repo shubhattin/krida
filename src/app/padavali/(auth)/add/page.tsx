@@ -9,7 +9,7 @@ import { getCachedSession } from '~/lib/cache_server_route_data';
 
 const Add = async () => {
   const session = await getCachedSession();
-  if (!session || session.user.role !== 'admin' || !session.user.is_approved) redirect('/padavali');
+  if (!session || session.user.role !== 'admin') redirect('/padavali');
 
   const DIMS = [6, 6];
 

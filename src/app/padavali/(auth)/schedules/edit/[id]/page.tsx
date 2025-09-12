@@ -11,7 +11,7 @@ type Props = { params: Promise<{ id: string }> };
 
 const Main = async ({ params }: Props) => {
   const session = await getCachedSession();
-  if (!session || session.user.role !== 'admin' || !session.user.is_approved) redirect('/padavali');
+  if (!session || session.user.role !== 'admin') redirect('/padavali');
 
   const schedule_id = z.object({ id: z.coerce.number().int() }).parse(await params).id;
 

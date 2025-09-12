@@ -5,10 +5,6 @@ type user_plugin_type = () => {
   schema: {
     user: {
       fields: {
-        is_approved: {
-          type: 'boolean';
-          defaultValue: false;
-        };
         is_maintainer: {
           type: 'boolean';
           defaultValue: false;
