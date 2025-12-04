@@ -14,7 +14,6 @@ export const load_posthog = async (func?: (posthog: PostHog) => void) => {
     return;
 
   const posthog = await import('posthog-js');
-  console.log('loading posthog...');
   if (func) {
     func(posthog.default);
   }
