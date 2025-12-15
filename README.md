@@ -5,7 +5,6 @@ A fun, interactive Sanskrit word puzzle game that tests your creativity, expands
 ## ✨ Features
 
 - **Multi-Script Support**: Play in 8 different Indian scripts:
-
   - Devanagari (देवनागरी)
   - Telugu (తెలుగు)
   - Kannada (ಕನ್ನಡ)
