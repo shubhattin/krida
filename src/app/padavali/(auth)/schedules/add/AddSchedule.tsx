@@ -310,7 +310,12 @@ const AddSchedule = (props: Props) => {
                 value={search_title}
                 onChange={(e) => setSearchTitle(e.currentTarget.value)}
                 onBeforeInput={(e) =>
-                  handleTypingBeforeInputEvent(ctx, e, (newValue) => setSearchTitle(newValue))
+                  handleTypingBeforeInputEvent(
+                    ctx,
+                    e,
+                    (newValue) => setSearchTitle(newValue),
+                    lipi_lekhika_typing
+                  )
                 }
                 onBlur={() => ctx.clearContext()}
                 onKeyDown={(e) => clearTypingContextOnKeyDown(e, ctx)}
