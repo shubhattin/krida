@@ -40,6 +40,12 @@ const ListPage = () => {
   const [sort_by, setSortBy] = useState<'created_at' | 'updated_at'>('created_at');
   const [order_by, setOrderBy] = useState<'asc' | 'desc'>('desc');
 
+  const ctx = createTypingContext('Devanagari');
+
+  useEffect(() => {
+    ctx.ready;
+  }, [ctx]);
+
   // Ensure component is mounted before showing loading states
   useEffect(() => {
     setMounted(true);
@@ -137,12 +143,6 @@ const ListPage = () => {
       sort_by === 'updated_at' ? (last.updated_at ?? last.created_at) : last.created_at
     );
   };
-
-  const ctx = createTypingContext('Devanagari');
-
-  useEffect(() => {
-    ctx.ready;
-  }, [ctx]);
 
   return (
     <div className="space-y-4">
