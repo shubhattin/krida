@@ -1,7 +1,7 @@
 'use client';
 
 import { useRef, useEffect, useMemo, useContext, useState, lazy, Suspense } from 'react';
-import { lipi_parivartak } from '~/tools/lipi_lekhika';
+import { transliterate } from 'lipilekhika';
 import { DEFAULT_DATA_SCRIPT, type ScriptType } from '~/state/script_list';
 import { FONT_INFO } from '~/state/script_font_data';
 import { get_transliterated_word_game_msgs, type word_game_msgs } from './msgs';
@@ -195,12 +195,15 @@ function WordGame({
   // transliteration
   useEffect(() => {
     Promise.all(
-      org_grid_data.map(async (row) => await lipi_parivartak(row, DEFAULT_DATA_SCRIPT, script!))
+      org_grid_data.map(
+        async (row) =>
+          await Promise.all(row.map((cell) => transliterate(cell, DEFAULT_DATA_SCRIPT, script!)))
+      )
     ).then((grid_data) => {
       setGridData(grid_data);
     });
 
-    lipi_parivartak(org_title, DEFAULT_DATA_SCRIPT, script!).then((title) => {
+    transliterate(org_title, DEFAULT_DATA_SCRIPT, script!).then((title) => {
       setTitle(title);
     });
 
@@ -208,7 +211,7 @@ function WordGame({
       setWordMsgs(word_msgs);
     });
     if (description) {
-      lipi_parivartak(description, DEFAULT_DATA_SCRIPT, script!).then((description) => {
+      transliterate(description, DEFAULT_DATA_SCRIPT, script!).then((description) => {
         setDescriptionTransliterated(description);
       });
     }
@@ -253,7 +256,7 @@ function WordGame({
   }, [started, completed]);
 
   const HintJSX = (
-    <div className="inline-flex items-center gap-2 rounded-xl bg-gradient-to-r from-yellow-600 to-orange-400 px-5 py-1 text-white shadow-lg">
+    <div className="inline-flex items-center gap-2 rounded-xl bg-linear-to-r from-yellow-600 to-orange-400 px-5 py-1 text-white shadow-lg">
       <span className="uppercasen text-sm font-semibold tracking-wide select-none">Hint</span>
     </div>
   );
@@ -261,7 +264,7 @@ function WordGame({
   return (
     <div
       className={cn(
-        'w-full bg-gradient-to-br from-slate-50 via-blue-50 to-indigo-50 dark:from-slate-900 dark:via-slate-800 dark:to-slate-900',
+        'w-full bg-linear-to-br from-slate-50 via-blue-50 to-indigo-50 dark:from-slate-900 dark:via-slate-800 dark:to-slate-900',
         'pb-6 sm:pb-12'
       )}
       style={{
@@ -299,7 +302,7 @@ function WordGame({
           <div
             className={cn(
               'mt-1 sm:mt-1.5 md:mt-2',
-              'bg-gradient-to-r from-slate-800 to-slate-600 bg-clip-text py-1 text-2xl font-bold sm:text-3xl md:text-4xl dark:from-slate-100 dark:to-slate-300',
+              'bg-linear-to-r from-slate-800 to-slate-600 bg-clip-text py-1 text-2xl font-bold sm:text-3xl md:text-4xl dark:from-slate-100 dark:to-slate-300',
               font_info.className
             )}
           >
@@ -315,7 +318,7 @@ function WordGame({
                   side="top"
                   align="center"
                   className={cn(
-                    'z-80 w-fit overflow-hidden rounded-xl border-slate-200 bg-gradient-to-r from-amber-50 to-orange-50 px-3 py-2 shadow-xl outline-none dark:border-slate-700 dark:from-teal-950/80 dark:to-green-950/80',
+                    'z-80 w-fit overflow-hidden rounded-xl border-slate-200 bg-linear-to-r from-amber-50 to-orange-50 px-3 py-2 shadow-xl outline-none dark:border-slate-700 dark:from-teal-950/80 dark:to-green-950/80',
                     'w-72 sm:w-xl md:w-2xl lg:w-3xl'
                   )}
                 >
@@ -472,7 +475,7 @@ export const ArchivedGamesPrompt = ({
             {next_schedule && (
               <div className="flex items-center justify-center text-base font-semibold text-slate-600 dark:text-slate-400">
                 Next puzzle in
-                <span className="ml-1 bg-gradient-to-r from-emerald-600 to-green-500 bg-clip-text font-bold text-transparent dark:from-emerald-400 dark:to-green-300">
+                <span className="ml-1 bg-linear-to-r from-emerald-600 to-green-500 bg-clip-text font-bold text-transparent dark:from-emerald-400 dark:to-green-300">
                   {dayjs(next_schedule.start_time)
                     .fromNow(true)
                     .replace(
@@ -498,12 +501,12 @@ export const ArchivedGamesPrompt = ({
           >
             <Link
               href="/padavali/archived"
-              className="group flex items-center gap-2 rounded-lg border border-amber-200/50 bg-gradient-to-r from-amber-50 to-orange-50 p-3 text-amber-800 shadow-sm transition-all duration-200 hover:scale-[1.02] hover:from-amber-100 hover:to-orange-100 hover:shadow-md sm:gap-3 sm:rounded-xl sm:p-4 dark:border-amber-800/30 dark:from-amber-950/50 dark:to-orange-950/50 dark:text-amber-200 dark:hover:from-amber-900/60 dark:hover:to-orange-900/60"
+              className="group flex items-center gap-2 rounded-lg border border-amber-200/50 bg-linear-to-r from-amber-50 to-orange-50 p-3 text-amber-800 shadow-sm transition-all duration-200 hover:scale-[1.02] hover:from-amber-100 hover:to-orange-100 hover:shadow-md sm:gap-3 sm:rounded-xl sm:p-4 dark:border-amber-800/30 dark:from-amber-950/50 dark:to-orange-950/50 dark:text-amber-200 dark:hover:from-amber-900/60 dark:hover:to-orange-900/60"
             >
               <motion.div
                 whileHover={{ rotate: 5 }}
                 transition={{ duration: 0.2 }}
-                className="rounded-md bg-gradient-to-r from-amber-500 to-orange-500 p-1.5 shadow-sm sm:rounded-lg sm:p-2"
+                className="rounded-md bg-linear-to-r from-amber-500 to-orange-500 p-1.5 shadow-sm sm:rounded-lg sm:p-2"
               >
                 <ArchiveIcon className="h-3 w-3 text-white sm:h-4 sm:w-4 md:h-5 md:w-5" />
               </motion.div>
@@ -540,10 +543,10 @@ export const NextPuzzleTimePopup = ({
       </PopoverTrigger>
       <PopoverContent
         align="center"
-        className="z-100 flex items-center gap-2 overflow-hidden rounded-xl border border-amber-200/50 bg-gradient-to-r from-amber-50 to-orange-50 px-3 py-2 shadow-xl outline-none dark:border-slate-700 dark:from-teal-950/80 dark:to-green-950/80"
+        className="z-100 flex items-center gap-2 overflow-hidden rounded-xl border border-amber-200/50 bg-linear-to-r from-amber-50 to-orange-50 px-3 py-2 shadow-xl outline-none dark:border-slate-700 dark:from-teal-950/80 dark:to-green-950/80"
       >
         <Calendar className="-mt-1 size-4" />
-        <span className="bg-gradient-to-r from-amber-700 to-orange-500 bg-clip-text text-xs font-bold text-transparent brightness-95 dark:bg-gradient-to-r dark:from-amber-300 dark:to-orange-300">
+        <span className="bg-linear-to-r from-amber-700 to-orange-500 bg-clip-text text-xs font-bold text-transparent brightness-95 dark:bg-linear-to-r dark:from-amber-300 dark:to-orange-300">
           {next_puzzle_start_time.toLocaleDateString('en-GB', {
             day: 'numeric',
             month: 'long'
@@ -587,7 +590,7 @@ const MediaAttachments = ({
     >
       <div className="text=start flex items-start justify-center gap-2">
         <FiYoutube className="-mt-1 size-7 text-red-600 dark:text-red-400" />
-        <span className="bg-gradient-to-r from-orange-500 via-amber-500 to-yellow-600 bg-clip-text text-center text-base font-extrabold text-transparent drop-shadow-sm dark:from-amber-300 dark:via-orange-300 dark:to-yellow-200">
+        <span className="bg-linear-to-r from-orange-500 via-amber-500 to-yellow-600 bg-clip-text text-center text-base font-extrabold text-transparent drop-shadow-sm dark:from-amber-300 dark:via-orange-300 dark:to-yellow-200">
           Solve Together & Discuss the Puzzle
         </span>
       </div>
