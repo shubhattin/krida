@@ -127,11 +127,6 @@ export type ViewEditProps =
     };
 
 const ViewEditPuzzle = ({ word_puzzle }: ViewEditProps) => {
-  const ctx = createTypingContext('Devanagari');
-  useEffect(() => {
-    ctx.ready;
-  }, [ctx]);
-
   useHydrateAtoms([
     [title_atom, word_puzzle.title],
     [word_list_atom, [...word_puzzle.word_list]],
@@ -161,9 +156,13 @@ const ViewEditPuzzle = ({ word_puzzle }: ViewEditProps) => {
 };
 
 const Title = () => {
-  const ctx = createTypingContext('Devanagari');
+  const ctx = createTypingContext(BASE_SCRIPT);
   const [title, setTitle] = useAtom(title_atom);
   const [lipi_lekhika_active] = useAtom(lipi_lekhika_active_atom);
+
+  useEffect(() => {
+    ctx.ready;
+  }, [ctx]);
 
   return (
     <div>
@@ -175,7 +174,12 @@ const Title = () => {
           value={title}
           onChange={(e) => setTitle(e.currentTarget.value)}
           onBeforeInput={(e) =>
-            handleTypingBeforeInputEvent(ctx, e, (newValue) => setTitle(newValue))
+            handleTypingBeforeInputEvent(
+              ctx,
+              e,
+              (newValue) => setTitle(newValue),
+              lipi_lekhika_active
+            )
           }
           onBlur={() => ctx.clearContext()}
           onKeyDown={(e) => clearTypingContextOnKeyDown(e, ctx)}
@@ -206,6 +210,9 @@ const SortableAttachmentItem = ({
     transition,
     opacity: isDragging ? 0.5 : 1
   };
+
+  const ctx = createTypingContext(BASE_SCRIPT);
+  const [lipi_lekhika_active] = useAtom(lipi_lekhika_active_atom);
 
   return (
     <div
@@ -272,9 +279,17 @@ const SortableAttachmentItem = ({
           type="text"
           className="w-full text-sm"
           value={attachment.title ?? ''}
-          onInput={(e) =>
-            onUpdate('title', e.currentTarget.value === '' ? null : e.currentTarget.value, e)
+          onChange={(e) => onUpdate('title', e.currentTarget.value, e)}
+          onBeforeInput={(e) =>
+            handleTypingBeforeInputEvent(
+              ctx,
+              e,
+              (newValue) => onUpdate('title', newValue, e),
+              lipi_lekhika_active
+            )
           }
+          onBlur={() => ctx.clearContext()}
+          onKeyDown={(e) => clearTypingContextOnKeyDown(e, ctx)}
         />
       </div>
     </div>
@@ -318,19 +333,6 @@ const Attachments = () => {
 
   const updateAttachment = (index: number, field: string, value: any, e: any) => {
     setAttachments((prev) => prev.map((a, i) => (i === index ? { ...a, [field]: value } : a)));
-    // if (field === 'title' && lipi_lekhika_active) {
-    //   lekhika_typing_tool(
-    //     e.nativeEvent.target,
-    //     // @ts-ignore
-    //     e.nativeEvent.data,
-    //     BASE_SCRIPT,
-    //     true,
-    //     // @ts-ignore
-    //     (val) => {
-    //       setAttachments((prev) => prev.map((a, i) => (i === index ? { ...a, [field]: val } : a)));
-    //     }
-    //   );
-    // }
   };
 
   const handleDragEnd = (event: DragEndEvent) => {
@@ -892,23 +894,6 @@ const GridData = ({
       newGrid[r][c] = value;
       return newGrid;
     });
-    // if (lipi_lekhika_active) {
-    //   lekhika_typing_tool(
-    //     e.nativeEvent.target,
-    //     // @ts-ignore
-    //     e.nativeEvent.data,
-    //     BASE_SCRIPT,
-    //     true,
-    //     // @ts-ignore
-    //     (val) => {
-    //       setGridData((prev) => {
-    //         const newGrid = prev.map((row) => [...row]);
-    //         newGrid[r][c] = val;
-    //         return newGrid;
-    //       });
-    //     }
-    //   );
-    // }
   };
 
   const ctx = createTypingContext(BASE_SCRIPT);
