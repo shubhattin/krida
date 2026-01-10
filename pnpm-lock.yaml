@@ -117,8 +117,8 @@ importers:
         specifier: ^3.0.5
         version: 3.0.5
       lipilekhika:
-        specifier: ^1.0.2
-        version: 1.0.2
+        specifier: ^1.0.3
+        version: 1.0.3
       lucide-react:
         specifier: ^0.510.0
         version: 0.510.0(react@19.2.3)
@@ -2919,8 +2919,8 @@ packages:
     resolution: {integrity: sha512-utfs7Pr5uJyyvDETitgsaqSyjCb2qNRAtuqUeWIAKztsOYdcACf2KtARYXg2pSvhkt+9NfoaNY7fxjl6nuMjIQ==}
     engines: {node: '>= 12.0.0'}
 
-  lipilekhika@1.0.2:
-    resolution: {integrity: sha512-CiEoHY8eONEM/MIS68hvegVUjG0aHDmL+Y+MxXdBCR0tXjYQ9nu6t8Q2wKy/VNfhDnCDGn55L+VmJ+yBPrjBxA==}
+  lipilekhika@1.0.3:
+    resolution: {integrity: sha512-OWL8Cv5HPqGbSglNwgxmi68zHX1xGsJpgVIhPs8I4Zp7w7fZ/ikm2jXtYIBInHOU2ANOOVXV/7AcuJaBXGbkdQ==}
 
   locate-path@5.0.0:
     resolution: {integrity: sha512-t7hw9pI+WvuwNJXwk5zVHpyhIqzg2qTlklJOf0mVxGSbe3Fp2VieZcduNYjaLDoy6p9uGpQEGWG87WpMKlNq8g==}
@@ -6187,7 +6187,7 @@ snapshots:
       lightningcss-win32-arm64-msvc: 1.30.2
       lightningcss-win32-x64-msvc: 1.30.2
 
-  lipilekhika@1.0.2: {}
+  lipilekhika@1.0.3: {}
 
   locate-path@5.0.0:
     dependencies:
