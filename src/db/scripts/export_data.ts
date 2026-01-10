@@ -93,11 +93,9 @@ const main = async () => {
   // inserting puzzle_gameplay_sessions
   try {
     const chunks = chunkArray(data.puzzle_gameplay_sessions, 5000);
-    await Promise.all(
-      chunks.map(async (chunk) => {
-        await db.insert(puzzle_gameplay_sessions).values(chunk);
-      })
-    );
+    for (const chunk of chunks) {
+      await db.insert(puzzle_gameplay_sessions).values(chunk);
+    }
     console.log(
       chalk.green('✓ Successfully added values into table'),
       chalk.blue('`puzzle_gameplay_sessions`')
@@ -109,11 +107,9 @@ const main = async () => {
   // inserting puzzle_gameplay_stats
   try {
     const chunks = chunkArray(data.puzzle_gameplay_stats, 5000);
-    await Promise.all(
-      chunks.map(async (chunk) => {
-        await db.insert(puzzle_gameplay_stats).values(chunk);
-      })
-    );
+    for (const chunk of chunks) {
+      await db.insert(puzzle_gameplay_stats).values(chunk);
+    }
     console.log(
       chalk.green('✓ Successfully added values into table'),
       chalk.blue('`puzzle_gameplay_stats`')
