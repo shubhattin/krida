@@ -4,7 +4,7 @@ import Link from 'next/link';
 import WordGame from '~/components/pages/main/WordGame/WordGameRoot';
 import { DEFAULT_DATA_SCRIPT } from '~/state/script_list';
 import { get_transliterated_word_game_msgs } from '~/components/pages/main/WordGame/msgs';
-import { lipi_parivartak } from '~/tools/lipi_lekhika';
+import { transliterate } from 'lipilekhika';
 import { getCachedScript } from '~/lib/cache_server_route_data';
 import { get_next_schedule, get_word_puzzle } from '~/db/db_cache_data';
 import { cache, Suspense } from 'react';
@@ -67,10 +67,13 @@ const WordGameSuspense = async ({ id, uuid }: { id: number; uuid: string }) => {
 
   const script = await getCachedScript();
   const word_game_msgs = await get_transliterated_word_game_msgs(script);
-  const title = await lipi_parivartak(word_puzzle?.title ?? '', DEFAULT_DATA_SCRIPT, script);
+  const title = await transliterate(word_puzzle?.title ?? '', DEFAULT_DATA_SCRIPT, script);
   const grid_data = await Promise.all(
     (word_puzzle?.grid_data ?? []).map(
-      async (row) => await lipi_parivartak(row, DEFAULT_DATA_SCRIPT, script)
+      async (row) =>
+        await Promise.all(
+          row.map(async (cell) => await transliterate(cell, DEFAULT_DATA_SCRIPT, script))
+        )
     )
   );
   return word_puzzle ? (
@@ -96,7 +99,7 @@ const WordGameSuspense = async ({ id, uuid }: { id: number; uuid: string }) => {
 // Loading skeleton component
 const PuzzleLoadingSkeleton = () => {
   return (
-    <div className="w-full bg-gradient-to-br from-slate-50 via-blue-50 to-indigo-50 dark:from-slate-900 dark:via-slate-800 dark:to-slate-900">
+    <div className="w-full bg-linear-to-br from-slate-50 via-blue-50 to-indigo-50 dark:from-slate-900 dark:via-slate-800 dark:to-slate-900">
       <div className="container mx-auto max-w-7xl px-4 py-8">
         <div className="mb-6 w-fit">
           <Link

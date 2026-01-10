@@ -1,5 +1,5 @@
 import { type ScriptType, DEFAULT_DATA_SCRIPT } from '~/state/script_list';
-import { lipi_parivartak } from '~/tools/lipi_lekhika';
+import { transliterate } from 'lipilekhika';
 
 export const word_game_msgs = {
   play: 'क्रीड',
@@ -11,7 +11,7 @@ export const word_game_msgs = {
 };
 
 export const get_transliterated_word_game_msgs = async (script: ScriptType) => {
-  const transliterated_msgs = await lipi_parivartak(
+  const transliterated_msgs = await Promise.all(
     [
       word_game_msgs.play,
       word_game_msgs.replay,
@@ -19,9 +19,7 @@ export const get_transliterated_word_game_msgs = async (script: ScriptType) => {
       word_game_msgs.time_taken,
       word_game_msgs.found_words,
       word_game_msgs.time_elapsed
-    ],
-    DEFAULT_DATA_SCRIPT,
-    script
+    ].map(async (msg) => await transliterate(msg, DEFAULT_DATA_SCRIPT, script))
   );
   const [play, replay, stop, time_taken, found_words, time_elapsed] = transliterated_msgs;
   return {

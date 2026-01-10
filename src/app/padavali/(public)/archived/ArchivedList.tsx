@@ -1,8 +1,8 @@
 'use client';
 
 import { useQuery } from '@tanstack/react-query';
-import { useContext, useState } from 'react';
-import { lipi_parivartak } from '~/tools/lipi_lekhika';
+import { useContext } from 'react';
+import { transliterate } from 'lipilekhika';
 import { DEFAULT_DATA_SCRIPT, type ScriptType } from '~/state/script_list';
 import { motion } from 'framer-motion';
 import { Button } from '~/components/ui/button';
@@ -40,9 +40,9 @@ export const ArchivedList = ({
       return await Promise.all(
         archived_puzzles_org.map(async (puzzle) => ({
           ...puzzle,
-          title: await lipi_parivartak(puzzle.title, DEFAULT_DATA_SCRIPT, script),
+          title: await transliterate(puzzle.title, DEFAULT_DATA_SCRIPT, script),
           description: puzzle.description
-            ? await lipi_parivartak(puzzle.description, DEFAULT_DATA_SCRIPT, script)
+            ? await transliterate(puzzle.description, DEFAULT_DATA_SCRIPT, script)
             : null
         }))
       );
@@ -65,7 +65,7 @@ const PuzzleListView = ({ puzzles }: { puzzles: Props['archived_puzzles'] }) => 
   const font_info = FONT_INFO[script!];
 
   return (
-    <div className="min-h-screen w-full bg-gradient-to-br from-slate-50 via-blue-50 to-indigo-50 dark:from-slate-900 dark:via-slate-800 dark:to-slate-900">
+    <div className="min-h-screen w-full bg-linear-to-br from-slate-50 via-blue-50 to-indigo-50 dark:from-slate-900 dark:via-slate-800 dark:to-slate-900">
       <div className="container mx-auto max-w-4xl px-4 py-8">
         {/* Back to Home button */}
         <motion.div
@@ -89,11 +89,11 @@ const PuzzleListView = ({ puzzles }: { puzzles: Props['archived_puzzles'] }) => 
           className="mb-4 text-center sm:mb-6 lg:mb-8"
         >
           <div className="mb-4 flex justify-center">
-            <div className="rounded-xl bg-gradient-to-r from-amber-500 to-orange-500 p-3 shadow-lg">
+            <div className="rounded-xl bg-linear-to-r from-amber-500 to-orange-500 p-3 shadow-lg">
               <ArchiveIcon className="h-8 w-8 text-white" />
             </div>
           </div>
-          <h1 className="mb-2 bg-gradient-to-r from-slate-800 to-blue-600 bg-clip-text text-3xl font-bold text-transparent dark:from-slate-100 dark:to-blue-400">
+          <h1 className="mb-2 bg-linear-to-r from-slate-800 to-blue-600 bg-clip-text text-3xl font-bold text-transparent dark:from-slate-100 dark:to-blue-400">
             Archived Puzzles
           </h1>
           <p className="text-slate-600 dark:text-slate-400">Play Previous Puzzles</p>
@@ -137,7 +137,7 @@ const PuzzleCard = ({ puzzle }: { puzzle: Props['archived_puzzles'][0] }) => {
         className="group w-full rounded-xl border border-slate-200 bg-white p-2 pt-4 pl-3 shadow-lg transition-all duration-200 hover:shadow-xl dark:border-slate-700 dark:bg-slate-800"
       >
         <div className="flex items-start">
-          <div className="rounded-lg bg-gradient-to-r from-blue-500 to-indigo-600 p-2 shadow-md group-hover:from-blue-600 group-hover:to-blue-700">
+          <div className="rounded-lg bg-linear-to-r from-blue-500 to-indigo-600 p-2 shadow-md group-hover:from-blue-600 group-hover:to-blue-700">
             <IoExtensionPuzzleSharp className="size-5.5 text-white" />
           </div>
           <div className="ml-3 flex-1 space-y-0.5 text-left">
@@ -173,7 +173,7 @@ const PuzzleCard = ({ puzzle }: { puzzle: Props['archived_puzzles'][0] }) => {
 // Empty state component
 const EmptyPuzzleList = () => {
   return (
-    <div className="min-h-screen w-full bg-gradient-to-br from-slate-50 via-blue-50 to-indigo-50 dark:from-slate-900 dark:via-slate-800 dark:to-slate-900">
+    <div className="min-h-screen w-full bg-linear-to-br from-slate-50 via-blue-50 to-indigo-50 dark:from-slate-900 dark:via-slate-800 dark:to-slate-900">
       <div className="flex min-h-screen px-4 pt-40">
         <motion.div
           initial={{ opacity: 0, y: 20 }}
@@ -182,14 +182,14 @@ const EmptyPuzzleList = () => {
         >
           <div className="mb-8 flex justify-center">
             <div className="relative">
-              <div className="absolute inset-0 animate-pulse rounded-full bg-gradient-to-r from-amber-400 to-orange-400 opacity-20 blur-xl"></div>
-              <div className="relative rounded-full bg-gradient-to-r from-amber-500 to-orange-500 p-6 shadow-2xl">
+              <div className="absolute inset-0 animate-pulse rounded-full bg-linear-to-r from-amber-400 to-orange-400 opacity-20 blur-xl"></div>
+              <div className="relative rounded-full bg-linear-to-r from-amber-500 to-orange-500 p-6 shadow-2xl">
                 <ArchiveIcon className="h-12 w-12 text-white" />
               </div>
             </div>
           </div>
 
-          <h1 className="mb-4 bg-gradient-to-r from-slate-700 to-amber-600 bg-clip-text text-3xl font-bold text-transparent dark:from-slate-200 dark:to-amber-400">
+          <h1 className="mb-4 bg-linear-to-r from-slate-700 to-amber-600 bg-clip-text text-3xl font-bold text-transparent dark:from-slate-200 dark:to-amber-400">
             No Archived Puzzles
           </h1>
 
@@ -197,7 +197,7 @@ const EmptyPuzzleList = () => {
             There are no archived puzzles available yet. Check back later!
           </p>
 
-          <div className="inline-flex items-center gap-2 rounded-xl bg-gradient-to-r from-blue-100 to-purple-100 px-6 py-3 text-blue-700 shadow-lg dark:from-blue-900/30 dark:to-purple-900/30 dark:text-blue-300">
+          <div className="inline-flex items-center gap-2 rounded-xl bg-linear-to-r from-blue-100 to-purple-100 px-6 py-3 text-blue-700 shadow-lg dark:from-blue-900/30 dark:to-purple-900/30 dark:text-blue-300">
             <Sparkles className="h-5 w-5" />
             <span className="font-medium">New puzzles will appear here</span>
           </div>

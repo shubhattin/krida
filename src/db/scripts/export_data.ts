@@ -92,7 +92,10 @@ const main = async () => {
 
   // inserting puzzle_gameplay_sessions
   try {
-    await db.insert(puzzle_gameplay_sessions).values(data.puzzle_gameplay_sessions);
+    const chunks = chunkArray(data.puzzle_gameplay_sessions, 5000);
+    for (const chunk of chunks) {
+      await db.insert(puzzle_gameplay_sessions).values(chunk);
+    }
     console.log(
       chalk.green('✓ Successfully added values into table'),
       chalk.blue('`puzzle_gameplay_sessions`')
@@ -103,7 +106,10 @@ const main = async () => {
 
   // inserting puzzle_gameplay_stats
   try {
-    await db.insert(puzzle_gameplay_stats).values(data.puzzle_gameplay_stats);
+    const chunks = chunkArray(data.puzzle_gameplay_stats, 5000);
+    for (const chunk of chunks) {
+      await db.insert(puzzle_gameplay_stats).values(chunk);
+    }
     console.log(
       chalk.green('✓ Successfully added values into table'),
       chalk.blue('`puzzle_gameplay_stats`')
@@ -142,4 +148,12 @@ async function confirm_environemnt() {
   let confirmation: string = await take_input(`Are you sure INSERT in ${dbMode} ? `);
   if (['yes', 'y'].includes(confirmation)) return true;
   return false;
+}
+
+function chunkArray<T>(array: T[], chunkSize: number): T[][] {
+  const chunks: T[][] = [];
+  for (let i = 0; i < array.length; i += chunkSize) {
+    chunks.push(array.slice(i, i + chunkSize));
+  }
+  return chunks;
 }

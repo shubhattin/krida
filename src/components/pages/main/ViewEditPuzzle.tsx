@@ -19,7 +19,11 @@ import {
   AlertDialogAction,
   AlertDialogCancel
 } from '@/components/ui/alert-dialog';
-import { lekhika_typing_tool, load_parivartak_lang_data } from '~/tools/lipi_lekhika';
+import {
+  createTypingContext,
+  clearTypingContextOnKeyDown,
+  handleTypingBeforeInputEvent
+} from 'lipilekhika/typing';
 import { client_q } from '~/api/client';
 import { toast } from 'sonner';
 import { IoMdAdd, IoMdClose } from 'react-icons/io';
@@ -99,7 +103,7 @@ const puzzle_schema = _puzzle_schema
 
 export type Puzzle = z.infer<typeof puzzle_schema>;
 
-const BASE_SCRIPT = 'Sanskrit';
+const BASE_SCRIPT = 'Devanagari';
 
 const title_atom = atom<string>('');
 const word_list_atom = atom<string[]>([]);
@@ -123,12 +127,6 @@ export type ViewEditProps =
     };
 
 const ViewEditPuzzle = ({ word_puzzle }: ViewEditProps) => {
-  useEffect(() => {
-    if (typeof window !== 'undefined') {
-      load_parivartak_lang_data(BASE_SCRIPT);
-    }
-  }, []);
-
   useHydrateAtoms([
     [title_atom, word_puzzle.title],
     [word_list_atom, [...word_puzzle.word_list]],
@@ -158,8 +156,13 @@ const ViewEditPuzzle = ({ word_puzzle }: ViewEditProps) => {
 };
 
 const Title = () => {
+  const ctx = createTypingContext(BASE_SCRIPT);
   const [title, setTitle] = useAtom(title_atom);
   const [lipi_lekhika_active] = useAtom(lipi_lekhika_active_atom);
+
+  useEffect(() => {
+    ctx.ready;
+  }, [ctx]);
 
   return (
     <div>
@@ -169,22 +172,17 @@ const Title = () => {
           type="text"
           className="lg:1/5 mt-1 block w-3/5 text-lg font-semibold sm:w-2/5"
           value={title}
-          onInput={(e) => {
-            setTitle(e.currentTarget.value);
-            if (lipi_lekhika_active) {
-              lekhika_typing_tool(
-                e.nativeEvent.target,
-                // @ts-ignore
-                e.nativeEvent.data,
-                BASE_SCRIPT,
-                true,
-                // @ts-ignore
-                (val) => {
-                  setTitle(val);
-                }
-              );
-            }
-          }}
+          onChange={(e) => setTitle(e.currentTarget.value)}
+          onBeforeInput={(e) =>
+            handleTypingBeforeInputEvent(
+              ctx,
+              e,
+              (newValue) => setTitle(newValue),
+              lipi_lekhika_active
+            )
+          }
+          onBlur={() => ctx.clearContext()}
+          onKeyDown={(e) => clearTypingContextOnKeyDown(e, ctx)}
         />
       </Label>
     </div>
@@ -212,6 +210,9 @@ const SortableAttachmentItem = ({
     transition,
     opacity: isDragging ? 0.5 : 1
   };
+
+  const ctx = createTypingContext(BASE_SCRIPT);
+  const [lipi_lekhika_active] = useAtom(lipi_lekhika_active_atom);
 
   return (
     <div
@@ -278,9 +279,17 @@ const SortableAttachmentItem = ({
           type="text"
           className="w-full text-sm"
           value={attachment.title ?? ''}
-          onInput={(e) =>
-            onUpdate('title', e.currentTarget.value === '' ? null : e.currentTarget.value, e)
+          onChange={(e) => onUpdate('title', e.currentTarget.value, e)}
+          onBeforeInput={(e) =>
+            handleTypingBeforeInputEvent(
+              ctx,
+              e,
+              (newValue) => onUpdate('title', newValue, e),
+              lipi_lekhika_active
+            )
           }
+          onBlur={() => ctx.clearContext()}
+          onKeyDown={(e) => clearTypingContextOnKeyDown(e, ctx)}
         />
       </div>
     </div>
@@ -324,19 +333,6 @@ const Attachments = () => {
 
   const updateAttachment = (index: number, field: string, value: any, e: any) => {
     setAttachments((prev) => prev.map((a, i) => (i === index ? { ...a, [field]: value } : a)));
-    // if (field === 'title' && lipi_lekhika_active) {
-    //   lekhika_typing_tool(
-    //     e.nativeEvent.target,
-    //     // @ts-ignore
-    //     e.nativeEvent.data,
-    //     BASE_SCRIPT,
-    //     true,
-    //     // @ts-ignore
-    //     (val) => {
-    //       setAttachments((prev) => prev.map((a, i) => (i === index ? { ...a, [field]: val } : a)));
-    //     }
-    //   );
-    // }
   };
 
   const handleDragEnd = (event: DragEndEvent) => {
@@ -782,7 +778,7 @@ const TraversalAnalysis = ({
               initial={{ scale: 0 }}
               animate={{ scale: 1 }}
               transition={{ delay: 0.2, duration: 0.3, type: 'spring' }}
-              className="h-2 w-2 flex-shrink-0 rounded-full bg-green-500"
+              className="h-2 w-2 shrink-0 rounded-full bg-green-500"
             ></motion.div>
             <p className="text-sm font-medium text-green-800 dark:text-green-200">
               सर्वे शब्दाः सम्यगवस्थिताः !
@@ -802,20 +798,9 @@ const WordList = () => {
   const removeWord = (index: number) => setWordList((prev) => prev.filter((_, i) => i !== index));
   const updateWord = (index: number, value: string, e: any) => {
     setWordList((prev) => prev.map((w, i) => (i === index ? value : w)));
-    if (lipi_lekhika_active) {
-      lekhika_typing_tool(
-        e.nativeEvent.target,
-        // @ts-ignore
-        e.nativeEvent.data,
-        BASE_SCRIPT,
-        true,
-        // @ts-ignore
-        (val) => {
-          setWordList((prev) => prev.map((w, i) => (i === index ? val : w)));
-        }
-      );
-    }
   };
+
+  const ctx = createTypingContext(BASE_SCRIPT);
 
   return (
     <div>
@@ -838,7 +823,17 @@ const WordList = () => {
                   type="text"
                   className="px- py-1 text-base"
                   value={word}
-                  onChange={(e) => updateWord(idx, e.target.value, e)}
+                  onChange={(e) => updateWord(idx, e.currentTarget.value, e)}
+                  onBeforeInput={(e) =>
+                    handleTypingBeforeInputEvent(
+                      ctx,
+                      e,
+                      (newValue) => updateWord(idx, newValue, e),
+                      lipi_lekhika_active
+                    )
+                  }
+                  onBlur={() => ctx.clearContext()}
+                  onKeyDown={(e) => clearTypingContextOnKeyDown(e, ctx)}
                 />
               </motion.div>
               <motion.div whileHover={{ scale: 1.05 }} whileTap={{ scale: 0.95 }}>
@@ -899,24 +894,9 @@ const GridData = ({
       newGrid[r][c] = value;
       return newGrid;
     });
-    if (lipi_lekhika_active) {
-      lekhika_typing_tool(
-        e.nativeEvent.target,
-        // @ts-ignore
-        e.nativeEvent.data,
-        BASE_SCRIPT,
-        true,
-        // @ts-ignore
-        (val) => {
-          setGridData((prev) => {
-            const newGrid = prev.map((row) => [...row]);
-            newGrid[r][c] = val;
-            return newGrid;
-          });
-        }
-      );
-    }
   };
+
+  const ctx = createTypingContext(BASE_SCRIPT);
 
   const getCellClassName = (r: number, c: number) => {
     const isOccupied = occupiedCellsStrList.has(`${r},${c}`);
@@ -942,7 +922,17 @@ const GridData = ({
               className={getCellClassName(r, c)}
               minLength={1}
               value={cell}
-              onChange={(e) => updateCell(r, c, e.target.value, e)}
+              onChange={(e) => updateCell(r, c, e.currentTarget.value, e)}
+              onBeforeInput={(e) =>
+                handleTypingBeforeInputEvent(
+                  ctx,
+                  e,
+                  (newValue) => updateCell(r, c, newValue, e),
+                  lipi_lekhika_active
+                )
+              }
+              onBlur={() => ctx.clearContext()}
+              onKeyDown={(e) => clearTypingContextOnKeyDown(e, ctx)}
             />
           ))
         )}
@@ -967,6 +957,9 @@ const ArchivedSwitch = () => {
 const Description = () => {
   const [description, setDescription] = useAtom(description_atom);
   const [lipi_lekhika_active] = useAtom(lipi_lekhika_active_atom);
+
+  const ctx = createTypingContext(BASE_SCRIPT);
+
   return (
     <div>
       <Label className="block font-medium">
@@ -977,22 +970,17 @@ const Description = () => {
         <Input
           className="mt-1 w-full sm:w-[90%] md:w-2/3 lg:w-1/2"
           value={description || ''}
-          onChange={(e) => {
-            setDescription(e.target.value);
-            if (lipi_lekhika_active) {
-              lekhika_typing_tool(
-                e.nativeEvent.target,
-                // @ts-ignore
-                e.nativeEvent.data,
-                BASE_SCRIPT,
-                true,
-                // @ts-ignore
-                (val) => {
-                  setDescription(val);
-                }
-              );
-            }
-          }}
+          onChange={(e) => setDescription(e.currentTarget.value)}
+          onBeforeInput={(e) =>
+            handleTypingBeforeInputEvent(
+              ctx,
+              e,
+              (newValue) => setDescription(newValue),
+              lipi_lekhika_active
+            )
+          }
+          onBlur={() => ctx.clearContext()}
+          onKeyDown={(e) => clearTypingContextOnKeyDown(e, ctx)}
           placeholder="प्रहेलिकायाः वर्णनं लिखतु..."
         />
       </Label>
