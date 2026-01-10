@@ -14,7 +14,11 @@ import { Label } from '~/components/ui/label';
 import { Switch } from '~/components/ui/switch';
 import Icon from '~/tools/Icon';
 import { LanguageIcon } from '~/components/icons';
-import { lekhika_typing_tool, load_parivartak_lang_data } from '~/tools/lipi_lekhika';
+import {
+  createTypingContext,
+  clearTypingContextOnKeyDown,
+  handleTypingBeforeInputEvent
+} from 'lipilekhika/typing';
 import { useQuery } from '@tanstack/react-query';
 
 dayjs.extend(relativeTime);
@@ -39,10 +43,6 @@ const ListPage = () => {
   // Ensure component is mounted before showing loading states
   useEffect(() => {
     setMounted(true);
-  }, []);
-
-  useEffect(() => {
-    load_parivartak_lang_data('Sanskrit');
   }, []);
 
   // Debounce search input to avoid redundant requests
@@ -138,31 +138,26 @@ const ListPage = () => {
     );
   };
 
+  const ctx = createTypingContext('Devanagari');
+
+  useEffect(() => {
+    ctx.ready;
+  }, [ctx]);
+
   return (
     <div className="space-y-4">
       <div className="flex flex-col items-center space-y-3">
         <div className="flex items-center space-x-4">
           <SearchIcon className="mr-2 size-6 text-muted-foreground" />
           <Input
-            value={search_title}
             className="w-48 text-sm sm:w-52 lg:w-72"
-            onInput={(e) => {
-              setSearchTitle(e.currentTarget.value);
-              if (lipi_lekhika_typing) {
-                // @ts-ignore
-                lekhika_typing_tool(
-                  e.nativeEvent.target,
-                  // @ts-ignore
-                  e.nativeEvent.data,
-                  'Sanskrit',
-                  true,
-                  // @ts-ignore
-                  (val) => {
-                    setSearchTitle(val);
-                  }
-                );
-              }
-            }}
+            value={search_title}
+            onChange={(e) => setSearchTitle(e.currentTarget.value)}
+            onBeforeInput={(e) =>
+              handleTypingBeforeInputEvent(ctx, e, (newValue) => setSearchTitle(newValue))
+            }
+            onBlur={() => ctx.clearContext()}
+            onKeyDown={(e) => clearTypingContextOnKeyDown(e, ctx)}
             placeholder="शीर्षकेणावेष्यताम्"
           />
           <div className="flex justify-center">

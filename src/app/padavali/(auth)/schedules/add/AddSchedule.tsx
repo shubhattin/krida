@@ -26,7 +26,11 @@ import { cn } from '~/lib/utils';
 import { LanguageIcon } from '~/components/icons';
 import { Switch } from '~/components/ui/switch';
 import Icon from '~/tools/Icon';
-import { lekhika_typing_tool, load_parivartak_lang_data } from '~/tools/lipi_lekhika';
+import {
+  createTypingContext,
+  clearTypingContextOnKeyDown,
+  handleTypingBeforeInputEvent
+} from 'lipilekhika/typing';
 import { useQuery } from '@tanstack/react-query';
 
 export const DEFAULT_START_END_TIME = '21:00';
@@ -65,10 +69,6 @@ const AddSchedule = (props: Props) => {
   const [endTime, setEndTime] = useState<string>(
     (type === 'edit' ? props.init.end_time_string : DEFAULT_START_END_TIME) + ':00'
   );
-
-  useEffect(() => {
-    load_parivartak_lang_data('Sanskrit');
-  }, []);
 
   const router = useRouter();
   const [search_title, setSearchTitle] = useState('');
@@ -199,6 +199,11 @@ const AddSchedule = (props: Props) => {
     setPageLastCreatedOrUpdatedAt(last.created_at);
   };
 
+  const ctx = createTypingContext('Devanagari');
+  useEffect(() => {
+    ctx.ready;
+  }, [ctx]);
+
   return (
     <div className="flex flex-col gap-6">
       {type === 'edit' && (
@@ -303,22 +308,12 @@ const AddSchedule = (props: Props) => {
               <SearchIcon className="size-5 text-muted-foreground" />
               <Input
                 value={search_title}
-                onInput={(e) => {
-                  setSearchTitle(e.currentTarget.value);
-                  if (lipi_lekhika_typing) {
-                    lekhika_typing_tool(
-                      e.nativeEvent.target,
-                      // @ts-ignore
-                      e.nativeEvent.data,
-                      'Sanskrit',
-                      true,
-                      // @ts-ignore
-                      (val) => {
-                        setSearchTitle(val);
-                      }
-                    );
-                  }
-                }}
+                onChange={(e) => setSearchTitle(e.currentTarget.value)}
+                onBeforeInput={(e) =>
+                  handleTypingBeforeInputEvent(ctx, e, (newValue) => setSearchTitle(newValue))
+                }
+                onBlur={() => ctx.clearContext()}
+                onKeyDown={(e) => clearTypingContextOnKeyDown(e, ctx)}
                 placeholder="Search puzzle by title"
                 className="w-2/3 sm:w-1/2 lg:w-1/3"
               />
