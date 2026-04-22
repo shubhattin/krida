@@ -5,7 +5,7 @@ import { IoMdArrowRoundBack } from 'react-icons/io';
 import WordGame from '~/components/pages/main/WordGame/WordGameRoot';
 import { DEFAULT_DATA_SCRIPT } from '~/state/script_list';
 import { get_transliterated_word_game_msgs } from '~/components/pages/main/WordGame/msgs';
-import { transliterate } from 'lipilekhika';
+import { transliterate_wasm } from 'lipilekhika';
 import { getCachedScript } from '~/lib/cache_server_route_data';
 import { get_next_schedule, get_word_puzzle } from '~/db/db_cache_data';
 import { cache } from 'react';
@@ -43,12 +43,12 @@ const MainEdit = async ({ params }: Props) => {
 
   const script = await getCachedScript();
   const word_game_msgs = await get_transliterated_word_game_msgs(script);
-  const title = await transliterate(word_puzzle?.title ?? '', DEFAULT_DATA_SCRIPT, script);
+  const title = await transliterate_wasm(word_puzzle?.title ?? '', DEFAULT_DATA_SCRIPT, script);
   const grid_data = await Promise.all(
     (word_puzzle?.grid_data ?? []).map(
       async (row) =>
         await Promise.all(
-          row.map(async (cell) => await transliterate(cell, DEFAULT_DATA_SCRIPT, script))
+          row.map(async (cell) => await transliterate_wasm(cell, DEFAULT_DATA_SCRIPT, script))
         )
     )
   );

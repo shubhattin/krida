@@ -1,7 +1,7 @@
 import { Metadata } from 'next';
 import { DEFAULT_DATA_SCRIPT } from '~/state/script_list';
 import { get_transliterated_word_game_msgs } from '~/components/pages/main/WordGame/msgs';
-import { transliterate } from 'lipilekhika';
+import { transliterate_wasm } from 'lipilekhika';
 import { ClockIcon, CalendarIcon, ArchiveIcon, ArrowRightIcon } from 'lucide-react';
 import { IoExtensionPuzzleSharp } from 'react-icons/io5';
 import Link from 'next/link';
@@ -119,12 +119,12 @@ export default async function Home() {
 
   const script = await getCachedScript();
   const word_game_msgs = await get_transliterated_word_game_msgs(script);
-  const title = await transliterate(word_puzzle.title, DEFAULT_DATA_SCRIPT, script);
+  const title = await transliterate_wasm(word_puzzle.title, DEFAULT_DATA_SCRIPT, script);
   const grid_data = await Promise.all(
     word_puzzle.grid_data.map(
       async (row) =>
         await Promise.all(
-          row.map(async (cell) => await transliterate(cell, DEFAULT_DATA_SCRIPT, script))
+          row.map(async (cell) => await transliterate_wasm(cell, DEFAULT_DATA_SCRIPT, script))
         )
     )
   );
