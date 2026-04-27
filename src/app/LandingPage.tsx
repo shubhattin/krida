@@ -112,7 +112,7 @@ export default function LandingPage() {
             {/* Project Links */}
             <div className="mx-auto flex max-w-2xl flex-col justify-center gap-4 sm:flex-row">
               <a
-                href="http://projects.thesanskritchannel.org/"
+                href="http://www.thesanskritchannel.org/"
                 target="_blank"
                 rel="noopener noreferrer"
                 className="flex items-center gap-3 rounded-lg border border-border bg-card p-3 text-left text-sm font-medium transition-all duration-200 hover:border-primary/30 hover:bg-accent/50"
@@ -121,8 +121,8 @@ export default function LandingPage() {
                   <Book className="h-4 w-4 text-white" />
                 </div>
                 <div>
-                  <div className="font-medium">Projects</div>
-                  <div className="text-xs text-muted-foreground">Sanskrit Channel Projects</div>
+                  <div className="font-medium">Main Site</div>
+                  <div className="text-xs text-muted-foreground">The Sanskrit Channel Website</div>
                 </div>
               </a>
 

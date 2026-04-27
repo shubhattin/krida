@@ -201,7 +201,7 @@ export function MenuButton() {
             {/* Project Links */}
             <div className="mt-4 space-y-2">
               <a
-                href="http://projects.thesanskritchannel.org/"
+                href="http://www.thesanskritchannel.org/"
                 target="_blank"
                 rel="noopener noreferrer"
                 onClick={() => setOpen(false)}
@@ -211,9 +211,9 @@ export function MenuButton() {
                   <Book className="h-4 w-4 text-white" />
                 </div>
                 <div>
-                  <div className="font-medium">Projects</div>
+                  <div className="font-medium">Main Site</div>
                   <div className="text-xs text-slate-500 dark:text-slate-400">
-                    Sanskrit Channel Projects
+                    The Sanskrit Channel Website
                   </div>
                 </div>
               </a>
