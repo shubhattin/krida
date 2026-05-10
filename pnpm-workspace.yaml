@@ -1,4 +1,0 @@
-ignoredBuiltDependencies:
-  - '@tailwindcss/oxide'
-  - core-js
-  - esbuild
