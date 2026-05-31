@@ -120,14 +120,13 @@ export default async function Home() {
   const script = await getCachedScript();
   const word_game_msgs = await get_transliterated_word_game_msgs(script);
   const title = await transliterate_wasm(word_puzzle.title, DEFAULT_DATA_SCRIPT, script);
-  const grid_data = await Promise.all(
-    word_puzzle.grid_data.map(
-      async (row) =>
-        await Promise.all(
-          row.map(async (cell) => await transliterate_wasm(cell, DEFAULT_DATA_SCRIPT, script))
-        )
-    )
+  const grid_cells = await transliterate_wasm(
+    word_puzzle.grid_data.flat(),
+    DEFAULT_DATA_SCRIPT,
+    script
   );
+  let cell_i = 0;
+  const grid_data = word_puzzle.grid_data.map((row) => row.map(() => grid_cells[cell_i++]!));
   return (
     <MainPagePadavali
       script={script}

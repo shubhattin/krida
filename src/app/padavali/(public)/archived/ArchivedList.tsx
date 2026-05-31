@@ -37,15 +37,16 @@ export const ArchivedList = ({
   const archived_puuzle_list_q = useQuery({
     queryKey: ['archived_puuzle_list', script],
     queryFn: async () => {
-      return await Promise.all(
-        archived_puzzles_org.map(async (puzzle) => ({
-          ...puzzle,
-          title: await transliterate(puzzle.title, DEFAULT_DATA_SCRIPT, script),
-          description: puzzle.description
-            ? await transliterate(puzzle.description, DEFAULT_DATA_SCRIPT, script)
-            : null
-        }))
+      const puzzle_texts = archived_puzzles_org.flatMap((p) =>
+        p.description ? [p.title, p.description] : [p.title]
       );
+      const transliterated_texts = await transliterate(puzzle_texts, DEFAULT_DATA_SCRIPT, script);
+      let text_i = 0;
+      return archived_puzzles_org.map((puzzle) => ({
+        ...puzzle,
+        title: transliterated_texts[text_i++]!,
+        description: puzzle.description ? transliterated_texts[text_i++]! : null
+      }));
     },
     placeholderData: archived_puzzles_init_transliterlated,
     enabled: true

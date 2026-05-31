@@ -11,15 +11,16 @@ const ArchivedPage = async () => {
 
   const script = await getCachedScript();
 
-  const archived_puzzles_init_transliterlated = await Promise.all(
-    archived_puzzles.map(async (puzzle) => ({
-      ...puzzle,
-      title: await transliterate_wasm(puzzle.title, DEFAULT_DATA_SCRIPT, script),
-      description: puzzle.description
-        ? await transliterate_wasm(puzzle.description, DEFAULT_DATA_SCRIPT, script)
-        : null
-    }))
+  const puzzle_texts = archived_puzzles.flatMap((p) =>
+    p.description ? [p.title, p.description] : [p.title]
   );
+  const transliterated_texts = await transliterate_wasm(puzzle_texts, DEFAULT_DATA_SCRIPT, script);
+  let text_i = 0;
+  const archived_puzzles_init_transliterlated = archived_puzzles.map((puzzle) => ({
+    ...puzzle,
+    title: transliterated_texts[text_i++]!,
+    description: puzzle.description ? transliterated_texts[text_i++]! : null
+  }));
 
   return (
     <ArchivedList

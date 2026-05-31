@@ -194,13 +194,9 @@ function WordGame({
 
   // transliteration
   useEffect(() => {
-    Promise.all(
-      org_grid_data.map(
-        async (row) =>
-          await Promise.all(row.map((cell) => transliterate(cell, DEFAULT_DATA_SCRIPT, script!)))
-      )
-    ).then((grid_data) => {
-      setGridData(grid_data);
+    transliterate(org_grid_data.flat(), DEFAULT_DATA_SCRIPT, script!).then((grid_cells) => {
+      let cell_i = 0;
+      setGridData(org_grid_data.map((row) => row.map(() => grid_cells[cell_i++]!)));
     });
 
     transliterate(org_title, DEFAULT_DATA_SCRIPT, script!).then((title) => {

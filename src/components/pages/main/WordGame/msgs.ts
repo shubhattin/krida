@@ -11,7 +11,7 @@ export const word_game_msgs = {
 };
 
 export const get_transliterated_word_game_msgs = async (script: ScriptType) => {
-  const transliterated_msgs = await Promise.all(
+  const [play, replay, stop, time_taken, found_words, time_elapsed] = await transliterate(
     [
       word_game_msgs.play,
       word_game_msgs.replay,
@@ -19,9 +19,10 @@ export const get_transliterated_word_game_msgs = async (script: ScriptType) => {
       word_game_msgs.time_taken,
       word_game_msgs.found_words,
       word_game_msgs.time_elapsed
-    ].map(async (msg) => await transliterate(msg, DEFAULT_DATA_SCRIPT, script))
+    ],
+    DEFAULT_DATA_SCRIPT,
+    script
   );
-  const [play, replay, stop, time_taken, found_words, time_elapsed] = transliterated_msgs;
   return {
     play,
     replay,
