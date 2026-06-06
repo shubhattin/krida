@@ -16,16 +16,8 @@ jobs:
       AWS_DB_BACKUP_BUCKET_NAME: ${{ secrets.AWS_DB_BACKUP_BUCKET_NAME }}
     steps:
       - uses: actions/checkout@v4
-      - name: Use Node.js
-        uses: actions/setup-node@v4
-        with:
-          node-version: 20
-
-      - uses: pnpm/action-setup@v4
-        name: Install pnpm
-        with:
-          run_install: true
-          version: 10
+      - uses: oven-sh/setup-bun@v2
+      - run: bun install --frozen-lockfile
       - name: Setup PostgreSQL
         uses: tj-actions/install-postgresql@v3
         with:
@@ -34,4 +26,4 @@ jobs:
       - name: Load Data and DB Dump
         run: |
           cd src/db/scripts/
-          npx tsx backup_db_data.ts
+          bunx tsx backup_db_data.ts
