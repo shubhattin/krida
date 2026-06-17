@@ -62,7 +62,7 @@ const MainPagePadavali = ({ script, word_puzzle, initial_script_data, next_sched
           animate={{ opacity: 1, y: 0 }}
           exit={{ opacity: 0, y: -20 }}
           transition={{ duration: 0.5, ease: 'easeOut' }}
-          className="w-full border-b border-slate-200/60 bg-gradient-to-r from-emerald-50 via-blue-50 to-purple-50 dark:border-slate-700/60 dark:from-emerald-950/30 dark:via-blue-950/30 dark:to-purple-950/30"
+          className="w-full border-b border-slate-200/60 bg-linear-to-r from-emerald-50 via-blue-50 to-purple-50 dark:border-slate-700/60 dark:from-emerald-950/30 dark:via-blue-950/30 dark:to-purple-950/30"
         >
           <div className="flex items-center justify-center">
             <div className="flex items-center gap-3 sm:gap-4">
@@ -95,7 +95,7 @@ const MainPagePadavali = ({ script, word_puzzle, initial_script_data, next_sched
                     animate={{ x: 0, opacity: 1 }}
                     exit={{ x: -20, opacity: 0 }}
                     transition={{ duration: 0.4, delay: 0.3 }}
-                    className="bg-gradient-to-r from-slate-800 to-blue-600 bg-clip-text text-base font-bold text-transparent sm:text-lg dark:from-slate-100 dark:to-blue-400"
+                    className="bg-linear-to-r from-slate-800 to-blue-600 bg-clip-text text-base font-bold text-transparent sm:text-lg dark:from-slate-100 dark:to-blue-400"
                   >
                     Current Week's Puzzle
                   </motion.h2>
@@ -103,10 +103,8 @@ const MainPagePadavali = ({ script, word_puzzle, initial_script_data, next_sched
               </div>
 
               <Popover>
-                <PopoverTrigger asChild>
-                  <Button variant="ghost">
-                    <BsThreeDots className="size-3.5 sm:size-4" />
-                  </Button>
+                <PopoverTrigger render={<Button variant="ghost" />}>
+                  <BsThreeDots className="size-3.5 sm:size-4" />
                 </PopoverTrigger>
                 <PopoverContent
                   align="end"
@@ -117,7 +115,7 @@ const MainPagePadavali = ({ script, word_puzzle, initial_script_data, next_sched
                       <div className="flex items-center justify-center p-2">
                         <div className="flex items-center justify-center space-x-2 text-sm font-semibold text-amber-900 sm:text-base dark:text-amber-100">
                           Next puzzle in
-                          <span className="ml-1 bg-gradient-to-r from-emerald-600 to-green-500 bg-clip-text font-bold text-transparent dark:from-emerald-400 dark:to-green-300">
+                          <span className="ml-1 bg-linear-to-r from-emerald-600 to-green-500 bg-clip-text font-bold text-transparent dark:from-emerald-400 dark:to-green-300">
                             {dayjs(next_schedule.start_time)
                               .fromNow(true)
                               .replace(
@@ -134,9 +132,9 @@ const MainPagePadavali = ({ script, word_puzzle, initial_script_data, next_sched
                     )}
                     <Link
                       href="/padavali/archived"
-                      className="group flex items-center gap-2 rounded-xl border border-amber-200/50 bg-gradient-to-r from-amber-50 to-orange-50 p-3 text-amber-800 shadow-sm transition-all duration-200 hover:scale-[1.02] hover:from-amber-100 hover:to-orange-100 hover:shadow-md sm:gap-3 sm:p-4 dark:border-amber-800/30 dark:from-amber-950/50 dark:to-orange-950/50 dark:text-amber-200 dark:hover:from-amber-900/60 dark:hover:to-orange-900/60"
+                      className="group flex items-center gap-2 rounded-xl border border-amber-200/50 bg-linear-to-r from-amber-50 to-orange-50 p-3 text-amber-800 shadow-sm transition-all duration-200 hover:scale-[1.02] hover:from-amber-100 hover:to-orange-100 hover:shadow-md sm:gap-3 sm:p-4 dark:border-amber-800/30 dark:from-amber-950/50 dark:to-orange-950/50 dark:text-amber-200 dark:hover:from-amber-900/60 dark:hover:to-orange-900/60"
                     >
-                      <div className="rounded-lg bg-gradient-to-r from-amber-500 to-orange-500 p-1.5 shadow-sm sm:p-2">
+                      <div className="rounded-lg bg-linear-to-r from-amber-500 to-orange-500 p-1.5 shadow-sm sm:p-2">
                         <ArchiveIcon className="h-4 w-4 text-white sm:h-5 sm:w-5" />
                       </div>
                       <div className="flex-1 text-left">

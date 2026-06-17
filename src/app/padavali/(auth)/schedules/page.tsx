@@ -38,40 +38,44 @@ const Main = async () => {
       <div className="my-2 mb-4 px-2">
         <Link href="/padavali/list" className="flex items-center gap-1 text-lg font-semibold">
           <IoMdArrowRoundBack className="inline-block text-xl" />
-          <span>मुख्यसूची</span>
+          <span>Main List</span>
         </Link>
       </div>
 
       <div className="mb-6 flex items-center justify-between">
         <div>
-          <h1 className="text-2xl font-bold">कालबन्धानि</h1>
+          <h1 className="text-2xl font-bold">Schedules</h1>
         </div>
-        <Button asChild variant={'outline'}>
-          <Link href="/padavali/schedules/add" className="flex items-center gap-2">
-            <FiPlus className="h-4 w-4" />
-            नवकालबन्धनं योजय
-          </Link>
+        <Button
+          render={<Link href="/padavali/schedules/add" className="flex items-center gap-2" />}
+          nativeButton={false}
+          variant={'outline'}
+        >
+          <FiPlus className="h-4 w-4" />
+          Add Schedule
         </Button>
       </div>
 
       {/* Upcoming Schedules Section */}
       <div className="mb-8">
-        <h2 className="mb-4 text-xl font-semibold">आगामिकालबन्धानि</h2>
+        <h2 className="mb-4 text-xl font-semibold">Upcoming Schedules</h2>
         {uncomming_schedules.length === 0 ? (
           <Card>
             <CardContent className="flex flex-col items-center justify-center py-12 text-center">
               <div className="mb-4 text-muted-foreground">
                 <FiPlus className="mx-auto mb-2 h-12 w-12 opacity-50" />
               </div>
-              <h3 className="mb-2 text-lg font-semibold">आगामिकालबन्धानि न सन्ति</h3>
+              <h3 className="mb-2 text-lg font-semibold">No Upcoming Schedules</h3>
               <p className="mb-4 text-muted-foreground">
-                अत्र कोऽपि आगामिकालबन्धनं नास्ति। कृपया प्रथमं कालबन्धनं योजयतु।
+                There are no upcoming schedules. Please add a schedule first.
               </p>
-              <Button asChild variant="link">
-                <Link href="/padavali/schedules/add" className="flex items-center gap-2">
-                  <FiPlus className="h-4 w-4" />
-                  प्रथमकालबन्धनं योजय
-                </Link>
+              <Button
+                render={<Link href="/padavali/schedules/add" className="flex items-center gap-2" />}
+                nativeButton={false}
+                variant="link"
+              >
+                <FiPlus className="h-4 w-4" />
+                Add First Schedule
               </Button>
             </CardContent>
           </Card>
@@ -87,5 +91,5 @@ const Main = async () => {
 export default Main;
 
 export const metadata: Metadata = {
-  title: 'कालबन्धानां सूची'
+  title: 'Schedule List'
 };

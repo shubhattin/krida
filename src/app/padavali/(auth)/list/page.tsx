@@ -20,19 +20,19 @@ const List = async () => {
       <div className="my-2 mb-4 px-2">
         <Link href="/padavali" className="flex items-center gap-1 text-lg font-semibold">
           <IoMdArrowRoundBack className="inline-block text-xl" />
-          मुख्यपृष्ठं
+          Main Page
         </Link>
       </div>
       <div className="mt-2 mb-5 flex items-center justify-center gap-4 px-2">
         <Link href="/padavali/schedules">
           <Button variant={'outline'} className="flex items-center gap-2 text-base font-semibold">
             <CalendarIcon className="-mt-1 inline-block size-4" />
-            कालबन्धानि
+            Schedules
           </Button>
         </Link>
         <Link href="/padavali/add">
           <Button variant={'outline'} className="gap-2 font-semibold">
-            <IoMdAdd className="size-5.5" /> नवप्रहेलिकां युञ्जतु
+            <IoMdAdd className="size-5.5" /> Add New Puzzle
           </Button>
         </Link>
       </div>
@@ -43,5 +43,5 @@ const List = async () => {
 export default List;
 
 export const metadata: Metadata = {
-  title: 'पदावली सूची'
+  title: 'Padavali List'
 };

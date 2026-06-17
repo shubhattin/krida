@@ -385,23 +385,27 @@ const AddSchedule = (props: Props) => {
         </div>
       )}
       <AlertDialog>
-        <AlertDialogTrigger asChild>
-          <Button
-            className="w-40 gap-1 font-bold text-amber-500"
-            variant="outline"
-            disabled={
-              add_schedule_mut.isPending || update_schedule_mut.isPending || invalid_state_condition
-            }
-          >
-            <PlusIcon className="-mt-1 inline-block size-5" />
-            {type === 'add'
-              ? add_schedule_mut.isPending
-                ? 'Adding...'
-                : 'Add Schedule'
-              : update_schedule_mut.isPending
-                ? 'Updating...'
-                : 'Update Schedule'}
-          </Button>
+        <AlertDialogTrigger
+          render={
+            <Button
+              className="w-40 gap-1 font-bold text-amber-500"
+              variant="outline"
+              disabled={
+                add_schedule_mut.isPending ||
+                update_schedule_mut.isPending ||
+                invalid_state_condition
+              }
+            />
+          }
+        >
+          <PlusIcon className="-mt-1 inline-block size-5" />
+          {type === 'add'
+            ? add_schedule_mut.isPending
+              ? 'Adding...'
+              : 'Add Schedule'
+            : update_schedule_mut.isPending
+              ? 'Updating...'
+              : 'Update Schedule'}
         </AlertDialogTrigger>
         <AlertDialogContent>
           <AlertDialogHeader>
@@ -483,21 +487,23 @@ const ISTDateTimePicker: React.FC<DatePickerProps> = ({
     <div className="flex flex-col gap-3">
       <Label className="px-1">{label}</Label>
       <Popover open={open} onOpenChange={setOpen}>
-        <PopoverTrigger asChild>
-          <Button
-            variant="outline"
-            className="w-32 justify-between font-normal"
-            disabled={disabled}
-          >
-            {internalDate
-              ? internalDate.toLocaleDateString('en-GB', {
-                  day: '2-digit',
-                  month: '2-digit',
-                  year: 'numeric'
-                })
-              : 'Select date'}
-            <ChevronDownIcon />
-          </Button>
+        <PopoverTrigger
+          render={
+            <Button
+              variant="outline"
+              className="w-32 justify-between font-normal"
+              disabled={disabled}
+            />
+          }
+        >
+          {internalDate
+            ? internalDate.toLocaleDateString('en-GB', {
+                day: '2-digit',
+                month: '2-digit',
+                year: 'numeric'
+              })
+            : 'Select date'}
+          <ChevronDownIcon />
         </PopoverTrigger>
         <PopoverContent className="w-auto overflow-hidden p-0" align="start">
           <Calendar

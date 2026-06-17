@@ -82,6 +82,14 @@ import {
   SelectContent
 } from '~/components/ui/select';
 
+const ATTACHMENT_TYPE_ITEMS = [
+  { label: 'Select attachment type', value: null },
+  ...Object.entries(ATTACHMENT_TYPE_NAMES).map(([key, value]) => ({
+    label: value,
+    value: key
+  }))
+];
+
 const puzzle_schema = _puzzle_schema
   .extend({
     id: z.number().int().nullable(),
@@ -167,7 +175,7 @@ const Title = () => {
   return (
     <div>
       <Label className="block font-medium">
-        <span className="text-xl font-bold">शीर्षकम्</span>
+        <span className="text-xl font-bold">Title</span>
         <Input
           type="text"
           className="lg:1/5 mt-1 block w-3/5 text-lg font-semibold sm:w-2/5"
@@ -248,9 +256,15 @@ const SortableAttachmentItem = ({
       <div className="flex items-center space-x-3">
         <div className="flex items-center justify-center space-x-1">
           <Label>Type</Label>
-          <Select value={attachment.type} onValueChange={(value) => onUpdate('type', value, null)}>
+          <Select
+            items={ATTACHMENT_TYPE_ITEMS}
+            value={attachment.type}
+            onValueChange={(value) => {
+              if (value) onUpdate('type', value, null);
+            }}
+          >
             <SelectTrigger className="w-40">
-              <SelectValue placeholder="Select attachment type" />
+              <SelectValue />
             </SelectTrigger>
             <SelectContent>
               {Object.entries(ATTACHMENT_TYPE_NAMES).map(([key, value]) => (
@@ -273,7 +287,7 @@ const SortableAttachmentItem = ({
       </div>
       <div className="flex items-center justify-center space-x-2">
         <Label>
-          Title <span className="text-xs text-gray-500 dark:text-gray-400">ऐच्छिक</span>
+          Title <span className="text-xs text-gray-500 dark:text-gray-400">Optional</span>
         </Label>
         <Input
           type="text"
@@ -359,7 +373,7 @@ const Attachments = () => {
   // }, [attachments]);
 
   return (
-    <Accordion type="single" collapsible className="w-fit">
+    <Accordion className="w-fit">
       <AccordionItem value="item-1">
         <AccordionTrigger className="text-base font-semibold">
           Media Attachments ({attachments.length})
@@ -414,7 +428,7 @@ const LipiLekhikaSwitch = () => {
           className="-mt-1"
         />
         <Icon src={LanguageIcon} className="-mt-1 size-6.5" />
-        <span className="text-base font-bold">देवनागरी</span>
+        <span className="text-base font-bold">Devanagari</span>
       </Label>
     </div>
   );
@@ -628,22 +642,25 @@ const TraversalAnalysis = ({
                   >
                     {warning.type === 'none' ? (
                       <>
-                        "<span className="font-semibold">{warning.word}</span>" इति शब्दं
-                        स्थानपट्टिकायां न प्राप्यते ।
+                        "<span className="font-semibold">{warning.word}</span>" was not found on the
+                        grid.
                       </>
                     ) : warning.type === 'duplicate' ? (
                       <div className="flex items-center justify-center gap-2">
                         <span>
-                          "<span className="font-semibold">{warning.word}</span>" इति शब्दः
-                          शब्दसूच्यां एकाधिकवारं ({warning.traversalCount}) पुनरावृत्तः ।
+                          "<span className="font-semibold">{warning.word}</span>" appears multiple
+                          times ({warning.traversalCount}) in the word list.
                         </span>
                         <Popover>
-                          <PopoverTrigger asChild>
-                            <Info className="-mt-1 size-4.5 text-amber-600 dark:text-amber-400" />
-                          </PopoverTrigger>
+                          <PopoverTrigger
+                            render={
+                              <Info className="-mt-1 size-4.5 text-amber-600 dark:text-amber-400" />
+                            }
+                            nativeButton={false}
+                          />
                           <PopoverContent className="max-w-xs" align="center">
                             <div className="text-xs">
-                              <span className="font-semibold">स्थानाङ्काः:</span>
+                              <span className="font-semibold">Positions:</span>
                               <div className="mt-1 flex flex-wrap gap-1">
                                 {warning.duplicateIndices?.map((index, idx) => (
                                   <span
@@ -661,13 +678,16 @@ const TraversalAnalysis = ({
                     ) : (
                       <div className="flex items-center justify-center gap-2">
                         <span>
-                          "<span className="font-semibold">{warning.word}</span>" इत्यस्य एकाधिकाः (
-                          {warning.traversalCount}) मार्गाः सन्ति ।
+                          "<span className="font-semibold">{warning.word}</span>" has multiple paths
+                          ({warning.traversalCount}).
                         </span>
                         <Popover>
-                          <PopoverTrigger asChild>
-                            <Info className="-mt-1 size-4.5 text-amber-600 dark:text-amber-400" />
-                          </PopoverTrigger>
+                          <PopoverTrigger
+                            render={
+                              <Info className="-mt-1 size-4.5 text-amber-600 dark:text-amber-400" />
+                            }
+                            nativeButton={false}
+                          />
                           <PopoverContent className="max-w-xs" align="center">
                             {warning.paths?.map((path, pIdx) => (
                               <div key={pIdx} className="flex items-center space-x-1 text-xs">
@@ -721,7 +741,7 @@ const TraversalAnalysis = ({
           >
             <div>
               <div className="mb-2 text-sm font-semibold text-red-800 dark:text-red-200">
-                कोष्ठसंघर्षाः ({analysisResult.cellConflicts.length})
+                Cell Conflicts ({analysisResult.cellConflicts.length})
               </div>
               <div className={`mt-1 text-sm`}>
                 {analysisResult.cellConflicts.map((conflict, idx) => (
@@ -734,11 +754,11 @@ const TraversalAnalysis = ({
                   >
                     <div className="flex items-center gap-2">
                       <span>
-                        कोष्ठं{' '}
+                        Cell{' '}
                         <span className="font-semibold">
                           ({conflict.cellPosition[0] + 1},{conflict.cellPosition[1] + 1})
                         </span>{' '}
-                        एकाधिकैः शब्दैः उपयुज्यते
+                        is used by multiple words
                       </span>
                     </div>
                     <div className="mt-1 flex flex-wrap gap-1">
@@ -781,7 +801,7 @@ const TraversalAnalysis = ({
               className="h-2 w-2 shrink-0 rounded-full bg-green-500"
             ></motion.div>
             <p className="text-sm font-medium text-green-800 dark:text-green-200">
-              सर्वे शब्दाः सम्यगवस्थिताः !
+              All words are placed correctly!
             </p>
           </motion.div>
         </motion.div>
@@ -804,7 +824,7 @@ const WordList = () => {
 
   return (
     <div>
-      <Label className="mb-2 block text-lg font-semibold">शब्दानां सूची</Label>
+      <Label className="mb-2 block text-lg font-semibold">Word List</Label>
       <div className="grid max-w-7xl grid-cols-2 gap-2 space-y-2 sm:grid-cols-4 md:grid-cols-5 lg:grid-cols-6">
         <AnimatePresence mode="popLayout">
           {wordList.map((word, idx) => (
@@ -854,7 +874,7 @@ const WordList = () => {
           className="inline-block"
         >
           <Button variant="outline" size="sm" onClick={addWord}>
-            <IoMdAdd className="text-lg" /> शब्दस्थानं युञ्जतु
+            <IoMdAdd className="text-lg" /> Add Word Slot
           </Button>
         </motion.div>
       </div>
@@ -909,7 +929,7 @@ const GridData = ({
 
   return (
     <div>
-      <Label className="mb-2 block text-lg font-semibold">स्थानपट्टिका</Label>
+      <Label className="mb-2 block text-lg font-semibold">Grid</Label>
       <div
         className="md:3/5 grid w-full gap-1 sm:w-4/5 md:w-3/5 lg:w-2/5"
         style={{ gridTemplateColumns: `repeat(${cols}, minmax(0, 1fr))` }}
@@ -948,7 +968,7 @@ const ArchivedSwitch = () => {
     <div>
       <Label className="inline-flex items-center gap-2 font-medium">
         <Switch checked={archived} onCheckedChange={setArchived} />
-        <span className="text-lg font-bold">संग्रहीतम्</span>
+        <span className="text-lg font-bold">Archived</span>
       </Label>
     </div>
   );
@@ -964,8 +984,8 @@ const Description = () => {
     <div>
       <Label className="block font-medium">
         <span className="text-lg font-bold">
-          वर्णनम्
-          <span className="ml-3 text-xs text-gray-500 dark:text-gray-400">ऐच्छिक</span>
+          Description
+          <span className="ml-3 text-xs text-gray-500 dark:text-gray-400">Optional</span>
         </span>
         <Input
           className="mt-1 w-full sm:w-[90%] md:w-2/3 lg:w-1/2"
@@ -981,7 +1001,7 @@ const Description = () => {
           }
           onBlur={() => ctx.clearContext()}
           onKeyDown={(e) => clearTypingContextOnKeyDown(e, ctx)}
-          placeholder="प्रहेलिकायाः वर्णनं लिखतु..."
+          placeholder="Enter a description for the puzzle..."
         />
       </Label>
     </div>
@@ -1127,61 +1147,64 @@ const SaveButton = ({ word_puzzle }: { word_puzzle: z.infer<typeof puzzle_schema
   return (
     <div className="mx-2 mt-2 flex items-center justify-between sm:mx-4">
       <AlertDialog>
-        <AlertDialogTrigger asChild>
-          <Button
-            disabled={
-              !isEdited || add_word_puzzle_mut.isPending || update_word_puzzle_mut.isPending
-            }
-            className="flex text-lg"
-            variant={'outline'}
-          >
-            {is_addition ? (
-              <>
-                <IoMdAdd className="text-lg" />{' '}
-                {!add_word_puzzle_mut.isPending ? 'योज्यताम्' : 'योज्यमानम्...'}
-              </>
-            ) : (
-              <>
-                <FiSave className="text-lg" />{' '}
-                {!update_word_puzzle_mut.isPending ? 'रक्ष्यताम्' : 'रक्ष्यमानम्...'}
-              </>
-            )}
-          </Button>
+        <AlertDialogTrigger
+          render={
+            <Button
+              disabled={
+                !isEdited || add_word_puzzle_mut.isPending || update_word_puzzle_mut.isPending
+              }
+              className="flex text-lg"
+              variant={'outline'}
+            />
+          }
+        >
+          {is_addition ? (
+            <>
+              <IoMdAdd className="text-lg" />{' '}
+              {!add_word_puzzle_mut.isPending ? 'Add' : 'Adding...'}
+            </>
+          ) : (
+            <>
+              <FiSave className="text-lg" />{' '}
+              {!update_word_puzzle_mut.isPending ? 'Save' : 'Saving...'}
+            </>
+          )}
         </AlertDialogTrigger>
         <AlertDialogContent>
           <AlertDialogHeader>
-            <AlertDialogTitle>रक्षणाय अनुमोदनम</AlertDialogTitle>
+            <AlertDialogTitle>Confirm Save</AlertDialogTitle>
             <AlertDialogDescription>
-              {is_addition ? 'निश्चयेन योजामहे किम् ? ?' : 'निश्चयेन रक्षामः किम् ?'}
+              {is_addition
+                ? 'Are you sure you want to add this puzzle?'
+                : 'Are you sure you want to save your changes?'}
             </AlertDialogDescription>
           </AlertDialogHeader>
           <AlertDialogFooter>
-            <AlertDialogCancel>मास्तु</AlertDialogCancel>
-            <AlertDialogAction onClick={handleSave}>अस्तु</AlertDialogAction>
+            <AlertDialogCancel>Cancel</AlertDialogCancel>
+            <AlertDialogAction onClick={handleSave}>Confirm</AlertDialogAction>
           </AlertDialogFooter>
         </AlertDialogContent>
       </AlertDialog>
 
       {!is_addition && (
         <AlertDialog>
-          <AlertDialogTrigger asChild>
-            <Button className="flex gap-1 px-1 py-0 text-sm" variant="destructive">
-              <MdDeleteOutline className="text-base" />
-              मार्ज्यताम्
-            </Button>
+          <AlertDialogTrigger
+            render={<Button className="flex gap-1 px-1 py-0 text-sm" variant="destructive" />}
+          >
+            <MdDeleteOutline className="text-base" />
+            Delete
           </AlertDialogTrigger>
           <AlertDialogContent>
             <AlertDialogHeader>
-              <AlertDialogTitle>निष्कासितुं दृढः</AlertDialogTitle>
+              <AlertDialogTitle>Confirm Delete</AlertDialogTitle>
               <AlertDialogDescription>
-                किन्त्वन्निश्चितरूपेणेदं प्रहेलिकां निष्कासितुमिच्छसि ? एतत्कार्यमनिवर्तयितुं शक्यते
-                !
+                Are you sure you want to delete this puzzle? This action cannot be undone.
               </AlertDialogDescription>
             </AlertDialogHeader>
             <AlertDialogFooter>
-              <AlertDialogCancel>मास्तु</AlertDialogCancel>
+              <AlertDialogCancel>Cancel</AlertDialogCancel>
               <AlertDialogAction onClick={handleDelete} className="bg-red-500 hover:bg-red-400">
-                अस्तु
+                Delete
               </AlertDialogAction>
             </AlertDialogFooter>
           </AlertDialogContent>

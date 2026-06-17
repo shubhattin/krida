@@ -12,6 +12,13 @@ import { Button } from '~/components/ui/button';
 import { Input } from '~/components/ui/input';
 import { Label } from '~/components/ui/label';
 import { Switch } from '~/components/ui/switch';
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue
+} from '~/components/ui/select';
 import Icon from '~/tools/Icon';
 import { LanguageIcon } from '~/components/icons';
 import {
@@ -24,6 +31,22 @@ import { useQuery } from '@tanstack/react-query';
 dayjs.extend(relativeTime);
 
 const PUZZLE_FETCH_LIMIT = 12;
+
+const ARCHIVED_FILTER_ITEMS = [
+  { label: 'All', value: 'all' as const },
+  { label: 'Archived', value: 'archived' as const },
+  { label: 'Unarchived', value: 'unarchived' as const }
+];
+
+const SORT_BY_ITEMS = [
+  { label: 'Created', value: 'created_at' as const },
+  { label: 'Updated', value: 'updated_at' as const }
+];
+
+const ORDER_BY_ITEMS = [
+  { label: 'Latest', value: 'desc' as const },
+  { label: 'Oldest', value: 'asc' as const }
+];
 
 const ListPage = () => {
   const [mounted, setMounted] = useState(false);
@@ -163,7 +186,7 @@ const ListPage = () => {
             }
             onBlur={() => ctx.clearContext()}
             onKeyDown={(e) => clearTypingContextOnKeyDown(e, ctx)}
-            placeholder="शीर्षकेणावेष्यताम्"
+            placeholder="Search by title"
           />
           <div className="flex justify-center">
             <Label className="inline-flex items-center justify-center gap-2 font-medium">
@@ -181,46 +204,74 @@ const ListPage = () => {
             <Label className="px-1 text-xs font-semibold sm:text-sm" title="Archived filter">
               <ArchiveIcon className="size-3.5 sm:size-4" />
             </Label>
-            <select
-              className="select w-20 rounded-md border border-gray-300 bg-white px-1 py-0.5 text-xs text-gray-900 shadow-sm transition-colors focus:border-blue-500 focus:ring-2 focus:ring-blue-500 focus:outline-none sm:w-24 sm:text-sm dark:border-gray-700 dark:bg-gray-900 dark:text-gray-100 dark:focus:border-blue-400 dark:focus:ring-blue-400"
-              aria-label="Archived filter"
+            <Select
+              items={ARCHIVED_FILTER_ITEMS}
               value={archived_filter_type}
-              onChange={(e) =>
-                setArchivedFilterType(e.currentTarget.value as typeof archived_filter_type)
-              }
+              onValueChange={(value) => {
+                if (value) setArchivedFilterType(value);
+              }}
             >
-              <option value="all">All</option>
-              <option value="archived">Archived</option>
-              <option value="unarchived">Unarchived</option>
-            </select>
+              <SelectTrigger
+                size="sm"
+                className="w-24 text-xs sm:text-sm"
+                aria-label="Archived filter"
+              >
+                <SelectValue />
+              </SelectTrigger>
+              <SelectContent alignItemWithTrigger={false}>
+                {ARCHIVED_FILTER_ITEMS.map((item) => (
+                  <SelectItem key={item.value} value={item.value}>
+                    {item.label}
+                  </SelectItem>
+                ))}
+              </SelectContent>
+            </Select>
           </div>
           <div className="flex items-center gap-1.5 sm:gap-2">
             <Label className="px-1 text-xs font-semibold sm:text-sm" title="Sort field">
               <FilterIcon className="size-3.5 sm:size-4" />
             </Label>
-            <select
-              className="select w-20 rounded-md border border-gray-300 bg-white px-1 py-0.5 text-xs text-gray-900 shadow-sm transition-colors focus:border-blue-500 focus:ring-2 focus:ring-blue-500 focus:outline-none sm:w-28 sm:text-sm dark:border-gray-700 dark:bg-gray-900 dark:text-gray-100 dark:focus:border-blue-400 dark:focus:ring-blue-400"
-              aria-label="Sort field"
+            <Select
+              items={SORT_BY_ITEMS}
               value={sort_by}
-              onChange={(e) => setSortBy(e.currentTarget.value as typeof sort_by)}
+              onValueChange={(value) => {
+                if (value) setSortBy(value);
+              }}
             >
-              <option value="created_at">Created</option>
-              <option value="updated_at">Updated</option>
-            </select>
+              <SelectTrigger size="sm" className="w-28 text-xs sm:text-sm" aria-label="Sort field">
+                <SelectValue />
+              </SelectTrigger>
+              <SelectContent alignItemWithTrigger={false}>
+                {SORT_BY_ITEMS.map((item) => (
+                  <SelectItem key={item.value} value={item.value}>
+                    {item.label}
+                  </SelectItem>
+                ))}
+              </SelectContent>
+            </Select>
           </div>
           <div className="flex items-center gap-1.5 sm:gap-2">
             <Label className="px-1 text-xs font-semibold sm:text-sm" title="Order">
               <ArrowUpDownIcon className="size-3.5 sm:size-4" />
             </Label>
-            <select
-              className="select w-20 rounded-md border border-gray-300 bg-white px-1 py-0.5 text-xs text-gray-900 shadow-sm transition-colors focus:border-blue-500 focus:ring-2 focus:ring-blue-500 focus:outline-none sm:w-28 sm:text-sm dark:border-gray-700 dark:bg-gray-900 dark:text-gray-100 dark:focus:border-blue-400 dark:focus:ring-blue-400"
-              aria-label="Order"
+            <Select
+              items={ORDER_BY_ITEMS}
               value={order_by}
-              onChange={(e) => setOrderBy(e.currentTarget.value as typeof order_by)}
+              onValueChange={(value) => {
+                if (value) setOrderBy(value);
+              }}
             >
-              <option value="desc">Latest</option>
-              <option value="asc">Oldest</option>
-            </select>
+              <SelectTrigger size="sm" className="w-28 text-xs sm:text-sm" aria-label="Order">
+                <SelectValue />
+              </SelectTrigger>
+              <SelectContent alignItemWithTrigger={false}>
+                {ORDER_BY_ITEMS.map((item) => (
+                  <SelectItem key={item.value} value={item.value}>
+                    {item.label}
+                  </SelectItem>
+                ))}
+              </SelectContent>
+            </Select>
           </div>
         </div>
       </div>
@@ -260,9 +311,9 @@ const ListPage = () => {
       {puzzle_list.length === 0 && (
         <div className="flex items-center justify-center">
           {!puzzle_list_q.isFetching ? (
-            <p className="text-lg font-semibold text-gray-500">कोऽपि प्रहेलिका न लब्दा</p>
+            <p className="text-lg font-semibold text-gray-500">No puzzles found</p>
           ) : (
-            <p className="font-semibold text-gray-500">आपूर्यमानम्...</p>
+            <p className="font-semibold text-gray-500">Loading...</p>
           )}
         </div>
       )}
@@ -274,7 +325,7 @@ const ListPage = () => {
             variant="secondary"
             className="font-semibold"
           >
-            {puzzle_list_q.isFetching ? 'आपूर्यमानम्...' : 'अधिकापूर्यताम्'}
+            {puzzle_list_q.isFetching ? 'Loading...' : 'Load More'}
           </Button>
         </div>
       )}
