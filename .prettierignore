@@ -4,6 +4,8 @@ build
 .vercel
 .next
 
+.agents
+
 # Ignore files for PNPM, NPM and YARN
 pnpm-lock.yaml
 
