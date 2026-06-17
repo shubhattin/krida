@@ -53,7 +53,7 @@ const AppAuthContextMenu = ({
                     <Edit className="h-4 w-4 text-white" />
                   </div>
                   <div>
-                    <div className="font-medium">सम्पादनम्</div>
+                    <div className="font-medium">Edit</div>
                     <div className="text-xs text-slate-500 dark:text-slate-400">
                       Edit/View Stats
                     </div>
@@ -73,10 +73,8 @@ const AppAuthContextMenu = ({
                     <List className="h-4 w-4 text-white" />
                   </div>
                   <div>
-                    <div className="font-medium">सूची</div>
-                    <div className="text-xs text-slate-500 dark:text-slate-400">
-                      Padavali List
-                    </div>
+                    <div className="font-medium">Puzzle List</div>
+                    <div className="text-xs text-slate-500 dark:text-slate-400">Padavali List</div>
                   </div>
                 </ContextMenuItem>
                 <ContextMenuItem
@@ -93,7 +91,7 @@ const AppAuthContextMenu = ({
                     <Calendar className="h-4 w-4 text-white" />
                   </div>
                   <div>
-                    <div className="font-medium">कार्यक्रमसूची</div>
+                    <div className="font-medium">Schedules</div>
                     <div className="text-xs text-slate-500 dark:text-slate-400">Schedules</div>
                   </div>
                 </ContextMenuItem>
@@ -117,7 +115,7 @@ const AppAuthContextMenu = ({
                 <User className="h-4 w-4 text-white" />
               </div>
               <div>
-                <div className="font-medium">उपयोक्तृविवरणः</div>
+                <div className="font-medium">User Profile</div>
                 <div className="text-xs text-slate-500 dark:text-slate-400">User Profile</div>
               </div>
             </ContextMenuItem>
@@ -133,7 +131,7 @@ const AppAuthContextMenu = ({
                 <LogOut className="h-4 w-4 text-white" />
               </div>
               <div>
-                <div className="font-medium">निर्गमः</div>
+                <div className="font-medium">Log out</div>
                 <div className="text-xs text-red-500 dark:text-red-400">Log out</div>
               </div>
             </ContextMenuItem>

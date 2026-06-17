@@ -186,7 +186,7 @@ const ListPage = () => {
             }
             onBlur={() => ctx.clearContext()}
             onKeyDown={(e) => clearTypingContextOnKeyDown(e, ctx)}
-            placeholder="शीर्षकेणावेष्यताम्"
+            placeholder="Search by title"
           />
           <div className="flex justify-center">
             <Label className="inline-flex items-center justify-center gap-2 font-medium">
@@ -211,7 +211,11 @@ const ListPage = () => {
                 if (value) setArchivedFilterType(value);
               }}
             >
-              <SelectTrigger size="sm" className="w-24 text-xs sm:text-sm" aria-label="Archived filter">
+              <SelectTrigger
+                size="sm"
+                className="w-24 text-xs sm:text-sm"
+                aria-label="Archived filter"
+              >
                 <SelectValue />
               </SelectTrigger>
               <SelectContent alignItemWithTrigger={false}>
@@ -307,9 +311,9 @@ const ListPage = () => {
       {puzzle_list.length === 0 && (
         <div className="flex items-center justify-center">
           {!puzzle_list_q.isFetching ? (
-            <p className="text-lg font-semibold text-gray-500">कोऽपि प्रहेलिका न लब्दा</p>
+            <p className="text-lg font-semibold text-gray-500">No puzzles found</p>
           ) : (
-            <p className="font-semibold text-gray-500">आपूर्यमानम्...</p>
+            <p className="font-semibold text-gray-500">Loading...</p>
           )}
         </div>
       )}
@@ -321,7 +325,7 @@ const ListPage = () => {
             variant="secondary"
             className="font-semibold"
           >
-            {puzzle_list_q.isFetching ? 'आपूर्यमानम्...' : 'अधिकापूर्यताम्'}
+            {puzzle_list_q.isFetching ? 'Loading...' : 'Load More'}
           </Button>
         </div>
       )}

@@ -57,13 +57,7 @@ const formatScheduleRange = (startTime: Date, endTime: Date) => {
   return `${formatDate(startTime)}, ${dayjs(startTime).format('HH:mm')} – ${formatDate(endTime)}, ${dayjs(endTime).format('HH:mm')}`;
 };
 
-const ScheduleCardTitle = ({
-  title,
-  puzzleId
-}: {
-  title: string;
-  puzzleId: number;
-}) => (
+const ScheduleCardTitle = ({ title, puzzleId }: { title: string; puzzleId: number }) => (
   <CardTitle className="flex items-start gap-2 text-base leading-snug font-semibold">
     <span className="min-w-0 flex-1">{title}</span>
     <a
@@ -77,13 +71,19 @@ const ScheduleCardTitle = ({
   </CardTitle>
 );
 
-const ScheduleCardMeta = ({ startTime, endTime, createdAt }: {
+const ScheduleCardMeta = ({
+  startTime,
+  endTime,
+  createdAt
+}: {
   startTime: Date;
   endTime: Date;
   createdAt: Date;
 }) => (
   <div className="space-y-1.5">
-    <p className="text-sm leading-relaxed text-muted-foreground">{formatScheduleRange(startTime, endTime)}</p>
+    <p className="text-sm leading-relaxed text-muted-foreground">
+      {formatScheduleRange(startTime, endTime)}
+    </p>
     <div className="flex items-center gap-1.5 text-sm text-muted-foreground">
       <ClockIcon className="size-3.5 shrink-0" />
       <span>{dayjs(createdAt).fromNow()}</span>
@@ -179,9 +179,12 @@ export const PastSchedules = () => {
   return (
     <div className="mt-8">
       <Accordion className="w-full" value={value} onValueChange={setValue}>
-        <AccordionItem value="past-schedules" className="rounded-xl border border-border/60 bg-card/40 px-4">
+        <AccordionItem
+          value="past-schedules"
+          className="rounded-xl border border-border/60 bg-card/40 px-4"
+        >
           <AccordionTrigger className="py-4 text-lg font-semibold hover:no-underline focus-visible:border-transparent">
-            भूतकालबन्धानि
+            Past Schedules
           </AccordionTrigger>
           <AccordionContent className="pb-4">
             <div>
@@ -228,8 +231,8 @@ export const PastSchedules = () => {
                     <div className="mb-4 text-muted-foreground">
                       <ClockIcon className="mx-auto mb-2 h-12 w-12 opacity-50" />
                     </div>
-                    <h3 className="mb-2 text-lg font-semibold">भूतकालबन्धानि न सन्ति</h3>
-                    <p className="text-muted-foreground">अत्र कोऽपि भूतकालबन्धनं नास्ति।</p>
+                    <h3 className="mb-2 text-lg font-semibold">No Past Schedules</h3>
+                    <p className="text-muted-foreground">There are no past schedules here.</p>
                   </CardContent>
                 </Card>
               ) : null}

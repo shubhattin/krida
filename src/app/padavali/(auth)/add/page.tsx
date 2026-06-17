@@ -34,10 +34,10 @@ const Add = async () => {
           className="inline-flex items-center gap-1 text-lg font-semibold"
         >
           <IoMdArrowRoundBack className="inline-block text-xl" />
-          मुख्यसूची
+          Main List
         </Link>
       </div>
-      <div className="ml-3 text-xl font-bold">नवप्रहेलिकायाः योजनम्</div>
+      <div className="ml-3 text-xl font-bold">Add New Puzzle</div>
       <JotaiProvider key="add">
         <ViewEditPuzzle word_puzzle={word_puzzle} key="add" location="add_page" />
       </JotaiProvider>

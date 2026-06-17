@@ -532,7 +532,9 @@ export const NextPuzzleTimePopup = ({
 }) => {
   return (
     <Popover>
-      <PopoverTrigger render={<button className={cn('outline-none hover:brightness-75', className)} />}>
+      <PopoverTrigger
+        render={<button className={cn('outline-none hover:brightness-75', className)} />}
+      >
         <InfoIcon className="-mt-1 size-3 sm:size-4" />
       </PopoverTrigger>
       <PopoverContent

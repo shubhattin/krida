@@ -63,7 +63,7 @@ const MainEdit = async ({ params }: Props) => {
           className="inline-flex items-center gap-1 text-lg font-semibold"
         >
           <IoMdArrowRoundBack className="inline-block text-xl" />
-          मुख्यसूची
+          Main List
         </Link>
         <Link
           href={`/padavali/view/${word_puzzle.uuid}:${word_puzzle.id}`}
@@ -71,7 +71,7 @@ const MainEdit = async ({ params }: Props) => {
           className="inline-flex items-center gap-2 text-lg font-semibold"
         >
           <FaPlay className="inline-block text-lg" />
-          क्रीड्यताम्
+          Play
         </Link>
       </div>
       <JotaiProvider key={`edit_${word_puzzle.id}`}>

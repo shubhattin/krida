@@ -391,7 +391,9 @@ const AddSchedule = (props: Props) => {
               className="w-40 gap-1 font-bold text-amber-500"
               variant="outline"
               disabled={
-                add_schedule_mut.isPending || update_schedule_mut.isPending || invalid_state_condition
+                add_schedule_mut.isPending ||
+                update_schedule_mut.isPending ||
+                invalid_state_condition
               }
             />
           }

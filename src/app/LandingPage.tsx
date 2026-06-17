@@ -105,7 +105,7 @@ export default function LandingPage() {
                 href="https://www.instagram.com/thesanskritchannel/"
                 target="_blank"
                 rel="noopener noreferrer"
-                className="flex h-12 w-12 items-center justify-center rounded-xl border-2 border-pink-500/20 bg-gradient-to-br from-pink-50 to-purple-50 text-pink-600 transition-all duration-200 hover:border-pink-500/40 hover:from-pink-100 hover:to-purple-100 hover:shadow-md dark:border-pink-400/20 dark:from-pink-950/30 dark:to-purple-950/30 dark:text-pink-400 dark:hover:border-pink-400/40 dark:hover:from-pink-900/40 dark:hover:to-purple-900/40"
+                className="flex h-12 w-12 items-center justify-center rounded-xl border-2 border-pink-500/20 bg-linear-to-br from-pink-50 to-purple-50 text-pink-600 transition-all duration-200 hover:border-pink-500/40 hover:from-pink-100 hover:to-purple-100 hover:shadow-md dark:border-pink-400/20 dark:from-pink-950/30 dark:to-purple-950/30 dark:text-pink-400 dark:hover:border-pink-400/40 dark:hover:from-pink-900/40 dark:hover:to-purple-900/40"
                 title="Instagram"
               >
                 <FaInstagram className="h-6 w-6" />
@@ -120,7 +120,7 @@ export default function LandingPage() {
                 rel="noopener noreferrer"
                 className="flex items-center gap-3 rounded-lg border border-border bg-card p-3 text-left text-sm font-medium transition-all duration-200 hover:border-primary/30 hover:bg-accent/50"
               >
-                <div className="flex h-8 w-8 items-center justify-center rounded-lg bg-gradient-to-br from-green-500 to-emerald-600">
+                <div className="flex h-8 w-8 items-center justify-center rounded-lg bg-linear-to-br from-green-500 to-emerald-600">
                   <Book className="h-4 w-4 text-white" />
                 </div>
                 <div>
@@ -135,7 +135,7 @@ export default function LandingPage() {
                 rel="noopener noreferrer"
                 className="flex items-center gap-3 rounded-lg border border-border bg-card p-3 text-left text-sm font-medium transition-all duration-200 hover:border-primary/30 hover:bg-accent/50"
               >
-                <div className="flex h-8 w-8 items-center justify-center rounded-lg bg-gradient-to-br from-indigo-500 to-purple-600">
+                <div className="flex h-8 w-8 items-center justify-center rounded-lg bg-linear-to-br from-indigo-500 to-purple-600">
                   <Music className="h-4 w-4 text-white" />
                 </div>
                 <div>
