@@ -30,7 +30,7 @@ import {
   word_msgs_atom,
   original_word_list_atom
 } from './game_state';
-import { Popover, PopoverContent, PopoverTrigger } from '@radix-ui/react-popover';
+import { Popover, PopoverContent, PopoverTrigger } from '~/components/ui/popover';
 import { FaLink, FaRegStopCircle } from 'react-icons/fa';
 import { AppContext } from '~/components/AppDataContext';
 import dayjs from 'dayjs';
@@ -305,10 +305,10 @@ function WordGame({
             {title}
             {description && (
               <Popover>
-                <PopoverTrigger asChild>
-                  <button className="ml-3 outline-none hover:brightness-75">
-                    <InfoIcon className="size-3 sm:size-4" />
-                  </button>
+                <PopoverTrigger
+                  render={<button className="ml-3 outline-none hover:brightness-75" />}
+                >
+                  <InfoIcon className="size-3 sm:size-4" />
                 </PopoverTrigger>
                 <PopoverContent
                   side="top"
@@ -532,10 +532,8 @@ export const NextPuzzleTimePopup = ({
 }) => {
   return (
     <Popover>
-      <PopoverTrigger asChild>
-        <button className={cn('outline-none hover:brightness-75', className)}>
-          <InfoIcon className="-mt-1 size-3 sm:size-4" />
-        </button>
+      <PopoverTrigger render={<button className={cn('outline-none hover:brightness-75', className)} />}>
+        <InfoIcon className="-mt-1 size-3 sm:size-4" />
       </PopoverTrigger>
       <PopoverContent
         align="center"

@@ -75,11 +75,14 @@ const PuzzleListView = ({ puzzles }: { puzzles: Props['archived_puzzles'] }) => 
           transition={{ duration: 0.4 }}
           className="mb-6"
         >
-          <Button asChild variant="ghost" className="gap-2">
-            <Link href="/padavali">
-              <ArrowLeftIcon className="h-4 w-4" />
-              Back to Home
-            </Link>
+          <Button
+            render={<Link href="/padavali" className="gap-2" />}
+            nativeButton={false}
+            variant="ghost"
+            className="gap-2"
+          >
+            <ArrowLeftIcon className="h-4 w-4" />
+            Back to Home
           </Button>
         </motion.div>
 

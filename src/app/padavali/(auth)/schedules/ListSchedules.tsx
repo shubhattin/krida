@@ -53,6 +53,44 @@ const formatDate = (date: Date) => {
   });
 };
 
+const formatScheduleRange = (startTime: Date, endTime: Date) => {
+  return `${formatDate(startTime)}, ${dayjs(startTime).format('HH:mm')} – ${formatDate(endTime)}, ${dayjs(endTime).format('HH:mm')}`;
+};
+
+const ScheduleCardTitle = ({
+  title,
+  puzzleId
+}: {
+  title: string;
+  puzzleId: number;
+}) => (
+  <CardTitle className="flex items-start gap-2 text-base leading-snug font-semibold">
+    <span className="min-w-0 flex-1">{title}</span>
+    <a
+      href={`/padavali/edit/${puzzleId}`}
+      target="_blank"
+      rel="noopener noreferrer"
+      className="inline-flex shrink-0 text-muted-foreground transition-colors hover:text-blue-500"
+    >
+      <SquareArrowOutUpRightIcon className="size-3.5" />
+    </a>
+  </CardTitle>
+);
+
+const ScheduleCardMeta = ({ startTime, endTime, createdAt }: {
+  startTime: Date;
+  endTime: Date;
+  createdAt: Date;
+}) => (
+  <div className="space-y-1.5">
+    <p className="text-sm leading-relaxed text-muted-foreground">{formatScheduleRange(startTime, endTime)}</p>
+    <div className="flex items-center gap-1.5 text-sm text-muted-foreground">
+      <ClockIcon className="size-3.5 shrink-0" />
+      <span>{dayjs(createdAt).fromNow()}</span>
+    </div>
+  </div>
+);
+
 const ListSchedules = ({ upcomming_schedules }: Props) => {
   const [isPending, startTransition] = useTransition();
 
@@ -73,13 +111,8 @@ const ListSchedules = ({ upcomming_schedules }: Props) => {
       <div className="grid gap-4 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4">
         {upcomming_schedules.map((schedule) => (
           <Card key={schedule.id} className="transition-shadow hover:shadow-md">
-            <CardHeader>
-              <CardTitle className="flex items-center gap-x-3 text-lg">
-                {schedule.puzzle.title}
-                <a href={`/padavali/edit/${schedule.puzzle_id}`} target="_blank">
-                  <SquareArrowOutUpRightIcon className="-mt-2 size-4 hover:text-blue-500" />
-                </a>
-              </CardTitle>
+            <CardHeader className="gap-2">
+              <ScheduleCardTitle title={schedule.puzzle.title} puzzleId={schedule.puzzle_id} />
               <CardAction className="flex items-center gap-x-2">
                 <Link
                   href={`/padavali/schedules/edit/${schedule.id}`}
@@ -88,13 +121,15 @@ const ListSchedules = ({ upcomming_schedules }: Props) => {
                   <PencilIcon className="size-4" />
                 </Link>
                 <AlertDialog>
-                  <AlertDialogTrigger asChild>
-                    <button
-                      className="cursor-pointer p-1 outline-none hover:brightness-75"
-                      disabled={del_schedule_mutation.isPending}
-                    >
-                      <MdDeleteOutline className="size-4 text-rose-400" />
-                    </button>
+                  <AlertDialogTrigger
+                    render={
+                      <button
+                        className="cursor-pointer p-1 outline-none hover:brightness-75"
+                        disabled={del_schedule_mutation.isPending}
+                      />
+                    }
+                  >
+                    <MdDeleteOutline className="size-4 text-rose-400" />
                   </AlertDialogTrigger>
                   <AlertDialogContent>
                     <AlertDialogHeader>
@@ -118,24 +153,12 @@ const ListSchedules = ({ upcomming_schedules }: Props) => {
                 </AlertDialog>
               </CardAction>
             </CardHeader>
-            <CardContent className="-mt-6">
-              <div className="space-y-2">
-                <div className="flex items-center gap-x-0.5 text-sm">
-                  <div>
-                    {formatDate(schedule.start_time)},
-                    <span className="ml-1">{dayjs(schedule.start_time).format('HH:mm')}</span>
-                  </div>
-                  <div>-</div>
-                  <div>
-                    {formatDate(schedule.end_time)},
-                    <span className="ml-1">{dayjs(schedule.end_time).format('HH:mm')}</span>
-                  </div>
-                </div>
-                <div className="flex items-center gap-2 text-sm text-muted-foreground">
-                  <ClockIcon className="-mt-1 size-4" />
-                  <span>{dayjs(schedule.created_at).fromNow()}</span>
-                </div>
-              </div>
+            <CardContent>
+              <ScheduleCardMeta
+                startTime={schedule.start_time}
+                endTime={schedule.end_time}
+                createdAt={schedule.created_at}
+              />
             </CardContent>
           </Card>
         ))}
@@ -147,34 +170,30 @@ const ListSchedules = ({ upcomming_schedules }: Props) => {
 export default ListSchedules;
 
 export const PastSchedules = () => {
-  const [value, setValue] = useState<string | undefined>(undefined);
+  const [value, setValue] = useState<string[]>([]);
 
   const past_schedules_q = client_q.schedules.get_past_schedules.useQuery(undefined, {
-    enabled: !!value
+    enabled: value.includes('past-schedules')
   });
 
   return (
     <div className="mt-8">
-      <Accordion
-        type="single"
-        collapsible
-        className="w-full"
-        value={value}
-        onValueChange={setValue}
-      >
-        <AccordionItem value="past-schedules">
-          <AccordionTrigger className="text-xl font-semibold">भूतकालबन्धानि</AccordionTrigger>
-          <AccordionContent>
-            <div className="py-4">
+      <Accordion className="w-full" value={value} onValueChange={setValue}>
+        <AccordionItem value="past-schedules" className="rounded-xl border border-border/60 bg-card/40 px-4">
+          <AccordionTrigger className="py-4 text-lg font-semibold hover:no-underline focus-visible:border-transparent">
+            भूतकालबन्धानि
+          </AccordionTrigger>
+          <AccordionContent className="pb-4">
+            <div>
               {past_schedules_q.isLoading ? (
                 <div className="grid gap-4 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4">
                   {Array.from({ length: 4 }).map((_, i) => (
                     <Card key={i} className="transition-shadow hover:shadow-md">
-                      <CardHeader>
-                        <Skeleton className="h-6 w-3/4" />
+                      <CardHeader className="gap-2">
+                        <Skeleton className="h-5 w-3/4" />
                         <Skeleton className="h-4 w-1/2" />
                       </CardHeader>
-                      <CardContent className="-mt-6">
+                      <CardContent>
                         <div className="space-y-2">
                           <Skeleton className="h-4 w-full" />
                           <Skeleton className="h-4 w-2/3" />
@@ -186,33 +205,19 @@ export const PastSchedules = () => {
               ) : past_schedules_q.data && past_schedules_q.data.length > 0 ? (
                 <div className="grid gap-4 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4">
                   {past_schedules_q.data.map((schedule) => (
-                    <Card
-                      key={schedule.id}
-                      className="opacity-75 transition-shadow hover:shadow-md"
-                    >
-                      <CardHeader>
-                        <CardTitle className="flex items-center gap-x-3 text-lg">
-                          {schedule.puzzle.title}
-                          <a href={`/padavali/edit/${schedule.puzzle_id}`} target="_blank">
-                            <SquareArrowOutUpRightIcon className="-mt-2 size-4 hover:text-blue-500" />
-                          </a>
-                        </CardTitle>
+                    <Card key={schedule.id} className="transition-shadow hover:shadow-md">
+                      <CardHeader className="gap-2">
+                        <ScheduleCardTitle
+                          title={schedule.puzzle.title}
+                          puzzleId={schedule.puzzle_id}
+                        />
                       </CardHeader>
-                      <CardContent className="-mt-6">
-                        <div className="space-y-2">
-                          <div className="space-x-1 text-sm">
-                            <span>
-                              {formatDate(schedule.start_time)} - {formatDate(schedule.end_time)},
-                            </span>
-                            <span className="text-xs">
-                              {dayjs(schedule.start_time).format('HH:mm')}
-                            </span>
-                          </div>
-                          <div className="flex items-center gap-2 text-sm text-muted-foreground">
-                            <ClockIcon className="-mt-1 size-4" />
-                            <span>{dayjs(schedule.created_at).fromNow()}</span>
-                          </div>
-                        </div>
+                      <CardContent>
+                        <ScheduleCardMeta
+                          startTime={schedule.start_time}
+                          endTime={schedule.end_time}
+                          createdAt={schedule.created_at}
+                        />
                       </CardContent>
                     </Card>
                   ))}

@@ -9,14 +9,14 @@ export default function LandingPage() {
     <div className="min-h-screen bg-slate-100 dark:bg-slate-900">
       {/* Hero Section */}
       <section className="relative overflow-hidden px-4 py-20">
-        <div className="absolute inset-0 bg-gradient-to-r from-primary/5 via-transparent to-accent/5" />
+        <div className="absolute inset-0 bg-linear-to-r from-primary/5 via-transparent to-accent/5" />
         <div className="relative mx-auto max-w-6xl text-center">
           <div className="mb-8">
             <div className="mb-6 inline-flex items-center gap-2 rounded-full bg-primary/10 px-4 py-2 text-sm font-medium text-primary">
               <Sparkles className="h-4 w-4" />
               Sanskrit Learning
             </div>
-            <h1 className="mb-6 bg-gradient-to-r from-foreground via-primary to-accent-foreground bg-clip-text text-5xl font-bold text-transparent md:text-7xl">
+            <h1 className="mb-6 bg-linear-to-r from-foreground via-primary to-accent-foreground bg-clip-text text-5xl font-bold text-transparent md:text-7xl">
               Learn Sanskrit
               <br />
               Through Games
@@ -28,12 +28,15 @@ export default function LandingPage() {
           </div>
 
           <div className="mb-12 flex flex-col justify-center gap-4 sm:flex-row">
-            <Button asChild size="lg" className="h-auto px-8 py-6 text-lg">
-              <Link href="/padavali" className="flex items-center gap-2">
-                <Play className="h-5 w-5" />
-                Play Padavali Now
-                <ArrowRight className="h-5 w-5" />
-              </Link>
+            <Button
+              render={<Link href="/padavali" className="flex items-center gap-2" />}
+              nativeButton={false}
+              size="lg"
+              className="h-auto px-8 py-6 text-lg"
+            >
+              <Play className="h-5 w-5" />
+              Play Padavali Now
+              <ArrowRight className="h-5 w-5" />
             </Button>
           </div>
 

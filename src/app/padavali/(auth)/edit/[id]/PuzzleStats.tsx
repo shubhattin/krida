@@ -36,6 +36,20 @@ type ChartType =
   | 'location'
   | 'script';
 
+const PERIOD_ITEMS = [
+  { label: 'Last 7 Days', value: 'last7days' as const },
+  { label: 'Custom Range', value: 'custom' as const }
+];
+
+const CHART_TYPE_ITEMS = [
+  { label: 'Started and Completed', value: 'sessions-completions' as const },
+  { label: 'Average Time', value: 'avg-time' as const },
+  { label: 'Average Accuracy', value: 'avg-accuracy' as const },
+  { label: 'Total and Correct Attempts', value: 'attempts' as const },
+  { label: 'Location', value: 'location' as const },
+  { label: 'Script', value: 'script' as const }
+];
+
 const DEFAULT_CHART_CONFIG = {
   sessions: {
     label: 'Started',
@@ -709,7 +723,13 @@ const DateRangeControls = ({
   <div className="flex flex-col gap-4 sm:flex-row sm:items-end sm:gap-6">
     <div className="space-y-2">
       <label className="text-sm font-medium">Time Period</label>
-      <Select value={period} onValueChange={(value: PeriodType) => setPeriod(value)}>
+      <Select
+        items={PERIOD_ITEMS}
+        value={period}
+        onValueChange={(value) => {
+          if (value) setPeriod(value);
+        }}
+      >
         <SelectTrigger className="w-40">
           <SelectValue />
         </SelectTrigger>
@@ -725,17 +745,19 @@ const DateRangeControls = ({
         <div className="space-y-2">
           <label className="text-sm font-medium">From Date</label>
           <Popover>
-            <PopoverTrigger asChild>
-              <Button
-                variant="outline"
-                className={cn(
-                  'w-40 justify-start text-left font-normal',
-                  !dateRange.from && 'text-muted-foreground'
-                )}
-              >
-                <CalendarIcon className="mr-2 h-4 w-4" />
-                {dateRange.from ? format(dateRange.from, 'PPP') : 'Pick a date'}
-              </Button>
+            <PopoverTrigger
+              render={
+                <Button
+                  variant="outline"
+                  className={cn(
+                    'w-40 justify-start text-left font-normal',
+                    !dateRange.from && 'text-muted-foreground'
+                  )}
+                />
+              }
+            >
+              <CalendarIcon className="mr-2 h-4 w-4" />
+              {dateRange.from ? format(dateRange.from, 'PPP') : 'Pick a date'}
             </PopoverTrigger>
             <PopoverContent className="w-auto p-0" align="start">
               <Calendar
@@ -751,17 +773,19 @@ const DateRangeControls = ({
         <div className="space-y-2">
           <label className="text-sm font-medium">To Date</label>
           <Popover>
-            <PopoverTrigger asChild>
-              <Button
-                variant="outline"
-                className={cn(
-                  'w-40 justify-start text-left font-normal',
-                  !dateRange.to && 'text-muted-foreground'
-                )}
-              >
-                <CalendarIcon className="mr-2 h-4 w-4" />
-                {dateRange.to ? format(dateRange.to, 'PPP') : 'Pick a date'}
-              </Button>
+            <PopoverTrigger
+              render={
+                <Button
+                  variant="outline"
+                  className={cn(
+                    'w-40 justify-start text-left font-normal',
+                    !dateRange.to && 'text-muted-foreground'
+                  )}
+                />
+              }
+            >
+              <CalendarIcon className="mr-2 h-4 w-4" />
+              {dateRange.to ? format(dateRange.to, 'PPP') : 'Pick a date'}
             </PopoverTrigger>
             <PopoverContent className="w-auto p-0" align="start">
               <Calendar
@@ -849,7 +873,13 @@ const ChartSelector = ({
   <div className="flex w-full items-center justify-between">
     <div className="flex items-center gap-2">
       <label className="text-sm font-medium text-muted-foreground">View:</label>
-      <Select value={chartType} onValueChange={(value: ChartType) => setChartType(value)}>
+      <Select
+        items={CHART_TYPE_ITEMS}
+        value={chartType}
+        onValueChange={(value) => {
+          if (value) setChartType(value);
+        }}
+      >
         <SelectTrigger className="w-56">
           <SelectValue />
         </SelectTrigger>

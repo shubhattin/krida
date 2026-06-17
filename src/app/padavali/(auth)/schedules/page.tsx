@@ -46,11 +46,13 @@ const Main = async () => {
         <div>
           <h1 className="text-2xl font-bold">कालबन्धानि</h1>
         </div>
-        <Button asChild variant={'outline'}>
-          <Link href="/padavali/schedules/add" className="flex items-center gap-2">
-            <FiPlus className="h-4 w-4" />
-            नवकालबन्धनं योजय
-          </Link>
+        <Button
+          render={<Link href="/padavali/schedules/add" className="flex items-center gap-2" />}
+          nativeButton={false}
+          variant={'outline'}
+        >
+          <FiPlus className="h-4 w-4" />
+          नवकालबन्धनं योजय
         </Button>
       </div>
 
@@ -67,11 +69,13 @@ const Main = async () => {
               <p className="mb-4 text-muted-foreground">
                 अत्र कोऽपि आगामिकालबन्धनं नास्ति। कृपया प्रथमं कालबन्धनं योजयतु।
               </p>
-              <Button asChild variant="link">
-                <Link href="/padavali/schedules/add" className="flex items-center gap-2">
-                  <FiPlus className="h-4 w-4" />
-                  प्रथमकालबन्धनं योजय
-                </Link>
+              <Button
+                render={<Link href="/padavali/schedules/add" className="flex items-center gap-2" />}
+                nativeButton={false}
+                variant="link"
+              >
+                <FiPlus className="h-4 w-4" />
+                प्रथमकालबन्धनं योजय
               </Button>
             </CardContent>
           </Card>

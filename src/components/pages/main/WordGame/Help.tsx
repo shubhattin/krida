@@ -17,7 +17,7 @@ export const GameHelp = () => {
       </div>
 
       <div className="px-3 pt-1.5 pb-2 sm:pb-3 lg:px-2 lg:pb-4 xl:px-6">
-        <Accordion type="single" collapsible className="space-y-2">
+        <Accordion className="space-y-2">
           <AccordionItem
             value="how-to-play"
             className="rounded-lg border border-slate-200 px-4 dark:border-slate-700"
@@ -31,7 +31,7 @@ export const GameHelp = () => {
             <AccordionContent className="pb-4">
               <div className="space-y-3 text-sm text-slate-600 dark:text-slate-400">
                 <div className="flex items-start gap-2">
-                  <div className="mt-0.5 flex h-6 w-6 flex-shrink-0 items-center justify-center rounded-full bg-emerald-100 dark:bg-emerald-900">
+                  <div className="mt-0.5 flex h-6 w-6 shrink-0 items-center justify-center rounded-full bg-emerald-100 dark:bg-emerald-900">
                     <span className="text-xs font-bold text-emerald-600 dark:text-emerald-400">
                       1
                     </span>
@@ -42,7 +42,7 @@ export const GameHelp = () => {
                   </p>
                 </div>
                 <div className="flex items-start gap-2">
-                  <div className="mt-0.5 flex h-6 w-6 flex-shrink-0 items-center justify-center rounded-full bg-blue-100 dark:bg-blue-900">
+                  <div className="mt-0.5 flex h-6 w-6 shrink-0 items-center justify-center rounded-full bg-blue-100 dark:bg-blue-900">
                     <span className="text-xs font-bold text-blue-600 dark:text-blue-400">2</span>
                   </div>
                   <p>Find all the words to complete the puzzle and beat your best time!</p>
@@ -64,7 +64,7 @@ export const GameHelp = () => {
             <AccordionContent className="pb-4">
               <div className="space-y-3 text-sm text-slate-600 dark:text-slate-400">
                 <div className="flex items-start gap-2">
-                  <Trophy className="mt-1 h-4 w-4 flex-shrink-0 text-yellow-500" />
+                  <Trophy className="mt-1 h-4 w-4 shrink-0 text-yellow-500" />
                   <p>
                     Share your puzzle solving time and accuracy with friends and on social media.
                     Tag us{' '}

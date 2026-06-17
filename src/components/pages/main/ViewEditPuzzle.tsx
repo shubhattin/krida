@@ -82,6 +82,14 @@ import {
   SelectContent
 } from '~/components/ui/select';
 
+const ATTACHMENT_TYPE_ITEMS = [
+  { label: 'Select attachment type', value: null },
+  ...Object.entries(ATTACHMENT_TYPE_NAMES).map(([key, value]) => ({
+    label: value,
+    value: key
+  }))
+];
+
 const puzzle_schema = _puzzle_schema
   .extend({
     id: z.number().int().nullable(),
@@ -248,9 +256,15 @@ const SortableAttachmentItem = ({
       <div className="flex items-center space-x-3">
         <div className="flex items-center justify-center space-x-1">
           <Label>Type</Label>
-          <Select value={attachment.type} onValueChange={(value) => onUpdate('type', value, null)}>
+          <Select
+            items={ATTACHMENT_TYPE_ITEMS}
+            value={attachment.type}
+            onValueChange={(value) => {
+              if (value) onUpdate('type', value, null);
+            }}
+          >
             <SelectTrigger className="w-40">
-              <SelectValue placeholder="Select attachment type" />
+              <SelectValue />
             </SelectTrigger>
             <SelectContent>
               {Object.entries(ATTACHMENT_TYPE_NAMES).map(([key, value]) => (
@@ -359,7 +373,7 @@ const Attachments = () => {
   // }, [attachments]);
 
   return (
-    <Accordion type="single" collapsible className="w-fit">
+    <Accordion className="w-fit">
       <AccordionItem value="item-1">
         <AccordionTrigger className="text-base font-semibold">
           Media Attachments ({attachments.length})
@@ -638,9 +652,12 @@ const TraversalAnalysis = ({
                           शब्दसूच्यां एकाधिकवारं ({warning.traversalCount}) पुनरावृत्तः ।
                         </span>
                         <Popover>
-                          <PopoverTrigger asChild>
-                            <Info className="-mt-1 size-4.5 text-amber-600 dark:text-amber-400" />
-                          </PopoverTrigger>
+                          <PopoverTrigger
+                            render={
+                              <Info className="-mt-1 size-4.5 text-amber-600 dark:text-amber-400" />
+                            }
+                            nativeButton={false}
+                          />
                           <PopoverContent className="max-w-xs" align="center">
                             <div className="text-xs">
                               <span className="font-semibold">स्थानाङ्काः:</span>
@@ -665,9 +682,12 @@ const TraversalAnalysis = ({
                           {warning.traversalCount}) मार्गाः सन्ति ।
                         </span>
                         <Popover>
-                          <PopoverTrigger asChild>
-                            <Info className="-mt-1 size-4.5 text-amber-600 dark:text-amber-400" />
-                          </PopoverTrigger>
+                          <PopoverTrigger
+                            render={
+                              <Info className="-mt-1 size-4.5 text-amber-600 dark:text-amber-400" />
+                            }
+                            nativeButton={false}
+                          />
                           <PopoverContent className="max-w-xs" align="center">
                             {warning.paths?.map((path, pIdx) => (
                               <div key={pIdx} className="flex items-center space-x-1 text-xs">
@@ -1127,26 +1147,28 @@ const SaveButton = ({ word_puzzle }: { word_puzzle: z.infer<typeof puzzle_schema
   return (
     <div className="mx-2 mt-2 flex items-center justify-between sm:mx-4">
       <AlertDialog>
-        <AlertDialogTrigger asChild>
-          <Button
-            disabled={
-              !isEdited || add_word_puzzle_mut.isPending || update_word_puzzle_mut.isPending
-            }
-            className="flex text-lg"
-            variant={'outline'}
-          >
-            {is_addition ? (
-              <>
-                <IoMdAdd className="text-lg" />{' '}
-                {!add_word_puzzle_mut.isPending ? 'योज्यताम्' : 'योज्यमानम्...'}
-              </>
-            ) : (
-              <>
-                <FiSave className="text-lg" />{' '}
-                {!update_word_puzzle_mut.isPending ? 'रक्ष्यताम्' : 'रक्ष्यमानम्...'}
-              </>
-            )}
-          </Button>
+        <AlertDialogTrigger
+          render={
+            <Button
+              disabled={
+                !isEdited || add_word_puzzle_mut.isPending || update_word_puzzle_mut.isPending
+              }
+              className="flex text-lg"
+              variant={'outline'}
+            />
+          }
+        >
+          {is_addition ? (
+            <>
+              <IoMdAdd className="text-lg" />{' '}
+              {!add_word_puzzle_mut.isPending ? 'योज्यताम्' : 'योज्यमानम्...'}
+            </>
+          ) : (
+            <>
+              <FiSave className="text-lg" />{' '}
+              {!update_word_puzzle_mut.isPending ? 'रक्ष्यताम्' : 'रक्ष्यमानम्...'}
+            </>
+          )}
         </AlertDialogTrigger>
         <AlertDialogContent>
           <AlertDialogHeader>
@@ -1164,11 +1186,13 @@ const SaveButton = ({ word_puzzle }: { word_puzzle: z.infer<typeof puzzle_schema
 
       {!is_addition && (
         <AlertDialog>
-          <AlertDialogTrigger asChild>
-            <Button className="flex gap-1 px-1 py-0 text-sm" variant="destructive">
-              <MdDeleteOutline className="text-base" />
-              मार्ज्यताम्
-            </Button>
+          <AlertDialogTrigger
+            render={
+              <Button className="flex gap-1 px-1 py-0 text-sm" variant="destructive" />
+            }
+          >
+            <MdDeleteOutline className="text-base" />
+            मार्ज्यताम्
           </AlertDialogTrigger>
           <AlertDialogContent>
             <AlertDialogHeader>

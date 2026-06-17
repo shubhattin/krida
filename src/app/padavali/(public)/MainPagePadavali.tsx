@@ -103,10 +103,8 @@ const MainPagePadavali = ({ script, word_puzzle, initial_script_data, next_sched
               </div>
 
               <Popover>
-                <PopoverTrigger asChild>
-                  <Button variant="ghost">
-                    <BsThreeDots className="size-3.5 sm:size-4" />
-                  </Button>
+                <PopoverTrigger render={<Button variant="ghost" />}>
+                  <BsThreeDots className="size-3.5 sm:size-4" />
                 </PopoverTrigger>
                 <PopoverContent
                   align="end"

@@ -8,9 +8,29 @@ import {
   type ScriptType
 } from '~/state/script_list';
 import Cookies from 'js-cookie';
-import { cn } from '~/lib/utils';
 import { useEffect } from 'react';
 import { load_posthog } from '~/components/tags/PosthogInit';
+import {
+  Select,
+  SelectContent,
+  SelectGroup,
+  SelectItem,
+  SelectLabel,
+  SelectSeparator,
+  SelectTrigger,
+  SelectValue
+} from '~/components/ui/select';
+
+const SCRIPT_ITEMS = [
+  ...SCRIPT_LIST_MAIN.map((script) => ({
+    label: SCRIPT_NAMES[script],
+    value: script
+  })),
+  ...SCRIPT_LIST_ANCIENT.map((script) => ({
+    label: SCRIPT_NAMES[script],
+    value: script
+  }))
+];
 
 type Props = {
   script: ScriptType;
@@ -20,47 +40,42 @@ type Props = {
 export const ScriptSelector = ({ script, onScriptChange }: Props) => {
   useEffect(() => {
     load_posthog((posthog) => {
-      posthog.capture('gameplay_script', { script: script });
+      posthog.capture('gameplay_script', { script });
     });
   }, [script]);
 
+  const handleScriptChange = (value: ScriptType | null) => {
+    if (!value) return;
+
+    onScriptChange(value);
+    Cookies.set(SCRIPT_DATA_COOKIE_KEY, value, {
+      expires: 365
+    });
+  };
+
   return (
-    <>
-      <select
-        value={script}
-        className={cn(
-          'select rounded-md border border-gray-300 bg-white text-gray-700 shadow-sm focus:border-blue-500 focus:ring-1 focus:ring-blue-500 focus:outline-none',
-          'bg-white dark:border-gray-600 dark:bg-gray-800 dark:text-gray-200 dark:focus:border-blue-500 dark:focus:ring-blue-500',
-          'w-28 px-2 py-1 text-xs'
-        )}
-        onChange={(e) => {
-          onScriptChange(e.target.value as ScriptType);
-          Cookies.set(SCRIPT_DATA_COOKIE_KEY, e.target.value, {
-            expires: 365 // 1 year
-          });
-        }}
-      >
-        {SCRIPT_LIST_MAIN.map((s) => (
-          <option
-            key={s}
-            value={s}
-            onClick={() => {
-              Cookies.set(SCRIPT_DATA_COOKIE_KEY, s, {
-                expires: 365 // 1 year
-              });
-            }}
-          >
-            {SCRIPT_NAMES[s as ScriptType]}
-          </option>
-        ))}
-        <optgroup label="Ancient Scripts">
-          {SCRIPT_LIST_ANCIENT.map((s) => (
-            <option key={s} value={s}>
-              {SCRIPT_NAMES[s as ScriptType]}
-            </option>
+    <Select items={SCRIPT_ITEMS} value={script} onValueChange={handleScriptChange}>
+      <SelectTrigger size="sm" className="w-28 text-xs">
+        <SelectValue />
+      </SelectTrigger>
+      <SelectContent alignItemWithTrigger={false}>
+        <SelectGroup>
+          {SCRIPT_LIST_MAIN.map((scriptKey) => (
+            <SelectItem key={scriptKey} value={scriptKey}>
+              {SCRIPT_NAMES[scriptKey]}
+            </SelectItem>
           ))}
-        </optgroup>
-      </select>
-    </>
+        </SelectGroup>
+        <SelectSeparator />
+        <SelectGroup>
+          <SelectLabel>Ancient Scripts</SelectLabel>
+          {SCRIPT_LIST_ANCIENT.map((scriptKey) => (
+            <SelectItem key={scriptKey} value={scriptKey}>
+              {SCRIPT_NAMES[scriptKey]}
+            </SelectItem>
+          ))}
+        </SelectGroup>
+      </SelectContent>
+    </Select>
   );
 };
