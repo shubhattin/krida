@@ -88,7 +88,8 @@ const load_current_schedule = createCachedLoader<NoCacheParams, CurrentScheduleT
     if (parsed === undefined) return undefined;
     return current_schedule_schema.parse(parsed);
   },
-  getSetOptions: (data) => (data ? { exat: data.end_time.getTime() / 1000 } : undefined)
+  getSetOptions: (data) =>
+    data ? { exat: Math.floor(data.end_time.getTime() / 1000) } : undefined
 });
 
 const load_next_schedule = createCachedLoader<NoCacheParams, NextScheduleType>({
@@ -120,7 +121,8 @@ const load_next_schedule = createCachedLoader<NoCacheParams, NextScheduleType>({
     if (parsed === undefined) return undefined;
     return next_schedule_schema.parse(parsed);
   },
-  getSetOptions: (data) => (data ? { exat: data.start_time.getTime() / 1000 } : undefined)
+  getSetOptions: (data) =>
+    data ? { exat: Math.floor(data.start_time.getTime() / 1000) } : undefined
 });
 
 const load_archived_puzzle_list = createCachedLoader<NoCacheParams, ArchivedPuzzlesType>({
