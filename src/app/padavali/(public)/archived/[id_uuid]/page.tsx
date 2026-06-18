@@ -6,21 +6,23 @@ import { DEFAULT_DATA_SCRIPT } from '~/state/script_list';
 import { get_transliterated_word_game_msgs } from '~/components/pages/main/WordGame/msgs';
 import { transliterate_wasm } from 'lipilekhika';
 import { getCachedScript } from '~/lib/cache_server_route_data';
-import { get_next_schedule, get_word_puzzle } from '~/db/db_cache_data';
+import { CACHE, NO_CACHE_PARAMS } from '~/util/cache.server/cache_loaders';
 import { cache, Suspense } from 'react';
 import { ArrowLeftIcon } from 'lucide-react';
 import { getMetadata } from '~/components/tags/getPageMetaTags';
 
 type Props = { params: Promise<{ id_uuid: string }> };
 
-const word_puzzle_get_cached_func = cache(get_word_puzzle);
+const word_puzzle_get_cached_func = cache((params: { id: number; uuid: string }) =>
+  CACHE.word_puzzle.get(params)
+);
 
 export async function generateMetadata({ params }: Props): Promise<Metadata> {
   const [id_str, uuid_str] = decodeURIComponent((await params).id_uuid).split(':');
   const id = z.coerce.number().int().parse(id_str);
   const uuid = z.string().uuid().parse(uuid_str);
 
-  const word_puzzle = await word_puzzle_get_cached_func(id, uuid);
+  const word_puzzle = await word_puzzle_get_cached_func({ id, uuid });
 
   return {
     ...getMetadata({
@@ -60,8 +62,8 @@ export default MainEdit;
 
 const WordGameSuspense = async ({ id, uuid }: { id: number; uuid: string }) => {
   const [word_puzzle, next_schedule] = await Promise.all([
-    word_puzzle_get_cached_func(id, uuid),
-    get_next_schedule()
+    word_puzzle_get_cached_func({ id, uuid }),
+    CACHE.next_schedule.get(NO_CACHE_PARAMS)
   ]);
   if (word_puzzle && !word_puzzle.archived) return <div>Puzzle {id} is not Archived</div>;
 

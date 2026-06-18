@@ -5,19 +5,18 @@ import { word_puzzle_attachments, word_puzzles } from '~/db/schema';
 import { and, eq, inArray } from 'drizzle-orm';
 import { revalidatePath } from 'next/cache';
 import { padavali_stats_router } from './padavali_stats';
-import { redis, REDIS_CACHE_KEYS } from '~/db/redis';
-import { type CurrentScheduleType } from '~/db/db_cache_data';
+import {
+  CACHE,
+  invalidate_and_refresh_cached,
+  NO_CACHE_PARAMS
+} from '~/util/cache.server/cache_loaders';
 import { puzzle_add_input_schema, puzzle_update_input_schema } from '~/db/db_shared_vals';
 import { sendOneSignalNotification } from '~/lib/onesignal';
 import { delay } from '~/tools/delay';
 
 const puzzle_in_current_schedule = async (id: number, uuid: string) => {
-  const cache = await redis.get<CurrentScheduleType | string>(REDIS_CACHE_KEYS.current_schedule());
-  if (!cache || cache === 'undefined') return false;
-  if (typeof cache === 'object') {
-    return cache.puzzle.id === id && cache.puzzle.uuid === uuid;
-  }
-  return false;
+  const current_schedule = await CACHE.current_schedule.get(NO_CACHE_PARAMS);
+  return current_schedule?.puzzle.id === id && current_schedule.puzzle.uuid === uuid;
 };
 
 export const notify_for_archived_puzzle = async (title: string, id: number, uuid: string) => {
@@ -130,14 +129,15 @@ const update_puzzle_route = protectedAdminProcedure
           .set({ last_archived_at: new Date() })
           .where(and(eq(word_puzzles.id, puzzle_id), eq(word_puzzles.uuid, puzzle_uuid)))
     ]);
-    // cache invalidation later
     await Promise.allSettled([
-      // invalidate when archived state changes or when puzzle is archived (as title and description are stored in archived list)
       (puzzle_data.archived || prev_archived !== puzzle_data.archived) &&
-        redis.del(REDIS_CACHE_KEYS.archived_puzzle_list()),
-      redis.del(REDIS_CACHE_KEYS.word_puzzle(puzzle_id, puzzle_uuid)),
+        invalidate_and_refresh_cached(CACHE.archived_puzzle_list, NO_CACHE_PARAMS),
+      invalidate_and_refresh_cached(CACHE.word_puzzle, {
+        id: puzzle_id,
+        uuid: puzzle_uuid
+      }),
       (await puzzle_in_current_schedule(puzzle_id, puzzle_uuid)) &&
-        redis.del(REDIS_CACHE_KEYS.current_schedule()),
+        invalidate_and_refresh_cached(CACHE.current_schedule, NO_CACHE_PARAMS),
       puzzle_data.archived &&
         !prev_archived &&
         notify_for_archived_puzzle(puzzle_data_rest.title, puzzle_id, puzzle_uuid)
@@ -163,8 +163,7 @@ const add_puzzle_route = protectedAdminProcedure
         .returning()
     ]);
     await Promise.allSettled([
-      // only invalidate list when puzzle is archived
-      input.archived && (await redis.del(REDIS_CACHE_KEYS.archived_puzzle_list())),
+      input.archived && invalidate_and_refresh_cached(CACHE.archived_puzzle_list, NO_CACHE_PARAMS),
       input.archived && notify_for_archived_puzzle(puzzle_data_rest.title, info[0].id, info[0].uuid)
     ]);
     const new_attachment_ids =
@@ -204,10 +203,10 @@ const delete_puzzle_route = protectedAdminProcedure
 
     await Promise.allSettled([db.delete(word_puzzles).where(eq(word_puzzles.id, id))]);
     await Promise.allSettled([
-      // only invalidate list when puzzle is archived
-      archived && redis.del(REDIS_CACHE_KEYS.archived_puzzle_list()),
-      redis.del(REDIS_CACHE_KEYS.word_puzzle(id, uuid)),
-      (await puzzle_in_current_schedule(id, uuid)) && redis.del(REDIS_CACHE_KEYS.current_schedule())
+      archived && invalidate_and_refresh_cached(CACHE.archived_puzzle_list, NO_CACHE_PARAMS),
+      invalidate_and_refresh_cached(CACHE.word_puzzle, { id, uuid }),
+      (await puzzle_in_current_schedule(id, uuid)) &&
+        invalidate_and_refresh_cached(CACHE.current_schedule, NO_CACHE_PARAMS)
     ]);
     return {
       success: true
