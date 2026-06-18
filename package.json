@@ -38,6 +38,7 @@
     "dayjs": "^1.11.21",
     "drizzle-orm": "^0.43.1",
     "drizzle-zod": "^0.8.3",
+    "embla-carousel-react": "^8.6.0",
     "framer-motion": "^12.40.0",
     "jotai": "^2.20.1",
     "js-cookie": "^3.0.8",

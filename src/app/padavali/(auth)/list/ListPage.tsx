@@ -1,23 +1,24 @@
 'use client';
 
 import { Card, CardDescription, CardHeader, CardTitle } from '~/components/ui/card';
-import {
-  CalendarIcon,
-  SearchIcon,
-  ArchiveIcon,
-  FilterIcon,
-  ArrowUpDownIcon,
-  ChevronLeftIcon,
-  ChevronRightIcon
-} from 'lucide-react';
+import { CalendarIcon, SearchIcon, ArchiveIcon, FilterIcon, ArrowUpDownIcon } from 'lucide-react';
 import Link from 'next/link';
 import dayjs from 'dayjs';
 import relativeTime from 'dayjs/plugin/relativeTime';
 import { useEffect, useState } from 'react';
 import { client } from '~/api/client';
 import { Skeleton } from '~/components/ui/skeleton';
-import { Button } from '~/components/ui/button';
 import { Label } from '~/components/ui/label';
+import {
+  Pagination,
+  PaginationContent,
+  PaginationEllipsis,
+  PaginationItem,
+  PaginationLink,
+  PaginationNext,
+  PaginationPrevious
+} from '~/components/ui/pagination';
+import { cn } from '@/lib/utils';
 import { Switch } from '~/components/ui/switch';
 import {
   Select,
@@ -55,6 +56,28 @@ const ORDER_BY_ITEMS = [
   { label: 'Latest', value: 'desc' as const },
   { label: 'Oldest', value: 'asc' as const }
 ];
+
+function getVisiblePages(current: number, total: number): (number | 'ellipsis')[] {
+  if (total <= 5) {
+    return Array.from({ length: total }, (_, i) => i + 1);
+  }
+
+  const pages = new Set<number>([1, total, current]);
+  if (current > 1) pages.add(current - 1);
+  if (current < total) pages.add(current + 1);
+
+  const sorted = [...pages].sort((a, b) => a - b);
+  const result: (number | 'ellipsis')[] = [];
+
+  for (let i = 0; i < sorted.length; i++) {
+    if (i > 0 && sorted[i] - sorted[i - 1] > 1) {
+      result.push('ellipsis');
+    }
+    result.push(sorted[i]);
+  }
+
+  return result;
+}
 
 const ListPage = () => {
   const [mounted, setMounted] = useState(false);
@@ -284,53 +307,59 @@ const ListPage = () => {
         </div>
       )}
       {(pageCount > 1 || puzzle_list_q.data?.total) && (
-        <div className="flex flex-wrap items-center justify-center gap-3">
-          <Button
-            variant="outline"
-            size="sm"
-            onClick={() => setPage((p) => p - 1)}
-            disabled={!hasPrev || puzzle_list_q.isFetching}
-            className="gap-1"
-          >
-            <ChevronLeftIcon className="size-4" />
-            Prev
-          </Button>
-          <div className="flex items-center gap-2">
-            <span className="text-sm font-medium text-muted-foreground">Page</span>
-            <Select
-              items={Array.from({ length: pageCount }, (_, i) => ({
-                label: String(i + 1),
-                value: String(i + 1)
-              }))}
-              value={String(page)}
-              onValueChange={(value) => {
-                if (value) setPage(Number(value));
-              }}
-            >
-              <SelectTrigger size="sm" className="w-16" aria-label="Select page">
-                <SelectValue />
-              </SelectTrigger>
-              <SelectContent alignItemWithTrigger={false}>
-                {Array.from({ length: pageCount }, (_, i) => (
-                  <SelectItem key={i + 1} value={String(i + 1)}>
-                    {i + 1}
-                  </SelectItem>
-                ))}
-              </SelectContent>
-            </Select>
-            <span className="text-sm font-medium text-muted-foreground">of {pageCount}</span>
-          </div>
-          <Button
-            variant="outline"
-            size="sm"
-            onClick={() => setPage((p) => p + 1)}
-            disabled={!hasNext || puzzle_list_q.isFetching}
-            className="gap-1"
-          >
-            Next
-            <ChevronRightIcon className="size-4" />
-          </Button>
-        </div>
+        <Pagination>
+          <PaginationContent>
+            <PaginationItem>
+              <PaginationPrevious
+                href="#"
+                text="Prev"
+                onClick={(e) => {
+                  e.preventDefault();
+                  if (hasPrev && !puzzle_list_q.isFetching) setPage((p) => p - 1);
+                }}
+                aria-disabled={!hasPrev || puzzle_list_q.isFetching}
+                className={cn(
+                  (!hasPrev || puzzle_list_q.isFetching) && 'pointer-events-none opacity-50'
+                )}
+              />
+            </PaginationItem>
+            {getVisiblePages(page, pageCount).map((pageNumber, index) =>
+              pageNumber === 'ellipsis' ? (
+                <PaginationItem key={`ellipsis-${index}`}>
+                  <PaginationEllipsis />
+                </PaginationItem>
+              ) : (
+                <PaginationItem key={pageNumber}>
+                  <PaginationLink
+                    href="#"
+                    isActive={pageNumber === page}
+                    onClick={(e) => {
+                      e.preventDefault();
+                      if (!puzzle_list_q.isFetching) setPage(pageNumber);
+                    }}
+                    aria-disabled={puzzle_list_q.isFetching}
+                    className={cn(puzzle_list_q.isFetching && 'pointer-events-none opacity-50')}
+                  >
+                    {pageNumber}
+                  </PaginationLink>
+                </PaginationItem>
+              )
+            )}
+            <PaginationItem>
+              <PaginationNext
+                href="#"
+                onClick={(e) => {
+                  e.preventDefault();
+                  if (hasNext && !puzzle_list_q.isFetching) setPage((p) => p + 1);
+                }}
+                aria-disabled={!hasNext || puzzle_list_q.isFetching}
+                className={cn(
+                  (!hasNext || puzzle_list_q.isFetching) && 'pointer-events-none opacity-50'
+                )}
+              />
+            </PaginationItem>
+          </PaginationContent>
+        </Pagination>
       )}
     </div>
   );
