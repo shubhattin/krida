@@ -60,11 +60,8 @@ const resolve_set_options = <TCached>(
   return { ex: ttlSeconds };
 };
 
-const set_cache_value = (
-  cache_key: string,
-  value: unknown,
-  setOptions?: SetCommandOptions
-) => (setOptions ? redis.set(cache_key, value, setOptions) : redis.set(cache_key, value));
+const set_cache_value = (cache_key: string, value: unknown, setOptions?: SetCommandOptions) =>
+  setOptions ? redis.set(cache_key, value, setOptions) : redis.set(cache_key, value);
 
 export function createCachedLoader<TParams, TCached, TData = TCached>(
   config: CreateCachedLoaderConfig<TParams, TCached, TData>
@@ -87,10 +84,14 @@ export function createCachedLoader<TParams, TCached, TData = TCached>(
     const cache_key = await resolve_key(params);
 
     if (IS_PROD) {
-      const cached = await redis.get<unknown>(cache_key);
-      const parsed = parse_cached(cached);
-      if (parsed !== null) {
-        return to_return_value(parsed, config.transform);
+      try {
+        const cached = await redis.get<unknown>(cache_key);
+        const parsed = parse_cached(cached);
+        if (parsed !== null) {
+          return to_return_value(parsed, config.transform);
+        }
+      } catch {
+        // Treat Redis or parse failures as cache miss.
       }
     } else {
       await delay(DEV_DELAY_MS);

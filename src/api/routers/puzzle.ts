@@ -163,8 +163,7 @@ const add_puzzle_route = protectedAdminProcedure
         .returning()
     ]);
     await Promise.allSettled([
-      input.archived &&
-        invalidate_and_refresh_cached(CACHE.archived_puzzle_list, NO_CACHE_PARAMS),
+      input.archived && invalidate_and_refresh_cached(CACHE.archived_puzzle_list, NO_CACHE_PARAMS),
       input.archived && notify_for_archived_puzzle(puzzle_data_rest.title, info[0].id, info[0].uuid)
     ]);
     const new_attachment_ids =

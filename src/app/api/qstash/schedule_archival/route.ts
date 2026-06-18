@@ -63,6 +63,10 @@ export const POST = verifySignatureAppRouter(async (req: Request) => {
   ]);
   await Promise.allSettled([
     invalidate_and_refresh_cached(CACHE.archived_puzzle_list, NO_CACHE_PARAMS),
+    invalidate_and_refresh_cached(CACHE.word_puzzle, {
+      id: schedule.puzzle.id,
+      uuid: schedule.puzzle.uuid
+    }),
     notify_for_archived_puzzle(schedule.puzzle.title, schedule.puzzle.id, schedule.puzzle.uuid)
   ]);
 

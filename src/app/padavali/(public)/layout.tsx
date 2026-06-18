@@ -8,7 +8,7 @@ import { cn } from '~/lib/utils';
 /**
  * Redis is both in sin1 and bom1 regions. But DB is only in sin1.
  * So backend and admin stuff runs closer to the DB (default sin1)
- * 
+ *
  * bom1 only for public facing frontend which would directy interact with cache mostly
  */
 export const preferredRegion = 'bom1';
