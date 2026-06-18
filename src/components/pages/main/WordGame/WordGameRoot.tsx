@@ -491,7 +491,7 @@ export const ArchivedGamesPrompt = ({
             transition={{ duration: 0.4, delay: 0.6 }}
           >
             <Link
-              href="/padavali/archived"
+              href="/padavali/puzzles"
               className="group flex items-center gap-2 rounded-lg border border-amber-200/50 bg-linear-to-r from-amber-50 to-orange-50 p-3 text-amber-800 shadow-sm transition-all duration-200 hover:scale-[1.02] hover:from-amber-100 hover:to-orange-100 hover:shadow-md sm:gap-3 sm:rounded-xl sm:p-4 dark:border-amber-800/30 dark:from-amber-950/50 dark:to-orange-950/50 dark:text-amber-200 dark:hover:from-amber-900/60 dark:hover:to-orange-900/60"
             >
               <motion.div

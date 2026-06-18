@@ -23,8 +23,6 @@ export const word_puzzles = pgTable(
     id: serial().primaryKey(),
     slug: text().notNull(),
     title: text().notNull(),
-    /** Image url path */
-    s3_key: text(),
     description: text(),
     created_at: timestamp({ withTimezone: true }).notNull().defaultNow(),
     updated_at: timestamp({ withTimezone: true }).$onUpdate(() => new Date()), // NULL for not updated
@@ -33,7 +31,8 @@ export const word_puzzles = pgTable(
     grid_dimensions: jsonb().notNull().$type<[number, number]>(),
     /** Whether the puzzle is listed publically on the website */
     listed: boolean().notNull().default(false),
-    last_listed_at: timestamp({ withTimezone: true })
+    last_listed_at: timestamp({ withTimezone: true }),
+    image_id: integer().references(() => image_assets.id, { onDelete: 'set null' })
   },
   (table) => [
     uniqueIndex('word_puzzles_slug_idx').on(table.slug),
@@ -41,6 +40,15 @@ export const word_puzzles = pgTable(
     index('word_puzzles_listed_last_listed_at_idx').on(table.listed, table.last_listed_at)
   ]
 );
+
+export const image_assets = pgTable('image_assets', {
+  id: serial().primaryKey(),
+  description: varchar('description', { length: 150 }),
+  width: smallint().notNull(),
+  height: smallint().notNull(),
+  s3_key: text().notNull(),
+  created_at: timestamp({ withTimezone: true }).notNull().defaultNow()
+});
 
 export const attachment_type_enum = pgEnum('attachment_type', ATTACHMENT_TYPE_LIST);
 export const word_puzzle_attachments = pgTable(
@@ -123,11 +131,15 @@ export const puzzle_game_schedules = pgTable(
 
 // relations
 
-export const word_puzzlesRelations = relations(word_puzzles, ({ many }) => ({
+export const word_puzzlesRelations = relations(word_puzzles, ({ many, one }) => ({
   stats: many(puzzle_gameplay_stats),
   schedules: many(puzzle_game_schedules),
   sessions: many(puzzle_gameplay_sessions),
-  attachments: many(word_puzzle_attachments)
+  attachments: many(word_puzzle_attachments),
+  image: one(image_assets, {
+    fields: [word_puzzles.image_id],
+    references: [image_assets.id]
+  })
 }));
 
 export const word_puzzle_attachmentsRelations = relations(word_puzzle_attachments, ({ one }) => ({

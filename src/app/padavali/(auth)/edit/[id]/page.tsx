@@ -25,6 +25,14 @@ const get_word_puzzle_cached_func = cache(async (id: number) => {
           order_index: true
         },
         orderBy: (tbl, { asc }) => asc(tbl.order_index)
+      },
+      image: {
+        columns: {
+          id: true,
+          s3_key: true,
+          width: true,
+          height: true
+        }
       }
     }
   });

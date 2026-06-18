@@ -1,6 +1,6 @@
 import { db } from '~/db/db';
 import { REDIS_CACHE_KEYS } from '~/db/redis';
-import { puzzle_schema } from '~/db/db_shared_vals';
+import { image_schema, puzzle_schema } from '~/db/db_shared_vals';
 import { z } from 'zod';
 import { sql } from 'drizzle-orm';
 import {
@@ -34,15 +34,16 @@ const next_schedule_schema = z.object({
 
 export type NextScheduleType = z.infer<typeof next_schedule_schema> | undefined;
 
-const archived_puzzle_schema = z.object({
+const listed_puzzle_schema = z.object({
   id: z.number().int(),
   slug: z.string(),
   title: z.string(),
   description: z.string().nullable(),
-  s3_key: z.string().nullable()
+  /** Image of the puzzle, used for the puzzle card thumbnail */
+  image: image_schema.nullable()
 });
 
-export type ArchivedPuzzlesType = z.infer<typeof archived_puzzle_schema>[];
+export type ListedPuzzlesType = z.infer<typeof listed_puzzle_schema>[];
 
 const schedule_sentinel_from_cache = <T>(raw: unknown): T | null => {
   if (raw === 'undefined') return undefined as T;
@@ -74,6 +75,14 @@ const load_current_schedule = createCachedLoader<NoCacheParams, CurrentScheduleT
                 order_index: true
               },
               orderBy: (tbl, { asc }) => asc(tbl.order_index)
+            },
+            image: {
+              columns: {
+                id: true,
+                s3_key: true,
+                width: true,
+                height: true
+              }
             }
           }
         }
@@ -125,17 +134,26 @@ const load_next_schedule = createCachedLoader<NoCacheParams, NextScheduleType>({
     data ? { exat: Math.floor(data.start_time.getTime() / 1000) } : undefined
 });
 
-const load_listed_puzzle_list = createCachedLoader<NoCacheParams, ArchivedPuzzlesType>({
+const load_listed_puzzle_list = createCachedLoader<NoCacheParams, ListedPuzzlesType>({
   getKey: () => REDIS_CACHE_KEYS.listed_puzzle_list(),
-  schema: archived_puzzle_schema.array(),
+  schema: listed_puzzle_schema.array(),
   fetch: async () => {
     const data = await db.query.word_puzzles.findMany({
       columns: {
         id: true,
         slug: true,
         title: true,
-        description: true,
-        s3_key: true
+        description: true
+      },
+      with: {
+        image: {
+          columns: {
+            id: true,
+            s3_key: true,
+            width: true,
+            height: true
+          }
+        }
       },
       where: ({ listed }, { eq }) => eq(listed, true),
       orderBy: ({ created_at, last_listed_at }, { desc }) => [
@@ -143,7 +161,7 @@ const load_listed_puzzle_list = createCachedLoader<NoCacheParams, ArchivedPuzzle
         desc(created_at)
       ]
     });
-    return data satisfies ArchivedPuzzlesType;
+    return data satisfies ListedPuzzlesType;
   }
 });
 
@@ -166,6 +184,14 @@ const load_word_puzzle = createCachedLoader<WordPuzzleParams, PuzzleType | undef
             order_index: true
           },
           orderBy: (tbl, { asc }) => asc(tbl.order_index)
+        },
+        image: {
+          columns: {
+            id: true,
+            s3_key: true,
+            width: true,
+            height: true
+          }
         }
       }
     });
@@ -185,7 +211,7 @@ export const invalidate_and_refresh_cached = async <TParams, TData>(
 export type CacheLoaderRegistry = {
   current_schedule: CachedLoader<NoCacheParams, CurrentScheduleType>;
   next_schedule: CachedLoader<NoCacheParams, NextScheduleType>;
-  listed_puzzle_list: CachedLoader<NoCacheParams, ArchivedPuzzlesType>;
+  listed_puzzle_list: CachedLoader<NoCacheParams, ListedPuzzlesType>;
   word_puzzle: CachedLoader<WordPuzzleParams, PuzzleType | undefined>;
 };
 

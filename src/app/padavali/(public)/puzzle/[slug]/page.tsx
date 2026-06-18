@@ -39,7 +39,7 @@ const MainEdit = async ({ params }: Props) => {
       <div className="relative">
         <div className="absolute top-4 left-4 z-10 sm:top-6 sm:left-6">
           <Link
-            href="/padavali/archived"
+            href="/padavali/puzzles"
             className="flex items-center gap-2 bg-white/80 p-1.5 backdrop-blur-sm hover:bg-white sm:p-2 dark:bg-slate-800/80 dark:hover:bg-slate-800"
           >
             <ArrowLeftIcon className="size-4" />
@@ -93,7 +93,7 @@ const PuzzleLoadingSkeleton = () => {
       <div className="container mx-auto max-w-7xl px-4 py-8">
         <div className="mb-6 w-fit">
           <Link
-            href="/padavali/archived"
+            href="/padavali/puzzles"
             className="flex items-center gap-2 bg-white/80 p-1.5 backdrop-blur-sm hover:bg-white sm:p-2 dark:bg-slate-800/80 dark:hover:bg-slate-800"
           >
             <ArrowLeftIcon className="size-4" />

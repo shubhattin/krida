@@ -41,7 +41,7 @@ export const notify_for_archived_puzzle = async (title: string, slug: string) =>
       en: `"${title}" - Archived Puzzle Added, Play Now! 🚀`
     },
     name: `new_archived_puzzle:${slug}`,
-    url: `${process.env.NEXT_PUBLIC_SITE_URL}/padavali/archived/${slug}`
+    url: `${process.env.NEXT_PUBLIC_SITE_URL}/padavali/puzzle/${slug}`
   });
 };
 
@@ -261,7 +261,6 @@ const add_puzzle_route = protectedAdminProcedure
         title: input.title,
         slug: input.slug,
         description: input.description?.trim() ? input.description.trim() : null,
-        s3_key: null,
         word_list: [],
         grid_data: createEmptyGridData(DEFAULT_GRID_DIMENSIONS),
         grid_dimensions: DEFAULT_GRID_DIMENSIONS,

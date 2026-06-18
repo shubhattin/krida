@@ -17,7 +17,7 @@ import { cn } from '~/lib/utils';
 import { FONT_INFO } from '~/state/script_font_data';
 
 type Props = {
-  archived_puzzles: { id: number; slug: string; title: string; description: string | null }[];
+  listed_puzzles: { id: number; slug: string; title: string; description: string | null }[];
   script: ScriptType;
   archived_puzzles_init_transliterlated: {
     id: number;
@@ -29,7 +29,7 @@ type Props = {
 
 // Main component that handles the state and conditional rendering
 export const ArchivedList = ({
-  archived_puzzles: archived_puzzles_org,
+  listed_puzzles: archived_puzzles_org,
   archived_puzzles_init_transliterlated
 }: Props) => {
   const { script } = useContext(AppContext);
@@ -57,7 +57,7 @@ export const ArchivedList = ({
 };
 
 // Component that shows the list of archived puzzles
-const PuzzleListView = ({ puzzles }: { puzzles: Props['archived_puzzles'] }) => {
+const PuzzleListView = ({ puzzles }: { puzzles: Props['listed_puzzles'] }) => {
   if (puzzles.length === 0) {
     return <EmptyPuzzleList />;
   }
@@ -129,12 +129,12 @@ const PuzzleListView = ({ puzzles }: { puzzles: Props['archived_puzzles'] }) => 
 };
 
 // Individual puzzle card component
-const PuzzleCard = ({ puzzle }: { puzzle: Props['archived_puzzles'][0] }) => {
+const PuzzleCard = ({ puzzle }: { puzzle: Props['listed_puzzles'][0] }) => {
   const { script } = useContext(AppContext);
   const font_info = FONT_INFO[script!];
 
   return (
-    <Link href={`/padavali/archived/${puzzle.slug}`}>
+    <Link href={`/padavali/puzzle/${puzzle.slug}`}>
       <motion.button
         whileHover={{ scale: 1.02, y: -2 }}
         whileTap={{ scale: 0.98 }}

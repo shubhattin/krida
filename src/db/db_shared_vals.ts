@@ -30,11 +30,17 @@ export const attachment_schema = z.object({
   url: z.url(),
   order_index: z.number().int()
 });
+export const image_schema = z.object({
+  id: z.number().int(),
+  s3_key: z.string(),
+  width: z.number().int(),
+  height: z.number().int()
+});
+
 export const puzzle_schema = z.object({
   id: z.number().int(),
   slug: z.string(),
   title: z.string(),
-  s3_key: z.string().nullable(),
   created_at: z.coerce.date(),
   updated_at: z.coerce.date().nullable(),
   word_list: z.string().min(2).array(),
@@ -42,7 +48,8 @@ export const puzzle_schema = z.object({
   grid_dimensions: z.tuple([z.number().int(), z.number().int()]),
   listed: z.boolean(),
   description: z.string().nullable(),
-  attachments: z.array(attachment_schema)
+  attachments: z.array(attachment_schema),
+  image: image_schema.nullable()
 });
 
 export const puzzle_update_input_schema = z.object({

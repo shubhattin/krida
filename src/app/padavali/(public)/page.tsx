@@ -96,7 +96,7 @@ export default async function Home() {
               </div>
 
               <Link
-                href="/padavali/archived"
+                href="/padavali/puzzles"
                 className="group inline-flex items-center gap-3 rounded-xl bg-linear-to-r from-amber-50 to-orange-50 px-6 py-4 text-amber-700 shadow-lg transition-all duration-200 hover:scale-105 hover:shadow-xl dark:from-amber-900/20 dark:to-orange-900/20 dark:text-amber-300"
               >
                 <div className="rounded-lg bg-linear-to-r from-amber-500 to-orange-500 p-2 shadow-md">
