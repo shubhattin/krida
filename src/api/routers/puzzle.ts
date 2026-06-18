@@ -178,7 +178,7 @@ const update_puzzle_route = protectedAdminProcedure
       if (!prev_listed && puzzle_data.listed) {
         await tx
           .update(word_puzzles)
-          .set({ last_archived_at: new Date() })
+          .set({ last_listed_at: new Date() })
           .where(and(eq(word_puzzles.id, puzzle_id), eq(word_puzzles.slug, puzzle_slug)));
       }
 

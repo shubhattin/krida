@@ -1,5 +1,5 @@
 {
-  "id": "a2565853-4add-4cf5-bab4-f0205da79c21",
+  "id": "8c295c95-b91e-4f55-a26d-cb1429e10680",
   "prevId": "8ba5c5d1-7c71-447a-9386-f8c3c5397b3a",
   "version": "7",
   "dialect": "postgresql",
@@ -525,8 +525,8 @@
           "notNull": true,
           "default": false
         },
-        "last_archived_at": {
-          "name": "last_archived_at",
+        "last_listed_at": {
+          "name": "last_listed_at",
           "type": "timestamp with time zone",
           "primaryKey": false,
           "notNull": false
@@ -569,8 +569,8 @@
           "method": "btree",
           "with": {}
         },
-        "word_puzzles_listed_last_archived_at_idx": {
-          "name": "word_puzzles_listed_last_archived_at_idx",
+        "word_puzzles_listed_last_listed_at_idx": {
+          "name": "word_puzzles_listed_last_listed_at_idx",
           "columns": [
             {
               "expression": "listed",
@@ -579,7 +579,7 @@
               "nulls": "last"
             },
             {
-              "expression": "last_archived_at",
+              "expression": "last_listed_at",
               "isExpression": false,
               "asc": true,
               "nulls": "last"

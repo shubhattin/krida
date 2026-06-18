@@ -33,12 +33,12 @@ export const word_puzzles = pgTable(
     grid_dimensions: jsonb().notNull().$type<[number, number]>(),
     /** Whether the puzzle is listed publically on the website */
     listed: boolean().notNull().default(false),
-    last_archived_at: timestamp({ withTimezone: true })
+    last_listed_at: timestamp({ withTimezone: true })
   },
   (table) => [
     uniqueIndex('word_puzzles_slug_idx').on(table.slug),
     index('word_puzzles_listed_created_at_idx').on(table.listed, table.created_at),
-    index('word_puzzles_listed_last_archived_at_idx').on(table.listed, table.last_archived_at)
+    index('word_puzzles_listed_last_listed_at_idx').on(table.listed, table.last_listed_at)
   ]
 );
 

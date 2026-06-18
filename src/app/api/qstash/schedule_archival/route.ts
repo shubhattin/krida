@@ -45,8 +45,8 @@ export const POST = verifySignatureAppRouter(async (req: Request) => {
     db
       .update(word_puzzles)
       .set({
-        listed: false,
-        last_archived_at: new Date()
+        listed: true,
+        last_listed_at: new Date()
       })
       .where(eq(word_puzzles.id, puzzle_id)),
     db

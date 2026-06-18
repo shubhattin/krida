@@ -138,8 +138,8 @@ const load_listed_puzzle_list = createCachedLoader<NoCacheParams, ArchivedPuzzle
         s3_key: true
       },
       where: ({ listed }, { eq }) => eq(listed, true),
-      orderBy: ({ created_at, last_archived_at }, { desc }) => [
-        desc(sql`COALESCE(${last_archived_at}, '1970-01-01'::timestamp with time zone)`),
+      orderBy: ({ created_at, last_listed_at }, { desc }) => [
+        desc(sql`COALESCE(${last_listed_at}, '1970-01-01'::timestamp with time zone)`),
         desc(created_at)
       ]
     });
