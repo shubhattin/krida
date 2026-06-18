@@ -1,10 +1,12 @@
-import { ArchivedList } from './ListedPuzzles';
+import { ListedPuzzles } from './ListedPuzzles';
 import { DEFAULT_DATA_SCRIPT } from '~/state/script_list';
 import { transliterate_wasm } from 'lipilekhika';
 import { Metadata } from 'next';
 import { getCachedScript } from '~/lib/cache_server_route_data';
 import { CACHE, NO_CACHE_PARAMS } from '~/util/cache.server/cache_loaders';
 import { getMetadata } from '~/components/tags/getPageMetaTags';
+
+const NORMAL_TITLE_SCRIPT = 'Normal' as const;
 
 const ListedPage = async () => {
   const listed_puzzles = await CACHE.listed_puzzle_list.get(NO_CACHE_PARAMS);
@@ -14,19 +16,28 @@ const ListedPage = async () => {
   const puzzle_texts = listed_puzzles.flatMap((p) =>
     p.description ? [p.title, p.description] : [p.title]
   );
-  const transliterated_texts = await transliterate_wasm(puzzle_texts, DEFAULT_DATA_SCRIPT, script);
+  const [transliterated_texts, normal_titles] = await Promise.all([
+    transliterate_wasm(puzzle_texts, DEFAULT_DATA_SCRIPT, script),
+    transliterate_wasm(
+      listed_puzzles.map((p) => p.title),
+      DEFAULT_DATA_SCRIPT,
+      NORMAL_TITLE_SCRIPT
+    )
+  ]);
   let text_i = 0;
-  const archived_puzzles_init_transliterlated = listed_puzzles.map((puzzle) => ({
+  const listed_puzzles_init_transliterated = listed_puzzles.map((puzzle, index) => ({
     ...puzzle,
     title: transliterated_texts[text_i++]!,
-    description: puzzle.description ? transliterated_texts[text_i++]! : null
+    description: puzzle.description ? transliterated_texts[text_i++]! : null,
+    description_original: puzzle.description,
+    title_normal: normal_titles[index]!
   }));
 
   return (
-    <ArchivedList
+    <ListedPuzzles
       listed_puzzles={listed_puzzles}
       script={script}
-      archived_puzzles_init_transliterlated={archived_puzzles_init_transliterlated}
+      listed_puzzles_init_transliterated={listed_puzzles_init_transliterated}
     />
   );
 };
@@ -35,7 +46,7 @@ export default ListedPage;
 
 export const metadata: Metadata = {
   ...getMetadata({
-    title: 'Archived Puzzles',
-    description: 'Play Previous Padavali Word Game Puzzles'
+    title: 'Padavali Puzzles',
+    description: 'Browse and play all available Padavali word puzzles'
   })
 };

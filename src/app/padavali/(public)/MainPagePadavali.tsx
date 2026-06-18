@@ -1,19 +1,12 @@
 'use client';
 
 import WordGameRoot, {
-  NextPuzzleTimePopup,
   type WordGameProps
 } from '~/components/pages/main/WordGame/WordGameRoot';
-import { Button } from '~/components/ui/button';
-import { Popover, PopoverContent, PopoverTrigger } from '~/components/ui/popover';
 import { type ScriptType } from '~/state/script_list';
-import { BsThreeDots } from 'react-icons/bs';
-import { ArchiveIcon, ArrowRightIcon, Sparkles } from 'lucide-react';
-import Link from 'next/link';
+import { Sparkles } from 'lucide-react';
 import { useState } from 'react';
 import { motion } from 'framer-motion';
-import dayjs from 'dayjs';
-import { cn } from '~/lib/utils';
 import { puzzle_schema } from '~/db/db_shared_vals';
 import { z } from 'zod';
 
@@ -97,59 +90,10 @@ const MainPagePadavali = ({ script, word_puzzle, initial_script_data, next_sched
                     transition={{ duration: 0.4, delay: 0.3 }}
                     className="bg-linear-to-r from-slate-800 to-blue-600 bg-clip-text text-base font-bold text-transparent sm:text-lg dark:from-slate-100 dark:to-blue-400"
                   >
-                    Current Week's Puzzle
+                    Current Puzzle
                   </motion.h2>
                 </motion.div>
               </div>
-
-              <Popover>
-                <PopoverTrigger render={<Button variant="ghost" />}>
-                  <BsThreeDots className="size-3.5 sm:size-4" />
-                </PopoverTrigger>
-                <PopoverContent
-                  align="end"
-                  className="w-72 overflow-hidden border-slate-200 bg-white p-0 shadow-xl sm:w-80 dark:border-slate-700 dark:bg-slate-800"
-                >
-                  <div className={cn('p-0 sm:p-0', next_schedule && 'p-1.5 pt-0 sm:p-2.5 sm:pt-0')}>
-                    {next_schedule && (
-                      <div className="flex items-center justify-center p-2">
-                        <div className="flex items-center justify-center space-x-2 text-sm font-semibold text-amber-900 sm:text-base dark:text-amber-100">
-                          Next puzzle in
-                          <span className="ml-1 bg-linear-to-r from-emerald-600 to-green-500 bg-clip-text font-bold text-transparent dark:from-emerald-400 dark:to-green-300">
-                            {dayjs(next_schedule.start_time)
-                              .fromNow(true)
-                              .replace(
-                                /\b(day|days|week|weeks|month|months|year|years)\b/gi,
-                                (word) => word.charAt(0).toUpperCase() + word.slice(1)
-                              )}
-                          </span>
-                          <NextPuzzleTimePopup
-                            next_puzzle_start_time={next_schedule.start_time}
-                            className="text-blue-500 dark:text-sky-200"
-                          />
-                        </div>
-                      </div>
-                    )}
-                    <Link
-                      href="/padavali/puzzles"
-                      className="group flex items-center gap-2 rounded-xl border border-amber-200/50 bg-linear-to-r from-amber-50 to-orange-50 p-3 text-amber-800 shadow-sm transition-all duration-200 hover:scale-[1.02] hover:from-amber-100 hover:to-orange-100 hover:shadow-md sm:gap-3 sm:p-4 dark:border-amber-800/30 dark:from-amber-950/50 dark:to-orange-950/50 dark:text-amber-200 dark:hover:from-amber-900/60 dark:hover:to-orange-900/60"
-                    >
-                      <div className="rounded-lg bg-linear-to-r from-amber-500 to-orange-500 p-1.5 shadow-sm sm:p-2">
-                        <ArchiveIcon className="h-4 w-4 text-white sm:h-5 sm:w-5" />
-                      </div>
-                      <div className="flex-1 text-left">
-                        <div className="text-sm font-semibold text-amber-900 sm:text-base dark:text-amber-100">
-                          View Archived Puzzles
-                        </div>
-                        <div className="text-xs text-amber-700 sm:text-sm dark:text-amber-300">
-                          Browse and play past puzzles
-                        </div>
-                      </div>
-                      <ArrowRightIcon className="h-3 w-3 text-amber-600 transition-transform group-hover:translate-x-1 sm:h-4 sm:w-4 dark:text-amber-400" />
-                    </Link>
-                  </div>
-                </PopoverContent>
-              </Popover>
             </div>
           </div>
         </motion.div>

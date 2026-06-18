@@ -2,7 +2,7 @@ import { Metadata } from 'next';
 import { DEFAULT_DATA_SCRIPT } from '~/state/script_list';
 import { get_transliterated_word_game_msgs } from '~/components/pages/main/WordGame/msgs';
 import { transliterate_wasm } from 'lipilekhika';
-import { ClockIcon, CalendarIcon, ArchiveIcon, ArrowRightIcon } from 'lucide-react';
+import { ClockIcon, CalendarIcon, ArrowRightIcon } from 'lucide-react';
 import { IoExtensionPuzzleSharp } from 'react-icons/io5';
 import Link from 'next/link';
 import MainPagePadavali from './MainPagePadavali';
@@ -97,14 +97,14 @@ export default async function Home() {
 
               <Link
                 href="/padavali/puzzles"
-                className="group inline-flex items-center gap-3 rounded-xl bg-linear-to-r from-amber-50 to-orange-50 px-6 py-4 text-amber-700 shadow-lg transition-all duration-200 hover:scale-105 hover:shadow-xl dark:from-amber-900/20 dark:to-orange-900/20 dark:text-amber-300"
+                className="group inline-flex items-center gap-3 rounded-xl bg-linear-to-r from-blue-50 to-indigo-50 px-6 py-4 text-blue-700 shadow-lg transition-all duration-200 hover:scale-105 hover:shadow-xl dark:from-blue-900/20 dark:to-indigo-900/20 dark:text-blue-300"
               >
-                <div className="rounded-lg bg-linear-to-r from-amber-500 to-orange-500 p-2 shadow-md">
-                  <ArchiveIcon className="h-5 w-5 text-white" />
+                <div className="rounded-lg bg-linear-to-r from-blue-500 to-indigo-600 p-2 shadow-md">
+                  <IoExtensionPuzzleSharp className="size-5 text-white" />
                 </div>
                 <div className="text-left">
-                  <div className="font-semibold">Play Archived Games</div>
-                  <div className="text-sm opacity-80">Browse past puzzles while you wait</div>
+                  <div className="font-semibold">Browse Padavali Puzzles</div>
+                  <div className="text-sm opacity-80">Play available puzzles while you wait</div>
                 </div>
                 <ArrowRightIcon className="h-4 w-4 transition-transform group-hover:translate-x-1" />
               </Link>

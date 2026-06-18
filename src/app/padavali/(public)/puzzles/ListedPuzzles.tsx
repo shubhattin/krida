@@ -1,12 +1,12 @@
 'use client';
 
 import { useQuery } from '@tanstack/react-query';
-import { useContext } from 'react';
+import { useContext, useEffect, useMemo, useState } from 'react';
 import { transliterate } from 'lipilekhika';
 import { DEFAULT_DATA_SCRIPT, type ScriptType } from '~/state/script_list';
 import { motion } from 'framer-motion';
 import { Button } from '~/components/ui/button';
-import { ArrowLeftIcon, ArchiveIcon, Sparkles } from 'lucide-react';
+import { ArrowLeftIcon, SearchIcon, Sparkles } from 'lucide-react';
 import { IoExtensionPuzzleSharp } from 'react-icons/io5';
 import Link from 'next/link';
 import { ScriptSelector } from '~/components/pages/main/ScriptSelector';
@@ -15,60 +15,196 @@ import { LanguageIcon } from '~/components/icons';
 import { AppContext } from '~/components/AppDataContext';
 import { cn } from '~/lib/utils';
 import { FONT_INFO } from '~/state/script_font_data';
+import { getCDNUrl } from '~/constants';
+import type { ListedPuzzlesType } from '~/util/cache.server/cache_loaders';
+import { InputGroup, InputGroupAddon, InputGroupInput } from '~/components/ui/input-group';
+import { Switch } from '~/components/ui/switch';
+import { Label } from '~/components/ui/label';
+import {
+  createTypingContext,
+  clearTypingContextOnKeyDown,
+  handleTypingBeforeInputEvent
+} from 'lipilekhika/typing';
+import {
+  Pagination,
+  PaginationContent,
+  PaginationEllipsis,
+  PaginationItem,
+  PaginationLink,
+  PaginationNext,
+  PaginationPrevious
+} from '~/components/ui/pagination';
 
-type Props = {
-  listed_puzzles: { id: number; slug: string; title: string; description: string | null }[];
-  script: ScriptType;
-  archived_puzzles_init_transliterlated: {
-    id: number;
-    slug: string;
-    title: string;
-    description: string | null;
-  }[];
+type ListedPuzzle = ListedPuzzlesType[number];
+
+/** Romanized (Normal) title from original Devanagari — used for search only. */
+const NORMAL_TITLE_SCRIPT = 'Normal' as const;
+
+/** Display row: transliterated title for search/display, original description for search. */
+type DisplayPuzzle = ListedPuzzle & {
+  description_original: string | null;
+  title_normal: string;
 };
 
-// Main component that handles the state and conditional rendering
-export const ArchivedList = ({
-  listed_puzzles: archived_puzzles_org,
-  archived_puzzles_init_transliterlated
+type Props = {
+  listed_puzzles: ListedPuzzlesType;
+  script: ScriptType;
+  listed_puzzles_init_transliterated: DisplayPuzzle[];
+};
+
+const PAGE_LIMIT = 8 as const;
+const IMAGE_ASPECT_RATIO = [3, 2] as const;
+
+function mapListedPuzzlesForDisplay(
+  org: ListedPuzzlesType,
+  transliterated_texts: string[],
+  normal_titles: string[]
+): DisplayPuzzle[] {
+  let text_i = 0;
+  return org.map((puzzle, index) => ({
+    ...puzzle,
+    title: transliterated_texts[text_i++]!,
+    description: puzzle.description ? transliterated_texts[text_i++]! : null,
+    description_original: puzzle.description,
+    title_normal: normal_titles[index]!
+  }));
+}
+
+function getVisiblePages(current: number, total: number): (number | 'ellipsis')[] {
+  if (total <= 5) {
+    return Array.from({ length: total }, (_, i) => i + 1);
+  }
+
+  const pages = new Set<number>([1, total, current]);
+  if (current > 1) pages.add(current - 1);
+  if (current < total) pages.add(current + 1);
+
+  const sorted = [...pages].sort((a, b) => a - b);
+  const result: (number | 'ellipsis')[] = [];
+
+  for (let i = 0; i < sorted.length; i++) {
+    if (i > 0 && sorted[i]! - sorted[i - 1]! > 1) {
+      result.push('ellipsis');
+    }
+    result.push(sorted[i]!);
+  }
+
+  return result;
+}
+
+export const ListedPuzzles = ({
+  listed_puzzles: listed_puzzles_org,
+  listed_puzzles_init_transliterated
 }: Props) => {
   const { script } = useContext(AppContext);
 
-  const archived_puuzle_list_q = useQuery({
-    queryKey: ['archived_puuzle_list', script],
+  const normal_titles_q = useQuery({
+    queryKey: ['listed_puzzle_title_normal', listed_puzzles_org.map((p) => p.id)],
+    queryFn: async () =>
+      transliterate(
+        listed_puzzles_org.map((p) => p.title),
+        DEFAULT_DATA_SCRIPT,
+        NORMAL_TITLE_SCRIPT,
+        {
+          'all_to_normal:replace_avagraha_with_a': true,
+          'all_to_normal:replace_pancham_varga_varna_with_n': true
+        }
+      ),
+    initialData: listed_puzzles_init_transliterated.every((p) => p.title_normal != null)
+      ? listed_puzzles_init_transliterated.map((p) => p.title_normal)
+      : undefined,
+    staleTime: Infinity
+  });
+
+  const listed_puzzle_list_q = useQuery({
+    queryKey: ['listed_puzzle_list', 'v2', script],
     queryFn: async () => {
-      const puzzle_texts = archived_puzzles_org.flatMap((p) =>
+      const puzzle_texts = listed_puzzles_org.flatMap((p) =>
         p.description ? [p.title, p.description] : [p.title]
       );
       const transliterated_texts = await transliterate(puzzle_texts, DEFAULT_DATA_SCRIPT, script);
-      let text_i = 0;
-      return archived_puzzles_org.map((puzzle) => ({
-        ...puzzle,
-        title: transliterated_texts[text_i++]!,
-        description: puzzle.description ? transliterated_texts[text_i++]! : null
-      }));
+      return mapListedPuzzlesForDisplay(
+        listed_puzzles_org,
+        transliterated_texts,
+        normal_titles_q.data!
+      );
     },
-    placeholderData: archived_puzzles_init_transliterlated,
-    enabled: true
+    placeholderData: listed_puzzles_init_transliterated,
+    enabled: normal_titles_q.data !== undefined
   });
-  const archived_puzzles = archived_puuzle_list_q.data!;
 
-  return <PuzzleListView puzzles={archived_puzzles} />;
+  const display_puzzles = useMemo((): DisplayPuzzle[] => {
+    const rows = listed_puzzle_list_q.data ?? listed_puzzles_init_transliterated;
+    const normal_titles = normal_titles_q.data;
+
+    return rows.map((puzzle, index) => ({
+      ...puzzle,
+      description_original:
+        'description_original' in puzzle && puzzle.description_original != null
+          ? puzzle.description_original
+          : (listed_puzzles_org[index]?.description ?? null),
+      title_normal: puzzle.title_normal ?? normal_titles?.[index] ?? ''
+    }));
+  }, [
+    listed_puzzle_list_q.data,
+    listed_puzzles_init_transliterated,
+    listed_puzzles_org,
+    normal_titles_q.data
+  ]);
+
+  return <PuzzleListView puzzles={display_puzzles} />;
 };
 
-// Component that shows the list of archived puzzles
-const PuzzleListView = ({ puzzles }: { puzzles: Props['listed_puzzles'] }) => {
+const PuzzleListView = ({ puzzles }: { puzzles: DisplayPuzzle[] }) => {
+  const { script, setScript } = useContext(AppContext);
+  const font_info = FONT_INFO[script!];
+  const [searchQuery, setSearchQuery] = useState('');
+  const [page, setPage] = useState(1);
+  const [lipi_lekhika_typing, setLipiLekhikaTyping] = useState(false);
+
+  const typing_ctx = useMemo(() => createTypingContext(script!), [script]);
+  useEffect(() => {
+    void typing_ctx.ready;
+  }, [typing_ctx]);
+
+  const filteredPuzzles = useMemo(() => {
+    const query = searchQuery.trim().toLowerCase();
+    if (!query) return puzzles;
+
+    return puzzles.filter(
+      (puzzle) =>
+        puzzle.title.toLowerCase().includes(query) ||
+        (puzzle.title_normal?.toLowerCase().includes(query) ?? false) ||
+        (puzzle.description_original?.toLowerCase().includes(query) ?? false)
+    );
+  }, [puzzles, searchQuery]);
+
+  useEffect(() => {
+    setPage(1);
+  }, [searchQuery]);
+
+  const pageCount = Math.max(1, Math.ceil(filteredPuzzles.length / PAGE_LIMIT));
+  const safePage = Math.min(page, pageCount);
+
+  useEffect(() => {
+    if (page > pageCount) setPage(pageCount);
+  }, [page, pageCount]);
+
+  const paginatedPuzzles = filteredPuzzles.slice(
+    (safePage - 1) * PAGE_LIMIT,
+    safePage * PAGE_LIMIT
+  );
+
+  const hasPrev = safePage > 1;
+  const hasNext = safePage < pageCount;
+
   if (puzzles.length === 0) {
     return <EmptyPuzzleList />;
   }
 
-  const { script, setScript } = useContext(AppContext);
-  const font_info = FONT_INFO[script!];
-
   return (
     <div className="min-h-screen w-full bg-linear-to-br from-slate-50 via-blue-50 to-indigo-50 dark:from-slate-900 dark:via-slate-800 dark:to-slate-900">
-      <div className="container mx-auto max-w-4xl px-4 py-8">
-        {/* Back to Home button */}
+      <div className="container mx-auto max-w-6xl px-4 py-8">
         <motion.div
           initial={{ opacity: 0, x: -20 }}
           animate={{ opacity: 1, x: 0 }}
@@ -90,19 +226,63 @@ const PuzzleListView = ({ puzzles }: { puzzles: Props['listed_puzzles'] }) => {
           initial={{ opacity: 0, y: -20 }}
           animate={{ opacity: 1, y: 0 }}
           transition={{ duration: 0.5 }}
-          className="mb-4 text-center sm:mb-6 lg:mb-8"
+          className="mb-6 text-center sm:mb-8"
         >
           <div className="mb-4 flex justify-center">
-            <div className="rounded-xl bg-linear-to-r from-amber-500 to-orange-500 p-3 shadow-lg">
-              <ArchiveIcon className="h-8 w-8 text-white" />
+            <div className="rounded-xl bg-linear-to-r from-blue-500 to-indigo-600 p-3 shadow-lg">
+              <IoExtensionPuzzleSharp className="size-8 text-white" />
             </div>
           </div>
           <h1 className="mb-2 bg-linear-to-r from-slate-800 to-blue-600 bg-clip-text text-3xl font-bold text-transparent dark:from-slate-100 dark:to-blue-400">
-            Archived Puzzles
+            Padavali Puzzles
           </h1>
-          <p className="text-slate-600 dark:text-slate-400">Play Previous Puzzles</p>
-          <div className="mt-2 flex items-center justify-center gap-2 sm:mt-3">
-            <Icon className="size-7" src={LanguageIcon} />
+          <p className="text-slate-600 dark:text-slate-400">
+            Browse and play all available word puzzles
+          </p>
+        </motion.div>
+
+        <div className="mb-6 flex flex-col items-stretch justify-center gap-3 sm:flex-row sm:items-center">
+          <InputGroup className="w-full sm:flex-1">
+            <InputGroupAddon>
+              <SearchIcon />
+            </InputGroupAddon>
+            <InputGroupInput
+              value={searchQuery}
+              onChange={(e) => setSearchQuery(e.currentTarget.value)}
+              onBeforeInput={(e) =>
+                handleTypingBeforeInputEvent(
+                  typing_ctx,
+                  e,
+                  (newValue) => setSearchQuery(newValue),
+                  lipi_lekhika_typing
+                )
+              }
+              onBlur={() => typing_ctx.clearContext()}
+              onKeyDown={(e) => {
+                if (
+                  e.altKey &&
+                  (e.key === 'x' || e.key === 'X' || e.key === 'c' || e.key === 'C')
+                ) {
+                  e.preventDefault();
+                  setLipiLekhikaTyping((prev) => !prev);
+                  return;
+                }
+                clearTypingContextOnKeyDown(e, typing_ctx);
+              }}
+              placeholder="Search by title or description"
+              aria-label="Search puzzles"
+            />
+          </InputGroup>
+          <Label className="inline-flex shrink-0 items-center justify-center gap-2 font-medium">
+            <Switch
+              checked={lipi_lekhika_typing}
+              onCheckedChange={setLipiLekhikaTyping}
+              className="-mt-1"
+              aria-label="Enable Lipi Lekhika typing in search"
+            />
+            <Icon src={LanguageIcon} className="-mt-1 size-6.5" />
+          </Label>
+          <div className="flex shrink-0 items-center justify-center gap-2 sm:justify-end">
             <ScriptSelector script={script} onScriptChange={setScript} />
             {font_info.experimental && (
               <span className="inline-flex items-center rounded-full bg-orange-100 px-1 py-0.5 text-xs font-medium text-orange-800 dark:bg-orange-900/20 dark:text-orange-400">
@@ -110,71 +290,140 @@ const PuzzleListView = ({ puzzles }: { puzzles: Props['listed_puzzles'] }) => {
               </span>
             )}
           </div>
-        </motion.div>
-        <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
-          {puzzles.map((puzzle, index) => (
-            <motion.div
-              key={puzzle.id}
-              initial={{ opacity: 0, y: 20 }}
-              animate={{ opacity: 1, y: 0 }}
-              transition={{ duration: 0.4, delay: index * 0.1 }}
-            >
-              <PuzzleCard puzzle={puzzle} />
-            </motion.div>
-          ))}
         </div>
+
+        {filteredPuzzles.length === 0 ? (
+          <div className="py-16 text-center">
+            <p className="text-lg font-medium text-slate-600 dark:text-slate-400">
+              No puzzles match your search
+            </p>
+            <p className="mt-2 text-sm text-slate-500 dark:text-slate-500">
+              Try a different title or description
+            </p>
+          </div>
+        ) : (
+          <>
+            <div className="grid grid-cols-2 gap-3 sm:gap-4 lg:grid-cols-3 xl:grid-cols-4">
+              {paginatedPuzzles.map((puzzle, index) => (
+                <motion.div
+                  key={puzzle.id}
+                  initial={{ opacity: 0, y: 20 }}
+                  animate={{ opacity: 1, y: 0 }}
+                  transition={{ duration: 0.4, delay: index * 0.05 }}
+                >
+                  <PuzzleCard puzzle={puzzle} />
+                </motion.div>
+              ))}
+            </div>
+
+            {pageCount > 1 && (
+              <div className="mt-8">
+                <Pagination>
+                  <PaginationContent>
+                    <PaginationItem>
+                      <PaginationPrevious
+                        href="#"
+                        text="Prev"
+                        onClick={(e) => {
+                          e.preventDefault();
+                          if (hasPrev) setPage((p) => p - 1);
+                        }}
+                        aria-disabled={!hasPrev}
+                        className={cn(!hasPrev && 'pointer-events-none opacity-50')}
+                      />
+                    </PaginationItem>
+                    {getVisiblePages(safePage, pageCount).map((pageNumber, index) =>
+                      pageNumber === 'ellipsis' ? (
+                        <PaginationItem key={`ellipsis-${index}`}>
+                          <PaginationEllipsis />
+                        </PaginationItem>
+                      ) : (
+                        <PaginationItem key={pageNumber}>
+                          <PaginationLink
+                            href="#"
+                            isActive={pageNumber === safePage}
+                            onClick={(e) => {
+                              e.preventDefault();
+                              setPage(pageNumber);
+                            }}
+                          >
+                            {pageNumber}
+                          </PaginationLink>
+                        </PaginationItem>
+                      )
+                    )}
+                    <PaginationItem>
+                      <PaginationNext
+                        href="#"
+                        onClick={(e) => {
+                          e.preventDefault();
+                          if (hasNext) setPage((p) => p + 1);
+                        }}
+                        aria-disabled={!hasNext}
+                        className={cn(!hasNext && 'pointer-events-none opacity-50')}
+                      />
+                    </PaginationItem>
+                  </PaginationContent>
+                </Pagination>
+              </div>
+            )}
+          </>
+        )}
       </div>
     </div>
   );
 };
 
-// Individual puzzle card component
-const PuzzleCard = ({ puzzle }: { puzzle: Props['listed_puzzles'][0] }) => {
+const PuzzleCard = ({ puzzle }: { puzzle: DisplayPuzzle }) => {
   const { script } = useContext(AppContext);
   const font_info = FONT_INFO[script!];
+  const imageUrl = puzzle.image ? getCDNUrl(puzzle.image.s3_key) : null;
+  const [w, h] = IMAGE_ASPECT_RATIO;
 
   return (
-    <Link href={`/padavali/puzzle/${puzzle.slug}`}>
-      <motion.button
+    <Link href={`/padavali/puzzle/${puzzle.slug}`} className="group block h-full">
+      <motion.div
         whileHover={{ scale: 1.02, y: -2 }}
         whileTap={{ scale: 0.98 }}
-        className="group w-full rounded-xl border border-slate-200 bg-white p-2 pt-4 pl-3 shadow-lg transition-all duration-200 hover:shadow-xl dark:border-slate-700 dark:bg-slate-800"
+        className="flex h-full flex-col overflow-hidden rounded-xl border border-slate-200 bg-white shadow-lg transition-shadow duration-200 hover:shadow-xl dark:border-slate-700 dark:bg-slate-800"
       >
-        <div className="flex items-start">
-          <div className="rounded-lg bg-linear-to-r from-blue-500 to-indigo-600 p-2 shadow-md group-hover:from-blue-600 group-hover:to-blue-700">
-            <IoExtensionPuzzleSharp className="size-5.5 text-white" />
+        <div
+          className="relative w-full overflow-hidden bg-slate-100 dark:bg-slate-700"
+          style={{ aspectRatio: `${w} / ${h}` }}
+        >
+          {imageUrl ? (
+            <img src={imageUrl} alt="" className="size-full object-cover object-center" />
+          ) : (
+            <div className="flex size-full items-center justify-center bg-linear-to-br from-slate-600 via-slate-700 to-slate-800 dark:from-slate-700 dark:via-slate-800 dark:to-slate-900">
+              <IoExtensionPuzzleSharp className="size-12 text-slate-300/80 sm:size-14 dark:text-slate-400/70" />
+            </div>
+          )}
+        </div>
+        <div className="flex flex-1 flex-col p-3 text-left">
+          <div
+            className={cn(
+              'line-clamp-2 font-semibold text-slate-900 group-hover:text-blue-600 dark:text-slate-100 dark:group-hover:text-blue-400',
+              font_info.className
+            )}
+          >
+            {puzzle.title}
           </div>
-          <div className="ml-3 flex-1 space-y-0.5 text-left">
+          {puzzle.description ? (
             <div
               className={cn(
-                'h-full font-semibold text-slate-900 group-hover:text-blue-600 dark:text-slate-100 dark:group-hover:text-blue-400',
+                'mt-1 line-clamp-2 text-xs text-slate-500 dark:text-slate-400',
                 font_info.className
               )}
             >
-              {puzzle.title}
+              {puzzle.description}
             </div>
-            {puzzle.description && (
-              <div
-                className={cn(
-                  'text-xs text-slate-600 dark:text-slate-400',
-                  'line-clamp-1',
-                  font_info.className
-                )}
-              >
-                {puzzle.description}
-              </div>
-            )}
-          </div>
-          <div className="opacity-0 transition-opacity group-hover:opacity-100">
-            <Sparkles className="size-4 text-blue-500" />
-          </div>
+          ) : null}
         </div>
-      </motion.button>
+      </motion.div>
     </Link>
   );
 };
 
-// Empty state component
 const EmptyPuzzleList = () => {
   return (
     <div className="min-h-screen w-full bg-linear-to-br from-slate-50 via-blue-50 to-indigo-50 dark:from-slate-900 dark:via-slate-800 dark:to-slate-900">
@@ -186,22 +435,22 @@ const EmptyPuzzleList = () => {
         >
           <div className="mb-8 flex justify-center">
             <div className="relative">
-              <div className="absolute inset-0 animate-pulse rounded-full bg-linear-to-r from-amber-400 to-orange-400 opacity-20 blur-xl"></div>
-              <div className="relative rounded-full bg-linear-to-r from-amber-500 to-orange-500 p-6 shadow-2xl">
-                <ArchiveIcon className="h-12 w-12 text-white" />
+              <div className="absolute inset-0 animate-pulse rounded-full bg-linear-to-r from-blue-400 to-indigo-400 opacity-20 blur-xl"></div>
+              <div className="relative rounded-full bg-linear-to-r from-blue-500 to-indigo-600 p-6 shadow-2xl">
+                <IoExtensionPuzzleSharp className="size-12 text-white" />
               </div>
             </div>
           </div>
 
-          <h1 className="mb-4 bg-linear-to-r from-slate-700 to-amber-600 bg-clip-text text-3xl font-bold text-transparent dark:from-slate-200 dark:to-amber-400">
-            No Archived Puzzles
+          <h1 className="mb-4 bg-linear-to-r from-slate-700 to-blue-600 bg-clip-text text-3xl font-bold text-transparent dark:from-slate-200 dark:to-blue-400">
+            No Puzzles Available
           </h1>
 
           <p className="mb-6 text-lg text-slate-600 dark:text-slate-300">
-            There are no archived puzzles available yet. Check back later!
+            There are no listed puzzles yet. Check back later!
           </p>
 
-          <div className="inline-flex items-center gap-2 rounded-xl bg-linear-to-r from-blue-100 to-purple-100 px-6 py-3 text-blue-700 shadow-lg dark:from-blue-900/30 dark:to-purple-900/30 dark:text-blue-300">
+          <div className="inline-flex items-center gap-2 rounded-xl bg-linear-to-r from-blue-100 to-indigo-100 px-6 py-3 text-blue-700 shadow-lg dark:from-blue-900/30 dark:to-indigo-900/30 dark:text-blue-300">
             <Sparkles className="h-5 w-5" />
             <span className="font-medium">New puzzles will appear here</span>
           </div>
