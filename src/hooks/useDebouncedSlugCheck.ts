@@ -39,6 +39,7 @@ export const useDebouncedSlugCheck = (slugInput: string, options: Options = {}) 
     }
 
     setStatus('checking');
+    let cancelled = false;
     const timeoutId = setTimeout(() => {
       void client.puzzle.check_slug_availability
         .query({
@@ -46,6 +47,7 @@ export const useDebouncedSlugCheck = (slugInput: string, options: Options = {}) 
           exclude_puzzle_id: excludePuzzleId
         })
         .then((result) => {
+          if (cancelled) return;
           if (result.available) {
             setStatus('available');
           } else if (result.reason === 'invalid_format') {
@@ -55,11 +57,14 @@ export const useDebouncedSlugCheck = (slugInput: string, options: Options = {}) 
           }
         })
         .catch(() => {
-          setStatus('idle');
+          if (!cancelled) setStatus('idle');
         });
     }, DEBOUNCE_MS);
 
-    return () => clearTimeout(timeoutId);
+    return () => {
+      cancelled = true;
+      clearTimeout(timeoutId);
+    };
   }, [slugInput, excludePuzzleId, enabled]);
 
   return { status, normalizedSlug };

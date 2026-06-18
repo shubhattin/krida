@@ -1,17 +1,29 @@
 import { z } from 'zod';
 
+export const MAX_SLUG_LENGTH = 100;
+
 export const SLUG_REGEX = /^[a-z0-9_-]+$/;
 
 export const normalizeSlug = (input: string) => input.trim().toLowerCase();
 
-export const isValidSlug = (slug: string) => slug.length > 0 && SLUG_REGEX.test(slug);
+export const isValidSlug = (slug: string) =>
+  slug.length > 0 && slug.length <= MAX_SLUG_LENGTH && SLUG_REGEX.test(slug);
 
-export const slug_schema = z.string().transform(normalizeSlug).refine(isValidSlug, {
-  message: 'Slug may only contain lowercase letters, numbers, underscores, and dashes'
-});
+export const slug_schema = z
+  .string()
+  .max(MAX_SLUG_LENGTH)
+  .transform(normalizeSlug)
+  .refine(isValidSlug, {
+    message: 'Slug may only contain lowercase letters, numbers, underscores, and dashes'
+  });
 
 export const parseIdSlugParam = (param: string): { id: number; slug: string } | null => {
-  const decoded = decodeURIComponent(param);
+  let decoded: string;
+  try {
+    decoded = decodeURIComponent(param);
+  } catch {
+    return null;
+  }
   const colonIndex = decoded.indexOf(':');
   if (colonIndex === -1) return null;
 

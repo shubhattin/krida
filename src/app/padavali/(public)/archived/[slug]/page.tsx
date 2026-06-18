@@ -24,9 +24,9 @@ export async function generateMetadata({ params }: Props): Promise<Metadata> {
     ...getMetadata({
       title:
         word_puzzle && word_puzzle.archived
-          ? word_puzzle.title + ' - Archiived Puzzle | पदावली'
+          ? word_puzzle.title + ' - Archived Puzzle | पदावली'
           : 'Not Found',
-      description: word_puzzle ? word_puzzle.description : null
+      description: word_puzzle && word_puzzle.archived ? word_puzzle.description : null
     })
   };
 }

@@ -13,6 +13,11 @@ describe('isValidSlug', () => {
     expect(isValidSlug('abc123')).toBe(true);
   });
 
+  it('rejects slugs over max length', () => {
+    expect(isValidSlug('a'.repeat(101))).toBe(false);
+    expect(isValidSlug('a'.repeat(100))).toBe(true);
+  });
+
   it('rejects invalid slugs', () => {
     expect(isValidSlug('')).toBe(false);
     expect(isValidSlug('has space')).toBe(false);
@@ -32,6 +37,10 @@ describe('parseIdSlugParam', () => {
       id: 7,
       slug: 'hello-world'
     });
+  });
+
+  it('returns null for malformed percent-encoding', () => {
+    expect(parseIdSlugParam('%E0%A4%A')).toBeNull();
   });
 
   it('returns null for malformed params', () => {

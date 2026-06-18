@@ -94,8 +94,8 @@ const AddPuzzleDialog = () => {
   const canSubmit =
     title.trim().length > 0 && slugStatus === 'available' && normalizedSlug.length > 0;
 
-  const handleConfirmAdd = async () => {
-    await add_puzzle_mut.mutateAsync({
+  const handleConfirmAdd = () => {
+    add_puzzle_mut.mutate({
       title: title.trim(),
       slug: normalizedSlug,
       description: description.trim() ? description.trim() : null
@@ -224,10 +224,7 @@ const AddPuzzleDialog = () => {
           </AlertDialogHeader>
           <AlertDialogFooter>
             <AlertDialogCancel>Cancel</AlertDialogCancel>
-            <AlertDialogAction
-              disabled={add_puzzle_mut.isPending}
-              onClick={() => void handleConfirmAdd()}
-            >
+            <AlertDialogAction disabled={add_puzzle_mut.isPending} onClick={handleConfirmAdd}>
               Confirm
             </AlertDialogAction>
           </AlertDialogFooter>

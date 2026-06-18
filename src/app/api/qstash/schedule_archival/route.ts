@@ -41,7 +41,7 @@ export const POST = verifySignatureAppRouter(async (req: Request) => {
     return new Response('Invalid or expired request', { status: 400 });
   }
 
-  await Promise.allSettled([
+  await Promise.all([
     db
       .update(word_puzzles)
       .set({

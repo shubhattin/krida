@@ -1079,7 +1079,7 @@ const SaveButton = ({ word_puzzle }: { word_puzzle: Puzzle }) => {
     );
   }, [title, wordList, gridData, archived, description, attachments]);
 
-  const handleSave = async () => {
+  const handleSave = () => {
     const data = {
       puzzle_id: word_puzzle.id,
       puzzle_slug: word_puzzle.slug,
@@ -1094,15 +1094,15 @@ const SaveButton = ({ word_puzzle }: { word_puzzle: Puzzle }) => {
     };
     const parse = puzzle_update_input_schema.safeParse(data);
     if (parse.success) {
-      await update_word_puzzle_mut.mutateAsync(parse.data);
+      update_word_puzzle_mut.mutate(parse.data);
     } else {
       console.log(parse.error);
       toast.error('Failed to update puzzle, fix the entered data');
     }
   };
 
-  const handleDelete = async () => {
-    await delete_word_puzzle_mut.mutateAsync({
+  const handleDelete = () => {
+    delete_word_puzzle_mut.mutate({
       id: word_puzzle.id,
       slug: word_puzzle.slug
     });

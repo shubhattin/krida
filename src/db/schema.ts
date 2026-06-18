@@ -21,7 +21,7 @@ export const word_puzzles = pgTable(
   'word_puzzles',
   {
     id: serial().primaryKey(),
-    slug: text().notNull().unique(),
+    slug: text().notNull(),
     title: text().notNull(),
     description: text(),
     created_at: timestamp({ withTimezone: true }).notNull().defaultNow(),

@@ -80,8 +80,8 @@ export const EditSlugDialog = ({ puzzleId, currentSlug, onSlugUpdated }: Props) 
   const slugChanged = normalizedSlug !== currentSlug;
   const canSubmit = slugChanged && slugStatus === 'available' && normalizedSlug.length > 0;
 
-  const handleConfirm = async () => {
-    await update_slug_mut.mutateAsync({
+  const handleConfirm = () => {
+    update_slug_mut.mutate({
       puzzle_id: puzzleId,
       current_slug: currentSlug,
       new_slug: normalizedSlug
@@ -172,10 +172,7 @@ export const EditSlugDialog = ({ puzzleId, currentSlug, onSlugUpdated }: Props) 
           </AlertDialogHeader>
           <AlertDialogFooter>
             <AlertDialogCancel>Cancel</AlertDialogCancel>
-            <AlertDialogAction
-              disabled={update_slug_mut.isPending}
-              onClick={() => void handleConfirm()}
-            >
+            <AlertDialogAction disabled={update_slug_mut.isPending} onClick={handleConfirm}>
               Confirm
             </AlertDialogAction>
           </AlertDialogFooter>
