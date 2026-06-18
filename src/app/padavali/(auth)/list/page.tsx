@@ -1,7 +1,8 @@
 import { Metadata } from 'next';
 import Link from 'next/link';
 import { redirect } from 'next/navigation';
-import { IoMdAdd, IoMdArrowRoundBack } from 'react-icons/io';
+import { IoMdArrowRoundBack } from 'react-icons/io';
+import AddPuzzleDialog from './AddPuzzleDialog';
 import { Button } from '~/components/ui/button';
 import dayjs from 'dayjs';
 import relativeTime from 'dayjs/plugin/relativeTime';
@@ -18,23 +19,19 @@ const List = async () => {
   return (
     <div className="container mx-auto p-4">
       <div className="my-2 mb-4 px-2">
-        <Link href="/padavali" className="flex items-center gap-1 text-lg font-semibold">
-          <IoMdArrowRoundBack className="inline-block text-xl" />
+        <Link href="/padavali" className="inline-flex items-center gap-1.5 text-lg font-semibold">
+          <IoMdArrowRoundBack className="size-5 shrink-0" />
           Main Page
         </Link>
       </div>
       <div className="mt-2 mb-5 flex items-center justify-center gap-4 px-2">
         <Link href="/padavali/schedules">
-          <Button variant={'outline'} className="flex items-center gap-2 text-base font-semibold">
-            <CalendarIcon className="-mt-1 inline-block size-4" />
+          <Button variant={'outline'} className="inline-flex items-center gap-2 text-base font-semibold">
+            <CalendarIcon className="size-4 shrink-0" />
             Schedules
           </Button>
         </Link>
-        <Link href="/padavali/add">
-          <Button variant={'outline'} className="gap-2 font-semibold">
-            <IoMdAdd className="size-5.5" /> Add New Puzzle
-          </Button>
-        </Link>
+        <AddPuzzleDialog />
       </div>
       <ListPage />
     </div>

@@ -31,7 +31,7 @@ export const POST = verifySignatureAppRouter(async (req: Request) => {
         columns: {
           id: true,
           title: true,
-          uuid: true
+          slug: true
         }
       }
     }
@@ -64,10 +64,9 @@ export const POST = verifySignatureAppRouter(async (req: Request) => {
   await Promise.allSettled([
     invalidate_and_refresh_cached(CACHE.archived_puzzle_list, NO_CACHE_PARAMS),
     invalidate_and_refresh_cached(CACHE.word_puzzle, {
-      id: schedule.puzzle.id,
-      uuid: schedule.puzzle.uuid
+      slug: schedule.puzzle.slug
     }),
-    notify_for_archived_puzzle(schedule.puzzle.title, schedule.puzzle.id, schedule.puzzle.uuid)
+    notify_for_archived_puzzle(schedule.puzzle.title, schedule.puzzle.slug)
   ]);
 
   console.log(`Puzzle ${puzzle_id} archived successfully for Schedule ${schedule_id}.`);

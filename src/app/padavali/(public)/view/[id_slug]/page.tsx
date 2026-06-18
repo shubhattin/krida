@@ -1,4 +1,3 @@
-import { z } from 'zod';
 import { type Metadata } from 'next';
 import Link from 'next/link';
 import { IoMdArrowRoundBack } from 'react-icons/io';
@@ -10,38 +9,52 @@ import { getCachedScript } from '~/lib/cache_server_route_data';
 import { CACHE, NO_CACHE_PARAMS } from '~/util/cache.server/cache_loaders';
 import { cache } from 'react';
 import { getMetadata } from '~/components/tags/getPageMetaTags';
+import { parseIdSlugParam } from '~/util/puzzle/slug';
 
-type Props = { params: Promise<{ uuid_id: string }> };
+type Props = { params: Promise<{ id_slug: string }> };
 
-const word_puzzle_get_cached_func = cache((params: { id: number; uuid: string }) =>
+const word_puzzle_get_cached_func = cache((params: { slug: string }) =>
   CACHE.word_puzzle.get(params)
 );
 
-export async function generateMetadata({ params }: Props): Promise<Metadata> {
-  const [uuid_str, id_str] = decodeURIComponent((await params).uuid_id).split(':');
-  const id = z.coerce.number().int().parse(id_str);
-  const uuid = z.string().uuid().parse(uuid_str);
+const parseParams = async (params: Promise<{ id_slug: string }>) => {
+  const parsed = parseIdSlugParam((await params).id_slug);
+  if (!parsed) return null;
+  return parsed;
+};
 
-  const word_puzzle = await word_puzzle_get_cached_func({ id, uuid });
+export async function generateMetadata({ params }: Props): Promise<Metadata> {
+  const routeParams = await parseParams(params);
+  if (!routeParams) {
+    return getMetadata({ title: 'Not Found', description: null });
+  }
+
+  const word_puzzle = await word_puzzle_get_cached_func({ slug: routeParams.slug });
+  const isValid = word_puzzle && word_puzzle.id === routeParams.id;
 
   return {
     ...getMetadata({
-      title: word_puzzle ? word_puzzle.title + ' | पदावली' : 'Not Found',
-      description: word_puzzle ? word_puzzle.description : null
+      title: isValid ? word_puzzle.title + ' | पदावली' : 'Not Found',
+      description: isValid ? word_puzzle.description : null
     }),
     robots: 'noindex'
   };
 }
 
 const MainEdit = async ({ params }: Props) => {
-  const [uuid_str, id_str] = decodeURIComponent((await params).uuid_id).split(':');
-  const id = z.coerce.number().int().parse(id_str);
-  const uuid = z.string().uuid().parse(uuid_str);
+  const routeParams = await parseParams(params);
+  if (!routeParams) {
+    return <div>अनुचित ID</div>;
+  }
+
+  const { id, slug } = routeParams;
 
   const [word_puzzle, next_schedule] = await Promise.all([
-    word_puzzle_get_cached_func({ id, uuid }),
+    word_puzzle_get_cached_func({ slug }),
     CACHE.next_schedule.get(NO_CACHE_PARAMS)
   ]);
+
+  const isValid = word_puzzle && word_puzzle.id === id;
 
   const script = await getCachedScript();
   const word_game_msgs = await get_transliterated_word_game_msgs(script);
@@ -53,13 +66,12 @@ const MainEdit = async ({ params }: Props) => {
 
   return (
     <>
-      {word_puzzle ? (
+      {isValid ? (
         <>
           <WordGame
             location="view_page"
             script={script}
             id={word_puzzle.id}
-            uuid={word_puzzle.uuid}
             title={word_puzzle.title}
             description={word_puzzle.description}
             word_list={word_puzzle.word_list}

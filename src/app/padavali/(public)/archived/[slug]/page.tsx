@@ -1,4 +1,3 @@
-import { z } from 'zod';
 import { type Metadata } from 'next';
 import Link from 'next/link';
 import WordGame from '~/components/pages/main/WordGame/WordGameRoot';
@@ -11,18 +10,15 @@ import { cache, Suspense } from 'react';
 import { ArrowLeftIcon } from 'lucide-react';
 import { getMetadata } from '~/components/tags/getPageMetaTags';
 
-type Props = { params: Promise<{ id_uuid: string }> };
+type Props = { params: Promise<{ slug: string }> };
 
-const word_puzzle_get_cached_func = cache((params: { id: number; uuid: string }) =>
+const word_puzzle_get_cached_func = cache((params: { slug: string }) =>
   CACHE.word_puzzle.get(params)
 );
 
 export async function generateMetadata({ params }: Props): Promise<Metadata> {
-  const [id_str, uuid_str] = decodeURIComponent((await params).id_uuid).split(':');
-  const id = z.coerce.number().int().parse(id_str);
-  const uuid = z.string().uuid().parse(uuid_str);
-
-  const word_puzzle = await word_puzzle_get_cached_func({ id, uuid });
+  const slug = decodeURIComponent((await params).slug);
+  const word_puzzle = await word_puzzle_get_cached_func({ slug });
 
   return {
     ...getMetadata({
@@ -36,9 +32,7 @@ export async function generateMetadata({ params }: Props): Promise<Metadata> {
 }
 
 const MainEdit = async ({ params }: Props) => {
-  const [id_str, uuid_str] = decodeURIComponent((await params).id_uuid).split(':');
-  const id = z.coerce.number().int().parse(id_str);
-  const uuid = z.string().uuid().parse(uuid_str);
+  const slug = decodeURIComponent((await params).slug);
 
   return (
     <Suspense fallback={<PuzzleLoadingSkeleton />}>
@@ -52,7 +46,7 @@ const MainEdit = async ({ params }: Props) => {
             Back
           </Link>
         </div>
-        <WordGameSuspense id={id} uuid={uuid} />
+        <WordGameSuspense slug={slug} />
       </div>
     </Suspense>
   );
@@ -60,12 +54,12 @@ const MainEdit = async ({ params }: Props) => {
 
 export default MainEdit;
 
-const WordGameSuspense = async ({ id, uuid }: { id: number; uuid: string }) => {
+const WordGameSuspense = async ({ slug }: { slug: string }) => {
   const [word_puzzle, next_schedule] = await Promise.all([
-    word_puzzle_get_cached_func({ id, uuid }),
+    word_puzzle_get_cached_func({ slug }),
     CACHE.next_schedule.get(NO_CACHE_PARAMS)
   ]);
-  if (word_puzzle && !word_puzzle.archived) return <div>Puzzle {id} is not Archived</div>;
+  if (word_puzzle && !word_puzzle.archived) return <div>Puzzle is not Archived</div>;
 
   const script = await getCachedScript();
   const word_game_msgs = await get_transliterated_word_game_msgs(script);
@@ -79,7 +73,6 @@ const WordGameSuspense = async ({ id, uuid }: { id: number; uuid: string }) => {
       location="archive_page"
       script={script}
       id={word_puzzle.id}
-      uuid={word_puzzle.uuid}
       title={word_puzzle.title}
       description={word_puzzle.description}
       word_list={word_puzzle.word_list}
@@ -94,7 +87,6 @@ const WordGameSuspense = async ({ id, uuid }: { id: number; uuid: string }) => {
   );
 };
 
-// Loading skeleton component
 const PuzzleLoadingSkeleton = () => {
   return (
     <div className="w-full bg-linear-to-br from-slate-50 via-blue-50 to-indigo-50 dark:from-slate-900 dark:via-slate-800 dark:to-slate-900">
@@ -110,25 +102,20 @@ const PuzzleLoadingSkeleton = () => {
         </div>
 
         <div className="space-y-6">
-          {/* Header skeleton */}
           <div className="text-center">
             <div className="mx-auto mb-4 h-12 w-32 animate-pulse rounded-xl bg-slate-200 dark:bg-slate-700"></div>
             <div className="mx-auto h-8 w-64 animate-pulse rounded-lg bg-slate-200 dark:bg-slate-700"></div>
           </div>
 
-          {/* Game layout skeleton */}
           <div className="grid grid-cols-1 gap-6 lg:grid-cols-12">
-            {/* Left sidebar skeleton */}
             <div className="lg:col-span-3">
               <div className="h-32 w-full animate-pulse rounded-2xl bg-slate-200 dark:bg-slate-700"></div>
             </div>
 
-            {/* Game grid skeleton */}
             <div className="lg:col-span-6">
               <div className="mx-auto h-96 w-full max-w-lg animate-pulse rounded-3xl bg-slate-200 dark:bg-slate-700"></div>
             </div>
 
-            {/* Right sidebar skeleton */}
             <div className="lg:col-span-3">
               <div className="h-64 w-full animate-pulse rounded-2xl bg-slate-200 dark:bg-slate-700"></div>
             </div>

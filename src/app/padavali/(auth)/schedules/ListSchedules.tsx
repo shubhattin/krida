@@ -58,13 +58,13 @@ const formatScheduleRange = (startTime: Date, endTime: Date) => {
 };
 
 const ScheduleCardTitle = ({ title, puzzleId }: { title: string; puzzleId: number }) => (
-  <CardTitle className="flex items-start gap-2 text-base leading-snug font-semibold">
+  <CardTitle className="flex items-center gap-2 text-base leading-snug font-semibold">
     <span className="min-w-0 flex-1">{title}</span>
     <a
       href={`/padavali/edit/${puzzleId}`}
       target="_blank"
       rel="noopener noreferrer"
-      className="inline-flex shrink-0 text-muted-foreground transition-colors hover:text-blue-500"
+      className="inline-flex shrink-0 items-center justify-center text-muted-foreground transition-colors hover:text-blue-500"
     >
       <SquareArrowOutUpRightIcon className="size-3.5" />
     </a>
@@ -84,9 +84,11 @@ const ScheduleCardMeta = ({
     <p className="text-sm leading-relaxed text-muted-foreground">
       {formatScheduleRange(startTime, endTime)}
     </p>
-    <div className="flex items-center gap-1.5 text-sm text-muted-foreground">
-      <ClockIcon className="size-3.5 shrink-0" />
-      <span>{dayjs(createdAt).fromNow()}</span>
+    <div className="flex items-center gap-1.5 text-sm leading-none text-muted-foreground">
+      <span className="inline-flex items-center justify-center">
+        <ClockIcon className="size-3.5" />
+      </span>
+      <span className="leading-normal">{dayjs(createdAt).fromNow()}</span>
     </div>
   </div>
 );
@@ -111,12 +113,12 @@ const ListSchedules = ({ upcomming_schedules }: Props) => {
       <div className="grid gap-4 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4">
         {upcomming_schedules.map((schedule) => (
           <Card key={schedule.id} className="transition-shadow hover:shadow-md">
-            <CardHeader className="gap-2">
+            <CardHeader className="items-center gap-2">
               <ScheduleCardTitle title={schedule.puzzle.title} puzzleId={schedule.puzzle_id} />
-              <CardAction className="flex items-center gap-x-2">
+              <CardAction className="flex items-center gap-1 self-center">
                 <Link
                   href={`/padavali/schedules/edit/${schedule.id}`}
-                  className="hover:text-blue-500"
+                  className="inline-flex items-center justify-center p-1 text-muted-foreground hover:text-blue-500"
                 >
                   <PencilIcon className="size-4" />
                 </Link>
@@ -124,7 +126,8 @@ const ListSchedules = ({ upcomming_schedules }: Props) => {
                   <AlertDialogTrigger
                     render={
                       <button
-                        className="cursor-pointer p-1 outline-none hover:brightness-75"
+                        type="button"
+                        className="inline-flex cursor-pointer items-center justify-center p-1 outline-none hover:brightness-75"
                         disabled={del_schedule_mutation.isPending}
                       />
                     }

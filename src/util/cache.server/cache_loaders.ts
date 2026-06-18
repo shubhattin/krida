@@ -36,7 +36,7 @@ export type NextScheduleType = z.infer<typeof next_schedule_schema> | undefined;
 
 const archived_puzzle_schema = z.object({
   id: z.number().int(),
-  uuid: z.string().uuid(),
+  slug: z.string(),
   title: z.string(),
   description: z.string().nullable()
 });
@@ -131,7 +131,7 @@ const load_archived_puzzle_list = createCachedLoader<NoCacheParams, ArchivedPuzz
     const data = await db.query.word_puzzles.findMany({
       columns: {
         id: true,
-        uuid: true,
+        slug: true,
         title: true,
         description: true
       },
@@ -145,15 +145,15 @@ const load_archived_puzzle_list = createCachedLoader<NoCacheParams, ArchivedPuzz
   }
 });
 
-type WordPuzzleParams = { id: number; uuid: string };
+type WordPuzzleParams = { slug: string };
 
 const load_word_puzzle = createCachedLoader<WordPuzzleParams, PuzzleType | undefined>({
-  getKey: ({ id, uuid }) => REDIS_CACHE_KEYS.word_puzzle(id, uuid),
+  getKey: ({ slug }) => REDIS_CACHE_KEYS.word_puzzle(slug),
   schema: puzzle_schema,
   shouldCache: (data): data is PuzzleType => data !== undefined,
-  fetch: async ({ id, uuid }) => {
+  fetch: async ({ slug }) => {
     const data = await db.query.word_puzzles.findFirst({
-      where: (tbl, { eq, and }) => and(eq(tbl.id, id), eq(tbl.uuid, uuid)),
+      where: (tbl, { eq }) => eq(tbl.slug, slug),
       with: {
         attachments: {
           columns: {

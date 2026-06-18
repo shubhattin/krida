@@ -285,19 +285,18 @@ const ListPage = () => {
                   <Card className="p-2 transition duration-200 hover:bg-gray-100 hover:dark:bg-gray-800">
                     <CardHeader>
                       <CardTitle>{item.title}</CardTitle>
-                      <CardDescription className="flex flex-col space-y-1 sm:flex-row sm:items-center sm:space-y-0 sm:space-x-2">
+                      <CardDescription className="flex flex-wrap items-center gap-x-2 gap-y-1 sm:flex-row sm:items-center">
                         {item.updated_at &&
                           item.updated_at.getTime() !== item.created_at.getTime() &&
                           item.updated_at.getTime() !== 0 && (
                             <>
-                              <span className="text-sm text-muted-foreground">
-                                {/* <RefreshCwIcon className="mr-1 inline-block h-3 w-3" /> */}
+                              <span className="inline-flex items-center text-sm text-muted-foreground">
                                 Updated: {dayjs(item.updated_at).fromNow()}
                               </span>
                             </>
                           )}
-                        <span className="text-sm text-muted-foreground">
-                          <CalendarIcon className="mr-1 inline-block size-3" />
+                        <span className="inline-flex items-center gap-1 text-sm text-muted-foreground">
+                          <CalendarIcon className="size-3 shrink-0" />
                           {dayjs(item.created_at).format('MMM D, YYYY')}
                         </span>
                       </CardDescription>

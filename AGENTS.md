@@ -6,7 +6,7 @@
 
 - Use command in form `bunx shadcn@latest add <component-list>` to add components.
 
-# General 
+# General
 
 - Never start the dev server, as it would be already running on the provisioned port.
 - Never run git commit commands on your own

@@ -1,4 +1,7 @@
 import { z } from 'zod';
+import { slug_schema } from '~/util/puzzle/slug';
+
+export { slug_schema };
 
 export const ATTACHMENT_TYPE_LIST = [
   'link',
@@ -43,7 +46,7 @@ export const puzzle_schema = z.object({
 
 export const puzzle_update_input_schema = z.object({
   puzzle_id: z.number().int(),
-  puzzle_uuid: z.string().uuid(),
+  puzzle_slug: slug_schema,
   puzzle_data: puzzle_schema
     .pick({
       title: true,
@@ -64,20 +67,14 @@ export const puzzle_update_input_schema = z.object({
     )
 });
 
-export const puzzle_add_input_schema = puzzle_schema
-  .omit({
-    id: true,
-    slug: true,
-    created_at: true,
-    updated_at: true,
-    attachments: true
-  })
-  .and(
-    z.object({
-      attachments: z.array(
-        attachment_schema.omit({ id: true }).extend({
-          id: z.number().int().optional().nullable()
-        })
-      )
-    })
-  );
+export const puzzle_add_input_schema = z.object({
+  title: z.string().min(1),
+  slug: slug_schema,
+  description: z.string().optional().nullable()
+});
+
+export const puzzle_update_slug_input_schema = z.object({
+  puzzle_id: z.number().int(),
+  current_slug: slug_schema,
+  new_slug: slug_schema
+});

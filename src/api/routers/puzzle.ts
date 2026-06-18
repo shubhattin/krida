@@ -10,23 +10,38 @@ import {
   invalidate_and_refresh_cached,
   NO_CACHE_PARAMS
 } from '~/util/cache.server/cache_loaders';
-import { puzzle_add_input_schema, puzzle_update_input_schema } from '~/db/db_shared_vals';
+import {
+  puzzle_add_input_schema,
+  puzzle_update_input_schema,
+  puzzle_update_slug_input_schema
+} from '~/db/db_shared_vals';
 import { sendOneSignalNotification } from '~/lib/onesignal';
 import { delay } from '~/tools/delay';
+import {
+  createEmptyGridData,
+  DEFAULT_GRID_DIMENSIONS,
+  isValidSlug,
+  normalizeSlug
+} from '~/util/puzzle/slug';
 
-const puzzle_in_current_schedule = async (id: number, uuid: string) => {
+const puzzle_in_current_schedule = async (id: number, slug: string) => {
   const current_schedule = await CACHE.current_schedule.get(NO_CACHE_PARAMS);
-  return current_schedule?.puzzle.id === id && current_schedule.puzzle.uuid === uuid;
+  return current_schedule?.puzzle.id === id && current_schedule.puzzle.slug === slug;
 };
 
-export const notify_for_archived_puzzle = async (title: string, id: number, uuid: string) => {
+const puzzle_in_next_schedule = async (id: number) => {
+  const next_schedule = await CACHE.next_schedule.get(NO_CACHE_PARAMS);
+  return next_schedule?.puzzle.id === id;
+};
+
+export const notify_for_archived_puzzle = async (title: string, slug: string) => {
   return await sendOneSignalNotification({
     headings: { en: '🧩 New Archived Puzzle Added! 🎉' },
     contents: {
       en: `"${title}" - Archived Puzzle Added, Play Now! 🚀`
     },
-    name: `new_archived_puzzle:${id}`,
-    url: `${process.env.NEXT_PUBLIC_SITE_URL}/padavali/archived/${id}:${uuid}`
+    name: `new_archived_puzzle:${slug}`,
+    url: `${process.env.NEXT_PUBLIC_SITE_URL}/padavali/archived/${slug}`
   });
 };
 
@@ -108,9 +123,34 @@ const update_puzzle_attachments = async (
   };
 };
 
+const check_slug_availability_route = protectedAdminProcedure
+  .input(
+    z.object({
+      slug: z.string(),
+      exclude_puzzle_id: z.number().int().optional()
+    })
+  )
+  .query(async ({ input: { slug, exclude_puzzle_id } }) => {
+    const normalized = normalizeSlug(slug);
+    if (!isValidSlug(normalized)) {
+      return { available: false as const, reason: 'invalid_format' as const, slug: normalized };
+    }
+
+    const existing = await db.query.word_puzzles.findFirst({
+      where: (tbl, { eq }) => eq(tbl.slug, normalized),
+      columns: { id: true }
+    });
+
+    if (!existing || (exclude_puzzle_id !== undefined && existing.id === exclude_puzzle_id)) {
+      return { available: true as const, slug: normalized };
+    }
+
+    return { available: false as const, reason: 'taken' as const, slug: normalized };
+  });
+
 const update_puzzle_route = protectedAdminProcedure
   .input(puzzle_update_input_schema)
-  .mutation(async ({ input: { puzzle_id, puzzle_data, puzzle_uuid } }) => {
+  .mutation(async ({ input: { puzzle_id, puzzle_data, puzzle_slug } }) => {
     revalidatePath('/padavali/list');
     const prev_archived = (await db.query.word_puzzles.findFirst({
       columns: {
@@ -124,13 +164,13 @@ const update_puzzle_route = protectedAdminProcedure
       await tx
         .update(word_puzzles)
         .set(puzzle_data_rest)
-        .where(and(eq(word_puzzles.id, puzzle_id), eq(word_puzzles.uuid, puzzle_uuid)));
+        .where(and(eq(word_puzzles.id, puzzle_id), eq(word_puzzles.slug, puzzle_slug)));
 
       if (!prev_archived && puzzle_data.archived) {
         await tx
           .update(word_puzzles)
           .set({ last_archived_at: new Date() })
-          .where(and(eq(word_puzzles.id, puzzle_id), eq(word_puzzles.uuid, puzzle_uuid)));
+          .where(and(eq(word_puzzles.id, puzzle_id), eq(word_puzzles.slug, puzzle_slug)));
       }
 
       return update_puzzle_attachments(tx, puzzle_id, attachments);
@@ -140,14 +180,13 @@ const update_puzzle_route = protectedAdminProcedure
       (puzzle_data.archived || prev_archived !== puzzle_data.archived) &&
         invalidate_and_refresh_cached(CACHE.archived_puzzle_list, NO_CACHE_PARAMS),
       invalidate_and_refresh_cached(CACHE.word_puzzle, {
-        id: puzzle_id,
-        uuid: puzzle_uuid
+        slug: puzzle_slug
       }),
-      (await puzzle_in_current_schedule(puzzle_id, puzzle_uuid)) &&
+      (await puzzle_in_current_schedule(puzzle_id, puzzle_slug)) &&
         invalidate_and_refresh_cached(CACHE.current_schedule, NO_CACHE_PARAMS),
       puzzle_data.archived &&
         !prev_archived &&
-        notify_for_archived_puzzle(puzzle_data_rest.title, puzzle_id, puzzle_uuid)
+        notify_for_archived_puzzle(puzzle_data_rest.title, puzzle_slug)
     ]);
     return {
       success: true,
@@ -155,78 +194,95 @@ const update_puzzle_route = protectedAdminProcedure
     };
   });
 
+const update_puzzle_slug_route = protectedAdminProcedure
+  .input(puzzle_update_slug_input_schema)
+  .mutation(async ({ input: { puzzle_id, current_slug, new_slug } }) => {
+    if (current_slug === new_slug) {
+      return { success: true as const, slug: new_slug };
+    }
+
+    const puzzle = await db.query.word_puzzles.findFirst({
+      columns: { id: true, archived: true },
+      where: (tbl, { and, eq }) => and(eq(tbl.id, puzzle_id), eq(tbl.slug, current_slug))
+    });
+    if (!puzzle) {
+      throw new Error('Puzzle not found or slug mismatch');
+    }
+
+    const availability = await db.query.word_puzzles.findFirst({
+      where: (tbl, { eq }) => eq(tbl.slug, new_slug),
+      columns: { id: true }
+    });
+    if (availability && availability.id !== puzzle_id) {
+      throw new Error('Slug is already taken');
+    }
+
+    await db
+      .update(word_puzzles)
+      .set({ slug: new_slug })
+      .where(and(eq(word_puzzles.id, puzzle_id), eq(word_puzzles.slug, current_slug)));
+
+    revalidatePath('/padavali/list');
+
+    await CACHE.word_puzzle.delete({ slug: current_slug });
+    await invalidate_and_refresh_cached(CACHE.word_puzzle, { slug: new_slug });
+
+    await Promise.allSettled([
+      puzzle.archived && invalidate_and_refresh_cached(CACHE.archived_puzzle_list, NO_CACHE_PARAMS),
+      (await puzzle_in_current_schedule(puzzle_id, new_slug)) &&
+        invalidate_and_refresh_cached(CACHE.current_schedule, NO_CACHE_PARAMS),
+      (await puzzle_in_next_schedule(puzzle_id)) &&
+        invalidate_and_refresh_cached(CACHE.next_schedule, NO_CACHE_PARAMS)
+    ]);
+
+    return { success: true as const, slug: new_slug };
+  });
+
 const add_puzzle_route = protectedAdminProcedure
   .input(puzzle_add_input_schema)
   .mutation(async ({ input }) => {
     revalidatePath('/padavali/list');
-    const { attachments, ...puzzle_data_rest } = input;
 
-    const { id, uuid, newly_added_index_ids } = await db.transaction(async (tx) => {
-      const [inserted] = await tx
-        .insert(word_puzzles)
-        .values({
-          ...puzzle_data_rest,
-          ...(puzzle_data_rest.archived ? { last_archived_at: new Date() } : {})
-        })
-        .returning();
+    const [inserted] = await db
+      .insert(word_puzzles)
+      .values({
+        title: input.title,
+        slug: input.slug,
+        description: input.description?.trim() ? input.description.trim() : null,
+        word_list: [],
+        grid_data: createEmptyGridData(DEFAULT_GRID_DIMENSIONS),
+        grid_dimensions: DEFAULT_GRID_DIMENSIONS,
+        archived: false
+      })
+      .returning();
 
-      const new_attachment_ids =
-        attachments.length > 0
-          ? (
-              await tx
-                .insert(word_puzzle_attachments)
-                .values(
-                  attachments.map((attachment) => {
-                    const { id: _id, ...rest } = attachment;
-                    return {
-                      ...rest,
-                      puzzle_id: inserted.id
-                    };
-                  })
-                )
-                .returning()
-            ).map((a) => a.id)
-          : [];
-
-      return {
-        id: inserted.id,
-        uuid: inserted.uuid,
-        newly_added_index_ids: new_attachment_ids
-      };
-    });
-
-    await Promise.allSettled([
-      input.archived && invalidate_and_refresh_cached(CACHE.archived_puzzle_list, NO_CACHE_PARAMS),
-      input.archived && notify_for_archived_puzzle(puzzle_data_rest.title, id, uuid)
-    ]);
-
-    return {
-      id,
-      uuid,
-      newly_added_index_ids
-    };
+    return { id: inserted.id };
   });
 
 const delete_puzzle_route = protectedAdminProcedure
-  .input(z.object({ id: z.number().int(), uuid: z.string().uuid() }))
-  .mutation(async ({ input: { id, uuid } }) => {
+  .input(z.object({ id: z.number().int(), slug: z.string() }))
+  .mutation(async ({ input: { id, slug } }) => {
     revalidatePath('/padavali/list');
     const { archived } = (await db.query.word_puzzles.findFirst({
       columns: {
         archived: true
       },
-      where: (tbl, { eq }) => eq(tbl.id, id)
+      where: (tbl, { and, eq }) => and(eq(tbl.id, id), eq(tbl.slug, slug))
     }))!;
 
     await db.transaction(async (tx) => {
-      await tx.delete(word_puzzles).where(eq(word_puzzles.id, id));
+      await tx
+        .delete(word_puzzles)
+        .where(and(eq(word_puzzles.id, id), eq(word_puzzles.slug, slug)));
     });
 
     await Promise.allSettled([
       archived && invalidate_and_refresh_cached(CACHE.archived_puzzle_list, NO_CACHE_PARAMS),
-      invalidate_and_refresh_cached(CACHE.word_puzzle, { id, uuid }),
-      (await puzzle_in_current_schedule(id, uuid)) &&
-        invalidate_and_refresh_cached(CACHE.current_schedule, NO_CACHE_PARAMS)
+      invalidate_and_refresh_cached(CACHE.word_puzzle, { slug }),
+      (await puzzle_in_current_schedule(id, slug)) &&
+        invalidate_and_refresh_cached(CACHE.current_schedule, NO_CACHE_PARAMS),
+      (await puzzle_in_next_schedule(id)) &&
+        invalidate_and_refresh_cached(CACHE.next_schedule, NO_CACHE_PARAMS)
     ]);
     return {
       success: true
@@ -258,7 +314,7 @@ export const get_puzzle_list_page = async (input: z.input<typeof get_puzzle_data
   const rows = await db.query.word_puzzles.findMany({
     columns: {
       id: true,
-      uuid: true,
+      slug: true,
       title: true,
       description: true,
       archived: true,
@@ -306,7 +362,9 @@ const get_puzzle_list_page_route = protectedAdminProcedure
   .query(async ({ input }) => await get_puzzle_list_page(input));
 
 export const puzzle_router = t.router({
+  check_slug_availability: check_slug_availability_route,
   update_puzzle: update_puzzle_route,
+  update_puzzle_slug: update_puzzle_slug_route,
   add_puzzle: add_puzzle_route,
   delete_puzzle: delete_puzzle_route,
   stats: padavali_stats_router,

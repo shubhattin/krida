@@ -57,25 +57,25 @@ const MainEdit = async ({ params }: Props) => {
 
   return (
     <>
-      <div className="my-2 mb-3.5 flex space-x-6 px-2 sm:space-x-9">
+      <div className="my-2 mb-3.5 flex items-center gap-6 px-2 sm:gap-9">
         <Link
           href="/padavali/list"
-          className="inline-flex items-center gap-1 text-lg font-semibold"
+          className="inline-flex items-center gap-1.5 text-lg font-semibold"
         >
-          <IoMdArrowRoundBack className="inline-block text-xl" />
+          <IoMdArrowRoundBack className="size-5 shrink-0" />
           Main List
         </Link>
         <Link
-          href={`/padavali/view/${word_puzzle.uuid}:${word_puzzle.id}`}
+          href={`/padavali/view/${word_puzzle.id}:${word_puzzle.slug}`}
           target="_blank"
           className="inline-flex items-center gap-2 text-lg font-semibold"
         >
-          <FaPlay className="inline-block text-lg" />
+          <FaPlay className="size-4 shrink-0" />
           Play
         </Link>
       </div>
       <JotaiProvider key={`edit_${word_puzzle.id}`}>
-        <MainEditPage word_puzzle={word_puzzle} key={word_puzzle.id} location="edit_page" />
+        <MainEditPage word_puzzle={word_puzzle} key={word_puzzle.id} />
       </JotaiProvider>
     </>
   );

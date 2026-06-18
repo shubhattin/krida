@@ -52,7 +52,6 @@ export type WordGameProps = {
   title: string;
   description: string | null;
   id: number;
-  uuid: string;
   children?: React.ReactNode;
   attachments: z.infer<typeof attachment_schema>[];
   initial_script_data: {
@@ -168,7 +167,6 @@ function WordGame({
   title: org_title,
   grid_data: org_grid_data,
   description,
-  uuid,
   onChangeCompleted,
   next_schedule,
   location,
@@ -291,9 +289,7 @@ function WordGame({
         {/* Header Section */}
         <div className="mb-1 space-y-1 text-center sm:mb-2 sm:space-y-1.5 md:mb-3">
           <Suspense fallback={HintJSX}>
-            <AppAuthContextMenu id={puzzle_id} uuid={uuid}>
-              {HintJSX}
-            </AppAuthContextMenu>
+            <AppAuthContextMenu id={puzzle_id}>{HintJSX}</AppAuthContextMenu>
           </Suspense>
           <div
             className={cn(
@@ -422,7 +418,6 @@ function WordGame({
                 original_grid_data={org_grid_data}
                 puzzle_id={puzzle_id}
                 timerRef={timerRef}
-                puzzle_uuid={uuid}
                 location={location}
               />
             </div>

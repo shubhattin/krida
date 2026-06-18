@@ -1,7 +1,7 @@
 'use client';
 
 import { z } from 'zod';
-import { useEffect, useMemo, useRef } from 'react';
+import { useEffect, useMemo, useRef, useState } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { Card, CardContent } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
@@ -65,9 +65,9 @@ import {
   attachment_schema,
   ATTACHMENT_TYPE_LIST,
   ATTACHMENT_TYPE_NAMES,
-  puzzle_add_input_schema,
   puzzle_update_input_schema
 } from '~/db/db_shared_vals';
+import { SlugField } from '~/components/pages/main/EditSlugDialog';
 import {
   Accordion,
   AccordionContent,
@@ -92,8 +92,7 @@ const ATTACHMENT_TYPE_ITEMS = [
 
 const puzzle_schema = _puzzle_schema
   .extend({
-    id: z.number().int().nullable(),
-    uuid: z.string().uuid().nullable()
+    id: z.number().int()
   })
   .omit({
     attachments: true
@@ -121,20 +120,13 @@ const description_atom = atom<string | null>(null);
 const lipi_lekhika_active_atom = atom<boolean>(true);
 const attachments_atom = atom<Puzzle['attachments']>([]);
 
-export type ViewEditProps =
-  | {
-      word_puzzle: Puzzle;
-      location: 'add_page';
-    }
-  | {
-      word_puzzle: Puzzle & {
-        id: number;
-        uuid: string;
-      };
-      location: 'edit_page';
-    };
+export type ViewEditProps = {
+  word_puzzle: Puzzle;
+};
 
-const ViewEditPuzzle = ({ word_puzzle }: ViewEditProps) => {
+const ViewEditPuzzle = ({ word_puzzle: initialWordPuzzle }: ViewEditProps) => {
+  const [word_puzzle, setWordPuzzle] = useState(initialWordPuzzle);
+
   useHydrateAtoms([
     [title_atom, word_puzzle.title],
     [word_list_atom, [...word_puzzle.word_list]],
@@ -150,6 +142,11 @@ const ViewEditPuzzle = ({ word_puzzle }: ViewEditProps) => {
       <CardContent>
         <div className="space-y-4">
           <LipiLekhikaSwitch />
+          <SlugField
+            slug={word_puzzle.slug}
+            puzzleId={word_puzzle.id}
+            onSlugUpdated={(slug) => setWordPuzzle((prev) => ({ ...prev, slug }))}
+          />
           <Title />
           <ArchivedSwitch />
           <Description />
@@ -1008,7 +1005,7 @@ const Description = () => {
   );
 };
 
-const SaveButton = ({ word_puzzle }: { word_puzzle: z.infer<typeof puzzle_schema> }) => {
+const SaveButton = ({ word_puzzle }: { word_puzzle: Puzzle }) => {
   const [title] = useAtom(title_atom);
   const [wordList] = useAtom(word_list_atom);
   const [gridData] = useAtom(grid_data_atom);
@@ -1061,16 +1058,6 @@ const SaveButton = ({ word_puzzle }: { word_puzzle: z.infer<typeof puzzle_schema
     }
   });
 
-  const add_word_puzzle_mut = client_q.puzzle.add_puzzle.useMutation({
-    onSuccess(data) {
-      toast.success('Puzzle added successfully');
-      router.push(`/padavali/edit/${data.id}`);
-    },
-    onError() {
-      toast.error('Failed to add puzzle, check the entered data');
-    }
-  });
-
   const delete_word_puzzle_mut = client_q.puzzle.delete_puzzle.useMutation({
     onSuccess() {
       toast.success('Puzzle deleted successfully');
@@ -1092,56 +1079,33 @@ const SaveButton = ({ word_puzzle }: { word_puzzle: z.infer<typeof puzzle_schema
     );
   }, [title, wordList, gridData, archived, description, attachments]);
 
-  const is_addition = word_puzzle.id === null || word_puzzle.id === undefined;
-
   const handleSave = async () => {
-    if (!is_addition) {
-      const data = {
-        puzzle_id: word_puzzle.id!,
-        puzzle_uuid: word_puzzle.uuid!,
-        puzzle_data: {
-          title,
-          archived,
-          word_list: wordList,
-          grid_data: gridData,
-          description: description !== '' ? description : null,
-          attachments
-        }
-      };
-      const parse = puzzle_update_input_schema.safeParse(data);
-      if (parse.success) {
-        await update_word_puzzle_mut.mutateAsync(parse.data);
-      } else {
-        console.log(parse.error);
-        toast.error('Failed to update puzzle, fix the entered data');
-      }
-    } else {
-      const data = {
+    const data = {
+      puzzle_id: word_puzzle.id,
+      puzzle_slug: word_puzzle.slug,
+      puzzle_data: {
         title,
+        archived,
         word_list: wordList,
         grid_data: gridData,
-        grid_dimensions: word_puzzle.grid_dimensions,
-        archived,
         description: description !== '' ? description : null,
         attachments
-      };
-      const parse = puzzle_add_input_schema.safeParse(data);
-      if (parse.success) {
-        await add_word_puzzle_mut.mutateAsync(parse.data);
-      } else {
-        console.log(parse.error);
-        toast.error('Failed to add puzzle, fix the entered data');
       }
+    };
+    const parse = puzzle_update_input_schema.safeParse(data);
+    if (parse.success) {
+      await update_word_puzzle_mut.mutateAsync(parse.data);
+    } else {
+      console.log(parse.error);
+      toast.error('Failed to update puzzle, fix the entered data');
     }
   };
 
   const handleDelete = async () => {
-    if (!is_addition) {
-      await delete_word_puzzle_mut.mutateAsync({
-        id: word_puzzle.id!,
-        uuid: word_puzzle.uuid!
-      });
-    }
+    await delete_word_puzzle_mut.mutateAsync({
+      id: word_puzzle.id,
+      slug: word_puzzle.slug
+    });
   };
 
   return (
@@ -1150,32 +1114,19 @@ const SaveButton = ({ word_puzzle }: { word_puzzle: z.infer<typeof puzzle_schema
         <AlertDialogTrigger
           render={
             <Button
-              disabled={
-                !isEdited || add_word_puzzle_mut.isPending || update_word_puzzle_mut.isPending
-              }
+              disabled={!isEdited || update_word_puzzle_mut.isPending}
               className="flex text-lg"
               variant={'outline'}
             />
           }
         >
-          {is_addition ? (
-            <>
-              <IoMdAdd className="text-lg" /> {!add_word_puzzle_mut.isPending ? 'Add' : 'Adding...'}
-            </>
-          ) : (
-            <>
-              <FiSave className="text-lg" />{' '}
-              {!update_word_puzzle_mut.isPending ? 'Save' : 'Saving...'}
-            </>
-          )}
+          <FiSave className="text-lg" /> {!update_word_puzzle_mut.isPending ? 'Save' : 'Saving...'}
         </AlertDialogTrigger>
         <AlertDialogContent>
           <AlertDialogHeader>
             <AlertDialogTitle>Confirm Save</AlertDialogTitle>
             <AlertDialogDescription>
-              {is_addition
-                ? 'Are you sure you want to add this puzzle?'
-                : 'Are you sure you want to save your changes?'}
+              Are you sure you want to save your changes?
             </AlertDialogDescription>
           </AlertDialogHeader>
           <AlertDialogFooter>
@@ -1185,30 +1136,28 @@ const SaveButton = ({ word_puzzle }: { word_puzzle: z.infer<typeof puzzle_schema
         </AlertDialogContent>
       </AlertDialog>
 
-      {!is_addition && (
-        <AlertDialog>
-          <AlertDialogTrigger
-            render={<Button className="flex gap-1 px-1 py-0 text-sm" variant="destructive" />}
-          >
-            <MdDeleteOutline className="text-base" />
-            Delete
-          </AlertDialogTrigger>
-          <AlertDialogContent>
-            <AlertDialogHeader>
-              <AlertDialogTitle>Confirm Delete</AlertDialogTitle>
-              <AlertDialogDescription>
-                Are you sure you want to delete this puzzle? This action cannot be undone.
-              </AlertDialogDescription>
-            </AlertDialogHeader>
-            <AlertDialogFooter>
-              <AlertDialogCancel>Cancel</AlertDialogCancel>
-              <AlertDialogAction onClick={handleDelete} className="bg-red-500 hover:bg-red-400">
-                Delete
-              </AlertDialogAction>
-            </AlertDialogFooter>
-          </AlertDialogContent>
-        </AlertDialog>
-      )}
+      <AlertDialog>
+        <AlertDialogTrigger
+          render={<Button className="flex gap-1 px-1 py-0 text-sm" variant="destructive" />}
+        >
+          <MdDeleteOutline className="text-base" />
+          Delete
+        </AlertDialogTrigger>
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle>Confirm Delete</AlertDialogTitle>
+            <AlertDialogDescription>
+              Are you sure you want to delete this puzzle? This action cannot be undone.
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel>Cancel</AlertDialogCancel>
+            <AlertDialogAction onClick={handleDelete} className="bg-red-500 hover:bg-red-400">
+              Delete
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
     </div>
   );
 };
