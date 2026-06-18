@@ -36,7 +36,10 @@ const Main = async () => {
   return (
     <div className="container mx-auto p-4">
       <div className="my-2 mb-4 px-2">
-        <Link href="/padavali/list" className="inline-flex items-center gap-1.5 text-lg font-semibold">
+        <Link
+          href="/padavali/list"
+          className="inline-flex items-center gap-1.5 text-lg font-semibold"
+        >
           <IoMdArrowRoundBack className="size-5 shrink-0" />
           <span>Main List</span>
         </Link>
@@ -47,7 +50,9 @@ const Main = async () => {
           <h1 className="text-2xl font-bold">Schedules</h1>
         </div>
         <Button
-          render={<Link href="/padavali/schedules/add" className="inline-flex items-center gap-2" />}
+          render={
+            <Link href="/padavali/schedules/add" className="inline-flex items-center gap-2" />
+          }
           nativeButton={false}
           variant={'outline'}
         >

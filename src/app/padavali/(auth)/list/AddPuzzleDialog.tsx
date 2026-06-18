@@ -1,6 +1,6 @@
 'use client';
 
-import { useState } from 'react';
+import { useEffect, useState } from 'react';
 import { useRouter } from 'next/navigation';
 import { IoMdAdd } from 'react-icons/io';
 import { CheckIcon, Loader2Icon, XIcon } from 'lucide-react';
@@ -27,10 +27,18 @@ import {
 } from '~/components/ui/alert-dialog';
 import { Input } from '~/components/ui/input';
 import { Label } from '~/components/ui/label';
+import { Switch } from '~/components/ui/switch';
 import { Textarea } from '~/components/ui/textarea';
 import { toast } from 'sonner';
 import { useDebouncedSlugCheck } from '~/hooks/useDebouncedSlugCheck';
 import { cn } from '~/lib/utils';
+import Icon from '~/tools/Icon';
+import { LanguageIcon } from '~/components/icons';
+import {
+  createTypingContext,
+  clearTypingContextOnKeyDown,
+  handleTypingBeforeInputEvent
+} from 'lipilekhika/typing';
 
 const SlugStatusIcon = ({
   status
@@ -56,6 +64,12 @@ const AddPuzzleDialog = () => {
   const [title, setTitle] = useState('');
   const [description, setDescription] = useState('');
   const [slug, setSlug] = useState('');
+  const [lipi_lekhika_typing, setLipiLekhikaTyping] = useState(true);
+
+  const ctx = createTypingContext('Devanagari');
+  useEffect(() => {
+    ctx.ready;
+  }, [ctx]);
 
   const { status: slugStatus, normalizedSlug } = useDebouncedSlugCheck(slug, {
     enabled: open
@@ -119,12 +133,33 @@ const AddPuzzleDialog = () => {
           <div className="space-y-4">
             <div className="space-y-2">
               <Label htmlFor="add-puzzle-title">Title</Label>
-              <Input
-                id="add-puzzle-title"
-                value={title}
-                onChange={(e) => setTitle(e.currentTarget.value)}
-                placeholder="Puzzle title"
-              />
+              <div className="flex items-center gap-3">
+                <Input
+                  id="add-puzzle-title"
+                  className="flex-1"
+                  value={title}
+                  onChange={(e) => setTitle(e.currentTarget.value)}
+                  onBeforeInput={(e) =>
+                    handleTypingBeforeInputEvent(
+                      ctx,
+                      e,
+                      (newValue) => setTitle(newValue),
+                      lipi_lekhika_typing
+                    )
+                  }
+                  onBlur={() => ctx.clearContext()}
+                  onKeyDown={(e) => clearTypingContextOnKeyDown(e, ctx)}
+                  placeholder="Puzzle title"
+                />
+                <Label className="inline-flex shrink-0 items-center justify-center gap-2 font-medium">
+                  <Switch
+                    checked={lipi_lekhika_typing}
+                    onCheckedChange={setLipiLekhikaTyping}
+                    className="-mt-1"
+                  />
+                  <Icon src={LanguageIcon} className="-mt-1 size-6.5" />
+                </Label>
+              </div>
             </div>
             <div className="space-y-2">
               <Label htmlFor="add-puzzle-slug">Slug</Label>

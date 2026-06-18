@@ -2,7 +2,7 @@ import { z } from 'zod';
 import { protectedAdminProcedure, t } from '../trpc_init';
 import { db, type transactionType } from '~/db/db';
 import { word_puzzle_attachments, word_puzzles } from '~/db/schema';
-import { and, eq, inArray } from 'drizzle-orm';
+import { and, asc, count, desc, eq, ilike, inArray } from 'drizzle-orm';
 import { revalidatePath } from 'next/cache';
 import { padavali_stats_router } from './padavali_stats';
 import {
@@ -289,76 +289,70 @@ const delete_puzzle_route = protectedAdminProcedure
     };
   });
 
-const get_puzzle_data_input_schema = z.object({
-  limit: z.number().int(),
-  search_title: z.string().optional(),
+const get_puzzle_list_input_schema = z.object({
+  page: z.number().int().min(1).default(1),
+  size: z.number().int().min(1).max(100).default(12),
+  search_title: z.string().max(500).optional(),
   archived_filter: z.boolean().optional(),
-  sort_by: z.enum(['created_at', 'updated_at']).optional(),
-  last_created_or_updated_at: z.coerce.date().optional(),
-  last_id: z.number().int().optional(),
+  sort_by: z.enum(['created_at', 'updated_at']).optional().default('created_at'),
   order_by: z.enum(['asc', 'desc']).optional().default('desc')
 });
 
-export const get_puzzle_list_page = async (input: z.input<typeof get_puzzle_data_input_schema>) => {
-  const {
-    limit,
-    search_title,
-    archived_filter,
-    sort_by,
-    last_created_or_updated_at,
-    last_id,
-    order_by
-  } = input;
+export const get_puzzle_list_page = async (input: z.input<typeof get_puzzle_list_input_schema>) => {
+  const { page, size, search_title, archived_filter, sort_by, order_by } =
+    get_puzzle_list_input_schema.parse(input);
+
+  const trimmedSearch = search_title?.trim();
+  const conditions = [];
+  if (typeof archived_filter === 'boolean') {
+    conditions.push(eq(word_puzzles.archived, archived_filter));
+  }
+  if (trimmedSearch) {
+    conditions.push(ilike(word_puzzles.title, `%${trimmedSearch}%`));
+  }
+  const whereClause = conditions.length > 0 ? and(...conditions) : undefined;
+
+  const sortCol = sort_by === 'updated_at' ? word_puzzles.updated_at : word_puzzles.created_at;
+  const orderPrimary = order_by === 'desc' ? desc(sortCol) : asc(sortCol);
+  const orderTiebreaker = order_by === 'desc' ? desc(word_puzzles.id) : asc(word_puzzles.id);
+  const offset = (page - 1) * size;
 
   await delay(400);
-  const rows = await db.query.word_puzzles.findMany({
-    columns: {
-      id: true,
-      slug: true,
-      title: true,
-      description: true,
-      archived: true,
-      created_at: true,
-      updated_at: true
-    },
-    where: (tbl, { and, or, eq, ilike, lt, gt }) => {
-      const conds: ReturnType<typeof and>[] = [];
-      if (typeof archived_filter === 'boolean') {
-        conds.push(eq(tbl.archived, archived_filter));
-      }
-      if (typeof search_title === 'string' && search_title.length > 0) {
-        conds.push(ilike(tbl.title, `%${search_title}%`));
-      }
-      if (last_created_or_updated_at instanceof Date) {
-        const sortCol = sort_by === 'updated_at' ? tbl.updated_at : tbl.created_at;
-        const comparator = order_by === 'desc' ? lt : gt;
-        if (typeof last_id === 'number') {
-          conds.push(
-            or(
-              comparator(sortCol, last_created_or_updated_at),
-              and(eq(sortCol, last_created_or_updated_at), comparator(tbl.id, last_id))
-            )
-          );
-        } else {
-          conds.push(comparator(sortCol, last_created_or_updated_at));
-        }
-      }
-      return conds.length > 0 ? and(...conds) : undefined;
-    },
-    orderBy: (tbl, { desc, asc }) => {
-      const sortCol = sort_by === 'updated_at' ? tbl.updated_at : tbl.created_at;
-      const orderPrimary = order_by === 'desc' ? desc(sortCol) : asc(sortCol);
-      const orderTiebreaker = order_by === 'desc' ? desc(tbl.id) : asc(tbl.id);
-      return [orderPrimary, orderTiebreaker];
-    },
-    limit
-  });
 
-  return rows;
+  const [countResult, list] = await Promise.all([
+    db.select({ count: count() }).from(word_puzzles).where(whereClause),
+    db
+      .select({
+        id: word_puzzles.id,
+        slug: word_puzzles.slug,
+        title: word_puzzles.title,
+        description: word_puzzles.description,
+        archived: word_puzzles.archived,
+        created_at: word_puzzles.created_at,
+        updated_at: word_puzzles.updated_at
+      })
+      .from(word_puzzles)
+      .where(whereClause)
+      .orderBy(orderPrimary, orderTiebreaker)
+      .limit(size)
+      .offset(offset)
+  ]);
+
+  const total = Number(countResult[0]?.count ?? 0);
+  const pageCount = Math.max(1, Math.ceil(total / size));
+
+  return {
+    list,
+    total,
+    page,
+    pageCount,
+    hasPrev: page > 1,
+    hasNext: page < pageCount
+  };
 };
 
 const get_puzzle_list_page_route = protectedAdminProcedure
-  .input(get_puzzle_data_input_schema)
+  .input(get_puzzle_list_input_schema)
   .query(async ({ input }) => await get_puzzle_list_page(input));
 
 export const puzzle_router = t.router({

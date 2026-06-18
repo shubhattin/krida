@@ -26,7 +26,10 @@ const List = async () => {
       </div>
       <div className="mt-2 mb-5 flex items-center justify-center gap-4 px-2">
         <Link href="/padavali/schedules">
-          <Button variant={'outline'} className="inline-flex items-center gap-2 text-base font-semibold">
+          <Button
+            variant={'outline'}
+            className="inline-flex items-center gap-2 text-base font-semibold"
+          >
             <CalendarIcon className="size-4 shrink-0" />
             Schedules
           </Button>
