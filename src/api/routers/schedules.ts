@@ -5,7 +5,11 @@ import { puzzle_game_schedules } from '~/db/schema';
 import { revalidatePath } from 'next/cache';
 import { and, eq } from 'drizzle-orm';
 import { delay } from '~/tools/delay';
-import { redis, REDIS_CACHE_KEYS } from '~/db/redis';
+import {
+  CACHE,
+  invalidate_and_refresh_cached,
+  NO_CACHE_PARAMS
+} from '~/util/cache.server/cache_loaders';
 import {
   publishScheduleArchivalQueue,
   publishScheduledPuzzleNotificationQueue
@@ -129,9 +133,8 @@ const add_puzzle_schedule_route = protectedAdminProcedure
 
     const [schedule] = await Promise.all([schedule_pr]);
     await Promise.allSettled([
-      // invalidate cache
-      redis.del(REDIS_CACHE_KEYS.current_schedule()),
-      redis.del(REDIS_CACHE_KEYS.next_schedule()),
+      invalidate_and_refresh_cached(CACHE.current_schedule, NO_CACHE_PARAMS),
+      invalidate_and_refresh_cached(CACHE.next_schedule, NO_CACHE_PARAMS),
       notify_new_puzzle(puzzle_id, schedule[0].id, start_time),
       publishScheduleArchivalQueue(
         {
@@ -158,9 +161,8 @@ const delete_puzzle_schedule_route = protectedAdminProcedure
       db.delete(puzzle_game_schedules).where(eq(puzzle_game_schedules.id, schedule_id))
     ]);
     await Promise.allSettled([
-      // invalidate cache
-      redis.del(REDIS_CACHE_KEYS.current_schedule()),
-      redis.del(REDIS_CACHE_KEYS.next_schedule())
+      invalidate_and_refresh_cached(CACHE.current_schedule, NO_CACHE_PARAMS),
+      invalidate_and_refresh_cached(CACHE.next_schedule, NO_CACHE_PARAMS)
     ]);
 
     return { success: true };
@@ -200,9 +202,8 @@ const update_puzzle_schedule_route = protectedAdminProcedure
         },
         (end_time.getTime() - new Date().getTime()) / 1000 - 1 // delay
       ),
-      // invalidate cache
-      redis.del(REDIS_CACHE_KEYS.current_schedule()),
-      redis.del(REDIS_CACHE_KEYS.next_schedule())
+      invalidate_and_refresh_cached(CACHE.current_schedule, NO_CACHE_PARAMS),
+      invalidate_and_refresh_cached(CACHE.next_schedule, NO_CACHE_PARAMS)
     ]);
 
     return { success: true };

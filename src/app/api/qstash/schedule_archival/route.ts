@@ -1,7 +1,11 @@
 import { verifySignatureAppRouter } from '@upstash/qstash/nextjs';
 import { schedule_archival_publish_schema } from '~/lib/qstash';
 import { db } from '~/db/db';
-import { redis, REDIS_CACHE_KEYS } from '~/db/redis';
+import {
+  CACHE,
+  invalidate_and_refresh_cached,
+  NO_CACHE_PARAMS
+} from '~/util/cache.server/cache_loaders';
 import { puzzle_game_schedules, word_puzzles } from '~/db/schema';
 import { and, eq } from 'drizzle-orm';
 import { notify_for_archived_puzzle } from '~/api/routers/puzzle';
@@ -58,8 +62,7 @@ export const POST = verifySignatureAppRouter(async (req: Request) => {
       )
   ]);
   await Promise.allSettled([
-    // Cache invalidation
-    redis.del(REDIS_CACHE_KEYS.archived_puzzle_list()),
+    invalidate_and_refresh_cached(CACHE.archived_puzzle_list, NO_CACHE_PARAMS),
     notify_for_archived_puzzle(schedule.puzzle.title, schedule.puzzle.id, schedule.puzzle.uuid)
   ]);
 

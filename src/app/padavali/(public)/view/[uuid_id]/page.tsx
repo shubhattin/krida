@@ -7,20 +7,22 @@ import { DEFAULT_DATA_SCRIPT } from '~/state/script_list';
 import { get_transliterated_word_game_msgs } from '~/components/pages/main/WordGame/msgs';
 import { transliterate_wasm } from 'lipilekhika';
 import { getCachedScript } from '~/lib/cache_server_route_data';
-import { get_next_schedule, get_word_puzzle } from '~/util/cache.server/cache_loaders';
+import { CACHE, NO_CACHE_PARAMS } from '~/util/cache.server/cache_loaders';
 import { cache } from 'react';
 import { getMetadata } from '~/components/tags/getPageMetaTags';
 
 type Props = { params: Promise<{ uuid_id: string }> };
 
-const word_puzzle_get_cached_func = cache(get_word_puzzle);
+const word_puzzle_get_cached_func = cache((params: { id: number; uuid: string }) =>
+  CACHE.word_puzzle.get(params)
+);
 
 export async function generateMetadata({ params }: Props): Promise<Metadata> {
   const [uuid_str, id_str] = decodeURIComponent((await params).uuid_id).split(':');
   const id = z.coerce.number().int().parse(id_str);
   const uuid = z.string().uuid().parse(uuid_str);
 
-  const word_puzzle = await word_puzzle_get_cached_func(id, uuid);
+  const word_puzzle = await word_puzzle_get_cached_func({ id, uuid });
 
   return {
     ...getMetadata({
@@ -37,8 +39,8 @@ const MainEdit = async ({ params }: Props) => {
   const uuid = z.string().uuid().parse(uuid_str);
 
   const [word_puzzle, next_schedule] = await Promise.all([
-    word_puzzle_get_cached_func(id, uuid),
-    get_next_schedule()
+    word_puzzle_get_cached_func({ id, uuid }),
+    CACHE.next_schedule.get(NO_CACHE_PARAMS)
   ]);
 
   const script = await getCachedScript();
