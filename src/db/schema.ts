@@ -23,19 +23,22 @@ export const word_puzzles = pgTable(
     id: serial().primaryKey(),
     slug: text().notNull(),
     title: text().notNull(),
+    /** Image url path */
+    s3_key: text(),
     description: text(),
     created_at: timestamp({ withTimezone: true }).notNull().defaultNow(),
     updated_at: timestamp({ withTimezone: true }).$onUpdate(() => new Date()), // NULL for not updated
     word_list: jsonb().notNull().$type<string[]>(),
     grid_data: jsonb().notNull().$type<string[][]>(),
     grid_dimensions: jsonb().notNull().$type<[number, number]>(),
-    archived: boolean().notNull().default(false),
+    /** Whether the puzzle is listed publically on the website */
+    listed: boolean().notNull().default(false),
     last_archived_at: timestamp({ withTimezone: true })
   },
   (table) => [
     uniqueIndex('word_puzzles_slug_idx').on(table.slug),
-    index('word_puzzles_archived_created_at_idx').on(table.archived, table.created_at),
-    index('word_puzzles_archived_last_archived_at_idx').on(table.archived, table.last_archived_at)
+    index('word_puzzles_listed_created_at_idx').on(table.listed, table.created_at),
+    index('word_puzzles_listed_last_archived_at_idx').on(table.listed, table.last_archived_at)
   ]
 );
 

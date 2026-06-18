@@ -50,6 +50,7 @@ import {
 } from '@dnd-kit/sortable';
 import { CSS } from '@dnd-kit/utilities';
 import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover';
+import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from '@/components/ui/tooltip';
 import {
   findAllTraversals,
   getOccupiedCells,
@@ -115,7 +116,7 @@ const BASE_SCRIPT = 'Devanagari';
 const title_atom = atom<string>('');
 const word_list_atom = atom<string[]>([]);
 const grid_data_atom = atom<string[][]>([]);
-const archived_atom = atom<boolean>(false);
+const listed_atom = atom<boolean>(false);
 const description_atom = atom<string | null>(null);
 const lipi_lekhika_active_atom = atom<boolean>(true);
 const attachments_atom = atom<Puzzle['attachments']>([]);
@@ -131,7 +132,7 @@ const ViewEditPuzzle = ({ word_puzzle: initialWordPuzzle }: ViewEditProps) => {
     [title_atom, word_puzzle.title],
     [word_list_atom, [...word_puzzle.word_list]],
     [grid_data_atom, word_puzzle.grid_data.map((row) => [...row])],
-    [archived_atom, word_puzzle.archived],
+    [listed_atom, word_puzzle.listed],
     [description_atom, word_puzzle.description],
     [lipi_lekhika_active_atom, true],
     [attachments_atom, word_puzzle.attachments]
@@ -959,13 +960,24 @@ const GridData = ({
 };
 
 const ArchivedSwitch = () => {
-  const [archived, setArchived] = useAtom(archived_atom);
+  const [listed, setListed] = useAtom(listed_atom);
 
   return (
     <div>
       <Label className="inline-flex items-center gap-2 font-medium">
-        <Switch checked={archived} onCheckedChange={setArchived} />
-        <span className="text-lg font-bold">Archived</span>
+        <Switch checked={listed} onCheckedChange={setListed} />
+        <span className="text-lg font-bold">Listed</span>
+        <TooltipProvider>
+          <Tooltip>
+            <TooltipTrigger
+              aria-label="Listed visibility info"
+              className="inline-flex border-0 bg-transparent p-0"
+            >
+              <Info className="size-4 text-muted-foreground" aria-hidden="true" />
+            </TooltipTrigger>
+            <TooltipContent>When enabled, this puzzle will be publicly visible.</TooltipContent>
+          </Tooltip>
+        </TooltipProvider>
       </Label>
     </div>
   );
@@ -1014,11 +1026,11 @@ const SaveButton = ({ word_puzzle }: { word_puzzle: Puzzle }) => {
     title: word_puzzle.title,
     wordList: word_puzzle.word_list,
     gridData: word_puzzle.grid_data,
-    archived: word_puzzle.archived,
+    archived: word_puzzle.listed,
     description: word_puzzle.description,
     attachments: word_puzzle.attachments
   });
-  const [archived] = useAtom(archived_atom);
+  const [listed] = useAtom(listed_atom);
   const [description] = useAtom(description_atom);
 
   const router = useRouter();
@@ -1047,7 +1059,7 @@ const SaveButton = ({ word_puzzle }: { word_puzzle: Puzzle }) => {
           title,
           wordList,
           gridData,
-          archived,
+          archived: listed,
           description,
           attachments
         };
@@ -1073,11 +1085,11 @@ const SaveButton = ({ word_puzzle }: { word_puzzle: Puzzle }) => {
       title !== initialRef.current.title ||
       JSON.stringify(wordList) !== JSON.stringify(initialRef.current.wordList) ||
       JSON.stringify(gridData) !== JSON.stringify(initialRef.current.gridData) ||
-      archived !== initialRef.current.archived ||
+      listed !== initialRef.current.archived ||
       description !== initialRef.current.description ||
       JSON.stringify(attachments) !== JSON.stringify(initialRef.current.attachments)
     );
-  }, [title, wordList, gridData, archived, description, attachments]);
+  }, [title, wordList, gridData, listed, description, attachments]);
 
   const handleSave = () => {
     const data = {
@@ -1085,7 +1097,7 @@ const SaveButton = ({ word_puzzle }: { word_puzzle: Puzzle }) => {
       puzzle_slug: word_puzzle.slug,
       puzzle_data: {
         title,
-        archived,
+        archived: listed,
         word_list: wordList,
         grid_data: gridData,
         description: description !== '' ? description : null,

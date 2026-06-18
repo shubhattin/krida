@@ -7,7 +7,7 @@ import { CACHE, NO_CACHE_PARAMS } from '~/util/cache.server/cache_loaders';
 import { getMetadata } from '~/components/tags/getPageMetaTags';
 
 const ArchivedPage = async () => {
-  const archived_puzzles = await CACHE.archived_puzzle_list.get(NO_CACHE_PARAMS);
+  const archived_puzzles = await CACHE.listed_puzzle_list.get(NO_CACHE_PARAMS);
 
   const script = await getCachedScript();
 

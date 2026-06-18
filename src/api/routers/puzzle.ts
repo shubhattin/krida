@@ -154,14 +154,14 @@ const update_puzzle_route = protectedAdminProcedure
     revalidatePath('/padavali/list');
     const existing = await db.query.word_puzzles.findFirst({
       columns: {
-        archived: true
+        listed: true
       },
       where: (tbl, { and, eq }) => and(eq(tbl.id, puzzle_id), eq(tbl.slug, puzzle_slug))
     });
     if (!existing) {
       throw new Error('Puzzle not found or slug mismatch');
     }
-    const prev_archived = existing.archived;
+    const prev_listed = existing.listed;
     const { attachments, ...puzzle_data_rest } = puzzle_data;
 
     const { newly_added_index_ids } = await db.transaction(async (tx) => {
@@ -175,7 +175,7 @@ const update_puzzle_route = protectedAdminProcedure
         throw new Error('Puzzle not found or slug mismatch');
       }
 
-      if (!prev_archived && puzzle_data.archived) {
+      if (!prev_listed && puzzle_data.listed) {
         await tx
           .update(word_puzzles)
           .set({ last_archived_at: new Date() })
@@ -186,15 +186,15 @@ const update_puzzle_route = protectedAdminProcedure
     });
 
     await Promise.allSettled([
-      (puzzle_data.archived || prev_archived !== puzzle_data.archived) &&
-        invalidate_and_refresh_cached(CACHE.archived_puzzle_list, NO_CACHE_PARAMS),
+      (puzzle_data.listed || prev_listed !== puzzle_data.listed) &&
+        invalidate_and_refresh_cached(CACHE.listed_puzzle_list, NO_CACHE_PARAMS),
       invalidate_and_refresh_cached(CACHE.word_puzzle, {
         slug: puzzle_slug
       }),
       (await puzzle_in_current_schedule(puzzle_id)) &&
         invalidate_and_refresh_cached(CACHE.current_schedule, NO_CACHE_PARAMS),
-      puzzle_data.archived &&
-        !prev_archived &&
+      puzzle_data.listed &&
+        !prev_listed &&
         notify_for_archived_puzzle(puzzle_data_rest.title, puzzle_slug)
     ]);
     return {
@@ -211,13 +211,13 @@ const update_puzzle_slug_route = protectedAdminProcedure
     }
 
     const puzzle = await db.query.word_puzzles.findFirst({
-      columns: { id: true, archived: true },
+      columns: { id: true, listed: true },
       where: (tbl, { and, eq }) => and(eq(tbl.id, puzzle_id), eq(tbl.slug, current_slug))
     });
     if (!puzzle) {
       throw new Error('Puzzle not found or slug mismatch');
     }
-    if (puzzle.archived) {
+    if (puzzle.listed) {
       throw new Error('Cannot change slug of an archived puzzle');
     }
 
@@ -240,7 +240,7 @@ const update_puzzle_slug_route = protectedAdminProcedure
     await invalidate_and_refresh_cached(CACHE.word_puzzle, { slug: new_slug });
 
     await Promise.allSettled([
-      puzzle.archived && invalidate_and_refresh_cached(CACHE.archived_puzzle_list, NO_CACHE_PARAMS),
+      puzzle.listed && invalidate_and_refresh_cached(CACHE.listed_puzzle_list, NO_CACHE_PARAMS),
       (await puzzle_in_current_schedule(puzzle_id)) &&
         invalidate_and_refresh_cached(CACHE.current_schedule, NO_CACHE_PARAMS),
       (await puzzle_in_next_schedule(puzzle_id)) &&
@@ -261,10 +261,11 @@ const add_puzzle_route = protectedAdminProcedure
         title: input.title,
         slug: input.slug,
         description: input.description?.trim() ? input.description.trim() : null,
+        s3_key: null,
         word_list: [],
         grid_data: createEmptyGridData(DEFAULT_GRID_DIMENSIONS),
         grid_dimensions: DEFAULT_GRID_DIMENSIONS,
-        archived: false
+        listed: false
       })
       .returning();
 
@@ -278,14 +279,14 @@ const delete_puzzle_route = protectedAdminProcedure
     const normalizedSlug = normalizeSlug(slug);
     const puzzle = await db.query.word_puzzles.findFirst({
       columns: {
-        archived: true
+        listed: true
       },
       where: (tbl, { and, eq }) => and(eq(tbl.id, id), eq(tbl.slug, normalizedSlug))
     });
     if (!puzzle) {
       throw new Error('Puzzle not found');
     }
-    const { archived } = puzzle;
+    const { listed } = puzzle;
 
     await db.transaction(async (tx) => {
       await tx
@@ -294,7 +295,7 @@ const delete_puzzle_route = protectedAdminProcedure
     });
 
     await Promise.allSettled([
-      archived && invalidate_and_refresh_cached(CACHE.archived_puzzle_list, NO_CACHE_PARAMS),
+      listed && invalidate_and_refresh_cached(CACHE.listed_puzzle_list, NO_CACHE_PARAMS),
       invalidate_and_refresh_cached(CACHE.word_puzzle, {
         slug: normalizedSlug
       }),
@@ -324,7 +325,7 @@ export const get_puzzle_list_page = async (input: z.input<typeof get_puzzle_list
   const trimmedSearch = search_title?.trim();
   const conditions = [];
   if (typeof archived_filter === 'boolean') {
-    conditions.push(eq(word_puzzles.archived, archived_filter));
+    conditions.push(eq(word_puzzles.listed, archived_filter));
   }
   if (trimmedSearch) {
     conditions.push(ilike(word_puzzles.title, `%${trimmedSearch}%`));
@@ -349,7 +350,7 @@ export const get_puzzle_list_page = async (input: z.input<typeof get_puzzle_list
         slug: word_puzzles.slug,
         title: word_puzzles.title,
         description: word_puzzles.description,
-        archived: word_puzzles.archived,
+        listed: word_puzzles.listed,
         created_at: word_puzzles.created_at,
         updated_at: word_puzzles.updated_at
       })

@@ -38,7 +38,8 @@ const archived_puzzle_schema = z.object({
   id: z.number().int(),
   slug: z.string(),
   title: z.string(),
-  description: z.string().nullable()
+  description: z.string().nullable(),
+  s3_key: z.string().nullable()
 });
 
 export type ArchivedPuzzlesType = z.infer<typeof archived_puzzle_schema>[];
@@ -124,8 +125,8 @@ const load_next_schedule = createCachedLoader<NoCacheParams, NextScheduleType>({
     data ? { exat: Math.floor(data.start_time.getTime() / 1000) } : undefined
 });
 
-const load_archived_puzzle_list = createCachedLoader<NoCacheParams, ArchivedPuzzlesType>({
-  getKey: () => REDIS_CACHE_KEYS.archived_puzzle_list(),
+const load_listed_puzzle_list = createCachedLoader<NoCacheParams, ArchivedPuzzlesType>({
+  getKey: () => REDIS_CACHE_KEYS.listed_puzzle_list(),
   schema: archived_puzzle_schema.array(),
   fetch: async () => {
     const data = await db.query.word_puzzles.findMany({
@@ -133,9 +134,10 @@ const load_archived_puzzle_list = createCachedLoader<NoCacheParams, ArchivedPuzz
         id: true,
         slug: true,
         title: true,
-        description: true
+        description: true,
+        s3_key: true
       },
-      where: ({ archived }, { eq }) => eq(archived, true),
+      where: ({ listed }, { eq }) => eq(listed, true),
       orderBy: ({ created_at, last_archived_at }, { desc }) => [
         desc(sql`COALESCE(${last_archived_at}, '1970-01-01'::timestamp with time zone)`),
         desc(created_at)
@@ -183,13 +185,13 @@ export const invalidate_and_refresh_cached = async <TParams, TData>(
 export type CacheLoaderRegistry = {
   current_schedule: CachedLoader<NoCacheParams, CurrentScheduleType>;
   next_schedule: CachedLoader<NoCacheParams, NextScheduleType>;
-  archived_puzzle_list: CachedLoader<NoCacheParams, ArchivedPuzzlesType>;
+  listed_puzzle_list: CachedLoader<NoCacheParams, ArchivedPuzzlesType>;
   word_puzzle: CachedLoader<WordPuzzleParams, PuzzleType | undefined>;
 };
 
 export const CACHE = {
   current_schedule: load_current_schedule,
   next_schedule: load_next_schedule,
-  archived_puzzle_list: load_archived_puzzle_list,
+  listed_puzzle_list: load_listed_puzzle_list,
   word_puzzle: load_word_puzzle
 } satisfies CacheLoaderRegistry;

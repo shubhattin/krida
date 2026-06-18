@@ -23,10 +23,10 @@ export async function generateMetadata({ params }: Props): Promise<Metadata> {
   return {
     ...getMetadata({
       title:
-        word_puzzle && word_puzzle.archived
+        word_puzzle && word_puzzle.listed
           ? word_puzzle.title + ' - Archived Puzzle | पदावली'
           : 'Not Found',
-      description: word_puzzle && word_puzzle.archived ? word_puzzle.description : null
+      description: word_puzzle && word_puzzle.listed ? word_puzzle.description : null
     })
   };
 }
@@ -59,7 +59,7 @@ const WordGameSuspense = async ({ slug }: { slug: string }) => {
     word_puzzle_get_cached_func({ slug }),
     CACHE.next_schedule.get(NO_CACHE_PARAMS)
   ]);
-  if (word_puzzle && !word_puzzle.archived) return <div>Puzzle is not Archived</div>;
+  if (word_puzzle && !word_puzzle.listed) return <div>Puzzle is not Archived</div>;
 
   const script = await getCachedScript();
   const word_game_msgs = await get_transliterated_word_game_msgs(script);

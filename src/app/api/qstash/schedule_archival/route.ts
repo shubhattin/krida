@@ -45,7 +45,7 @@ export const POST = verifySignatureAppRouter(async (req: Request) => {
     db
       .update(word_puzzles)
       .set({
-        archived: true,
+        listed: false,
         last_archived_at: new Date()
       })
       .where(eq(word_puzzles.id, puzzle_id)),
@@ -62,7 +62,7 @@ export const POST = verifySignatureAppRouter(async (req: Request) => {
       )
   ]);
   await Promise.allSettled([
-    invalidate_and_refresh_cached(CACHE.archived_puzzle_list, NO_CACHE_PARAMS),
+    invalidate_and_refresh_cached(CACHE.listed_puzzle_list, NO_CACHE_PARAMS),
     invalidate_and_refresh_cached(CACHE.word_puzzle, {
       slug: schedule.puzzle.slug
     }),

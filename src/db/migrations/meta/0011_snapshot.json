@@ -1,5 +1,5 @@
 {
-  "id": "7c68a18f-a9d4-4b6b-984d-4ba2bd4978a8",
+  "id": "a2565853-4add-4cf5-bab4-f0205da79c21",
   "prevId": "8ba5c5d1-7c71-447a-9386-f8c3c5397b3a",
   "version": "7",
   "dialect": "postgresql",
@@ -475,6 +475,12 @@
           "primaryKey": false,
           "notNull": true
         },
+        "s3_key": {
+          "name": "s3_key",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": false
+        },
         "description": {
           "name": "description",
           "type": "text",
@@ -512,8 +518,8 @@
           "primaryKey": false,
           "notNull": true
         },
-        "archived": {
-          "name": "archived",
+        "listed": {
+          "name": "listed",
           "type": "boolean",
           "primaryKey": false,
           "notNull": true,
@@ -542,11 +548,11 @@
           "method": "btree",
           "with": {}
         },
-        "word_puzzles_archived_created_at_idx": {
-          "name": "word_puzzles_archived_created_at_idx",
+        "word_puzzles_listed_created_at_idx": {
+          "name": "word_puzzles_listed_created_at_idx",
           "columns": [
             {
-              "expression": "archived",
+              "expression": "listed",
               "isExpression": false,
               "asc": true,
               "nulls": "last"
@@ -563,11 +569,11 @@
           "method": "btree",
           "with": {}
         },
-        "word_puzzles_archived_last_archived_at_idx": {
-          "name": "word_puzzles_archived_last_archived_at_idx",
+        "word_puzzles_listed_last_archived_at_idx": {
+          "name": "word_puzzles_listed_last_archived_at_idx",
           "columns": [
             {
-              "expression": "archived",
+              "expression": "listed",
               "isExpression": false,
               "asc": true,
               "nulls": "last"
@@ -587,15 +593,7 @@
       },
       "foreignKeys": {},
       "compositePrimaryKeys": {},
-      "uniqueConstraints": {
-        "word_puzzles_slug_unique": {
-          "name": "word_puzzles_slug_unique",
-          "nullsNotDistinct": false,
-          "columns": [
-            "slug"
-          ]
-        }
-      },
+      "uniqueConstraints": {},
       "policies": {},
       "checkConstraints": {},
       "isRLSEnabled": false
