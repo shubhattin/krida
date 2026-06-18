@@ -1,6 +1,6 @@
 import { z } from 'zod';
 import { protectedAdminProcedure, t } from '../trpc_init';
-import { db } from '~/db/db';
+import { db, type transactionType } from '~/db/db';
 import { word_puzzle_attachments, word_puzzles } from '~/db/schema';
 import { and, eq, inArray } from 'drizzle-orm';
 import { revalidatePath } from 'next/cache';
@@ -30,6 +30,84 @@ export const notify_for_archived_puzzle = async (title: string, id: number, uuid
   });
 };
 
+type AttachmentInput = z.infer<typeof puzzle_update_input_schema>['puzzle_data']['attachments'];
+
+const update_puzzle_attachments = async (
+  tx: transactionType,
+  puzzle_id: number,
+  attachments: AttachmentInput
+) => {
+  const current_attachments = await tx.query.word_puzzle_attachments.findMany({
+    where: (tbl, { eq }) => eq(tbl.puzzle_id, puzzle_id),
+    columns: {
+      id: true
+    }
+  });
+  const new_attachments = attachments
+    .map((attachment, i) => ({
+      index: i,
+      data: attachment
+    }))
+    .filter((attachment) => !attachment.data.id);
+  const existing_attachments = attachments.filter((attachment) => attachment.id);
+  const updated_attachments = existing_attachments.filter((attachment) =>
+    current_attachments.some((a) => a.id === attachment.id)
+  );
+  const deleted_attachments = current_attachments.filter(
+    (attachment) => !attachments.some((a) => a.id === attachment.id)
+  );
+  const [new_attachments_inserted] = await Promise.all([
+    new_attachments.length > 0
+      ? tx
+          .insert(word_puzzle_attachments)
+          .values(
+            new_attachments.map((a) => ({
+              puzzle_id,
+              type: a.data.type,
+              url: a.data.url,
+              order_index: a.data.order_index,
+              title: a.data.title
+            }))
+          )
+          .returning()
+      : ([] as { id: number }[]),
+    deleted_attachments.length > 0
+      ? tx.delete(word_puzzle_attachments).where(
+          and(
+            eq(word_puzzle_attachments.puzzle_id, puzzle_id),
+            inArray(
+              word_puzzle_attachments.id,
+              deleted_attachments.map((a) => a.id)
+            )
+          )
+        )
+      : Promise.resolve(),
+    ...updated_attachments.map((a) =>
+      tx
+        .update(word_puzzle_attachments)
+        .set({
+          type: a.type,
+          url: a.url,
+          order_index: a.order_index,
+          title: a.title
+        })
+        .where(
+          and(
+            eq(word_puzzle_attachments.id, a.id!),
+            eq(word_puzzle_attachments.puzzle_id, puzzle_id)
+          )
+        )
+    )
+  ]);
+
+  return {
+    newly_added_index_ids: new_attachments_inserted.map((a, i) => ({
+      id: a.id,
+      index: new_attachments[i].index
+    }))
+  };
+};
+
 const update_puzzle_route = protectedAdminProcedure
   .input(puzzle_update_input_schema)
   .mutation(async ({ input: { puzzle_id, puzzle_data, puzzle_uuid } }) => {
@@ -42,93 +120,22 @@ const update_puzzle_route = protectedAdminProcedure
     }))!.archived;
     const { attachments, ...puzzle_data_rest } = puzzle_data;
 
-    async function update_puzzle_attachments() {
-      const current_attachments = await db.query.word_puzzle_attachments.findMany({
-        where: (tbl, { eq }) => eq(tbl.puzzle_id, puzzle_id),
-        columns: {
-          id: true
-        }
-      });
-      const new_attachments = attachments
-        .map((attachment, i) => ({
-          index: i,
-          data: attachment
-        }))
-        .filter((attachment) => !attachment.data.id);
-      const existing_attachments = attachments.filter((attachment) => attachment.id);
-      const updated_attachments = existing_attachments.filter((attachment) =>
-        current_attachments.some((a) => a.id === attachment.id)
-      );
-      const deleted_attachments = current_attachments.filter(
-        (attachment) => !attachments.some((a) => a.id === attachment.id)
-      );
-      const [new_attachments_inserted] = await Promise.all([
-        // inserting new attachments
-        new_attachments.length > 0
-          ? db
-              .insert(word_puzzle_attachments)
-              .values(
-                new_attachments.map((a) => ({
-                  puzzle_id,
-                  type: a.data.type,
-                  url: a.data.url,
-                  order_index: a.data.order_index,
-                  title: a.data.title
-                }))
-              )
-              .returning()
-          : ([] as { id: number }[]),
-        // deleting attachments
-        db.delete(word_puzzle_attachments).where(
-          and(
-            eq(word_puzzle_attachments.puzzle_id, puzzle_id),
-            inArray(
-              word_puzzle_attachments.id,
-              deleted_attachments.map((a) => a.id)
-            )
-          )
-        ),
-        // updating existing attachments
-        updated_attachments.map(
-          async (a) =>
-            await db
-              .update(word_puzzle_attachments)
-              .set({
-                type: a.type,
-                url: a.url,
-                order_index: a.order_index,
-                title: a.title
-              })
-              .where(
-                and(
-                  eq(word_puzzle_attachments.id, a.id!),
-                  eq(word_puzzle_attachments.puzzle_id, puzzle_id)
-                )
-              )
-        )
-      ]);
-
-      return {
-        newly_added_index_ids: new_attachments_inserted.map((a, i) => ({
-          id: a.id,
-          index: new_attachments[i].index
-        }))
-      };
-    }
-
-    const out = await Promise.allSettled([
-      db
+    const { newly_added_index_ids } = await db.transaction(async (tx) => {
+      await tx
         .update(word_puzzles)
         .set(puzzle_data_rest)
-        .where(and(eq(word_puzzles.id, puzzle_id), eq(word_puzzles.uuid, puzzle_uuid))),
-      update_puzzle_attachments(),
-      !prev_archived &&
-        puzzle_data.archived &&
-        db
+        .where(and(eq(word_puzzles.id, puzzle_id), eq(word_puzzles.uuid, puzzle_uuid)));
+
+      if (!prev_archived && puzzle_data.archived) {
+        await tx
           .update(word_puzzles)
           .set({ last_archived_at: new Date() })
-          .where(and(eq(word_puzzles.id, puzzle_id), eq(word_puzzles.uuid, puzzle_uuid)))
-    ]);
+          .where(and(eq(word_puzzles.id, puzzle_id), eq(word_puzzles.uuid, puzzle_uuid)));
+      }
+
+      return update_puzzle_attachments(tx, puzzle_id, attachments);
+    });
+
     await Promise.allSettled([
       (puzzle_data.archived || prev_archived !== puzzle_data.archived) &&
         invalidate_and_refresh_cached(CACHE.archived_puzzle_list, NO_CACHE_PARAMS),
@@ -144,7 +151,7 @@ const update_puzzle_route = protectedAdminProcedure
     ]);
     return {
       success: true,
-      newly_added_index_ids: out[1].status === 'fulfilled' ? out[1].value.newly_added_index_ids : []
+      newly_added_index_ids
     };
   });
 
@@ -153,40 +160,50 @@ const add_puzzle_route = protectedAdminProcedure
   .mutation(async ({ input }) => {
     revalidatePath('/padavali/list');
     const { attachments, ...puzzle_data_rest } = input;
-    const [info] = await Promise.all([
-      db
+
+    const { id, uuid, newly_added_index_ids } = await db.transaction(async (tx) => {
+      const [inserted] = await tx
         .insert(word_puzzles)
         .values({
           ...puzzle_data_rest,
           ...(puzzle_data_rest.archived ? { last_archived_at: new Date() } : {})
         })
-        .returning()
-    ]);
+        .returning();
+
+      const new_attachment_ids =
+        attachments.length > 0
+          ? (
+              await tx
+                .insert(word_puzzle_attachments)
+                .values(
+                  attachments.map((attachment) => {
+                    const { id: _id, ...rest } = attachment;
+                    return {
+                      ...rest,
+                      puzzle_id: inserted.id
+                    };
+                  })
+                )
+                .returning()
+            ).map((a) => a.id)
+          : [];
+
+      return {
+        id: inserted.id,
+        uuid: inserted.uuid,
+        newly_added_index_ids: new_attachment_ids
+      };
+    });
+
     await Promise.allSettled([
       input.archived && invalidate_and_refresh_cached(CACHE.archived_puzzle_list, NO_CACHE_PARAMS),
-      input.archived && notify_for_archived_puzzle(puzzle_data_rest.title, info[0].id, info[0].uuid)
+      input.archived && notify_for_archived_puzzle(puzzle_data_rest.title, id, uuid)
     ]);
-    const new_attachment_ids =
-      attachments.length > 0
-        ? (
-            await db
-              .insert(word_puzzle_attachments)
-              .values(
-                attachments.map((attachment) => {
-                  const { id, ...rest } = attachment;
-                  return {
-                    ...rest,
-                    puzzle_id: info[0].id
-                  };
-                })
-              )
-              .returning()
-          ).map((a) => a.id)
-        : [];
+
     return {
-      id: info[0].id,
-      uuid: info[0].uuid,
-      newly_added_index_ids: new_attachment_ids
+      id,
+      uuid,
+      newly_added_index_ids
     };
   });
 
@@ -201,7 +218,10 @@ const delete_puzzle_route = protectedAdminProcedure
       where: (tbl, { eq }) => eq(tbl.id, id)
     }))!;
 
-    await Promise.allSettled([db.delete(word_puzzles).where(eq(word_puzzles.id, id))]);
+    await db.transaction(async (tx) => {
+      await tx.delete(word_puzzles).where(eq(word_puzzles.id, id));
+    });
+
     await Promise.allSettled([
       archived && invalidate_and_refresh_cached(CACHE.archived_puzzle_list, NO_CACHE_PARAMS),
       invalidate_and_refresh_cached(CACHE.word_puzzle, { id, uuid }),

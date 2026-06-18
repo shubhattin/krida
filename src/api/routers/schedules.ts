@@ -1,6 +1,6 @@
 import { protectedAdminProcedure, t } from '~/api/trpc_init';
 import { z } from 'zod';
-import { db } from '~/db/db';
+import { db, type transactionType } from '~/db/db';
 import { puzzle_game_schedules } from '~/db/schema';
 import { revalidatePath } from 'next/cache';
 import { and, eq } from 'drizzle-orm';
@@ -28,20 +28,28 @@ export const notify_for_new_scheduled_puzzle = async (title: string) => {
   });
 };
 
+const set_schedule_notification_key = async (
+  tx: transactionType,
+  puzzle_id: number,
+  schedule_id: number,
+  notification_key: string | null
+) => {
+  await tx
+    .update(puzzle_game_schedules)
+    .set({ notification_key })
+    .where(
+      and(eq(puzzle_game_schedules.id, schedule_id), eq(puzzle_game_schedules.puzzle_id, puzzle_id))
+    );
+};
+
 const notify_new_puzzle = async (puzzle_id: number, schedule_id: number, start_time: Date) => {
   const current_time = new Date();
   if (current_time < start_time) {
     const delay_s = (start_time.getTime() - current_time.getTime()) / 1000 - 2; // 2 seconds prior notification;
     const notification_key = generateRandomAlphanumeric(32);
-    await db
-      .update(puzzle_game_schedules)
-      .set({ notification_key })
-      .where(
-        and(
-          eq(puzzle_game_schedules.id, schedule_id),
-          eq(puzzle_game_schedules.puzzle_id, puzzle_id)
-        )
-      );
+    await db.transaction(async (tx) => {
+      await set_schedule_notification_key(tx, puzzle_id, schedule_id, notification_key);
+    });
     await publishScheduledPuzzleNotificationQueue(
       {
         puzzle_id,
@@ -72,10 +80,9 @@ const notify_new_puzzle = async (puzzle_id: number, schedule_id: number, start_t
     }))!.title;
     await Promise.allSettled([
       notify_for_new_scheduled_puzzle(title),
-      db
-        .update(puzzle_game_schedules)
-        .set({ notification_key: null })
-        .where(eq(puzzle_game_schedules.id, schedule_id))
+      db.transaction(async (tx) => {
+        await set_schedule_notification_key(tx, puzzle_id, schedule_id, null);
+      })
     ]);
     return 'done';
   }
@@ -121,34 +128,35 @@ const add_puzzle_schedule_route = protectedAdminProcedure
 
     revalidatePath('/padavali/schedules');
     const archival_verify_key = generateRandomAlphanumeric(32);
-    const schedule_pr = db
-      .insert(puzzle_game_schedules)
-      .values({
-        puzzle_id,
-        start_time,
-        end_time,
-        archival_verify_key
-      })
-      .returning();
+    const [schedule] = await db.transaction(async (tx) => {
+      return tx
+        .insert(puzzle_game_schedules)
+        .values({
+          puzzle_id,
+          start_time,
+          end_time,
+          archival_verify_key
+        })
+        .returning();
+    });
 
-    const [schedule] = await Promise.all([schedule_pr]);
     await Promise.allSettled([
       invalidate_and_refresh_cached(CACHE.current_schedule, NO_CACHE_PARAMS),
       invalidate_and_refresh_cached(CACHE.next_schedule, NO_CACHE_PARAMS),
-      notify_new_puzzle(puzzle_id, schedule[0].id, start_time),
+      notify_new_puzzle(puzzle_id, schedule.id, start_time),
       publishScheduleArchivalQueue(
         {
           puzzle_id,
-          schedule_id: schedule[0].id,
+          schedule_id: schedule.id,
           archival_verify_key
         },
-        (schedule[0].end_time.getTime() - new Date().getTime()) / 1000 - 1 // delay
+        (schedule.end_time.getTime() - new Date().getTime()) / 1000 - 1 // delay
       )
     ]);
 
     return {
       success: true,
-      schedule_id: schedule[0].id
+      schedule_id: schedule.id
     };
   });
 
@@ -157,9 +165,10 @@ const delete_puzzle_schedule_route = protectedAdminProcedure
   .mutation(async ({ input: { schedule_id } }) => {
     revalidatePath('/padavali/schedules');
 
-    await Promise.allSettled([
-      db.delete(puzzle_game_schedules).where(eq(puzzle_game_schedules.id, schedule_id))
-    ]);
+    await db.transaction(async (tx) => {
+      await tx.delete(puzzle_game_schedules).where(eq(puzzle_game_schedules.id, schedule_id));
+    });
+
     await Promise.allSettled([
       invalidate_and_refresh_cached(CACHE.current_schedule, NO_CACHE_PARAMS),
       invalidate_and_refresh_cached(CACHE.next_schedule, NO_CACHE_PARAMS)
@@ -181,8 +190,8 @@ const update_puzzle_schedule_route = protectedAdminProcedure
     revalidatePath('/padavali/schedules');
 
     const archival_verify_key = generateRandomAlphanumeric(32);
-    await Promise.allSettled([
-      db
+    await db.transaction(async (tx) => {
+      await tx
         .update(puzzle_game_schedules)
         .set({ start_time, end_time, archival_verify_key })
         .where(
@@ -190,8 +199,9 @@ const update_puzzle_schedule_route = protectedAdminProcedure
             eq(puzzle_game_schedules.id, schedule_id),
             eq(puzzle_game_schedules.puzzle_id, puzzle_id)
           )
-        )
-    ]);
+        );
+    });
+
     await Promise.allSettled([
       notify_new_puzzle(puzzle_id, schedule_id, start_time),
       publishScheduleArchivalQueue(
