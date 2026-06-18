@@ -1,8 +1,6 @@
 'use client';
 
-import WordGameRoot, {
-  type WordGameProps
-} from '~/components/pages/main/WordGame/WordGameRoot';
+import WordGameRoot, { type WordGameProps } from '~/components/pages/main/WordGame/WordGameRoot';
 import { type ScriptType } from '~/state/script_list';
 import { Sparkles } from 'lucide-react';
 import { useState } from 'react';
@@ -26,29 +24,10 @@ type Props = {
 };
 
 const MainPagePadavali = ({ script, word_puzzle, initial_script_data, next_schedule }: Props) => {
-  // Format dates for display
-  const formatDate = (date: Date) => {
-    return date.toLocaleDateString('en-US', {
-      weekday: 'long',
-      year: 'numeric',
-      month: 'long',
-      day: 'numeric'
-    });
-  };
-
-  const formatTime = (date: Date) => {
-    return date.toLocaleTimeString('en-US', {
-      hour: '2-digit',
-      minute: '2-digit',
-      hour12: true
-    });
-  };
-
   const [completed, setCompleted] = useState(false);
 
   return (
     <div className="px-4 py-4 sm:px-6 sm:py-6">
-      {/* Current Game Banner */}
       {!completed && (
         <motion.div
           initial={{ opacity: 0, y: -20 }}
@@ -60,9 +39,6 @@ const MainPagePadavali = ({ script, word_puzzle, initial_script_data, next_sched
           <div className="flex items-center justify-center">
             <div className="flex items-center gap-3 sm:gap-4">
               <div className="flex items-center gap-4">
-                {/* <div className="rounded-xl bg-gradient-to-r from-emerald-500 to-blue-500 p-2 shadow-lg">
-                  <IoExtensionPuzzleSharp className="size-5 text-white" />
-                </div> */}
                 <motion.div
                   initial={{ scale: 0.8 }}
                   animate={{ scale: 1 }}
@@ -102,6 +78,7 @@ const MainPagePadavali = ({ script, word_puzzle, initial_script_data, next_sched
         location="main_page"
         script={script}
         id={word_puzzle.id!}
+        puzzle_slug={word_puzzle.slug}
         title={word_puzzle.title}
         description={word_puzzle.description}
         grid_data={word_puzzle.grid_data}
@@ -111,7 +88,7 @@ const MainPagePadavali = ({ script, word_puzzle, initial_script_data, next_sched
         onChangeCompleted={setCompleted}
         next_schedule={next_schedule}
         attachments={word_puzzle.attachments}
-      ></WordGameRoot>
+      />
     </div>
   );
 };

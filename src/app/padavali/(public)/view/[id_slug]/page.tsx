@@ -72,6 +72,7 @@ const MainEdit = async ({ params }: Props) => {
             location="view_page"
             script={script}
             id={word_puzzle.id}
+            puzzle_slug={word_puzzle.slug}
             title={word_puzzle.title}
             description={word_puzzle.description}
             word_list={word_puzzle.word_list}

@@ -11,7 +11,7 @@ export const schedule_archival_publish_schema = z.object({
   archival_verify_key: z.string().length(32)
 });
 /**
- * Archive a Scheduled Puzzle after expiration, invalidation is handled through key verification
+ * Mark a scheduled puzzle as listed after expiration; invalidation is handled through key verification.
  */
 export const publishScheduleArchivalQueue = async (
   data: z.infer<typeof schedule_archival_publish_schema>,
@@ -26,7 +26,7 @@ export const publishScheduleArchivalQueue = async (
     body
   });
   console.log(
-    `Queue published for Archived Puzzle ${body.puzzle_id} with schedule ${body.schedule_id} (delay: ${delay_s}s)`
+    `Queue published to list puzzle ${body.puzzle_id} for schedule ${body.schedule_id} (delay: ${delay_s}s)`
   );
 };
 

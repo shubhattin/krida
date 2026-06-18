@@ -15,8 +15,14 @@ import { LanguageIcon } from '~/components/icons';
 import { AppContext } from '~/components/AppDataContext';
 import { cn } from '~/lib/utils';
 import { FONT_INFO } from '~/state/script_font_data';
-import { getCDNUrl } from '~/constants';
 import type { ListedPuzzlesType } from '~/util/cache.server/cache_loaders';
+import {
+  mapListedPuzzlesForDisplay,
+  mergeDisplayPuzzles,
+  NORMAL_TITLE_SCRIPT,
+  type DisplayPuzzle
+} from '~/components/pages/main/listed_puzzle_display';
+import { PuzzlePreviewCard } from '~/components/pages/main/PuzzlePreviewCard';
 import { InputGroup, InputGroupAddon, InputGroupInput } from '~/components/ui/input-group';
 import { Switch } from '~/components/ui/switch';
 import { Label } from '~/components/ui/label';
@@ -35,17 +41,6 @@ import {
   PaginationPrevious
 } from '~/components/ui/pagination';
 
-type ListedPuzzle = ListedPuzzlesType[number];
-
-/** Romanized (Normal) title from original Devanagari — used for search only. */
-const NORMAL_TITLE_SCRIPT = 'Normal' as const;
-
-/** Display row: transliterated title for search/display, original description for search. */
-type DisplayPuzzle = ListedPuzzle & {
-  description_original: string | null;
-  title_normal: string;
-};
-
 type Props = {
   listed_puzzles: ListedPuzzlesType;
   script: ScriptType;
@@ -53,22 +48,6 @@ type Props = {
 };
 
 const PAGE_LIMIT = 8 as const;
-const IMAGE_ASPECT_RATIO = [3, 2] as const;
-
-function mapListedPuzzlesForDisplay(
-  org: ListedPuzzlesType,
-  transliterated_texts: string[],
-  normal_titles: string[]
-): DisplayPuzzle[] {
-  let text_i = 0;
-  return org.map((puzzle, index) => ({
-    ...puzzle,
-    title: transliterated_texts[text_i++]!,
-    description: puzzle.description ? transliterated_texts[text_i++]! : null,
-    description_original: puzzle.description,
-    title_normal: normal_titles[index]!
-  }));
-}
 
 function getVisiblePages(current: number, total: number): (number | 'ellipsis')[] {
   if (total <= 5) {
@@ -135,16 +114,7 @@ export const ListedPuzzles = ({
 
   const display_puzzles = useMemo((): DisplayPuzzle[] => {
     const rows = listed_puzzle_list_q.data ?? listed_puzzles_init_transliterated;
-    const normal_titles = normal_titles_q.data;
-
-    return rows.map((puzzle, index) => ({
-      ...puzzle,
-      description_original:
-        'description_original' in puzzle && puzzle.description_original != null
-          ? puzzle.description_original
-          : (listed_puzzles_org[index]?.description ?? null),
-      title_normal: puzzle.title_normal ?? normal_titles?.[index] ?? ''
-    }));
+    return mergeDisplayPuzzles(rows, listed_puzzles_org, normal_titles_q.data);
   }, [
     listed_puzzle_list_q.data,
     listed_puzzles_init_transliterated,
@@ -311,7 +281,7 @@ const PuzzleListView = ({ puzzles }: { puzzles: DisplayPuzzle[] }) => {
                   animate={{ opacity: 1, y: 0 }}
                   transition={{ duration: 0.4, delay: index * 0.05 }}
                 >
-                  <PuzzleCard puzzle={puzzle} />
+                  <PuzzlePreviewCard puzzle={puzzle} />
                 </motion.div>
               ))}
             </div>
@@ -371,56 +341,6 @@ const PuzzleListView = ({ puzzles }: { puzzles: DisplayPuzzle[] }) => {
         )}
       </div>
     </div>
-  );
-};
-
-const PuzzleCard = ({ puzzle }: { puzzle: DisplayPuzzle }) => {
-  const { script } = useContext(AppContext);
-  const font_info = FONT_INFO[script!];
-  const imageUrl = puzzle.image ? getCDNUrl(puzzle.image.s3_key) : null;
-  const [w, h] = IMAGE_ASPECT_RATIO;
-
-  return (
-    <Link href={`/padavali/puzzle/${puzzle.slug}`} className="group block h-full">
-      <motion.div
-        whileHover={{ scale: 1.02, y: -2 }}
-        whileTap={{ scale: 0.98 }}
-        className="flex h-full flex-col overflow-hidden rounded-xl border border-slate-200 bg-white shadow-lg transition-shadow duration-200 hover:shadow-xl dark:border-slate-700 dark:bg-slate-800"
-      >
-        <div
-          className="relative w-full overflow-hidden bg-slate-100 dark:bg-slate-700"
-          style={{ aspectRatio: `${w} / ${h}` }}
-        >
-          {imageUrl ? (
-            <img src={imageUrl} alt="" className="size-full object-cover object-center" />
-          ) : (
-            <div className="flex size-full items-center justify-center bg-linear-to-br from-slate-600 via-slate-700 to-slate-800 dark:from-slate-700 dark:via-slate-800 dark:to-slate-900">
-              <IoExtensionPuzzleSharp className="size-12 text-slate-300/80 sm:size-14 dark:text-slate-400/70" />
-            </div>
-          )}
-        </div>
-        <div className="flex flex-1 flex-col p-3 text-left">
-          <div
-            className={cn(
-              'line-clamp-2 font-semibold text-slate-900 group-hover:text-blue-600 dark:text-slate-100 dark:group-hover:text-blue-400',
-              font_info.className
-            )}
-          >
-            {puzzle.title}
-          </div>
-          {puzzle.description ? (
-            <div
-              className={cn(
-                'mt-1 line-clamp-2 text-xs text-slate-500 dark:text-slate-400',
-                font_info.className
-              )}
-            >
-              {puzzle.description}
-            </div>
-          ) : null}
-        </div>
-      </motion.div>
-    </Link>
   );
 };
 

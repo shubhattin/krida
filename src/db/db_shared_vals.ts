@@ -43,7 +43,7 @@ export const puzzle_schema = z.object({
   title: z.string(),
   created_at: z.coerce.date(),
   updated_at: z.coerce.date().nullable(),
-  word_list: z.string().min(2).array(),
+  word_list: z.string().array(),
   grid_data: z.string().array().array(),
   grid_dimensions: z.tuple([z.number().int(), z.number().int()]),
   listed: z.boolean(),

@@ -24,7 +24,7 @@ export async function generateMetadata({ params }: Props): Promise<Metadata> {
     ...getMetadata({
       title:
         word_puzzle && word_puzzle.listed
-          ? word_puzzle.title + ' - Archived Puzzle | पदावली'
+          ? word_puzzle.title + ' - Padavali Puzzle | पदावली'
           : 'Not Found',
       description: word_puzzle && word_puzzle.listed ? word_puzzle.description : null
     })
@@ -59,7 +59,7 @@ const WordGameSuspense = async ({ slug }: { slug: string }) => {
     word_puzzle_get_cached_func({ slug }),
     CACHE.next_schedule.get(NO_CACHE_PARAMS)
   ]);
-  if (word_puzzle && !word_puzzle.listed) return <div>Puzzle is not Archived</div>;
+  if (word_puzzle && !word_puzzle.listed) return <div>This puzzle is not available.</div>;
 
   const script = await getCachedScript();
   const word_game_msgs = await get_transliterated_word_game_msgs(script);
@@ -70,9 +70,10 @@ const WordGameSuspense = async ({ slug }: { slug: string }) => {
   const grid_data = grid.map((row) => row.map(() => grid_cells[cell_i++]!));
   return word_puzzle ? (
     <WordGame
-      location="archive_page"
+      location="list_page"
       script={script}
       id={word_puzzle.id}
+      puzzle_slug={word_puzzle.slug}
       title={word_puzzle.title}
       description={word_puzzle.description}
       word_list={word_puzzle.word_list}

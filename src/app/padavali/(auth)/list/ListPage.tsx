@@ -1,7 +1,7 @@
 'use client';
 
 import { Card, CardDescription, CardHeader, CardTitle } from '~/components/ui/card';
-import { CalendarIcon, SearchIcon, ArchiveIcon, FilterIcon, ArrowUpDownIcon } from 'lucide-react';
+import { CalendarIcon, SearchIcon, List, FilterIcon, ArrowUpDownIcon } from 'lucide-react';
 import Link from 'next/link';
 import dayjs from 'dayjs';
 import relativeTime from 'dayjs/plugin/relativeTime';
@@ -41,10 +41,10 @@ dayjs.extend(relativeTime);
 
 const PUZZLE_FETCH_LIMIT = 12;
 
-const ARCHIVED_FILTER_ITEMS = [
+const LISTED_FILTER_ITEMS = [
   { label: 'All', value: 'all' as const },
-  { label: 'Archived', value: 'archived' as const },
-  { label: 'Unarchived', value: 'unarchived' as const }
+  { label: 'Listed', value: 'listed' as const },
+  { label: 'Unlisted', value: 'unlisted' as const }
 ];
 
 const SORT_BY_ITEMS = [
@@ -84,9 +84,7 @@ const ListPage = () => {
   const [page, setPage] = useState(1);
   const [search_title, setSearchTitle] = useState('');
   const [lipi_lekhika_typing, setLipiLekhikaTyping] = useState(true);
-  const [archived_filter_type, setArchivedFilterType] = useState<'all' | 'archived' | 'unarchived'>(
-    'all'
-  );
+  const [listed_filter_type, setListedFilterType] = useState<'all' | 'listed' | 'unlisted'>('all');
   const [sort_by, setSortBy] = useState<'created_at' | 'updated_at'>('created_at');
   const [order_by, setOrderBy] = useState<'asc' | 'desc'>('desc');
 
@@ -111,19 +109,19 @@ const ListPage = () => {
 
   useEffect(() => {
     setPage(1);
-  }, [debouncedSearchTitle, archived_filter_type, sort_by, order_by]);
+  }, [debouncedSearchTitle, listed_filter_type, sort_by, order_by]);
 
   const puzzle_list_q = useQuery({
-    queryKey: ['puzzle_list', page, debouncedSearchTitle, archived_filter_type, sort_by, order_by],
+    queryKey: ['puzzle_list', page, debouncedSearchTitle, listed_filter_type, sort_by, order_by],
     queryFn: async () => {
       return client.puzzle.get_puzzle_list_page.query({
         page,
         size: PUZZLE_FETCH_LIMIT,
-        archived_filter: {
+        listed_filter: {
           all: undefined,
-          archived: true,
-          unarchived: false
-        }[archived_filter_type],
+          listed: true,
+          unlisted: false
+        }[listed_filter_type],
         sort_by,
         search_title: debouncedSearchTitle !== '' ? debouncedSearchTitle : undefined,
         order_by
@@ -193,25 +191,25 @@ const ListPage = () => {
         </div>
         <div className="flex flex-wrap items-center justify-center gap-2 sm:gap-4">
           <div className="flex items-center gap-1.5 sm:gap-2">
-            <Label className="px-1 text-xs font-semibold sm:text-sm" title="Archived filter">
-              <ArchiveIcon className="size-3.5 sm:size-4" />
+            <Label className="px-1 text-xs font-semibold sm:text-sm" title="Listed filter">
+              <List className="size-3.5 sm:size-4" />
             </Label>
             <Select
-              items={ARCHIVED_FILTER_ITEMS}
-              value={archived_filter_type}
+              items={LISTED_FILTER_ITEMS}
+              value={listed_filter_type}
               onValueChange={(value) => {
-                if (value) setArchivedFilterType(value);
+                if (value) setListedFilterType(value);
               }}
             >
               <SelectTrigger
                 size="sm"
                 className="w-24 text-xs sm:text-sm"
-                aria-label="Archived filter"
+                aria-label="Listed filter"
               >
                 <SelectValue />
               </SelectTrigger>
               <SelectContent alignItemWithTrigger={false}>
-                {ARCHIVED_FILTER_ITEMS.map((item) => (
+                {LISTED_FILTER_ITEMS.map((item) => (
                   <SelectItem key={item.value} value={item.value}>
                     {item.label}
                   </SelectItem>

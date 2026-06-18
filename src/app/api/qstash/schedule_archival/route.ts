@@ -8,7 +8,7 @@ import {
 } from '~/util/cache.server/cache_loaders';
 import { puzzle_game_schedules, word_puzzles } from '~/db/schema';
 import { and, eq } from 'drizzle-orm';
-import { notify_for_archived_puzzle } from '~/api/routers/puzzle';
+import { notify_for_listed_puzzle } from '~/api/routers/puzzle';
 
 export const POST = verifySignatureAppRouter(async (req: Request) => {
   console.log('QStash request received', new Date());
@@ -66,10 +66,10 @@ export const POST = verifySignatureAppRouter(async (req: Request) => {
     invalidate_and_refresh_cached(CACHE.word_puzzle, {
       slug: schedule.puzzle.slug
     }),
-    notify_for_archived_puzzle(schedule.puzzle.title, schedule.puzzle.slug)
+    notify_for_listed_puzzle(schedule.puzzle.title, schedule.puzzle.slug)
   ]);
 
-  console.log(`Puzzle ${puzzle_id} archived successfully for Schedule ${schedule_id}.`);
+  console.log(`Puzzle ${puzzle_id} listed successfully for schedule ${schedule_id}.`);
 
-  return new Response(`Puzzle ${puzzle_id} archived successfully for Schedule ${schedule_id}.`);
+  return new Response(`Puzzle ${puzzle_id} listed successfully for schedule ${schedule_id}.`);
 });

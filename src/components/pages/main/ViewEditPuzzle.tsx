@@ -149,7 +149,7 @@ const ViewEditPuzzle = ({ word_puzzle: initialWordPuzzle }: ViewEditProps) => {
             onSlugUpdated={(slug) => setWordPuzzle((prev) => ({ ...prev, slug }))}
           />
           <Title />
-          <ArchivedSwitch />
+          <ListedSwitch />
           <Description />
           <Attachments />
           <WordList />
@@ -959,7 +959,7 @@ const GridData = ({
   );
 };
 
-const ArchivedSwitch = () => {
+const ListedSwitch = () => {
   const [listed, setListed] = useAtom(listed_atom);
 
   return (
@@ -1026,7 +1026,7 @@ const SaveButton = ({ word_puzzle }: { word_puzzle: Puzzle }) => {
     title: word_puzzle.title,
     wordList: word_puzzle.word_list,
     gridData: word_puzzle.grid_data,
-    archived: word_puzzle.listed,
+    listed: word_puzzle.listed,
     description: word_puzzle.description,
     attachments: word_puzzle.attachments
   });
@@ -1059,7 +1059,7 @@ const SaveButton = ({ word_puzzle }: { word_puzzle: Puzzle }) => {
           title,
           wordList,
           gridData,
-          archived: listed,
+          listed,
           description,
           attachments
         };
@@ -1085,7 +1085,7 @@ const SaveButton = ({ word_puzzle }: { word_puzzle: Puzzle }) => {
       title !== initialRef.current.title ||
       JSON.stringify(wordList) !== JSON.stringify(initialRef.current.wordList) ||
       JSON.stringify(gridData) !== JSON.stringify(initialRef.current.gridData) ||
-      listed !== initialRef.current.archived ||
+      listed !== initialRef.current.listed ||
       description !== initialRef.current.description ||
       JSON.stringify(attachments) !== JSON.stringify(initialRef.current.attachments)
     );
@@ -1097,13 +1097,13 @@ const SaveButton = ({ word_puzzle }: { word_puzzle: Puzzle }) => {
       puzzle_slug: word_puzzle.slug,
       puzzle_data: {
         title,
-        archived: listed,
+        listed: listed,
         word_list: wordList,
         grid_data: gridData,
         description: description !== '' ? description : null,
         attachments
       }
-    };
+    } satisfies z.infer<typeof puzzle_update_input_schema>;
     const parse = puzzle_update_input_schema.safeParse(data);
     if (parse.success) {
       update_word_puzzle_mut.mutate(parse.data);

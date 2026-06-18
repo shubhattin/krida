@@ -53,8 +53,10 @@ export const getScriptAvatar = (script: ScriptLangType) => {
 };
 
 const ScriptAvatar = ({ script }: { script: ScriptLangType }) => (
-  <Avatar>
-    <AvatarFallback>{getScriptAvatar(script)}</AvatarFallback>
+  <Avatar className="size-7">
+    <AvatarFallback className="flex items-center justify-center text-base">
+      {getScriptAvatar(script)}
+    </AvatarFallback>
   </Avatar>
 );
 
@@ -92,7 +94,7 @@ export const ScriptSelector = ({ script, onScriptChange }: Props) => {
 
   return (
     <Select items={SCRIPT_ITEMS} value={script} onValueChange={handleScriptChange}>
-      <SelectTrigger className="h-10 w-48 gap-2 border-border/50 bg-background/50 text-sm">
+      <SelectTrigger className="h-8 w-46 gap-2 border-border/50 bg-background/50 text-sm">
         <ScriptAvatar script={script} />
         <SelectValue />
       </SelectTrigger>
