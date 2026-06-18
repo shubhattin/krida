@@ -29,7 +29,7 @@ export const attachment_schema = z.object({
 });
 export const puzzle_schema = z.object({
   id: z.number().int(),
-  uuid: z.string().uuid(),
+  slug: z.string(),
   title: z.string(),
   created_at: z.coerce.date(),
   updated_at: z.coerce.date().nullable(),
@@ -67,7 +67,7 @@ export const puzzle_update_input_schema = z.object({
 export const puzzle_add_input_schema = puzzle_schema
   .omit({
     id: true,
-    uuid: true,
+    slug: true,
     created_at: true,
     updated_at: true,
     attachments: true
