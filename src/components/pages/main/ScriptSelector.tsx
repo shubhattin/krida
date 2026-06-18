@@ -10,6 +10,7 @@ import {
 import Cookies from 'js-cookie';
 import { useEffect } from 'react';
 import { load_posthog } from '~/components/tags/PosthogInit';
+import { Avatar, AvatarFallback } from '~/components/ui/avatar';
 import {
   Select,
   SelectContent,
@@ -20,6 +21,42 @@ import {
   SelectTrigger,
   SelectValue
 } from '~/components/ui/select';
+import { type ScriptLangType, type ScriptListType, getNormalizedScriptName } from 'lipilekhika';
+
+export const SCRIPT_AVATAR_MAP: Record<ScriptListType, string> = {
+  Devanagari: 'अ',
+  Telugu: 'అ',
+  Tamil: 'அ',
+  'Tamil-Extended': 'அ',
+  Bengali: 'অ',
+  Kannada: 'ಅ',
+  Gujarati: 'અ',
+  Malayalam: 'അ',
+  Odia: 'ଅ',
+  Sinhala: 'අ',
+  Normal: 'a',
+  Romanized: 'ā',
+  Gurumukhi: 'ਅ',
+  Assamese: 'অ',
+  Siddham: '𑖀',
+  'Purna-Devanagari': 'अ',
+  Brahmi: '𑀅',
+  Granth: '𑌅',
+  Modi: '𑘀',
+  Sharada: '𑆃'
+};
+
+export const getScriptAvatar = (script: ScriptLangType) => {
+  const normalizedScript = getNormalizedScriptName(script);
+  if (!normalizedScript) return 'अ';
+  return SCRIPT_AVATAR_MAP[normalizedScript];
+};
+
+const ScriptAvatar = ({ script }: { script: ScriptLangType }) => (
+  <Avatar>
+    <AvatarFallback>{getScriptAvatar(script)}</AvatarFallback>
+  </Avatar>
+);
 
 const SCRIPT_ITEMS = [
   ...SCRIPT_LIST_MAIN.map((script) => ({
@@ -55,22 +92,23 @@ export const ScriptSelector = ({ script, onScriptChange }: Props) => {
 
   return (
     <Select items={SCRIPT_ITEMS} value={script} onValueChange={handleScriptChange}>
-      <SelectTrigger size="sm" className="w-28 text-xs">
+      <SelectTrigger className="h-10 w-48 gap-2 border-border/50 bg-background/50 text-sm">
+        <ScriptAvatar script={script} />
         <SelectValue />
       </SelectTrigger>
-      <SelectContent alignItemWithTrigger={false}>
-        <SelectGroup>
-          {SCRIPT_LIST_MAIN.map((scriptKey) => (
-            <SelectItem key={scriptKey} value={scriptKey}>
-              {SCRIPT_NAMES[scriptKey]}
-            </SelectItem>
-          ))}
-        </SelectGroup>
+      <SelectContent alignItemWithTrigger={false} className="max-h-96">
+        {SCRIPT_LIST_MAIN.map((scriptKey) => (
+          <SelectItem key={scriptKey} value={scriptKey}>
+            <ScriptAvatar script={scriptKey} />
+            {SCRIPT_NAMES[scriptKey]}
+          </SelectItem>
+        ))}
         <SelectSeparator />
         <SelectGroup>
           <SelectLabel>Ancient Scripts</SelectLabel>
           {SCRIPT_LIST_ANCIENT.map((scriptKey) => (
             <SelectItem key={scriptKey} value={scriptKey}>
+              <ScriptAvatar script={scriptKey} />
               {SCRIPT_NAMES[scriptKey]}
             </SelectItem>
           ))}

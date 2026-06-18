@@ -1160,8 +1160,7 @@ const SaveButton = ({ word_puzzle }: { word_puzzle: z.infer<typeof puzzle_schema
         >
           {is_addition ? (
             <>
-              <IoMdAdd className="text-lg" />{' '}
-              {!add_word_puzzle_mut.isPending ? 'Add' : 'Adding...'}
+              <IoMdAdd className="text-lg" /> {!add_word_puzzle_mut.isPending ? 'Add' : 'Adding...'}
             </>
           ) : (
             <>
