@@ -1,15 +1,22 @@
 'use client';
 
 import { Card, CardDescription, CardHeader, CardTitle } from '~/components/ui/card';
-import { CalendarIcon, SearchIcon, ArchiveIcon, FilterIcon, ArrowUpDownIcon } from 'lucide-react';
+import {
+  CalendarIcon,
+  SearchIcon,
+  ArchiveIcon,
+  FilterIcon,
+  ArrowUpDownIcon,
+  ChevronLeftIcon,
+  ChevronRightIcon
+} from 'lucide-react';
 import Link from 'next/link';
 import dayjs from 'dayjs';
 import relativeTime from 'dayjs/plugin/relativeTime';
 import { useEffect, useState } from 'react';
-import { client, client_q } from '~/api/client';
+import { client } from '~/api/client';
 import { Skeleton } from '~/components/ui/skeleton';
 import { Button } from '~/components/ui/button';
-import { Input } from '~/components/ui/input';
 import { Label } from '~/components/ui/label';
 import { Switch } from '~/components/ui/switch';
 import {
@@ -19,6 +26,7 @@ import {
   SelectTrigger,
   SelectValue
 } from '~/components/ui/select';
+import { InputGroup, InputGroupAddon, InputGroupInput } from '~/components/ui/input-group';
 import Icon from '~/tools/Icon';
 import { LanguageIcon } from '~/components/icons';
 import {
@@ -50,11 +58,7 @@ const ORDER_BY_ITEMS = [
 
 const ListPage = () => {
   const [mounted, setMounted] = useState(false);
-  const [pageLastId, setPageLastId] = useState<number | undefined>(undefined);
-  const [pageLastCreatedOrUpdatedAt, setPageLastCreatedOrUpdatedAt] = useState<Date | undefined>(
-    undefined
-  );
-  const [moreItemsToFetch, setMoreItemsToFetch] = useState(true);
+  const [page, setPage] = useState(1);
   const [search_title, setSearchTitle] = useState('');
   const [lipi_lekhika_typing, setLipiLekhikaTyping] = useState(true);
   const [archived_filter_type, setArchivedFilterType] = useState<'all' | 'archived' | 'unarchived'>(
@@ -69,12 +73,10 @@ const ListPage = () => {
     ctx.ready;
   }, [ctx]);
 
-  // Ensure component is mounted before showing loading states
   useEffect(() => {
     setMounted(true);
   }, []);
 
-  // Debounce search input to avoid redundant requests
   const [debouncedSearchTitle, setDebouncedSearchTitle] = useState(search_title);
   const DEBOUNCE_TIME = 400;
   useEffect(() => {
@@ -84,110 +86,77 @@ const ListPage = () => {
     return () => clearTimeout(timeoutId);
   }, [search_title]);
 
+  useEffect(() => {
+    setPage(1);
+  }, [debouncedSearchTitle, archived_filter_type, sort_by, order_by]);
+
   const puzzle_list_q = useQuery({
-    queryKey: ['puzzle_list'],
+    queryKey: ['puzzle_list', page, debouncedSearchTitle, archived_filter_type, sort_by, order_by],
     queryFn: async () => {
-      const data = await client.puzzle.get_puzzle_list_page.query({
-        limit: PUZZLE_FETCH_LIMIT,
+      return client.puzzle.get_puzzle_list_page.query({
+        page,
+        size: PUZZLE_FETCH_LIMIT,
         archived_filter: {
           all: undefined,
           archived: true,
           unarchived: false
         }[archived_filter_type],
-        sort_by: sort_by,
-        last_id: pageLastId,
-        last_created_or_updated_at: pageLastCreatedOrUpdatedAt,
+        sort_by,
         search_title: debouncedSearchTitle !== '' ? debouncedSearchTitle : undefined,
-        order_by: order_by
+        order_by
       });
-      return data;
     },
     placeholderData: (prev) => prev,
     refetchOnWindowFocus: false
   });
 
-  useEffect(() => {
-    puzzle_list_q.refetch();
-  }, [
-    debouncedSearchTitle,
-    archived_filter_type,
-    sort_by,
-    order_by,
-    pageLastId,
-    pageLastCreatedOrUpdatedAt
-  ]);
-
-  const [puzzle_list, setPuuzleList] = useState<
-    Awaited<ReturnType<typeof client.puzzle.get_puzzle_list_page.query>>
-  >([]);
-
-  useEffect(() => {
-    if (puzzle_list_q.isSuccess && !puzzle_list_q.isLoading) {
-      setPuuzleList((prev) => [...prev, ...(puzzle_list_q.data ?? [])]);
-      const fetched = puzzle_list_q.data ?? [];
-      setMoreItemsToFetch(fetched.length === PUZZLE_FETCH_LIMIT || fetched.length === 0);
-      // ^ if extactly the number of items fetched is the limit, then there are no more items to fetch
-    }
-  }, [puzzle_list_q.data, puzzle_list_q.isSuccess, puzzle_list_q.isLoading]);
-
-  useEffect(() => {
-    // reset on filter/sort/search
-    setPuuzleList([]);
-    setPageLastId(undefined);
-    setPageLastCreatedOrUpdatedAt(undefined);
-    setMoreItemsToFetch(true);
-    if (debouncedSearchTitle === '') {
-      // manually refetch when search is cleared
-      puzzle_list_q.refetch();
-    }
-  }, [debouncedSearchTitle, archived_filter_type, sort_by, order_by]);
+  const puzzle_list = puzzle_list_q.data?.list ?? [];
+  const pageCount = puzzle_list_q.data?.pageCount ?? 1;
+  const hasPrev = puzzle_list_q.data?.hasPrev ?? false;
+  const hasNext = puzzle_list_q.data?.hasNext ?? false;
+  const isInitialLoading = puzzle_list_q.isLoading && !puzzle_list_q.data;
 
   const LoadingSkeletonJSX = () => (
     <>
-      {(puzzle_list_q.isLoading || !mounted) && (
+      {(isInitialLoading || !mounted) && (
         <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4">
-          {Array.from({ length: 12 }).map((_, index) => (
+          {Array.from({ length: PUZZLE_FETCH_LIMIT }).map((_, index) => (
             <Skeleton key={index} className="h-16 w-full" />
           ))}
         </div>
       )}
     </>
   );
-  // Don't render anything until mounted to prevent hydration mismatch
+
   if (!mounted) {
     return <LoadingSkeletonJSX />;
   }
-
-  const handleLoadMore = () => {
-    if (puzzle_list.length === 0) return;
-    const last = puzzle_list[puzzle_list.length - 1];
-    setPageLastId(last.id);
-    setPageLastCreatedOrUpdatedAt(
-      sort_by === 'updated_at' ? (last.updated_at ?? last.created_at) : last.created_at
-    );
-  };
 
   return (
     <div className="space-y-4">
       <div className="flex flex-col items-center space-y-3">
         <div className="flex items-center space-x-4">
-          <SearchIcon className="mr-2 size-6 text-muted-foreground" />
-          <Input
-            className="w-48 text-sm sm:w-52 lg:w-72"
-            value={search_title}
-            onChange={(e) => setSearchTitle(e.currentTarget.value)}
-            onBeforeInput={(e) =>
-              handleTypingBeforeInputEvent(
-                ctx,
-                e,
-                (newValue) => setSearchTitle(newValue),
-                lipi_lekhika_typing
-              )
-            }
-            onBlur={() => ctx.clearContext()}
-            onKeyDown={(e) => clearTypingContextOnKeyDown(e, ctx)}
-            placeholder="Search by title"
-          />
+          <InputGroup className="w-48 sm:w-52 lg:w-72">
+            <InputGroupAddon>
+              <SearchIcon />
+            </InputGroupAddon>
+            <InputGroupInput
+              className="text-sm"
+              value={search_title}
+              onChange={(e) => setSearchTitle(e.currentTarget.value)}
+              onBeforeInput={(e) =>
+                handleTypingBeforeInputEvent(
+                  ctx,
+                  e,
+                  (newValue) => setSearchTitle(newValue),
+                  lipi_lekhika_typing
+                )
+              }
+              onBlur={() => ctx.clearContext()}
+              onKeyDown={(e) => clearTypingContextOnKeyDown(e, ctx)}
+              placeholder="Search by title"
+            />
+          </InputGroup>
           <div className="flex justify-center">
             <Label className="inline-flex items-center justify-center gap-2 font-medium">
               <Switch
@@ -276,7 +245,7 @@ const ListPage = () => {
         </div>
       </div>
       <LoadingSkeletonJSX />
-      {puzzle_list_q.isSuccess && !puzzle_list_q.isLoading && (
+      {puzzle_list_q.isSuccess && !isInitialLoading && (
         <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4">
           {puzzle_list.length > 0 &&
             puzzle_list.map((item) => (
@@ -285,19 +254,16 @@ const ListPage = () => {
                   <Card className="p-2 transition duration-200 hover:bg-gray-100 hover:dark:bg-gray-800">
                     <CardHeader>
                       <CardTitle>{item.title}</CardTitle>
-                      <CardDescription className="flex flex-col space-y-1 sm:flex-row sm:items-center sm:space-y-0 sm:space-x-2">
+                      <CardDescription className="flex flex-wrap items-center gap-x-2 gap-y-1 sm:flex-row sm:items-center">
                         {item.updated_at &&
                           item.updated_at.getTime() !== item.created_at.getTime() &&
                           item.updated_at.getTime() !== 0 && (
-                            <>
-                              <span className="text-sm text-muted-foreground">
-                                {/* <RefreshCwIcon className="mr-1 inline-block h-3 w-3" /> */}
-                                Updated: {dayjs(item.updated_at).fromNow()}
-                              </span>
-                            </>
+                            <span className="inline-flex items-center text-sm text-muted-foreground">
+                              Updated: {dayjs(item.updated_at).fromNow()}
+                            </span>
                           )}
-                        <span className="text-sm text-muted-foreground">
-                          <CalendarIcon className="mr-1 inline-block size-3" />
+                        <span className="inline-flex items-center gap-1 text-sm text-muted-foreground">
+                          <CalendarIcon className="size-3 shrink-0" />
                           {dayjs(item.created_at).format('MMM D, YYYY')}
                         </span>
                       </CardDescription>
@@ -308,7 +274,7 @@ const ListPage = () => {
             ))}
         </div>
       )}
-      {puzzle_list.length === 0 && (
+      {puzzle_list.length === 0 && !isInitialLoading && (
         <div className="flex items-center justify-center">
           {!puzzle_list_q.isFetching ? (
             <p className="text-lg font-semibold text-gray-500">No puzzles found</p>
@@ -317,15 +283,52 @@ const ListPage = () => {
           )}
         </div>
       )}
-      {puzzle_list.length > 0 && moreItemsToFetch && (
-        <div className="flex items-center justify-center">
+      {(pageCount > 1 || puzzle_list_q.data?.total) && (
+        <div className="flex flex-wrap items-center justify-center gap-3">
           <Button
-            onClick={handleLoadMore}
-            disabled={puzzle_list_q.isFetching}
-            variant="secondary"
-            className="font-semibold"
+            variant="outline"
+            size="sm"
+            onClick={() => setPage((p) => p - 1)}
+            disabled={!hasPrev || puzzle_list_q.isFetching}
+            className="gap-1"
           >
-            {puzzle_list_q.isFetching ? 'Loading...' : 'Load More'}
+            <ChevronLeftIcon className="size-4" />
+            Prev
+          </Button>
+          <div className="flex items-center gap-2">
+            <span className="text-sm font-medium text-muted-foreground">Page</span>
+            <Select
+              items={Array.from({ length: pageCount }, (_, i) => ({
+                label: String(i + 1),
+                value: String(i + 1)
+              }))}
+              value={String(page)}
+              onValueChange={(value) => {
+                if (value) setPage(Number(value));
+              }}
+            >
+              <SelectTrigger size="sm" className="w-16" aria-label="Select page">
+                <SelectValue />
+              </SelectTrigger>
+              <SelectContent alignItemWithTrigger={false}>
+                {Array.from({ length: pageCount }, (_, i) => (
+                  <SelectItem key={i + 1} value={String(i + 1)}>
+                    {i + 1}
+                  </SelectItem>
+                ))}
+              </SelectContent>
+            </Select>
+            <span className="text-sm font-medium text-muted-foreground">of {pageCount}</span>
+          </div>
+          <Button
+            variant="outline"
+            size="sm"
+            onClick={() => setPage((p) => p + 1)}
+            disabled={!hasNext || puzzle_list_q.isFetching}
+            className="gap-1"
+          >
+            Next
+            <ChevronRightIcon className="size-4" />
           </Button>
         </div>
       )}

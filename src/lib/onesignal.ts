@@ -2,8 +2,8 @@ import { z } from 'zod';
 
 const notifications_options_schema = z.object({
   name: z.string(),
-  headings: z.record(z.string()),
-  contents: z.record(z.string()),
+  headings: z.record(z.string(), z.string()),
+  contents: z.record(z.string(), z.string()),
   target_channel: z.string().optional().default('push'),
   included_segments: z.array(z.string()).optional().default(['All']),
   chrome_web_image: z.string().optional(),

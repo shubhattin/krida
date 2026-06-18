@@ -6,7 +6,13 @@ import { Button } from '~/components/ui/button';
 import { Calendar } from '~/components/ui/calendar';
 import { Input } from '~/components/ui/input';
 import { Label } from '~/components/ui/label';
-import { ChevronDownIcon, PlusIcon, SearchIcon } from 'lucide-react';
+import {
+  ChevronDownIcon,
+  ChevronLeftIcon,
+  ChevronRightIcon,
+  PlusIcon,
+  SearchIcon
+} from 'lucide-react';
 import { client, client_q } from '~/api/client';
 import { toast } from 'sonner';
 import { useRouter } from 'next/navigation';
@@ -61,7 +67,9 @@ const AddSchedule = (props: Props) => {
   const [endDate, setEndDate] = useState<Date | undefined>(
     type === 'edit' ? props.init.end_date : undefined
   );
-  const [puzzleId, setPuzzleId] = useState<number | undefined>(undefined);
+  const [selectedPuzzle, setSelectedPuzzle] = useState<{ id: number; title: string } | undefined>(
+    undefined
+  );
 
   const [startTime, setStartTime] = useState<string>(
     (type === 'edit' ? props.init.start_time_string : DEFAULT_START_END_TIME) + ':00'
@@ -111,7 +119,7 @@ const AddSchedule = (props: Props) => {
   });
 
   const invalid_state_condition =
-    (type === 'add' && !puzzleId) ||
+    (type === 'add' && !selectedPuzzle) ||
     !startDate ||
     !endDate ||
     startDate > endDate ||
@@ -119,11 +127,15 @@ const AddSchedule = (props: Props) => {
 
   const handle_add_schedule = () => {
     if (type !== 'add') return;
-    if (invalid_state_condition || !puzzleId) {
+    if (invalid_state_condition || !selectedPuzzle) {
       toast.error('Please fill all the fields correctly');
       return;
     }
-    add_schedule_mut.mutate({ puzzle_id: puzzleId, start_time: startDate, end_time: endDate });
+    add_schedule_mut.mutate({
+      puzzle_id: selectedPuzzle.id,
+      start_time: startDate,
+      end_time: endDate
+    });
   };
 
   const handle_update_schedule = () => {
@@ -140,64 +152,34 @@ const AddSchedule = (props: Props) => {
     });
   };
 
-  const [pageLastId, setPageLastId] = useState<number | undefined>(undefined);
-  const [pageLastCreatedOrUpdatedAt, setPageLastCreatedOrUpdatedAt] = useState<Date | undefined>(
-    undefined
-  );
-  const [moreItemsToFetch, setMoreItemsToFetch] = useState(true);
+  const [page, setPage] = useState(1);
+
+  useEffect(() => {
+    setPage(1);
+    setSelectedPuzzle(undefined);
+  }, [debouncedSearchTitle]);
 
   const puzzle_list_q = useQuery({
-    queryKey: ['puzzle_list_archived'],
+    queryKey: ['puzzle_list_archived', page, debouncedSearchTitle],
     queryFn: async () => {
-      const data = client.puzzle.get_puzzle_list_page.query({
-        limit: PUZZLE_FETCH_LIMIT,
+      return client.puzzle.get_puzzle_list_page.query({
+        page,
+        size: PUZZLE_FETCH_LIMIT,
         archived_filter: false,
         search_title: debouncedSearchTitle !== '' ? debouncedSearchTitle : undefined,
-        sort_by: 'created_at',
-        last_id: pageLastId,
-        last_created_or_updated_at: pageLastCreatedOrUpdatedAt
+        sort_by: 'created_at'
       });
-      return data;
     },
     enabled: type === 'add',
-    // keep old data while fetching next page to avoid UI flicker
     placeholderData: (prev) => prev,
     refetchOnWindowFocus: false
   });
 
-  useEffect(() => {
-    puzzle_list_q.refetch();
-  }, [debouncedSearchTitle, pageLastId, pageLastCreatedOrUpdatedAt]);
-
-  const [puzzle_list, setPuzzleList] = useState<NonNullable<typeof puzzle_list_q.data>>([]);
-  useEffect(() => {
-    if (puzzle_list_q.isSuccess && !puzzle_list_q.isLoading) {
-      setPuzzleList((prev) => [...prev, ...(puzzle_list_q.data ?? [])]);
-      const fetched = puzzle_list_q.data ?? [];
-      setMoreItemsToFetch(fetched.length === PUZZLE_FETCH_LIMIT || fetched.length === 0);
-      // ^ if extactly the number of items fetched is the limit, then there are no more items to fetch
-    }
-  }, [puzzle_list_q.data, puzzle_list_q.isSuccess, puzzle_list_q.isLoading]);
-  useEffect(() => {
-    // reset on search
-    setPuzzleList([]);
-    setPageLastId(undefined);
-    setPageLastCreatedOrUpdatedAt(undefined);
-    setMoreItemsToFetch(true);
-    setPuzzleId(undefined);
-    // console.log('resetting', /[debouncedSearchTitle]);
-    if (debouncedSearchTitle === '') {
-      // manually refetch when search is cleared
-      puzzle_list_q.refetch();
-    }
-  }, [debouncedSearchTitle]);
-
-  const handleLoadMore = () => {
-    if (puzzle_list.length === 0) return;
-    const last = puzzle_list[puzzle_list.length - 1];
-    setPageLastId(last.id);
-    setPageLastCreatedOrUpdatedAt(last.created_at);
-  };
+  const puzzle_list = puzzle_list_q.data?.list ?? [];
+  const pageCount = puzzle_list_q.data?.pageCount ?? 1;
+  const hasPrev = puzzle_list_q.data?.hasPrev ?? false;
+  const hasNext = puzzle_list_q.data?.hasNext ?? false;
+  const isInitialLoading = puzzle_list_q.isLoading && !puzzle_list_q.data;
 
   const ctx = createTypingContext('Devanagari');
   useEffect(() => {
@@ -335,9 +317,16 @@ const AddSchedule = (props: Props) => {
               </div>
             </div>
           </div>
-          {puzzle_list_q.isLoading && <Skeleton className="h-52 w-full" />}
-          {puzzle_list_q.isSuccess && !puzzle_list_q.isLoading && (
+          {isInitialLoading && <Skeleton className="h-52 w-full" />}
+          {!isInitialLoading && (
             <div className="space-y-3">
+              {selectedPuzzle && (
+                <p className="flex items-center gap-1.5 px-1 text-xs text-muted-foreground">
+                  <span className="size-1.5 shrink-0 rounded-full bg-blue-500" aria-hidden />
+                  Selected:{' '}
+                  <span className="font-medium text-foreground">{selectedPuzzle.title}</span>
+                </p>
+              )}
               <div className="grid max-h-52 grid-cols-2 gap-2 overflow-y-scroll rounded-md border border-gray-200 bg-gray-50/50 p-3 sm:grid-cols-3 lg:grid-cols-4 dark:border-gray-700 dark:bg-gray-800/50">
                 {puzzle_list.length > 0 ? (
                   puzzle_list.map((puzzle) => (
@@ -346,21 +335,21 @@ const AddSchedule = (props: Props) => {
                       className={cn(
                         'rounded-md border px-4 py-3 text-left text-sm font-semibold transition-all duration-200 ease-in-out outline-none',
                         'hover:shadow-md focus:ring-2 focus:ring-blue-500/50',
-                        puzzleId === puzzle.id
+                        selectedPuzzle?.id === puzzle.id
                           ? 'border-blue-400 bg-blue-100 text-blue-900 shadow-md dark:border-blue-500 dark:bg-blue-900/30 dark:text-blue-100'
                           : 'border-gray-200 bg-white text-gray-700 hover:border-blue-300 hover:bg-blue-50 dark:border-gray-600 dark:bg-gray-700 dark:text-gray-200 dark:hover:border-blue-400 dark:hover:bg-blue-900/20'
                       )}
-                      disabled={puzzle_list_q.isLoading}
+                      disabled={puzzle_list_q.isFetching}
                       onClick={() => {
-                        if (puzzleId === puzzle.id) setPuzzleId(undefined);
-                        else setPuzzleId(puzzle.id);
+                        if (selectedPuzzle?.id === puzzle.id) setSelectedPuzzle(undefined);
+                        else setSelectedPuzzle({ id: puzzle.id, title: puzzle.title });
                       }}
                     >
                       {puzzle.title}
                     </button>
                   ))
                 ) : (
-                  <div className="flex items-center justify-center">
+                  <div className="col-span-full flex items-center justify-center py-6">
                     {!puzzle_list_q.isFetching ? (
                       <p className="text-sm text-gray-500">No puzzles found</p>
                     ) : (
@@ -369,14 +358,30 @@ const AddSchedule = (props: Props) => {
                   </div>
                 )}
               </div>
-              {puzzle_list.length > 0 && moreItemsToFetch && (
-                <div className="flex justify-center">
+              {pageCount > 1 && (
+                <div className="flex items-center justify-center gap-3">
                   <Button
-                    onClick={handleLoadMore}
-                    disabled={puzzle_list_q.isFetching}
-                    variant="secondary"
+                    variant="outline"
+                    size="sm"
+                    onClick={() => setPage((p) => p - 1)}
+                    disabled={!hasPrev || puzzle_list_q.isFetching}
+                    className="gap-1"
                   >
-                    {puzzle_list_q.isFetching ? 'Loading...' : 'Load More'}
+                    <ChevronLeftIcon className="size-4" />
+                    Prev
+                  </Button>
+                  <span className="text-sm font-medium text-muted-foreground">
+                    Page {page} of {pageCount}
+                  </span>
+                  <Button
+                    variant="outline"
+                    size="sm"
+                    onClick={() => setPage((p) => p + 1)}
+                    disabled={!hasNext || puzzle_list_q.isFetching}
+                    className="gap-1"
+                  >
+                    Next
+                    <ChevronRightIcon className="size-4" />
                   </Button>
                 </div>
               )}

@@ -158,7 +158,6 @@ const MainPagePadavali = ({ script, word_puzzle, initial_script_data, next_sched
         location="main_page"
         script={script}
         id={word_puzzle.id!}
-        uuid={word_puzzle.uuid!}
         title={word_puzzle.title}
         description={word_puzzle.description}
         grid_data={word_puzzle.grid_data}

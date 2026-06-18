@@ -47,8 +47,11 @@ const Main = async ({ params }: Props) => {
   return (
     <div className="mt-4">
       <div className="my-2 mb-4 px-2">
-        <Link href="/padavali/schedules" className="flex items-center gap-1 text-lg font-semibold">
-          <IoMdArrowRoundBack className="inline-block text-xl" />
+        <Link
+          href="/padavali/schedules"
+          className="inline-flex items-center gap-1.5 text-lg font-semibold"
+        >
+          <IoMdArrowRoundBack className="size-5 shrink-0" />
           <span>Schedule List</span>
         </Link>
       </div>

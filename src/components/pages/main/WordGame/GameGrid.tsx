@@ -24,7 +24,6 @@ type Props = {
   puzzle_id: number;
   timerRef: RefObject<NodeJS.Timeout | null>;
   original_grid_data: string[][];
-  puzzle_uuid: string;
   location: location_list_type;
 };
 

@@ -2,7 +2,7 @@ import { z } from 'zod';
 import { protectedAdminProcedure, t } from '../trpc_init';
 import { db, type transactionType } from '~/db/db';
 import { word_puzzle_attachments, word_puzzles } from '~/db/schema';
-import { and, eq, inArray } from 'drizzle-orm';
+import { and, asc, count, desc, eq, ilike, inArray, sql } from 'drizzle-orm';
 import { revalidatePath } from 'next/cache';
 import { padavali_stats_router } from './padavali_stats';
 import {
@@ -10,23 +10,38 @@ import {
   invalidate_and_refresh_cached,
   NO_CACHE_PARAMS
 } from '~/util/cache.server/cache_loaders';
-import { puzzle_add_input_schema, puzzle_update_input_schema } from '~/db/db_shared_vals';
+import {
+  puzzle_add_input_schema,
+  puzzle_update_input_schema,
+  puzzle_update_slug_input_schema
+} from '~/db/db_shared_vals';
 import { sendOneSignalNotification } from '~/lib/onesignal';
 import { delay } from '~/tools/delay';
+import {
+  createEmptyGridData,
+  DEFAULT_GRID_DIMENSIONS,
+  isValidSlug,
+  normalizeSlug
+} from '~/util/puzzle/slug';
 
-const puzzle_in_current_schedule = async (id: number, uuid: string) => {
+const puzzle_in_current_schedule = async (id: number) => {
   const current_schedule = await CACHE.current_schedule.get(NO_CACHE_PARAMS);
-  return current_schedule?.puzzle.id === id && current_schedule.puzzle.uuid === uuid;
+  return current_schedule?.puzzle.id === id;
 };
 
-export const notify_for_archived_puzzle = async (title: string, id: number, uuid: string) => {
+const puzzle_in_next_schedule = async (id: number) => {
+  const next_schedule = await CACHE.next_schedule.get(NO_CACHE_PARAMS);
+  return next_schedule?.puzzle.id === id;
+};
+
+export const notify_for_archived_puzzle = async (title: string, slug: string) => {
   return await sendOneSignalNotification({
     headings: { en: '🧩 New Archived Puzzle Added! 🎉' },
     contents: {
       en: `"${title}" - Archived Puzzle Added, Play Now! 🚀`
     },
-    name: `new_archived_puzzle:${id}`,
-    url: `${process.env.NEXT_PUBLIC_SITE_URL}/padavali/archived/${id}:${uuid}`
+    name: `new_archived_puzzle:${slug}`,
+    url: `${process.env.NEXT_PUBLIC_SITE_URL}/padavali/archived/${slug}`
   });
 };
 
@@ -108,29 +123,63 @@ const update_puzzle_attachments = async (
   };
 };
 
+const check_slug_availability_route = protectedAdminProcedure
+  .input(
+    z.object({
+      slug: z.string(),
+      exclude_puzzle_id: z.number().int().optional()
+    })
+  )
+  .query(async ({ input: { slug, exclude_puzzle_id } }) => {
+    const normalized = normalizeSlug(slug);
+    if (!isValidSlug(normalized)) {
+      return { available: false as const, reason: 'invalid_format' as const, slug: normalized };
+    }
+
+    const existing = await db.query.word_puzzles.findFirst({
+      where: (tbl, { eq }) => eq(tbl.slug, normalized),
+      columns: { id: true }
+    });
+
+    if (!existing || (exclude_puzzle_id !== undefined && existing.id === exclude_puzzle_id)) {
+      return { available: true as const, slug: normalized };
+    }
+
+    return { available: false as const, reason: 'taken' as const, slug: normalized };
+  });
+
 const update_puzzle_route = protectedAdminProcedure
   .input(puzzle_update_input_schema)
-  .mutation(async ({ input: { puzzle_id, puzzle_data, puzzle_uuid } }) => {
+  .mutation(async ({ input: { puzzle_id, puzzle_data, puzzle_slug } }) => {
     revalidatePath('/padavali/list');
-    const prev_archived = (await db.query.word_puzzles.findFirst({
+    const existing = await db.query.word_puzzles.findFirst({
       columns: {
         archived: true
       },
-      where: (tbl, { eq }) => eq(tbl.id, puzzle_id)
-    }))!.archived;
+      where: (tbl, { and, eq }) => and(eq(tbl.id, puzzle_id), eq(tbl.slug, puzzle_slug))
+    });
+    if (!existing) {
+      throw new Error('Puzzle not found or slug mismatch');
+    }
+    const prev_archived = existing.archived;
     const { attachments, ...puzzle_data_rest } = puzzle_data;
 
     const { newly_added_index_ids } = await db.transaction(async (tx) => {
-      await tx
+      const updated = await tx
         .update(word_puzzles)
         .set(puzzle_data_rest)
-        .where(and(eq(word_puzzles.id, puzzle_id), eq(word_puzzles.uuid, puzzle_uuid)));
+        .where(and(eq(word_puzzles.id, puzzle_id), eq(word_puzzles.slug, puzzle_slug)))
+        .returning();
+
+      if (updated.length === 0) {
+        throw new Error('Puzzle not found or slug mismatch');
+      }
 
       if (!prev_archived && puzzle_data.archived) {
         await tx
           .update(word_puzzles)
           .set({ last_archived_at: new Date() })
-          .where(and(eq(word_puzzles.id, puzzle_id), eq(word_puzzles.uuid, puzzle_uuid)));
+          .where(and(eq(word_puzzles.id, puzzle_id), eq(word_puzzles.slug, puzzle_slug)));
       }
 
       return update_puzzle_attachments(tx, puzzle_id, attachments);
@@ -140,14 +189,13 @@ const update_puzzle_route = protectedAdminProcedure
       (puzzle_data.archived || prev_archived !== puzzle_data.archived) &&
         invalidate_and_refresh_cached(CACHE.archived_puzzle_list, NO_CACHE_PARAMS),
       invalidate_and_refresh_cached(CACHE.word_puzzle, {
-        id: puzzle_id,
-        uuid: puzzle_uuid
+        slug: puzzle_slug
       }),
-      (await puzzle_in_current_schedule(puzzle_id, puzzle_uuid)) &&
+      (await puzzle_in_current_schedule(puzzle_id)) &&
         invalidate_and_refresh_cached(CACHE.current_schedule, NO_CACHE_PARAMS),
       puzzle_data.archived &&
         !prev_archived &&
-        notify_for_archived_puzzle(puzzle_data_rest.title, puzzle_id, puzzle_uuid)
+        notify_for_archived_puzzle(puzzle_data_rest.title, puzzle_slug)
     ]);
     return {
       success: true,
@@ -155,158 +203,184 @@ const update_puzzle_route = protectedAdminProcedure
     };
   });
 
+const update_puzzle_slug_route = protectedAdminProcedure
+  .input(puzzle_update_slug_input_schema)
+  .mutation(async ({ input: { puzzle_id, current_slug, new_slug } }) => {
+    if (current_slug === new_slug) {
+      return { success: true as const, slug: new_slug };
+    }
+
+    const puzzle = await db.query.word_puzzles.findFirst({
+      columns: { id: true, archived: true },
+      where: (tbl, { and, eq }) => and(eq(tbl.id, puzzle_id), eq(tbl.slug, current_slug))
+    });
+    if (!puzzle) {
+      throw new Error('Puzzle not found or slug mismatch');
+    }
+    if (puzzle.archived) {
+      throw new Error('Cannot change slug of an archived puzzle');
+    }
+
+    const availability = await db.query.word_puzzles.findFirst({
+      where: (tbl, { eq }) => eq(tbl.slug, new_slug),
+      columns: { id: true }
+    });
+    if (availability && availability.id !== puzzle_id) {
+      throw new Error('Slug is already taken');
+    }
+
+    await db
+      .update(word_puzzles)
+      .set({ slug: new_slug })
+      .where(and(eq(word_puzzles.id, puzzle_id), eq(word_puzzles.slug, current_slug)));
+
+    revalidatePath('/padavali/list');
+
+    await CACHE.word_puzzle.delete({ slug: current_slug });
+    await invalidate_and_refresh_cached(CACHE.word_puzzle, { slug: new_slug });
+
+    await Promise.allSettled([
+      puzzle.archived && invalidate_and_refresh_cached(CACHE.archived_puzzle_list, NO_CACHE_PARAMS),
+      (await puzzle_in_current_schedule(puzzle_id)) &&
+        invalidate_and_refresh_cached(CACHE.current_schedule, NO_CACHE_PARAMS),
+      (await puzzle_in_next_schedule(puzzle_id)) &&
+        invalidate_and_refresh_cached(CACHE.next_schedule, NO_CACHE_PARAMS)
+    ]);
+
+    return { success: true as const, slug: new_slug };
+  });
+
 const add_puzzle_route = protectedAdminProcedure
   .input(puzzle_add_input_schema)
   .mutation(async ({ input }) => {
     revalidatePath('/padavali/list');
-    const { attachments, ...puzzle_data_rest } = input;
 
-    const { id, uuid, newly_added_index_ids } = await db.transaction(async (tx) => {
-      const [inserted] = await tx
-        .insert(word_puzzles)
-        .values({
-          ...puzzle_data_rest,
-          ...(puzzle_data_rest.archived ? { last_archived_at: new Date() } : {})
-        })
-        .returning();
+    const [inserted] = await db
+      .insert(word_puzzles)
+      .values({
+        title: input.title,
+        slug: input.slug,
+        description: input.description?.trim() ? input.description.trim() : null,
+        word_list: [],
+        grid_data: createEmptyGridData(DEFAULT_GRID_DIMENSIONS),
+        grid_dimensions: DEFAULT_GRID_DIMENSIONS,
+        archived: false
+      })
+      .returning();
 
-      const new_attachment_ids =
-        attachments.length > 0
-          ? (
-              await tx
-                .insert(word_puzzle_attachments)
-                .values(
-                  attachments.map((attachment) => {
-                    const { id: _id, ...rest } = attachment;
-                    return {
-                      ...rest,
-                      puzzle_id: inserted.id
-                    };
-                  })
-                )
-                .returning()
-            ).map((a) => a.id)
-          : [];
-
-      return {
-        id: inserted.id,
-        uuid: inserted.uuid,
-        newly_added_index_ids: new_attachment_ids
-      };
-    });
-
-    await Promise.allSettled([
-      input.archived && invalidate_and_refresh_cached(CACHE.archived_puzzle_list, NO_CACHE_PARAMS),
-      input.archived && notify_for_archived_puzzle(puzzle_data_rest.title, id, uuid)
-    ]);
-
-    return {
-      id,
-      uuid,
-      newly_added_index_ids
-    };
+    return { id: inserted.id };
   });
 
 const delete_puzzle_route = protectedAdminProcedure
-  .input(z.object({ id: z.number().int(), uuid: z.string().uuid() }))
-  .mutation(async ({ input: { id, uuid } }) => {
+  .input(z.object({ id: z.number().int(), slug: z.string() }))
+  .mutation(async ({ input: { id, slug } }) => {
     revalidatePath('/padavali/list');
-    const { archived } = (await db.query.word_puzzles.findFirst({
+    const normalizedSlug = normalizeSlug(slug);
+    const puzzle = await db.query.word_puzzles.findFirst({
       columns: {
         archived: true
       },
-      where: (tbl, { eq }) => eq(tbl.id, id)
-    }))!;
+      where: (tbl, { and, eq }) => and(eq(tbl.id, id), eq(tbl.slug, normalizedSlug))
+    });
+    if (!puzzle) {
+      throw new Error('Puzzle not found');
+    }
+    const { archived } = puzzle;
 
     await db.transaction(async (tx) => {
-      await tx.delete(word_puzzles).where(eq(word_puzzles.id, id));
+      await tx
+        .delete(word_puzzles)
+        .where(and(eq(word_puzzles.id, id), eq(word_puzzles.slug, normalizedSlug)));
     });
 
     await Promise.allSettled([
       archived && invalidate_and_refresh_cached(CACHE.archived_puzzle_list, NO_CACHE_PARAMS),
-      invalidate_and_refresh_cached(CACHE.word_puzzle, { id, uuid }),
-      (await puzzle_in_current_schedule(id, uuid)) &&
-        invalidate_and_refresh_cached(CACHE.current_schedule, NO_CACHE_PARAMS)
+      invalidate_and_refresh_cached(CACHE.word_puzzle, {
+        slug: normalizedSlug
+      }),
+      (await puzzle_in_current_schedule(id)) &&
+        invalidate_and_refresh_cached(CACHE.current_schedule, NO_CACHE_PARAMS),
+      (await puzzle_in_next_schedule(id)) &&
+        invalidate_and_refresh_cached(CACHE.next_schedule, NO_CACHE_PARAMS)
     ]);
     return {
       success: true
     };
   });
 
-const get_puzzle_data_input_schema = z.object({
-  limit: z.number().int(),
-  search_title: z.string().optional(),
+const get_puzzle_list_input_schema = z.object({
+  page: z.number().int().min(1).default(1),
+  size: z.number().int().min(1).max(100).default(12),
+  search_title: z.string().max(500).optional(),
   archived_filter: z.boolean().optional(),
-  sort_by: z.enum(['created_at', 'updated_at']).optional(),
-  last_created_or_updated_at: z.coerce.date().optional(),
-  last_id: z.number().int().optional(),
+  sort_by: z.enum(['created_at', 'updated_at']).optional().default('created_at'),
   order_by: z.enum(['asc', 'desc']).optional().default('desc')
 });
 
-export const get_puzzle_list_page = async (input: z.input<typeof get_puzzle_data_input_schema>) => {
-  const {
-    limit,
-    search_title,
-    archived_filter,
-    sort_by,
-    last_created_or_updated_at,
-    last_id,
-    order_by
-  } = input;
+export const get_puzzle_list_page = async (input: z.input<typeof get_puzzle_list_input_schema>) => {
+  const { page, size, search_title, archived_filter, sort_by, order_by } =
+    get_puzzle_list_input_schema.parse(input);
+
+  const trimmedSearch = search_title?.trim();
+  const conditions = [];
+  if (typeof archived_filter === 'boolean') {
+    conditions.push(eq(word_puzzles.archived, archived_filter));
+  }
+  if (trimmedSearch) {
+    conditions.push(ilike(word_puzzles.title, `%${trimmedSearch}%`));
+  }
+  const whereClause = conditions.length > 0 ? and(...conditions) : undefined;
+
+  const sortCol =
+    sort_by === 'updated_at'
+      ? sql`coalesce(${word_puzzles.updated_at}, ${word_puzzles.created_at})`
+      : word_puzzles.created_at;
+  const orderPrimary = order_by === 'desc' ? desc(sortCol) : asc(sortCol);
+  const orderTiebreaker = order_by === 'desc' ? desc(word_puzzles.id) : asc(word_puzzles.id);
+  const offset = (page - 1) * size;
 
   await delay(400);
-  const rows = await db.query.word_puzzles.findMany({
-    columns: {
-      id: true,
-      uuid: true,
-      title: true,
-      description: true,
-      archived: true,
-      created_at: true,
-      updated_at: true
-    },
-    where: (tbl, { and, or, eq, ilike, lt, gt }) => {
-      const conds: ReturnType<typeof and>[] = [];
-      if (typeof archived_filter === 'boolean') {
-        conds.push(eq(tbl.archived, archived_filter));
-      }
-      if (typeof search_title === 'string' && search_title.length > 0) {
-        conds.push(ilike(tbl.title, `%${search_title}%`));
-      }
-      if (last_created_or_updated_at instanceof Date) {
-        const sortCol = sort_by === 'updated_at' ? tbl.updated_at : tbl.created_at;
-        const comparator = order_by === 'desc' ? lt : gt;
-        if (typeof last_id === 'number') {
-          conds.push(
-            or(
-              comparator(sortCol, last_created_or_updated_at),
-              and(eq(sortCol, last_created_or_updated_at), comparator(tbl.id, last_id))
-            )
-          );
-        } else {
-          conds.push(comparator(sortCol, last_created_or_updated_at));
-        }
-      }
-      return conds.length > 0 ? and(...conds) : undefined;
-    },
-    orderBy: (tbl, { desc, asc }) => {
-      const sortCol = sort_by === 'updated_at' ? tbl.updated_at : tbl.created_at;
-      const orderPrimary = order_by === 'desc' ? desc(sortCol) : asc(sortCol);
-      const orderTiebreaker = order_by === 'desc' ? desc(tbl.id) : asc(tbl.id);
-      return [orderPrimary, orderTiebreaker];
-    },
-    limit
-  });
 
-  return rows;
+  const [countResult, list] = await Promise.all([
+    db.select({ count: count() }).from(word_puzzles).where(whereClause),
+    db
+      .select({
+        id: word_puzzles.id,
+        slug: word_puzzles.slug,
+        title: word_puzzles.title,
+        description: word_puzzles.description,
+        archived: word_puzzles.archived,
+        created_at: word_puzzles.created_at,
+        updated_at: word_puzzles.updated_at
+      })
+      .from(word_puzzles)
+      .where(whereClause)
+      .orderBy(orderPrimary, orderTiebreaker)
+      .limit(size)
+      .offset(offset)
+  ]);
+
+  const total = Number(countResult[0]?.count ?? 0);
+  const pageCount = Math.max(1, Math.ceil(total / size));
+
+  return {
+    list,
+    total,
+    page,
+    pageCount,
+    hasPrev: page > 1,
+    hasNext: page < pageCount
+  };
 };
 
 const get_puzzle_list_page_route = protectedAdminProcedure
-  .input(get_puzzle_data_input_schema)
+  .input(get_puzzle_list_input_schema)
   .query(async ({ input }) => await get_puzzle_list_page(input));
 
 export const puzzle_router = t.router({
+  check_slug_availability: check_slug_availability_route,
   update_puzzle: update_puzzle_route,
+  update_puzzle_slug: update_puzzle_slug_route,
   add_puzzle: add_puzzle_route,
   delete_puzzle: delete_puzzle_route,
   stats: padavali_stats_router,

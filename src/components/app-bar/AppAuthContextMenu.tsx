@@ -10,15 +10,7 @@ import { List, LogIn, LogOut, User, Calendar, Edit } from 'lucide-react';
 import Link from 'next/link';
 import { signIn, signOut } from '~/lib/auth-client';
 
-const AppAuthContextMenu = ({
-  children,
-  id,
-  uuid
-}: {
-  children: React.ReactNode;
-  id: number;
-  uuid: string;
-}) => {
+const AppAuthContextMenu = ({ children, id }: { children: React.ReactNode; id: number }) => {
   const { user_info } = useContext(AppContext);
 
   return (

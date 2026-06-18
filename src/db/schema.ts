@@ -5,7 +5,6 @@ import {
   text,
   timestamp,
   index,
-  uuid,
   integer,
   boolean,
   varchar,
@@ -22,7 +21,7 @@ export const word_puzzles = pgTable(
   'word_puzzles',
   {
     id: serial().primaryKey(),
-    uuid: uuid().unique().notNull().defaultRandom(),
+    slug: text().notNull(),
     title: text().notNull(),
     description: text(),
     created_at: timestamp({ withTimezone: true }).notNull().defaultNow(),
@@ -34,7 +33,7 @@ export const word_puzzles = pgTable(
     last_archived_at: timestamp({ withTimezone: true })
   },
   (table) => [
-    uniqueIndex('word_puzzles_uuid_idx').on(table.uuid),
+    uniqueIndex('word_puzzles_slug_idx').on(table.slug),
     index('word_puzzles_archived_created_at_idx').on(table.archived, table.created_at),
     index('word_puzzles_archived_last_archived_at_idx').on(table.archived, table.last_archived_at)
   ]

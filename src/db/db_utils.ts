@@ -9,7 +9,7 @@ export const get_db_url = (env: any): string => {
   } else url = env.PG_DATABASE_URL;
   const url_parse = z
     .string({
-      description: 'Connection string for PostgreSQL'
+      message: 'Connection string for PostgreSQL'
     })
     .safeParse(url);
   if (!url_parse.success) throw new Error('Please set `PG_DATABASE_URL`');

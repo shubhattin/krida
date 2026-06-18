@@ -36,8 +36,11 @@ const Main = async () => {
   return (
     <div className="container mx-auto p-4">
       <div className="my-2 mb-4 px-2">
-        <Link href="/padavali/list" className="flex items-center gap-1 text-lg font-semibold">
-          <IoMdArrowRoundBack className="inline-block text-xl" />
+        <Link
+          href="/padavali/list"
+          className="inline-flex items-center gap-1.5 text-lg font-semibold"
+        >
+          <IoMdArrowRoundBack className="size-5 shrink-0" />
           <span>Main List</span>
         </Link>
       </div>
@@ -47,11 +50,13 @@ const Main = async () => {
           <h1 className="text-2xl font-bold">Schedules</h1>
         </div>
         <Button
-          render={<Link href="/padavali/schedules/add" className="flex items-center gap-2" />}
+          render={
+            <Link href="/padavali/schedules/add" className="inline-flex items-center gap-2" />
+          }
           nativeButton={false}
           variant={'outline'}
         >
-          <FiPlus className="h-4 w-4" />
+          <FiPlus className="size-4 shrink-0" />
           Add Schedule
         </Button>
       </div>
@@ -70,11 +75,13 @@ const Main = async () => {
                 There are no upcoming schedules. Please add a schedule first.
               </p>
               <Button
-                render={<Link href="/padavali/schedules/add" className="flex items-center gap-2" />}
+                render={
+                  <Link href="/padavali/schedules/add" className="inline-flex items-center gap-2" />
+                }
                 nativeButton={false}
                 variant="link"
               >
-                <FiPlus className="h-4 w-4" />
+                <FiPlus className="size-4 shrink-0" />
                 Add First Schedule
               </Button>
             </CardContent>

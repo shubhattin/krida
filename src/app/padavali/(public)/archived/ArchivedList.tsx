@@ -17,11 +17,11 @@ import { cn } from '~/lib/utils';
 import { FONT_INFO } from '~/state/script_font_data';
 
 type Props = {
-  archived_puzzles: { id: number; uuid: string; title: string; description: string | null }[];
+  archived_puzzles: { id: number; slug: string; title: string; description: string | null }[];
   script: ScriptType;
   archived_puzzles_init_transliterlated: {
     id: number;
-    uuid: string;
+    slug: string;
     title: string;
     description: string | null;
   }[];
@@ -134,7 +134,7 @@ const PuzzleCard = ({ puzzle }: { puzzle: Props['archived_puzzles'][0] }) => {
   const font_info = FONT_INFO[script!];
 
   return (
-    <Link href={`/padavali/archived/${puzzle.id}:${puzzle.uuid}`}>
+    <Link href={`/padavali/archived/${puzzle.slug}`}>
       <motion.button
         whileHover={{ scale: 1.02, y: -2 }}
         whileTap={{ scale: 0.98 }}
