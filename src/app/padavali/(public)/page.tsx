@@ -9,7 +9,7 @@ import MainPagePadavali from './MainPagePadavali';
 import { getCachedScript } from '~/lib/cache_server_route_data';
 import dayjs from 'dayjs';
 import relativeTime from 'dayjs/plugin/relativeTime';
-import { get_current_schedule, get_next_schedule } from '~/db/db_cache_data';
+import { get_current_schedule, get_next_schedule } from '~/util/cache.server/cache_loaders';
 import { NextPuzzleTimePopup } from '~/components/pages/main/WordGame/WordGameRoot';
 import { getMetadata } from '~/components/tags/getPageMetaTags';
 

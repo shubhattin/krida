@@ -6,7 +6,7 @@ import { DEFAULT_DATA_SCRIPT } from '~/state/script_list';
 import { get_transliterated_word_game_msgs } from '~/components/pages/main/WordGame/msgs';
 import { transliterate_wasm } from 'lipilekhika';
 import { getCachedScript } from '~/lib/cache_server_route_data';
-import { get_next_schedule, get_word_puzzle } from '~/db/db_cache_data';
+import { get_next_schedule, get_word_puzzle } from '~/util/cache.server/cache_loaders';
 import { cache, Suspense } from 'react';
 import { ArrowLeftIcon } from 'lucide-react';
 import { getMetadata } from '~/components/tags/getPageMetaTags';

@@ -3,7 +3,7 @@ import { DEFAULT_DATA_SCRIPT } from '~/state/script_list';
 import { transliterate_wasm } from 'lipilekhika';
 import { Metadata } from 'next';
 import { getCachedScript } from '~/lib/cache_server_route_data';
-import { get_archived_puzzles } from '~/db/db_cache_data';
+import { get_archived_puzzles } from '~/util/cache.server/cache_loaders';
 import { getMetadata } from '~/components/tags/getPageMetaTags';
 
 const ArchivedPage = async () => {

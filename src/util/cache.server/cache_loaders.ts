@@ -1,7 +1,7 @@
 import ms from 'ms';
 import { db } from '~/db/db';
 import { redis, REDIS_CACHE_KEYS } from '~/db/redis';
-import { puzzle_schema } from './db_shared_vals';
+import { puzzle_schema } from '../../db/db_shared_vals';
 import { z } from 'zod';
 import { sql } from 'drizzle-orm';
 

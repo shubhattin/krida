@@ -6,7 +6,7 @@ import { and, eq, inArray } from 'drizzle-orm';
 import { revalidatePath } from 'next/cache';
 import { padavali_stats_router } from './padavali_stats';
 import { redis, REDIS_CACHE_KEYS } from '~/db/redis';
-import { type CurrentScheduleType } from '~/db/db_cache_data';
+import { type CurrentScheduleType } from '~/util/cache.server/cache_loaders';
 import { puzzle_add_input_schema, puzzle_update_input_schema } from '~/db/db_shared_vals';
 import { sendOneSignalNotification } from '~/lib/onesignal';
 import { delay } from '~/tools/delay';
