@@ -7,10 +7,12 @@ import { getCachedScript } from '~/lib/cache_server_route_data';
 import { CACHE, NO_CACHE_PARAMS } from '~/util/cache.server/cache_loaders';
 import { getMetadata } from '~/components/tags/getPageMetaTags';
 import { NoScheduledPadavali } from '~/components/pages/main/NoScheduledPadavali';
+import {
+  mapListedPuzzlesForDisplay,
+  NORMAL_TITLE_SCRIPT
+} from '~/components/pages/main/listed_puzzle_display';
 
 export const dynamic = 'force-dynamic';
-
-const NORMAL_TITLE_SCRIPT = 'Normal' as const;
 
 async function buildListedPuzzlesInit(script: Awaited<ReturnType<typeof getCachedScript>>) {
   const listed_puzzles = await CACHE.listed_puzzle_list.get(NO_CACHE_PARAMS);
@@ -26,14 +28,11 @@ async function buildListedPuzzlesInit(script: Awaited<ReturnType<typeof getCache
       NORMAL_TITLE_SCRIPT
     )
   ]);
-  let text_i = 0;
-  const listed_puzzles_init_transliterated = listed_puzzles.map((puzzle, index) => ({
-    ...puzzle,
-    title: transliterated_texts[text_i++]!,
-    description: puzzle.description ? transliterated_texts[text_i++]! : null,
-    description_original: puzzle.description,
-    title_normal: normal_titles[index]!
-  }));
+  const listed_puzzles_init_transliterated = mapListedPuzzlesForDisplay(
+    listed_puzzles,
+    transliterated_texts,
+    normal_titles
+  );
 
   return { listed_puzzles, listed_puzzles_init_transliterated };
 }

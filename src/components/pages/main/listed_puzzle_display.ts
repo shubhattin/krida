@@ -15,6 +15,19 @@ export function mapListedPuzzlesForDisplay(
   transliterated_texts: string[],
   normal_titles: string[]
 ): DisplayPuzzle[] {
+  const expected_text_count = org.reduce(
+    (sum, puzzle) => sum + 1 + (puzzle.description ? 1 : 0),
+    0
+  );
+  if (transliterated_texts.length !== expected_text_count) {
+    throw new Error(
+      `Expected ${expected_text_count} transliterated texts, got ${transliterated_texts.length}`
+    );
+  }
+  if (normal_titles.length !== org.length) {
+    throw new Error(`Expected ${org.length} normal titles, got ${normal_titles.length}`);
+  }
+
   let text_i = 0;
   return org.map((puzzle, index) => ({
     ...puzzle,

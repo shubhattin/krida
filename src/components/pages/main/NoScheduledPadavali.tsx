@@ -116,6 +116,7 @@ export const NoScheduledPadavali = ({
           await new Promise((resolve) => window.setTimeout(resolve, SCHEDULE_REFRESH_RETRY_MS));
         }
       }
+      setLoadingNewPuzzle(false);
     };
 
     if (delay <= 0) {
