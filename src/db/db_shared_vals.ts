@@ -55,6 +55,7 @@ export const puzzle_schema = z.object({
 export const puzzle_update_input_schema = z.object({
   puzzle_id: z.number().int(),
   puzzle_slug: slug_schema,
+  image_id: z.number().int().nullable(),
   puzzle_data: puzzle_schema
     .pick({
       title: true,

@@ -31,7 +31,18 @@ import { atom, useAtom } from 'jotai';
 import { FiSave } from 'react-icons/fi';
 import { MdDeleteOutline, MdDragIndicator } from 'react-icons/md';
 import { useRouter } from 'next/navigation';
-import { Info, ArrowRight } from 'lucide-react';
+import { Info, ArrowRight, ImageIcon, Plus, X, RefreshCw, Wand2 } from 'lucide-react';
+import {
+  Dialog,
+  DialogContent,
+  DialogHeader,
+  DialogTitle,
+  DialogTrigger
+} from '@/components/ui/dialog';
+import { Progress } from '@/components/ui/progress';
+import { Skeleton } from '@/components/ui/skeleton';
+import { Textarea } from '@/components/ui/textarea';
+import { getCDNUrl } from '~/constants';
 import {
   DndContext,
   closestCenter,
@@ -120,6 +131,12 @@ const listed_atom = atom<boolean>(false);
 const description_atom = atom<string | null>(null);
 const lipi_lekhika_active_atom = atom<boolean>(true);
 const attachments_atom = atom<Puzzle['attachments']>([]);
+/** null = no image; undefined = not yet hydrated (unused); number = image_id */
+const image_id_atom = atom<number | null>(null);
+/** The current image s3_key + dimensions as fetched (kept in sync with image_id changes) */
+const image_info_atom = atom<{ id: number; s3_key: string; width: number; height: number } | null>(
+  null
+);
 
 export type ViewEditProps = {
   word_puzzle: Puzzle;
@@ -135,7 +152,9 @@ const ViewEditPuzzle = ({ word_puzzle: initialWordPuzzle }: ViewEditProps) => {
     [listed_atom, word_puzzle.listed],
     [description_atom, word_puzzle.description],
     [lipi_lekhika_active_atom, true],
-    [attachments_atom, word_puzzle.attachments]
+    [attachments_atom, word_puzzle.attachments],
+    [image_id_atom, word_puzzle.image?.id ?? null],
+    [image_info_atom, word_puzzle.image ?? null]
   ]);
 
   return (
@@ -154,6 +173,7 @@ const ViewEditPuzzle = ({ word_puzzle: initialWordPuzzle }: ViewEditProps) => {
           <Attachments />
           <WordList />
           <TraversalAndGridData grid_dimensions={word_puzzle.grid_dimensions} />
+          <PuzzleImageSection word_puzzle={word_puzzle} />
           <SaveButton word_puzzle={word_puzzle} />
         </div>
       </CardContent>
@@ -1024,13 +1044,15 @@ const SaveButton = ({ word_puzzle }: { word_puzzle: Puzzle }) => {
   const [wordList] = useAtom(word_list_atom);
   const [gridData] = useAtom(grid_data_atom);
   const [attachments, setAttachments] = useAtom(attachments_atom);
+  const [image_id] = useAtom(image_id_atom);
   const initialRef = useRef({
     title: word_puzzle.title,
     wordList: word_puzzle.word_list,
     gridData: word_puzzle.grid_data,
     listed: word_puzzle.listed,
     description: word_puzzle.description,
-    attachments: word_puzzle.attachments
+    attachments: word_puzzle.attachments,
+    image_id: word_puzzle.image?.id ?? null
   });
   const [listed] = useAtom(listed_atom);
   const [description] = useAtom(description_atom);
@@ -1063,7 +1085,8 @@ const SaveButton = ({ word_puzzle }: { word_puzzle: Puzzle }) => {
           gridData,
           listed,
           description,
-          attachments: updatedAttachments
+          attachments: updatedAttachments,
+          image_id
         };
       }
     },
@@ -1089,14 +1112,16 @@ const SaveButton = ({ word_puzzle }: { word_puzzle: Puzzle }) => {
       JSON.stringify(gridData) !== JSON.stringify(initialRef.current.gridData) ||
       listed !== initialRef.current.listed ||
       description !== initialRef.current.description ||
-      JSON.stringify(attachments) !== JSON.stringify(initialRef.current.attachments)
+      JSON.stringify(attachments) !== JSON.stringify(initialRef.current.attachments) ||
+      image_id !== initialRef.current.image_id
     );
-  }, [title, wordList, gridData, listed, description, attachments]);
+  }, [title, wordList, gridData, listed, description, attachments, image_id]);
 
   const handleSave = () => {
     const data = {
       puzzle_id: word_puzzle.id,
       puzzle_slug: word_puzzle.slug,
+      image_id: image_id,
       puzzle_data: {
         title,
         listed: listed,
@@ -1173,6 +1198,377 @@ const SaveButton = ({ word_puzzle }: { word_puzzle: Puzzle }) => {
         </AlertDialogContent>
       </AlertDialog>
     </div>
+  );
+};
+
+// ---------------------------------------------------------------------------
+// Puzzle Image Section
+// ---------------------------------------------------------------------------
+
+const IMAGE_ASPECT = '768 / 512'; // 3:2
+const IMAGE_GENERATION_TIMEOUT_MS = 24_000; // Time in milliseconds for progress animation (24 seconds)
+
+const PuzzleImageSection = ({ word_puzzle }: { word_puzzle: Puzzle }) => {
+  const [image_id, setImageId] = useAtom(image_id_atom);
+  const [image_info, setImageInfo] = useAtom(image_info_atom);
+  const [dialog_open, setDialogOpen] = useState(false);
+  const [title] = useAtom(title_atom);
+  const [description] = useAtom(description_atom);
+  const [wordList] = useAtom(word_list_atom);
+
+  const handleClearImage = () => {
+    setImageId(null);
+    setImageInfo(null);
+  };
+
+  const handleImageAdded = (info: {
+    id: number;
+    s3_key: string;
+    width: number;
+    height: number;
+  }) => {
+    setImageId(info.id);
+    setImageInfo(info);
+    setDialogOpen(false);
+  };
+
+  return (
+    <div className="space-y-3">
+      <span className="text-lg font-bold">Puzzle Image</span>
+
+      {image_info ? (
+        <div className="flex flex-col items-start gap-3">
+          <div className="relative w-full max-w-sm overflow-hidden rounded-lg border border-border shadow-sm">
+            <img
+              src={getCDNUrl(image_info.s3_key)}
+              alt="Puzzle card image"
+              className="block w-full object-cover"
+              style={{ aspectRatio: IMAGE_ASPECT }}
+            />
+          </div>
+          <div className="flex items-center gap-2">
+            <Dialog open={dialog_open} onOpenChange={setDialogOpen}>
+              <DialogTrigger render={<Button variant="outline" size="sm" />}>
+                <ImageIcon className="size-4" />
+                Manage Image
+              </DialogTrigger>
+              <AIImageDialogContent
+                puzzle_id={word_puzzle.id}
+                title={title}
+                description={description ?? ''}
+                words={wordList}
+                existing_image={image_info}
+                onImageAdded={handleImageAdded}
+                onImageCleared={handleClearImage}
+              />
+            </Dialog>
+            <Button
+              variant="ghost"
+              size="sm"
+              className="text-destructive hover:text-destructive"
+              onClick={handleClearImage}
+            >
+              <X className="size-4" />
+              Remove Image
+            </Button>
+          </div>
+        </div>
+      ) : (
+        <Dialog open={dialog_open} onOpenChange={setDialogOpen}>
+          <DialogTrigger render={<Button variant="outline" size="sm" />}>
+            <Plus className="size-4" />
+            Add Image
+          </DialogTrigger>
+          <AIImageDialogContent
+            puzzle_id={word_puzzle.id}
+            title={title}
+            description={description ?? ''}
+            words={wordList}
+            existing_image={null}
+            onImageAdded={handleImageAdded}
+            onImageCleared={handleClearImage}
+          />
+        </Dialog>
+      )}
+    </div>
+  );
+};
+
+// ---------------------------------------------------------------------------
+// AI Image Dialog — content
+// ---------------------------------------------------------------------------
+
+type ImageInfo = { id: number; s3_key: string; width: number; height: number };
+
+type GenerationPhase =
+  | { state: 'idle' }
+  | { state: 'generating' }
+  | { state: 'done'; image_prompt: string; image_info: ImageInfo };
+
+/** Linear progress from 0→90 over the timeout duration, then frozen at 90 until done */
+const useGenerationProgress = (active: boolean) => {
+  const [progress, setProgress] = useState(0);
+
+  useEffect(() => {
+    if (!active) {
+      setProgress(0);
+      return;
+    }
+    const TARGET = 90;
+    const INTERVAL = 150;
+    const step = (TARGET / IMAGE_GENERATION_TIMEOUT_MS) * INTERVAL;
+    let current = 0;
+    const id = setInterval(() => {
+      current = Math.min(current + step, TARGET);
+      setProgress(current);
+      if (current >= TARGET) clearInterval(id);
+    }, INTERVAL);
+    return () => clearInterval(id);
+  }, [active]);
+
+  return progress;
+};
+
+const AIImageDialogContent = ({
+  puzzle_id,
+  title,
+  description,
+  words,
+  existing_image,
+  onImageAdded,
+  onImageCleared
+}: {
+  puzzle_id: number;
+  title: string;
+  description: string;
+  words: string[];
+  existing_image: ImageInfo | null;
+  onImageAdded: (info: ImageInfo) => void;
+  onImageCleared: () => void;
+}) => {
+  const [phase, setPhase] = useState<GenerationPhase>(
+    existing_image
+      ? { state: 'done', image_prompt: '', image_info: existing_image }
+      : { state: 'idle' }
+  );
+  const [custom_prompt, setCustomPrompt] = useState('');
+
+  const progress = useGenerationProgress(phase.state === 'generating');
+
+  const generate_mut = client_q.ai_image.generate_puzzle_card_image.useMutation({
+    onSuccess: (data) => {
+      if (data.success) {
+        // We need to refetch the image_info from the result. The route returns id + s3_key.
+        // We don't have width/height here directly, use stored constants (768×512).
+        setPhase({
+          state: 'done',
+          image_prompt: data.image_prompt,
+          image_info: { id: data.id, s3_key: data.s3_key, width: 768, height: 512 }
+        });
+        setCustomPrompt(data.image_prompt);
+      } else {
+        toast.error(`Image generation failed: ${data.err_code}`);
+        setPhase({ state: 'idle' });
+      }
+    },
+    onError: () => {
+      toast.error('Image generation failed');
+      setPhase({ state: 'idle' });
+    }
+  });
+
+  const delete_mut = client_q.ai_image.delete_image_asset.useMutation({
+    onSuccess: () => {
+      setPhase({ state: 'idle' });
+      setCustomPrompt('');
+      onImageCleared();
+    },
+    onError: () => toast.error('Failed to delete image')
+  });
+
+  const startGeneration = (existing_image_prompt?: string) => {
+    setPhase({ state: 'generating' });
+    generate_mut.mutate({
+      title,
+      description,
+      words,
+      existing_image_prompt: existing_image_prompt || undefined
+    });
+  };
+
+  const handleDeleteAndRegenerate = () => {
+    if (phase.state === 'done') {
+      const current_image_id = phase.image_info.id;
+      setPhase({ state: 'generating' });
+      delete_mut.mutate(
+        { id: current_image_id },
+        {
+          onSuccess: () => {
+            generate_mut.mutate({ title, description, words });
+          },
+          onError: () => {
+            setPhase({ state: 'idle' });
+          }
+        }
+      );
+    }
+  };
+
+  const handleMakeImage = () => {
+    if (phase.state === 'done') {
+      const promptToUse = custom_prompt;
+      const current_image_id = phase.image_info.id;
+      setPhase({ state: 'generating' });
+      delete_mut.mutate(
+        { id: current_image_id },
+        {
+          onSuccess: () => {
+            setCustomPrompt(promptToUse);
+            generate_mut.mutate({
+              title,
+              description,
+              words,
+              existing_image_prompt: promptToUse || undefined
+            });
+          },
+          onError: () => {
+            setPhase({ state: 'idle' });
+          }
+        }
+      );
+    } else {
+      startGeneration(custom_prompt || undefined);
+    }
+  };
+
+  const isWorking = phase.state === 'generating' || delete_mut.isPending;
+
+  return (
+    <DialogContent className="max-w-lg sm:max-w-xl" showCloseButton={!isWorking}>
+      <DialogHeader>
+        <DialogTitle className="text-center text-base font-semibold">
+          {phase.state === 'idle'
+            ? 'Add Puzzle Card Image'
+            : phase.state === 'generating'
+              ? 'Generating Image…'
+              : 'Puzzle Card Image'}
+        </DialogTitle>
+      </DialogHeader>
+
+      <div className="flex flex-col items-center gap-4 py-2">
+        {/* ── Image / Skeleton area ── */}
+        {phase.state === 'idle' && (
+          <div className="flex flex-col items-center gap-4">
+            <div
+              className="flex w-full max-w-sm items-center justify-center rounded-lg border border-dashed border-border bg-muted/30"
+              style={{ aspectRatio: IMAGE_ASPECT }}
+            >
+              <div className="flex flex-col items-center gap-2 text-muted-foreground">
+                <ImageIcon className="size-10 opacity-40" />
+                <span className="text-sm">No image yet</span>
+              </div>
+            </div>
+            <Button onClick={() => startGeneration()} disabled={isWorking} className="gap-2">
+              <Wand2 className="size-4" />
+              Create AI Image
+            </Button>
+          </div>
+        )}
+
+        {phase.state === 'generating' && (
+          <div className="flex w-full flex-col items-center gap-3">
+            <Skeleton
+              className="w-full max-w-sm rounded-lg"
+              style={{ aspectRatio: IMAGE_ASPECT }}
+            />
+            <div className="w-full max-w-sm">
+              <Progress value={progress} className="w-full" />
+              <p className="mt-1 text-center text-xs text-muted-foreground">
+                Generating… {Math.round(progress)}%
+              </p>
+            </div>
+          </div>
+        )}
+
+        {phase.state === 'done' && (
+          <div className="flex w-full flex-col items-center gap-4">
+            {/* Generated image preview */}
+            <div className="w-full max-w-sm overflow-hidden rounded-lg border border-border shadow">
+              <img
+                src={getCDNUrl(phase.image_info.s3_key)}
+                alt="Generated puzzle card"
+                className="block w-full object-cover"
+                style={{ aspectRatio: IMAGE_ASPECT }}
+              />
+            </div>
+
+            {/* Delete / Remake row */}
+            <div className="flex items-center gap-2">
+              <Button
+                variant="destructive"
+                size="sm"
+                disabled={isWorking}
+                onClick={() => delete_mut.mutate({ id: phase.image_info.id })}
+              >
+                <MdDeleteOutline className="size-4" />
+                Delete Image
+              </Button>
+              <Button
+                variant="outline"
+                size="sm"
+                disabled={isWorking}
+                onClick={handleDeleteAndRegenerate}
+              >
+                <RefreshCw className="size-4" />
+                Remake Image
+              </Button>
+            </div>
+
+            {/* Editable prompt */}
+            <div className="w-full space-y-2">
+              <p className="text-sm font-semibold">Edit Image Prompt</p>
+              <div className="space-y-1">
+                <span className="text-xs text-muted-foreground">Image Prompt</span>
+                <Textarea
+                  className="min-h-[100px] w-full resize-y text-sm"
+                  value={custom_prompt}
+                  onChange={(e) => setCustomPrompt(e.currentTarget.value)}
+                  placeholder="Edit the image prompt…"
+                />
+              </div>
+              <div className="flex items-center gap-2">
+                <Button
+                  size="sm"
+                  disabled={isWorking || !custom_prompt.trim()}
+                  onClick={handleMakeImage}
+                >
+                  <Wand2 className="size-4" />
+                  Delete and Make Image
+                </Button>
+                <Button
+                  variant="outline"
+                  size="sm"
+                  disabled={isWorking || !custom_prompt.trim()}
+                  onClick={handleMakeImage}
+                >
+                  Make Image
+                </Button>
+              </div>
+            </div>
+
+            {/* Add Image to Puzzle CTA */}
+            <Button
+              className="mt-1 gap-2"
+              disabled={isWorking}
+              onClick={() => onImageAdded(phase.image_info)}
+            >
+              <Plus className="size-4" />
+              Add Image to Puzzle
+            </Button>
+          </div>
+        )}
+      </div>
+    </DialogContent>
   );
 };
 

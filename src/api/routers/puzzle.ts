@@ -151,7 +151,7 @@ const check_slug_availability_route = protectedAdminProcedure
 
 const update_puzzle_route = protectedAdminProcedure
   .input(puzzle_update_input_schema)
-  .mutation(async ({ input: { puzzle_id, puzzle_data, puzzle_slug } }) => {
+  .mutation(async ({ input: { puzzle_id, puzzle_data, puzzle_slug, image_id } }) => {
     revalidatePath('/padavali/list');
     const existing = await db.query.word_puzzles.findFirst({
       columns: {
@@ -168,7 +168,7 @@ const update_puzzle_route = protectedAdminProcedure
     const { newly_added_index_ids } = await db.transaction(async (tx) => {
       const updated = await tx
         .update(word_puzzles)
-        .set(puzzle_data_rest)
+        .set({ ...puzzle_data_rest, image_id })
         .where(and(eq(word_puzzles.id, puzzle_id), eq(word_puzzles.slug, puzzle_slug)))
         .returning();
 
