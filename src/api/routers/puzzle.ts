@@ -218,9 +218,6 @@ const update_puzzle_slug_route = protectedAdminProcedure
     if (!puzzle) {
       throw new Error('Puzzle not found or slug mismatch');
     }
-    if (puzzle.listed) {
-      throw new Error('Cannot change slug of a listed puzzle');
-    }
 
     const availability = await db.query.word_puzzles.findFirst({
       where: (tbl, { eq }) => eq(tbl.slug, new_slug),
