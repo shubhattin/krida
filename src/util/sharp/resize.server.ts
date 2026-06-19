@@ -13,7 +13,7 @@ export const resizeImage = async (
     inputPngBuffer = inputPng;
   }
 
-  const webpBuffer = await sharp(inputPng, { limitInputPixels: false })
+  const webpBuffer = await sharp(inputPngBuffer)
     .resize({
       width: width,
       height: height,

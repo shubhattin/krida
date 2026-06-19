@@ -69,6 +69,10 @@ Your task is to create a detailed, vivid image prompt for a given Sanskrit puzzl
 - Avoid any Western, Chinese, or non-Indian cultural symbols.
 - Use Indian cities, landscapes, or architectural styles when context suggests it.
 
+**Integrating puzzle words context:**
+- You will be given a list of Sanskrit terms that appear in the puzzle. Use these words to inspire the visual motifs, objects, actions, or secondary subjects in the scene.
+- For example, if the words list contains specific items, deities, cosmic elements, or actions, incorporate those concepts metaphorically or literally into the background, surrounding scenery, or central imagery to match the puzzle's vocabulary theme.
+
 **Output schema:**
 - image_prompt: A single, detailed English paragraph (≤ 150 words) suitable for direct use in an image model.
 - file_name: 2–4 lowercase English words separated by underscores, no extension. E.g. "surya_namaskar_card".
@@ -80,6 +84,7 @@ Generate an image prompt for the following Sanskrit puzzle:
 
 Title: "{title}"
 Description: "{description}"
+Words / Sanskrit terms: {words}
 `.trim();
 
 // ---------------------------------------------------------------------------
@@ -139,6 +144,8 @@ const generate_puzzle_card_image_route = protectedAdminProcedure
       title: z.string().min(1),
       /** Optional short English description of the puzzle for extra context */
       description: z.string().optional().default(''),
+      /** Sanskrit words in the puzzle to provide richer context for prompt generation */
+      words: z.array(z.string()).optional(),
       /** Supply a pre-written image prompt to skip the prompt-generation step */
       existing_image_prompt: z.string().optional()
     })
@@ -187,10 +194,10 @@ const generate_puzzle_card_image_route = protectedAdminProcedure
       file_name = response.output.file_name;
       asset_description = response.output.description;
     } else {
-      const user_prompt = IMAGE_PROMPT_USER.replace('{title}', title).replace(
-        '{description}',
-        description
-      );
+      const words_list = input.words && input.words.length > 0 ? input.words.join(', ') : 'None';
+      const user_prompt = IMAGE_PROMPT_USER.replace('{title}', title)
+        .replace('{description}', description)
+        .replace('{words}', words_list);
       const response = await generateText({
         model: openrouter(OPENROUTER_IMAGE_PROMPT_MODEL, {
           reasoning: { effort: REASONING_EFFORT }
@@ -295,10 +302,14 @@ const delete_image_asset_route = protectedAdminProcedure
     if (!row) {
       return { deleted: false };
     }
-    await Promise.allSettled([
+    const results = await Promise.allSettled([
       deleteAssetFile(row.s3_key),
       db.delete(image_assets).where(eq(image_assets.id, input.id))
     ]);
+    const failedResult = results.find((r) => r.status === 'rejected');
+    if (failedResult) {
+      throw new Error(`Failed to delete asset: ${(failedResult as PromiseRejectedResult).reason}`);
+    }
     return { deleted: true };
   });
 

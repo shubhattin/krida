@@ -1206,7 +1206,7 @@ const SaveButton = ({ word_puzzle }: { word_puzzle: Puzzle }) => {
 // ---------------------------------------------------------------------------
 
 const IMAGE_ASPECT = '768 / 512'; // 3:2
-const IMAGE_GENERATION_TIMEOUT_MS = 24_000; // Time in milliseconds for progress animation (15 seconds)
+const IMAGE_GENERATION_TIMEOUT_MS = 24_000; // Time in milliseconds for progress animation (24 seconds)
 
 const PuzzleImageSection = ({ word_puzzle }: { word_puzzle: Puzzle }) => {
   const [image_id, setImageId] = useAtom(image_id_atom);
@@ -1214,6 +1214,7 @@ const PuzzleImageSection = ({ word_puzzle }: { word_puzzle: Puzzle }) => {
   const [dialog_open, setDialogOpen] = useState(false);
   const [title] = useAtom(title_atom);
   const [description] = useAtom(description_atom);
+  const [wordList] = useAtom(word_list_atom);
 
   const handleClearImage = () => {
     setImageId(null);
@@ -1255,6 +1256,7 @@ const PuzzleImageSection = ({ word_puzzle }: { word_puzzle: Puzzle }) => {
                 puzzle_id={word_puzzle.id}
                 title={title}
                 description={description ?? ''}
+                words={wordList}
                 existing_image={image_info}
                 onImageAdded={handleImageAdded}
                 onImageCleared={handleClearImage}
@@ -1281,6 +1283,7 @@ const PuzzleImageSection = ({ word_puzzle }: { word_puzzle: Puzzle }) => {
             puzzle_id={word_puzzle.id}
             title={title}
             description={description ?? ''}
+            words={wordList}
             existing_image={null}
             onImageAdded={handleImageAdded}
             onImageCleared={handleClearImage}
@@ -1330,6 +1333,7 @@ const AIImageDialogContent = ({
   puzzle_id,
   title,
   description,
+  words,
   existing_image,
   onImageAdded,
   onImageCleared
@@ -1337,6 +1341,7 @@ const AIImageDialogContent = ({
   puzzle_id: number;
   title: string;
   description: string;
+  words: string[];
   existing_image: ImageInfo | null;
   onImageAdded: (info: ImageInfo) => void;
   onImageCleared: () => void;
@@ -1386,30 +1391,51 @@ const AIImageDialogContent = ({
     generate_mut.mutate({
       title,
       description,
+      words,
       existing_image_prompt: existing_image_prompt || undefined
     });
   };
 
   const handleDeleteAndRegenerate = () => {
     if (phase.state === 'done') {
-      delete_mut.mutate({ id: phase.image_info.id });
-      // generation will kick off in onSuccess after delete clears state,
-      // but we want a clean fresh generate — so start it right away with no prior prompt
+      const current_image_id = phase.image_info.id;
       setPhase({ state: 'generating' });
-      generate_mut.mutate({ title, description });
+      delete_mut.mutate(
+        { id: current_image_id },
+        {
+          onSuccess: () => {
+            generate_mut.mutate({ title, description, words });
+          },
+          onError: () => {
+            setPhase({ state: 'idle' });
+          }
+        }
+      );
     }
   };
 
   const handleMakeImage = () => {
     if (phase.state === 'done') {
-      // Use the edited custom_prompt, skip prompt generation
-      delete_mut.mutate({ id: phase.image_info.id });
+      const promptToUse = custom_prompt;
+      const current_image_id = phase.image_info.id;
       setPhase({ state: 'generating' });
-      generate_mut.mutate({
-        title,
-        description,
-        existing_image_prompt: custom_prompt || undefined
-      });
+      delete_mut.mutate(
+        { id: current_image_id },
+        {
+          onSuccess: () => {
+            setCustomPrompt(promptToUse);
+            generate_mut.mutate({
+              title,
+              description,
+              words,
+              existing_image_prompt: promptToUse || undefined
+            });
+          },
+          onError: () => {
+            setPhase({ state: 'idle' });
+          }
+        }
+      );
     } else {
       startGeneration(custom_prompt || undefined);
     }
@@ -1523,15 +1549,7 @@ const AIImageDialogContent = ({
                   variant="outline"
                   size="sm"
                   disabled={isWorking || !custom_prompt.trim()}
-                  onClick={() => {
-                    // generate without deleting first (just re-use the prompt directly)
-                    setPhase({ state: 'generating' });
-                    generate_mut.mutate({
-                      title,
-                      description,
-                      existing_image_prompt: custom_prompt
-                    });
-                  }}
+                  onClick={handleMakeImage}
                 >
                   Make Image
                 </Button>
