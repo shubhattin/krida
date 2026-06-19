@@ -1,6 +1,6 @@
 'use client';
 
-import { useState, useContext } from 'react';
+import { useState } from 'react';
 import Link from 'next/link';
 import {
   Moon,
@@ -32,108 +32,12 @@ import { is_ios_atom, pwa_state_atom } from '../PWA/pwa_state';
 import { useAtom } from 'jotai';
 import { PWAInstallButton } from '../PWA/PWAInit';
 import { BsVectorPen } from 'react-icons/bs';
-import { AppContext } from '~/components/AppDataContext';
-import { signIn, signOut } from '~/lib/auth-client';
+import { signIn, signOut, useSession } from '~/lib/auth-client';
 
 const accountMenuLinkClass =
   'flex w-full items-center gap-3 rounded-lg border border-slate-200 bg-slate-50 p-3 text-left text-sm font-medium text-slate-700 transition-all duration-200 hover:scale-[1.02] hover:border-slate-300 hover:bg-slate-100 active:scale-[0.98] dark:border-slate-700 dark:bg-slate-800/50 dark:text-slate-300 dark:hover:border-slate-600 dark:hover:bg-slate-700/50';
 
-function AccountMenuSection({ onNavigate }: { onNavigate?: () => void }) {
-  const { user_info } = useContext(AppContext);
-
-  if (user_info) {
-    return (
-      <div className="space-y-2">
-        {/* <div className="flex items-center gap-2 px-1 pb-1">
-          <User className="size-4 text-slate-600 dark:text-slate-400" />
-          <span className="text-sm font-medium text-slate-700 dark:text-slate-300">
-            {user_info.name}
-          </span>
-        </div> */}
-
-        <Link href="/padavali/puzzles" onClick={onNavigate} className={accountMenuLinkClass}>
-          <div className="flex h-8 w-8 items-center justify-center rounded-lg bg-linear-to-br from-blue-500 to-indigo-600">
-            <IoExtensionPuzzleSharp className="size-4 text-white" />
-          </div>
-          <div>
-            <div className="font-medium">Padavali Puzzles</div>
-            <div className="text-xs text-slate-500 dark:text-slate-400">Browse all puzzles</div>
-          </div>
-        </Link>
-
-        {user_info.role === 'admin' && (
-          <>
-            <Link href="/padavali/list" onClick={onNavigate} className={accountMenuLinkClass}>
-              <div className="flex h-8 w-8 items-center justify-center rounded-lg bg-linear-to-br from-purple-500 to-violet-600">
-                <List className="size-4 text-white" />
-              </div>
-              <div>
-                <div className="font-medium">Puzzle List</div>
-                <div className="text-xs text-slate-500 dark:text-slate-400">Admin puzzle list</div>
-              </div>
-            </Link>
-            <Link href="/padavali/schedules" onClick={onNavigate} className={accountMenuLinkClass}>
-              <div className="flex h-8 w-8 items-center justify-center rounded-lg bg-linear-to-br from-emerald-500 to-teal-600">
-                <Calendar className="size-4 text-white" />
-              </div>
-              <div>
-                <div className="font-medium">Schedules</div>
-                <div className="text-xs text-slate-500 dark:text-slate-400">Manage schedules</div>
-              </div>
-            </Link>
-          </>
-        )}
-
-        <a
-          href={`${process.env.NEXT_PUBLIC_BETTER_AUTH_URL}/user`}
-          target="_blank"
-          rel="noopener noreferrer"
-          onClick={onNavigate}
-          className={accountMenuLinkClass}
-        >
-          <div className="flex h-8 w-8 items-center justify-center rounded-lg bg-linear-to-br from-blue-500 to-cyan-600">
-            <User className="size-4 text-white" />
-          </div>
-          <div>
-            <div className="font-medium">User Profile</div>
-            <div className="text-xs text-slate-500 dark:text-slate-400">Account settings</div>
-          </div>
-        </a>
-
-        <button
-          type="button"
-          onClick={() => {
-            onNavigate?.();
-            signOut();
-          }}
-          className={cn(
-            accountMenuLinkClass,
-            'border-red-200 bg-red-50 text-red-700 hover:border-red-300 hover:bg-red-100 dark:border-red-800 dark:bg-red-950/30 dark:text-red-300 dark:hover:border-red-700 dark:hover:bg-red-900/30'
-          )}
-        >
-          <div className="flex h-8 w-8 items-center justify-center rounded-lg bg-linear-to-br from-red-500 to-rose-600">
-            <LogOut className="size-4 text-white" />
-          </div>
-          <div>
-            <div className="font-medium">Log out</div>
-            <div className="text-xs text-red-500 dark:text-red-400">Sign out of your account</div>
-          </div>
-        </button>
-
-        {user_info.role !== 'admin' && (
-          <div className="rounded-lg border border-orange-200 bg-orange-50 p-3 dark:border-orange-800 dark:bg-orange-950/30">
-            <div className="text-sm font-medium text-orange-800 dark:text-orange-300">
-              Unauthorized Account
-            </div>
-            <div className="text-xs text-orange-600 dark:text-orange-400">
-              Contact admin for approval
-            </div>
-          </div>
-        )}
-      </div>
-    );
-  }
-
+function SignInMenuButton({ onNavigate }: { onNavigate?: () => void }) {
   return (
     <button
       type="button"
@@ -157,8 +61,121 @@ function AccountMenuSection({ onNavigate }: { onNavigate?: () => void }) {
   );
 }
 
+function LoggedInAccountMenu({ onNavigate }: { onNavigate?: () => void }) {
+  const user_info = useSession().data?.user;
+  if (!user_info) return null;
+
+  return (
+    <div className="space-y-2">
+      {/* <div className="flex items-center gap-2 px-1 pb-1">
+          <User className="size-4 text-slate-600 dark:text-slate-400" />
+          <span className="text-sm font-medium text-slate-700 dark:text-slate-300">
+            {user_info.name}
+          </span>
+        </div> */}
+
+      <Link href="/padavali/puzzles" onClick={onNavigate} className={accountMenuLinkClass}>
+        <div className="flex h-8 w-8 items-center justify-center rounded-lg bg-linear-to-br from-blue-500 to-indigo-600">
+          <IoExtensionPuzzleSharp className="size-4 text-white" />
+        </div>
+        <div>
+          <div className="font-medium">Padavali Puzzles</div>
+          <div className="text-xs text-slate-500 dark:text-slate-400">Browse all puzzles</div>
+        </div>
+      </Link>
+
+      {user_info.role === 'admin' && (
+        <>
+          <Link href="/padavali/list" onClick={onNavigate} className={accountMenuLinkClass}>
+            <div className="flex h-8 w-8 items-center justify-center rounded-lg bg-linear-to-br from-purple-500 to-violet-600">
+              <List className="size-4 text-white" />
+            </div>
+            <div>
+              <div className="font-medium">Puzzle List</div>
+              <div className="text-xs text-slate-500 dark:text-slate-400">Admin puzzle list</div>
+            </div>
+          </Link>
+          <Link href="/padavali/schedules" onClick={onNavigate} className={accountMenuLinkClass}>
+            <div className="flex h-8 w-8 items-center justify-center rounded-lg bg-linear-to-br from-emerald-500 to-teal-600">
+              <Calendar className="size-4 text-white" />
+            </div>
+            <div>
+              <div className="font-medium">Schedules</div>
+              <div className="text-xs text-slate-500 dark:text-slate-400">Manage schedules</div>
+            </div>
+          </Link>
+        </>
+      )}
+
+      <a
+        href={`${process.env.NEXT_PUBLIC_BETTER_AUTH_URL}/user`}
+        target="_blank"
+        rel="noopener noreferrer"
+        onClick={onNavigate}
+        className={accountMenuLinkClass}
+      >
+        <div className="flex h-8 w-8 items-center justify-center rounded-lg bg-linear-to-br from-blue-500 to-cyan-600">
+          <User className="size-4 text-white" />
+        </div>
+        <div>
+          <div className="font-medium">User Profile</div>
+          <div className="text-xs text-slate-500 dark:text-slate-400">Account settings</div>
+        </div>
+      </a>
+
+      <button
+        type="button"
+        onClick={() => {
+          onNavigate?.();
+          signOut();
+        }}
+        className={cn(
+          accountMenuLinkClass,
+          'border-red-200 bg-red-50 text-red-700 hover:border-red-300 hover:bg-red-100 dark:border-red-800 dark:bg-red-950/30 dark:text-red-300 dark:hover:border-red-700 dark:hover:bg-red-900/30'
+        )}
+      >
+        <div className="flex h-8 w-8 items-center justify-center rounded-lg bg-linear-to-br from-red-500 to-rose-600">
+          <LogOut className="size-4 text-white" />
+        </div>
+        <div>
+          <div className="font-medium">Log out</div>
+          <div className="text-xs text-red-500 dark:text-red-400">Sign out of your account</div>
+        </div>
+      </button>
+
+      {user_info.role !== 'admin' && (
+        <div className="rounded-lg border border-orange-200 bg-orange-50 p-3 dark:border-orange-800 dark:bg-orange-950/30">
+          <div className="text-sm font-medium text-orange-800 dark:text-orange-300">
+            Unauthorized Account
+          </div>
+          <div className="text-xs text-orange-600 dark:text-orange-400">
+            Contact admin for approval
+          </div>
+        </div>
+      )}
+    </div>
+  );
+}
+
+function AccountMenuSection({ onNavigate }: { onNavigate?: () => void }) {
+  return (
+    <div className="space-y-3">
+      <div className="flex items-center gap-2">
+        <User className="h-4 w-4 text-slate-600 dark:text-slate-400" />
+        <span className="text-sm font-medium text-slate-700 dark:text-slate-300">Account</span>
+      </div>
+      <LoggedInAccountMenu onNavigate={onNavigate} />
+    </div>
+  );
+}
+
 export function MenuButton() {
   const { theme, setTheme } = useTheme();
+  const { data: session } = useSession();
+  const isLoggedIn = !!session?.user;
+  const isAdmin = session?.user?.role === 'admin';
+  const showAccountAtTop = isLoggedIn && isAdmin;
+  const showAccountAtBottom = isLoggedIn && !isAdmin;
   const [open, setOpen] = useState(false);
   const [pwa_state] = useAtom(pwa_state_atom);
   const [isIos] = useAtom(is_ios_atom);
@@ -263,18 +280,12 @@ export function MenuButton() {
           </div>
           <Separator className="my-4 bg-slate-200 dark:bg-slate-700" />
 
-          {/* Account Section */}
-          <div className="space-y-3">
-            <div className="flex items-center gap-2">
-              <User className="h-4 w-4 text-slate-600 dark:text-slate-400" />
-              <span className="text-sm font-medium text-slate-700 dark:text-slate-300">
-                Account
-              </span>
-            </div>
-            <AccountMenuSection onNavigate={() => setOpen(false)} />
-          </div>
-
-          <Separator className="my-4 bg-slate-200 dark:bg-slate-700" />
+          {showAccountAtTop && (
+            <>
+              <AccountMenuSection onNavigate={() => setOpen(false)} />
+              <Separator className="my-4 bg-slate-200 dark:bg-slate-700" />
+            </>
+          )}
 
           {(pwa_state.install_event_fired || pwa_state.is_installed || isIos) && (
             <>
@@ -419,6 +430,17 @@ export function MenuButton() {
               </a>
             </div>
           </div>
+
+          {(!isLoggedIn || showAccountAtBottom) && (
+            <>
+              <Separator className="my-4 bg-slate-200 dark:bg-slate-700" />
+              {!isLoggedIn ? (
+                <SignInMenuButton onNavigate={() => setOpen(false)} />
+              ) : (
+                <AccountMenuSection onNavigate={() => setOpen(false)} />
+              )}
+            </>
+          )}
         </div>
       </PopoverContent>
     </Popover>

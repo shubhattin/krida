@@ -7,11 +7,10 @@ import PWAInit from '~/components/PWA/PWAInit';
 
 export default async function PadavaliLayout({ children }: { children: ReactNode }) {
   const script = await getCachedScript();
-  const session = await getCachedSession();
 
   return (
     <TRPCProvider>
-      <AppContextProvider initialScript={script} initialSession={session}>
+      <AppContextProvider initialScript={script}>
         <AppBar title="Padavali" />
         <div className="mx-2">{children}</div>
         <PWAInit />
