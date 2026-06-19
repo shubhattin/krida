@@ -6,7 +6,7 @@ import { transliterate } from 'lipilekhika';
 import { DEFAULT_DATA_SCRIPT, type ScriptType } from '~/state/script_list';
 import { motion } from 'framer-motion';
 import { Button } from '~/components/ui/button';
-import { ArrowLeftIcon, SearchIcon, Sparkles } from 'lucide-react';
+import { ArrowLeftIcon, SearchIcon, SparklesIcon } from 'lucide-react';
 import { IoExtensionPuzzleSharp } from 'react-icons/io5';
 import Link from 'next/link';
 import { ScriptSelector } from '~/components/pages/main/ScriptSelector';
@@ -174,43 +174,85 @@ const PuzzleListView = ({ puzzles }: { puzzles: DisplayPuzzle[] }) => {
 
   return (
     <div className="min-h-screen w-full bg-linear-to-br from-slate-50 via-blue-50 to-indigo-50 dark:from-slate-900 dark:via-slate-800 dark:to-slate-900">
-      <div className="container mx-auto max-w-6xl px-4 py-8">
-        <motion.div
-          initial={{ opacity: 0, x: -20 }}
-          animate={{ opacity: 1, x: 0 }}
-          transition={{ duration: 0.4 }}
-          className="mb-6"
-        >
-          <Button
-            render={<Link href="/padavali" className="gap-2" />}
-            nativeButton={false}
-            variant="ghost"
-            className="gap-2"
+      {/* Hero Header */}
+      <div className="relative overflow-hidden border-b border-slate-200/60 dark:border-slate-700/60">
+        {/* Background gradient blobs */}
+        <div className="pointer-events-none absolute inset-0">
+          <div className="absolute -top-24 left-1/2 h-80 w-80 -translate-x-1/2 rounded-full bg-blue-400/15 blur-3xl dark:bg-blue-500/15" />
+          <div className="absolute -top-12 left-1/4 h-56 w-56 rounded-full bg-indigo-400/10 blur-2xl dark:bg-indigo-500/10" />
+          <div className="absolute -top-12 right-1/4 h-56 w-56 rounded-full bg-purple-400/8 blur-2xl" />
+        </div>
+
+        <div className="relative container mx-auto max-w-6xl px-4 pt-5 pb-7">
+          {/* Back button — top left */}
+          <motion.div
+            initial={{ opacity: 0, x: -16 }}
+            animate={{ opacity: 1, x: 0 }}
+            transition={{ duration: 0.35 }}
           >
-            <ArrowLeftIcon className="h-4 w-4" />
-            Back to Home
-          </Button>
-        </motion.div>
+            <Button
+              render={<Link href="/padavali" className="gap-2" />}
+              nativeButton={false}
+              variant="ghost"
+              className="gap-2 text-slate-600 hover:text-slate-900 dark:text-slate-400 dark:hover:text-slate-100"
+            >
+              <ArrowLeftIcon className="h-4 w-4" />
+              Back to Home
+            </Button>
+          </motion.div>
 
-        <motion.div
-          initial={{ opacity: 0, y: -20 }}
-          animate={{ opacity: 1, y: 0 }}
-          transition={{ duration: 0.5 }}
-          className="mb-6 text-center sm:mb-8"
-        >
-          <div className="mb-4 flex justify-center">
-            <div className="rounded-xl bg-linear-to-r from-blue-500 to-indigo-600 p-3 shadow-lg">
-              <IoExtensionPuzzleSharp className="size-8 text-white" />
+          {/* Icon + Title */}
+          <motion.div
+            initial={{ opacity: 0, y: 16 }}
+            animate={{ opacity: 1, y: 0 }}
+            transition={{ duration: 0.5, delay: 0.08 }}
+            className="mt-4 flex flex-col items-center gap-4 text-center"
+          >
+            {/* Animated icon */}
+            <div className="relative">
+              <motion.div
+                initial={{ scale: 0.8, rotate: -10 }}
+                animate={{ scale: 1, rotate: 0 }}
+                transition={{ type: 'spring', stiffness: 260, damping: 20, delay: 0.15 }}
+                className="flex size-16 items-center justify-center rounded-2xl bg-linear-to-br from-blue-500 to-indigo-600 shadow-xl shadow-blue-500/30"
+              >
+                <IoExtensionPuzzleSharp className="size-8 text-white" />
+              </motion.div>
+              <motion.div
+                className="absolute -top-1 -right-1 flex size-5 items-center justify-center rounded-full bg-amber-400 shadow"
+                animate={{ scale: [1, 1.25, 1] }}
+                transition={{ duration: 2.5, repeat: Infinity, ease: 'easeInOut', delay: 0.5 }}
+              >
+                <SparklesIcon className="size-2.5 text-amber-900" />
+              </motion.div>
             </div>
-          </div>
-          <h1 className="mb-2 bg-linear-to-r from-slate-800 to-blue-600 bg-clip-text text-3xl font-bold text-transparent dark:from-slate-100 dark:to-blue-400">
-            Padavali Puzzles
-          </h1>
-          <p className="text-slate-600 dark:text-slate-400">
-            Browse and play all available word puzzles
-          </p>
-        </motion.div>
 
+            <div>
+              <h1 className="bg-linear-to-r from-slate-800 via-blue-700 to-indigo-600 bg-clip-text text-3xl font-extrabold text-transparent sm:text-4xl dark:from-slate-100 dark:via-blue-300 dark:to-indigo-400">
+                Padavali Puzzles
+              </h1>
+              <p className="mt-2 text-sm text-slate-500 dark:text-slate-400">
+                Browse and play all available Sanskrit word puzzles
+              </p>
+              {/* {puzzles.length > 0 && (
+                <motion.div
+                  initial={{ opacity: 0, scale: 0.9 }}
+                  animate={{ opacity: 1, scale: 1 }}
+                  transition={{ delay: 0.3, duration: 0.35 }}
+                  className="mt-3 flex justify-center"
+                >
+                  <span className="inline-flex items-center gap-1.5 rounded-full border border-blue-200/60 bg-blue-50/80 px-3 py-1 text-xs font-semibold text-blue-700 shadow-sm dark:border-blue-800/50 dark:bg-blue-950/40 dark:text-blue-300">
+                    <IoExtensionPuzzleSharp className="size-3" />
+                    {puzzles.length} puzzle{puzzles.length !== 1 ? 's' : ''} available
+                  </span>
+                </motion.div>
+              )} */}
+            </div>
+          </motion.div>
+        </div>
+      </div>
+
+      <div className="container mx-auto max-w-6xl px-4 py-6">
         <div className="mb-6 flex flex-col items-stretch justify-center gap-3 sm:flex-row sm:items-center">
           <InputGroup className="w-full sm:flex-1">
             <InputGroupAddon>
@@ -371,7 +413,7 @@ const EmptyPuzzleList = () => {
           </p>
 
           <div className="inline-flex items-center gap-2 rounded-xl bg-linear-to-r from-blue-100 to-indigo-100 px-6 py-3 text-blue-700 shadow-lg dark:from-blue-900/30 dark:to-indigo-900/30 dark:text-blue-300">
-            <Sparkles className="h-5 w-5" />
+            <SparklesIcon className="h-5 w-5" />
             <span className="font-medium">New puzzles will appear here</span>
           </div>
         </motion.div>

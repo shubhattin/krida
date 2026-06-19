@@ -2,7 +2,9 @@
 
 import { useEffect, useRef, useState } from 'react';
 import { useRouter } from 'next/navigation';
-import { ClockIcon, Loader2Icon } from 'lucide-react';
+import { ClockIcon, Loader2Icon, SparklesIcon, LayoutGridIcon } from 'lucide-react';
+import { motion } from 'framer-motion';
+import { IoExtensionPuzzleSharp } from 'react-icons/io5';
 import { client } from '~/api/client';
 import { ListedPuzzlesBrowseEmbed } from '~/components/pages/main/ListedPuzzlesBrowseEmbed';
 import type { ListedPuzzlesType } from '~/util/cache.server/cache_loaders';
@@ -60,15 +62,22 @@ function NextPuzzleCountdownDisplay({ startTime }: { startTime: Date }) {
   }, [startTime]);
 
   return (
-    <span className="inline-flex items-center gap-2 rounded-lg bg-slate-100 px-3 py-2 text-sm text-slate-700 dark:bg-slate-800 dark:text-slate-300">
-      <ClockIcon className="size-4 shrink-0" />
-      <span>
+    <motion.div
+      initial={{ opacity: 0, scale: 0.95 }}
+      animate={{ opacity: 1, scale: 1 }}
+      transition={{ duration: 0.4 }}
+      className="inline-flex items-center gap-2.5 rounded-full border border-emerald-200/60 bg-emerald-50/80 px-4 py-2 shadow-sm backdrop-blur-sm dark:border-emerald-800/50 dark:bg-emerald-950/40"
+    >
+      <div className="relative flex size-2 shrink-0">
+        <span className="absolute inline-flex size-full animate-ping rounded-full bg-emerald-400 opacity-75" />
+        <span className="relative inline-flex size-2 rounded-full bg-emerald-500" />
+      </div>
+      <ClockIcon className="size-3.5 shrink-0 text-emerald-600 dark:text-emerald-400" />
+      <span className="text-sm text-emerald-700 dark:text-emerald-300">
         Next puzzle in{' '}
-        <span className="font-semibold text-emerald-700 tabular-nums dark:text-emerald-400">
-          {formatNextPuzzleCountdown(remainingMs)}
-        </span>
+        <span className="font-bold tabular-nums">{formatNextPuzzleCountdown(remainingMs)}</span>
       </span>
-    </span>
+    </motion.div>
   );
 }
 
@@ -133,23 +142,99 @@ export const NoScheduledPadavali = ({
 
   return (
     <div className="w-full bg-linear-to-br from-slate-50 via-blue-50 to-indigo-50 pb-12 dark:from-slate-900 dark:via-slate-800 dark:to-slate-900">
-      <div className="mx-auto max-w-6xl px-4 pt-8 sm:pt-12">
-        <div className="mb-6 text-center">
-          <h1 className="mb-2 text-xl font-bold text-slate-800 sm:text-2xl dark:text-slate-100">
-            No puzzle scheduled right now
-          </h1>
-          <div className="text-sm text-slate-600 sm:text-base dark:text-slate-400">
-            {loadingNewPuzzle ? (
-              <span className="inline-flex items-center gap-2 font-medium text-blue-600 dark:text-blue-400">
-                <Loader2Icon className="size-4 animate-spin" />
-                Loading new puzzle…
-              </span>
-            ) : next_schedule ? (
-              <NextPuzzleCountdownDisplay startTime={next_schedule.start_time} />
-            ) : (
-              'Check back later for the next scheduled puzzle.'
-            )}
-          </div>
+      {/* Header */}
+      <div className="relative overflow-hidden">
+        {/* Decorative background blobs */}
+        <div className="pointer-events-none absolute inset-0 overflow-hidden">
+          <div className="absolute -top-20 left-1/2 h-64 w-64 -translate-x-1/2 rounded-full bg-blue-400/10 blur-3xl dark:bg-blue-500/10" />
+          <div className="absolute -top-10 left-1/3 h-48 w-48 rounded-full bg-indigo-400/10 blur-2xl dark:bg-indigo-500/10" />
+          <div className="absolute -top-10 right-1/3 h-48 w-48 rounded-full bg-purple-400/8 blur-2xl dark:bg-purple-500/8" />
+        </div>
+
+        <div className="relative mx-auto max-w-6xl px-4 pt-10 pb-6 text-center sm:pt-14">
+          {loadingNewPuzzle ? (
+            /* Loading state */
+            <motion.div
+              initial={{ opacity: 0 }}
+              animate={{ opacity: 1 }}
+              className="flex flex-col items-center gap-4"
+            >
+              <div className="flex size-14 items-center justify-center rounded-2xl bg-linear-to-br from-blue-500 to-indigo-600 shadow-lg shadow-blue-500/30">
+                <Loader2Icon className="size-7 animate-spin text-white" />
+              </div>
+              <div>
+                <p className="text-lg font-semibold text-blue-600 dark:text-blue-400">
+                  Loading new puzzle…
+                </p>
+                <p className="mt-1 text-sm text-slate-500 dark:text-slate-400">
+                  A fresh puzzle is almost ready!
+                </p>
+              </div>
+            </motion.div>
+          ) : (
+            <>
+              {/* Small notice chip */}
+              <motion.div
+                initial={{ opacity: 0, y: -8 }}
+                animate={{ opacity: 1, y: 0 }}
+                transition={{ duration: 0.4 }}
+                className="mb-5 flex justify-center"
+              >
+                <span className="inline-flex items-center gap-1.5 rounded-full border border-slate-200/60 bg-white/60 px-3 py-1 text-xs leading-none font-medium text-slate-500 shadow-sm backdrop-blur-sm dark:border-slate-700/60 dark:bg-slate-800/40 dark:text-slate-400">
+                  <span className="relative size-1.5 shrink-0 -translate-y-[0.5px] rounded-full bg-slate-400 dark:bg-slate-500" />
+                  <span>No puzzle scheduled right now</span>
+                </span>
+              </motion.div>
+
+              {/* Main CTA — icon + headline */}
+              <motion.div
+                initial={{ opacity: 0, y: 12 }}
+                animate={{ opacity: 1, y: 0 }}
+                transition={{ duration: 0.5, delay: 0.08 }}
+                className="mb-5 flex flex-col items-center gap-4"
+              >
+                <div className="relative">
+                  <div className="flex size-16 items-center justify-center rounded-2xl bg-linear-to-br from-blue-500 to-indigo-600 shadow-lg shadow-blue-500/25">
+                    <IoExtensionPuzzleSharp className="size-8 text-white" />
+                  </div>
+                  <motion.div
+                    className="absolute -top-1 -right-1 flex size-5 items-center justify-center rounded-full bg-amber-400 shadow"
+                    animate={{ scale: [1, 1.2, 1] }}
+                    transition={{ duration: 2, repeat: Infinity, ease: 'easeInOut' }}
+                  >
+                    <SparklesIcon className="size-2.5 text-amber-900" />
+                  </motion.div>
+                </div>
+
+                <div>
+                  <h1 className="bg-linear-to-r from-slate-800 via-blue-700 to-indigo-600 bg-clip-text text-2xl font-extrabold text-transparent sm:text-3xl dark:from-slate-100 dark:via-blue-300 dark:to-indigo-400">
+                    Explore Sanskrit Puzzles
+                  </h1>
+                  <p className="mt-1.5 text-sm text-slate-500 dark:text-slate-400">
+                    {next_schedule
+                      ? 'While you wait for the next puzzle, explore our collection below.'
+                      : 'Discover and play from our full collection of word puzzles.'}
+                  </p>
+                </div>
+              </motion.div>
+
+              {/* Countdown or check-back message */}
+              <motion.div
+                initial={{ opacity: 0 }}
+                animate={{ opacity: 1 }}
+                transition={{ duration: 0.4, delay: 0.2 }}
+              >
+                {next_schedule ? (
+                  <NextPuzzleCountdownDisplay startTime={next_schedule.start_time} />
+                ) : (
+                  <div className="inline-flex items-center gap-2 rounded-full border border-slate-200/60 bg-white/60 px-4 py-2 text-xs text-slate-500 shadow-sm backdrop-blur-sm dark:border-slate-700/60 dark:bg-slate-800/40 dark:text-slate-400">
+                    <LayoutGridIcon className="size-3.5" />
+                    Check back later for the next scheduled puzzle
+                  </div>
+                )}
+              </motion.div>
+            </>
+          )}
         </div>
       </div>
 

@@ -362,12 +362,9 @@ function WordGame({
                 <PopoverContent
                   side="top"
                   align="center"
-                  className={cn(
-                    'z-80 w-fit overflow-hidden rounded-xl border-slate-200 bg-linear-to-r from-amber-50 to-orange-50 px-3 py-2 shadow-xl outline-none dark:border-slate-700 dark:from-teal-950/80 dark:to-green-950/80',
-                    'w-72 sm:w-xl md:w-2xl lg:w-3xl'
-                  )}
+                  className="z-80 w-fit max-w-[calc(100vw-32px)] overflow-hidden rounded-xl border border-slate-200 bg-linear-to-r from-amber-50 to-orange-50 px-3 py-2 shadow-xl outline-none sm:max-w-md md:max-w-lg dark:border-slate-700 dark:from-teal-950/80 dark:to-green-950/80"
                 >
-                  <div className="text-sm text-stone-600 dark:text-stone-200">
+                  <div className="text-sm font-semibold break-words whitespace-normal text-stone-600 dark:text-stone-200">
                     {description_transliterated}
                   </div>
                 </PopoverContent>

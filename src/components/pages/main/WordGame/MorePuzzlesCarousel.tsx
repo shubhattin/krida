@@ -88,36 +88,33 @@ type Props = {
   compact?: boolean;
 };
 
-export const getCarouselPuzzlesQueryFn = (
-  script: any,
-  excludeSlug?: string,
-  excludeId?: number
-) => async () => {
-  const org = await client.puzzle.get_listed_puzzles_preview.query({
-    exclude_slug: excludeSlug,
-    exclude_id: excludeId
-  });
-  if (org.length === 0) return [];
+export const getCarouselPuzzlesQueryFn =
+  (script: any, excludeSlug?: string, excludeId?: number) => async () => {
+    const org = await client.puzzle.get_listed_puzzles_preview.query({
+      exclude_slug: excludeSlug,
+      exclude_id: excludeId
+    });
+    if (org.length === 0) return [];
 
-  const [transliterated_texts, normal_titles] = await Promise.all([
-    transliterate(
-      org.flatMap((p) => (p.description ? [p.title, p.description] : [p.title])),
-      DEFAULT_DATA_SCRIPT,
-      script
-    ),
-    transliterate(
-      org.map((p) => p.title),
-      DEFAULT_DATA_SCRIPT,
-      NORMAL_TITLE_SCRIPT,
-      {
-        'all_to_normal:replace_avagraha_with_a': true,
-        'all_to_normal:replace_pancham_varga_varna_with_n': true
-      }
-    )
-  ]);
+    const [transliterated_texts, normal_titles] = await Promise.all([
+      transliterate(
+        org.flatMap((p) => (p.description ? [p.title, p.description] : [p.title])),
+        DEFAULT_DATA_SCRIPT,
+        script
+      ),
+      transliterate(
+        org.map((p) => p.title),
+        DEFAULT_DATA_SCRIPT,
+        NORMAL_TITLE_SCRIPT,
+        {
+          'all_to_normal:replace_avagraha_with_a': true,
+          'all_to_normal:replace_pancham_varga_varna_with_n': true
+        }
+      )
+    ]);
 
-  return mapListedPuzzlesForDisplay(org, transliterated_texts, normal_titles);
-};
+    return mapListedPuzzlesForDisplay(org, transliterated_texts, normal_titles);
+  };
 
 export const MorePuzzlesCarousel = ({
   excludeSlug,
@@ -201,10 +198,10 @@ export const MorePuzzlesCarousel = ({
               <Link
                 href="/padavali/puzzles"
                 onClick={handleViewAllClick}
-                className="flex items-center justify-center gap-1 rounded-full border border-blue-200/70 bg-blue-50/80 px-2.5 py-1 text-xs font-medium text-blue-600 no-underline transition-all duration-150 hover:bg-blue-100 hover:text-blue-700 dark:border-blue-700/50 dark:bg-blue-950/40 dark:text-blue-400 dark:hover:bg-blue-900/50"
+                className="flex items-center justify-center gap-1 rounded-full border border-blue-200/70 bg-blue-50/80 px-2.5 py-1 text-xs leading-none font-medium text-blue-600 no-underline transition-all duration-150 hover:bg-blue-100 hover:text-blue-700 dark:border-blue-700/50 dark:bg-blue-950/40 dark:text-blue-400 dark:hover:bg-blue-900/50"
               >
-                <ExternalLinkIcon className="size-3" />
-                <span className="mt-1 block">View All</span>
+                <ExternalLinkIcon className="relative size-3 shrink-0 translate-y-[-1.5px]" />
+                <span>View All</span>
               </Link>
 
               {/* Nav buttons right next to the link */}
