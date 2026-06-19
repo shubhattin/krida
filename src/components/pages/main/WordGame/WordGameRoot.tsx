@@ -17,6 +17,17 @@ import Icon from '~/tools/Icon';
 import { LanguageIcon } from '~/components/icons';
 import { Calendar, InfoIcon } from 'lucide-react';
 import Link from 'next/link';
+import { useRouter } from 'next/navigation';
+import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle
+} from '~/components/ui/alert-dialog';
 import {
   completed_atom,
   grid_data_current_atom,
@@ -28,7 +39,8 @@ import {
   found_words_atom,
   grid_dimensions_atom,
   word_msgs_atom,
-  original_word_list_atom
+  original_word_list_atom,
+  pending_navigation_url_atom
 } from './game_state';
 import { Popover, PopoverContent, PopoverTrigger } from '~/components/ui/popover';
 import { FaLink, FaRegStopCircle } from 'react-icons/fa';
@@ -36,9 +48,11 @@ import { AppContext } from '~/components/AppDataContext';
 import type { location_list_type } from '~/db/types';
 import { FiYoutube } from 'react-icons/fi';
 import GameMetricsCollector from './GameMetricsCollector';
+import { useQueryClient } from '@tanstack/react-query';
 import {
   MorePuzzlesAccordion,
-  MorePuzzlesCarousel
+  CompletionMorePuzzlesCarousel,
+  getCarouselPuzzlesQueryFn
 } from '~/components/pages/main/WordGame/MorePuzzlesCarousel';
 import { attachment_schema, DEFAULT_YOUTUBE_EMBED } from '~/db/db_shared_vals';
 import { z } from 'zod';
@@ -177,6 +191,16 @@ function WordGame({
   const [, setWordMsgs] = useAtom(word_msgs_atom);
   const [started] = useAtom(started_atom);
   const [completed] = useAtom(completed_atom);
+  const [pendingUrl, setPendingUrl] = useAtom(pending_navigation_url_atom);
+  const router = useRouter();
+  const queryClient = useQueryClient();
+
+  useEffect(() => {
+    queryClient.prefetchQuery({
+      queryKey: ['listed_puzzles_carousel', script, puzzle_slug, puzzle_id],
+      queryFn: getCarouselPuzzlesQueryFn(script, puzzle_slug, puzzle_id)
+    });
+  }, []);
 
   const font_info = FONT_INFO[script as ScriptType];
 
@@ -263,31 +287,66 @@ function WordGame({
         overscrollBehavior: started && !completed ? 'contain' : 'auto'
       }}
     >
-      {children}
-      {showAccordion && <MorePuzzlesAccordion excludeSlug={puzzle_slug} />}
-      {showCompletionCarousel && <MorePuzzlesCarousel excludeSlug={puzzle_slug} animateIn />}
-      <div
-        className={cn('flex items-center justify-center pt-2.5 sm:pt-4 lg:pt-5', 'mb-2.5 sm:mb-4')}
+      <AlertDialog
+        open={!!pendingUrl}
+        onOpenChange={(open) => {
+          if (!open) setPendingUrl(null);
+        }}
       >
-        <label className="flex items-center space-x-2">
-          <Icon className="size-7" src={LanguageIcon} />
-          <ScriptSelector script={script} onScriptChange={setScript} />
-          {font_info.experimental && (
-            <span className="inline-flex items-center rounded-full bg-orange-100 px-1 py-0.5 text-xs font-medium text-orange-800 dark:bg-orange-900/20 dark:text-orange-400">
-              Beta
-            </span>
-          )}
-        </label>
-      </div>
-      <div className="container mx-auto my-2.5 max-w-7xl px-2 sm:my-3.5 sm:px-4 md:my-4 md:px-6 lg:my-5">
-        {/* Header Section */}
-        <div className="mb-1 space-y-1 text-center sm:mb-2 sm:space-y-1.5 md:mb-3">
-          {/* <div className="inline-flex items-center gap-2 rounded-xl bg-linear-to-r from-yellow-600 to-orange-400 px-5 py-1 text-white shadow-lg">
-            <span className="uppercasen text-sm font-semibold tracking-wide select-none">Hint</span>
-          </div> */}
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle>Are you sure you want to leave?</AlertDialogTitle>
+            <AlertDialogDescription>
+              Your current word game progress will be lost.
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel onClick={() => setPendingUrl(null)}>Cancel</AlertDialogCancel>
+            <AlertDialogAction
+              onClick={() => {
+                if (pendingUrl) {
+                  router.push(pendingUrl);
+                  setPendingUrl(null);
+                }
+              }}
+            >
+              Leave Game
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
+
+      {children}
+
+      {/* Completion carousel — shown ABOVE the game when finished */}
+      {showCompletionCarousel && (
+        <motion.div
+          initial={{ opacity: 0, y: -16 }}
+          animate={{ opacity: 1, y: 0 }}
+          transition={{ duration: 0.5, ease: 'easeOut' }}
+          className="pt-3 sm:pt-4"
+        >
+          <CompletionMorePuzzlesCarousel excludeSlug={puzzle_slug} excludeId={puzzle_id} />
+        </motion.div>
+      )}
+
+      <div className="container mx-auto max-w-7xl px-2 pt-3 sm:px-4 sm:pt-4 md:px-6 md:pt-5">
+        {/* Title + inline script selector (desktop: right side, mobile: below title) */}
+        <div className="relative mb-2 text-center sm:mb-3">
+          {/* Desktop script selector — absolutely positioned right of the title */}
+          <div className="absolute top-1/2 right-0 hidden -translate-y-1/2 items-center gap-1.5 rounded-full border border-slate-200/60 bg-white/75 px-3 py-1.5 shadow-md backdrop-blur-sm lg:flex dark:border-slate-700/60 dark:bg-slate-900/75">
+            <Icon className="size-5" src={LanguageIcon} />
+            <ScriptSelector script={script} onScriptChange={setScript} />
+            {font_info.experimental && (
+              <span className="inline-flex items-center rounded-full bg-orange-100 px-1.5 py-0.5 text-xs font-medium text-orange-800 dark:bg-orange-900/20 dark:text-orange-400">
+                Beta
+              </span>
+            )}
+          </div>
+
+          {/* Puzzle title */}
           <div
             className={cn(
-              'mt-1 sm:mt-1.5 md:mt-2',
               'bg-linear-to-r from-slate-800 to-slate-600 bg-clip-text py-1 text-2xl font-bold sm:text-3xl md:text-4xl dark:from-slate-100 dark:to-slate-300',
               font_info.className
             )}
@@ -315,10 +374,33 @@ function WordGame({
               </Popover>
             )}
           </div>
+
+          {/* Script selector — mobile only, centered below title */}
+          <div className="mt-2 flex items-center justify-center gap-1.5 lg:hidden">
+            <Icon className="size-6" src={LanguageIcon} />
+            <ScriptSelector script={script} onScriptChange={setScript} />
+            {font_info.experimental && (
+              <span className="inline-flex items-center rounded-full bg-orange-100 px-1.5 py-0.5 text-xs font-medium text-orange-800 dark:bg-orange-900/20 dark:text-orange-400">
+                Beta
+              </span>
+            )}
+          </div>
         </div>
+
+        {/* More Puzzles accordion */}
+        {showAccordion && (
+          <div className="mb-3 w-full sm:mb-4">
+            <MorePuzzlesAccordion excludeSlug={puzzle_slug} excludeId={puzzle_id} />
+          </div>
+        )}
+
+        {/* Game controller + info — on completion, use centered layout with more breathing room */}
         {started && (
           <motion.div
-            className="flex flex-col items-center justify-center"
+            className={cn(
+              'flex flex-col items-center justify-center',
+              completed && 'mx-auto mb-4 w-full max-w-2xl sm:mb-5'
+            )}
             initial={{ opacity: 0, y: 40 }}
             animate={{ opacity: 1, y: 0 }}
             exit={{ opacity: 0, y: 40 }}
@@ -328,8 +410,10 @@ function WordGame({
               className={cn(
                 'flex items-center justify-center',
                 started &&
-                  'space-x-3.5 rounded-2xl border border-slate-200 bg-white px-5 py-3 shadow-xl sm:space-x-5 sm:px-6 md:space-x-5 md:px-8 dark:border-slate-700 dark:bg-slate-800',
-                completed && 'flex-col space-y-3 sm:flex-row sm:space-y-0'
+                  !completed &&
+                  'w-auto space-x-3.5 rounded-2xl border border-slate-200 bg-white px-5 py-3 shadow-xl sm:space-x-5 sm:px-6 md:space-x-5 md:px-8 dark:border-slate-700 dark:bg-slate-800',
+                // On completion: side-by-side restart + stats on desktop
+                completed && 'w-full flex-col gap-3 sm:flex-row sm:items-stretch sm:gap-4'
               )}
               initial={{ opacity: 0, y: 32 }}
               animate={{ opacity: 1, y: 0 }}
@@ -400,8 +484,6 @@ function WordGame({
 
           {/* Game Grid - Center */}
           <div className="order-1 flex flex-col items-center justify-center lg:order-2 lg:col-span-6">
-            {/* Stop Button for <lg screens */}
-
             <div
               className={cn(
                 'w-full max-w-lg'
@@ -427,6 +509,7 @@ function WordGame({
           </div>
         </div>
       </div>
+
       <GameMetricsCollector puzzle_id={puzzle_id} location={location} />
     </div>
   );

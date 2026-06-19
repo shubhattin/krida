@@ -8,7 +8,7 @@ import { ListedPuzzlesBrowseEmbed } from '~/components/pages/main/ListedPuzzlesB
 import type { ListedPuzzlesType } from '~/util/cache.server/cache_loaders';
 import type { DisplayPuzzle } from '~/components/pages/main/listed_puzzle_display';
 
-const NEXT_PUZZLE_CACHE_REFRESH_BUFFER_MS = 4_000;
+const NEXT_PUZZLE_CACHE_REFRESH_BUFFER_MS = 3_000;
 const COUNTDOWN_SHOW_SECONDS_THRESHOLD_MS = 20 * 60 * 1000;
 const SCHEDULE_REFRESH_RETRY_MS = 2_000;
 const SCHEDULE_REFRESH_MAX_RETRIES = 3;

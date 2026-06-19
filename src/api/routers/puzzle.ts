@@ -380,16 +380,21 @@ const get_puzzle_list_page_route = protectedAdminProcedure
 const LISTED_PUZZLES_PREVIEW_LIMIT = 16;
 
 const get_listed_puzzles_preview_input_schema = z.object({
-  exclude_slug: z.string().optional()
+  exclude_slug: z.string().optional(),
+  exclude_id: z.number().optional()
 });
 
 const get_listed_puzzles_preview_route = publicProcedure
   .input(get_listed_puzzles_preview_input_schema)
   .query(async ({ input }) => {
     const listed = await CACHE.listed_puzzle_list.get(NO_CACHE_PARAMS);
-    const filtered = input.exclude_slug
-      ? listed.filter((puzzle) => puzzle.slug !== input.exclude_slug)
-      : listed;
+    let filtered = listed;
+    if (input.exclude_slug) {
+      filtered = filtered.filter((puzzle) => puzzle.slug !== input.exclude_slug);
+    }
+    if (input.exclude_id !== undefined) {
+      filtered = filtered.filter((puzzle) => puzzle.id !== input.exclude_id);
+    }
     return filtered.slice(0, LISTED_PUZZLES_PREVIEW_LIMIT);
   });
 

@@ -3,7 +3,8 @@
 import { useQuery } from '@tanstack/react-query';
 import { useContext, useEffect, useMemo, useState } from 'react';
 import { transliterate } from 'lipilekhika';
-import { SearchIcon } from 'lucide-react';
+import Link from 'next/link';
+import { SearchIcon, ExternalLinkIcon } from 'lucide-react';
 import { ScriptSelector } from '~/components/pages/main/ScriptSelector';
 import Icon from '~/tools/Icon';
 import { LanguageIcon } from '~/components/icons';
@@ -124,9 +125,18 @@ const BrowseEmbedView = ({ puzzles }: { puzzles: DisplayPuzzle[] }) => {
 
   return (
     <div className="mx-auto w-full max-w-6xl px-4 pb-8">
-      <h2 className="mb-4 text-center text-lg font-semibold text-slate-800 sm:text-xl dark:text-slate-100">
-        Browse puzzles
-      </h2>
+      <div className="mb-4 flex items-center justify-center gap-2">
+        <h2 className="text-lg font-semibold text-slate-800 sm:text-xl dark:text-slate-100">
+          Browse puzzles
+        </h2>
+        <Link
+          href="/padavali/puzzles"
+          className="flex items-center justify-center gap-0.5 rounded-full border border-blue-200/70 bg-blue-50/80 px-2 py-0.5 text-xs font-medium text-blue-600 no-underline transition-all duration-150 hover:bg-blue-100 hover:text-blue-700 dark:border-blue-700/50 dark:bg-blue-950/40 dark:text-blue-400 dark:hover:bg-blue-900/50"
+        >
+          <ExternalLinkIcon className="size-3" />
+          <span className="mt-0.5">View all</span>
+        </Link>
+      </div>
 
       <div className="mb-6 flex flex-col items-stretch justify-center gap-3 sm:flex-row sm:items-center">
         <InputGroup className="w-full sm:flex-1">

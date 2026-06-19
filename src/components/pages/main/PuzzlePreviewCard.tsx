@@ -8,6 +8,12 @@ import { AppContext } from '~/components/AppDataContext';
 import { cn } from '~/lib/utils';
 import { FONT_INFO } from '~/state/script_font_data';
 import { getCDNUrl } from '~/constants';
+import { useAtom } from 'jotai';
+import {
+  started_atom,
+  completed_atom,
+  pending_navigation_url_atom
+} from '~/components/pages/main/WordGame/game_state';
 import {
   PUZZLE_CARD_IMAGE_ASPECT_RATIO,
   type DisplayPuzzle
@@ -20,12 +26,27 @@ type Props = {
 
 export const PuzzlePreviewCard = ({ puzzle, compact = false }: Props) => {
   const { script } = useContext(AppContext);
+  const [started] = useAtom(started_atom);
+  const [completed] = useAtom(completed_atom);
+  const [, setPendingUrl] = useAtom(pending_navigation_url_atom);
+
   const font_info = FONT_INFO[script!];
   const imageUrl = puzzle.image ? getCDNUrl(puzzle.image.s3_key) : null;
   const [w, h] = PUZZLE_CARD_IMAGE_ASPECT_RATIO;
 
+  const handleClick = (e: React.MouseEvent<HTMLAnchorElement>) => {
+    if (started && !completed) {
+      e.preventDefault();
+      setPendingUrl(`/padavali/puzzle/${puzzle.slug}`);
+    }
+  };
+
   return (
-    <Link href={`/padavali/puzzle/${puzzle.slug}`} className="group block h-full no-underline">
+    <Link
+      href={`/padavali/puzzle/${puzzle.slug}`}
+      onClick={handleClick}
+      className="group block h-full no-underline"
+    >
       <motion.div
         whileHover={{ scale: 1.02, y: -2 }}
         whileTap={{ scale: 0.98 }}

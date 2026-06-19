@@ -1,6 +1,6 @@
 import { type Metadata } from 'next';
 import Link from 'next/link';
-import { IoMdArrowRoundBack } from 'react-icons/io';
+import { ArrowLeftIcon } from 'lucide-react';
 import WordGame from '~/components/pages/main/WordGame/WordGameRoot';
 import { DEFAULT_DATA_SCRIPT } from '~/state/script_list';
 import { get_transliterated_word_game_msgs } from '~/components/pages/main/WordGame/msgs';
@@ -82,9 +82,12 @@ const MainEdit = async ({ params }: Props) => {
             next_schedule={next_schedule}
             attachments={word_puzzle.attachments}
           >
-            <div className="my-3 mb-3 px-4">
-              <Link href="/padavali" className="flex items-center gap-1 text-lg font-semibold">
-                <IoMdArrowRoundBack className="inline-block text-xl" />
+            <div className="px-4 pt-3 sm:px-6 sm:pt-4">
+              <Link
+                href="/padavali"
+                className="inline-flex items-center gap-2 rounded-full border border-slate-200/60 bg-white/70 px-4 py-1.5 text-sm font-medium text-slate-700 no-underline shadow-sm backdrop-blur-sm transition-all duration-200 hover:bg-white hover:shadow-md dark:border-slate-700/60 dark:bg-slate-800/70 dark:text-slate-200 dark:hover:bg-slate-800"
+              >
+                <ArrowLeftIcon className="size-4" />
                 मुख्यपृष्ठम्
               </Link>
             </div>

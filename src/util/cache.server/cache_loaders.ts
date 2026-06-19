@@ -98,7 +98,15 @@ const load_current_schedule = createCachedLoader<NoCacheParams, CurrentScheduleT
     if (parsed === undefined) return undefined;
     return current_schedule_schema.parse(parsed);
   },
-  getSetOptions: (data) => (data ? { exat: Math.floor(data.end_time.getTime() / 1000) } : undefined)
+  getSetOptions: (data) =>
+    data
+      ? {
+          exat: Math.floor(
+            data.end_time.getTime() / 1000 - 2
+            // cache expires 2 seconds before
+          )
+        }
+      : undefined
 });
 
 const load_next_schedule = createCachedLoader<NoCacheParams, NextScheduleType>({

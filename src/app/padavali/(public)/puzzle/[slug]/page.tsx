@@ -36,18 +36,16 @@ const MainEdit = async ({ params }: Props) => {
 
   return (
     <Suspense fallback={<PuzzleLoadingSkeleton />}>
-      <div className="relative">
-        <div className="absolute top-4 left-4 z-10 sm:top-6 sm:left-6">
-          <Link
-            href="/padavali/puzzles"
-            className="flex items-center gap-2 bg-white/80 p-1.5 backdrop-blur-sm hover:bg-white sm:p-2 dark:bg-slate-800/80 dark:hover:bg-slate-800"
-          >
-            <ArrowLeftIcon className="size-4" />
-            Back
-          </Link>
-        </div>
-        <WordGameSuspense slug={slug} />
+      <div className="px-4 pt-4 sm:px-6 sm:pt-5">
+        <Link
+          href="/padavali/puzzles"
+          className="inline-flex items-center gap-2 rounded-full border border-slate-200/60 bg-white/70 px-4 py-1.5 text-sm font-medium text-slate-700 no-underline shadow-sm backdrop-blur-sm transition-all duration-200 hover:bg-white hover:shadow-md dark:border-slate-700/60 dark:bg-slate-800/70 dark:text-slate-200 dark:hover:bg-slate-800"
+        >
+          <ArrowLeftIcon className="size-4" />
+          Back to Puzzles
+        </Link>
       </div>
+      <WordGameSuspense slug={slug} />
     </Suspense>
   );
 };
@@ -92,13 +90,13 @@ const PuzzleLoadingSkeleton = () => {
   return (
     <div className="w-full bg-linear-to-br from-slate-50 via-blue-50 to-indigo-50 dark:from-slate-900 dark:via-slate-800 dark:to-slate-900">
       <div className="container mx-auto max-w-7xl px-4 py-8">
-        <div className="mb-6 w-fit">
+        <div className="mb-6">
           <Link
             href="/padavali/puzzles"
-            className="flex items-center gap-2 bg-white/80 p-1.5 backdrop-blur-sm hover:bg-white sm:p-2 dark:bg-slate-800/80 dark:hover:bg-slate-800"
+            className="inline-flex items-center gap-2 rounded-full border border-slate-200/60 bg-white/70 px-4 py-1.5 text-sm font-medium text-slate-700 no-underline shadow-sm backdrop-blur-sm transition-all duration-200 hover:bg-white hover:shadow-md dark:border-slate-700/60 dark:bg-slate-800/70 dark:text-slate-200 dark:hover:bg-slate-800"
           >
             <ArrowLeftIcon className="size-4" />
-            Back
+            Back to Puzzles
           </Link>
         </div>
 
