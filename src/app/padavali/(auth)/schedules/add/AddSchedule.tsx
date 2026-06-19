@@ -1,18 +1,12 @@
 'use client';
 
-import { useEffect, useRef, useState } from 'react';
+import { useEffect, useState } from 'react';
 import { Popover, PopoverContent, PopoverTrigger } from '~/components/ui/popover';
 import { Button } from '~/components/ui/button';
 import { Calendar } from '~/components/ui/calendar';
 import { Input } from '~/components/ui/input';
 import { Label } from '~/components/ui/label';
-import {
-  ChevronDownIcon,
-  ChevronLeftIcon,
-  ChevronRightIcon,
-  PlusIcon,
-  SearchIcon
-} from 'lucide-react';
+import { ChevronDownIcon, PlusIcon, SearchIcon } from 'lucide-react';
 import { client, client_q } from '~/api/client';
 import { toast } from 'sonner';
 import { useRouter } from 'next/navigation';
@@ -29,6 +23,15 @@ import {
 } from '~/components/ui/alert-dialog';
 import { Skeleton } from '@/components/ui/skeleton';
 import { cn } from '~/lib/utils';
+import {
+  Pagination,
+  PaginationContent,
+  PaginationEllipsis,
+  PaginationItem,
+  PaginationLink,
+  PaginationNext,
+  PaginationPrevious
+} from '~/components/ui/pagination';
 import { LanguageIcon } from '~/components/icons';
 import { Switch } from '~/components/ui/switch';
 import Icon from '~/tools/Icon';
@@ -41,6 +44,28 @@ import { useQuery } from '@tanstack/react-query';
 
 export const DEFAULT_START_END_TIME = '21:00';
 const PUZZLE_FETCH_LIMIT = 10;
+
+function getVisiblePages(current: number, total: number): (number | 'ellipsis')[] {
+  if (total <= 5) {
+    return Array.from({ length: total }, (_, i) => i + 1);
+  }
+
+  const pages = new Set<number>([1, total, current]);
+  if (current > 1) pages.add(current - 1);
+  if (current < total) pages.add(current + 1);
+
+  const sorted = [...pages].sort((a, b) => a - b);
+  const result: (number | 'ellipsis')[] = [];
+
+  for (let i = 0; i < sorted.length; i++) {
+    if (i > 0 && sorted[i]! - sorted[i - 1]! > 1) {
+      result.push('ellipsis');
+    }
+    result.push(sorted[i]!);
+  }
+
+  return result;
+}
 
 type Props =
   | {
@@ -160,12 +185,11 @@ const AddSchedule = (props: Props) => {
   }, [debouncedSearchTitle]);
 
   const puzzle_list_q = useQuery({
-    queryKey: ['puzzle_list_unlisted', page, debouncedSearchTitle],
+    queryKey: ['puzzle_list_schedule', page, debouncedSearchTitle],
     queryFn: async () => {
       return client.puzzle.get_puzzle_list_page.query({
         page,
         size: PUZZLE_FETCH_LIMIT,
-        listed_filter: false,
         search_title: debouncedSearchTitle !== '' ? debouncedSearchTitle : undefined,
         sort_by: 'created_at'
       });
@@ -358,32 +382,62 @@ const AddSchedule = (props: Props) => {
                   </div>
                 )}
               </div>
-              {pageCount > 1 && (
-                <div className="flex items-center justify-center gap-3">
-                  <Button
-                    variant="outline"
-                    size="sm"
-                    onClick={() => setPage((p) => p - 1)}
-                    disabled={!hasPrev || puzzle_list_q.isFetching}
-                    className="gap-1"
-                  >
-                    <ChevronLeftIcon className="size-4" />
-                    Prev
-                  </Button>
-                  <span className="text-sm font-medium text-muted-foreground">
-                    Page {page} of {pageCount}
-                  </span>
-                  <Button
-                    variant="outline"
-                    size="sm"
-                    onClick={() => setPage((p) => p + 1)}
-                    disabled={!hasNext || puzzle_list_q.isFetching}
-                    className="gap-1"
-                  >
-                    Next
-                    <ChevronRightIcon className="size-4" />
-                  </Button>
-                </div>
+              {(pageCount > 1 || puzzle_list_q.data?.total) && (
+                <Pagination>
+                  <PaginationContent>
+                    <PaginationItem>
+                      <PaginationPrevious
+                        href="#"
+                        text="Prev"
+                        onClick={(e) => {
+                          e.preventDefault();
+                          if (hasPrev && !puzzle_list_q.isFetching) setPage((p) => p - 1);
+                        }}
+                        aria-disabled={!hasPrev || puzzle_list_q.isFetching}
+                        className={cn(
+                          (!hasPrev || puzzle_list_q.isFetching) && 'pointer-events-none opacity-50'
+                        )}
+                      />
+                    </PaginationItem>
+                    {getVisiblePages(page, pageCount).map((pageNumber, index) =>
+                      pageNumber === 'ellipsis' ? (
+                        <PaginationItem key={`ellipsis-${index}`}>
+                          <PaginationEllipsis />
+                        </PaginationItem>
+                      ) : (
+                        <PaginationItem key={pageNumber}>
+                          <PaginationLink
+                            href="#"
+                            isActive={pageNumber === page}
+                            onClick={(e) => {
+                              e.preventDefault();
+                              if (!puzzle_list_q.isFetching) setPage(pageNumber);
+                            }}
+                            aria-disabled={puzzle_list_q.isFetching}
+                            className={cn(
+                              puzzle_list_q.isFetching && 'pointer-events-none opacity-50'
+                            )}
+                          >
+                            {pageNumber}
+                          </PaginationLink>
+                        </PaginationItem>
+                      )
+                    )}
+                    <PaginationItem>
+                      <PaginationNext
+                        href="#"
+                        onClick={(e) => {
+                          e.preventDefault();
+                          if (hasNext && !puzzle_list_q.isFetching) setPage((p) => p + 1);
+                        }}
+                        aria-disabled={!hasNext || puzzle_list_q.isFetching}
+                        className={cn(
+                          (!hasNext || puzzle_list_q.isFetching) && 'pointer-events-none opacity-50'
+                        )}
+                      />
+                    </PaginationItem>
+                  </PaginationContent>
+                </Pagination>
               )}
             </div>
           )}

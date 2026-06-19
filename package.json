@@ -24,6 +24,7 @@
     "@dnd-kit/utilities": "^3.2.2",
     "@neondatabase/serverless": "^1.1.0",
     "@tanstack/react-query": "^5.101.0",
+    "@tanstack/react-table": "^8.21.3",
     "@trpc/client": "^11.17.0",
     "@trpc/next": "^11.17.0",
     "@trpc/react-query": "^11.17.0",

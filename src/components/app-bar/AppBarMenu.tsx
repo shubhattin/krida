@@ -17,7 +17,8 @@ import {
   Check,
   User,
   Calendar,
-  List
+  List,
+  Pencil
 } from 'lucide-react';
 import { SiGithub } from 'react-icons/si';
 import { FaYoutube, FaInstagram } from 'react-icons/fa';
@@ -33,6 +34,7 @@ import { useAtom } from 'jotai';
 import { PWAInstallButton } from '../PWA/PWAInit';
 import { BsVectorPen } from 'react-icons/bs';
 import { signIn, signOut, useSession } from '~/lib/auth-client';
+import { active_puzzle_id_atom } from '~/components/pages/main/WordGame/game_state';
 
 const accountMenuLinkClass =
   'flex w-full items-center gap-3 rounded-lg border border-slate-200 bg-slate-50 p-3 text-left text-sm font-medium text-slate-700 transition-all duration-200 hover:scale-[1.02] hover:border-slate-300 hover:bg-slate-100 active:scale-[0.98] dark:border-slate-700 dark:bg-slate-800/50 dark:text-slate-300 dark:hover:border-slate-600 dark:hover:bg-slate-700/50';
@@ -63,6 +65,7 @@ function SignInMenuButton({ onNavigate }: { onNavigate?: () => void }) {
 
 function LoggedInAccountMenu({ onNavigate }: { onNavigate?: () => void }) {
   const user_info = useSession().data?.user;
+  const [activePuzzleId] = useAtom(active_puzzle_id_atom);
   if (!user_info) return null;
 
   return (
@@ -74,18 +77,25 @@ function LoggedInAccountMenu({ onNavigate }: { onNavigate?: () => void }) {
           </span>
         </div> */}
 
-      <Link href="/padavali/puzzles" onClick={onNavigate} className={accountMenuLinkClass}>
-        <div className="flex h-8 w-8 items-center justify-center rounded-lg bg-linear-to-br from-blue-500 to-indigo-600">
-          <IoExtensionPuzzleSharp className="size-4 text-white" />
-        </div>
-        <div>
-          <div className="font-medium">Padavali Puzzles</div>
-          <div className="text-xs text-slate-500 dark:text-slate-400">Browse all puzzles</div>
-        </div>
-      </Link>
-
       {user_info.role === 'admin' && (
         <>
+          {activePuzzleId != null && (
+            <Link
+              href={`/padavali/edit/${activePuzzleId}`}
+              onClick={onNavigate}
+              className={accountMenuLinkClass}
+            >
+              <div className="flex h-8 w-8 items-center justify-center rounded-lg bg-linear-to-br from-amber-500 to-orange-600">
+                <Pencil className="size-4 text-white" />
+              </div>
+              <div>
+                <div className="font-medium">Edit Current Puzzle</div>
+                <div className="text-xs text-slate-500 dark:text-slate-400">
+                  Open puzzle #{activePuzzleId} in editor
+                </div>
+              </div>
+            </Link>
+          )}
           <Link href="/padavali/list" onClick={onNavigate} className={accountMenuLinkClass}>
             <div className="flex h-8 w-8 items-center justify-center rounded-lg bg-linear-to-br from-purple-500 to-violet-600">
               <List className="size-4 text-white" />

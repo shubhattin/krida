@@ -17,3 +17,6 @@ export const total_attempts_atom = atom(0);
 export const word_msgs_atom = atom<typeof word_game_msgs>({} as typeof word_game_msgs);
 export const pending_navigation_url_atom = atom<string | null>(null);
 export const puzzle_slug_atom = atom('');
+
+/** Puzzle id for the WordGame mounted on the current page; null when none. */
+export const active_puzzle_id_atom = atom<number | null>(null);

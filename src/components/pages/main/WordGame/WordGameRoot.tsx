@@ -10,7 +10,7 @@ import { GameContoller } from './GameController';
 import { GameInfo } from './GameInfo';
 import { GameGrid } from './GameGrid';
 import { GameHelp } from './Help';
-import { createStore, Provider, useAtom } from 'jotai';
+import { createStore, Provider, useAtom, useSetAtom } from 'jotai';
 import { ScriptSelector } from '~/components/pages/main/ScriptSelector';
 import { cn } from '~/lib/utils';
 import Icon from '~/tools/Icon';
@@ -41,7 +41,8 @@ import {
   word_msgs_atom,
   original_word_list_atom,
   pending_navigation_url_atom,
-  puzzle_slug_atom
+  puzzle_slug_atom,
+  active_puzzle_id_atom
 } from './game_state';
 import { Popover, PopoverContent, PopoverTrigger } from '~/components/ui/popover';
 import { FaLink, FaRegStopCircle } from 'react-icons/fa';
@@ -86,6 +87,17 @@ export type WordGameProps = {
   };
 };
 
+function ActivePuzzleRegistrar({ puzzleId }: { puzzleId: number }) {
+  const setActivePuzzleId = useSetAtom(active_puzzle_id_atom);
+
+  useEffect(() => {
+    setActivePuzzleId(puzzleId);
+    return () => setActivePuzzleId(null);
+  }, [puzzleId, setActivePuzzleId]);
+
+  return null;
+}
+
 export default function WordGameRoot(
   props: WordGameProps & {
     script: ScriptType;
@@ -109,9 +121,12 @@ export default function WordGameRoot(
   }, []);
 
   return (
-    <Provider store={jotaiStore} key={`${props.id}-${props.location}`}>
-      <WordGame {...props} />
-    </Provider>
+    <>
+      <ActivePuzzleRegistrar puzzleId={props.id} />
+      <Provider store={jotaiStore} key={`${props.id}-${props.location}`}>
+        <WordGame {...props} />
+      </Provider>
+    </>
   );
 }
 
@@ -366,7 +381,7 @@ function WordGame({
                   align="center"
                   className="z-80 w-fit max-w-[calc(100vw-32px)] overflow-hidden rounded-xl border border-slate-200 bg-linear-to-r from-amber-50 to-orange-50 px-3 py-2 shadow-xl outline-none sm:max-w-md md:max-w-lg dark:border-slate-700 dark:from-teal-950/80 dark:to-green-950/80"
                 >
-                  <div className="text-sm font-semibold break-words whitespace-normal text-stone-600 dark:text-stone-200">
+                  <div className="text-sm font-semibold wrap-break-word whitespace-normal text-stone-600 dark:text-stone-200">
                     {description_transliterated}
                   </div>
                 </PopoverContent>

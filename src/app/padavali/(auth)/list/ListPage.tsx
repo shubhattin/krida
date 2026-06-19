@@ -1,7 +1,15 @@
 'use client';
 
 import { Card, CardDescription, CardHeader, CardTitle } from '~/components/ui/card';
-import { CalendarIcon, SearchIcon, List, FilterIcon, ArrowUpDownIcon } from 'lucide-react';
+import {
+  CalendarIcon,
+  SearchIcon,
+  List,
+  FilterIcon,
+  ArrowUpDownIcon,
+  LayoutGridIcon,
+  TableIcon
+} from 'lucide-react';
 import Link from 'next/link';
 import dayjs from 'dayjs';
 import relativeTime from 'dayjs/plugin/relativeTime';
@@ -36,8 +44,13 @@ import {
   handleTypingBeforeInputEvent
 } from 'lipilekhika/typing';
 import { useQuery } from '@tanstack/react-query';
+import { Button } from '~/components/ui/button';
+import { DataTable } from '~/components/ui/data-table';
+import { listTableColumns } from './list-table-columns';
 
 dayjs.extend(relativeTime);
+
+type ListLayout = 'cards' | 'table';
 
 const PUZZLE_FETCH_LIMIT = 12;
 
@@ -87,6 +100,7 @@ const ListPage = () => {
   const [listed_filter_type, setListedFilterType] = useState<'all' | 'listed' | 'unlisted'>('all');
   const [sort_by, setSortBy] = useState<'created_at' | 'updated_at'>('created_at');
   const [order_by, setOrderBy] = useState<'asc' | 'desc'>('desc');
+  const [layout, setLayout] = useState<ListLayout>('cards');
 
   const ctx = createTypingContext('Devanagari');
 
@@ -132,6 +146,7 @@ const ListPage = () => {
   });
 
   const puzzle_list = puzzle_list_q.data?.list ?? [];
+  const displayedTableKey = puzzle_list.map((item) => item.id).join(',');
   const pageCount = puzzle_list_q.data?.pageCount ?? 1;
   const hasPrev = puzzle_list_q.data?.hasPrev ?? false;
   const hasNext = puzzle_list_q.data?.hasNext ?? false;
@@ -139,13 +154,20 @@ const ListPage = () => {
 
   const LoadingSkeletonJSX = () => (
     <>
-      {(isInitialLoading || !mounted) && (
-        <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4">
-          {Array.from({ length: PUZZLE_FETCH_LIMIT }).map((_, index) => (
-            <Skeleton key={index} className="h-16 w-full" />
-          ))}
-        </div>
-      )}
+      {(isInitialLoading || !mounted) &&
+        (layout === 'cards' ? (
+          <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4">
+            {Array.from({ length: PUZZLE_FETCH_LIMIT }).map((_, index) => (
+              <Skeleton key={index} className="h-20 w-full" />
+            ))}
+          </div>
+        ) : (
+          <div className="space-y-2 rounded-xl border border-slate-200/60 p-2 dark:border-slate-700/40">
+            {Array.from({ length: PUZZLE_FETCH_LIMIT }).map((_, index) => (
+              <Skeleton key={index} className="h-10 w-full" />
+            ))}
+          </div>
+        ))}
     </>
   );
 
@@ -268,30 +290,59 @@ const ListPage = () => {
                 </SelectContent>
               </Select>
             </div>
+            <div className="flex items-center gap-1 rounded-lg border border-slate-200/60 p-0.5 dark:border-slate-700/40">
+              <Button
+                type="button"
+                variant={layout === 'cards' ? 'secondary' : 'ghost'}
+                size="icon-sm"
+                aria-label="Card layout"
+                aria-pressed={layout === 'cards'}
+                onClick={() => setLayout('cards')}
+              >
+                <LayoutGridIcon />
+              </Button>
+              <Button
+                type="button"
+                variant={layout === 'table' ? 'secondary' : 'ghost'}
+                size="icon-sm"
+                aria-label="Table layout"
+                aria-pressed={layout === 'table'}
+                onClick={() => setLayout('table')}
+              >
+                <TableIcon />
+              </Button>
+            </div>
           </div>
         </div>
       </div>
       <LoadingSkeletonJSX />
-      {puzzle_list_q.isSuccess && !isInitialLoading && (
-        <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4">
-          {puzzle_list.length > 0 &&
-            puzzle_list.map((item) => (
+      {puzzle_list_q.isSuccess &&
+        !isInitialLoading &&
+        puzzle_list.length > 0 &&
+        layout === 'cards' && (
+          <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4">
+            {puzzle_list.map((item) => (
               <div key={item.id}>
                 <Link href={`/padavali/edit/${item.id}`}>
                   <Card className="group border-l-3 border-l-blue-500/40 p-2 shadow-sm transition-all duration-200 hover:translate-x-0.5 hover:border-l-blue-500 hover:bg-slate-50 hover:shadow-md dark:border-l-blue-400/40 dark:hover:border-l-blue-400 dark:hover:bg-slate-800/60">
                     <CardHeader>
                       <CardTitle>{item.title}</CardTitle>
-                      <CardDescription className="flex flex-wrap items-center gap-x-2 gap-y-1 sm:flex-row sm:items-center">
-                        {item.updated_at &&
-                          item.updated_at.getTime() !== item.created_at.getTime() &&
-                          item.updated_at.getTime() !== 0 && (
-                            <span className="inline-flex items-center text-sm text-muted-foreground">
-                              Updated: {dayjs(item.updated_at).fromNow()}
-                            </span>
-                          )}
-                        <span className="inline-flex items-center gap-1 text-sm text-muted-foreground">
-                          <CalendarIcon className="size-3 shrink-0" />
-                          {dayjs(item.created_at).format('MMM D, YYYY')}
+                      <CardDescription className="space-y-1">
+                        <span className="block truncate font-mono text-xs text-muted-foreground/90">
+                          {item.slug}
+                        </span>
+                        <span className="flex flex-wrap items-center gap-x-2 gap-y-1 sm:flex-row sm:items-center">
+                          {item.updated_at &&
+                            item.updated_at.getTime() !== item.created_at.getTime() &&
+                            item.updated_at.getTime() !== 0 && (
+                              <span className="inline-flex items-center text-sm text-muted-foreground">
+                                Updated: {dayjs(item.updated_at).fromNow()}
+                              </span>
+                            )}
+                          <span className="inline-flex items-center gap-1 text-sm text-muted-foreground">
+                            <CalendarIcon className="size-3 shrink-0" />
+                            {dayjs(item.created_at).format('MMM D, YYYY')}
+                          </span>
                         </span>
                       </CardDescription>
                     </CardHeader>
@@ -299,8 +350,19 @@ const ListPage = () => {
                 </Link>
               </div>
             ))}
-        </div>
-      )}
+          </div>
+        )}
+      {puzzle_list_q.isSuccess &&
+        !isInitialLoading &&
+        puzzle_list.length > 0 &&
+        layout === 'table' && (
+          <DataTable
+            key={displayedTableKey}
+            columns={listTableColumns}
+            data={puzzle_list}
+            getRowId={(row) => String(row.id)}
+          />
+        )}
       {puzzle_list.length === 0 && !isInitialLoading && (
         <div className="flex items-center justify-center">
           {!puzzle_list_q.isFetching ? (
