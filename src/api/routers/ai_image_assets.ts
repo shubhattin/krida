@@ -8,7 +8,10 @@ import { PROJECT_S3_ALIAS } from '~/constants';
 import { uploadAssetFile, deleteAssetFile } from '~/util/s3/upload_file.server';
 import { resizeImage } from '~/util/sharp/resize.server';
 import { eq } from 'drizzle-orm';
+import { createOpenAI } from '@ai-sdk/openai';
 
+const CURRENT_PROVIDER: 'openai' | 'openrouter' = 'openai' as const;
+const IMAGE_MODEL_TYPE: 'google' | 'openai' = 'openai' as const;
 // ---------------------------------------------------------------------------
 // Model & generation constants
 // ---------------------------------------------------------------------------
@@ -18,6 +21,16 @@ const OPENROUTER_MODELS = {
   file_name: 'openai/gpt-5.4-nano' as const,
   image_generation: 'openai/gpt-5.4-image-2' as const
 };
+
+const OPENAI_MODELS = {
+  image_prompt: 'gpt-5.4' as const,
+  file_name: 'gpt-5.4-nano' as const,
+  image_generation: 'gpt-image-2' as const
+} as const;
+
+const GOOGLE_MODELS = {
+  image_generation: 'google/gemini-3-pro-image' as const
+} as const;
 
 const REASONING_EFFORT = 'low' as const;
 
@@ -42,6 +55,19 @@ const openrouter = createOpenRouter({
   apiKey: process.env.OPENROUTER_API_KEY
 });
 
+const openai = createOpenAI({
+  apiKey: process.env.OPENAI_API_KEY
+});
+
+function getTextModel(type: 'image_prompt' | 'file_name') {
+  if (CURRENT_PROVIDER === 'openai') {
+    return openai(OPENAI_MODELS[type]);
+  } else {
+    return openrouter(OPENROUTER_MODELS[type], {
+      reasoning: { effort: REASONING_EFFORT }
+    });
+  }
+}
 // ---------------------------------------------------------------------------
 // Prompt templates
 // ---------------------------------------------------------------------------
@@ -109,18 +135,25 @@ const prompt_result_schema = z.object({
 // ---------------------------------------------------------------------------
 
 async function generatePuzzleCardImage(image_prompt: string): Promise<string> {
+  const image_model =
+    IMAGE_MODEL_TYPE === 'google'
+      ? openrouter.imageModel(GOOGLE_MODELS.image_generation)
+      : CURRENT_PROVIDER === 'openai'
+        ? openai.image(OPENAI_MODELS.image_generation)
+        : openrouter.imageModel(OPENROUTER_MODELS.image_generation, {
+            reasoning: { effort: REASONING_EFFORT }
+          } as any);
+
   const result = await generateImage({
-    model: openrouter.imageModel(OPENROUTER_MODELS.image_generation, {
-      reasoning: { effort: REASONING_EFFORT }
-    } as any),
+    model: image_model,
     prompt: image_prompt,
     aspectRatio: IMAGE_GENERATION_ASPECT_RATIO,
     providerOptions: {
       openai: {
-        quality: 'standard'
+        quality: 'low'
       },
       openrouter: {
-        quality: 'standard',
+        quality: 'low',
         reasoning: { effort: REASONING_EFFORT }
       }
     }
@@ -175,15 +208,18 @@ const generate_puzzle_card_image_route = protectedAdminProcedure
     if (existing_image_prompt) {
       // Derive only file_name + description from the supplied prompt
       const response = await generateText({
-        model: openrouter(OPENROUTER_MODELS.file_name, {
-          reasoning: { effort: REASONING_EFFORT }
-        }),
+        model: getTextModel('file_name'),
         output: Output.object({
           schema: prompt_result_schema.pick({ file_name: true })
         }),
         system:
           'Generate a short file_name (2–4 words, underscores, lowercase) and a 3–5 word description for the image prompt provided.',
-        prompt: existing_image_prompt
+        prompt: existing_image_prompt,
+        providerOptions: {
+          openai: {
+            reasoningEffort: REASONING_EFFORT
+          }
+        }
       });
       image_prompt = existing_image_prompt;
       file_name = response.output.file_name;
@@ -196,18 +232,21 @@ const generate_puzzle_card_image_route = protectedAdminProcedure
       // cuurently ignoring the word context
       // .replace('{words}', words_list);
       const response = await generateText({
-        model: openrouter(OPENROUTER_MODELS.image_prompt, {
-          reasoning: { effort: REASONING_EFFORT }
-        }),
+        model: getTextModel('image_prompt'),
         output: Output.object({ schema: prompt_result_schema }),
         system: IMAGE_PROMPT_SYSTEM,
-        prompt: user_prompt
+        prompt: user_prompt,
+        providerOptions: {
+          openai: {
+            reasoningEffort: REASONING_EFFORT
+          }
+        }
       });
       image_prompt = response.output.image_prompt;
       file_name = response.output.file_name;
     }
 
-    // console.log('[ai_image_assets] image_prompt generated:', image_prompt);
+    console.log('[ai_image_assets] image_prompt generated:');
 
     // ------------------------------------------------------------------
     // Step 2 — Generate image via OpenRouter imageModel

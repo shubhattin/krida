@@ -1206,7 +1206,7 @@ const SaveButton = ({ word_puzzle }: { word_puzzle: Puzzle }) => {
 // ---------------------------------------------------------------------------
 
 const IMAGE_ASPECT = '768 / 512'; // 3:2
-const IMAGE_GENERATION_TIMEOUT_MS = 150_000; // Time in milliseconds for progress animation
+const IMAGE_GENERATION_TIMEOUT_MS = 35_000; // Time in milliseconds for progress animation
 
 const PuzzleImageSection = ({ word_puzzle }: { word_puzzle: Puzzle }) => {
   const [image_id, setImageId] = useAtom(image_id_atom);
@@ -1486,9 +1486,6 @@ const AIImageDialogContent = ({
             />
             <div className="w-full max-w-sm">
               <Progress value={progress} className="w-full" />
-              <p className="mt-1 text-center text-xs text-muted-foreground">
-                Generating… {Math.round(progress)}%
-              </p>
             </div>
           </div>
         )}
