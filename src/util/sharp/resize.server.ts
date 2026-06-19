@@ -1,4 +1,4 @@
-import sharp from 'sharp';
+import type sharp from 'sharp';
 
 export const resizeImage = async (
   inputPng: Buffer | string,
@@ -6,6 +6,8 @@ export const resizeImage = async (
   height: number,
   webp_options?: sharp.WebpOptions
 ) => {
+  const sharpModule = (await import('sharp')).default;
+
   let inputPngBuffer = inputPng;
   if (typeof inputPng === 'string') {
     inputPngBuffer = Buffer.from(inputPng, 'base64');
@@ -13,13 +15,13 @@ export const resizeImage = async (
     inputPngBuffer = inputPng;
   }
 
-  const webpBuffer = await sharp(inputPngBuffer)
+  const webpBuffer = await sharpModule(inputPngBuffer)
     .resize({
       width: width,
       height: height,
       fit: 'cover', // preserves aspect ratio while ensuring exact 256x256
       position: 'centre',
-      kernel: sharp.kernel.lanczos3, // high-quality downscale
+      kernel: sharpModule.kernel.lanczos3, // high-quality downscale
       withoutEnlargement: true,
       fastShrinkOnLoad: true
     })
