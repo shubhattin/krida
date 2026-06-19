@@ -17,12 +17,14 @@
     "migration:push": "drizzle-kit push"
   },
   "dependencies": {
+    "@ai-sdk/openai": "^3.0.71",
     "@aws-sdk/s3-request-presigner": "^3.1068.0",
     "@base-ui/react": "^1.5.0",
     "@dnd-kit/core": "^6.3.1",
     "@dnd-kit/sortable": "^10.0.0",
     "@dnd-kit/utilities": "^3.2.2",
     "@neondatabase/serverless": "^1.1.0",
+    "@openrouter/ai-sdk-provider": "^2.9.1",
     "@tanstack/react-query": "^5.101.0",
     "@tanstack/react-table": "^8.21.3",
     "@trpc/client": "^11.17.0",
@@ -33,6 +35,7 @@
     "@upstash/redis": "^1.38.0",
     "@use-gesture/react": "^10.3.1",
     "@vercel/functions": "^3.7.1",
+    "ai": "^6.0.206",
     "better-auth": "^1.6.18",
     "canvas-confetti": "^1.9.4",
     "class-variance-authority": "^0.7.1",
