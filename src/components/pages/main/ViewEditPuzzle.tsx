@@ -1444,7 +1444,10 @@ const AIImageDialogContent = ({
   const isWorking = phase.state === 'generating' || delete_mut.isPending;
 
   return (
-    <DialogContent className="max-w-lg sm:max-w-xl" showCloseButton={!isWorking}>
+    <DialogContent
+      className="max-h-[90vh] max-w-lg overflow-y-auto sm:max-w-xl"
+      showCloseButton={!isWorking}
+    >
       <DialogHeader>
         <DialogTitle className="text-center text-base font-semibold">
           {phase.state === 'idle'

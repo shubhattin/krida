@@ -13,11 +13,11 @@ import { eq } from 'drizzle-orm';
 // Model & generation constants
 // ---------------------------------------------------------------------------
 
-/** Model used for generating a structured image prompt + metadata */
-const OPENROUTER_IMAGE_PROMPT_MODEL = 'openai/gpt-5.2' as const;
-
-/** OpenRouter image-generation model (GPT-Image-2 via chat-completions route) */
-const OPENROUTER_IMAGE_GENERATION_MODEL = 'openai/gpt-5.4-image-2' as const;
+const OPENROUTER_MODELS = {
+  image_prompt: 'openai/gpt-5.4' as const,
+  file_name: 'openai/gpt-5.4-nano' as const,
+  image_generation: 'openai/gpt-5.4-image-2' as const
+};
 
 const REASONING_EFFORT = 'low' as const;
 
@@ -57,6 +57,7 @@ Your task is to create a detailed, vivid image prompt for a given Sanskrit puzzl
 - Picture-book illustration quality — bold outlines, no photo-realism.
 - NO text, letters, or inscriptions anywhere in the image.
 - NO borders, frames, or decorative margins.
+- Do not mess up the gender of the subject (devi, deva, etc.).
 
 **Composition rules:**
 - LANDSCAPE orientation (wider than tall, 3:2 aspect ratio).
@@ -100,11 +101,6 @@ const prompt_result_schema = z.object({
     .string()
     .describe(
       '2–4 lowercase English words separated by underscores, no extension. E.g. "surya_namaskar_card".'
-    ),
-  description: z
-    .string()
-    .describe(
-      '3–5 English words describing the image subject. Used for search. E.g. "Sun salutation yoga poses".'
     )
 });
 
@@ -114,7 +110,7 @@ const prompt_result_schema = z.object({
 
 async function generatePuzzleCardImage(image_prompt: string): Promise<string> {
   const result = await generateImage({
-    model: openrouter.imageModel(OPENROUTER_IMAGE_GENERATION_MODEL, {
+    model: openrouter.imageModel(OPENROUTER_MODELS.image_generation, {
       reasoning: { effort: REASONING_EFFORT }
     } as any),
     prompt: image_prompt,
@@ -158,8 +154,7 @@ const generate_puzzle_card_image_route = protectedAdminProcedure
         time_ms: z.int(),
         id: z.int(),
         s3_key: z.string(),
-        image_prompt: z.string(),
-        description: z.string()
+        image_prompt: z.string()
       }),
       z.object({
         success: z.literal(false),
@@ -176,16 +171,15 @@ const generate_puzzle_card_image_route = protectedAdminProcedure
     // ------------------------------------------------------------------
     let image_prompt: string;
     let file_name: string;
-    let asset_description: string;
 
     if (existing_image_prompt) {
       // Derive only file_name + description from the supplied prompt
       const response = await generateText({
-        model: openrouter(OPENROUTER_IMAGE_PROMPT_MODEL, {
+        model: openrouter(OPENROUTER_MODELS.file_name, {
           reasoning: { effort: REASONING_EFFORT }
         }),
         output: Output.object({
-          schema: prompt_result_schema.pick({ file_name: true, description: true })
+          schema: prompt_result_schema.pick({ file_name: true })
         }),
         system:
           'Generate a short file_name (2–4 words, underscores, lowercase) and a 3–5 word description for the image prompt provided.',
@@ -193,16 +187,16 @@ const generate_puzzle_card_image_route = protectedAdminProcedure
       });
       image_prompt = existing_image_prompt;
       file_name = response.output.file_name;
-      asset_description = response.output.description;
     } else {
       // const words_list = input.words && input.words.length > 0 ? input.words.join(', ') : 'None';
       const user_prompt = IMAGE_PROMPT_USER.replace('{title}', title).replace(
         '{description}',
         description
       );
+      // cuurently ignoring the word context
       // .replace('{words}', words_list);
       const response = await generateText({
-        model: openrouter(OPENROUTER_IMAGE_PROMPT_MODEL, {
+        model: openrouter(OPENROUTER_MODELS.image_prompt, {
           reasoning: { effort: REASONING_EFFORT }
         }),
         output: Output.object({ schema: prompt_result_schema }),
@@ -211,7 +205,6 @@ const generate_puzzle_card_image_route = protectedAdminProcedure
       });
       image_prompt = response.output.image_prompt;
       file_name = response.output.file_name;
-      asset_description = response.output.description;
     }
 
     // console.log('[ai_image_assets] image_prompt generated:', image_prompt);
@@ -269,7 +262,6 @@ const generate_puzzle_card_image_route = protectedAdminProcedure
       [db_record] = await db
         .insert(image_assets)
         .values({
-          description: asset_description,
           width: IMAGE_STORED_WIDTH,
           height: IMAGE_STORED_HEIGHT,
           s3_key
@@ -286,8 +278,7 @@ const generate_puzzle_card_image_route = protectedAdminProcedure
       time_ms: Date.now() - start_time,
       id: db_record.id,
       s3_key,
-      image_prompt,
-      description: asset_description
+      image_prompt
     };
   });
 
