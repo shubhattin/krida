@@ -261,8 +261,13 @@ export const GameInfo = () => {
                       text
                     });
                   } else {
-                    copy_text_to_clipboard(text);
-                    toast.success('Achievement message copied to clipboard');
+                    try {
+                      await copy_text_to_clipboard(text);
+                      toast.success('Achievement message copied to clipboard');
+                    } catch (err) {
+                      toast.error('Could not copy to clipboard');
+                      console.log('Error copying:', err);
+                    }
                   }
                 } catch (err) {
                   if ((err as Error).name !== 'AbortError') {

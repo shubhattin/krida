@@ -75,7 +75,7 @@ export type WordGameProps = {
     grid_data: string[][];
   };
   location: location_list_type;
-  puzzle_slug?: string;
+  puzzle_slug: string;
   onChangeCompleted?: (completed: boolean) => void;
   next_schedule?: {
     id: number;
@@ -104,7 +104,7 @@ export default function WordGameRoot(
     store.set(total_attempts_atom, 0);
     store.set(word_msgs_atom, props.initial_script_data.word_msgs);
     store.set(original_word_list_atom, props.word_list);
-    store.set(puzzle_slug_atom, props.puzzle_slug ?? '');
+    store.set(puzzle_slug_atom, props.puzzle_slug);
     return store;
   }, []);
 
@@ -366,7 +366,7 @@ function WordGame({
                   align="center"
                   className="z-80 w-fit max-w-[calc(100vw-32px)] overflow-hidden rounded-xl border border-slate-200 bg-linear-to-r from-amber-50 to-orange-50 px-3 py-2 shadow-xl outline-none sm:max-w-md md:max-w-lg dark:border-slate-700 dark:from-teal-950/80 dark:to-green-950/80"
                 >
-                  <div className="text-sm font-semibold wrap-break-word whitespace-normal text-stone-600 dark:text-stone-200">
+                  <div className="text-sm font-semibold break-words whitespace-normal text-stone-600 dark:text-stone-200">
                     {description_transliterated}
                   </div>
                 </PopoverContent>
