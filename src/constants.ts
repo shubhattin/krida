@@ -5,7 +5,10 @@ export const PROJECT_S3_ALIAS = '002_krida' as const;
 export const KRIDAS = ['padavali'] as const;
 
 /** CDN URL for the project */
-const CLOUDFRONT_URL = process.env.NEXT_PUBLIC_AWS_CLOUDFRONT_URL!;
+const CLOUDFRONT_URL = process.env.NEXT_PUBLIC_AWS_CLOUDFRONT_URL;
+if (!CLOUDFRONT_URL) {
+  throw new Error('NEXT_PUBLIC_AWS_CLOUDFRONT_URL must be set to a non-empty string');
+}
 
 /** Get the CDN URL for a given S3 key */
 export const getCDNUrl = (s3_key: string) => {

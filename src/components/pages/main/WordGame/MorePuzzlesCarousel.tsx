@@ -285,6 +285,7 @@ export const MorePuzzlesAccordion = ({ excludeSlug, excludeId, className }: Acco
             <Link
               href="/padavali/puzzles"
               onClick={handleLinkClick}
+              aria-label="Browse all puzzles"
               className="flex size-7 shrink-0 items-center justify-center rounded-full border border-blue-200/70 bg-blue-50/80 text-blue-600 shadow-sm transition-all duration-150 hover:bg-blue-100 hover:text-blue-700 dark:border-blue-700/50 dark:bg-blue-950/40 dark:text-blue-400 dark:hover:bg-blue-900/50"
               title="Browse all puzzles"
             >

@@ -78,7 +78,7 @@ export const ListedPuzzles = ({
   const { script } = useContext(AppContext);
 
   const normal_titles_q = useQuery({
-    queryKey: ['listed_puzzle_title_normal', listed_puzzles_org.map((p) => p.id)],
+    queryKey: ['listed_puzzle_title_normal', listed_puzzles_org.map((p) => `${p.id}:${p.title}`)],
     queryFn: async () =>
       transliterate(
         listed_puzzles_org.map((p) => p.title),

@@ -57,14 +57,18 @@ export default function LandingPage() {
   // Puzzle board auto-animation loop
   useEffect(() => {
     let timer: NodeJS.Timeout;
+    let isMounted = true;
 
     const runCycle = async () => {
+      if (!isMounted) return;
+
       // Step 1: Idle state
       setAnimState('idle');
       setActiveStep(0);
       await new Promise((resolve) => {
         timer = setTimeout(resolve, 1500);
       });
+      if (!isMounted) return;
 
       // Step 2: Selecting letters one-by-one
       setAnimState('selecting');
@@ -73,6 +77,7 @@ export default function LandingPage() {
         await new Promise((resolve) => {
           timer = setTimeout(resolve, 600);
         });
+        if (!isMounted) return;
       }
 
       // Step 3: Success state
@@ -80,6 +85,7 @@ export default function LandingPage() {
       await new Promise((resolve) => {
         timer = setTimeout(resolve, 3000);
       });
+      if (!isMounted) return;
 
       // Restart cycle
       runCycle();
@@ -87,7 +93,10 @@ export default function LandingPage() {
 
     runCycle();
 
-    return () => clearTimeout(timer);
+    return () => {
+      isMounted = false;
+      clearTimeout(timer);
+    };
   }, []);
 
   // Script carousel auto-play
@@ -387,10 +396,10 @@ export default function LandingPage() {
                 <BookOpen className="h-5 w-5" />
               </div>
               <h3 className="mb-2 text-lg font-bold transition-colors group-hover:text-purple-600 dark:group-hover:text-purple-400">
-                Puzzle Archive
+                Listed Puzzles
               </h3>
               <p className="text-sm text-slate-500 dark:text-slate-400">
-                Browse and play from our entire archive of past Sanskrit word puzzles at your own
+                Browse and play from our full collection of listed Sanskrit word puzzles at your own
                 convenience.
               </p>
             </div>

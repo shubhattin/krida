@@ -2,14 +2,14 @@ import { z } from 'zod';
 import mime from 'mime-types';
 import type { PutObjectCommandInput } from '@aws-sdk/client-s3';
 import { DeleteObjectCommand, PutObjectCommand, S3Client, StorageClass } from '@aws-sdk/client-s3';
-import type { KRIDAS, PROJECT_S3_ALIAS } from '~/constants';
+import { KRIDAS, PROJECT_S3_ALIAS } from '~/constants';
 
 const envs_parsed = z
   .object({
-    AWS_REGION: z.string(),
-    AWS_ACCESS_KEY_ID: z.string(),
-    AWS_SECRET_ACCESS_KEY: z.string(),
-    AWS_S3_FILES_BUCKET_NAME: z.string()
+    AWS_REGION: z.string().min(1),
+    AWS_ACCESS_KEY_ID: z.string().min(1),
+    AWS_SECRET_ACCESS_KEY: z.string().min(1),
+    AWS_S3_FILES_BUCKET_NAME: z.string().min(1)
   })
   .safeParse(process.env);
 if (!envs_parsed.success) {
@@ -48,7 +48,15 @@ export const uploadAssetFile = async (key: location_types, fileBuffer: Buffer) =
   return data;
 };
 
+const ASSET_KEY_PATTERN = new RegExp(
+  `^${PROJECT_S3_ALIAS}/(?:${KRIDAS.join('|')})/image_assets/[\\w.-]+\\.webp$`
+);
+
 export const deleteAssetFile = async (key: string) => {
+  if (!ASSET_KEY_PATTERN.test(key)) {
+    throw new Error(`Invalid asset key: ${key}`);
+  }
+
   const data = await s3.send(
     new DeleteObjectCommand({
       Bucket: ASSET_BUCKET_NAME,

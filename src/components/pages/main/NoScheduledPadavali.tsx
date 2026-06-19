@@ -125,6 +125,7 @@ export const NoScheduledPadavali = ({
           await new Promise((resolve) => window.setTimeout(resolve, SCHEDULE_REFRESH_RETRY_MS));
         }
       }
+      refreshStartedRef.current = false;
       setLoadingNewPuzzle(false);
     };
 
@@ -181,7 +182,7 @@ export const NoScheduledPadavali = ({
                 className="mb-5 flex justify-center"
               >
                 <span className="inline-flex items-center gap-1.5 rounded-full border border-slate-200/60 bg-white/60 px-3 py-1 text-xs leading-none font-medium text-slate-500 shadow-sm backdrop-blur-sm dark:border-slate-700/60 dark:bg-slate-800/40 dark:text-slate-400">
-                  <span className="relative size-1.5 shrink-0 -translate-y-[0.5px] rounded-full bg-slate-400 dark:bg-slate-500" />
+                  <span className="relative size-1.5 shrink-0 translate-y-[-0.5px] rounded-full bg-slate-400 dark:bg-slate-500" />
                   <span>No puzzle scheduled right now</span>
                 </span>
               </motion.div>

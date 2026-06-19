@@ -41,6 +41,8 @@ export const GameInfo = () => {
   useEffect(() => {
     if (!completed) return;
 
+    let rafId: number | null = null;
+
     if (isPerfect) {
       // Grand confetti for perfect score / full accuracy (3 seconds stream)
       const duration = 3000;
@@ -63,7 +65,7 @@ export const GameInfo = () => {
           colors
         });
         if (Date.now() < end) {
-          requestAnimationFrame(frame);
+          rafId = requestAnimationFrame(frame);
         }
       };
       frame();
@@ -76,6 +78,10 @@ export const GameInfo = () => {
         colors: ['#4ade80', '#60a5fa', '#a78bfa', '#f472b6', '#fb923c']
       });
     }
+
+    return () => {
+      if (rafId !== null) cancelAnimationFrame(rafId);
+    };
   }, [completed, isPerfect]);
 
   return (

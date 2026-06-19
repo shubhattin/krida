@@ -964,9 +964,11 @@ const ListedSwitch = () => {
 
   return (
     <div>
-      <Label className="inline-flex items-center gap-2 font-medium">
-        <Switch checked={listed} onCheckedChange={setListed} />
-        <span className="text-lg font-bold">Listed</span>
+      <div className="inline-flex items-center gap-2">
+        <Label className="inline-flex items-center gap-2 font-medium">
+          <Switch checked={listed} onCheckedChange={setListed} />
+          <span className="text-lg font-bold">Listed</span>
+        </Label>
         <TooltipProvider>
           <Tooltip>
             <TooltipTrigger
@@ -978,7 +980,7 @@ const ListedSwitch = () => {
             <TooltipContent>When enabled, this puzzle will be publicly visible.</TooltipContent>
           </Tooltip>
         </TooltipProvider>
-      </Label>
+      </div>
     </div>
   );
 };
@@ -1041,18 +1043,18 @@ const SaveButton = ({ word_puzzle }: { word_puzzle: Puzzle }) => {
         toast.success('Puzzle updated successfully');
 
         const { newly_added_index_ids } = data;
+        const updatedAttachments =
+          newly_added_index_ids.length > 0
+            ? attachments.map((val, i) => {
+                const elm = newly_added_index_ids.find(({ index }) => index === i);
+                return elm ? { ...val, id: elm.id } : val;
+              })
+            : attachments;
+
         if (newly_added_index_ids.length > 0) {
           // after update for the newly added attachemnts filling
           // in the null values for thier ids
-          setAttachments((prev) => {
-            return prev.map((val, i) => ({
-              ...val,
-              ...(() => {
-                const elm = newly_added_index_ids.find(({ index }) => index === i);
-                return elm ? { id: elm.id } : {};
-              })()
-            }));
-          });
+          setAttachments(updatedAttachments);
         }
 
         initialRef.current = {
@@ -1061,7 +1063,7 @@ const SaveButton = ({ word_puzzle }: { word_puzzle: Puzzle }) => {
           gridData,
           listed,
           description,
-          attachments
+          attachments: updatedAttachments
         };
       }
     },
