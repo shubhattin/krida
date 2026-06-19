@@ -10,7 +10,7 @@ import { resizeImage } from '~/util/sharp/resize.server';
 import { eq } from 'drizzle-orm';
 import { createOpenAI } from '@ai-sdk/openai';
 
-const CURRENT_PROVIDER: 'openai' | 'openrouter' = 'openai' as const;
+const CURRENT_PROVIDER: 'openai' | 'openrouter' = 'openrouter' as const;
 const IMAGE_MODEL_TYPE: 'google' | 'openai' = 'openai' as const;
 // ---------------------------------------------------------------------------
 // Model & generation constants
@@ -23,8 +23,6 @@ const OPENROUTER_MODELS = {
 };
 
 const OPENAI_MODELS = {
-  image_prompt: 'gpt-5.4' as const,
-  file_name: 'gpt-5.4-nano' as const,
   image_generation: 'gpt-image-2' as const
 } as const;
 
@@ -60,13 +58,13 @@ const openai = createOpenAI({
 });
 
 function getTextModel(type: 'image_prompt' | 'file_name') {
-  if (CURRENT_PROVIDER === 'openai') {
-    return openai(OPENAI_MODELS[type]);
-  } else {
-    return openrouter(OPENROUTER_MODELS[type], {
-      reasoning: { effort: REASONING_EFFORT }
-    });
-  }
+  // if (CURRENT_PROVIDER === 'openai') {
+  //   return openai(OPENAI_MODELS.image_generation);
+  // } else {
+  return openrouter(OPENROUTER_MODELS[type], {
+    reasoning: { effort: REASONING_EFFORT }
+  });
+  // }
 }
 // ---------------------------------------------------------------------------
 // Prompt templates
