@@ -1,5 +1,6 @@
 import { type Metadata } from 'next';
 import Link from 'next/link';
+import { redirect } from 'next/navigation';
 import WordGame from '~/components/pages/main/WordGame/WordGameRoot';
 import { DEFAULT_DATA_SCRIPT } from '~/state/script_list';
 import { get_transliterated_word_game_msgs } from '~/components/pages/main/WordGame/msgs';
@@ -53,10 +54,16 @@ const MainEdit = async ({ params }: Props) => {
 export default MainEdit;
 
 const WordGameSuspense = async ({ slug }: { slug: string }) => {
-  const [word_puzzle, next_schedule] = await Promise.all([
+  const [word_puzzle, current_schedule, next_schedule] = await Promise.all([
     word_puzzle_get_cached_func({ slug }),
+    CACHE.current_schedule.get(NO_CACHE_PARAMS),
     CACHE.next_schedule.get(NO_CACHE_PARAMS)
   ]);
+
+  if (word_puzzle && current_schedule && word_puzzle.id === current_schedule.puzzle.id) {
+    redirect('/padavali');
+  }
+
   if (word_puzzle && !word_puzzle.listed) return <div>This puzzle is not available.</div>;
 
   const script = await getCachedScript();

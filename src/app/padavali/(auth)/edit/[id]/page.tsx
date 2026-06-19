@@ -79,7 +79,7 @@ const MainEdit = async ({ params }: Props) => {
           className="inline-flex items-center gap-2 text-lg font-semibold"
         >
           <FaPlay className="size-4 shrink-0" />
-          Play
+          View Puzzle
         </Link>
       </div>
       <JotaiProvider key={`edit_${word_puzzle.id}`}>
