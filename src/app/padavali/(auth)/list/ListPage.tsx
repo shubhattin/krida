@@ -176,7 +176,7 @@ const ListPage = () => {
                 }
                 onBlur={() => ctx.clearContext()}
                 onKeyDown={(e) => clearTypingContextOnKeyDown(e, ctx)}
-                placeholder="Search by title"
+                placeholder="Search by title or description"
               />
             </InputGroup>
             <div className="flex justify-center">

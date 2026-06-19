@@ -2,7 +2,7 @@ import { z } from 'zod';
 import { protectedAdminProcedure, publicProcedure, t } from '../trpc_init';
 import { db, type transactionType } from '~/db/db';
 import { word_puzzle_attachments, word_puzzles } from '~/db/schema';
-import { and, asc, count, desc, eq, ilike, inArray, sql } from 'drizzle-orm';
+import { and, asc, count, desc, eq, ilike, inArray, or, sql } from 'drizzle-orm';
 import { revalidatePath } from 'next/cache';
 import { padavali_stats_router } from './padavali_stats';
 import {
@@ -23,6 +23,7 @@ import {
   isValidSlug,
   normalizeSlug
 } from '~/util/puzzle/slug';
+import { escapeIlikeToken, tokenizeSearchQuery } from '~/util/puzzle/search';
 
 const puzzle_in_current_schedule = async (id: number) => {
   const current_schedule = await CACHE.current_schedule.get(NO_CACHE_PARAMS);
@@ -327,7 +328,12 @@ export const get_puzzle_list_page = async (input: z.input<typeof get_puzzle_list
     conditions.push(eq(word_puzzles.listed, listed_filter));
   }
   if (trimmedSearch) {
-    conditions.push(ilike(word_puzzles.title, `%${trimmedSearch}%`));
+    for (const token of tokenizeSearchQuery(trimmedSearch)) {
+      const pattern = `%${escapeIlikeToken(token)}%`;
+      conditions.push(
+        or(ilike(word_puzzles.title, pattern), ilike(word_puzzles.description, pattern))!
+      );
+    }
   }
   const whereClause = conditions.length > 0 ? and(...conditions) : undefined;
 

@@ -22,6 +22,7 @@ import {
   NORMAL_TITLE_SCRIPT,
   type DisplayPuzzle
 } from '~/components/pages/main/listed_puzzle_display';
+import { matchesPuzzleWordSearch } from '~/util/puzzle/search';
 import { PuzzlePreviewCard } from '~/components/pages/main/PuzzlePreviewCard';
 import { InputGroup, InputGroupAddon, InputGroupInput } from '~/components/ui/input-group';
 import { Switch } from '~/components/ui/switch';
@@ -137,17 +138,10 @@ const PuzzleListView = ({ puzzles }: { puzzles: DisplayPuzzle[] }) => {
     void typing_ctx.ready;
   }, [typing_ctx]);
 
-  const filteredPuzzles = useMemo(() => {
-    const query = searchQuery.trim().toLowerCase();
-    if (!query) return puzzles;
-
-    return puzzles.filter(
-      (puzzle) =>
-        puzzle.title.toLowerCase().includes(query) ||
-        (puzzle.title_normal?.toLowerCase().includes(query) ?? false) ||
-        (puzzle.description_original?.toLowerCase().includes(query) ?? false)
-    );
-  }, [puzzles, searchQuery]);
+  const filteredPuzzles = useMemo(
+    () => puzzles.filter((puzzle) => matchesPuzzleWordSearch(puzzle, searchQuery)),
+    [puzzles, searchQuery]
+  );
 
   useEffect(() => {
     setPage(1);
