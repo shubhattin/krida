@@ -29,6 +29,7 @@ import {
   NORMAL_TITLE_SCRIPT,
   type DisplayPuzzle
 } from '~/components/pages/main/listed_puzzle_display';
+import { matchesPuzzleWordSearch } from '~/util/puzzle/search';
 
 const EMBED_PAGE_LIMIT = 8;
 
@@ -107,17 +108,10 @@ const BrowseEmbedView = ({ puzzles }: { puzzles: DisplayPuzzle[] }) => {
     void typing_ctx.ready;
   }, [typing_ctx]);
 
-  const filteredPuzzles = useMemo(() => {
-    const query = searchQuery.trim().toLowerCase();
-    if (!query) return puzzles;
-
-    return puzzles.filter(
-      (puzzle) =>
-        puzzle.title.toLowerCase().includes(query) ||
-        (puzzle.title_normal?.toLowerCase().includes(query) ?? false) ||
-        (puzzle.description_original?.toLowerCase().includes(query) ?? false)
-    );
-  }, [puzzles, searchQuery]);
+  const filteredPuzzles = useMemo(
+    () => puzzles.filter((puzzle) => matchesPuzzleWordSearch(puzzle, searchQuery)),
+    [puzzles, searchQuery]
+  );
 
   const visiblePuzzles = filteredPuzzles.slice(0, EMBED_PAGE_LIMIT);
 

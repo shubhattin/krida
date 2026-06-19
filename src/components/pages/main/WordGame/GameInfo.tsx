@@ -16,11 +16,14 @@ import {
   title_current_atom,
   total_attempts_atom,
   word_msgs_atom,
-  original_word_list_atom
+  original_word_list_atom,
+  puzzle_slug_atom
 } from './game_state';
 import { AppContext } from '~/components/AppDataContext';
 import { useContext, useEffect } from 'react';
 import confetti from 'canvas-confetti';
+import { copy_text_to_clipboard } from '~/tools/kry';
+import { toast } from 'sonner';
 
 export const GameInfo = () => {
   const { script } = useContext(AppContext);
@@ -32,6 +35,7 @@ export const GameInfo = () => {
   const [totalAttempts] = useAtom(total_attempts_atom);
   const [wordMsgs] = useAtom(word_msgs_atom);
   const [wordList] = useAtom(original_word_list_atom);
+  const [puzzleSlug] = useAtom(puzzle_slug_atom);
 
   const font_info = FONT_INFO[script!];
   const accuracy = totalAttempts > 0 ? Math.round((wordList.length / totalAttempts) * 100) : 0;
@@ -241,45 +245,71 @@ export const GameInfo = () => {
           </div>
 
           {/* Share button — below stats */}
-          {typeof navigator !== 'undefined' && navigator.share && (
-            <motion.div
-              initial={{ opacity: 0, y: 8 }}
-              animate={{ opacity: 1, y: 0 }}
-              transition={{ delay: 0.7, duration: 0.4 }}
-              className="mt-3 flex justify-center"
-            >
-              <Button
-                onClick={async () => {
-                  if (navigator?.share) {
-                    await navigator
-                      .share({
-                        title: `${title} - पदावली-शब्द-क्रीडनम्`,
-                        text: get_share_msg(title, formatTime(seconds), accuracy)
-                      })
-                      .catch((err) => console.log('Error sharing:', err));
+          <motion.div
+            initial={{ opacity: 0, y: 8 }}
+            animate={{ opacity: 1, y: 0 }}
+            transition={{ delay: 0.7, duration: 0.4 }}
+            className="mt-3 flex justify-center"
+          >
+            <Button
+              onClick={async () => {
+                const text = get_share_msg(title, formatTime(seconds), accuracy, puzzleSlug);
+                try {
+                  if (typeof navigator !== 'undefined' && navigator.share) {
+                    await navigator.share({
+                      title: `${title} - पदावली-शब्द-क्रीडनम्`,
+                      text
+                    });
+                  } else {
+                    try {
+                      await copy_text_to_clipboard(text);
+                      toast.success('Achievement message copied to clipboard');
+                    } catch (err) {
+                      toast.error('Could not copy to clipboard');
+                      console.log('Error copying:', err);
+                    }
                   }
-                }}
-                className="flex transform items-center gap-1.5 rounded-lg bg-linear-to-r from-green-600 to-emerald-600 px-3 py-1.5 text-sm font-semibold text-white shadow-sm transition-all duration-200 hover:scale-105 hover:from-green-700 hover:to-emerald-700 active:scale-95"
-              >
-                <IoShareSocialOutline className="text-sm" />
-                Share Achievement
-              </Button>
-            </motion.div>
-          )}
+                } catch (err) {
+                  if ((err as Error).name !== 'AbortError') {
+                    console.log('Error sharing:', err);
+                  }
+                }
+              }}
+              className="flex transform items-center gap-1.5 rounded-lg bg-linear-to-r from-green-600 to-emerald-600 px-3 py-1.5 text-sm font-semibold text-white shadow-sm transition-all duration-200 hover:scale-105 hover:from-green-700 hover:to-emerald-700 active:scale-95"
+            >
+              <IoShareSocialOutline className="text-sm" />
+              Share Achievement
+            </Button>
+          </motion.div>
         </motion.div>
       )}
     </>
   );
 };
 
-const get_share_msg = (name: string, time_taken: string, accuracy: number) => {
+export const get_puzzle_share_url = (slug: string) => {
+  const base =
+    process.env.NEXT_PUBLIC_SITE_URL ??
+    (typeof window !== 'undefined'
+      ? window.location.origin
+      : 'https://krida.thesanskritchannel.org');
+  return `${base.replace(/\/$/, '')}/padavali/puzzle/${encodeURIComponent(slug)}`;
+};
+
+const get_share_msg = (name: string, time_taken: string, accuracy: number, slug: string) => {
+  const puzzle_url = get_puzzle_share_url(slug);
   const msg = [
-    `✨I just solved a Super Fun, Interactive, Sanskrit Puzzle - 'Padavali'`,
-    `'${name}' in a record of ${time_taken} secs with ${accuracy}% accuracy! 🎯`,
-    `💪🏽I challenge you to beat my record!`,
-    `Play it NOW at https://krida.thesanskritchannel.org/padavali`,
-    `Play in your own script! Supports 8 Indian scripts!`,
-    `नमस्ते - నమస్తే - ನಮಸ್ತೇ - નमस्ते - নমস্তে - ନମସ୍ତେ - നമസ്തേ - நமஸ்தே`
+    `✨ I just solved Padavali — a super fun, interactive Sanskrit word puzzle!`,
+    '',
+    `🎯 "${name}"`,
+    `⏱️ ${time_taken} seconds · ${accuracy}% accuracy`,
+    '',
+    `💪 Think you can beat my score? Give it a try!`,
+    '',
+    `🔗 Play now:`,
+    puzzle_url,
+    '',
+    `📝 Play in your own script — supports Multiple Indian scripts!`
   ].join('\n');
 
   return msg;

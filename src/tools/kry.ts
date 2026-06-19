@@ -54,7 +54,7 @@ export const from_base64 = (str: string, decode = false) => {
 };
 
 export const copy_text_to_clipboard = (text: string) => {
-  navigator.clipboard.writeText(text);
+  return navigator.clipboard.writeText(text);
 };
 
 export function dataURLToBlob(dataURL: string) {

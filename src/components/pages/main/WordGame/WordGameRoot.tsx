@@ -40,7 +40,8 @@ import {
   grid_dimensions_atom,
   word_msgs_atom,
   original_word_list_atom,
-  pending_navigation_url_atom
+  pending_navigation_url_atom,
+  puzzle_slug_atom
 } from './game_state';
 import { Popover, PopoverContent, PopoverTrigger } from '~/components/ui/popover';
 import { FaLink, FaRegStopCircle } from 'react-icons/fa';
@@ -74,7 +75,7 @@ export type WordGameProps = {
     grid_data: string[][];
   };
   location: location_list_type;
-  puzzle_slug?: string;
+  puzzle_slug: string;
   onChangeCompleted?: (completed: boolean) => void;
   next_schedule?: {
     id: number;
@@ -103,6 +104,7 @@ export default function WordGameRoot(
     store.set(total_attempts_atom, 0);
     store.set(word_msgs_atom, props.initial_script_data.word_msgs);
     store.set(original_word_list_atom, props.word_list);
+    store.set(puzzle_slug_atom, props.puzzle_slug);
     return store;
   }, []);
 
