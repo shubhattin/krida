@@ -1206,7 +1206,7 @@ const SaveButton = ({ word_puzzle }: { word_puzzle: Puzzle }) => {
 // ---------------------------------------------------------------------------
 
 const IMAGE_ASPECT = '768 / 512'; // 3:2
-const IMAGE_GENERATION_TIMEOUT_MS = 180_000; // Time in milliseconds for progress animation
+const IMAGE_GENERATION_TIMEOUT_MS = 35_000; // Time in milliseconds for progress animation
 
 const PuzzleImageSection = ({ word_puzzle }: { word_puzzle: Puzzle }) => {
   const [image_id, setImageId] = useAtom(image_id_atom);

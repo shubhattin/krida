@@ -10,7 +10,7 @@ import { resizeImage } from '~/util/sharp/resize.server';
 import { eq } from 'drizzle-orm';
 import { createOpenAI } from '@ai-sdk/openai';
 
-const CURRENT_PROVIDER: 'openai' | 'openrouter' = 'openrouter' as const;
+const CURRENT_IMAGE_MODEL_PROVIDER: 'openai' | 'openrouter' = 'openrouter' as const;
 const IMAGE_MODEL_TYPE: 'google' | 'openai' = 'openai' as const;
 // ---------------------------------------------------------------------------
 // Model & generation constants
@@ -136,7 +136,7 @@ async function generatePuzzleCardImage(image_prompt: string): Promise<string> {
   const image_model =
     IMAGE_MODEL_TYPE === 'google'
       ? openrouter.imageModel(GOOGLE_MODELS.image_generation)
-      : CURRENT_PROVIDER === 'openai'
+      : CURRENT_IMAGE_MODEL_PROVIDER === 'openai'
         ? openai.image(OPENAI_MODELS.image_generation)
         : openrouter.imageModel(OPENROUTER_MODELS.image_generation, {
             reasoning: { effort: REASONING_EFFORT }
