@@ -160,12 +160,12 @@ const AddSchedule = (props: Props) => {
   }, [debouncedSearchTitle]);
 
   const puzzle_list_q = useQuery({
-    queryKey: ['puzzle_list_archived', page, debouncedSearchTitle],
+    queryKey: ['puzzle_list_unlisted', page, debouncedSearchTitle],
     queryFn: async () => {
       return client.puzzle.get_puzzle_list_page.query({
         page,
         size: PUZZLE_FETCH_LIMIT,
-        archived_filter: false,
+        listed_filter: false,
         search_title: debouncedSearchTitle !== '' ? debouncedSearchTitle : undefined,
         sort_by: 'created_at'
       });

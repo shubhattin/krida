@@ -1,6 +1,7 @@
 'use client';
 
-import { useRef, useEffect, useMemo, useContext, useState, lazy, Suspense } from 'react';
+import { useRef, useEffect, useMemo, useContext, useState } from 'react';
+import { motion } from 'framer-motion';
 import { transliterate } from 'lipilekhika';
 import { DEFAULT_DATA_SCRIPT, type ScriptType } from '~/state/script_list';
 import { FONT_INFO } from '~/state/script_font_data';
@@ -14,9 +15,19 @@ import { ScriptSelector } from '~/components/pages/main/ScriptSelector';
 import { cn } from '~/lib/utils';
 import Icon from '~/tools/Icon';
 import { LanguageIcon } from '~/components/icons';
-import { ArchiveIcon, ArrowRightIcon, Calendar, InfoIcon } from 'lucide-react';
+import { Calendar, InfoIcon } from 'lucide-react';
 import Link from 'next/link';
-import { motion } from 'framer-motion';
+import { useRouter } from 'next/navigation';
+import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle
+} from '~/components/ui/alert-dialog';
 import {
   completed_atom,
   grid_data_current_atom,
@@ -28,22 +39,25 @@ import {
   found_words_atom,
   grid_dimensions_atom,
   word_msgs_atom,
-  original_word_list_atom
+  original_word_list_atom,
+  pending_navigation_url_atom
 } from './game_state';
 import { Popover, PopoverContent, PopoverTrigger } from '~/components/ui/popover';
 import { FaLink, FaRegStopCircle } from 'react-icons/fa';
 import { AppContext } from '~/components/AppDataContext';
-import dayjs from 'dayjs';
-import relativeTime from 'dayjs/plugin/relativeTime';
 import type { location_list_type } from '~/db/types';
 import { FiYoutube } from 'react-icons/fi';
 import GameMetricsCollector from './GameMetricsCollector';
+import { useQueryClient } from '@tanstack/react-query';
+import {
+  MorePuzzlesAccordion,
+  CompletionMorePuzzlesCarousel,
+  getCarouselPuzzlesQueryFn
+} from '~/components/pages/main/WordGame/MorePuzzlesCarousel';
 import { attachment_schema, DEFAULT_YOUTUBE_EMBED } from '~/db/db_shared_vals';
 import { z } from 'zod';
 import { RiPlayList2Fill } from 'react-icons/ri';
 import { IoLogoYoutube } from 'react-icons/io';
-
-dayjs.extend(relativeTime);
 
 export type WordGameProps = {
   grid_data: string[][];
@@ -60,6 +74,7 @@ export type WordGameProps = {
     grid_data: string[][];
   };
   location: location_list_type;
+  puzzle_slug?: string;
   onChangeCompleted?: (completed: boolean) => void;
   next_schedule?: {
     id: number;
@@ -159,8 +174,6 @@ const CompactStopButton = ({
   );
 };
 
-const AppAuthContextMenu = lazy(() => import('~/components/app-bar/AppAuthContextMenu'));
-
 function WordGame({
   children,
   id: puzzle_id,
@@ -168,8 +181,8 @@ function WordGame({
   grid_data: org_grid_data,
   description,
   onChangeCompleted,
-  next_schedule,
   location,
+  puzzle_slug,
   attachments
 }: WordGameProps & { id: number }) {
   const { script, setScript } = useContext(AppContext);
@@ -178,6 +191,16 @@ function WordGame({
   const [, setWordMsgs] = useAtom(word_msgs_atom);
   const [started] = useAtom(started_atom);
   const [completed] = useAtom(completed_atom);
+  const [pendingUrl, setPendingUrl] = useAtom(pending_navigation_url_atom);
+  const router = useRouter();
+  const queryClient = useQueryClient();
+
+  useEffect(() => {
+    queryClient.prefetchQuery({
+      queryKey: ['listed_puzzles_carousel', script, puzzle_slug, puzzle_id],
+      queryFn: getCarouselPuzzlesQueryFn(script, puzzle_slug, puzzle_id)
+    });
+  }, []);
 
   const font_info = FONT_INFO[script as ScriptType];
 
@@ -249,11 +272,8 @@ function WordGame({
     };
   }, [started, completed]);
 
-  const HintJSX = (
-    <div className="inline-flex items-center gap-2 rounded-xl bg-linear-to-r from-yellow-600 to-orange-400 px-5 py-1 text-white shadow-lg">
-      <span className="uppercasen text-sm font-semibold tracking-wide select-none">Hint</span>
-    </div>
-  );
+  const showAccordion = !completed && (location === 'main_page' || location === 'view_page');
+  const showCompletionCarousel = completed;
 
   return (
     <div
@@ -267,33 +287,66 @@ function WordGame({
         overscrollBehavior: started && !completed ? 'contain' : 'auto'
       }}
     >
-      {children}
-      {/* Archived Games Section - Appears after game completion */}
-      {completed && location !== 'archive_page' && (
-        <ArchivedGamesPrompt next_schedule={next_schedule} />
-      )}
-      <div
-        className={cn('flex items-center justify-center pt-2.5 sm:pt-4 lg:pt-5', 'mb-2.5 sm:mb-4')}
+      <AlertDialog
+        open={!!pendingUrl}
+        onOpenChange={(open) => {
+          if (!open) setPendingUrl(null);
+        }}
       >
-        <label className="flex items-center space-x-2">
-          <Icon className="size-7" src={LanguageIcon} />
-          <ScriptSelector script={script} onScriptChange={setScript} />
-          {font_info.experimental && (
-            <span className="inline-flex items-center rounded-full bg-orange-100 px-1 py-0.5 text-xs font-medium text-orange-800 dark:bg-orange-900/20 dark:text-orange-400">
-              Beta
-            </span>
-          )}
-        </label>
-      </div>
-      <div className="container mx-auto my-2.5 max-w-7xl px-2 sm:my-3.5 sm:px-4 md:my-4 md:px-6 lg:my-5">
-        {/* Header Section */}
-        <div className="mb-1 space-y-1 text-center sm:mb-2 sm:space-y-1.5 md:mb-3">
-          <Suspense fallback={HintJSX}>
-            <AppAuthContextMenu id={puzzle_id}>{HintJSX}</AppAuthContextMenu>
-          </Suspense>
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle>Are you sure you want to leave?</AlertDialogTitle>
+            <AlertDialogDescription>
+              Your current word game progress will be lost.
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel onClick={() => setPendingUrl(null)}>Cancel</AlertDialogCancel>
+            <AlertDialogAction
+              onClick={() => {
+                if (pendingUrl) {
+                  router.push(pendingUrl);
+                  setPendingUrl(null);
+                }
+              }}
+            >
+              Leave Game
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
+
+      {children}
+
+      {/* Completion carousel — shown ABOVE the game when finished */}
+      {showCompletionCarousel && (
+        <motion.div
+          initial={{ opacity: 0, y: -16 }}
+          animate={{ opacity: 1, y: 0 }}
+          transition={{ duration: 0.5, ease: 'easeOut' }}
+          className="pt-3 sm:pt-4"
+        >
+          <CompletionMorePuzzlesCarousel excludeSlug={puzzle_slug} excludeId={puzzle_id} />
+        </motion.div>
+      )}
+
+      <div className="container mx-auto max-w-7xl px-2 pt-3 sm:px-4 sm:pt-4 md:px-6 md:pt-5">
+        {/* Title + inline script selector (desktop: right side, mobile: below title) */}
+        <div className="relative mb-2 text-center sm:mb-3">
+          {/* Desktop script selector — absolutely positioned right of the title */}
+          <div className="absolute top-1/2 right-0 hidden -translate-y-1/2 items-center gap-1.5 rounded-full border border-slate-200/60 bg-white/75 px-3 py-1.5 shadow-md backdrop-blur-sm lg:flex dark:border-slate-700/60 dark:bg-slate-900/75">
+            <Icon className="size-5" src={LanguageIcon} />
+            <ScriptSelector script={script} onScriptChange={setScript} />
+            {font_info.experimental && (
+              <span className="inline-flex items-center rounded-full bg-orange-100 px-1.5 py-0.5 text-xs font-medium text-orange-800 dark:bg-orange-900/20 dark:text-orange-400">
+                Beta
+              </span>
+            )}
+          </div>
+
+          {/* Puzzle title */}
           <div
             className={cn(
-              'mt-1 sm:mt-1.5 md:mt-2',
               'bg-linear-to-r from-slate-800 to-slate-600 bg-clip-text py-1 text-2xl font-bold sm:text-3xl md:text-4xl dark:from-slate-100 dark:to-slate-300',
               font_info.className
             )}
@@ -309,22 +362,42 @@ function WordGame({
                 <PopoverContent
                   side="top"
                   align="center"
-                  className={cn(
-                    'z-80 w-fit overflow-hidden rounded-xl border-slate-200 bg-linear-to-r from-amber-50 to-orange-50 px-3 py-2 shadow-xl outline-none dark:border-slate-700 dark:from-teal-950/80 dark:to-green-950/80',
-                    'w-72 sm:w-xl md:w-2xl lg:w-3xl'
-                  )}
+                  className="z-80 w-fit max-w-[calc(100vw-32px)] overflow-hidden rounded-xl border border-slate-200 bg-linear-to-r from-amber-50 to-orange-50 px-3 py-2 shadow-xl outline-none sm:max-w-md md:max-w-lg dark:border-slate-700 dark:from-teal-950/80 dark:to-green-950/80"
                 >
-                  <div className="text-sm text-stone-600 dark:text-stone-200">
+                  <div className="text-sm font-semibold break-words whitespace-normal text-stone-600 dark:text-stone-200">
                     {description_transliterated}
                   </div>
                 </PopoverContent>
               </Popover>
             )}
           </div>
+
+          {/* Script selector — mobile only, centered below title */}
+          <div className="mt-2 flex items-center justify-center gap-1.5 lg:hidden">
+            <Icon className="size-6" src={LanguageIcon} />
+            <ScriptSelector script={script} onScriptChange={setScript} />
+            {font_info.experimental && (
+              <span className="inline-flex items-center rounded-full bg-orange-100 px-1.5 py-0.5 text-xs font-medium text-orange-800 dark:bg-orange-900/20 dark:text-orange-400">
+                Beta
+              </span>
+            )}
+          </div>
         </div>
+
+        {/* More Puzzles accordion */}
+        {showAccordion && (
+          <div className="mb-3 w-full sm:mb-4">
+            <MorePuzzlesAccordion excludeSlug={puzzle_slug} excludeId={puzzle_id} />
+          </div>
+        )}
+
+        {/* Game controller + info — on completion, use centered layout with more breathing room */}
         {started && (
           <motion.div
-            className="flex flex-col items-center justify-center"
+            className={cn(
+              'flex flex-col items-center justify-center',
+              completed && 'mx-auto mb-4 w-full max-w-2xl sm:mb-5'
+            )}
             initial={{ opacity: 0, y: 40 }}
             animate={{ opacity: 1, y: 0 }}
             exit={{ opacity: 0, y: 40 }}
@@ -334,8 +407,10 @@ function WordGame({
               className={cn(
                 'flex items-center justify-center',
                 started &&
-                  'space-x-3.5 rounded-2xl border border-slate-200 bg-white px-5 py-3 shadow-xl sm:space-x-5 sm:px-6 md:space-x-5 md:px-8 dark:border-slate-700 dark:bg-slate-800',
-                completed && 'flex-col space-y-3 sm:flex-row sm:space-y-0'
+                  !completed &&
+                  'w-auto space-x-3.5 rounded-2xl border border-slate-200 bg-white px-5 py-3 shadow-xl sm:space-x-5 sm:px-6 md:space-x-5 md:px-8 dark:border-slate-700 dark:bg-slate-800',
+                // On completion: side-by-side restart + stats on desktop
+                completed && 'w-full flex-col gap-3 sm:flex-row sm:items-stretch sm:gap-4'
               )}
               initial={{ opacity: 0, y: 32 }}
               animate={{ opacity: 1, y: 0 }}
@@ -406,8 +481,6 @@ function WordGame({
 
           {/* Game Grid - Center */}
           <div className="order-1 flex flex-col items-center justify-center lg:order-2 lg:col-span-6">
-            {/* Stop Button for <lg screens */}
-
             <div
               className={cn(
                 'w-full max-w-lg'
@@ -433,90 +506,11 @@ function WordGame({
           </div>
         </div>
       </div>
+
       <GameMetricsCollector puzzle_id={puzzle_id} location={location} />
     </div>
   );
 }
-
-export const ArchivedGamesPrompt = ({
-  next_schedule
-}: {
-  next_schedule: WordGameProps['next_schedule'];
-}) => {
-  return (
-    <motion.div
-      initial={{ opacity: 0, y: 20 }}
-      animate={{ opacity: 1, y: 0 }}
-      transition={{ duration: 0.5, ease: 'easeOut' }}
-      className="mb-3 flex justify-center px-4 sm:mb-4"
-    >
-      <div className="w-full max-w-lg">
-        <motion.div
-          initial={{ scale: 0.95 }}
-          animate={{ scale: 1 }}
-          transition={{ duration: 0.3, delay: 0.2 }}
-          className="rounded-xl border border-slate-200 bg-white p-3 shadow-lg sm:rounded-2xl sm:p-4 sm:shadow-xl md:p-6 dark:border-slate-700 dark:bg-slate-800"
-        >
-          <motion.div
-            initial={{ opacity: 0 }}
-            animate={{ opacity: 1 }}
-            transition={{ duration: 0.4, delay: 0.4 }}
-            className="mb-3 text-center sm:mb-4"
-          >
-            {next_schedule && (
-              <div className="flex items-center justify-center text-base font-semibold text-slate-600 dark:text-slate-400">
-                Next puzzle in
-                <span className="ml-1 bg-linear-to-r from-emerald-600 to-green-500 bg-clip-text font-bold text-transparent dark:from-emerald-400 dark:to-green-300">
-                  {dayjs(next_schedule.start_time)
-                    .fromNow(true)
-                    .replace(
-                      /\b(day|days|week|weeks|month|months|year|years)\b/gi,
-                      (word) => word.charAt(0).toUpperCase() + word.slice(1)
-                    )}
-                </span>
-                <NextPuzzleTimePopup
-                  next_puzzle_start_time={next_schedule.start_time}
-                  className="ml-2 text-blue-500 dark:text-sky-200"
-                />
-              </div>
-            )}
-            <div className="text-xs text-slate-600 sm:text-sm dark:text-slate-400">
-              Want to play more puzzles while you wait for the next one?
-            </div>
-          </motion.div>
-
-          <motion.div
-            initial={{ opacity: 0, y: 10 }}
-            animate={{ opacity: 1, y: 0 }}
-            transition={{ duration: 0.4, delay: 0.6 }}
-          >
-            <Link
-              href="/padavali/archived"
-              className="group flex items-center gap-2 rounded-lg border border-amber-200/50 bg-linear-to-r from-amber-50 to-orange-50 p-3 text-amber-800 shadow-sm transition-all duration-200 hover:scale-[1.02] hover:from-amber-100 hover:to-orange-100 hover:shadow-md sm:gap-3 sm:rounded-xl sm:p-4 dark:border-amber-800/30 dark:from-amber-950/50 dark:to-orange-950/50 dark:text-amber-200 dark:hover:from-amber-900/60 dark:hover:to-orange-900/60"
-            >
-              <motion.div
-                whileHover={{ rotate: 5 }}
-                transition={{ duration: 0.2 }}
-                className="rounded-md bg-linear-to-r from-amber-500 to-orange-500 p-1.5 shadow-sm sm:rounded-lg sm:p-2"
-              >
-                <ArchiveIcon className="h-3 w-3 text-white sm:h-4 sm:w-4 md:h-5 md:w-5" />
-              </motion.div>
-              <div className="flex-1 text-left">
-                <div className="text-sm font-semibold text-amber-900 sm:text-base dark:text-amber-100">
-                  Play Archived Puzzles
-                </div>
-                <div className="text-xs text-amber-700 sm:text-sm dark:text-amber-300">
-                  Explore our collection of past puzzles
-                </div>
-              </div>
-              <ArrowRightIcon className="h-3 w-3 text-amber-600 transition-transform group-hover:translate-x-1 sm:h-4 sm:w-4 dark:text-amber-400" />
-            </Link>
-          </motion.div>
-        </motion.div>
-      </div>
-    </motion.div>
-  );
-};
 
 export const NextPuzzleTimePopup = ({
   next_puzzle_start_time,

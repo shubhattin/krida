@@ -1,9 +1,59 @@
 {
-  "id": "7c68a18f-a9d4-4b6b-984d-4ba2bd4978a8",
+  "id": "e1c4bbd8-769a-4601-afdf-8a0992f6856c",
   "prevId": "8ba5c5d1-7c71-447a-9386-f8c3c5397b3a",
   "version": "7",
   "dialect": "postgresql",
   "tables": {
+    "public.image_assets": {
+      "name": "image_assets",
+      "schema": "",
+      "columns": {
+        "id": {
+          "name": "id",
+          "type": "serial",
+          "primaryKey": true,
+          "notNull": true
+        },
+        "description": {
+          "name": "description",
+          "type": "varchar(150)",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "width": {
+          "name": "width",
+          "type": "smallint",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "height": {
+          "name": "height",
+          "type": "smallint",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "s3_key": {
+          "name": "s3_key",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "created_at": {
+          "name": "created_at",
+          "type": "timestamp with time zone",
+          "primaryKey": false,
+          "notNull": true,
+          "default": "now()"
+        }
+      },
+      "indexes": {},
+      "foreignKeys": {},
+      "compositePrimaryKeys": {},
+      "uniqueConstraints": {},
+      "policies": {},
+      "checkConstraints": {},
+      "isRLSEnabled": false
+    },
     "public.puzzle_game_schedules": {
       "name": "puzzle_game_schedules",
       "schema": "",
@@ -512,16 +562,22 @@
           "primaryKey": false,
           "notNull": true
         },
-        "archived": {
-          "name": "archived",
+        "listed": {
+          "name": "listed",
           "type": "boolean",
           "primaryKey": false,
           "notNull": true,
           "default": false
         },
-        "last_archived_at": {
-          "name": "last_archived_at",
+        "last_listed_at": {
+          "name": "last_listed_at",
           "type": "timestamp with time zone",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "image_id": {
+          "name": "image_id",
+          "type": "integer",
           "primaryKey": false,
           "notNull": false
         }
@@ -542,11 +598,11 @@
           "method": "btree",
           "with": {}
         },
-        "word_puzzles_archived_created_at_idx": {
-          "name": "word_puzzles_archived_created_at_idx",
+        "word_puzzles_listed_created_at_idx": {
+          "name": "word_puzzles_listed_created_at_idx",
           "columns": [
             {
-              "expression": "archived",
+              "expression": "listed",
               "isExpression": false,
               "asc": true,
               "nulls": "last"
@@ -563,17 +619,17 @@
           "method": "btree",
           "with": {}
         },
-        "word_puzzles_archived_last_archived_at_idx": {
-          "name": "word_puzzles_archived_last_archived_at_idx",
+        "word_puzzles_listed_last_listed_at_idx": {
+          "name": "word_puzzles_listed_last_listed_at_idx",
           "columns": [
             {
-              "expression": "archived",
+              "expression": "listed",
               "isExpression": false,
               "asc": true,
               "nulls": "last"
             },
             {
-              "expression": "last_archived_at",
+              "expression": "last_listed_at",
               "isExpression": false,
               "asc": true,
               "nulls": "last"
@@ -585,17 +641,23 @@
           "with": {}
         }
       },
-      "foreignKeys": {},
-      "compositePrimaryKeys": {},
-      "uniqueConstraints": {
-        "word_puzzles_slug_unique": {
-          "name": "word_puzzles_slug_unique",
-          "nullsNotDistinct": false,
-          "columns": [
-            "slug"
-          ]
+      "foreignKeys": {
+        "word_puzzles_image_id_image_assets_id_fk": {
+          "name": "word_puzzles_image_id_image_assets_id_fk",
+          "tableFrom": "word_puzzles",
+          "tableTo": "image_assets",
+          "columnsFrom": [
+            "image_id"
+          ],
+          "columnsTo": [
+            "id"
+          ],
+          "onDelete": "set null",
+          "onUpdate": "no action"
         }
       },
+      "compositePrimaryKeys": {},
+      "uniqueConstraints": {},
       "policies": {},
       "checkConstraints": {},
       "isRLSEnabled": false

@@ -1,6 +1,6 @@
 import { db } from '~/db/db';
 import { REDIS_CACHE_KEYS } from '~/db/redis';
-import { puzzle_schema } from '~/db/db_shared_vals';
+import { image_schema, puzzle_schema } from '~/db/db_shared_vals';
 import { z } from 'zod';
 import { sql } from 'drizzle-orm';
 import {
@@ -34,14 +34,16 @@ const next_schedule_schema = z.object({
 
 export type NextScheduleType = z.infer<typeof next_schedule_schema> | undefined;
 
-const archived_puzzle_schema = z.object({
+const listed_puzzle_schema = z.object({
   id: z.number().int(),
   slug: z.string(),
   title: z.string(),
-  description: z.string().nullable()
+  description: z.string().nullable(),
+  /** Image of the puzzle, used for the puzzle card thumbnail */
+  image: image_schema.nullable()
 });
 
-export type ArchivedPuzzlesType = z.infer<typeof archived_puzzle_schema>[];
+export type ListedPuzzlesType = z.infer<typeof listed_puzzle_schema>[];
 
 const schedule_sentinel_from_cache = <T>(raw: unknown): T | null => {
   if (raw === 'undefined') return undefined as T;
@@ -73,6 +75,14 @@ const load_current_schedule = createCachedLoader<NoCacheParams, CurrentScheduleT
                 order_index: true
               },
               orderBy: (tbl, { asc }) => asc(tbl.order_index)
+            },
+            image: {
+              columns: {
+                id: true,
+                s3_key: true,
+                width: true,
+                height: true
+              }
             }
           }
         }
@@ -88,7 +98,15 @@ const load_current_schedule = createCachedLoader<NoCacheParams, CurrentScheduleT
     if (parsed === undefined) return undefined;
     return current_schedule_schema.parse(parsed);
   },
-  getSetOptions: (data) => (data ? { exat: Math.floor(data.end_time.getTime() / 1000) } : undefined)
+  getSetOptions: (data) =>
+    data
+      ? {
+          exat: Math.floor(
+            data.end_time.getTime() / 1000 - 2
+            // cache expires 2 seconds before
+          )
+        }
+      : undefined
 });
 
 const load_next_schedule = createCachedLoader<NoCacheParams, NextScheduleType>({
@@ -124,9 +142,9 @@ const load_next_schedule = createCachedLoader<NoCacheParams, NextScheduleType>({
     data ? { exat: Math.floor(data.start_time.getTime() / 1000) } : undefined
 });
 
-const load_archived_puzzle_list = createCachedLoader<NoCacheParams, ArchivedPuzzlesType>({
-  getKey: () => REDIS_CACHE_KEYS.archived_puzzle_list(),
-  schema: archived_puzzle_schema.array(),
+const load_listed_puzzle_list = createCachedLoader<NoCacheParams, ListedPuzzlesType>({
+  getKey: () => REDIS_CACHE_KEYS.listed_puzzle_list(),
+  schema: listed_puzzle_schema.array(),
   fetch: async () => {
     const data = await db.query.word_puzzles.findMany({
       columns: {
@@ -135,13 +153,23 @@ const load_archived_puzzle_list = createCachedLoader<NoCacheParams, ArchivedPuzz
         title: true,
         description: true
       },
-      where: ({ archived }, { eq }) => eq(archived, true),
-      orderBy: ({ created_at, last_archived_at }, { desc }) => [
-        desc(sql`COALESCE(${last_archived_at}, '1970-01-01'::timestamp with time zone)`),
+      with: {
+        image: {
+          columns: {
+            id: true,
+            s3_key: true,
+            width: true,
+            height: true
+          }
+        }
+      },
+      where: ({ listed }, { eq }) => eq(listed, true),
+      orderBy: ({ created_at, last_listed_at }, { desc }) => [
+        desc(sql`COALESCE(${last_listed_at}, '1970-01-01'::timestamp with time zone)`),
         desc(created_at)
       ]
     });
-    return data satisfies ArchivedPuzzlesType;
+    return data satisfies ListedPuzzlesType;
   }
 });
 
@@ -164,6 +192,14 @@ const load_word_puzzle = createCachedLoader<WordPuzzleParams, PuzzleType | undef
             order_index: true
           },
           orderBy: (tbl, { asc }) => asc(tbl.order_index)
+        },
+        image: {
+          columns: {
+            id: true,
+            s3_key: true,
+            width: true,
+            height: true
+          }
         }
       }
     });
@@ -183,13 +219,13 @@ export const invalidate_and_refresh_cached = async <TParams, TData>(
 export type CacheLoaderRegistry = {
   current_schedule: CachedLoader<NoCacheParams, CurrentScheduleType>;
   next_schedule: CachedLoader<NoCacheParams, NextScheduleType>;
-  archived_puzzle_list: CachedLoader<NoCacheParams, ArchivedPuzzlesType>;
+  listed_puzzle_list: CachedLoader<NoCacheParams, ListedPuzzlesType>;
   word_puzzle: CachedLoader<WordPuzzleParams, PuzzleType | undefined>;
 };
 
 export const CACHE = {
   current_schedule: load_current_schedule,
   next_schedule: load_next_schedule,
-  archived_puzzle_list: load_archived_puzzle_list,
+  listed_puzzle_list: load_listed_puzzle_list,
   word_puzzle: load_word_puzzle
 } satisfies CacheLoaderRegistry;

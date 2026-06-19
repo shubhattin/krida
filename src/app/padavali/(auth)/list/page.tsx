@@ -1,12 +1,11 @@
 import { Metadata } from 'next';
 import Link from 'next/link';
 import { redirect } from 'next/navigation';
-import { IoMdArrowRoundBack } from 'react-icons/io';
 import AddPuzzleDialog from './AddPuzzleDialog';
 import { Button } from '~/components/ui/button';
 import dayjs from 'dayjs';
 import relativeTime from 'dayjs/plugin/relativeTime';
-import { CalendarIcon } from 'lucide-react';
+import { ArrowLeftIcon, CalendarIcon } from 'lucide-react';
 import { getCachedSession } from '~/lib/cache_server_route_data';
 import ListPage from './ListPage';
 
@@ -19,8 +18,11 @@ const List = async () => {
   return (
     <div className="container mx-auto p-4">
       <div className="my-2 mb-4 px-2">
-        <Link href="/padavali" className="inline-flex items-center gap-1.5 text-lg font-semibold">
-          <IoMdArrowRoundBack className="size-5 shrink-0" />
+        <Link
+          href="/padavali"
+          className="inline-flex items-center gap-2 rounded-full border border-slate-200/60 bg-white/70 px-4 py-1.5 text-sm font-medium text-slate-700 no-underline shadow-sm backdrop-blur-sm transition-all duration-200 hover:bg-white hover:shadow-md dark:border-slate-700/60 dark:bg-slate-800/70 dark:text-slate-200 dark:hover:bg-slate-800"
+        >
+          <ArrowLeftIcon className="size-4 shrink-0" />
           Main Page
         </Link>
       </div>

@@ -1,7 +1,7 @@
 import './globals.css';
 import './app.scss';
 import { ThemeProvider } from '@/components/theme-provider';
-import { robotoSans, notoSansDevanagari } from '@/components/fonts';
+import { inter, robotoSans, notoSansDevanagari } from '@/components/fonts';
 import { cn } from '@/lib/utils';
 import { Toaster } from '@/components/ui/sonner';
 import { Metadata } from 'next';
@@ -16,9 +16,10 @@ export default async function RootLayout({
     <html lang="en" suppressHydrationWarning className="dark" style={{ colorScheme: 'dark' }}>
       <body
         className={cn(
-          notoSansDevanagari.className,
-          robotoSans.className,
-          'antialiased',
+          inter.variable,
+          robotoSans.variable,
+          notoSansDevanagari.variable,
+          'font-sans antialiased',
           'overflow-y-scroll sm:px-2 lg:px-3 xl:px-4 2xl:px-4'
         )}
       >

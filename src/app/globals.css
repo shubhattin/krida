@@ -146,7 +146,7 @@
   --color-sidebar-border: var(--sidebar-border);
   --color-sidebar-ring: var(--sidebar-ring);
 
-  --font-sans: var(--font-sans);
+  --font-sans: Inter, sans-serif;
   --font-mono: var(--font-mono);
   --font-serif: var(--font-serif);
 

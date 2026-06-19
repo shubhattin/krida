@@ -67,14 +67,14 @@ export const GameContoller = ({ timerRef }: Props) => {
             transition={{ duration: 0.3, ease: 'easeInOut' }}
             className={cn(
               'group relative overflow-hidden bg-gradient-to-r from-blue-500 to-indigo-500 hover:from-blue-600 hover:to-indigo-600',
-              'rounded-xl px-3 py-2 font-bold text-white shadow-lg hover:shadow-xl sm:rounded-2xl sm:px-8 sm:py-4',
+              'rounded-xl px-4 py-2.5 font-bold text-white shadow-lg hover:shadow-xl sm:rounded-2xl sm:px-6 sm:py-3',
               'transform transition-all duration-200 hover:scale-105 active:scale-95',
-              'flex w-full items-center justify-center space-x-2 sm:space-x-3',
+              'flex h-full min-h-[4rem] w-full items-center justify-center gap-2 sm:min-h-[5rem]',
               font_info.className
             )}
           >
-            <MdReplay className="text-2xl sm:text-3xl" />
-            <span className="text-xl sm:text-2xl">{wordMsgs.replay}</span>
+            <MdReplay className="text-xl sm:text-2xl" />
+            <span className="text-lg sm:text-xl">{wordMsgs.replay}</span>
           </motion.button>
         </div>
       )}

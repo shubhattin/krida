@@ -1,3 +1,4 @@
+import Link from 'next/link';
 import { MenuButton } from '~/components/app-bar/AppBarMenu';
 import { robotoSans } from '../fonts';
 import SupportOptions from '~/components/app-bar/SupportOptions';
@@ -7,9 +8,9 @@ export default function AppBar({ title }: { title: string }) {
     <header className="w-full border-b border-slate-200/60 bg-linear-to-r from-white via-slate-50 to-blue-50 shadow-lg backdrop-blur-sm dark:border-slate-700/60 dark:from-slate-900 dark:via-slate-800 dark:to-slate-900">
       <div className="mx-auto flex h-16 max-w-4xl items-center justify-between px-4 lg:px-6">
         {/* Logo/Title Section */}
-        <div className="flex items-center space-x-3">
+        <Link href="/padavali" className="group flex items-center space-x-3 no-underline">
           <div
-            className="flex h-12 w-12 items-center justify-center shadow-lg"
+            className="flex h-12 w-12 items-center justify-center shadow-lg transition-transform duration-200 group-hover:scale-105"
             style={{
               backgroundImage: "url('/img/icon_128_no_pad.png')",
               backgroundSize: 'cover',
@@ -18,7 +19,7 @@ export default function AppBar({ title }: { title: string }) {
           ></div>
           <div>
             <h1
-              className={`bg-linear-to-r from-slate-800 to-slate-600 bg-clip-text text-2xl font-bold text-transparent dark:from-slate-100 dark:to-slate-300 ${robotoSans.className}`}
+              className={`bg-linear-to-r from-slate-800 to-slate-600 bg-clip-text text-2xl font-bold text-transparent transition-all duration-200 group-hover:from-blue-600 group-hover:to-indigo-500 dark:from-slate-100 dark:to-slate-300 dark:group-hover:from-blue-400 dark:group-hover:to-indigo-300 ${robotoSans.className}`}
             >
               {title}
             </h1>
@@ -26,7 +27,7 @@ export default function AppBar({ title }: { title: string }) {
               Sanskrit Word Puzzle
             </p>
           </div>
-        </div>
+        </Link>
 
         {/* Actions Section */}
         <div className="flex items-center space-x-2">

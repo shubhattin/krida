@@ -30,18 +30,26 @@ export const attachment_schema = z.object({
   url: z.url(),
   order_index: z.number().int()
 });
+export const image_schema = z.object({
+  id: z.number().int(),
+  s3_key: z.string(),
+  width: z.number().int(),
+  height: z.number().int()
+});
+
 export const puzzle_schema = z.object({
   id: z.number().int(),
   slug: z.string(),
   title: z.string(),
   created_at: z.coerce.date(),
   updated_at: z.coerce.date().nullable(),
-  word_list: z.string().min(2).array(),
+  word_list: z.string().array(),
   grid_data: z.string().array().array(),
   grid_dimensions: z.tuple([z.number().int(), z.number().int()]),
-  archived: z.boolean(),
+  listed: z.boolean(),
   description: z.string().nullable(),
-  attachments: z.array(attachment_schema)
+  attachments: z.array(attachment_schema),
+  image: image_schema.nullable()
 });
 
 export const puzzle_update_input_schema = z.object({
@@ -50,7 +58,7 @@ export const puzzle_update_input_schema = z.object({
   puzzle_data: puzzle_schema
     .pick({
       title: true,
-      archived: true,
+      listed: true,
       word_list: true,
       grid_data: true,
       description: true

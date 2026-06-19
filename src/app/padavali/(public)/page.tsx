@@ -2,20 +2,40 @@ import { Metadata } from 'next';
 import { DEFAULT_DATA_SCRIPT } from '~/state/script_list';
 import { get_transliterated_word_game_msgs } from '~/components/pages/main/WordGame/msgs';
 import { transliterate_wasm } from 'lipilekhika';
-import { ClockIcon, CalendarIcon, ArchiveIcon, ArrowRightIcon } from 'lucide-react';
-import { IoExtensionPuzzleSharp } from 'react-icons/io5';
-import Link from 'next/link';
 import MainPagePadavali from './MainPagePadavali';
 import { getCachedScript } from '~/lib/cache_server_route_data';
-import dayjs from 'dayjs';
-import relativeTime from 'dayjs/plugin/relativeTime';
 import { CACHE, NO_CACHE_PARAMS } from '~/util/cache.server/cache_loaders';
-import { NextPuzzleTimePopup } from '~/components/pages/main/WordGame/WordGameRoot';
 import { getMetadata } from '~/components/tags/getPageMetaTags';
-
-dayjs.extend(relativeTime);
+import { NoScheduledPadavali } from '~/components/pages/main/NoScheduledPadavali';
+import {
+  mapListedPuzzlesForDisplay,
+  NORMAL_TITLE_SCRIPT
+} from '~/components/pages/main/listed_puzzle_display';
 
 export const dynamic = 'force-dynamic';
+
+async function buildListedPuzzlesInit(script: Awaited<ReturnType<typeof getCachedScript>>) {
+  const listed_puzzles = await CACHE.listed_puzzle_list.get(NO_CACHE_PARAMS);
+
+  const puzzle_texts = listed_puzzles.flatMap((p) =>
+    p.description ? [p.title, p.description] : [p.title]
+  );
+  const [transliterated_texts, normal_titles] = await Promise.all([
+    transliterate_wasm(puzzle_texts, DEFAULT_DATA_SCRIPT, script),
+    transliterate_wasm(
+      listed_puzzles.map((p) => p.title),
+      DEFAULT_DATA_SCRIPT,
+      NORMAL_TITLE_SCRIPT
+    )
+  ]);
+  const listed_puzzles_init_transliterated = mapListedPuzzlesForDisplay(
+    listed_puzzles,
+    transliterated_texts,
+    normal_titles
+  );
+
+  return { listed_puzzles, listed_puzzles_init_transliterated };
+}
 
 export default async function Home() {
   const [current_schedule, next_schedule] = await Promise.all([
@@ -24,94 +44,16 @@ export default async function Home() {
   ]);
 
   if (!current_schedule) {
+    const script = await getCachedScript();
+    const { listed_puzzles, listed_puzzles_init_transliterated } =
+      await buildListedPuzzlesInit(script);
+
     return (
-      <div className="w-full bg-linear-to-br from-slate-50 via-blue-50 to-indigo-50 pb-24 sm:pb-28 dark:from-slate-900 dark:via-slate-800 dark:to-slate-900">
-        <div className="flex justify-center px-4 pt-28">
-          <div className="mx-auto max-w-md text-center">
-            <div className="mb-8 flex justify-center">
-              <div className="relative">
-                <div className="absolute inset-0 animate-pulse rounded-full bg-linear-to-r from-blue-400 to-purple-400 opacity-20 blur-xl"></div>
-                <div className="relative rounded-full bg-linear-to-r from-blue-500 to-purple-600 p-6 shadow-2xl">
-                  <ClockIcon className="size-10 text-white sm:size-10.5 md:size-11" />
-                </div>
-              </div>
-            </div>
-
-            <h1 className="mb-4 bg-linear-to-r from-slate-700 to-blue-600 bg-clip-text text-3xl font-bold text-transparent dark:from-slate-200 dark:to-blue-400">
-              No Puzzle Scheduled
-            </h1>
-
-            <div className="mb-6 space-y-3">
-              <p className="text-lg text-slate-600 dark:text-slate-300">
-                There's no puzzle scheduled right now
-              </p>
-              <div className="flex items-center justify-center gap-2 text-sm text-slate-500 dark:text-slate-400">
-                <CalendarIcon className="h-4 w-4" />
-                <span>Check back later for new puzzles</span>
-              </div>
-            </div>
-
-            <div className="space-y-4">
-              <div className="inline-flex items-center gap-2 rounded-xl bg-linear-to-r from-emerald-100 to-blue-100 px-6 py-3 text-emerald-700 shadow-lg dark:from-emerald-900/30 dark:to-blue-900/30 dark:text-emerald-300">
-                <IoExtensionPuzzleSharp className="-mt-1 size-5" />
-                {next_schedule ? (
-                  <span className="flex items-center font-semibold">
-                    Next puzzle in
-                    <span className="ml-1 bg-linear-to-r from-emerald-600 to-green-500 bg-clip-text font-bold text-transparent dark:from-emerald-400 dark:to-green-300">
-                      {dayjs(next_schedule.start_time)
-                        .fromNow(true)
-                        .replace(
-                          /\b(day|days|week|weeks|month|months|year|years)\b/gi,
-                          (word) => word.charAt(0).toUpperCase() + word.slice(1)
-                        )}
-                    </span>
-                    <NextPuzzleTimePopup
-                      next_puzzle_start_time={next_schedule.start_time}
-                      className="ml-2"
-                    />
-                    {/* <span className="ml-1.5 text-xs font-bold brightness-95">
-                      (
-                      {next_schedule.start_time.toLocaleDateString('en-GB', {
-                        day: 'numeric',
-                        month: 'long'
-                      })}
-                      ,{' '}
-                      {next_schedule.start_time.toLocaleTimeString('en-US', {
-                        hour: 'numeric',
-                        minute: '2-digit',
-                        hour12: true
-                      })}
-                      )
-                    </span> */}
-                  </span>
-                ) : (
-                  <span className="font-medium">New puzzles coming soon!</span>
-                )}
-              </div>
-
-              <div className="flex items-center justify-center">
-                <div className="h-px w-16 bg-linear-to-r from-transparent via-slate-300 to-transparent dark:via-slate-600"></div>
-                <span className="mx-4 text-sm text-slate-400 dark:text-slate-500">or</span>
-                <div className="h-px w-16 bg-linear-to-r from-transparent via-slate-300 to-transparent dark:via-slate-600"></div>
-              </div>
-
-              <Link
-                href="/padavali/archived"
-                className="group inline-flex items-center gap-3 rounded-xl bg-linear-to-r from-amber-50 to-orange-50 px-6 py-4 text-amber-700 shadow-lg transition-all duration-200 hover:scale-105 hover:shadow-xl dark:from-amber-900/20 dark:to-orange-900/20 dark:text-amber-300"
-              >
-                <div className="rounded-lg bg-linear-to-r from-amber-500 to-orange-500 p-2 shadow-md">
-                  <ArchiveIcon className="h-5 w-5 text-white" />
-                </div>
-                <div className="text-left">
-                  <div className="font-semibold">Play Archived Games</div>
-                  <div className="text-sm opacity-80">Browse past puzzles while you wait</div>
-                </div>
-                <ArrowRightIcon className="h-4 w-4 transition-transform group-hover:translate-x-1" />
-              </Link>
-            </div>
-          </div>
-        </div>
-      </div>
+      <NoScheduledPadavali
+        next_schedule={next_schedule}
+        listed_puzzles={listed_puzzles}
+        listed_puzzles_init_transliterated={listed_puzzles_init_transliterated}
+      />
     );
   }
 

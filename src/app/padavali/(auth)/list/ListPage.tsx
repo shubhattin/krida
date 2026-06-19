@@ -1,7 +1,7 @@
 'use client';
 
 import { Card, CardDescription, CardHeader, CardTitle } from '~/components/ui/card';
-import { CalendarIcon, SearchIcon, ArchiveIcon, FilterIcon, ArrowUpDownIcon } from 'lucide-react';
+import { CalendarIcon, SearchIcon, List, FilterIcon, ArrowUpDownIcon } from 'lucide-react';
 import Link from 'next/link';
 import dayjs from 'dayjs';
 import relativeTime from 'dayjs/plugin/relativeTime';
@@ -41,10 +41,10 @@ dayjs.extend(relativeTime);
 
 const PUZZLE_FETCH_LIMIT = 12;
 
-const ARCHIVED_FILTER_ITEMS = [
+const LISTED_FILTER_ITEMS = [
   { label: 'All', value: 'all' as const },
-  { label: 'Archived', value: 'archived' as const },
-  { label: 'Unarchived', value: 'unarchived' as const }
+  { label: 'Listed', value: 'listed' as const },
+  { label: 'Unlisted', value: 'unlisted' as const }
 ];
 
 const SORT_BY_ITEMS = [
@@ -84,9 +84,7 @@ const ListPage = () => {
   const [page, setPage] = useState(1);
   const [search_title, setSearchTitle] = useState('');
   const [lipi_lekhika_typing, setLipiLekhikaTyping] = useState(true);
-  const [archived_filter_type, setArchivedFilterType] = useState<'all' | 'archived' | 'unarchived'>(
-    'all'
-  );
+  const [listed_filter_type, setListedFilterType] = useState<'all' | 'listed' | 'unlisted'>('all');
   const [sort_by, setSortBy] = useState<'created_at' | 'updated_at'>('created_at');
   const [order_by, setOrderBy] = useState<'asc' | 'desc'>('desc');
 
@@ -111,19 +109,19 @@ const ListPage = () => {
 
   useEffect(() => {
     setPage(1);
-  }, [debouncedSearchTitle, archived_filter_type, sort_by, order_by]);
+  }, [debouncedSearchTitle, listed_filter_type, sort_by, order_by]);
 
   const puzzle_list_q = useQuery({
-    queryKey: ['puzzle_list', page, debouncedSearchTitle, archived_filter_type, sort_by, order_by],
+    queryKey: ['puzzle_list', page, debouncedSearchTitle, listed_filter_type, sort_by, order_by],
     queryFn: async () => {
       return client.puzzle.get_puzzle_list_page.query({
         page,
         size: PUZZLE_FETCH_LIMIT,
-        archived_filter: {
+        listed_filter: {
           all: undefined,
-          archived: true,
-          unarchived: false
-        }[archived_filter_type],
+          listed: true,
+          unlisted: false
+        }[listed_filter_type],
         sort_by,
         search_title: debouncedSearchTitle !== '' ? debouncedSearchTitle : undefined,
         order_by
@@ -157,113 +155,119 @@ const ListPage = () => {
 
   return (
     <div className="space-y-4">
-      <div className="flex flex-col items-center space-y-3">
-        <div className="flex items-center space-x-4">
-          <InputGroup className="w-48 sm:w-52 lg:w-72">
-            <InputGroupAddon>
-              <SearchIcon />
-            </InputGroupAddon>
-            <InputGroupInput
-              className="text-sm"
-              value={search_title}
-              onChange={(e) => setSearchTitle(e.currentTarget.value)}
-              onBeforeInput={(e) =>
-                handleTypingBeforeInputEvent(
-                  ctx,
-                  e,
-                  (newValue) => setSearchTitle(newValue),
-                  lipi_lekhika_typing
-                )
-              }
-              onBlur={() => ctx.clearContext()}
-              onKeyDown={(e) => clearTypingContextOnKeyDown(e, ctx)}
-              placeholder="Search by title"
-            />
-          </InputGroup>
-          <div className="flex justify-center">
-            <Label className="inline-flex items-center justify-center gap-2 font-medium">
-              <Switch
-                checked={lipi_lekhika_typing}
-                onCheckedChange={setLipiLekhikaTyping}
-                className="-mt-1"
+      <div className="rounded-xl border border-slate-200/60 bg-white/50 p-3 shadow-sm backdrop-blur-sm sm:p-4 dark:border-slate-700/40 dark:bg-slate-800/30">
+        <div className="flex flex-col items-center space-y-3">
+          <div className="flex items-center gap-3">
+            <InputGroup className="w-full sm:w-64 lg:w-80">
+              <InputGroupAddon>
+                <SearchIcon />
+              </InputGroupAddon>
+              <InputGroupInput
+                className="text-sm"
+                value={search_title}
+                onChange={(e) => setSearchTitle(e.currentTarget.value)}
+                onBeforeInput={(e) =>
+                  handleTypingBeforeInputEvent(
+                    ctx,
+                    e,
+                    (newValue) => setSearchTitle(newValue),
+                    lipi_lekhika_typing
+                  )
+                }
+                onBlur={() => ctx.clearContext()}
+                onKeyDown={(e) => clearTypingContextOnKeyDown(e, ctx)}
+                placeholder="Search by title"
               />
-              <Icon src={LanguageIcon} className="-mt-1 size-6.5" />
-            </Label>
+            </InputGroup>
+            <div className="flex justify-center">
+              <Label className="inline-flex items-center justify-center gap-2 font-medium">
+                <Switch
+                  checked={lipi_lekhika_typing}
+                  onCheckedChange={setLipiLekhikaTyping}
+                  className="-mt-1"
+                />
+                <Icon src={LanguageIcon} className="-mt-1 size-6.5" />
+              </Label>
+            </div>
           </div>
-        </div>
-        <div className="flex flex-wrap items-center justify-center gap-2 sm:gap-4">
-          <div className="flex items-center gap-1.5 sm:gap-2">
-            <Label className="px-1 text-xs font-semibold sm:text-sm" title="Archived filter">
-              <ArchiveIcon className="size-3.5 sm:size-4" />
-            </Label>
-            <Select
-              items={ARCHIVED_FILTER_ITEMS}
-              value={archived_filter_type}
-              onValueChange={(value) => {
-                if (value) setArchivedFilterType(value);
-              }}
-            >
-              <SelectTrigger
-                size="sm"
-                className="w-24 text-xs sm:text-sm"
-                aria-label="Archived filter"
+          <div className="flex flex-wrap items-center justify-center gap-2 sm:gap-4">
+            <div className="flex items-center gap-1.5 sm:gap-2">
+              <Label className="px-1 text-xs font-semibold sm:text-sm" title="Listed filter">
+                <List className="size-3.5 sm:size-4" />
+              </Label>
+              <Select
+                items={LISTED_FILTER_ITEMS}
+                value={listed_filter_type}
+                onValueChange={(value) => {
+                  if (value) setListedFilterType(value);
+                }}
               >
-                <SelectValue />
-              </SelectTrigger>
-              <SelectContent alignItemWithTrigger={false}>
-                {ARCHIVED_FILTER_ITEMS.map((item) => (
-                  <SelectItem key={item.value} value={item.value}>
-                    {item.label}
-                  </SelectItem>
-                ))}
-              </SelectContent>
-            </Select>
-          </div>
-          <div className="flex items-center gap-1.5 sm:gap-2">
-            <Label className="px-1 text-xs font-semibold sm:text-sm" title="Sort field">
-              <FilterIcon className="size-3.5 sm:size-4" />
-            </Label>
-            <Select
-              items={SORT_BY_ITEMS}
-              value={sort_by}
-              onValueChange={(value) => {
-                if (value) setSortBy(value);
-              }}
-            >
-              <SelectTrigger size="sm" className="w-28 text-xs sm:text-sm" aria-label="Sort field">
-                <SelectValue />
-              </SelectTrigger>
-              <SelectContent alignItemWithTrigger={false}>
-                {SORT_BY_ITEMS.map((item) => (
-                  <SelectItem key={item.value} value={item.value}>
-                    {item.label}
-                  </SelectItem>
-                ))}
-              </SelectContent>
-            </Select>
-          </div>
-          <div className="flex items-center gap-1.5 sm:gap-2">
-            <Label className="px-1 text-xs font-semibold sm:text-sm" title="Order">
-              <ArrowUpDownIcon className="size-3.5 sm:size-4" />
-            </Label>
-            <Select
-              items={ORDER_BY_ITEMS}
-              value={order_by}
-              onValueChange={(value) => {
-                if (value) setOrderBy(value);
-              }}
-            >
-              <SelectTrigger size="sm" className="w-28 text-xs sm:text-sm" aria-label="Order">
-                <SelectValue />
-              </SelectTrigger>
-              <SelectContent alignItemWithTrigger={false}>
-                {ORDER_BY_ITEMS.map((item) => (
-                  <SelectItem key={item.value} value={item.value}>
-                    {item.label}
-                  </SelectItem>
-                ))}
-              </SelectContent>
-            </Select>
+                <SelectTrigger
+                  size="sm"
+                  className="w-24 text-xs sm:text-sm"
+                  aria-label="Listed filter"
+                >
+                  <SelectValue />
+                </SelectTrigger>
+                <SelectContent alignItemWithTrigger={false}>
+                  {LISTED_FILTER_ITEMS.map((item) => (
+                    <SelectItem key={item.value} value={item.value}>
+                      {item.label}
+                    </SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+            </div>
+            <div className="flex items-center gap-1.5 sm:gap-2">
+              <Label className="px-1 text-xs font-semibold sm:text-sm" title="Sort field">
+                <FilterIcon className="size-3.5 sm:size-4" />
+              </Label>
+              <Select
+                items={SORT_BY_ITEMS}
+                value={sort_by}
+                onValueChange={(value) => {
+                  if (value) setSortBy(value);
+                }}
+              >
+                <SelectTrigger
+                  size="sm"
+                  className="w-28 text-xs sm:text-sm"
+                  aria-label="Sort field"
+                >
+                  <SelectValue />
+                </SelectTrigger>
+                <SelectContent alignItemWithTrigger={false}>
+                  {SORT_BY_ITEMS.map((item) => (
+                    <SelectItem key={item.value} value={item.value}>
+                      {item.label}
+                    </SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+            </div>
+            <div className="flex items-center gap-1.5 sm:gap-2">
+              <Label className="px-1 text-xs font-semibold sm:text-sm" title="Order">
+                <ArrowUpDownIcon className="size-3.5 sm:size-4" />
+              </Label>
+              <Select
+                items={ORDER_BY_ITEMS}
+                value={order_by}
+                onValueChange={(value) => {
+                  if (value) setOrderBy(value);
+                }}
+              >
+                <SelectTrigger size="sm" className="w-28 text-xs sm:text-sm" aria-label="Order">
+                  <SelectValue />
+                </SelectTrigger>
+                <SelectContent alignItemWithTrigger={false}>
+                  {ORDER_BY_ITEMS.map((item) => (
+                    <SelectItem key={item.value} value={item.value}>
+                      {item.label}
+                    </SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+            </div>
           </div>
         </div>
       </div>
@@ -274,7 +278,7 @@ const ListPage = () => {
             puzzle_list.map((item) => (
               <div key={item.id}>
                 <Link href={`/padavali/edit/${item.id}`}>
-                  <Card className="p-2 transition duration-200 hover:bg-gray-100 hover:dark:bg-gray-800">
+                  <Card className="group border-l-3 border-l-blue-500/40 p-2 shadow-sm transition-all duration-200 hover:translate-x-0.5 hover:border-l-blue-500 hover:bg-slate-50 hover:shadow-md dark:border-l-blue-400/40 dark:hover:border-l-blue-400 dark:hover:bg-slate-800/60">
                     <CardHeader>
                       <CardTitle>{item.title}</CardTitle>
                       <CardDescription className="flex flex-wrap items-center gap-x-2 gap-y-1 sm:flex-row sm:items-center">
@@ -300,9 +304,11 @@ const ListPage = () => {
       {puzzle_list.length === 0 && !isInitialLoading && (
         <div className="flex items-center justify-center">
           {!puzzle_list_q.isFetching ? (
-            <p className="text-lg font-semibold text-gray-500">No puzzles found</p>
+            <p className="text-lg font-semibold text-slate-500 dark:text-slate-400">
+              No puzzles found
+            </p>
           ) : (
-            <p className="font-semibold text-gray-500">Loading...</p>
+            <p className="font-semibold text-slate-500 dark:text-slate-400">Loading...</p>
           )}
         </div>
       )}

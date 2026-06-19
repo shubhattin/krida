@@ -1,4 +1,5 @@
 import {
+  Inter,
   Noto_Sans_Devanagari,
   Roboto,
   Noto_Sans_Telugu,
@@ -17,6 +18,12 @@ import {
 } from 'next/font/google';
 import localFont from 'next/font/local';
 
+export const inter = Inter({
+  variable: '--font-sans',
+  subsets: ['latin', 'latin-ext'],
+  weight: ['400', '500', '600', '700', '800']
+});
+
 export const robotoSans = Roboto({
   variable: '--font-roboto-sans',
   subsets: ['latin', 'latin-ext'],
@@ -25,62 +32,62 @@ export const robotoSans = Roboto({
 
 export const notoSansDevanagari = Noto_Sans_Devanagari({
   variable: '--font-noto-sans-devanagari',
-  subsets: ['devanagari'],
-  weight: ['400', '500', '700']
+  subsets: ['devanagari', 'latin'],
+  weight: ['400', '500', '600', '700']
 });
 
 export const notoSansTelugu = Noto_Sans_Telugu({
   variable: '--font-noto-sans-telugu',
-  subsets: ['telugu'],
-  weight: ['400', '500', '700']
+  subsets: ['telugu', 'latin'],
+  weight: ['400', '500', '600', '700']
 });
 
 export const notoSansKannada = Noto_Sans_Kannada({
   variable: '--font-noto-sans-kannada',
-  subsets: ['kannada'],
-  weight: ['400', '500', '700']
+  subsets: ['kannada', 'latin'],
+  weight: ['400', '500', '600', '700']
 });
 
 export const notoSansGujarati = Noto_Sans_Gujarati({
   variable: '--font-noto-sans-gujarati',
-  subsets: ['gujarati'],
-  weight: ['400', '500', '700']
+  subsets: ['gujarati', 'latin'],
+  weight: ['400', '500', '600', '700']
 });
 
 export const notoSansBengali = Noto_Sans_Bengali({
   variable: '--font-noto-sans-bengali',
-  subsets: ['bengali'],
-  weight: ['400', '500', '700']
+  subsets: ['bengali', 'latin'],
+  weight: ['400', '500', '600', '700']
 });
 
 export const notoSansOdia = Noto_Sans_Oriya({
   variable: '--font-noto-sans-odia',
-  subsets: ['oriya'],
-  weight: ['400', '500', '700']
+  subsets: ['oriya', 'latin'],
+  weight: ['400', '500', '600', '700']
 });
 
 export const notoSansTamil = Noto_Sans_Tamil({
   variable: '--font-noto-sans-tamil',
-  subsets: ['tamil'],
-  weight: ['400', '500', '700']
+  subsets: ['tamil', 'latin'],
+  weight: ['400', '500', '600', '700']
 });
 
 export const notoSansMalayalam = Noto_Sans_Malayalam({
   variable: '--font-noto-sans-malayalam',
-  subsets: ['malayalam'],
-  weight: ['400', '500', '700']
+  subsets: ['malayalam', 'latin'],
+  weight: ['400', '500', '600', '700']
 });
 
 export const notoSansGurumukhi = Noto_Sans_Gurmukhi({
   variable: '--font-noto-sans-gurumukhi',
-  subsets: ['gurmukhi'],
-  weight: ['400', '500', '700']
+  subsets: ['gurmukhi', 'latin'],
+  weight: ['400', '500', '600', '700']
 });
 
 export const notoSansSinhala = Noto_Sans_Sinhala({
   variable: '--font-noto-sans-sinhala',
-  subsets: ['sinhala'],
-  weight: ['400', '500', '700']
+  subsets: ['sinhala', 'latin'],
+  weight: ['400', '500', '600', '700']
 });
 
 // Ancient Scripts
