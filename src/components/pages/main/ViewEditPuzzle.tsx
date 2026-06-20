@@ -1976,7 +1976,7 @@ const AIImageDialogContent = ({
       </Tabs>
 
       <Button
-        className="mt-1 w-full gap-2"
+        className="mt-1 gap-2"
         disabled={!selected_image || isWorking}
         onClick={() => selected_image && onImageAdded(selected_image)}
       >
