@@ -1,4 +1,4 @@
-import { createOpenRouter } from '@openrouter/ai-sdk-provider';
+import { createOpenRouter, OpenRouterImageSettings } from '@openrouter/ai-sdk-provider';
 import { z } from 'zod';
 import { t, protectedAdminProcedure } from '../trpc_init';
 import { generateText, generateImage, Output } from 'ai';
@@ -8,9 +8,13 @@ import { PROJECT_S3_ALIAS } from '~/constants';
 import { uploadAssetFile, deleteAssetFile } from '~/util/s3/upload_file.server';
 import { resizeImage } from '~/util/sharp/resize.server';
 import { eq } from 'drizzle-orm';
-import { createOpenAI } from '@ai-sdk/openai';
+import {
+  createOpenAI,
+  type OpenAIImageModelGenerationOptions,
+  type OpenAIChatLanguageModelOptions
+} from '@ai-sdk/openai';
 
-const CURRENT_IMAGE_MODEL_PROVIDER: 'openai' | 'openrouter' = 'openrouter' as const;
+const CURRENT_IMAGE_MODEL_PROVIDER: 'openai' | 'openrouter' = 'openai' as const;
 const IMAGE_MODEL_TYPE: 'google' | 'openai' = 'openai' as const;
 // ---------------------------------------------------------------------------
 // Model & generation constants
@@ -58,13 +62,9 @@ const openai = createOpenAI({
 });
 
 function getTextModel(type: 'image_prompt' | 'file_name') {
-  // if (CURRENT_PROVIDER === 'openai') {
-  //   return openai(OPENAI_MODELS.image_generation);
-  // } else {
   return openrouter(OPENROUTER_MODELS[type], {
     reasoning: { effort: REASONING_EFFORT }
   });
-  // }
 }
 // ---------------------------------------------------------------------------
 // Prompt templates
@@ -113,10 +113,6 @@ Description: "{description}"
 
 // Words: {words}
 
-// ---------------------------------------------------------------------------
-// Zod schema for structured prompt output
-// ---------------------------------------------------------------------------
-
 const prompt_result_schema = z.object({
   image_prompt: z
     .string()
@@ -127,10 +123,6 @@ const prompt_result_schema = z.object({
       '2–4 lowercase English words separated by underscores, no extension. E.g. "surya_namaskar_card".'
     )
 });
-
-// ---------------------------------------------------------------------------
-// Helper: generate image via OpenRouter imageModel + AI SDK generateImage
-// ---------------------------------------------------------------------------
 
 async function generatePuzzleCardImage(image_prompt: string): Promise<string> {
   const image_model =
@@ -149,21 +141,19 @@ async function generatePuzzleCardImage(image_prompt: string): Promise<string> {
     providerOptions: {
       openai: {
         quality: 'low'
-      },
+      } satisfies OpenAIImageModelGenerationOptions,
       openrouter: {
-        quality: 'low',
+        extraBody: {
+          quality: 'low'
+        },
         reasoning: { effort: REASONING_EFFORT }
-      }
+      } satisfies OpenRouterImageSettings
     }
   });
 
   // GeneratedFile.base64 gives the raw base64 string (no data-URL prefix)
   return result.image.base64;
 }
-
-// ---------------------------------------------------------------------------
-// Route: generate_puzzle_card_image
-// ---------------------------------------------------------------------------
 
 const generate_puzzle_card_image_route = protectedAdminProcedure
   .input(
@@ -215,8 +205,8 @@ const generate_puzzle_card_image_route = protectedAdminProcedure
         prompt: existing_image_prompt,
         providerOptions: {
           openai: {
-            reasoningEffort: REASONING_EFFORT
-          }
+            reasoningEffort: 'low'
+          } satisfies OpenAIChatLanguageModelOptions
         }
       });
       image_prompt = existing_image_prompt;
@@ -237,7 +227,7 @@ const generate_puzzle_card_image_route = protectedAdminProcedure
         providerOptions: {
           openai: {
             reasoningEffort: REASONING_EFFORT
-          }
+          } satisfies OpenAIChatLanguageModelOptions
         }
       });
       image_prompt = response.output.image_prompt;
