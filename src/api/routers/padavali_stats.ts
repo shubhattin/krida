@@ -73,15 +73,33 @@ const update_games_started_route = publicProcedure
     return { success: true, session_id: session_id };
   });
 
+const get_stats_data_input_schema = z
+  .object({
+    puzzle_ids: z.array(z.number().int()).optional(),
+    all_time: z.boolean(),
+    start_date: z.date().optional(),
+    end_date: z.date().optional()
+  })
+  .superRefine((data, ctx) => {
+    if (!data.all_time && (!data.start_date || !data.end_date)) {
+      ctx.addIssue({
+        code: 'custom',
+        message: 'start_date and end_date are required when all_time is false',
+        path: ['start_date']
+      });
+    }
+    if (!data.all_time && data.start_date && data.end_date && data.start_date > data.end_date) {
+      ctx.addIssue({
+        code: 'custom',
+        message: 'start_date must be before end_date',
+        path: ['end_date']
+      });
+    }
+  });
+
 const get_stats_data_route = protectedAdminProcedure
-  .input(
-    z.object({
-      puzzle_id: z.number().int(),
-      start_date: z.date(),
-      end_date: z.date()
-    })
-  )
-  .query(async ({ input: { puzzle_id, start_date, end_date } }) => {
+  .input(get_stats_data_input_schema)
+  .query(async ({ input: { puzzle_ids, all_time, start_date, end_date } }) => {
     const sessions = await db.query.puzzle_gameplay_sessions.findMany({
       columns: {
         id: true,
@@ -89,13 +107,19 @@ const get_stats_data_route = protectedAdminProcedure
         location: true,
         script: true
       },
-      where: (tbl, { and, eq, gte, lte }) =>
-        and(
-          eq(tbl.puzzle_id, puzzle_id),
-          gte(tbl.created_at, start_date),
-          lte(tbl.created_at, end_date)
-        )
+      where: (tbl, { and: andFn, gte: gteFn, lte: lteFn, inArray: inArrayFn }) => {
+        const conditions = [];
+        if (puzzle_ids && puzzle_ids.length > 0) {
+          conditions.push(inArrayFn(tbl.puzzle_id, puzzle_ids));
+        }
+        if (!all_time && start_date && end_date) {
+          conditions.push(gteFn(tbl.created_at, start_date));
+          conditions.push(lteFn(tbl.created_at, end_date));
+        }
+        return conditions.length > 0 ? andFn(...conditions) : undefined;
+      }
     });
+
     const stats = await db.query.puzzle_gameplay_stats.findMany({
       columns: {
         id: true,
@@ -106,19 +130,28 @@ const get_stats_data_route = protectedAdminProcedure
         correct_attempts: true,
         total_attempts: true
       },
-      where: (tbl, { and, eq, gte, lte }) =>
-        and(
-          eq(tbl.puzzle_id, puzzle_id),
-          gte(tbl.created_at, start_date),
-          lte(tbl.created_at, end_date)
-        )
+      where: (tbl, { and: andFn, gte: gteFn, lte: lteFn, inArray: inArrayFn }) => {
+        const conditions = [];
+        if (puzzle_ids && puzzle_ids.length > 0) {
+          conditions.push(inArrayFn(tbl.puzzle_id, puzzle_ids));
+        }
+        if (!all_time && start_date && end_date) {
+          conditions.push(gteFn(tbl.created_at, start_date));
+          conditions.push(lteFn(tbl.created_at, end_date));
+        }
+        return conditions.length > 0 ? andFn(...conditions) : undefined;
+      }
     });
-    const total_words = (await db.query.word_puzzles.findFirst({
-      columns: {
-        word_list: true
-      },
-      where: (tbl, { eq }) => eq(tbl.id, puzzle_id)
-    }))!.word_list.length;
+
+    let total_words = 0;
+    if (puzzle_ids && puzzle_ids.length > 0) {
+      const puzzles = await db.query.word_puzzles.findMany({
+        columns: { word_list: true },
+        where: (tbl, { inArray: inArrayFn }) => inArrayFn(tbl.id, puzzle_ids)
+      });
+      total_words = puzzles.reduce((sum, puzzle) => sum + puzzle.word_list.length, 0);
+    }
+
     return { sessions, stats, correct_attempts: total_words };
   });
 

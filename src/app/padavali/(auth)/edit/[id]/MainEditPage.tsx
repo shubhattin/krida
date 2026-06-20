@@ -18,7 +18,7 @@ const MainEditPage = ({ word_puzzle }: ViewEditProps) => {
       </TabsContent>
       <TabsContent value="stats">
         <Suspense fallback={<div></div>}>
-          <PuzzleStats puzzleId={word_puzzle.id} />
+          <PuzzleStats puzzleId={word_puzzle.id} puzzleTitle={word_puzzle.title} />
         </Suspense>
       </TabsContent>
     </Tabs>
