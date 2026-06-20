@@ -1409,7 +1409,7 @@ const ExistingImageCard = ({
 }: {
   image: ImageAssetListItem;
   selected: boolean;
-  onSelect: (info: ImageInfo) => void;
+  onSelect: (info: ImageInfo | null) => void;
   onDeleted: (id: number) => void;
 }) => {
   const [delete_open, setDeleteOpen] = useState(false);
@@ -1435,7 +1435,7 @@ const ExistingImageCard = ({
     <div className="relative">
       <button
         type="button"
-        onClick={() => onSelect(toImageInfo(image))}
+        onClick={() => onSelect(selected ? null : toImageInfo(image))}
         className={cn(
           'w-full overflow-hidden rounded-lg border bg-card text-left shadow-sm transition-colors',
           selected ? 'border-primary ring-2 ring-primary' : 'border-border hover:border-primary/50'

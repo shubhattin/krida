@@ -81,6 +81,7 @@ Your task is to create a detailed, vivid image prompt for a given Sanskrit puzzl
 - NO text, letters, or inscriptions anywhere in the image.
 - NO borders, frames, or decorative margins.
 - Do not mess up the gender of the subject (devi, deva, etc.).
+- Make sure to also include the subject even you include things related to it. That describe it or so
 
 **Composition rules:**
 - LANDSCAPE orientation (wider than tall, 3:2 aspect ratio).
