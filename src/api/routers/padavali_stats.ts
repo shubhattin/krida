@@ -144,13 +144,14 @@ const get_stats_data_route = protectedAdminProcedure
     });
 
     let total_words = 0;
-    if (puzzle_ids && puzzle_ids.length > 0) {
-      const puzzles = await db.query.word_puzzles.findMany({
-        columns: { word_list: true },
-        where: (tbl, { inArray: inArrayFn }) => inArrayFn(tbl.id, puzzle_ids)
-      });
-      total_words = puzzles.reduce((sum, puzzle) => sum + puzzle.word_list.length, 0);
-    }
+    const puzzles = await db.query.word_puzzles.findMany({
+      columns: { word_list: true },
+      where:
+        puzzle_ids && puzzle_ids.length > 0
+          ? (tbl, { inArray: inArrayFn }) => inArrayFn(tbl.id, puzzle_ids)
+          : undefined
+    });
+    total_words = puzzles.reduce((sum, puzzle) => sum + puzzle.word_list.length, 0);
 
     return { sessions, stats, correct_attempts: total_words };
   });

@@ -1,6 +1,6 @@
 'use client';
 
-import { useEffect, useState } from 'react';
+import { useEffect, useMemo, useState } from 'react';
 import { useQuery } from '@tanstack/react-query';
 import { ChevronDownIcon, SearchIcon, XIcon } from 'lucide-react';
 import { client } from '~/api/client';
@@ -50,10 +50,10 @@ const PuzzleSelector = ({
   const [lipiLekhikaTyping, setLipiLekhikaTyping] = useState(true);
   const [debouncedSearchTitle, setDebouncedSearchTitle] = useState('');
 
-  const ctx = createTypingContext('Devanagari');
+  const ctx = useMemo(() => createTypingContext('Devanagari'), []);
 
   useEffect(() => {
-    ctx.ready;
+    void ctx.ready;
   }, [ctx]);
 
   useEffect(() => {
@@ -163,6 +163,7 @@ const PuzzleSelector = ({
                     checked={lipiLekhikaTyping}
                     onCheckedChange={setLipiLekhikaTyping}
                     className="scale-90"
+                    aria-label="Lipi Lekhika typing mode"
                   />
                   <Icon src={LanguageIcon} className="size-5" />
                 </Label>

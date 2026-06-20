@@ -72,22 +72,30 @@ const get_image_assets_page_route = protectedAdminProcedure
 const delete_image_asset_route = protectedAdminProcedure
   .input(z.object({ id: z.int() }))
   .mutation(async ({ input }): Promise<{ deleted: boolean }> => {
-    const row = await db.query.image_assets.findFirst({
-      where: (tbl, { eq }) => eq(tbl.id, input.id),
-      columns: { s3_key: true }
-    });
-    if (!row) {
+    const [deleted] = await db
+      .delete(image_assets)
+      .where(eq(image_assets.id, input.id))
+      .returning();
+
+    if (!deleted) {
       return { deleted: false };
     }
-    const results = await Promise.allSettled([
-      deleteAssetFile(row.s3_key),
-      db.delete(image_assets).where(eq(image_assets.id, input.id))
-    ]);
-    const failedResult = results.find((r) => r.status === 'rejected');
-    if (failedResult) {
-      throw new Error(`Failed to delete asset: ${(failedResult as PromiseRejectedResult).reason}`);
+
+    const maxAttempts = 3;
+    let lastError: unknown;
+    for (let attempt = 1; attempt <= maxAttempts; attempt++) {
+      try {
+        await deleteAssetFile(deleted.s3_key);
+        return { deleted: true };
+      } catch (err) {
+        lastError = err;
+        if (attempt < maxAttempts) {
+          await new Promise((resolve) => setTimeout(resolve, 200 * attempt));
+        }
+      }
     }
-    return { deleted: true };
+
+    throw new Error(`Failed to delete asset file from storage: ${String(lastError)}`);
   });
 
 export const image_assets_router = t.router({

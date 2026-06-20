@@ -123,6 +123,8 @@ const prompt_result_schema = z.object({
     ),
   description: z
     .string()
+    .trim()
+    .max(150)
     .describe(
       'A short description of the image in English in a few words (max 4-5 words, preferrable 3 words). This will be used for searching, so keep it short and concise.'
     )

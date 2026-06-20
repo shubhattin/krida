@@ -1769,15 +1769,7 @@ const CreateNewImageTab = ({
             <div className="flex items-center gap-2">
               <Button size="sm" disabled={isWorking || !custom_prompt.trim()} onClick={onMakeImage}>
                 <Wand2 className="size-4" />
-                Delete and Make Image
-              </Button>
-              <Button
-                variant="outline"
-                size="sm"
-                disabled={isWorking || !custom_prompt.trim()}
-                onClick={onMakeImage}
-              >
-                Make Image
+                Regenerate from Prompt
               </Button>
             </div>
           </div>

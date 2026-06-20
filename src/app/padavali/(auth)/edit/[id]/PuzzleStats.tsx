@@ -25,7 +25,7 @@ import {
   CrosshairIcon
 } from 'lucide-react';
 import { cn } from '~/lib/utils';
-import { format, subMonths, subWeeks, startOfDay, endOfDay } from 'date-fns';
+import { format, parseISO, subMonths, subWeeks, startOfDay, endOfDay } from 'date-fns';
 import pretty_ms from 'pretty-ms';
 import { DEFAULT_DATA_SCRIPT } from '~/state/script_list';
 import PuzzleSelector, { type SelectedPuzzle } from './PuzzleSelector';
@@ -54,6 +54,10 @@ const PERIOD_ITEMS = [
 
 const MAX_CHART_POINTS = 28;
 
+function yearFromDateKey(dateKey: string): number {
+  return Number(dateKey.slice(0, 4));
+}
+
 function shouldShowYearInTooltip(
   allTime: boolean,
   range: { from: Date; to: Date } | null,
@@ -62,9 +66,7 @@ function shouldShowYearInTooltip(
   if (allTime) return true;
   if (range && range.from.getFullYear() !== range.to.getFullYear()) return true;
   if (dateKeys.length >= 2) {
-    const firstYear = new Date(dateKeys[0]).getFullYear();
-    const lastYear = new Date(dateKeys[dateKeys.length - 1]).getFullYear();
-    return firstYear !== lastYear;
+    return yearFromDateKey(dateKeys[0]) !== yearFromDateKey(dateKeys[dateKeys.length - 1]);
   }
   return false;
 }
@@ -79,12 +81,12 @@ function buildDateLabels(
   const tooltipFmt = showYearInTooltip ? 'MMM dd, yyyy' : 'MMM dd';
   const label =
     dateStr === end
-      ? format(new Date(dateStr), axisFmt)
-      : `${format(new Date(dateStr), axisFmt)} – ${format(new Date(end), axisFmt)}`;
+      ? format(parseISO(dateStr), axisFmt)
+      : `${format(parseISO(dateStr), axisFmt)} – ${format(parseISO(end), axisFmt)}`;
   const tooltipLabel =
     dateStr === end
-      ? format(new Date(dateStr), tooltipFmt)
-      : `${format(new Date(dateStr), tooltipFmt)} – ${format(new Date(end), tooltipFmt)}`;
+      ? format(parseISO(dateStr), tooltipFmt)
+      : `${format(parseISO(dateStr), tooltipFmt)} – ${format(parseISO(end), tooltipFmt)}`;
   return { label, tooltipLabel, endDate: end };
 }
 
@@ -837,7 +839,7 @@ const DateRangeControls = ({
         if (value) setPeriod(value);
       }}
     >
-      <SelectTrigger size="sm" className="h-8 w-36">
+      <SelectTrigger size="sm" className="h-8 w-36" aria-label="Select period">
         <SelectValue />
       </SelectTrigger>
       <SelectContent>
@@ -881,7 +883,7 @@ const CustomDateRangeRow = ({
           mode="single"
           selected={dateRange.from}
           onSelect={(date) => setDateRange((prev) => ({ ...prev, from: date }))}
-          disabled={(date) => !!dateRange.to && date >= dateRange.to}
+          disabled={(date) => !!dateRange.to && date > dateRange.to}
         />
       </PopoverContent>
     </Popover>
@@ -907,7 +909,7 @@ const CustomDateRangeRow = ({
           mode="single"
           selected={dateRange.to}
           onSelect={(date) => setDateRange((prev) => ({ ...prev, to: date }))}
-          disabled={(date) => !!dateRange.from && date <= dateRange.from}
+          disabled={(date) => !!dateRange.from && date < dateRange.from}
         />
       </PopoverContent>
     </Popover>
@@ -1039,7 +1041,7 @@ const ChartSelector = ({
         if (value) setChartType(value);
       }}
     >
-      <SelectTrigger size="sm" className="h-8 w-52">
+      <SelectTrigger size="sm" className="h-8 w-52" aria-label="Select view">
         <SelectValue />
       </SelectTrigger>
       <SelectContent>

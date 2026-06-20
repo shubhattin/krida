@@ -27,15 +27,15 @@ const List = async () => {
         </Link>
       </div>
       <div className="mt-2 mb-5 flex flex-wrap items-center justify-center gap-4 px-2">
-        <Link href="/padavali/analytics">
-          <Button
-            variant={'outline'}
-            className="inline-flex items-center gap-2 text-base font-semibold"
-          >
-            <BarChart3Icon className="size-4 shrink-0" />
-            Analytics
-          </Button>
-        </Link>
+        <Button
+          render={<Link href="/padavali/analytics" className="inline-flex items-center gap-2" />}
+          nativeButton={false}
+          variant="outline"
+          className="text-base font-semibold"
+        >
+          <BarChart3Icon className="size-4 shrink-0" />
+          Analytics
+        </Button>
         <Link href="/padavali/schedules">
           <Button
             variant={'outline'}
