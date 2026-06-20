@@ -7,7 +7,6 @@ import { image_assets } from '~/db/schema';
 import { PROJECT_S3_ALIAS } from '~/constants';
 import { uploadAssetFile, deleteAssetFile } from '~/util/s3/upload_file.server';
 import { resizeImage } from '~/util/sharp/resize.server';
-import { eq } from 'drizzle-orm';
 import {
   createOpenAI,
   type OpenAIImageModelGenerationOptions,
@@ -121,6 +120,13 @@ const prompt_result_schema = z.object({
     .string()
     .describe(
       '2–4 lowercase English words separated by underscores, no extension. E.g. "surya_namaskar_card".'
+    ),
+  description: z
+    .string()
+    .trim()
+    .max(150)
+    .describe(
+      'A short description of the image in English in a few words (max 4-5 words, preferrable 3 words). This will be used for searching, so keep it short and concise.'
     )
 });
 
@@ -192,13 +198,14 @@ const generate_puzzle_card_image_route = protectedAdminProcedure
     // ------------------------------------------------------------------
     let image_prompt: string;
     let file_name: string;
+    let image_description: string;
 
     if (existing_image_prompt) {
       // Derive only file_name + description from the supplied prompt
       const response = await generateText({
         model: getTextModel('file_name'),
         output: Output.object({
-          schema: prompt_result_schema.pick({ file_name: true })
+          schema: prompt_result_schema.pick({ file_name: true, description: true })
         }),
         system:
           'Generate a short file_name (2–4 words, underscores, lowercase) and a 3–5 word description for the image prompt provided.',
@@ -211,6 +218,7 @@ const generate_puzzle_card_image_route = protectedAdminProcedure
       });
       image_prompt = existing_image_prompt;
       file_name = response.output.file_name;
+      image_description = response.output.description;
     } else {
       // const words_list = input.words && input.words.length > 0 ? input.words.join(', ') : 'None';
       const user_prompt = IMAGE_PROMPT_USER.replace('{title}', title).replace(
@@ -232,6 +240,7 @@ const generate_puzzle_card_image_route = protectedAdminProcedure
       });
       image_prompt = response.output.image_prompt;
       file_name = response.output.file_name;
+      image_description = response.output.description;
     }
 
     console.log('[ai_image_assets] image_prompt generated:');
@@ -291,7 +300,8 @@ const generate_puzzle_card_image_route = protectedAdminProcedure
         .values({
           width: IMAGE_STORED_WIDTH,
           height: IMAGE_STORED_HEIGHT,
-          s3_key
+          s3_key,
+          description: image_description
         })
         .returning();
     } catch (err) {
@@ -305,40 +315,11 @@ const generate_puzzle_card_image_route = protectedAdminProcedure
       time_ms: Date.now() - start_time,
       id: db_record.id,
       s3_key,
-      image_prompt
+      image_prompt,
+      description: image_description
     };
   });
 
-// ---------------------------------------------------------------------------
-// Route: delete_image_asset
-// ---------------------------------------------------------------------------
-
-const delete_image_asset_route = protectedAdminProcedure
-  .input(z.object({ id: z.int() }))
-  .mutation(async ({ input }): Promise<{ deleted: boolean }> => {
-    const row = await db.query.image_assets.findFirst({
-      where: (tbl, { eq }) => eq(tbl.id, input.id),
-      columns: { s3_key: true }
-    });
-    if (!row) {
-      return { deleted: false };
-    }
-    const results = await Promise.allSettled([
-      deleteAssetFile(row.s3_key),
-      db.delete(image_assets).where(eq(image_assets.id, input.id))
-    ]);
-    const failedResult = results.find((r) => r.status === 'rejected');
-    if (failedResult) {
-      throw new Error(`Failed to delete asset: ${(failedResult as PromiseRejectedResult).reason}`);
-    }
-    return { deleted: true };
-  });
-
-// ---------------------------------------------------------------------------
-// Router export
-// ---------------------------------------------------------------------------
-
 export const ai_image_assets_router = t.router({
-  generate_puzzle_card_image: generate_puzzle_card_image_route,
-  delete_image_asset: delete_image_asset_route
+  generate_puzzle_card_image: generate_puzzle_card_image_route
 });

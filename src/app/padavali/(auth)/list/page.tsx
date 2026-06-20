@@ -5,7 +5,7 @@ import AddPuzzleDialog from './AddPuzzleDialog';
 import { Button } from '~/components/ui/button';
 import dayjs from 'dayjs';
 import relativeTime from 'dayjs/plugin/relativeTime';
-import { ArrowLeftIcon, CalendarIcon } from 'lucide-react';
+import { ArrowLeftIcon, BarChart3Icon, CalendarIcon } from 'lucide-react';
 import { getCachedSession } from '~/lib/cache_server_route_data';
 import ListPage from './ListPage';
 
@@ -26,7 +26,16 @@ const List = async () => {
           Main Page
         </Link>
       </div>
-      <div className="mt-2 mb-5 flex items-center justify-center gap-4 px-2">
+      <div className="mt-2 mb-5 flex flex-wrap items-center justify-center gap-4 px-2">
+        <Button
+          render={<Link href="/padavali/analytics" className="inline-flex items-center gap-2" />}
+          nativeButton={false}
+          variant="outline"
+          className="text-base font-semibold"
+        >
+          <BarChart3Icon className="size-4 shrink-0" />
+          Analytics
+        </Button>
         <Link href="/padavali/schedules">
           <Button
             variant={'outline'}
