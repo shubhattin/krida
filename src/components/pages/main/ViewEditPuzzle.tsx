@@ -31,7 +31,18 @@ import { atom, useAtom } from 'jotai';
 import { FiSave } from 'react-icons/fi';
 import { MdDeleteOutline, MdDragIndicator } from 'react-icons/md';
 import { useRouter } from 'next/navigation';
-import { Info, ArrowRight, ImageIcon, Plus, X, RefreshCw, Wand2 } from 'lucide-react';
+import {
+  Info,
+  ArrowRight,
+  ImageIcon,
+  Plus,
+  X,
+  RefreshCw,
+  Wand2,
+  SearchIcon,
+  MoreVertical,
+  ArrowUpDownIcon
+} from 'lucide-react';
 import {
   Dialog,
   DialogContent,
@@ -93,6 +104,19 @@ import {
   SelectItem,
   SelectContent
 } from '~/components/ui/select';
+import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
+import {
+  Pagination,
+  PaginationContent,
+  PaginationEllipsis,
+  PaginationItem,
+  PaginationLink,
+  PaginationNext,
+  PaginationPrevious
+} from '@/components/ui/pagination';
+import { InputGroup, InputGroupAddon, InputGroupInput } from '@/components/ui/input-group';
+import { useQuery, useQueryClient } from '@tanstack/react-query';
+import { client } from '~/api/client';
 
 const ATTACHMENT_TYPE_ITEMS = [
   { label: 'Select attachment type', value: null },
@@ -1300,10 +1324,58 @@ const PuzzleImageSection = ({ word_puzzle }: { word_puzzle: Puzzle }) => {
 
 type ImageInfo = { id: number; s3_key: string; width: number; height: number };
 
+type ImageAssetListItem = ImageInfo & {
+  description: string | null;
+  created_at: Date;
+};
+
 type GenerationPhase =
   | { state: 'idle' }
   | { state: 'generating' }
   | { state: 'done'; image_prompt: string; image_info: ImageInfo };
+
+type ImageDialogTab = 'create-new' | 'existing';
+
+const IMAGE_ASSETS_LIST_QUERY_KEY = 'image_assets_list' as const;
+const IMAGE_ASSETS_PAGE_SIZE = 6;
+
+const IMAGE_ORDER_ITEMS = [
+  { label: 'Latest', value: 'desc' as const },
+  { label: 'Oldest', value: 'asc' as const }
+];
+
+function getVisiblePages(current: number, total: number): (number | 'ellipsis')[] {
+  if (total <= 5) {
+    return Array.from({ length: total }, (_, i) => i + 1);
+  }
+
+  const pages = new Set<number>([1, total, current]);
+  if (current > 1) pages.add(current - 1);
+  if (current < total) pages.add(current + 1);
+
+  const sorted = [...pages].sort((a, b) => a - b);
+  const result: (number | 'ellipsis')[] = [];
+
+  for (let i = 0; i < sorted.length; i++) {
+    if (i > 0 && sorted[i] - sorted[i - 1] > 1) {
+      result.push('ellipsis');
+    }
+    result.push(sorted[i]);
+  }
+
+  return result;
+}
+
+function toImageInfo(
+  item: Pick<ImageAssetListItem, 'id' | 's3_key' | 'width' | 'height'>
+): ImageInfo {
+  return {
+    id: item.id,
+    s3_key: item.s3_key,
+    width: item.width,
+    height: item.height
+  };
+}
 
 /** Linear progress from 0→90 over the timeout duration, then frozen at 90 until done */
 const useGenerationProgress = (active: boolean) => {
@@ -1329,6 +1401,392 @@ const useGenerationProgress = (active: boolean) => {
   return progress;
 };
 
+const ExistingImageCard = ({
+  image,
+  selected,
+  onSelect,
+  onDeleted
+}: {
+  image: ImageAssetListItem;
+  selected: boolean;
+  onSelect: (info: ImageInfo) => void;
+  onDeleted: (id: number) => void;
+}) => {
+  const [delete_open, setDeleteOpen] = useState(false);
+  const [menu_open, setMenuOpen] = useState(false);
+
+  const delete_mut = client_q.image_assets.delete_image_asset.useMutation({
+    onSuccess: (data) => {
+      if (data.deleted) {
+        toast.success('Image deleted');
+        onDeleted(image.id);
+      } else {
+        toast.error('Image not found');
+      }
+      setDeleteOpen(false);
+    },
+    onError: () => {
+      toast.error('Failed to delete image');
+      setDeleteOpen(false);
+    }
+  });
+
+  return (
+    <div className="relative">
+      <button
+        type="button"
+        onClick={() => onSelect(toImageInfo(image))}
+        className={cn(
+          'w-full overflow-hidden rounded-lg border bg-card text-left shadow-sm transition-colors',
+          selected ? 'border-primary ring-2 ring-primary' : 'border-border hover:border-primary/50'
+        )}
+      >
+        <img
+          src={getCDNUrl(image.s3_key)}
+          alt={image.description ?? 'Image asset'}
+          className="block w-full object-cover"
+          style={{ aspectRatio: IMAGE_ASPECT }}
+        />
+        {image.description ? (
+          <p className="truncate px-2 py-1.5 text-xs text-muted-foreground">{image.description}</p>
+        ) : null}
+      </button>
+
+      <Popover open={menu_open} onOpenChange={setMenuOpen}>
+        <PopoverTrigger
+          render={
+            <Button
+              variant="secondary"
+              size="icon-sm"
+              className="absolute top-1.5 right-1.5 size-7 bg-background/90 shadow-sm"
+              aria-label="Image actions"
+            />
+          }
+        >
+          <MoreVertical className="size-4" />
+        </PopoverTrigger>
+        <PopoverContent className="w-36 p-1" align="end">
+          <Button
+            variant="ghost"
+            size="sm"
+            className="w-full justify-start text-destructive hover:text-destructive"
+            onClick={() => {
+              setMenuOpen(false);
+              setDeleteOpen(true);
+            }}
+          >
+            <MdDeleteOutline className="size-4" />
+            Delete
+          </Button>
+        </PopoverContent>
+      </Popover>
+
+      <AlertDialog open={delete_open} onOpenChange={setDeleteOpen}>
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle>Delete image?</AlertDialogTitle>
+            <AlertDialogDescription>
+              This permanently removes the image from storage. Puzzles already using it will lose
+              their image reference.
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel disabled={delete_mut.isPending}>Cancel</AlertDialogCancel>
+            <AlertDialogAction
+              variant="destructive"
+              disabled={delete_mut.isPending}
+              onClick={(e) => {
+                e.preventDefault();
+                delete_mut.mutate({ id: image.id });
+              }}
+            >
+              Delete
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
+    </div>
+  );
+};
+
+const ExistingImageTab = ({
+  enabled,
+  selected_image_id,
+  onSelect,
+  onImageDeleted
+}: {
+  enabled: boolean;
+  selected_image_id: number | null;
+  onSelect: (info: ImageInfo | null) => void;
+  onImageDeleted: (id: number) => void;
+}) => {
+  const [page, setPage] = useState(1);
+  const [search_description, setSearchDescription] = useState('');
+  const [debounced_search, setDebouncedSearch] = useState('');
+  const [order_by, setOrderBy] = useState<'asc' | 'desc'>('desc');
+
+  useEffect(() => {
+    const timeoutId = setTimeout(() => setDebouncedSearch(search_description), 400);
+    return () => clearTimeout(timeoutId);
+  }, [search_description]);
+
+  useEffect(() => {
+    setPage(1);
+  }, [debounced_search, order_by]);
+
+  const image_assets_q = useQuery({
+    queryKey: [IMAGE_ASSETS_LIST_QUERY_KEY, page, debounced_search, order_by],
+    queryFn: async () =>
+      client.image_assets.get_image_assets_page.query({
+        page,
+        size: IMAGE_ASSETS_PAGE_SIZE,
+        search_description: debounced_search || undefined,
+        order_by
+      }),
+    enabled,
+    placeholderData: (prev) => prev,
+    refetchOnWindowFocus: false
+  });
+
+  const images = image_assets_q.data?.list ?? [];
+  const pageCount = image_assets_q.data?.pageCount ?? 1;
+  const hasPrev = image_assets_q.data?.hasPrev ?? false;
+  const hasNext = image_assets_q.data?.hasNext ?? false;
+  const isInitialLoading = image_assets_q.isLoading && !image_assets_q.data;
+
+  const handleDeleted = (id: number) => {
+    onImageDeleted(id);
+    void image_assets_q.refetch();
+  };
+
+  return (
+    <div className="flex w-full flex-col gap-3">
+      <div className="flex flex-col gap-2 sm:flex-row sm:items-center">
+        <InputGroup className="w-full flex-1">
+          <InputGroupAddon>
+            <SearchIcon />
+          </InputGroupAddon>
+          <InputGroupInput
+            className="text-sm"
+            value={search_description}
+            onChange={(e) => setSearchDescription(e.currentTarget.value)}
+            placeholder="Search by description…"
+          />
+        </InputGroup>
+        <Select
+          items={IMAGE_ORDER_ITEMS}
+          value={order_by}
+          onValueChange={(value) => {
+            if (value) setOrderBy(value);
+          }}
+        >
+          <SelectTrigger size="sm" className="w-full sm:w-32" aria-label="Sort order">
+            <ArrowUpDownIcon className="size-3.5" />
+            <SelectValue />
+          </SelectTrigger>
+          <SelectContent alignItemWithTrigger={false}>
+            {IMAGE_ORDER_ITEMS.map((item) => (
+              <SelectItem key={item.value} value={item.value}>
+                {item.label}
+              </SelectItem>
+            ))}
+          </SelectContent>
+        </Select>
+      </div>
+
+      {isInitialLoading ? (
+        <div className="grid grid-cols-2 gap-3 sm:grid-cols-3">
+          {Array.from({ length: IMAGE_ASSETS_PAGE_SIZE }).map((_, index) => (
+            <Skeleton key={index} className="rounded-lg" style={{ aspectRatio: IMAGE_ASPECT }} />
+          ))}
+        </div>
+      ) : images.length > 0 ? (
+        <div className="grid grid-cols-2 gap-3 sm:grid-cols-3">
+          {images.map((image) => (
+            <ExistingImageCard
+              key={image.id}
+              image={image}
+              selected={selected_image_id === image.id}
+              onSelect={(info) => onSelect(info)}
+              onDeleted={handleDeleted}
+            />
+          ))}
+        </div>
+      ) : (
+        <div
+          className="flex items-center justify-center rounded-lg border border-dashed border-border bg-muted/20 text-sm text-muted-foreground"
+          style={{ minHeight: 120 }}
+        >
+          {image_assets_q.isFetching ? 'Loading…' : 'No images found'}
+        </div>
+      )}
+
+      {(pageCount > 1 || (image_assets_q.data?.total ?? 0) > 0) && (
+        <Pagination>
+          <PaginationContent>
+            <PaginationItem>
+              <PaginationPrevious
+                href="#"
+                text="Prev"
+                onClick={(e) => {
+                  e.preventDefault();
+                  if (hasPrev && !image_assets_q.isFetching) setPage((p) => p - 1);
+                }}
+                aria-disabled={!hasPrev || image_assets_q.isFetching}
+                className={cn(
+                  (!hasPrev || image_assets_q.isFetching) && 'pointer-events-none opacity-50'
+                )}
+              />
+            </PaginationItem>
+            {getVisiblePages(page, pageCount).map((pageNumber, index) =>
+              pageNumber === 'ellipsis' ? (
+                <PaginationItem key={`ellipsis-${index}`}>
+                  <PaginationEllipsis />
+                </PaginationItem>
+              ) : (
+                <PaginationItem key={pageNumber}>
+                  <PaginationLink
+                    href="#"
+                    isActive={pageNumber === page}
+                    onClick={(e) => {
+                      e.preventDefault();
+                      if (!image_assets_q.isFetching) setPage(pageNumber);
+                    }}
+                  >
+                    {pageNumber}
+                  </PaginationLink>
+                </PaginationItem>
+              )
+            )}
+            <PaginationItem>
+              <PaginationNext
+                href="#"
+                onClick={(e) => {
+                  e.preventDefault();
+                  if (hasNext && !image_assets_q.isFetching) setPage((p) => p + 1);
+                }}
+                aria-disabled={!hasNext || image_assets_q.isFetching}
+                className={cn(
+                  (!hasNext || image_assets_q.isFetching) && 'pointer-events-none opacity-50'
+                )}
+              />
+            </PaginationItem>
+          </PaginationContent>
+        </Pagination>
+      )}
+    </div>
+  );
+};
+
+const CreateNewImageTab = ({
+  phase,
+  custom_prompt,
+  setCustomPrompt,
+  progress,
+  isWorking,
+  onStartGeneration,
+  onDelete,
+  onDeleteAndRegenerate,
+  onMakeImage
+}: {
+  phase: GenerationPhase;
+  custom_prompt: string;
+  setCustomPrompt: (value: string) => void;
+  progress: number;
+  isWorking: boolean;
+  onStartGeneration: () => void;
+  onDelete: () => void;
+  onDeleteAndRegenerate: () => void;
+  onMakeImage: () => void;
+}) => {
+  return (
+    <div className="flex flex-col items-center gap-4 py-1">
+      {phase.state === 'idle' && (
+        <div className="flex w-full flex-col items-center gap-4">
+          <div
+            className="flex w-full max-w-sm items-center justify-center rounded-lg border border-dashed border-border bg-muted/30"
+            style={{ aspectRatio: IMAGE_ASPECT }}
+          >
+            <div className="flex flex-col items-center gap-2 text-muted-foreground">
+              <ImageIcon className="size-10 opacity-40" />
+              <span className="text-sm">No image yet</span>
+            </div>
+          </div>
+          <Button onClick={onStartGeneration} disabled={isWorking} className="gap-2">
+            <Wand2 className="size-4" />
+            Create AI Image
+          </Button>
+        </div>
+      )}
+
+      {phase.state === 'generating' && (
+        <div className="flex w-full flex-col items-center gap-3">
+          <Skeleton className="w-full max-w-sm rounded-lg" style={{ aspectRatio: IMAGE_ASPECT }} />
+          <div className="w-full max-w-sm">
+            <Progress value={progress} className="w-full" />
+          </div>
+        </div>
+      )}
+
+      {phase.state === 'done' && (
+        <div className="flex w-full flex-col items-center gap-4">
+          <div className="w-full max-w-sm overflow-hidden rounded-lg border border-border shadow">
+            <img
+              src={getCDNUrl(phase.image_info.s3_key)}
+              alt="Generated puzzle card"
+              className="block w-full object-cover"
+              style={{ aspectRatio: IMAGE_ASPECT }}
+            />
+          </div>
+
+          <div className="flex items-center gap-2">
+            <Button variant="destructive" size="sm" disabled={isWorking} onClick={onDelete}>
+              <MdDeleteOutline className="size-4" />
+              Delete Image
+            </Button>
+            <Button
+              variant="outline"
+              size="sm"
+              disabled={isWorking}
+              onClick={onDeleteAndRegenerate}
+            >
+              <RefreshCw className="size-4" />
+              Remake Image
+            </Button>
+          </div>
+
+          <div className="w-full space-y-2">
+            <p className="text-sm font-semibold">Edit Image Prompt</p>
+            <div className="space-y-1">
+              <span className="text-xs text-muted-foreground">Image Prompt</span>
+              <Textarea
+                className="min-h-[100px] w-full resize-y text-sm"
+                value={custom_prompt}
+                onChange={(e) => setCustomPrompt(e.currentTarget.value)}
+                placeholder="Edit the image prompt…"
+              />
+            </div>
+            <div className="flex items-center gap-2">
+              <Button size="sm" disabled={isWorking || !custom_prompt.trim()} onClick={onMakeImage}>
+                <Wand2 className="size-4" />
+                Delete and Make Image
+              </Button>
+              <Button
+                variant="outline"
+                size="sm"
+                disabled={isWorking || !custom_prompt.trim()}
+                onClick={onMakeImage}
+              >
+                Make Image
+              </Button>
+            </div>
+          </div>
+        </div>
+      )}
+    </div>
+  );
+};
+
 const AIImageDialogContent = ({
   puzzle_id,
   title,
@@ -1346,26 +1804,34 @@ const AIImageDialogContent = ({
   onImageAdded: (info: ImageInfo) => void;
   onImageCleared: () => void;
 }) => {
+  const queryClient = useQueryClient();
+  const [active_tab, setActiveTab] = useState<ImageDialogTab>('create-new');
   const [phase, setPhase] = useState<GenerationPhase>(
     existing_image
       ? { state: 'done', image_prompt: '', image_info: existing_image }
       : { state: 'idle' }
   );
   const [custom_prompt, setCustomPrompt] = useState('');
+  const [selected_image, setSelectedImage] = useState<ImageInfo | null>(existing_image);
 
   const progress = useGenerationProgress(phase.state === 'generating');
 
-  const generate_mut = client_q.ai_image.generate_puzzle_card_image.useMutation({
+  const invalidateImageAssetsList = () => {
+    void queryClient.invalidateQueries({ queryKey: [IMAGE_ASSETS_LIST_QUERY_KEY] });
+  };
+
+  const generate_mut = client_q.ai_image_gen.generate_puzzle_card_image.useMutation({
     onSuccess: (data) => {
       if (data.success) {
-        // We need to refetch the image_info from the result. The route returns id + s3_key.
-        // We don't have width/height here directly, use stored constants (768×512).
+        const image_info = { id: data.id, s3_key: data.s3_key, width: 768, height: 512 };
         setPhase({
           state: 'done',
           image_prompt: data.image_prompt,
-          image_info: { id: data.id, s3_key: data.s3_key, width: 768, height: 512 }
+          image_info
         });
         setCustomPrompt(data.image_prompt);
+        setSelectedImage(image_info);
+        invalidateImageAssetsList();
       } else {
         toast.error(`Image generation failed: ${data.err_code}`);
         setPhase({ state: 'idle' });
@@ -1377,11 +1843,13 @@ const AIImageDialogContent = ({
     }
   });
 
-  const delete_mut = client_q.ai_image.delete_image_asset.useMutation({
+  const delete_mut = client_q.image_assets.delete_image_asset.useMutation({
     onSuccess: () => {
       setPhase({ state: 'idle' });
       setCustomPrompt('');
+      setSelectedImage(null);
       onImageCleared();
+      invalidateImageAssetsList();
     },
     onError: () => toast.error('Failed to delete image')
   });
@@ -1441,133 +1909,88 @@ const AIImageDialogContent = ({
     }
   };
 
-  const isWorking = phase.state === 'generating' || delete_mut.isPending;
+  const handleTabChange = (value: string | null) => {
+    if (!value) return;
+    const tab = value as ImageDialogTab;
+    setActiveTab(tab);
+    if (tab === 'existing') {
+      setSelectedImage(null);
+    } else {
+      setSelectedImage(phase.state === 'done' ? phase.image_info : null);
+    }
+  };
+
+  const handleExistingImageDeleted = (id: number) => {
+    invalidateImageAssetsList();
+    if (selected_image?.id === id) {
+      setSelectedImage(null);
+    }
+    if (phase.state === 'done' && phase.image_info.id === id) {
+      setPhase({ state: 'idle' });
+      setCustomPrompt('');
+      onImageCleared();
+    }
+  };
+
+  const isWorking = phase.state === 'generating' || delete_mut.isPending || generate_mut.isPending;
 
   return (
     <DialogContent
-      className="max-h-[90vh] max-w-lg overflow-y-auto sm:max-w-xl"
+      className="max-h-[90vh] max-w-4xl overflow-y-auto sm:max-w-5xl"
       showCloseButton={!isWorking}
     >
       <DialogHeader>
         <DialogTitle className="text-center text-base font-semibold">
-          {phase.state === 'idle'
-            ? 'Add Puzzle Card Image'
-            : phase.state === 'generating'
-              ? 'Generating Image…'
-              : 'Puzzle Card Image'}
+          {existing_image ? 'Manage Puzzle Card Image' : 'Add Puzzle Card Image'}
         </DialogTitle>
       </DialogHeader>
 
-      <div className="flex flex-col items-center gap-4 py-2">
-        {/* ── Image / Skeleton area ── */}
-        {phase.state === 'idle' && (
-          <div className="flex flex-col items-center gap-4">
-            <div
-              className="flex w-full max-w-sm items-center justify-center rounded-lg border border-dashed border-border bg-muted/30"
-              style={{ aspectRatio: IMAGE_ASPECT }}
-            >
-              <div className="flex flex-col items-center gap-2 text-muted-foreground">
-                <ImageIcon className="size-10 opacity-40" />
-                <span className="text-sm">No image yet</span>
-              </div>
-            </div>
-            <Button onClick={() => startGeneration()} disabled={isWorking} className="gap-2">
-              <Wand2 className="size-4" />
-              Create AI Image
-            </Button>
-          </div>
-        )}
+      <Tabs value={active_tab} onValueChange={handleTabChange} className="gap-4">
+        <TabsList className="w-full">
+          <TabsTrigger value="create-new" className="flex-1">
+            Create New
+          </TabsTrigger>
+          <TabsTrigger value="existing" className="flex-1">
+            Existing Image
+          </TabsTrigger>
+        </TabsList>
 
-        {phase.state === 'generating' && (
-          <div className="flex w-full flex-col items-center gap-3">
-            <Skeleton
-              className="w-full max-w-sm rounded-lg"
-              style={{ aspectRatio: IMAGE_ASPECT }}
-            />
-            <div className="w-full max-w-sm">
-              <Progress value={progress} className="w-full" />
-            </div>
-          </div>
-        )}
+        <TabsContent value="create-new">
+          <CreateNewImageTab
+            phase={phase}
+            custom_prompt={custom_prompt}
+            setCustomPrompt={setCustomPrompt}
+            progress={progress}
+            isWorking={isWorking}
+            onStartGeneration={() => startGeneration()}
+            onDelete={() => {
+              if (phase.state === 'done') {
+                delete_mut.mutate({ id: phase.image_info.id });
+              }
+            }}
+            onDeleteAndRegenerate={handleDeleteAndRegenerate}
+            onMakeImage={handleMakeImage}
+          />
+        </TabsContent>
 
-        {phase.state === 'done' && (
-          <div className="flex w-full flex-col items-center gap-4">
-            {/* Generated image preview */}
-            <div className="w-full max-w-sm overflow-hidden rounded-lg border border-border shadow">
-              <img
-                src={getCDNUrl(phase.image_info.s3_key)}
-                alt="Generated puzzle card"
-                className="block w-full object-cover"
-                style={{ aspectRatio: IMAGE_ASPECT }}
-              />
-            </div>
+        <TabsContent value="existing">
+          <ExistingImageTab
+            enabled={active_tab === 'existing'}
+            selected_image_id={selected_image?.id ?? null}
+            onSelect={setSelectedImage}
+            onImageDeleted={handleExistingImageDeleted}
+          />
+        </TabsContent>
+      </Tabs>
 
-            {/* Delete / Remake row */}
-            <div className="flex items-center gap-2">
-              <Button
-                variant="destructive"
-                size="sm"
-                disabled={isWorking}
-                onClick={() => delete_mut.mutate({ id: phase.image_info.id })}
-              >
-                <MdDeleteOutline className="size-4" />
-                Delete Image
-              </Button>
-              <Button
-                variant="outline"
-                size="sm"
-                disabled={isWorking}
-                onClick={handleDeleteAndRegenerate}
-              >
-                <RefreshCw className="size-4" />
-                Remake Image
-              </Button>
-            </div>
-
-            {/* Editable prompt */}
-            <div className="w-full space-y-2">
-              <p className="text-sm font-semibold">Edit Image Prompt</p>
-              <div className="space-y-1">
-                <span className="text-xs text-muted-foreground">Image Prompt</span>
-                <Textarea
-                  className="min-h-[100px] w-full resize-y text-sm"
-                  value={custom_prompt}
-                  onChange={(e) => setCustomPrompt(e.currentTarget.value)}
-                  placeholder="Edit the image prompt…"
-                />
-              </div>
-              <div className="flex items-center gap-2">
-                <Button
-                  size="sm"
-                  disabled={isWorking || !custom_prompt.trim()}
-                  onClick={handleMakeImage}
-                >
-                  <Wand2 className="size-4" />
-                  Delete and Make Image
-                </Button>
-                <Button
-                  variant="outline"
-                  size="sm"
-                  disabled={isWorking || !custom_prompt.trim()}
-                  onClick={handleMakeImage}
-                >
-                  Make Image
-                </Button>
-              </div>
-            </div>
-
-            {/* Add Image to Puzzle CTA */}
-            <Button
-              className="mt-1 gap-2"
-              disabled={isWorking}
-              onClick={() => onImageAdded(phase.image_info)}
-            >
-              <Plus className="size-4" />
-              Add Image to Puzzle
-            </Button>
-          </div>
-        )}
-      </div>
+      <Button
+        className="mt-1 w-full gap-2"
+        disabled={!selected_image || isWorking}
+        onClick={() => selected_image && onImageAdded(selected_image)}
+      >
+        <Plus className="size-4" />
+        Add Image to Puzzle
+      </Button>
     </DialogContent>
   );
 };
