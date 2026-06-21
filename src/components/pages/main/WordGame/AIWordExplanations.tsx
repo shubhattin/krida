@@ -39,13 +39,12 @@ export const AIWordExplanations = ({ puzzle_id, puzzle_slug }: Props) => {
       puzzle_slug
     },
     {
-      enabled: completed && isSectionExpanded,
       staleTime: Infinity
     }
   );
 
   useEffect(() => {
-    if (!data?.words || !isSectionExpanded) return;
+    if (!data?.words) return;
     let active = true;
     const run = async () => {
       const entries = await Promise.all(
@@ -62,7 +61,7 @@ export const AIWordExplanations = ({ puzzle_id, puzzle_slug }: Props) => {
     return () => {
       active = false;
     };
-  }, [data?.words, isSectionExpanded, script]);
+  }, [data?.words, script]);
 
   return (
     <AnimatePresence mode="wait">

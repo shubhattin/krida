@@ -21,6 +21,7 @@ import { IoShareSocialOutline } from 'react-icons/io5';
 import { copy_text_to_clipboard } from '~/tools/kry';
 import { toast } from 'sonner';
 import { get_puzzle_share_url } from './GameInfo';
+import { client_q } from '~/api/client';
 import Link from 'next/link';
 import { useRouter } from 'next/navigation';
 import {
@@ -232,13 +233,18 @@ function WordGame({
   const [pendingUrl, setPendingUrl] = useAtom(pending_navigation_url_atom);
   const router = useRouter();
   const queryClient = useQueryClient();
+  const utils = client_q.useUtils();
 
   useEffect(() => {
     queryClient.prefetchQuery({
       queryKey: ['listed_puzzles_carousel', script, puzzle_slug, puzzle_id],
       queryFn: getCarouselPuzzlesQueryFn(script, puzzle_slug, puzzle_id)
     });
-  }, []);
+    utils.public_ai.get_puzzle_word_meanings.prefetch({
+      puzzle_id,
+      puzzle_slug
+    });
+  }, [puzzle_id, puzzle_slug, utils, script]);
 
   const font_info = FONT_INFO[script as ScriptType];
 
