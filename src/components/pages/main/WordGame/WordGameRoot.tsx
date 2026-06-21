@@ -16,6 +16,10 @@ import { cn } from '~/lib/utils';
 import Icon from '~/tools/Icon';
 import { LanguageIcon } from '~/components/icons';
 import { Calendar, InfoIcon } from 'lucide-react';
+import { IoShareSocialOutline } from 'react-icons/io5';
+import { copy_text_to_clipboard } from '~/tools/kry';
+import { toast } from 'sonner';
+import { get_puzzle_share_url } from './GameInfo';
 import Link from 'next/link';
 import { useRouter } from 'next/navigation';
 import {
@@ -42,7 +46,8 @@ import {
   original_word_list_atom,
   pending_navigation_url_atom,
   puzzle_slug_atom,
-  active_puzzle_id_atom
+  active_puzzle_id_atom,
+  description_current_atom
 } from './game_state';
 import { Popover, PopoverContent, PopoverTrigger } from '~/components/ui/popover';
 import { FaLink, FaRegStopCircle } from 'react-icons/fa';
@@ -117,6 +122,7 @@ export default function WordGameRoot(
     store.set(word_msgs_atom, props.initial_script_data.word_msgs);
     store.set(original_word_list_atom, props.word_list);
     store.set(puzzle_slug_atom, props.puzzle_slug);
+    store.set(description_current_atom, props.description);
     return store;
   }, []);
 
@@ -191,6 +197,20 @@ const CompactStopButton = ({
   );
 };
 
+const get_general_share_msg = (name: string, slug: string, description: string | null) => {
+  const puzzle_url = get_puzzle_share_url(slug);
+  return [
+    `✨ Play Padavali — a super fun, interactive Sanskrit word puzzle!`,
+    '',
+    `🎯 ${name}` + (description ? ` : ${description}` : ''),
+    '',
+    `🔗 Play now:`,
+    puzzle_url,
+    '',
+    `📝 Play in your own script — supports Multiple Indian scripts!`
+  ].join('\n');
+};
+
 function WordGame({
   children,
   id: puzzle_id,
@@ -222,7 +242,8 @@ function WordGame({
   const font_info = FONT_INFO[script as ScriptType];
 
   const timerRef = useRef<NodeJS.Timeout | null>(null);
-  const [description_transliterated, setDescriptionTransliterated] = useState(description);
+  const [description_transliterated, setDescriptionTransliterated] =
+    useAtom(description_current_atom);
 
   useEffect(() => {
     if (onChangeCompleted) {
@@ -372,7 +393,7 @@ function WordGame({
             {description && (
               <Popover>
                 <PopoverTrigger
-                  render={<button className="ml-3 outline-none hover:brightness-75" />}
+                  render={<button className="ml-3 align-middle outline-none hover:brightness-75" />}
                 >
                   <InfoIcon className="size-3 sm:size-4" />
                 </PopoverTrigger>
@@ -387,6 +408,36 @@ function WordGame({
                 </PopoverContent>
               </Popover>
             )}
+            <button
+              onClick={async () => {
+                const text = get_general_share_msg(title, puzzle_slug, description);
+                try {
+                  if (typeof navigator !== 'undefined' && navigator.share) {
+                    await navigator.share({
+                      title: `${title} - पदावली-शब्द-क्रीडनम्`,
+                      text
+                    });
+                  } else {
+                    try {
+                      await copy_text_to_clipboard(text);
+                      toast.success('Puzzle link copied to clipboard');
+                    } catch (err) {
+                      toast.error('Could not copy to clipboard');
+                      console.log('Error copying:', err);
+                    }
+                  }
+                } catch (err) {
+                  if ((err as Error).name !== 'AbortError') {
+                    console.log('Error sharing:', err);
+                  }
+                }
+              }}
+              className="ml-3 inline-flex items-center justify-center align-middle text-slate-500 outline-none hover:text-slate-700 hover:brightness-75 dark:text-slate-400 dark:hover:text-slate-200"
+              title="Share Puzzle"
+              aria-label="Share Puzzle"
+            >
+              <IoShareSocialOutline className="size-3.5 sm:size-4.5" />
+            </button>
           </div>
 
           {/* Script selector — mobile only, centered below title */}

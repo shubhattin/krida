@@ -17,7 +17,8 @@ import {
   total_attempts_atom,
   word_msgs_atom,
   original_word_list_atom,
-  puzzle_slug_atom
+  puzzle_slug_atom,
+  description_current_atom
 } from './game_state';
 import { AppContext } from '~/components/AppDataContext';
 import { useContext, useEffect } from 'react';
@@ -36,6 +37,7 @@ export const GameInfo = () => {
   const [wordMsgs] = useAtom(word_msgs_atom);
   const [wordList] = useAtom(original_word_list_atom);
   const [puzzleSlug] = useAtom(puzzle_slug_atom);
+  const [description] = useAtom(description_current_atom);
 
   const font_info = FONT_INFO[script!];
   const accuracy = totalAttempts > 0 ? Math.round((wordList.length / totalAttempts) * 100) : 0;
@@ -253,7 +255,13 @@ export const GameInfo = () => {
           >
             <Button
               onClick={async () => {
-                const text = get_share_msg(title, formatTime(seconds), accuracy, puzzleSlug);
+                const text = get_share_msg(
+                  title,
+                  description,
+                  formatTime(seconds),
+                  accuracy,
+                  puzzleSlug
+                );
                 try {
                   if (typeof navigator !== 'undefined' && navigator.share) {
                     await navigator.share({
@@ -296,12 +304,18 @@ export const get_puzzle_share_url = (slug: string) => {
   return `${base.replace(/\/$/, '')}/padavali/puzzle/${encodeURIComponent(slug)}`;
 };
 
-const get_share_msg = (name: string, time_taken: string, accuracy: number, slug: string) => {
+const get_share_msg = (
+  name: string,
+  description: string | null,
+  time_taken: string,
+  accuracy: number,
+  slug: string
+) => {
   const puzzle_url = get_puzzle_share_url(slug);
   const msg = [
     `✨ I just solved Padavali — a super fun, interactive Sanskrit word puzzle!`,
     '',
-    `🎯 "${name}"`,
+    `🎯 ${name}` + (description ? ` : ${description}` : ''),
     `⏱️ ${time_taken} seconds · ${accuracy}% accuracy`,
     '',
     `💪 Think you can beat my score? Give it a try!`,

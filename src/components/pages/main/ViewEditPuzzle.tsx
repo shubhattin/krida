@@ -117,6 +117,7 @@ import {
 import { InputGroup, InputGroupAddon, InputGroupInput } from '@/components/ui/input-group';
 import { useQuery, useQueryClient } from '@tanstack/react-query';
 import { client } from '~/api/client';
+import { invalidatePage } from '~/tools/invalidate_nextjs_server_route';
 
 const ATTACHMENT_TYPE_ITEMS = [
   { label: 'Select attachment type', value: null },
@@ -1064,6 +1065,7 @@ const Description = () => {
 };
 
 const SaveButton = ({ word_puzzle }: { word_puzzle: Puzzle }) => {
+  const queryClient = useQueryClient();
   const [title] = useAtom(title_atom);
   const [wordList] = useAtom(word_list_atom);
   const [gridData] = useAtom(grid_data_atom);
@@ -1112,6 +1114,13 @@ const SaveButton = ({ word_puzzle }: { word_puzzle: Puzzle }) => {
           attachments: updatedAttachments,
           image_id
         };
+
+        // Clear React Query cache for the puzzle carousel
+        void queryClient.invalidateQueries({ queryKey: ['listed_puzzles_carousel'] });
+
+        // Invalidate Next.js cache routes on the server
+        void invalidatePage('/padavali/puzzles');
+        void invalidatePage(`/padavali/puzzle/${word_puzzle.slug}`);
       }
     },
     onError() {
@@ -1122,6 +1131,14 @@ const SaveButton = ({ word_puzzle }: { word_puzzle: Puzzle }) => {
   const delete_word_puzzle_mut = client_q.puzzle.delete_puzzle.useMutation({
     onSuccess() {
       toast.success('Puzzle deleted successfully');
+
+      // Clear React Query cache for the puzzle carousel
+      void queryClient.invalidateQueries({ queryKey: ['listed_puzzles_carousel'] });
+
+      // Invalidate Next.js cache routes on the server
+      void invalidatePage('/padavali/puzzles');
+      void invalidatePage(`/padavali/puzzle/${word_puzzle.slug}`);
+
       router.push('/padavali/list');
     },
     onError() {

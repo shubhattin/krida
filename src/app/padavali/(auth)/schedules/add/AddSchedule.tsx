@@ -10,6 +10,8 @@ import { ChevronDownIcon, PlusIcon, SearchIcon } from 'lucide-react';
 import { client, client_q } from '~/api/client';
 import { toast } from 'sonner';
 import { useRouter } from 'next/navigation';
+import { useQueryClient } from '@tanstack/react-query';
+import { invalidatePage } from '~/tools/invalidate_nextjs_server_route';
 import {
   AlertDialog,
   AlertDialogAction,
@@ -86,6 +88,7 @@ type Props =
 
 const AddSchedule = (props: Props) => {
   const { type } = props;
+  const queryClient = useQueryClient();
   const [startDate, setStartDate] = useState<Date | undefined>(
     type === 'edit' ? props.init.start_date : undefined
   );
@@ -121,6 +124,14 @@ const AddSchedule = (props: Props) => {
     onSuccess(data) {
       if (data.success) {
         toast.success('Schedule added successfully');
+
+        // Clear React Query cache for the puzzle carousel
+        void queryClient.invalidateQueries({ queryKey: ['listed_puzzles_carousel'] });
+
+        // Invalidate Next.js cache routes on the server
+        void invalidatePage('/padavali/schedules');
+        void invalidatePage('/padavali/puzzles');
+
         router.push(`/padavali/schedules`);
       } else if (data.error_code === 'already_exists_in_time_range') {
         toast.error('A schedule already exists in the time range');
@@ -135,6 +146,14 @@ const AddSchedule = (props: Props) => {
     onSuccess(data) {
       if (data.success) {
         toast.success('Schedule updated successfully');
+
+        // Clear React Query cache for the puzzle carousel
+        void queryClient.invalidateQueries({ queryKey: ['listed_puzzles_carousel'] });
+
+        // Invalidate Next.js cache routes on the server
+        void invalidatePage('/padavali/schedules');
+        void invalidatePage('/padavali/puzzles');
+
         router.push(`/padavali/schedules`);
       }
     },

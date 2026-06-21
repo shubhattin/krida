@@ -4,6 +4,8 @@ import { useState } from 'react';
 import { useRouter } from 'next/navigation';
 import { CheckIcon, Loader2Icon, PencilIcon, XIcon } from 'lucide-react';
 import { client_q } from '~/api/client';
+import { useQueryClient } from '@tanstack/react-query';
+import { invalidatePage } from '~/tools/invalidate_nextjs_server_route';
 import { Button } from '~/components/ui/button';
 import {
   Dialog,
@@ -54,6 +56,7 @@ const SlugStatusIcon = ({
 
 export const EditSlugDialog = ({ puzzleId, currentSlug, onSlugUpdated }: Props) => {
   const router = useRouter();
+  const queryClient = useQueryClient();
   const [open, setOpen] = useState(false);
   const [confirmOpen, setConfirmOpen] = useState(false);
   const [newSlug, setNewSlug] = useState(currentSlug);
@@ -66,6 +69,15 @@ export const EditSlugDialog = ({ puzzleId, currentSlug, onSlugUpdated }: Props) 
   const update_slug_mut = client_q.puzzle.update_puzzle_slug.useMutation({
     onSuccess(data) {
       toast.success('Slug updated successfully');
+
+      // Clear React Query cache for the puzzle carousel
+      void queryClient.invalidateQueries({ queryKey: ['listed_puzzles_carousel'] });
+
+      // Invalidate Next.js cache routes on the server
+      void invalidatePage('/padavali/puzzles');
+      void invalidatePage(`/padavali/puzzle/${currentSlug}`);
+      void invalidatePage(`/padavali/puzzle/${data.slug}`);
+
       onSlugUpdated(data.slug);
       setOpen(false);
       setConfirmOpen(false);

@@ -5,6 +5,7 @@ export type CellPosition = { row: number; col: number };
 export type Selection = { cells: CellPosition[]; word: string };
 
 export const title_current_atom = atom('');
+export const description_current_atom = atom<string | null>(null);
 export const grid_data_current_atom = atom<string[][]>([]);
 export const grid_dimensions_atom = atom<[number, number]>([0, 0]);
 export const original_word_list_atom = atom<string[]>([]);
