@@ -1,5 +1,6 @@
 import { useDrag } from '@use-gesture/react';
-import { useEffect, useRef, type RefObject, useContext } from 'react';
+import { useEffect, useRef, type RefObject, useContext, useState } from 'react';
+import { motion } from 'framer-motion';
 import { FONT_INFO } from '~/state/script_font_data';
 import { cn } from '~/lib/utils';
 import { useAtom } from 'jotai';
@@ -38,8 +39,88 @@ export const GameGrid = ({ timerRef, original_grid_data }: Props) => {
   const [, setTotalAttempts] = useAtom(total_attempts_atom);
   const [wordList] = useAtom(original_word_list_atom);
 
-  const [rows, cols] = gridDimensions;
+  const rows = gridDimensions[0] > 0 ? gridDimensions[0] : original_grid_data.length;
+  const cols = gridDimensions[1] > 0 ? gridDimensions[1] : original_grid_data[0].length;
   const gridRef = useRef<HTMLDivElement>(null);
+
+  const [demoPath, setDemoPath] = useState<CellPosition[]>([]);
+  const [demoState, setDemoState] = useState<'idle' | 'selecting' | 'success' | 'fail'>('idle');
+  const [handPos, setHandPos] = useState<CellPosition | null>(null);
+  const [lastHandPos, setLastHandPos] = useState<CellPosition | null>(null);
+
+  useEffect(() => {
+    if (handPos) {
+      setLastHandPos(handPos);
+    }
+  }, [handPos]);
+
+  useEffect(() => {
+    if (started || completed) {
+      setDemoPath([]);
+      setDemoState('idle');
+      setHandPos(null);
+      return;
+    }
+
+    let isMounted = true;
+    let timeoutId: NodeJS.Timeout;
+
+    const startCycle = async () => {
+      if (!isMounted) return;
+
+      // 1. Idle state for 1.5s
+      setDemoPath([]);
+      setDemoState('idle');
+      // Do not clear handPos to keep it on screen and transition from the previous path end
+      await new Promise((resolve) => {
+        timeoutId = setTimeout(resolve, 1500);
+      });
+
+      if (!isMounted) return;
+
+      // 2. Generate random path
+      const path = generateRandomPath(rows, cols);
+      if (path.length < 2) {
+        startCycle();
+        return;
+      }
+
+      // 3. Trace cells one by one
+      setDemoState('selecting');
+      for (let i = 0; i < path.length; i++) {
+        if (!isMounted) return;
+        const currentPath = path.slice(0, i + 1);
+        setDemoPath(currentPath);
+        setHandPos(path[i]);
+        await new Promise((resolve) => {
+          timeoutId = setTimeout(resolve, 600);
+        });
+      }
+
+      if (!isMounted) return;
+
+      // 4. Set final state (success or failure)
+      const isSuccess = Math.random() < 0.65;
+      setDemoState(isSuccess ? 'success' : 'fail');
+
+      // Keep showing the final path and hand emoji for 1.5s
+      await new Promise((resolve) => {
+        timeoutId = setTimeout(resolve, 1500);
+      });
+
+      if (!isMounted) return;
+
+      // Repeat cycle
+      startCycle();
+    };
+
+    startCycle();
+
+    return () => {
+      isMounted = false;
+      clearTimeout(timeoutId);
+    };
+  }, [started, completed, rows, cols]);
 
   const font_info = FONT_INFO[script!];
   const [wordMsgs] = useAtom(word_msgs_atom);
@@ -273,6 +354,9 @@ export const GameGrid = ({ timerRef, original_grid_data }: Props) => {
     }
   }, [foundWords.length, wordList.length, started]);
 
+  const displayPos = handPos ?? lastHandPos;
+  const isVisible = !!handPos && !started && !completed;
+
   return (
     <>
       <div className="w-full">
@@ -315,9 +399,35 @@ export const GameGrid = ({ timerRef, original_grid_data }: Props) => {
                     started={started}
                     currentSelection={currentSelection}
                     foundWords={foundWords}
+                    demoPath={demoPath}
+                    demoState={demoState}
                   />
                 ))
               )}
+              {/* Hand Pointer overlay inside the grid */}
+              <motion.div
+                style={{
+                  position: 'absolute',
+                  zIndex: 35,
+                  pointerEvents: 'none'
+                }}
+                initial={false}
+                animate={{
+                  left: displayPos ? `${((displayPos.col + 0.5) / cols) * 100}%` : '50%',
+                  top: displayPos ? `${((displayPos.row + 0.5) / rows) * 100}%` : '50%',
+                  opacity: isVisible ? 1 : 0,
+                  scale: isVisible ? 1 : 0.8
+                }}
+                transition={{
+                  left: { type: 'spring', stiffness: 100, damping: 15 },
+                  top: { type: 'spring', stiffness: 100, damping: 15 },
+                  opacity: { duration: 0.3 },
+                  scale: { duration: 0.3 }
+                }}
+                className="pointer-events-none -translate-x-1/2 translate-y-[-15%] text-2xl drop-shadow-md select-none sm:text-3xl"
+              >
+                👆
+              </motion.div>
             </div>
 
             {/* Overlay SVG for trails */}
@@ -374,6 +484,38 @@ export const GameGrid = ({ timerRef, original_grid_data }: Props) => {
                   />
                 </g>
               )}
+              {/* Demo path trail */}
+              {!started && demoPath.length > 1 && (
+                <g>
+                  {/* Glow effect */}
+                  <polyline
+                    points={buildPoints(demoPath)}
+                    fill="none"
+                    className={cn(
+                      demoState === 'success' && 'stroke-emerald-300 dark:stroke-emerald-400',
+                      demoState === 'fail' && 'stroke-red-300 dark:stroke-red-400',
+                      demoState === 'selecting' && 'stroke-blue-300 dark:stroke-blue-400'
+                    )}
+                    strokeWidth={12}
+                    strokeLinecap="round"
+                    strokeLinejoin="round"
+                    opacity={0.3}
+                  />
+                  {/* Main line */}
+                  <polyline
+                    points={buildPoints(demoPath)}
+                    fill="none"
+                    className={cn(
+                      demoState === 'success' && 'stroke-emerald-500 dark:stroke-emerald-400',
+                      demoState === 'fail' && 'stroke-red-500 dark:stroke-red-400',
+                      demoState === 'selecting' && 'stroke-blue-500 dark:stroke-blue-400'
+                    )}
+                    strokeWidth={6}
+                    strokeLinecap="round"
+                    strokeLinejoin="round"
+                  />
+                </g>
+              )}
             </svg>
 
             {/* Play Button Overlay - centered over the grid */}
@@ -383,7 +525,7 @@ export const GameGrid = ({ timerRef, original_grid_data }: Props) => {
                 className={cn(
                   // Blue gradient with light and dark variants
                   'group absolute inset-0 z-20 m-auto size-fit overflow-hidden',
-                  'bg-gradient-to-r from-blue-500 to-indigo-500 hover:from-blue-600 hover:to-indigo-600',
+                  'bg-linear-to-r from-blue-500 to-indigo-500 hover:from-blue-600 hover:to-indigo-600',
                   'dark:from-blue-700 dark:to-indigo-700 dark:hover:from-blue-800 dark:hover:to-indigo-800',
                   'rounded-xl px-3 pt-2.5 pb-1 font-bold text-white shadow-lg hover:shadow-xl sm:rounded-2xl sm:px-5 sm:py-4 sm:pb-2',
                   'transform transition-all duration-200 hover:scale-105 active:scale-95',
@@ -410,6 +552,8 @@ type GridCellProps = {
   started: boolean;
   currentSelection: CellPosition[];
   foundWords: { cells: CellPosition[]; word: string }[];
+  demoPath: CellPosition[];
+  demoState: 'idle' | 'selecting' | 'success' | 'fail';
 };
 
 const GridCell = ({
@@ -419,12 +563,15 @@ const GridCell = ({
   fontInfo,
   started,
   currentSelection,
-  foundWords
+  foundWords,
+  demoPath,
+  demoState
 }: GridCellProps) => {
   const isInCurrent = currentSelection.some((cell) => cell.row === row && cell.col === col);
   const isInFound = foundWords.some((sel) =>
     sel.cells.some((cell) => cell.row === row && cell.col === col)
   );
+  const isInDemo = demoPath.some((cell) => cell.row === row && cell.col === col);
   const isLast =
     isInCurrent &&
     currentSelection.length !== 0 &&
@@ -447,22 +594,31 @@ const GridCell = ({
         !started && 'blur-sm',
         started && 'cursor-pointer',
         'text-base',
-        'flex items-center justify-center rounded-3xl px-[1px] py-0 text-center font-bold sm:rounded-2xl',
+        'flex items-center justify-center rounded-3xl px-px py-0 text-center font-bold sm:rounded-2xl',
         'aspect-square border-2 sm:p-1 md:p-2',
         'transform transition-all duration-300 ease-out',
         'hover:scale-105 active:scale-95',
-        'border-slate-300 bg-gradient-to-br from-white to-slate-50 dark:border-slate-600 dark:from-slate-700 dark:to-slate-800',
+        'border-slate-300 bg-linear-to-br from-white to-slate-50 dark:border-slate-600 dark:from-slate-700 dark:to-slate-800',
         'shadow-lg hover:shadow-xl',
+        isInDemo &&
+          !started && [
+            demoState === 'success' &&
+              'border-emerald-400 bg-linear-to-br from-emerald-100 to-green-200 text-emerald-800 shadow-emerald-200 dark:border-emerald-500 dark:from-emerald-900 dark:to-green-800 dark:text-emerald-100 dark:shadow-emerald-900',
+            demoState === 'fail' &&
+              'border-red-400 bg-linear-to-br from-red-100 to-rose-200 text-red-800 shadow-red-200 dark:border-red-500 dark:from-red-900 dark:to-rose-800 dark:text-red-100 dark:shadow-red-900',
+            demoState === 'selecting' &&
+              'border-blue-400 bg-linear-to-br from-blue-100 to-indigo-200 text-blue-800 shadow-blue-200 dark:border-blue-500 dark:from-blue-900 dark:to-indigo-800 dark:text-blue-100 dark:shadow-blue-900'
+          ],
         isInFound && [
           'border-emerald-400 dark:border-emerald-500',
-          'bg-gradient-to-br from-emerald-100 to-green-200 dark:from-emerald-900 dark:to-green-800',
+          'bg-linear-to-br from-emerald-100 to-green-200 dark:from-emerald-900 dark:to-green-800',
           'text-emerald-800 dark:text-emerald-100',
           'shadow-emerald-200 dark:shadow-emerald-900'
         ],
         isInCurrent &&
           !isInFound && [
             'border-blue-400 dark:border-blue-500',
-            'bg-gradient-to-br from-blue-100 to-indigo-200 dark:from-blue-900 dark:to-indigo-800',
+            'bg-linear-to-br from-blue-100 to-indigo-200 dark:from-blue-900 dark:to-indigo-800',
             'text-blue-800 dark:text-blue-100',
             'shadow-blue-200 dark:shadow-blue-900'
           ],
@@ -470,10 +626,65 @@ const GridCell = ({
         !isInCurrent &&
           !isInFound &&
           started &&
-          'hover:bg-gradient-to-br hover:from-slate-100 hover:to-slate-200 dark:hover:from-slate-600 dark:hover:to-slate-700'
+          'hover:bg-linear-to-br hover:from-slate-100 hover:to-slate-200 dark:hover:from-slate-600 dark:hover:to-slate-700'
       )}
     >
       {letter}
     </div>
   );
+};
+
+const isCenterCell = (r: number, c: number, rows: number, cols: number) => {
+  const midRow = (rows - 1) / 2;
+  const midCol = (cols - 1) / 2;
+  // If the cell is in the middle region where play overlay lies
+  return Math.abs(r - midRow) < 1 && Math.abs(c - midCol) < 1;
+};
+
+const generateRandomPath = (rows: number, cols: number): CellPosition[] => {
+  for (let attempt = 0; attempt < 20; attempt++) {
+    const startRow = Math.floor(Math.random() * rows);
+    const startCol = Math.floor(Math.random() * cols);
+
+    if (isCenterCell(startRow, startCol, rows, cols)) {
+      continue;
+    }
+
+    const path: CellPosition[] = [{ row: startRow, col: startCol }];
+    const targetLength = Math.floor(Math.random() * 3) + 2; // Length 2, 3, or 4
+
+    let current = { row: startRow, col: startCol };
+    let success = true;
+
+    for (let step = 1; step < targetLength; step++) {
+      const neighbors: CellPosition[] = [];
+      for (let dr = -1; dr <= 1; dr++) {
+        for (let dc = -1; dc <= 1; dc++) {
+          if (dr === 0 && dc === 0) continue;
+          const nr = current.row + dr;
+          const nc = current.col + dc;
+
+          if (nr < 0 || nr >= rows || nc < 0 || nc >= cols) continue;
+          if (isCenterCell(nr, nc, rows, cols)) continue;
+          if (path.some((p) => p.row === nr && p.col === nc)) continue;
+
+          neighbors.push({ row: nr, col: nc });
+        }
+      }
+
+      if (neighbors.length === 0) {
+        success = false;
+        break;
+      }
+
+      const next = neighbors[Math.floor(Math.random() * neighbors.length)];
+      path.push(next);
+      current = next;
+    }
+
+    if (success && path.length >= 2) {
+      return path;
+    }
+  }
+  return [];
 };

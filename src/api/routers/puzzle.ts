@@ -192,6 +192,9 @@ const update_puzzle_route = protectedAdminProcedure
       invalidate_and_refresh_cached(CACHE.word_puzzle, {
         slug: puzzle_slug
       }),
+      invalidate_and_refresh_cached(CACHE.word_meanings, {
+        slug: puzzle_slug
+      }),
       (await puzzle_in_current_schedule(puzzle_id)) &&
         invalidate_and_refresh_cached(CACHE.current_schedule, NO_CACHE_PARAMS),
       puzzle_data.listed &&
@@ -235,7 +238,9 @@ const update_puzzle_slug_route = protectedAdminProcedure
     revalidatePath('/padavali/list');
 
     await CACHE.word_puzzle.delete({ slug: current_slug });
+    await CACHE.word_meanings.delete({ slug: current_slug });
     await invalidate_and_refresh_cached(CACHE.word_puzzle, { slug: new_slug });
+    await invalidate_and_refresh_cached(CACHE.word_meanings, { slug: new_slug });
 
     await Promise.allSettled([
       puzzle.listed && invalidate_and_refresh_cached(CACHE.listed_puzzle_list, NO_CACHE_PARAMS),
@@ -296,6 +301,7 @@ const delete_puzzle_route = protectedAdminProcedure
       invalidate_and_refresh_cached(CACHE.word_puzzle, {
         slug: normalizedSlug
       }),
+      CACHE.word_meanings.delete({ slug: normalizedSlug }),
       (await puzzle_in_current_schedule(id)) &&
         invalidate_and_refresh_cached(CACHE.current_schedule, NO_CACHE_PARAMS),
       (await puzzle_in_next_schedule(id)) &&

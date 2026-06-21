@@ -10,6 +10,7 @@ import { GameContoller } from './GameController';
 import { GameInfo } from './GameInfo';
 import { GameGrid } from './GameGrid';
 import { GameHelp } from './Help';
+import { AIWordExplanations } from './AIWordExplanations';
 import { createStore, Provider, useAtom, useSetAtom } from 'jotai';
 import { ScriptSelector } from '~/components/pages/main/ScriptSelector';
 import { cn } from '~/lib/utils';
@@ -561,6 +562,7 @@ function WordGame({
                 timerRef={timerRef}
                 location={location}
               />
+              <AIWordExplanations puzzle_id={puzzle_id} puzzle_slug={puzzle_slug} />
             </div>
           </div>
 

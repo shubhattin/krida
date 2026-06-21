@@ -66,6 +66,9 @@ export const POST = verifySignatureAppRouter(async (req: Request) => {
     invalidate_and_refresh_cached(CACHE.word_puzzle, {
       slug: schedule.puzzle.slug
     }),
+    invalidate_and_refresh_cached(CACHE.word_meanings, {
+      slug: schedule.puzzle.slug
+    }),
     notify_for_listed_puzzle(schedule.puzzle.title, schedule.puzzle.slug)
   ]);
 
