@@ -119,6 +119,9 @@ import { useQuery, useQueryClient } from '@tanstack/react-query';
 import { client } from '~/api/client';
 import { invalidatePage } from '~/tools/invalidate_nextjs_server_route';
 
+const IMAGE_ASPECT = '768 / 512'; // 3:2
+const IMAGE_GENERATION_TIMEOUT_MS = 60_000; // Time in milliseconds for progress animation
+
 const ATTACHMENT_TYPE_ITEMS = [
   { label: 'Select attachment type', value: null },
   ...Object.entries(ATTACHMENT_TYPE_NAMES).map(([key, value]) => ({
@@ -1245,9 +1248,6 @@ const SaveButton = ({ word_puzzle }: { word_puzzle: Puzzle }) => {
 // ---------------------------------------------------------------------------
 // Puzzle Image Section
 // ---------------------------------------------------------------------------
-
-const IMAGE_ASPECT = '768 / 512'; // 3:2
-const IMAGE_GENERATION_TIMEOUT_MS = 35_000; // Time in milliseconds for progress animation
 
 const PuzzleImageSection = ({ word_puzzle }: { word_puzzle: Puzzle }) => {
   const [image_id, setImageId] = useAtom(image_id_atom);
