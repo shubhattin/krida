@@ -11,9 +11,6 @@ import crypto from 'node:crypto';
 
 const REASONING_EFFORT = 'low' as const;
 
-/**
- * Aspect ratio for image generation.
- */
 const IMAGE_GENERATION_ASPECT_RATIO = '3:2' as const;
 
 /**
@@ -99,7 +96,7 @@ async function generatePuzzleCardImage(image_prompt: string): Promise<string> {
     aspectRatio: IMAGE_GENERATION_ASPECT_RATIO,
     providerOptions: {
       openai: {
-        quality: 'low'
+        quality: 'medium'
       } satisfies OpenAIImageModelGenerationOptions
     }
   });
