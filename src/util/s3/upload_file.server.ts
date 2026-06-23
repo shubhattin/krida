@@ -12,21 +12,33 @@ const envs_parsed = z
     AWS_S3_FILES_BUCKET_NAME: z.string().min(1)
   })
   .safeParse(process.env);
-if (!envs_parsed.success) {
-  console.error(envs_parsed.error);
-  throw new Error('Invalid environment variables');
-}
-const envs = envs_parsed.data;
 
-const s3 = new S3Client({
-  region: envs.AWS_REGION,
-  credentials: {
-    accessKeyId: envs.AWS_ACCESS_KEY_ID,
-    secretAccessKey: envs.AWS_SECRET_ACCESS_KEY
+export const createS3Client = () => {
+  if (!envs_parsed.success) {
+    console.error(envs_parsed.error);
+    throw new Error('Invalid environment variables');
   }
-});
+  const envs = envs_parsed.data;
+  return new S3Client({
+    region: envs.AWS_REGION,
+    credentials: {
+      accessKeyId: envs.AWS_ACCESS_KEY_ID,
+      secretAccessKey: envs.AWS_SECRET_ACCESS_KEY
+    }
+  });
+};
 
-async function uploadFile(bucketName: string, key: string, fileBuffer: Buffer) {
+type UploadFileOptions = {
+  s3Client: S3Client;
+};
+
+async function uploadFile(
+  bucketName: string,
+  key: string,
+  fileBuffer: Buffer,
+  options: UploadFileOptions
+) {
+  const { s3Client } = options;
   const uploadParams: PutObjectCommandInput = {
     Bucket: bucketName,
     Key: key,
@@ -35,16 +47,20 @@ async function uploadFile(bucketName: string, key: string, fileBuffer: Buffer) {
     StorageClass: StorageClass.STANDARD
   };
 
-  const data = await s3.send(new PutObjectCommand(uploadParams));
+  const data = await s3Client.send(new PutObjectCommand(uploadParams));
   return data;
 }
 
-const ASSET_BUCKET_NAME = envs.AWS_S3_FILES_BUCKET_NAME;
+const ASSET_BUCKET_NAME = envs_parsed.data?.AWS_S3_FILES_BUCKET_NAME ?? '';
 
 type location_types =
   `${typeof PROJECT_S3_ALIAS}/${(typeof KRIDAS)[number]}/image_assets/${string}.webp`;
-export const uploadAssetFile = async (key: location_types, fileBuffer: Buffer) => {
-  const data = await uploadFile(ASSET_BUCKET_NAME, key, fileBuffer);
+export const uploadAssetFile = async (
+  key: location_types,
+  fileBuffer: Buffer,
+  options: UploadFileOptions
+) => {
+  const data = await uploadFile(ASSET_BUCKET_NAME, key, fileBuffer, options);
   return data;
 };
 
@@ -52,12 +68,13 @@ const ASSET_KEY_PATTERN = new RegExp(
   `^${PROJECT_S3_ALIAS}/(?:${KRIDAS.join('|')})/image_assets/[\\w.-]+\\.webp$`
 );
 
-export const deleteAssetFile = async (key: string) => {
+export const deleteAssetFile = async (key: string, options: UploadFileOptions) => {
+  const { s3Client } = options;
   if (!ASSET_KEY_PATTERN.test(key)) {
     throw new Error(`Invalid asset key: ${key}`);
   }
 
-  const data = await s3.send(
+  const data = await s3Client.send(
     new DeleteObjectCommand({
       Bucket: ASSET_BUCKET_NAME,
       Key: key

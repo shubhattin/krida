@@ -8,6 +8,7 @@ import { uploadAssetFile, deleteAssetFile } from '~/util/s3/upload_file.server';
 import { PROJECT_S3_ALIAS } from '~/constants';
 import { openai, openrouter } from './providers';
 import crypto from 'node:crypto';
+import type { S3Client } from '@aws-sdk/client-s3';
 
 /**
  * Final stored dimensions after sharp resize/compress.
@@ -101,7 +102,7 @@ async function generatePuzzleCardImage(image_prompt: string): Promise<string> {
   const result = await generateImage({
     model: image_model,
     prompt: image_prompt,
-    aspectRatio: IMAGE_CONFIG.ASPECT_RATIO,
+    // aspectRatio: IMAGE_CONFIG.ASPECT_RATIO,
     size: IMAGE_CONFIG.IMAGE_GEN_DIMS,
     providerOptions: {
       openai: {
@@ -156,8 +157,9 @@ export const generateFileNameAndDescription = async (
   return response.output;
 };
 
-export const generatePuzzleImage = async (
+export const generateSavePuzzleImage = async (
   input: GeneratePuzzleImageInput,
+  s3Client: S3Client,
   db_instance: typeof db,
   existing_image_b64?: string,
   existing_file_name_description?: { file_name: string; description: string }
@@ -230,12 +232,12 @@ export const generatePuzzleImage = async (
     `${PROJECT_S3_ALIAS}/padavali/image_assets/${file_name}_${crypto.randomUUID()}.webp` as const;
 
   try {
-    await uploadAssetFile(s3_key, compressed_buffer);
+    await uploadAssetFile(s3_key, compressed_buffer, { s3Client });
     console.log('[ai_image_assets] image uploaded to S3:', s3_key);
   } catch (err) {
     console.error('[ai_image_assets] S3 upload failed:', err);
     // Best-effort cleanup (key may not exist yet, but harmless)
-    await deleteAssetFile(s3_key).catch(() => {});
+    await deleteAssetFile(s3_key, { s3Client }).catch(() => {});
     return { success: false, err_code: 'image_upload_failed' as const };
   }
 
@@ -255,7 +257,7 @@ export const generatePuzzleImage = async (
       .returning();
   } catch (err) {
     // DB insert failed after upload → clean up the orphaned S3 object
-    await deleteAssetFile(s3_key).catch(() => {});
+    await deleteAssetFile(s3_key, { s3Client }).catch(() => {});
     throw err;
   }
 
