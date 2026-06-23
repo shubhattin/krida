@@ -44,6 +44,7 @@ const IMAGE_PROMPT_SYSTEM = `
   - NO borders, frames, or decorative margins.
   - Do not mess up the gender of the subject (devi, deva, etc.).
   - Make sure to also include the subject even you include things related to it. That describe it or so
+  - You dont always have to include a temple in background only do if it its needed and fits/suits the theme.
   
   **Composition rules:**
   - LANDSCAPE orientation (wider than tall, 3:2 aspect ratio).
