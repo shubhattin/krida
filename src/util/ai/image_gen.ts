@@ -17,7 +17,8 @@ import crypto from 'node:crypto';
 const IMAGE_CONFIG = {
   HEIGHT: 512,
   WIDTH: 768,
-  ASPECT_RATIO: '3:2'
+  ASPECT_RATIO: '3:2',
+  IMAGE_GEN_DIMS: '1536x1024'
 } as const;
 
 const OPENROUTER_MODELS = {
@@ -101,6 +102,7 @@ async function generatePuzzleCardImage(image_prompt: string): Promise<string> {
     model: image_model,
     prompt: image_prompt,
     aspectRatio: IMAGE_CONFIG.ASPECT_RATIO,
+    size: IMAGE_CONFIG.IMAGE_GEN_DIMS,
     providerOptions: {
       openai: {
         quality: 'medium'
