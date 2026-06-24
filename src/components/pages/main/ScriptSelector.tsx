@@ -21,7 +21,12 @@ import {
   SelectTrigger,
   SelectValue
 } from '~/components/ui/select';
-import { type ScriptLangType, type ScriptListType, getNormalizedScriptName } from 'lipilekhika';
+import {
+  type ScriptLangType,
+  type ScriptListType,
+  getNormalizedScriptName,
+  preloadScriptData
+} from 'lipilekhika';
 
 export const SCRIPT_AVATAR_MAP: Record<ScriptListType, string> = {
   Devanagari: 'अ',
@@ -60,6 +65,25 @@ const ScriptAvatar = ({ script }: { script: ScriptLangType }) => (
   </Avatar>
 );
 
+const prefetchedScripts = new Set<ScriptType>();
+
+const prefetchScript = (scriptKey: ScriptType) => {
+  if (prefetchedScripts.has(scriptKey)) return;
+  prefetchedScripts.add(scriptKey);
+  void preloadScriptData(scriptKey);
+};
+
+const ScriptSelectItem = ({ scriptKey }: { scriptKey: ScriptType }) => (
+  <SelectItem
+    value={scriptKey}
+    onPointerEnter={() => prefetchScript(scriptKey)}
+    onFocus={() => prefetchScript(scriptKey)}
+  >
+    <ScriptAvatar script={scriptKey} />
+    {SCRIPT_NAMES[scriptKey]}
+  </SelectItem>
+);
+
 const SCRIPT_ITEMS = [
   ...SCRIPT_LIST_MAIN.map((script) => ({
     label: SCRIPT_NAMES[script],
@@ -78,6 +102,10 @@ type Props = {
 
 export const ScriptSelector = ({ script, onScriptChange }: Props) => {
   useEffect(() => {
+    prefetchScript(script);
+  }, [script]);
+
+  useEffect(() => {
     load_posthog((posthog) => {
       posthog.capture('gameplay_script', { script });
     });
@@ -86,33 +114,41 @@ export const ScriptSelector = ({ script, onScriptChange }: Props) => {
   const handleScriptChange = (value: ScriptType | null) => {
     if (!value) return;
 
+    prefetchScript(value);
     onScriptChange(value);
     Cookies.set(SCRIPT_DATA_COOKIE_KEY, value, {
       expires: 365
     });
   };
 
+  const handleOpenChange = (open: boolean) => {
+    if (open) prefetchScript(script);
+  };
+
   return (
-    <Select items={SCRIPT_ITEMS} value={script} onValueChange={handleScriptChange}>
-      <SelectTrigger className="h-8 w-46 gap-2 border-border/50 bg-background/50 text-sm">
+    <Select
+      items={SCRIPT_ITEMS}
+      value={script}
+      onValueChange={handleScriptChange}
+      onOpenChange={handleOpenChange}
+    >
+      <SelectTrigger
+        className="h-8 w-46 gap-2 border-border/50 bg-background/50 text-sm"
+        onPointerEnter={() => prefetchScript(script)}
+        onFocus={() => prefetchScript(script)}
+      >
         <ScriptAvatar script={script} />
         <SelectValue />
       </SelectTrigger>
       <SelectContent alignItemWithTrigger={false} className="max-h-96">
         {SCRIPT_LIST_MAIN.map((scriptKey) => (
-          <SelectItem key={scriptKey} value={scriptKey}>
-            <ScriptAvatar script={scriptKey} />
-            {SCRIPT_NAMES[scriptKey]}
-          </SelectItem>
+          <ScriptSelectItem key={scriptKey} scriptKey={scriptKey} />
         ))}
         <SelectSeparator />
         <SelectGroup>
           <SelectLabel>Ancient Scripts</SelectLabel>
           {SCRIPT_LIST_ANCIENT.map((scriptKey) => (
-            <SelectItem key={scriptKey} value={scriptKey}>
-              <ScriptAvatar script={scriptKey} />
-              {SCRIPT_NAMES[scriptKey]}
-            </SelectItem>
+            <ScriptSelectItem key={scriptKey} scriptKey={scriptKey} />
           ))}
         </SelectGroup>
       </SelectContent>
