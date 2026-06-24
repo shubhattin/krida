@@ -161,6 +161,7 @@ export const generateSavePuzzleImage = async (
   input: GeneratePuzzleImageInput,
   s3Client: S3Client,
   db_instance: typeof db,
+  s3_bucket_name?: string,
   existing_image_b64?: string,
   existing_file_name_description?: { file_name: string; description: string }
 ): Promise<GeneratePuzzleImageOutput> => {
@@ -231,7 +232,7 @@ export const generateSavePuzzleImage = async (
   const s3_key =
     `${PROJECT_S3_ALIAS}/padavali/image_assets/${file_name}_${crypto.randomUUID()}.webp` as const;
 
-  const assetBucketName = process.env.AWS_S3_FILES_BUCKET_NAME ?? '';
+  const assetBucketName = s3_bucket_name ?? process.env.AWS_S3_FILES_BUCKET_NAME ?? '';
   try {
     await uploadAssetFile(s3_key, compressed_buffer, { s3Client, assetBucketName });
     console.log('[ai_image_assets] image uploaded to S3:', s3_key);
