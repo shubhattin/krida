@@ -231,13 +231,14 @@ export const generateSavePuzzleImage = async (
   const s3_key =
     `${PROJECT_S3_ALIAS}/padavali/image_assets/${file_name}_${crypto.randomUUID()}.webp` as const;
 
+  const assetBucketName = process.env.AWS_S3_FILES_BUCKET_NAME ?? '';
   try {
-    await uploadAssetFile(s3_key, compressed_buffer, { s3Client });
+    await uploadAssetFile(s3_key, compressed_buffer, { s3Client, assetBucketName });
     console.log('[ai_image_assets] image uploaded to S3:', s3_key);
   } catch (err) {
     console.error('[ai_image_assets] S3 upload failed:', err);
     // Best-effort cleanup (key may not exist yet, but harmless)
-    await deleteAssetFile(s3_key, { s3Client }).catch(() => {});
+    await deleteAssetFile(s3_key, { s3Client, assetBucketName }).catch(() => {});
     return { success: false, err_code: 'image_upload_failed' as const };
   }
 
@@ -257,7 +258,7 @@ export const generateSavePuzzleImage = async (
       .returning();
   } catch (err) {
     // DB insert failed after upload → clean up the orphaned S3 object
-    await deleteAssetFile(s3_key, { s3Client }).catch(() => {});
+    await deleteAssetFile(s3_key, { s3Client, assetBucketName }).catch(() => {});
     throw err;
   }
 
