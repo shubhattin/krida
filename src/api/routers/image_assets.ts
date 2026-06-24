@@ -5,6 +5,7 @@ import { image_assets } from '~/db/schema';
 import { deleteAssetFile } from '~/util/s3/upload_file.server';
 import { and, asc, count, desc, eq, ilike } from 'drizzle-orm';
 import { escapeIlikeToken, tokenizeSearchQuery } from '~/util/puzzle/search';
+import { createS3Client } from '~/util/s3/upload_file.server';
 
 const get_image_assets_page_input_schema = z.object({
   page: z.number().int().min(1).default(1),
@@ -12,6 +13,8 @@ const get_image_assets_page_input_schema = z.object({
   search_description: z.string().max(150).optional(),
   order_by: z.enum(['asc', 'desc']).optional().default('desc')
 });
+
+const s3Client = createS3Client();
 
 export const get_image_assets_page = async (
   input: z.input<typeof get_image_assets_page_input_schema>
@@ -85,7 +88,7 @@ const delete_image_asset_route = protectedAdminProcedure
     let lastError: unknown;
     for (let attempt = 1; attempt <= maxAttempts; attempt++) {
       try {
-        await deleteAssetFile(deleted.s3_key);
+        await deleteAssetFile(deleted.s3_key, { s3Client });
         return { deleted: true };
       } catch (err) {
         lastError = err;
