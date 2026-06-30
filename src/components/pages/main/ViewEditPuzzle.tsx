@@ -41,7 +41,8 @@ import {
   Wand2,
   SearchIcon,
   MoreVertical,
-  ArrowUpDownIcon
+  ArrowUpDownIcon,
+  ExternalLink
 } from 'lucide-react';
 import {
   Dialog,
@@ -196,7 +197,7 @@ const ViewEditPuzzle = ({ word_puzzle: initialWordPuzzle }: ViewEditProps) => {
             onSlugUpdated={(slug) => setWordPuzzle((prev) => ({ ...prev, slug }))}
           />
           <Title />
-          <ListedSwitch />
+          <ListedSwitch slug={word_puzzle.slug} />
           <Description />
           <Attachments />
           <WordList />
@@ -1007,11 +1008,12 @@ const GridData = ({
   );
 };
 
-const ListedSwitch = () => {
+const ListedSwitch = ({ slug }: { slug: string }) => {
   const [listed, setListed] = useAtom(listed_atom);
+  const listedPuzzleUrl = `/padavali/puzzle/${slug}`;
 
   return (
-    <div>
+    <div className="flex items-center space-x-4">
       <div className="inline-flex items-center gap-2">
         <Label className="inline-flex items-center gap-2 font-medium">
           <Switch checked={listed} onCheckedChange={setListed} />
@@ -1029,6 +1031,17 @@ const ListedSwitch = () => {
           </Tooltip>
         </TooltipProvider>
       </div>
+      {listed ? (
+        <a
+          href={listedPuzzleUrl}
+          target="_blank"
+          rel="noopener noreferrer"
+          className="inline-flex items-center justify-center gap-1.5 text-sm font-medium text-primary underline-offset-4 hover:underline"
+        >
+          Listed Puzzle URL
+          <ExternalLink className="size-3.5 shrink-0" aria-hidden="true" />
+        </a>
+      ) : null}
     </div>
   );
 };

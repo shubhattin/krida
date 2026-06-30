@@ -23,10 +23,7 @@ export async function generateMetadata({ params }: Props): Promise<Metadata> {
 
   return {
     ...getMetadata({
-      title:
-        word_puzzle
-          ? word_puzzle.title + ' - Padavali Puzzle | पदावली'
-          : 'Not Found',
+      title: word_puzzle ? word_puzzle.title + ' - Padavali Puzzle | पदावली' : 'Not Found',
       description: word_puzzle ? word_puzzle.description : null
     })
   };

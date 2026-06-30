@@ -10,6 +10,7 @@ import { CACHE, NO_CACHE_PARAMS } from '~/util/cache.server/cache_loaders';
 import { cache } from 'react';
 import { getMetadata } from '~/components/tags/getPageMetaTags';
 import { parseIdSlugParam } from '~/util/puzzle/slug';
+import { PreviewWarningBanner } from './PreviewWarningBanner';
 
 type Props = { params: Promise<{ id_slug: string }> };
 
@@ -68,6 +69,7 @@ const MainEdit = async ({ params }: Props) => {
     <>
       {isValid ? (
         <>
+          <PreviewWarningBanner />
           <WordGame
             location="view_page"
             script={script}
