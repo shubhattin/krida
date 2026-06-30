@@ -50,6 +50,19 @@ export const image_assets = pgTable('image_assets', {
   created_at: timestamp({ withTimezone: true }).notNull().defaultNow()
 });
 
+/**
+ * Used to redirect old URLs to the new ones (like after we change the slug)
+ */
+export const word_puzzle_redirects = pgTable('word_puzzle_redirects', {
+  id: serial().primaryKey(),
+  puzzle_id: integer()
+    .notNull()
+    .references(() => word_puzzles.id, { onDelete: 'cascade' }),
+  /** The old slug from which we would redirect to the new slug */
+  slug: text().notNull().unique(),
+  created_at: timestamp({ withTimezone: true }).notNull().defaultNow()
+});
+
 export const attachment_type_enum = pgEnum('attachment_type', ATTACHMENT_TYPE_LIST);
 export const word_puzzle_attachments = pgTable(
   'word_puzzle_attachments',
@@ -139,6 +152,14 @@ export const word_puzzlesRelations = relations(word_puzzles, ({ many, one }) => 
   image: one(image_assets, {
     fields: [word_puzzles.image_id],
     references: [image_assets.id]
+  }),
+  redirects: many(word_puzzle_redirects)
+}));
+
+export const word_puzzle_redirectsRelations = relations(word_puzzle_redirects, ({ one }) => ({
+  puzzle: one(word_puzzles, {
+    fields: [word_puzzle_redirects.puzzle_id],
+    references: [word_puzzles.id]
   })
 }));
 

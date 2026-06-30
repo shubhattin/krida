@@ -1,25 +1,60 @@
 import { type Metadata } from 'next';
 import Link from 'next/link';
-import { redirect } from 'next/navigation';
+import { notFound, redirect } from 'next/navigation';
 import WordGame from '~/components/pages/main/WordGame/WordGameRoot';
 import { DEFAULT_DATA_SCRIPT } from '~/state/script_list';
 import { get_transliterated_word_game_msgs } from '~/components/pages/main/WordGame/msgs';
 import { transliterate_wasm } from 'lipilekhika';
 import { getCachedScript } from '~/lib/cache_server_route_data';
-import { CACHE, NO_CACHE_PARAMS } from '~/util/cache.server/cache_loaders';
+import { CACHE, NO_CACHE_PARAMS, type PuzzleType } from '~/util/cache.server/cache_loaders';
 import { cache, Suspense } from 'react';
 import { ArrowLeftIcon } from 'lucide-react';
 import { getMetadata } from '~/components/tags/getPageMetaTags';
+import { db } from '~/db/db';
 
 type Props = { params: Promise<{ slug: string }> };
 
-const word_puzzle_get_cached_func = cache((params: { slug: string }) =>
-  CACHE.word_puzzle.get(params)
-);
+type SlugResolution =
+  | { type: 'puzzle'; puzzle: PuzzleType }
+  | { type: 'redirect'; targetSlug: string }
+  | { type: 'not_found' };
+
+const resolve_puzzle_slug = cache(async (slug: string): Promise<SlugResolution> => {
+  const word_puzzle = await CACHE.word_puzzle.get({ slug });
+  if (word_puzzle) {
+    return { type: 'puzzle', puzzle: word_puzzle };
+  }
+
+  const redirect_entry = await db.query.word_puzzle_redirects.findFirst({
+    where: (tbl, { eq }) => eq(tbl.slug, slug),
+    with: {
+      puzzle: {
+        columns: { slug: true }
+      }
+    }
+  });
+
+  if (redirect_entry?.puzzle?.slug) {
+    return { type: 'redirect', targetSlug: redirect_entry.puzzle.slug };
+  }
+
+  return { type: 'not_found' };
+});
+
+const get_puzzle_for_metadata = async (slug: string) => {
+  const resolution = await resolve_puzzle_slug(slug);
+  if (resolution.type === 'puzzle') {
+    return resolution.puzzle;
+  }
+  if (resolution.type === 'redirect') {
+    return CACHE.word_puzzle.get({ slug: resolution.targetSlug });
+  }
+  return undefined;
+};
 
 export async function generateMetadata({ params }: Props): Promise<Metadata> {
   const slug = decodeURIComponent((await params).slug);
-  const word_puzzle = await word_puzzle_get_cached_func({ slug });
+  const word_puzzle = await get_puzzle_for_metadata(slug);
 
   return {
     ...getMetadata({
@@ -51,26 +86,37 @@ const MainEdit = async ({ params }: Props) => {
 export default MainEdit;
 
 const WordGameSuspense = async ({ slug }: { slug: string }) => {
-  const [word_puzzle, current_schedule, next_schedule] = await Promise.all([
-    word_puzzle_get_cached_func({ slug }),
+  const resolution = await resolve_puzzle_slug(slug);
+
+  if (resolution.type === 'redirect') {
+    redirect(`/padavali/${resolution.targetSlug}`);
+  }
+
+  if (resolution.type === 'not_found') {
+    notFound();
+  }
+
+  const word_puzzle = resolution.puzzle;
+
+  const [current_schedule, next_schedule] = await Promise.all([
     CACHE.current_schedule.get(NO_CACHE_PARAMS),
     CACHE.next_schedule.get(NO_CACHE_PARAMS)
   ]);
 
-  if (word_puzzle && current_schedule && word_puzzle.id === current_schedule.puzzle.id) {
+  if (current_schedule && word_puzzle.id === current_schedule.puzzle.id) {
     redirect('/padavali');
   }
 
-  if (word_puzzle && !word_puzzle.listed) return <div>This puzzle is not available.</div>;
+  if (!word_puzzle.listed) return <div>This puzzle is not available.</div>;
 
   const script = await getCachedScript();
   const word_game_msgs = await get_transliterated_word_game_msgs(script);
-  const title = await transliterate_wasm(word_puzzle?.title ?? '', DEFAULT_DATA_SCRIPT, script);
-  const grid = word_puzzle?.grid_data ?? [];
+  const title = await transliterate_wasm(word_puzzle.title, DEFAULT_DATA_SCRIPT, script);
+  const grid = word_puzzle.grid_data;
   const grid_cells = await transliterate_wasm(grid.flat(), DEFAULT_DATA_SCRIPT, script);
   let cell_i = 0;
   const grid_data = grid.map((row) => row.map(() => grid_cells[cell_i++]!));
-  return word_puzzle ? (
+  return (
     <WordGame
       location="list_page"
       script={script}
@@ -85,8 +131,6 @@ const WordGameSuspense = async ({ slug }: { slug: string }) => {
       next_schedule={next_schedule}
       attachments={word_puzzle.attachments}
     ></WordGame>
-  ) : (
-    <div>Invalid ID</div>
   );
 };
 
