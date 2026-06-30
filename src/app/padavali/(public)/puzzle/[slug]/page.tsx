@@ -24,10 +24,10 @@ export async function generateMetadata({ params }: Props): Promise<Metadata> {
   return {
     ...getMetadata({
       title:
-        word_puzzle && word_puzzle.listed
+        word_puzzle
           ? word_puzzle.title + ' - Padavali Puzzle | पदावली'
           : 'Not Found',
-      description: word_puzzle && word_puzzle.listed ? word_puzzle.description : null
+      description: word_puzzle ? word_puzzle.description : null
     })
   };
 }
@@ -89,7 +89,7 @@ const WordGameSuspense = async ({ slug }: { slug: string }) => {
       attachments={word_puzzle.attachments}
     ></WordGame>
   ) : (
-    <div>अनुचित ID</div>
+    <div>Invalid ID</div>
   );
 };
 
