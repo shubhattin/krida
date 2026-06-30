@@ -75,8 +75,8 @@ export const EditSlugDialog = ({ puzzleId, currentSlug, onSlugUpdated }: Props) 
 
       // Invalidate Next.js cache routes on the server
       void invalidatePage('/padavali/puzzles');
-      void invalidatePage(`/padavali/puzzle/${currentSlug}`);
-      void invalidatePage(`/padavali/puzzle/${data.slug}`);
+      void invalidatePage(`/padavali/${currentSlug}`);
+      void invalidatePage(`/padavali/${data.slug}`);
 
       onSlugUpdated(data.slug);
       setOpen(false);

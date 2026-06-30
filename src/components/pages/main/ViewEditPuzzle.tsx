@@ -1010,7 +1010,7 @@ const GridData = ({
 
 const ListedSwitch = ({ slug }: { slug: string }) => {
   const [listed, setListed] = useAtom(listed_atom);
-  const listedPuzzleUrl = `/padavali/puzzle/${slug}`;
+  const listedPuzzleUrl = `/padavali/${slug}`;
 
   return (
     <div className="flex items-center space-x-4">
@@ -1136,7 +1136,7 @@ const SaveButton = ({ word_puzzle }: { word_puzzle: Puzzle }) => {
 
         // Invalidate Next.js cache routes on the server
         void invalidatePage('/padavali/puzzles');
-        void invalidatePage(`/padavali/puzzle/${word_puzzle.slug}`);
+        void invalidatePage(`/padavali/${word_puzzle.slug}`);
       }
     },
     onError() {
@@ -1153,7 +1153,7 @@ const SaveButton = ({ word_puzzle }: { word_puzzle: Puzzle }) => {
 
       // Invalidate Next.js cache routes on the server
       void invalidatePage('/padavali/puzzles');
-      void invalidatePage(`/padavali/puzzle/${word_puzzle.slug}`);
+      void invalidatePage(`/padavali/${word_puzzle.slug}`);
 
       router.push('/padavali/list');
     },

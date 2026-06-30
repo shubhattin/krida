@@ -69,7 +69,7 @@ const MainEdit = async ({ params }: Props) => {
     <>
       {isValid ? (
         <>
-          <PreviewWarningBanner />
+          <PreviewWarningBanner listed={word_puzzle.listed} slug={word_puzzle.slug} />
           <WordGame
             location="view_page"
             script={script}

@@ -42,7 +42,7 @@ export const notify_for_listed_puzzle = async (title: string, slug: string) => {
       en: `"${title}" - Listed Puzzle Added, Play Now! 🚀`
     },
     name: `new_listed_puzzle:${slug}`,
-    url: `${process.env.NEXT_PUBLIC_SITE_URL}/padavali/puzzle/${slug}`
+    url: `${process.env.NEXT_PUBLIC_SITE_URL}/padavali/${slug}`
   });
 };
 

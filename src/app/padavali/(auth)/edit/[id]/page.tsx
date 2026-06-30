@@ -77,9 +77,10 @@ const MainEdit = async ({ params }: Props) => {
           href={`/padavali/view/${word_puzzle.id}:${word_puzzle.slug}`}
           target="_blank"
           className="inline-flex items-center gap-2 text-lg font-semibold"
+          title="For sharing unlisted puzzles and internal testing. This page is not the public listed URL."
         >
           <FaPlay className="size-4 shrink-0" />
-          View Puzzle
+          Preview Puzzle
         </Link>
       </div>
       <JotaiProvider key={`edit_${word_puzzle.id}`}>

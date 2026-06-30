@@ -1,11 +1,17 @@
 'use client';
 
-import { Info } from 'lucide-react';
+import Link from 'next/link';
+import { ExternalLink, Info } from 'lucide-react';
 import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover';
 
-export function PreviewWarningBanner() {
+type PreviewWarningBannerProps = {
+  listed: boolean;
+  slug: string;
+};
+
+export function PreviewWarningBanner({ listed, slug }: PreviewWarningBannerProps) {
   return (
-    <div className="mt-3 flex justify-center px-4 sm:px-6">
+    <div className="my-3 flex flex-wrap items-center justify-center gap-3 px-4 sm:px-6">
       <div className="inline-flex w-fit items-center gap-2 rounded-lg border border-amber-200 bg-amber-50 px-3 py-2 text-sm text-amber-800 dark:border-amber-800 dark:bg-amber-950 dark:text-amber-200">
         <span>Preview URL</span>
         <Popover>
@@ -26,6 +32,15 @@ export function PreviewWarningBanner() {
           </PopoverContent>
         </Popover>
       </div>
+      {listed ? (
+        <Link
+          href={`/padavali/${slug}`}
+          className="inline-flex items-center gap-1 text-sm font-medium text-primary underline-offset-4 hover:underline"
+        >
+          Listed URL
+          <ExternalLink className="size-3.5 shrink-0" aria-hidden="true" />
+        </Link>
+      ) : null}
     </div>
   );
 }

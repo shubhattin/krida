@@ -37,13 +37,13 @@ export const PuzzlePreviewCard = ({ puzzle, compact = false }: Props) => {
   const handleClick = (e: React.MouseEvent<HTMLAnchorElement>) => {
     if (started && !completed) {
       e.preventDefault();
-      setPendingUrl(`/padavali/puzzle/${puzzle.slug}`);
+      setPendingUrl(`/padavali/${puzzle.slug}`);
     }
   };
 
   return (
     <Link
-      href={`/padavali/puzzle/${puzzle.slug}`}
+      href={`/padavali/${puzzle.slug}`}
       onClick={handleClick}
       className="group block h-full no-underline"
     >
