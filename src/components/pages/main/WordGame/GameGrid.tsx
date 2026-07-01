@@ -43,6 +43,13 @@ export const GameGrid = ({ timerRef, original_grid_data }: Props) => {
   const cols = gridDimensions[1] > 0 ? gridDimensions[1] : original_grid_data[0].length;
   const gridRef = useRef<HTMLDivElement>(null);
 
+  // Mutable ref to track the live selection during a drag gesture.
+  // React state (`currentSelection`) is captured in closures at render-time,
+  // so the useDrag callback would see stale values. This ref is the
+  // source-of-truth inside the gesture handler; we sync it back to the
+  // atom for rendering.
+  const selectionRef = useRef<CellPosition[]>([]);
+
   const [demoPath, setDemoPath] = useState<CellPosition[]>([]);
   const [demoState, setDemoState] = useState<'idle' | 'selecting' | 'success' | 'fail'>('idle');
   const [handPos, setHandPos] = useState<CellPosition | null>(null);
@@ -227,8 +234,8 @@ export const GameGrid = ({ timerRef, original_grid_data }: Props) => {
 
   // hit-test using elementFromPoint (as before)
   const getCellFromEvent = (e: any): CellPosition | null => {
-    const clientX = e.clientX ?? e.touches?.[0]?.clientX;
-    const clientY = e.clientY ?? e.touches?.[0]?.clientY;
+    const clientX = e.clientX ?? e.touches?.[0]?.clientX ?? e.changedTouches?.[0]?.clientX;
+    const clientY = e.clientY ?? e.touches?.[0]?.clientY ?? e.changedTouches?.[0]?.clientY;
     if (clientX == null || clientY == null) return null;
 
     const target = document
@@ -251,6 +258,30 @@ export const GameGrid = ({ timerRef, original_grid_data }: Props) => {
     return { row, col };
   };
 
+  // Helper to try adding a cell to the live selection ref.
+  // Returns the updated array (same reference if nothing changed).
+  const tryAddCell = (sel: CellPosition[], cell: CellPosition): CellPosition[] => {
+    const { row, col } = cell;
+    if (isCellInFoundWords(row, col)) return sel;
+
+    if (sel.length === 0) {
+      return [{ row, col }];
+    }
+
+    const lastCell = sel[sel.length - 1];
+    // Same cell — nothing to do
+    if (lastCell.row === row && lastCell.col === col) return sel;
+
+    const rowDiff = Math.abs(row - lastCell.row);
+    const colDiff = Math.abs(col - lastCell.col);
+    const alreadySelected = sel.some((c) => c.row === row && c.col === col);
+
+    if (!alreadySelected && rowDiff <= 1 && colDiff <= 1 && (rowDiff !== 0 || colDiff !== 0)) {
+      return [...sel, { row, col }];
+    }
+    return sel;
+  };
+
   // Enhanced drag logic with better mobile support
   const bind = useDrag(
     ({ event, first, down, last, cancel }) => {
@@ -266,6 +297,7 @@ export const GameGrid = ({ timerRef, original_grid_data }: Props) => {
       }
 
       if (first) {
+        selectionRef.current = [];
         setCurrentSelection([]);
         // Additional prevention for iOS Safari
         if (event && 'touches' in event) {
@@ -276,39 +308,39 @@ export const GameGrid = ({ timerRef, original_grid_data }: Props) => {
       if (down) {
         const cell = getCellFromEvent(event);
         if (!cell) return;
-        const { row, col } = cell;
-        if (isCellInFoundWords(row, col)) return;
 
-        if (currentSelection.length === 0) {
-          setCurrentSelection([{ row, col }]);
-        } else {
-          const lastCell = currentSelection[currentSelection.length - 1];
-          if (lastCell.row === row && lastCell.col === col) return;
-          // ^^ this is the edge case where a single cell's content are repeated
-          const rowDiff = Math.abs(row - lastCell.row);
-          const colDiff = Math.abs(col - lastCell.col);
-          if (
-            !isCellInCurrentSelection(row, col) &&
-            rowDiff <= 1 &&
-            colDiff <= 1 &&
-            (rowDiff !== 0 || colDiff !== 0)
-          ) {
-            setCurrentSelection((prev) => [...prev, { row, col }]);
-          }
+        const next = tryAddCell(selectionRef.current, cell);
+        if (next !== selectionRef.current) {
+          selectionRef.current = next;
+          setCurrentSelection(next);
         }
       }
 
       if (last) {
-        const word = getWordFromSelection(currentSelection);
-        // console.log('word', word);
-        if (currentSelection.length >= 2) {
+        // On mobile, the final touch position may not have been processed
+        // in a preceding `down` event, so try to add it now.
+        const cell = getCellFromEvent(event);
+        if (cell) {
+          const next = tryAddCell(selectionRef.current, cell);
+          if (next !== selectionRef.current) {
+            selectionRef.current = next;
+            // No need to setCurrentSelection here since we clear it below
+          }
+        }
+
+        // Use the ref (always up-to-date) instead of the stale closure value
+        const finalSelection = selectionRef.current;
+        const word = getWordFromSelection(finalSelection);
+
+        if (finalSelection.length >= 2) {
           // Track attempt only if selection has at least 2 cells
           setTotalAttempts((prev) => prev + 1);
 
           if (wordList.includes(word)) {
-            setFoundWords((prev) => [...prev, { cells: [...currentSelection], word }]);
+            setFoundWords((prev) => [...prev, { cells: [...finalSelection], word }]);
           }
         }
+        selectionRef.current = [];
         setCurrentSelection([]);
       }
     },

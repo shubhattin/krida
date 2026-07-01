@@ -18,5 +18,5 @@ export default async function ArchivedPuzzlePage({ params }: Props) {
 
   if (!puzzle) notFound();
 
-  permanentRedirect(`/padavali/puzzle/${puzzle.slug}`);
+  permanentRedirect(`/padavali/${puzzle.slug}`);
 }

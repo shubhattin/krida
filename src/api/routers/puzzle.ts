@@ -1,7 +1,7 @@
 import { z } from 'zod';
 import { protectedAdminProcedure, publicProcedure, t } from '../trpc_init';
 import { db, type transactionType } from '~/db/db';
-import { word_puzzle_attachments, word_puzzles } from '~/db/schema';
+import { word_puzzle_attachments, word_puzzle_redirects, word_puzzles } from '~/db/schema';
 import { and, asc, count, desc, eq, ilike, inArray, or, sql } from 'drizzle-orm';
 import { revalidatePath } from 'next/cache';
 import { padavali_stats_router } from './padavali_stats';
@@ -13,7 +13,8 @@ import {
 import {
   puzzle_add_input_schema,
   puzzle_update_input_schema,
-  puzzle_update_slug_input_schema
+  puzzle_update_slug_input_schema,
+  slug_schema
 } from '~/db/db_shared_vals';
 import { sendOneSignalNotification } from '~/lib/onesignal';
 import { delay } from '~/tools/delay';
@@ -42,7 +43,7 @@ export const notify_for_listed_puzzle = async (title: string, slug: string) => {
       en: `"${title}" - Listed Puzzle Added, Play Now! 🚀`
     },
     name: `new_listed_puzzle:${slug}`,
-    url: `${process.env.NEXT_PUBLIC_SITE_URL}/padavali/puzzle/${slug}`
+    url: `${process.env.NEXT_PUBLIC_SITE_URL}/padavali/${slug}`
   });
 };
 
@@ -124,6 +125,105 @@ const update_puzzle_attachments = async (
   };
 };
 
+type SlugAvailabilityOptions = {
+  exclude_puzzle_id?: number;
+};
+
+const resolve_slug_availability = async (slug: string, options: SlugAvailabilityOptions = {}) => {
+  const { exclude_puzzle_id } = options;
+  const normalized = normalizeSlug(slug);
+  if (!isValidSlug(normalized)) {
+    return { available: false as const, reason: 'invalid_format' as const, slug: normalized };
+  }
+
+  const [existing_puzzle, existing_redirect] = await Promise.all([
+    db.query.word_puzzles.findFirst({
+      where: (tbl, { eq }) => eq(tbl.slug, normalized),
+      columns: { id: true, slug: true, title: true }
+    }),
+    db.query.word_puzzle_redirects.findFirst({
+      where: (tbl, { eq }) => eq(tbl.slug, normalized),
+      with: {
+        puzzle: {
+          columns: { id: true, slug: true, title: true }
+        }
+      }
+    })
+  ]);
+
+  if (
+    existing_puzzle &&
+    !(exclude_puzzle_id !== undefined && existing_puzzle.id === exclude_puzzle_id)
+  ) {
+    return {
+      available: false as const,
+      reason: 'taken' as const,
+      slug: normalized,
+      conflicting_puzzle: existing_puzzle
+    };
+  }
+
+  if (
+    existing_redirect?.puzzle &&
+    !(exclude_puzzle_id !== undefined && existing_redirect.puzzle.id === exclude_puzzle_id)
+  ) {
+    return {
+      available: true as const,
+      slug: normalized,
+      redirect_conflict: {
+        redirect_id: existing_redirect.id,
+        redirect_slug: existing_redirect.slug,
+        puzzle: existing_redirect.puzzle
+      }
+    };
+  }
+
+  return { available: true as const, slug: normalized };
+};
+
+const assert_slug_usable_for_mutation = async (
+  slug: string,
+  options: SlugAvailabilityOptions & { override_redirect_slug: boolean }
+) => {
+  const availability = await resolve_slug_availability(slug, options);
+
+  if (!availability.available) {
+    if (availability.reason === 'invalid_format') {
+      throw new Error('Invalid slug format');
+    }
+    throw new Error('Slug is already taken by another puzzle');
+  }
+
+  if ('redirect_conflict' in availability && availability.redirect_conflict) {
+    if (!options.override_redirect_slug) {
+      throw new Error('Slug conflicts with an existing redirect; confirmation required');
+    }
+  }
+
+  return availability;
+};
+
+const delete_redirect_for_slug = async (tx: transactionType, slug: string) => {
+  await tx.delete(word_puzzle_redirects).where(eq(word_puzzle_redirects.slug, slug));
+};
+
+const upsert_redirect_for_puzzle = async (
+  tx: transactionType,
+  puzzle_id: number,
+  redirect_slug: string
+) => {
+  await tx
+    .insert(word_puzzle_redirects)
+    .values({
+      puzzle_id,
+      slug: redirect_slug
+    })
+    .onConflictDoUpdate({
+      target: word_puzzle_redirects.slug,
+      set: { puzzle_id }
+    });
+};
+
 const check_slug_availability_route = protectedAdminProcedure
   .input(
     z.object({
@@ -131,23 +231,9 @@ const check_slug_availability_route = protectedAdminProcedure
       exclude_puzzle_id: z.number().int().optional()
     })
   )
-  .query(async ({ input: { slug, exclude_puzzle_id } }) => {
-    const normalized = normalizeSlug(slug);
-    if (!isValidSlug(normalized)) {
-      return { available: false as const, reason: 'invalid_format' as const, slug: normalized };
-    }
-
-    const existing = await db.query.word_puzzles.findFirst({
-      where: (tbl, { eq }) => eq(tbl.slug, normalized),
-      columns: { id: true }
-    });
-
-    if (!existing || (exclude_puzzle_id !== undefined && existing.id === exclude_puzzle_id)) {
-      return { available: true as const, slug: normalized };
-    }
-
-    return { available: false as const, reason: 'taken' as const, slug: normalized };
-  });
+  .query(async ({ input: { slug, exclude_puzzle_id } }) =>
+    resolve_slug_availability(slug, { exclude_puzzle_id })
+  );
 
 const update_puzzle_route = protectedAdminProcedure
   .input(puzzle_update_input_schema)
@@ -209,7 +295,7 @@ const update_puzzle_route = protectedAdminProcedure
 
 const update_puzzle_slug_route = protectedAdminProcedure
   .input(puzzle_update_slug_input_schema)
-  .mutation(async ({ input: { puzzle_id, current_slug, new_slug } }) => {
+  .mutation(async ({ input: { puzzle_id, current_slug, new_slug, override_redirect_slug } }) => {
     if (current_slug === new_slug) {
       return { success: true as const, slug: new_slug };
     }
@@ -222,18 +308,26 @@ const update_puzzle_slug_route = protectedAdminProcedure
       throw new Error('Puzzle not found or slug mismatch');
     }
 
-    const availability = await db.query.word_puzzles.findFirst({
-      where: (tbl, { eq }) => eq(tbl.slug, new_slug),
-      columns: { id: true }
+    await assert_slug_usable_for_mutation(new_slug, {
+      exclude_puzzle_id: puzzle_id,
+      override_redirect_slug
     });
-    if (availability && availability.id !== puzzle_id) {
-      throw new Error('Slug is already taken');
-    }
 
-    await db
-      .update(word_puzzles)
-      .set({ slug: new_slug })
-      .where(and(eq(word_puzzles.id, puzzle_id), eq(word_puzzles.slug, current_slug)));
+    await db.transaction(async (tx) => {
+      await delete_redirect_for_slug(tx, new_slug);
+
+      const updated = await tx
+        .update(word_puzzles)
+        .set({ slug: new_slug })
+        .where(and(eq(word_puzzles.id, puzzle_id), eq(word_puzzles.slug, current_slug)))
+        .returning();
+
+      if (updated.length === 0) {
+        throw new Error('Puzzle not found or slug mismatch');
+      }
+
+      await upsert_redirect_for_puzzle(tx, puzzle_id, current_slug);
+    });
 
     revalidatePath('/padavali/list');
 
@@ -258,18 +352,28 @@ const add_puzzle_route = protectedAdminProcedure
   .mutation(async ({ input }) => {
     revalidatePath('/padavali/list');
 
-    const [inserted] = await db
-      .insert(word_puzzles)
-      .values({
-        title: input.title,
-        slug: input.slug,
-        description: input.description?.trim() ? input.description.trim() : null,
-        word_list: [],
-        grid_data: createEmptyGridData(DEFAULT_GRID_DIMENSIONS),
-        grid_dimensions: DEFAULT_GRID_DIMENSIONS,
-        listed: false
-      })
-      .returning();
+    await assert_slug_usable_for_mutation(input.slug, {
+      override_redirect_slug: input.override_redirect_slug
+    });
+
+    const [inserted] = await db.transaction(async (tx) => {
+      if (input.override_redirect_slug) {
+        await delete_redirect_for_slug(tx, input.slug);
+      }
+
+      return tx
+        .insert(word_puzzles)
+        .values({
+          title: input.title,
+          slug: input.slug,
+          description: input.description?.trim() ? input.description.trim() : null,
+          word_list: [],
+          grid_data: createEmptyGridData(DEFAULT_GRID_DIMENSIONS),
+          grid_dimensions: DEFAULT_GRID_DIMENSIONS,
+          listed: false
+        })
+        .returning();
+    });
 
     return { id: inserted.id };
   });
@@ -416,6 +520,82 @@ const refresh_current_schedule_route = publicProcedure.mutation(async () => {
   return { has_current: current !== undefined };
 });
 
+const get_puzzle_slugs_route = protectedAdminProcedure
+  .input(z.object({ puzzle_id: z.number().int() }))
+  .query(async ({ input: { puzzle_id } }) => {
+    const puzzle = await db.query.word_puzzles.findFirst({
+      columns: { slug: true },
+      where: (tbl, { eq }) => eq(tbl.id, puzzle_id),
+      with: {
+        redirects: {
+          columns: { slug: true, created_at: true },
+          orderBy: (tbl, { desc }) => desc(tbl.created_at)
+        }
+      }
+    });
+
+    if (!puzzle) {
+      throw new Error('Puzzle not found');
+    }
+
+    const redirect_slugs = puzzle.redirects.map((redirect) => redirect.slug);
+    const all_slugs = [
+      puzzle.slug,
+      ...redirect_slugs.filter((redirect_slug) => redirect_slug !== puzzle.slug)
+    ];
+
+    return {
+      current_slug: puzzle.slug,
+      redirect_slugs,
+      all_slugs
+    };
+  });
+
+const delete_redirect_slug_route = protectedAdminProcedure
+  .input(
+    z.object({
+      puzzle_id: z.number().int(),
+      redirect_slug: slug_schema
+    })
+  )
+  .mutation(async ({ input: { puzzle_id, redirect_slug } }) => {
+    const puzzle = await db.query.word_puzzles.findFirst({
+      columns: { id: true, slug: true },
+      where: (tbl, { eq }) => eq(tbl.id, puzzle_id)
+    });
+    if (!puzzle) {
+      throw new Error('Puzzle not found');
+    }
+    if (puzzle.slug === redirect_slug) {
+      throw new Error('Cannot delete the current slug');
+    }
+
+    const redirect = await db.query.word_puzzle_redirects.findFirst({
+      columns: { id: true },
+      where: (tbl, { and, eq }) => and(eq(tbl.slug, redirect_slug), eq(tbl.puzzle_id, puzzle_id))
+    });
+    if (!redirect) {
+      throw new Error('Redirect not found');
+    }
+
+    await db
+      .delete(word_puzzle_redirects)
+      .where(
+        and(
+          eq(word_puzzle_redirects.id, redirect.id),
+          eq(word_puzzle_redirects.puzzle_id, puzzle_id)
+        )
+      );
+
+    await Promise.allSettled([
+      CACHE.word_puzzle.delete({ slug: redirect_slug }),
+      CACHE.word_meanings.delete({ slug: redirect_slug })
+    ]);
+    revalidatePath(`/padavali/${redirect_slug}`);
+
+    return { success: true as const };
+  });
+
 export const puzzle_router = t.router({
   check_slug_availability: check_slug_availability_route,
   update_puzzle: update_puzzle_route,
@@ -425,5 +605,7 @@ export const puzzle_router = t.router({
   stats: padavali_stats_router,
   get_puzzle_list_page: get_puzzle_list_page_route,
   get_listed_puzzles_preview: get_listed_puzzles_preview_route,
-  refresh_current_schedule: refresh_current_schedule_route
+  refresh_current_schedule: refresh_current_schedule_route,
+  get_puzzle_slugs: get_puzzle_slugs_route,
+  delete_redirect_slug: delete_redirect_slug_route
 });

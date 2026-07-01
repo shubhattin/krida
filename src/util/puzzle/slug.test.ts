@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import { isValidSlug, normalizeSlug, parseIdSlugParam } from './slug';
+import { isValidSlug, normalizeSlug, parseIdSlugParam, slug_schema } from './slug';
 
 describe('normalizeSlug', () => {
   it('trims and lowercases', () => {
@@ -24,6 +24,24 @@ describe('isValidSlug', () => {
     expect(isValidSlug('has:colon')).toBe(false);
     expect(isValidSlug('UPPER')).toBe(false);
     expect(isValidSlug('special!')).toBe(false);
+  });
+
+  it('rejects reserved route slugs', () => {
+    expect(isValidSlug('puzzles')).toBe(false);
+    expect(isValidSlug('view')).toBe(false);
+    expect(isValidSlug('puzzle')).toBe(false);
+  });
+});
+
+describe('slug_schema', () => {
+  it('normalizes before validating length', () => {
+    const slug = 'a'.repeat(100);
+    expect(slug_schema.parse(`  ${slug}  `)).toBe(slug);
+  });
+
+  it('rejects normalized slugs over max length', () => {
+    const slug = 'a'.repeat(101);
+    expect(() => slug_schema.parse(`  ${slug}  `)).toThrow();
   });
 });
 

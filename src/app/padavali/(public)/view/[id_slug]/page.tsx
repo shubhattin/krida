@@ -10,6 +10,7 @@ import { CACHE, NO_CACHE_PARAMS } from '~/util/cache.server/cache_loaders';
 import { cache } from 'react';
 import { getMetadata } from '~/components/tags/getPageMetaTags';
 import { parseIdSlugParam } from '~/util/puzzle/slug';
+import { PreviewWarningBanner } from './PreviewWarningBanner';
 
 type Props = { params: Promise<{ id_slug: string }> };
 
@@ -44,7 +45,7 @@ export async function generateMetadata({ params }: Props): Promise<Metadata> {
 const MainEdit = async ({ params }: Props) => {
   const routeParams = await parseParams(params);
   if (!routeParams) {
-    return <div>अनुचित ID</div>;
+    return <div>Invalid ID</div>;
   }
 
   const { id, slug } = routeParams;
@@ -68,6 +69,7 @@ const MainEdit = async ({ params }: Props) => {
     <>
       {isValid ? (
         <>
+          <PreviewWarningBanner listed={word_puzzle.listed} slug={word_puzzle.slug} />
           <WordGame
             location="view_page"
             script={script}
@@ -88,13 +90,13 @@ const MainEdit = async ({ params }: Props) => {
                 className="inline-flex items-center gap-2 rounded-full border border-slate-200/60 bg-white/70 px-4 py-1.5 text-sm font-medium text-slate-700 no-underline shadow-sm backdrop-blur-sm transition-all duration-200 hover:bg-white hover:shadow-md dark:border-slate-700/60 dark:bg-slate-800/70 dark:text-slate-200 dark:hover:bg-slate-800"
               >
                 <ArrowLeftIcon className="size-4" />
-                मुख्यपृष्ठम्
+                Home Page
               </Link>
             </div>
           </WordGame>
         </>
       ) : (
-        <div>अनुचित ID</div>
+        <div>Invalid ID</div>
       )}
     </>
   );

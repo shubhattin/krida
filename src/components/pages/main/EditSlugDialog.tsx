@@ -1,8 +1,8 @@
 'use client';
 
-import { useState } from 'react';
+import { useEffect, useState } from 'react';
 import { useRouter } from 'next/navigation';
-import { CheckIcon, Loader2Icon, PencilIcon, XIcon } from 'lucide-react';
+import { CheckIcon, Loader2Icon, PencilIcon, Trash2Icon, XIcon } from 'lucide-react';
 import { client_q } from '~/api/client';
 import { useQueryClient } from '@tanstack/react-query';
 import { invalidatePage } from '~/tools/invalidate_nextjs_server_route';
@@ -29,6 +29,13 @@ import { Input } from '~/components/ui/input';
 import { Label } from '~/components/ui/label';
 import { toast } from 'sonner';
 import { useDebouncedSlugCheck } from '~/hooks/useDebouncedSlugCheck';
+import { SlugRedirectConflictPrompt } from '~/components/pages/main/SlugRedirectConflictPrompt';
+import {
+  Accordion,
+  AccordionContent,
+  AccordionItem,
+  AccordionTrigger
+} from '~/components/ui/accordion';
 import { cn } from '~/lib/utils';
 
 type Props = {
@@ -57,30 +64,40 @@ const SlugStatusIcon = ({
 export const EditSlugDialog = ({ puzzleId, currentSlug, onSlugUpdated }: Props) => {
   const router = useRouter();
   const queryClient = useQueryClient();
+  const utils = client_q.useUtils();
   const [open, setOpen] = useState(false);
   const [confirmOpen, setConfirmOpen] = useState(false);
   const [newSlug, setNewSlug] = useState(currentSlug);
+  const [overrideRedirectSlug, setOverrideRedirectSlug] = useState(false);
 
-  const { status: slugStatus, normalizedSlug } = useDebouncedSlugCheck(newSlug, {
+  const {
+    status: slugStatus,
+    normalizedSlug,
+    redirectConflict
+  } = useDebouncedSlugCheck(newSlug, {
     excludePuzzleId: puzzleId,
     enabled: open
   });
+
+  useEffect(() => {
+    setOverrideRedirectSlug(false);
+  }, [normalizedSlug]);
 
   const update_slug_mut = client_q.puzzle.update_puzzle_slug.useMutation({
     onSuccess(data) {
       toast.success('Slug updated successfully');
 
-      // Clear React Query cache for the puzzle carousel
       void queryClient.invalidateQueries({ queryKey: ['listed_puzzles_carousel'] });
+      void utils.puzzle.get_puzzle_slugs.invalidate({ puzzle_id: puzzleId });
 
-      // Invalidate Next.js cache routes on the server
       void invalidatePage('/padavali/puzzles');
-      void invalidatePage(`/padavali/puzzle/${currentSlug}`);
-      void invalidatePage(`/padavali/puzzle/${data.slug}`);
+      void invalidatePage(`/padavali/${currentSlug}`);
+      void invalidatePage(`/padavali/${data.slug}`);
 
       onSlugUpdated(data.slug);
       setOpen(false);
       setConfirmOpen(false);
+      setOverrideRedirectSlug(false);
       router.refresh();
     },
     onError() {
@@ -90,13 +107,16 @@ export const EditSlugDialog = ({ puzzleId, currentSlug, onSlugUpdated }: Props) 
   });
 
   const slugChanged = normalizedSlug !== currentSlug;
-  const canSubmit = slugChanged && slugStatus === 'available' && normalizedSlug.length > 0;
+  const slugReady =
+    slugStatus === 'available' || (slugStatus === 'redirect_conflict' && overrideRedirectSlug);
+  const canSubmit = slugChanged && slugReady && normalizedSlug.length > 0;
 
   const handleConfirm = () => {
     update_slug_mut.mutate({
       puzzle_id: puzzleId,
       current_slug: currentSlug,
-      new_slug: normalizedSlug
+      new_slug: normalizedSlug,
+      override_redirect_slug: slugStatus === 'redirect_conflict' && overrideRedirectSlug
     });
   };
 
@@ -109,6 +129,7 @@ export const EditSlugDialog = ({ puzzleId, currentSlug, onSlugUpdated }: Props) 
           if (!nextOpen) {
             setConfirmOpen(false);
             setNewSlug(currentSlug);
+            setOverrideRedirectSlug(false);
           } else {
             setNewSlug(currentSlug);
           }
@@ -127,9 +148,7 @@ export const EditSlugDialog = ({ puzzleId, currentSlug, onSlugUpdated }: Props) 
         <DialogContent>
           <DialogHeader>
             <DialogTitle>Change Slug</DialogTitle>
-            <DialogDescription className="text-amber-700 dark:text-amber-400">
-              Warning: Changing the slug will invalidate any previous links to this puzzle.
-            </DialogDescription>
+            <DialogDescription>Enter a new slug for this puzzle.</DialogDescription>
           </DialogHeader>
           <div className="space-y-2">
             <Label htmlFor="edit-puzzle-slug">New slug</Label>
@@ -154,10 +173,20 @@ export const EditSlugDialog = ({ puzzleId, currentSlug, onSlugUpdated }: Props) 
             >
               {slugStatus === 'invalid' &&
                 'Only lowercase letters, numbers, underscores, and dashes are allowed.'}
-              {slugStatus === 'taken' && 'This slug is already taken.'}
+              {slugStatus === 'taken' &&
+                'This slug is already used by another puzzle and cannot be reused.'}
               {slugStatus === 'available' && slugChanged && `Available as "${normalizedSlug}".`}
               {slugStatus === 'available' && !slugChanged && 'Enter a different slug to continue.'}
+              {slugStatus === 'redirect_conflict' &&
+                `Slug "${normalizedSlug}" conflicts with an existing redirect.`}
             </p>
+            {slugStatus === 'redirect_conflict' && redirectConflict ? (
+              <SlugRedirectConflictPrompt
+                conflict={redirectConflict}
+                overrideConfirmed={overrideRedirectSlug}
+                onOverrideChange={setOverrideRedirectSlug}
+              />
+            ) : null}
           </div>
           <DialogFooter>
             <Button variant="outline" onClick={() => setOpen(false)}>
@@ -178,8 +207,7 @@ export const EditSlugDialog = ({ puzzleId, currentSlug, onSlugUpdated }: Props) 
           <AlertDialogHeader>
             <AlertDialogTitle>Confirm slug change</AlertDialogTitle>
             <AlertDialogDescription>
-              Change slug from &quot;{currentSlug}&quot; to &quot;{normalizedSlug}&quot;? Previous
-              links will stop working.
+              Change slug from &quot;{currentSlug}&quot; to &quot;{normalizedSlug}&quot;?
             </AlertDialogDescription>
           </AlertDialogHeader>
           <AlertDialogFooter>
@@ -203,6 +231,39 @@ export const SlugField = ({
   puzzleId: number;
   onSlugUpdated: (slug: string) => void;
 }) => {
+  const utils = client_q.useUtils();
+  const [deleteSlugConfirm, setDeleteSlugConfirm] = useState<string | null>(null);
+
+  const puzzle_slugs_q = client_q.puzzle.get_puzzle_slugs.useQuery(
+    { puzzle_id: puzzleId },
+    { enabled: puzzleId > 0 }
+  );
+
+  const delete_redirect_mut = client_q.puzzle.delete_redirect_slug.useMutation({
+    onSuccess(_data, variables) {
+      toast.success('Redirect removed');
+      setDeleteSlugConfirm(null);
+      void utils.puzzle.get_puzzle_slugs.invalidate({ puzzle_id: puzzleId });
+      void invalidatePage(`/padavali/${variables.redirect_slug}`);
+    },
+    onError() {
+      toast.error('Failed to remove redirect');
+      setDeleteSlugConfirm(null);
+    }
+  });
+
+  const all_slugs = puzzle_slugs_q.data?.all_slugs ?? [slug];
+  const show_slug_aliases = all_slugs.length > 1;
+  const isDeletingRedirect = delete_redirect_mut.isPending;
+
+  const handleDeleteRedirect = () => {
+    if (!deleteSlugConfirm) return;
+    delete_redirect_mut.mutate({
+      puzzle_id: puzzleId,
+      redirect_slug: deleteSlugConfirm
+    });
+  };
+
   return (
     <div>
       <Label className="block font-medium">
@@ -212,6 +273,84 @@ export const SlugField = ({
           <EditSlugDialog puzzleId={puzzleId} currentSlug={slug} onSlugUpdated={onSlugUpdated} />
         </div>
       </Label>
+      {show_slug_aliases ? (
+        <Accordion className="mt-2 max-w-md">
+          <AccordionItem value="puzzle-slugs" className="rounded-md border px-3">
+            <AccordionTrigger className="py-2 text-xs font-medium text-muted-foreground hover:no-underline">
+              All URLs for this puzzle ({all_slugs.length})
+            </AccordionTrigger>
+            <AccordionContent>
+              <ul className="space-y-1 rounded-md bg-muted/30 px-1 py-2 text-sm">
+                {all_slugs.map((entry_slug) => {
+                  const is_current = entry_slug === slug;
+
+                  return (
+                    <li key={entry_slug} className="flex items-center justify-between gap-2">
+                      <span className="min-w-0 truncate font-mono text-xs sm:text-sm">
+                        {entry_slug}
+                      </span>
+                      <div className="flex shrink-0 items-center gap-1.5">
+                        <span
+                          className={cn(
+                            'rounded-full px-2 py-0.5 text-[10px] font-medium tracking-wide uppercase',
+                            is_current
+                              ? 'bg-primary/10 text-primary'
+                              : 'bg-muted text-muted-foreground'
+                          )}
+                        >
+                          {is_current ? 'Current' : 'Redirect'}
+                        </span>
+                        {!is_current ? (
+                          <Button
+                            type="button"
+                            variant="ghost"
+                            size="icon-sm"
+                            className="text-muted-foreground hover:text-destructive"
+                            disabled={isDeletingRedirect}
+                            onClick={() => setDeleteSlugConfirm(entry_slug)}
+                            aria-label={`Delete redirect ${entry_slug}`}
+                          >
+                            <Trash2Icon className="size-3.5" />
+                          </Button>
+                        ) : null}
+                      </div>
+                    </li>
+                  );
+                })}
+              </ul>
+            </AccordionContent>
+          </AccordionItem>
+        </Accordion>
+      ) : null}
+
+      <AlertDialog
+        open={deleteSlugConfirm !== null}
+        onOpenChange={(open) => {
+          if (!open && !isDeletingRedirect) {
+            setDeleteSlugConfirm(null);
+          }
+        }}
+      >
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle>Delete redirect slug?</AlertDialogTitle>
+            <AlertDialogDescription>
+              Remove redirect &quot;{deleteSlugConfirm}&quot;? This old URL will stop working for
+              this puzzle.
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel disabled={isDeletingRedirect}>Cancel</AlertDialogCancel>
+            <AlertDialogAction
+              disabled={isDeletingRedirect}
+              onClick={handleDeleteRedirect}
+              className="bg-destructive text-white hover:bg-destructive/90"
+            >
+              {isDeletingRedirect ? 'Deleting...' : 'Delete'}
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
     </div>
   );
 };

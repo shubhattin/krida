@@ -79,11 +79,25 @@ export const puzzle_update_input_schema = z.object({
 export const puzzle_add_input_schema = z.object({
   title: z.string().min(1),
   slug: slug_schema,
-  description: z.string().optional().nullable()
+  description: z.string().optional().nullable(),
+  override_redirect_slug: z.boolean().default(false)
 });
 
 export const puzzle_update_slug_input_schema = z.object({
   puzzle_id: z.number().int(),
   current_slug: slug_schema,
-  new_slug: slug_schema
+  new_slug: slug_schema,
+  override_redirect_slug: z.boolean().default(false)
+});
+
+export const redirect_conflict_puzzle_schema = z.object({
+  id: z.number().int(),
+  slug: z.string(),
+  title: z.string()
+});
+
+export const redirect_conflict_schema = z.object({
+  redirect_id: z.number().int(),
+  redirect_slug: z.string(),
+  puzzle: redirect_conflict_puzzle_schema
 });

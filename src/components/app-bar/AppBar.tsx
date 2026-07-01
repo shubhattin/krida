@@ -30,9 +30,11 @@ export default function AppBar({ title }: { title: string }) {
         </Link>
 
         {/* Actions Section */}
-        <div className="flex items-center space-x-2">
+        <div className="flex shrink-0 items-center space-x-2">
           <SupportOptions />
-          <MenuButton />
+          <div className="size-8 shrink-0">
+            <MenuButton />
+          </div>
         </div>
       </div>
     </header>

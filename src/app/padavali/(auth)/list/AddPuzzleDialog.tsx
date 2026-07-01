@@ -31,6 +31,7 @@ import { Switch } from '~/components/ui/switch';
 import { Textarea } from '~/components/ui/textarea';
 import { toast } from 'sonner';
 import { useDebouncedSlugCheck } from '~/hooks/useDebouncedSlugCheck';
+import { SlugRedirectConflictPrompt } from '~/components/pages/main/SlugRedirectConflictPrompt';
 import { cn } from '~/lib/utils';
 import Icon from '~/tools/Icon';
 import { LanguageIcon } from '~/components/icons';
@@ -65,15 +66,24 @@ const AddPuzzleDialog = () => {
   const [description, setDescription] = useState('');
   const [slug, setSlug] = useState('');
   const [lipi_lekhika_typing, setLipiLekhikaTyping] = useState(true);
+  const [overrideRedirectSlug, setOverrideRedirectSlug] = useState(false);
 
   const ctx = createTypingContext('Devanagari');
   useEffect(() => {
     ctx.ready;
   }, [ctx]);
 
-  const { status: slugStatus, normalizedSlug } = useDebouncedSlugCheck(slug, {
+  const {
+    status: slugStatus,
+    normalizedSlug,
+    redirectConflict
+  } = useDebouncedSlugCheck(slug, {
     enabled: open
   });
+
+  useEffect(() => {
+    setOverrideRedirectSlug(false);
+  }, [normalizedSlug]);
 
   const add_puzzle_mut = client_q.puzzle.add_puzzle.useMutation({
     onSuccess(data) {
@@ -83,6 +93,7 @@ const AddPuzzleDialog = () => {
       setTitle('');
       setDescription('');
       setSlug('');
+      setOverrideRedirectSlug(false);
       router.push(`/padavali/edit/${data.id}`);
     },
     onError() {
@@ -91,14 +102,17 @@ const AddPuzzleDialog = () => {
     }
   });
 
-  const canSubmit =
-    title.trim().length > 0 && slugStatus === 'available' && normalizedSlug.length > 0;
+  const slugReady =
+    slugStatus === 'available' || (slugStatus === 'redirect_conflict' && overrideRedirectSlug);
+
+  const canSubmit = title.trim().length > 0 && slugReady && normalizedSlug.length > 0;
 
   const handleConfirmAdd = () => {
     add_puzzle_mut.mutate({
       title: title.trim(),
       slug: normalizedSlug,
-      description: description.trim() ? description.trim() : null
+      description: description.trim() ? description.trim() : null,
+      override_redirect_slug: slugStatus === 'redirect_conflict' && overrideRedirectSlug
     });
   };
 
@@ -113,6 +127,7 @@ const AddPuzzleDialog = () => {
             setTitle('');
             setDescription('');
             setSlug('');
+            setOverrideRedirectSlug(false);
           }
         }}
       >
@@ -185,9 +200,19 @@ const AddPuzzleDialog = () => {
               >
                 {slugStatus === 'invalid' &&
                   'Only lowercase letters, numbers, underscores, and dashes are allowed.'}
-                {slugStatus === 'taken' && 'This slug is already taken.'}
+                {slugStatus === 'taken' &&
+                  'This slug is already used by another puzzle and cannot be reused.'}
                 {slugStatus === 'available' && `Available as "${normalizedSlug}".`}
+                {slugStatus === 'redirect_conflict' &&
+                  `Slug "${normalizedSlug}" conflicts with an existing redirect.`}
               </p>
+              {slugStatus === 'redirect_conflict' && redirectConflict ? (
+                <SlugRedirectConflictPrompt
+                  conflict={redirectConflict}
+                  overrideConfirmed={overrideRedirectSlug}
+                  onOverrideChange={setOverrideRedirectSlug}
+                />
+              ) : null}
             </div>
             <div className="space-y-2">
               <Label htmlFor="add-puzzle-description">Description (optional)</Label>

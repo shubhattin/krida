@@ -301,7 +301,7 @@ export const get_puzzle_share_url = (slug: string) => {
     (typeof window !== 'undefined'
       ? window.location.origin
       : 'https://krida.thesanskritchannel.org');
-  return `${base.replace(/\/$/, '')}/padavali/puzzle/${encodeURIComponent(slug)}`;
+  return `${base.replace(/\/$/, '')}/padavali/${encodeURIComponent(slug)}`;
 };
 
 const get_share_msg = (
