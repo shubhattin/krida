@@ -26,14 +26,10 @@ export const isValidSlug = (slug: string) =>
   SLUG_REGEX.test(slug) &&
   !isReservedSlug(slug);
 
-export const slug_schema = z
-  .string()
-  .max(MAX_SLUG_LENGTH)
-  .transform(normalizeSlug)
-  .refine(isValidSlug, {
-    message:
-      'Slug may only contain lowercase letters, numbers, underscores, and dashes, and cannot match a reserved route name'
-  });
+export const slug_schema = z.string().transform(normalizeSlug).refine(isValidSlug, {
+  message:
+    'Slug may only contain lowercase letters, numbers, underscores, and dashes, and cannot match a reserved route name'
+});
 
 export const parseIdSlugParam = (param: string): { id: number; slug: string } | null => {
   let decoded: string;
