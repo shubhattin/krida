@@ -1,6 +1,6 @@
 import { type Metadata } from 'next';
 import Link from 'next/link';
-import { notFound, redirect } from 'next/navigation';
+import { notFound, permanentRedirect, redirect } from 'next/navigation';
 import WordGame from '~/components/pages/main/WordGame/WordGameRoot';
 import { DEFAULT_DATA_SCRIPT } from '~/state/script_list';
 import { get_transliterated_word_game_msgs } from '~/components/pages/main/WordGame/msgs';
@@ -89,7 +89,7 @@ const WordGameSuspense = async ({ slug }: { slug: string }) => {
   const resolution = await resolve_puzzle_slug(slug);
 
   if (resolution.type === 'redirect') {
-    redirect(`/padavali/${resolution.targetSlug}`);
+    permanentRedirect(`/padavali/${encodeURIComponent(resolution.targetSlug)}`);
   }
 
   if (resolution.type === 'not_found') {

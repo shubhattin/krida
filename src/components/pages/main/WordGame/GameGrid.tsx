@@ -234,8 +234,8 @@ export const GameGrid = ({ timerRef, original_grid_data }: Props) => {
 
   // hit-test using elementFromPoint (as before)
   const getCellFromEvent = (e: any): CellPosition | null => {
-    const clientX = e.clientX ?? e.touches?.[0]?.clientX;
-    const clientY = e.clientY ?? e.touches?.[0]?.clientY;
+    const clientX = e.clientX ?? e.touches?.[0]?.clientX ?? e.changedTouches?.[0]?.clientX;
+    const clientY = e.clientY ?? e.touches?.[0]?.clientY ?? e.changedTouches?.[0]?.clientY;
     if (clientX == null || clientY == null) return null;
 
     const target = document

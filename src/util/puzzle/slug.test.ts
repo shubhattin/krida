@@ -25,6 +25,12 @@ describe('isValidSlug', () => {
     expect(isValidSlug('UPPER')).toBe(false);
     expect(isValidSlug('special!')).toBe(false);
   });
+
+  it('rejects reserved route slugs', () => {
+    expect(isValidSlug('puzzles')).toBe(false);
+    expect(isValidSlug('view')).toBe(false);
+    expect(isValidSlug('puzzle')).toBe(false);
+  });
 });
 
 describe('parseIdSlugParam', () => {

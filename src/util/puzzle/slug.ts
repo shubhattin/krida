@@ -4,17 +4,35 @@ export const MAX_SLUG_LENGTH = 100;
 
 export const SLUG_REGEX = /^[a-z0-9_-]+$/;
 
+/** First-segment paths under `/padavali/*` that must not be used as puzzle slugs. */
+export const RESERVED_SLUGS = new Set([
+  'analytics',
+  'archived',
+  'edit',
+  'list',
+  'puzzle',
+  'puzzles',
+  'schedules',
+  'view'
+]);
+
+export const isReservedSlug = (slug: string) => RESERVED_SLUGS.has(slug);
+
 export const normalizeSlug = (input: string) => input.trim().toLowerCase();
 
 export const isValidSlug = (slug: string) =>
-  slug.length > 0 && slug.length <= MAX_SLUG_LENGTH && SLUG_REGEX.test(slug);
+  slug.length > 0 &&
+  slug.length <= MAX_SLUG_LENGTH &&
+  SLUG_REGEX.test(slug) &&
+  !isReservedSlug(slug);
 
 export const slug_schema = z
   .string()
   .max(MAX_SLUG_LENGTH)
   .transform(normalizeSlug)
   .refine(isValidSlug, {
-    message: 'Slug may only contain lowercase letters, numbers, underscores, and dashes'
+    message:
+      'Slug may only contain lowercase letters, numbers, underscores, and dashes, and cannot match a reserved route name'
   });
 
 export const parseIdSlugParam = (param: string): { id: number; slug: string } | null => {

@@ -218,7 +218,7 @@ export function MenuButton() {
           <Button
             variant="outline"
             size="icon"
-            className="relative overflow-hidden border-slate-300/60 bg-white/80 backdrop-blur-sm transition-all duration-200 hover:bg-slate-100/80 dark:border-slate-600/60 dark:bg-slate-800/80 dark:hover:bg-slate-700/80"
+            className="relative shrink-0 border-slate-300/60 bg-white/80 backdrop-blur-sm transition-colors duration-200 hover:bg-slate-100/80 aria-expanded:bg-slate-100/80 dark:border-slate-600/60 dark:bg-slate-800/80 dark:hover:bg-slate-700/80 dark:aria-expanded:bg-slate-700/80"
           />
         }
       >

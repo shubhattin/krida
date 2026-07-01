@@ -314,9 +314,7 @@ const update_puzzle_slug_route = protectedAdminProcedure
     });
 
     await db.transaction(async (tx) => {
-      if (override_redirect_slug) {
-        await delete_redirect_for_slug(tx, new_slug);
-      }
+      await delete_redirect_for_slug(tx, new_slug);
 
       const updated = await tx
         .update(word_puzzles)
