@@ -18,7 +18,9 @@ export const SlugRedirectConflictPrompt = ({
   return (
     <div className="space-y-3 rounded-md border border-amber-200 bg-amber-50 p-3 text-sm dark:border-amber-900/50 dark:bg-amber-950/30">
       <p className="font-medium text-amber-900 dark:text-amber-200">
-        This slug matches an existing redirect and an active puzzle slug cannot be reused.
+        This slug matches an existing redirect and an active puzzle slug cannot be reused. Choosing
+        Yes only replaces that conflicting redirect — your puzzle&apos;s current slug will still
+        become a redirect to the new slug when you save.
       </p>
       <ul className="list-disc space-y-1 pl-5 text-amber-800 dark:text-amber-300">
         <li>

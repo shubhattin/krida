@@ -158,12 +158,31 @@ export const EditSlugDialog = ({ puzzleId, currentSlug, onSlugUpdated }: Props) 
                 value={newSlug}
                 onChange={(e) => setNewSlug(e.currentTarget.value)}
                 className="pr-9"
+                aria-describedby={
+                  slugChanged ? 'edit-slug-redirect-note edit-slug-status' : 'edit-slug-status'
+                }
               />
               <div className="absolute top-1/2 right-2.5 -translate-y-1/2">
                 <SlugStatusIcon status={slugStatus} />
               </div>
             </div>
+            {slugChanged ? (
+              <div className="rounded-md border border-sky-200 bg-sky-50 px-3 py-2 dark:border-sky-900/50 dark:bg-sky-950/30">
+                <Label
+                  id="edit-slug-redirect-note"
+                  className="text-xs font-medium text-sky-900 dark:text-sky-200"
+                >
+                  Old URL stays valid
+                </Label>
+                <p className="mt-1 text-xs text-sky-800 dark:text-sky-300">
+                  After saving, <span className="font-mono font-semibold">{currentSlug}</span> will
+                  keep working and redirect visitors to{' '}
+                  <span className="font-mono font-semibold">{normalizedSlug}</span>.
+                </p>
+              </div>
+            ) : null}
             <p
+              id="edit-slug-status"
               className={cn(
                 'text-xs',
                 slugStatus === 'taken' || slugStatus === 'invalid'
@@ -178,7 +197,7 @@ export const EditSlugDialog = ({ puzzleId, currentSlug, onSlugUpdated }: Props) 
               {slugStatus === 'available' && slugChanged && `Available as "${normalizedSlug}".`}
               {slugStatus === 'available' && !slugChanged && 'Enter a different slug to continue.'}
               {slugStatus === 'redirect_conflict' &&
-                `Slug "${normalizedSlug}" conflicts with an existing redirect.`}
+                `Slug "${normalizedSlug}" conflicts with an existing redirect. Confirm below to use it anyway — "${currentSlug}" will still redirect to "${normalizedSlug}" after saving.`}
             </p>
             {slugStatus === 'redirect_conflict' && redirectConflict ? (
               <SlugRedirectConflictPrompt
@@ -208,6 +227,10 @@ export const EditSlugDialog = ({ puzzleId, currentSlug, onSlugUpdated }: Props) 
             <AlertDialogTitle>Confirm slug change</AlertDialogTitle>
             <AlertDialogDescription>
               Change slug from &quot;{currentSlug}&quot; to &quot;{normalizedSlug}&quot;?
+              <span className="mt-2 block text-muted-foreground">
+                &quot;{currentSlug}&quot; will remain valid and redirect to &quot;{normalizedSlug}
+                &quot;.
+              </span>
             </AlertDialogDescription>
           </AlertDialogHeader>
           <AlertDialogFooter>
