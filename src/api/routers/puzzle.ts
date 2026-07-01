@@ -13,7 +13,8 @@ import {
 import {
   puzzle_add_input_schema,
   puzzle_update_input_schema,
-  puzzle_update_slug_input_schema
+  puzzle_update_slug_input_schema,
+  slug_schema
 } from '~/db/db_shared_vals';
 import { sendOneSignalNotification } from '~/lib/onesignal';
 import { delay } from '~/tools/delay';
@@ -552,6 +553,51 @@ const get_puzzle_slugs_route = protectedAdminProcedure
     };
   });
 
+const delete_redirect_slug_route = protectedAdminProcedure
+  .input(
+    z.object({
+      puzzle_id: z.number().int(),
+      redirect_slug: slug_schema
+    })
+  )
+  .mutation(async ({ input: { puzzle_id, redirect_slug } }) => {
+    const puzzle = await db.query.word_puzzles.findFirst({
+      columns: { id: true, slug: true },
+      where: (tbl, { eq }) => eq(tbl.id, puzzle_id)
+    });
+    if (!puzzle) {
+      throw new Error('Puzzle not found');
+    }
+    if (puzzle.slug === redirect_slug) {
+      throw new Error('Cannot delete the current slug');
+    }
+
+    const redirect = await db.query.word_puzzle_redirects.findFirst({
+      columns: { id: true },
+      where: (tbl, { and, eq }) => and(eq(tbl.slug, redirect_slug), eq(tbl.puzzle_id, puzzle_id))
+    });
+    if (!redirect) {
+      throw new Error('Redirect not found');
+    }
+
+    await db
+      .delete(word_puzzle_redirects)
+      .where(
+        and(
+          eq(word_puzzle_redirects.id, redirect.id),
+          eq(word_puzzle_redirects.puzzle_id, puzzle_id)
+        )
+      );
+
+    await Promise.allSettled([
+      CACHE.word_puzzle.delete({ slug: redirect_slug }),
+      CACHE.word_meanings.delete({ slug: redirect_slug })
+    ]);
+    revalidatePath(`/padavali/${redirect_slug}`);
+
+    return { success: true as const };
+  });
+
 export const puzzle_router = t.router({
   check_slug_availability: check_slug_availability_route,
   update_puzzle: update_puzzle_route,
@@ -562,5 +608,6 @@ export const puzzle_router = t.router({
   get_puzzle_list_page: get_puzzle_list_page_route,
   get_listed_puzzles_preview: get_listed_puzzles_preview_route,
   refresh_current_schedule: refresh_current_schedule_route,
-  get_puzzle_slugs: get_puzzle_slugs_route
+  get_puzzle_slugs: get_puzzle_slugs_route,
+  delete_redirect_slug: delete_redirect_slug_route
 });

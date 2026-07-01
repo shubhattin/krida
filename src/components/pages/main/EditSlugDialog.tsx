@@ -2,7 +2,7 @@
 
 import { useEffect, useState } from 'react';
 import { useRouter } from 'next/navigation';
-import { CheckIcon, Loader2Icon, PencilIcon, XIcon } from 'lucide-react';
+import { CheckIcon, Loader2Icon, PencilIcon, Trash2Icon, XIcon } from 'lucide-react';
 import { client_q } from '~/api/client';
 import { useQueryClient } from '@tanstack/react-query';
 import { invalidatePage } from '~/tools/invalidate_nextjs_server_route';
@@ -30,6 +30,12 @@ import { Label } from '~/components/ui/label';
 import { toast } from 'sonner';
 import { useDebouncedSlugCheck } from '~/hooks/useDebouncedSlugCheck';
 import { SlugRedirectConflictPrompt } from '~/components/pages/main/SlugRedirectConflictPrompt';
+import {
+  Accordion,
+  AccordionContent,
+  AccordionItem,
+  AccordionTrigger
+} from '~/components/ui/accordion';
 import { cn } from '~/lib/utils';
 
 type Props = {
@@ -225,13 +231,38 @@ export const SlugField = ({
   puzzleId: number;
   onSlugUpdated: (slug: string) => void;
 }) => {
+  const utils = client_q.useUtils();
+  const [deleteSlugConfirm, setDeleteSlugConfirm] = useState<string | null>(null);
+
   const puzzle_slugs_q = client_q.puzzle.get_puzzle_slugs.useQuery(
     { puzzle_id: puzzleId },
     { enabled: puzzleId > 0 }
   );
 
+  const delete_redirect_mut = client_q.puzzle.delete_redirect_slug.useMutation({
+    onSuccess(_data, variables) {
+      toast.success('Redirect removed');
+      setDeleteSlugConfirm(null);
+      void utils.puzzle.get_puzzle_slugs.invalidate({ puzzle_id: puzzleId });
+      void invalidatePage(`/padavali/${variables.redirect_slug}`);
+    },
+    onError() {
+      toast.error('Failed to remove redirect');
+      setDeleteSlugConfirm(null);
+    }
+  });
+
   const all_slugs = puzzle_slugs_q.data?.all_slugs ?? [slug];
   const show_slug_aliases = all_slugs.length > 1;
+  const isDeletingRedirect = delete_redirect_mut.isPending;
+
+  const handleDeleteRedirect = () => {
+    if (!deleteSlugConfirm) return;
+    delete_redirect_mut.mutate({
+      puzzle_id: puzzleId,
+      redirect_slug: deleteSlugConfirm
+    });
+  };
 
   return (
     <div>
@@ -243,27 +274,83 @@ export const SlugField = ({
         </div>
       </Label>
       {show_slug_aliases ? (
-        <div className="mt-2 max-w-md space-y-1.5">
-          <p className="text-xs font-medium text-muted-foreground">All URLs for this puzzle</p>
-          <ul className="space-y-1 rounded-md border bg-muted/30 px-3 py-2 text-sm">
-            {all_slugs.map((entry_slug) => (
-              <li key={entry_slug} className="flex items-center justify-between gap-3">
-                <span className="font-mono text-xs sm:text-sm">{entry_slug}</span>
-                <span
-                  className={cn(
-                    'shrink-0 rounded-full px-2 py-0.5 text-[10px] font-medium tracking-wide uppercase',
-                    entry_slug === slug
-                      ? 'bg-primary/10 text-primary'
-                      : 'bg-muted text-muted-foreground'
-                  )}
-                >
-                  {entry_slug === slug ? 'Current' : 'Redirect'}
-                </span>
-              </li>
-            ))}
-          </ul>
-        </div>
+        <Accordion className="mt-2 max-w-md">
+          <AccordionItem value="puzzle-slugs" className="rounded-md border px-3">
+            <AccordionTrigger className="py-2 text-xs font-medium text-muted-foreground hover:no-underline">
+              All URLs for this puzzle ({all_slugs.length})
+            </AccordionTrigger>
+            <AccordionContent>
+              <ul className="space-y-1 rounded-md bg-muted/30 px-1 py-2 text-sm">
+                {all_slugs.map((entry_slug) => {
+                  const is_current = entry_slug === slug;
+
+                  return (
+                    <li key={entry_slug} className="flex items-center justify-between gap-2">
+                      <span className="min-w-0 truncate font-mono text-xs sm:text-sm">
+                        {entry_slug}
+                      </span>
+                      <div className="flex shrink-0 items-center gap-1.5">
+                        <span
+                          className={cn(
+                            'rounded-full px-2 py-0.5 text-[10px] font-medium tracking-wide uppercase',
+                            is_current
+                              ? 'bg-primary/10 text-primary'
+                              : 'bg-muted text-muted-foreground'
+                          )}
+                        >
+                          {is_current ? 'Current' : 'Redirect'}
+                        </span>
+                        {!is_current ? (
+                          <Button
+                            type="button"
+                            variant="ghost"
+                            size="icon-sm"
+                            className="text-muted-foreground hover:text-destructive"
+                            disabled={isDeletingRedirect}
+                            onClick={() => setDeleteSlugConfirm(entry_slug)}
+                            aria-label={`Delete redirect ${entry_slug}`}
+                          >
+                            <Trash2Icon className="size-3.5" />
+                          </Button>
+                        ) : null}
+                      </div>
+                    </li>
+                  );
+                })}
+              </ul>
+            </AccordionContent>
+          </AccordionItem>
+        </Accordion>
       ) : null}
+
+      <AlertDialog
+        open={deleteSlugConfirm !== null}
+        onOpenChange={(open) => {
+          if (!open && !isDeletingRedirect) {
+            setDeleteSlugConfirm(null);
+          }
+        }}
+      >
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle>Delete redirect slug?</AlertDialogTitle>
+            <AlertDialogDescription>
+              Remove redirect &quot;{deleteSlugConfirm}&quot;? This old URL will stop working for
+              this puzzle.
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel disabled={isDeletingRedirect}>Cancel</AlertDialogCancel>
+            <AlertDialogAction
+              disabled={isDeletingRedirect}
+              onClick={handleDeleteRedirect}
+              className="bg-destructive text-white hover:bg-destructive/90"
+            >
+              {isDeletingRedirect ? 'Deleting...' : 'Delete'}
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
     </div>
   );
 };
