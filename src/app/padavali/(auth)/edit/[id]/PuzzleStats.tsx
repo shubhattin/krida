@@ -37,12 +37,7 @@ type DateRange = {
 
 type PeriodType = 'all_time' | 'last_week' | 'last_month' | 'last_3_months' | 'custom';
 type ChartType =
-  | 'sessions-completions'
-  | 'avg-time'
-  | 'avg-accuracy'
-  | 'attempts'
-  | 'location'
-  | 'script';
+  'sessions-completions' | 'avg-time' | 'avg-accuracy' | 'attempts' | 'location' | 'script';
 
 const PERIOD_ITEMS = [
   { label: 'All Time', value: 'all_time' as const },

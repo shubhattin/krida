@@ -11,6 +11,7 @@ import {
   type NoCacheParams,
   NO_CACHE_PARAMS
 } from './create_cached_loader';
+import ms from 'ms';
 
 export { NO_CACHE_PARAMS } from './create_cached_loader';
 
@@ -259,6 +260,7 @@ export type WordMeaningsType = z.infer<typeof word_meanings_schema>;
 
 const load_word_meanings = createCachedLoader<WordPuzzleParams, WordMeaningsType>({
   getKey: ({ slug }) => REDIS_CACHE_KEYS.word_meanings(slug),
+  ttlSeconds: Math.floor(ms('90days') / 1000),
   schema: word_meanings_schema,
   fetch: async ({ slug }) => {
     const puzzle = await load_word_puzzle.get({ slug });
