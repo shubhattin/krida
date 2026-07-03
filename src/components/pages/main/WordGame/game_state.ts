@@ -11,6 +11,8 @@ export const grid_dimensions_atom = atom<[number, number]>([0, 0]);
 export const original_word_list_atom = atom<string[]>([]);
 export const started_atom = atom(false);
 export const completed_atom = atom(false);
+/** True when the player revealed AI word meanings before completing the puzzle. */
+export const practice_mode_atom = atom(false);
 export const current_selection_atom = atom<CellPosition[]>([]);
 export const found_words_atom = atom<Selection[]>([]);
 export const seconds_atom = atom(0);

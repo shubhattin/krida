@@ -21,7 +21,8 @@ const submit_stats_route = publicProcedure
         accuracy: z.number().int(),
         correct_attempts: z.number().int(),
         total_attempts: z.number().int(),
-        session_id: z.number().int()
+        session_id: z.number().int(),
+        practice_mode: z.boolean()
       })
     })
   )
@@ -31,14 +32,23 @@ const submit_stats_route = publicProcedure
     if (!is_valid) {
       throw new TRPCError({ code: 'BAD_REQUEST', message: 'Invalid turnstile token' });
     }
-    const { puzzle_id, time_taken, accuracy, correct_attempts, total_attempts, session_id } = info;
+    const {
+      puzzle_id,
+      time_taken,
+      accuracy,
+      correct_attempts,
+      total_attempts,
+      session_id,
+      practice_mode
+    } = info;
     await db.insert(puzzle_gameplay_stats).values({
       puzzle_id,
       session_id,
       time_taken,
       accuracy,
       correct_attempts,
-      total_attempts
+      total_attempts,
+      practice_mode
     });
 
     return {
@@ -128,7 +138,8 @@ const get_stats_data_route = protectedAdminProcedure
         time_taken: true,
         accuracy: true,
         correct_attempts: true,
-        total_attempts: true
+        total_attempts: true,
+        practice_mode: true
       },
       where: (tbl, { and: andFn, gte: gteFn, lte: lteFn, inArray: inArrayFn }) => {
         const conditions = [];

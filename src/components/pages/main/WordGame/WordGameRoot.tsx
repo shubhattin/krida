@@ -16,7 +16,7 @@ import { ScriptSelector } from '~/components/pages/main/ScriptSelector';
 import { cn } from '~/lib/utils';
 import Icon from '~/tools/Icon';
 import { LanguageIcon } from '~/components/icons';
-import { Calendar, InfoIcon } from 'lucide-react';
+import { Calendar, InfoIcon, Sparkles } from 'lucide-react';
 import { IoShareSocialOutline } from 'react-icons/io5';
 import { copy_text_to_clipboard } from '~/tools/kry';
 import { toast } from 'sonner';
@@ -49,7 +49,8 @@ import {
   pending_navigation_url_atom,
   puzzle_slug_atom,
   active_puzzle_id_atom,
-  description_current_atom
+  description_current_atom,
+  practice_mode_atom
 } from './game_state';
 import { Popover, PopoverContent, PopoverTrigger } from '~/components/ui/popover';
 import { FaLink, FaRegStopCircle } from 'react-icons/fa';
@@ -67,6 +68,7 @@ import { attachment_schema, DEFAULT_YOUTUBE_EMBED } from '~/db/db_shared_vals';
 import { z } from 'zod';
 import { RiPlayList2Fill } from 'react-icons/ri';
 import { IoLogoYoutube } from 'react-icons/io';
+import { HintDialog } from './HintDialog';
 
 export type WordGameProps = {
   grid_data: string[][];
@@ -117,6 +119,7 @@ export default function WordGameRoot(
     store.set(grid_dimensions_atom, [props.dims[0], props.dims[1]]);
     store.set(started_atom, false);
     store.set(completed_atom, false);
+    store.set(practice_mode_atom, false);
     store.set(current_selection_atom, []);
     store.set(found_words_atom, []);
     store.set(seconds_atom, 0);
@@ -155,6 +158,7 @@ const CompactStopButton = ({
   const [, setSeconds] = useAtom(seconds_atom);
   const [, setCurrentSelection] = useAtom(current_selection_atom);
   const [, setTotalAttempts] = useAtom(total_attempts_atom);
+  const [, setPracticeMode] = useAtom(practice_mode_atom);
 
   const font_info = FONT_INFO[script!];
 
@@ -164,6 +168,7 @@ const CompactStopButton = ({
     setCurrentSelection([]);
     setTotalAttempts(0);
     setCompleted(false);
+    setPracticeMode(false);
     setSeconds(0);
 
     if (timerRef.current) {
@@ -230,6 +235,7 @@ function WordGame({
   const [, setWordMsgs] = useAtom(word_msgs_atom);
   const [started] = useAtom(started_atom);
   const [completed] = useAtom(completed_atom);
+  const [practiceMode] = useAtom(practice_mode_atom);
   const [pendingUrl, setPendingUrl] = useAtom(pending_navigation_url_atom);
   const router = useRouter();
   const queryClient = useQueryClient();
@@ -247,6 +253,9 @@ function WordGame({
   }, [puzzle_id, puzzle_slug, utils, script]);
 
   const font_info = FONT_INFO[script as ScriptType];
+  const hintHiddenInPractice = practiceMode && started && !completed;
+  const hintBelowMeanings = started && !completed && !practiceMode;
+  const hintAtTop = !hintHiddenInPractice && !hintBelowMeanings;
 
   const timerRef = useRef<NodeJS.Timeout | null>(null);
   const [description_transliterated, setDescriptionTransliterated] =
@@ -376,6 +385,18 @@ function WordGame({
       )}
 
       <div className="container mx-auto max-w-7xl px-2 pt-3 sm:px-4 sm:pt-4 md:px-6 md:pt-5">
+        <div className="mb-2 flex flex-col items-center gap-2 sm:mb-3">
+          {hintAtTop ? (
+            <HintDialog puzzle_id={puzzle_id} puzzle_slug={puzzle_slug} timerRef={timerRef} />
+          ) : null}
+          {hintHiddenInPractice ? (
+            <span className="inline-flex items-center gap-1.5 rounded-full border border-amber-300/60 bg-amber-50 px-3 py-1 text-xs font-semibold text-amber-800 shadow-sm dark:border-amber-600/40 dark:bg-amber-950/50 dark:text-amber-200">
+              <Sparkles className="size-3" />
+              Practice mode
+            </span>
+          ) : null}
+        </div>
+
         {/* Title + inline script selector (desktop: right side, mobile: below title) */}
         <div className="relative mb-2 text-center sm:mb-3">
           {/* Desktop script selector — absolutely positioned right of the title */}
@@ -569,6 +590,11 @@ function WordGame({
                 location={location}
               />
               <AIWordExplanations puzzle_id={puzzle_id} puzzle_slug={puzzle_slug} />
+              {hintBelowMeanings ? (
+                <div className="mt-3 flex justify-center sm:mt-4">
+                  <HintDialog puzzle_id={puzzle_id} puzzle_slug={puzzle_slug} timerRef={timerRef} />
+                </div>
+              ) : null}
             </div>
           </div>
 

@@ -7,7 +7,8 @@ import {
   original_word_list_atom,
   seconds_atom,
   started_atom,
-  total_attempts_atom
+  total_attempts_atom,
+  practice_mode_atom
 } from './game_state';
 import { location_list_type } from '~/db/types';
 import TurnstileWidget from '~/components/Turnstile';
@@ -26,6 +27,7 @@ const GameMetricsCollector = ({
   const [totalAttempts] = useAtom(total_attempts_atom);
   const [seconds] = useAtom(seconds_atom);
   const [wordList] = useAtom(original_word_list_atom);
+  const [practiceMode] = useAtom(practice_mode_atom);
   const { script } = useContext(AppContext);
 
   const [turnstileToken, setTurnstileToken] = useState<string | null>(null);
@@ -79,7 +81,8 @@ const GameMetricsCollector = ({
           time_taken: seconds,
           accuracy: Math.trunc((wordList.length / totalAttempts) * 100),
           correct_attempts: wordList.length,
-          total_attempts: totalAttempts
+          total_attempts: totalAttempts,
+          practice_mode: practiceMode
         }
       });
       load_posthog((posthog) => {
@@ -88,11 +91,21 @@ const GameMetricsCollector = ({
           time_taken: seconds,
           accuracy: Math.trunc((wordList.length / totalAttempts) * 100),
           correct_attempts: wordList.length,
-          total_attempts: totalAttempts
+          total_attempts: totalAttempts,
+          practice_mode: practiceMode
         });
       });
     }
-  }, [turnstileToken, update_games_started_mut, completed]);
+  }, [
+    turnstileToken,
+    update_games_started_mut,
+    completed,
+    practiceMode,
+    puzzle_id,
+    seconds,
+    totalAttempts,
+    wordList
+  ]);
 
   return <TurnstileWidget setToken={setTurnstileToken} />;
 };

@@ -92,6 +92,13 @@
       "when": 1782874273399,
       "tag": "0012_friendly_ikaris",
       "breakpoints": true
+    },
+    {
+      "idx": 13,
+      "version": "7",
+      "when": 1783043244560,
+      "tag": "0013_dark_mimic",
+      "breakpoints": true
     }
   ]
 }

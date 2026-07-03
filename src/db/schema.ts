@@ -109,6 +109,7 @@ export const puzzle_gameplay_stats = pgTable(
       .notNull()
       .references(() => puzzle_gameplay_sessions.id, { onDelete: 'cascade' }),
     created_at: timestamp({ withTimezone: true }).notNull().defaultNow(),
+    practice_mode: boolean().notNull().default(false),
     time_taken: integer().notNull(),
     accuracy: integer().notNull(),
     correct_attempts: integer().notNull(),

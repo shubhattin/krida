@@ -18,7 +18,8 @@ import {
   word_msgs_atom,
   original_word_list_atom,
   puzzle_slug_atom,
-  description_current_atom
+  description_current_atom,
+  practice_mode_atom
 } from './game_state';
 import { AppContext } from '~/components/AppDataContext';
 import { useContext, useEffect } from 'react';
@@ -38,6 +39,7 @@ export const GameInfo = () => {
   const [wordList] = useAtom(original_word_list_atom);
   const [puzzleSlug] = useAtom(puzzle_slug_atom);
   const [description] = useAtom(description_current_atom);
+  const [practiceMode] = useAtom(practice_mode_atom);
 
   const font_info = FONT_INFO[script!];
   const accuracy = totalAttempts > 0 ? Math.round((wordList.length / totalAttempts) * 100) : 0;
@@ -246,49 +248,60 @@ export const GameInfo = () => {
             </div>
           </div>
 
-          {/* Share button — below stats */}
-          <motion.div
-            initial={{ opacity: 0, y: 8 }}
-            animate={{ opacity: 1, y: 0 }}
-            transition={{ delay: 0.7, duration: 0.4 }}
-            className="mt-3 flex justify-center"
-          >
-            <Button
-              onClick={async () => {
-                const text = get_share_msg(
-                  title,
-                  description,
-                  formatTime(seconds),
-                  accuracy,
-                  puzzleSlug
-                );
-                try {
-                  if (typeof navigator !== 'undefined' && navigator.share) {
-                    await navigator.share({
-                      title: `${title} - पदावली-शब्द-क्रीडनम्`,
-                      text
-                    });
-                  } else {
-                    try {
-                      await copy_text_to_clipboard(text);
-                      toast.success('Achievement message copied to clipboard');
-                    } catch (err) {
-                      toast.error('Could not copy to clipboard');
-                      console.log('Error copying:', err);
+          {/* Share button — below stats (hidden in practice mode) */}
+          {practiceMode ? (
+            <motion.p
+              initial={{ opacity: 0, y: 8 }}
+              animate={{ opacity: 1, y: 0 }}
+              transition={{ delay: 0.7, duration: 0.4 }}
+              className="mt-3 text-center text-xs font-medium text-amber-700 sm:text-sm dark:text-amber-300"
+            >
+              Practice complete. Try again without hints!
+            </motion.p>
+          ) : (
+            <motion.div
+              initial={{ opacity: 0, y: 8 }}
+              animate={{ opacity: 1, y: 0 }}
+              transition={{ delay: 0.7, duration: 0.4 }}
+              className="mt-3 flex justify-center"
+            >
+              <Button
+                onClick={async () => {
+                  const text = get_share_msg(
+                    title,
+                    description,
+                    formatTime(seconds),
+                    accuracy,
+                    puzzleSlug
+                  );
+                  try {
+                    if (typeof navigator !== 'undefined' && navigator.share) {
+                      await navigator.share({
+                        title: `${title} - पदावली-शब्द-क्रीडनम्`,
+                        text
+                      });
+                    } else {
+                      try {
+                        await copy_text_to_clipboard(text);
+                        toast.success('Achievement message copied to clipboard');
+                      } catch (err) {
+                        toast.error('Could not copy to clipboard');
+                        console.log('Error copying:', err);
+                      }
+                    }
+                  } catch (err) {
+                    if ((err as Error).name !== 'AbortError') {
+                      console.log('Error sharing:', err);
                     }
                   }
-                } catch (err) {
-                  if ((err as Error).name !== 'AbortError') {
-                    console.log('Error sharing:', err);
-                  }
-                }
-              }}
-              className="flex transform items-center gap-1.5 rounded-lg bg-linear-to-r from-green-600 to-emerald-600 px-3 py-1.5 text-sm font-semibold text-white shadow-sm transition-all duration-200 hover:scale-105 hover:from-green-700 hover:to-emerald-700 active:scale-95"
-            >
-              <IoShareSocialOutline className="text-sm" />
-              Share Achievement
-            </Button>
-          </motion.div>
+                }}
+                className="flex transform items-center gap-1.5 rounded-lg bg-linear-to-r from-green-600 to-emerald-600 px-3 py-1.5 text-sm font-semibold text-white shadow-sm transition-all duration-200 hover:scale-105 hover:from-green-700 hover:to-emerald-700 active:scale-95"
+              >
+                <IoShareSocialOutline className="text-sm" />
+                Share Achievement
+              </Button>
+            </motion.div>
+          )}
         </motion.div>
       )}
     </>
