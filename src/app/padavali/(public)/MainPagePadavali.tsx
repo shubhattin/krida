@@ -75,6 +75,7 @@ const MainPagePadavali = ({ script, word_puzzle, initial_script_data, next_sched
         </motion.div>
       )}
       <WordGameRoot
+        listed={word_puzzle.listed}
         location="main_page"
         script={script}
         id={word_puzzle.id!}

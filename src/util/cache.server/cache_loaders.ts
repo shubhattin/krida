@@ -3,15 +3,13 @@ import { REDIS_CACHE_KEYS } from '~/db/redis';
 import { image_schema, puzzle_schema } from '~/db/db_shared_vals';
 import { z } from 'zod';
 import { sql } from 'drizzle-orm';
-import { createOpenRouter } from '@openrouter/ai-sdk-provider';
-import { generateText, Output } from 'ai';
-import {
-  createCachedLoader,
-  type CachedLoader,
-  type NoCacheParams,
-  NO_CACHE_PARAMS
-} from './create_cached_loader';
+import { createCachedLoader, type CachedLoader, type NoCacheParams } from './create_cached_loader';
 import ms from 'ms';
+import {
+  get_puzzle_word_meanings,
+  word_meanings_schema,
+  WordMeaningsType
+} from '../ai/word_meanings';
 
 export { NO_CACHE_PARAMS } from './create_cached_loader';
 
@@ -219,45 +217,6 @@ export const invalidate_and_refresh_cached = async <TParams, TData>(
   void loader.refresh(params, { deleteFirst: false });
 };
 
-const openrouter = createOpenRouter({
-  apiKey: process.env.OPENROUTER_API_KEY
-});
-const text_model = openrouter('openai/gpt-5.4-mini');
-
-const SYSTEM_PROMPT = `
-You are an expert at providing meanings of Sanskrit words based on the puzzle context.
-
-You will be provided context of Sanskrit puzzle title and name.
-- You have give short meanings and explanations for meaning of words of the puzzles.
-- Keep In the context tHe indian cultural mythology, history  and background for explanation.
-- Do not use Devanagari in word meanings rather use the IAST (Romanized standard to write Indian Sanskit words), 
-  eg :- śakti (शक्ति) , gaṇeṣa (गणेश), kālabhairava (कालभैरव)
-
-You will be provided with
-- Title: The title of the puzzle
-- Description: The description of the puzzle
-- Words: The words of the puzzle
-
-Give your response in a proper JSON SCHEMA
-`;
-
-const word_meanings_schema = z.object({
-  words: z
-    .array(
-      z.object({
-        word: z.string().describe('Provided Sanskrit word in Devanagari script'),
-        meaning: z
-          .string()
-          .describe(
-            'Meaning and Short Explanation of the word in English based on the puzzle context'
-          )
-      })
-    )
-    .describe('List of words and their meanings')
-});
-
-export type WordMeaningsType = z.infer<typeof word_meanings_schema>;
-
 const load_word_meanings = createCachedLoader<WordPuzzleParams, WordMeaningsType>({
   getKey: ({ slug }) => REDIS_CACHE_KEYS.word_meanings(slug),
   ttlSeconds: Math.floor(ms('90days') / 1000),
@@ -267,20 +226,7 @@ const load_word_meanings = createCachedLoader<WordPuzzleParams, WordMeaningsType
     if (!puzzle) {
       throw new Error(`Puzzle not found for slug: ${slug}`);
     }
-
-    const words_list = puzzle.word_list.join(', ');
-    const response = await generateText({
-      model: text_model,
-      system: SYSTEM_PROMPT,
-      prompt: `Title: ${puzzle.title}\nDescription: ${puzzle.description}\nWords: ${words_list}`,
-      output: Output.object({ schema: word_meanings_schema }),
-      providerOptions: {
-        openrouter: {
-          reasoning: { effort: 'medium' }
-        }
-      }
-    });
-    return response.output;
+    return get_puzzle_word_meanings(puzzle);
   }
 });
 

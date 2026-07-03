@@ -75,6 +75,7 @@ export type WordGameProps = {
   grid_data: string[][];
   dims: number[];
   word_list: string[];
+  listed: boolean;
   title: string;
   description: string | null;
   id: number;
@@ -229,7 +230,8 @@ function WordGame({
   onChangeCompleted,
   location,
   puzzle_slug,
-  attachments
+  attachments,
+  listed
 }: WordGameProps & { id: number }) {
   const { script, setScript } = useContext(AppContext);
   const [, setGridData] = useAtom(grid_data_current_atom);
@@ -441,36 +443,38 @@ function WordGame({
                 </PopoverContent>
               </Popover>
             )}
-            <button
-              onClick={async () => {
-                const text = get_general_share_msg(title, puzzle_slug, description);
-                try {
-                  if (typeof navigator !== 'undefined' && navigator.share) {
-                    await navigator.share({
-                      title: `${title} - पदावली-शब्द-क्रीडनम्`,
-                      text
-                    });
-                  } else {
-                    try {
-                      await copy_text_to_clipboard(text);
-                      toast.success('Puzzle link copied to clipboard');
-                    } catch (err) {
-                      toast.error('Could not copy to clipboard');
-                      console.log('Error copying:', err);
+            {listed && (
+              <button
+                onClick={async () => {
+                  const text = get_general_share_msg(title, puzzle_slug, description);
+                  try {
+                    if (typeof navigator !== 'undefined' && navigator.share) {
+                      await navigator.share({
+                        title: `${title} - पदावली-शब्द-क्रीडनम्`,
+                        text
+                      });
+                    } else {
+                      try {
+                        await copy_text_to_clipboard(text);
+                        toast.success('Puzzle link copied to clipboard');
+                      } catch (err) {
+                        toast.error('Could not copy to clipboard');
+                        console.log('Error copying:', err);
+                      }
+                    }
+                  } catch (err) {
+                    if ((err as Error).name !== 'AbortError') {
+                      console.log('Error sharing:', err);
                     }
                   }
-                } catch (err) {
-                  if ((err as Error).name !== 'AbortError') {
-                    console.log('Error sharing:', err);
-                  }
-                }
-              }}
-              className="ml-3 inline-flex items-center justify-center align-middle text-slate-500 outline-none hover:text-slate-700 hover:brightness-75 dark:text-slate-400 dark:hover:text-slate-200"
-              title="Share Puzzle"
-              aria-label="Share Puzzle"
-            >
-              <IoShareSocialOutline className="size-3.5 sm:size-4.5" />
-            </button>
+                }}
+                className="ml-3 inline-flex items-center justify-center align-middle text-slate-500 outline-none hover:text-slate-700 hover:brightness-75 dark:text-slate-400 dark:hover:text-slate-200"
+                title="Share Puzzle"
+                aria-label="Share Puzzle"
+              >
+                <IoShareSocialOutline className="size-3.5 sm:size-4.5" />
+              </button>
+            )}
           </div>
 
           {/* Script selector — mobile only, centered below title */}

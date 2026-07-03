@@ -83,6 +83,7 @@ const MainEdit = async ({ params }: Props) => {
             initial_script_data={{ word_msgs: word_game_msgs, title, grid_data }}
             next_schedule={next_schedule}
             attachments={word_puzzle.attachments}
+            listed={word_puzzle.listed}
           >
             <div className="px-4 pt-3 sm:px-6 sm:pt-4">
               <Link

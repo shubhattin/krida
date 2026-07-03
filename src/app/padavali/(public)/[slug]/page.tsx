@@ -130,6 +130,7 @@ const WordGameSuspense = async ({ slug }: { slug: string }) => {
       initial_script_data={{ word_msgs: word_game_msgs, title, grid_data }}
       next_schedule={next_schedule}
       attachments={word_puzzle.attachments}
+      listed={word_puzzle.listed}
     ></WordGame>
   );
 };
