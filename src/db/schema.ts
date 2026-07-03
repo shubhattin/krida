@@ -89,6 +89,7 @@ export const puzzle_gameplay_sessions = pgTable(
       .notNull()
       .references(() => word_puzzles.id, { onDelete: 'cascade' }),
     created_at: timestamp({ withTimezone: true }).notNull().defaultNow(),
+    practice_mode: boolean().notNull().default(false),
     location: varchar({ length: 25 }).$type<location_list_type>(),
     script: text().$type<ScriptType>()
     // as the script field was added late, we have handle it accordingly in th code

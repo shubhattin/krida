@@ -1,5 +1,5 @@
 import { useAtom } from 'jotai';
-import { useContext, useEffect, useState } from 'react';
+import { useContext, useEffect, useRef, useState } from 'react';
 import { useTurnstile } from 'react-turnstile';
 import { client_q } from '~/api/client';
 import {
@@ -7,7 +7,9 @@ import {
   original_word_list_atom,
   seconds_atom,
   started_atom,
-  total_attempts_atom
+  total_attempts_atom,
+  practice_mode_atom,
+  game_session_nonce_atom
 } from './game_state';
 import { location_list_type } from '~/db/types';
 import TurnstileWidget from '~/components/Turnstile';
@@ -26,24 +28,62 @@ const GameMetricsCollector = ({
   const [totalAttempts] = useAtom(total_attempts_atom);
   const [seconds] = useAtom(seconds_atom);
   const [wordList] = useAtom(original_word_list_atom);
+  const [practiceMode] = useAtom(practice_mode_atom);
+  const [gameSessionNonce] = useAtom(game_session_nonce_atom);
   const { script } = useContext(AppContext);
 
   const [turnstileToken, setTurnstileToken] = useState<string | null>(null);
+  const [practiceModeSyncedSessionId, setPracticeModeSyncedSessionId] = useState<number | null>(
+    null
+  );
+  const previousGameSessionNonceRef = useRef(gameSessionNonce);
   const turnstile = useTurnstile();
+  const turnstileRef = useRef(turnstile);
+  turnstileRef.current = turnstile;
+  const resetTurnstile = () => turnstileRef.current?.reset();
   const submit_stats_mut = client_q.puzzle.stats.submit_stats.useMutation({
     onSuccess() {
       setTurnstileToken(null);
-      turnstile.reset();
+      resetTurnstile();
       update_games_started_mut.reset();
       submit_stats_mut.reset();
     }
   });
   const update_games_started_mut = client_q.puzzle.stats.update_games_started.useMutation({
-    onSuccess() {
+    onSuccess(data, variables) {
+      setPracticeModeSyncedSessionId(variables.practice_mode ? data.session_id : null);
       setTurnstileToken(null);
-      turnstile.reset();
+      resetTurnstile();
     }
   });
+  const {
+    mutate: syncSessionPracticeMode,
+    isPending: isSyncingSessionPracticeMode,
+    reset: resetSessionPracticeModeSync
+  } = client_q.puzzle.stats.update_session_practice_mode.useMutation({
+    onSuccess(_data, variables) {
+      setPracticeModeSyncedSessionId(variables.session_id);
+      setTurnstileToken(null);
+      resetTurnstile();
+    },
+    onError() {
+      setTurnstileToken(null);
+      resetTurnstile();
+    }
+  });
+
+  useEffect(() => {
+    if (previousGameSessionNonceRef.current === gameSessionNonce) return;
+    previousGameSessionNonceRef.current = gameSessionNonce;
+
+    setTurnstileToken(null);
+    setPracticeModeSyncedSessionId(null);
+    update_games_started_mut.reset();
+    submit_stats_mut.reset();
+    resetSessionPracticeModeSync();
+    resetTurnstile();
+  }, [gameSessionNonce, update_games_started_mut, submit_stats_mut, resetSessionPracticeModeSync]);
+
   useEffect(() => {
     if (started && !completed && turnstileToken && !update_games_started_mut.isSuccess) {
       // only update games started if not already done
@@ -51,17 +91,49 @@ const GameMetricsCollector = ({
         turnstile_token: turnstileToken,
         id: puzzle_id,
         location,
-        script: script
+        script: script,
+        practice_mode: practiceMode
       });
       load_posthog((posthog) => {
         posthog.capture('gameplay_started', {
           puzzle_id: puzzle_id,
           location: location,
-          script: script
+          script: script,
+          practice_mode: practiceMode
         });
       });
     }
-  }, [started, turnstileToken, completed]);
+  }, [started, turnstileToken, completed, practiceMode, puzzle_id, location, script]);
+
+  const sessionId = update_games_started_mut.data?.session_id;
+
+  useEffect(() => {
+    if (
+      !practiceMode ||
+      !turnstileToken ||
+      !sessionId ||
+      !update_games_started_mut.isSuccess ||
+      practiceModeSyncedSessionId === sessionId ||
+      isSyncingSessionPracticeMode
+    ) {
+      return;
+    }
+
+    syncSessionPracticeMode({
+      turnstile_token: turnstileToken,
+      session_id: sessionId,
+      practice_mode: true
+    });
+  }, [
+    practiceMode,
+    turnstileToken,
+    sessionId,
+    update_games_started_mut.isSuccess,
+    practiceModeSyncedSessionId,
+    isSyncingSessionPracticeMode,
+    syncSessionPracticeMode
+  ]);
+
   useEffect(() => {
     if (
       completed &&
@@ -79,7 +151,8 @@ const GameMetricsCollector = ({
           time_taken: seconds,
           accuracy: Math.trunc((wordList.length / totalAttempts) * 100),
           correct_attempts: wordList.length,
-          total_attempts: totalAttempts
+          total_attempts: totalAttempts,
+          practice_mode: practiceMode
         }
       });
       load_posthog((posthog) => {
@@ -88,11 +161,21 @@ const GameMetricsCollector = ({
           time_taken: seconds,
           accuracy: Math.trunc((wordList.length / totalAttempts) * 100),
           correct_attempts: wordList.length,
-          total_attempts: totalAttempts
+          total_attempts: totalAttempts,
+          practice_mode: practiceMode
         });
       });
     }
-  }, [turnstileToken, update_games_started_mut, completed]);
+  }, [
+    turnstileToken,
+    update_games_started_mut,
+    completed,
+    practiceMode,
+    puzzle_id,
+    seconds,
+    totalAttempts,
+    wordList
+  ]);
 
   return <TurnstileWidget setToken={setTurnstileToken} />;
 };

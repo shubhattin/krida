@@ -1,21 +1,13 @@
 import { MdReplay } from 'react-icons/md';
 import { cn } from '~/lib/utils';
-import { type RefObject, useContext, useEffect } from 'react';
+import { type RefObject, useContext } from 'react';
 import { GoStopwatch } from 'react-icons/go';
 import { motion } from 'framer-motion';
 import { FONT_INFO } from '~/state/script_font_data';
-import { IoExtensionPuzzleSharp } from 'react-icons/io5';
 import { useAtom } from 'jotai';
-import {
-  started_atom,
-  completed_atom,
-  seconds_atom,
-  found_words_atom,
-  word_msgs_atom,
-  total_attempts_atom,
-  current_selection_atom
-} from './game_state';
+import { started_atom, completed_atom, seconds_atom, word_msgs_atom } from './game_state';
 import { AppContext } from '~/components/AppDataContext';
+import { useStartPuzzleGame } from './useStartPuzzleGame';
 
 // Format seconds to mm:ss
 export const formatTime = (totalSeconds: number) => {
@@ -30,46 +22,28 @@ type Props = {
 
 export const GameContoller = ({ timerRef }: Props) => {
   const { script } = useContext(AppContext);
-  const [started, setStarted] = useAtom(started_atom);
-  const [completed, setCompleted] = useAtom(completed_atom);
-  const [seconds, setSeconds] = useAtom(seconds_atom);
-  const [, setCurrentSelection] = useAtom(current_selection_atom);
-  const [, setFoundWords] = useAtom(found_words_atom);
-  const [, setTotalAttempts] = useAtom(total_attempts_atom);
+  const [started] = useAtom(started_atom);
+  const [completed] = useAtom(completed_atom);
+  const [seconds] = useAtom(seconds_atom);
   const [wordMsgs] = useAtom(word_msgs_atom);
+  const startGame = useStartPuzzleGame(timerRef);
 
   const font_info = FONT_INFO[script!];
-
-  const handleRestart = () => {
-    setStarted(true);
-    setSeconds(0);
-    setCurrentSelection([]);
-    setFoundWords([]);
-    setTotalAttempts(0);
-    setCompleted(false);
-
-    if (timerRef.current) {
-      clearInterval(timerRef.current);
-    }
-    timerRef.current = setInterval(() => {
-      setSeconds((prev) => prev + 1);
-    }, 1000);
-  };
 
   return (
     <>
       {completed && (
         <div>
           <motion.button
-            onClick={handleRestart}
+            onClick={() => startGame()}
             initial={{ opacity: 0, scale: 0.9 }}
             animate={{ opacity: 1, scale: 1 }}
             transition={{ duration: 0.3, ease: 'easeInOut' }}
             className={cn(
-              'group relative overflow-hidden bg-gradient-to-r from-blue-500 to-indigo-500 hover:from-blue-600 hover:to-indigo-600',
+              'group relative overflow-hidden bg-linear-to-r from-blue-500 to-indigo-500 hover:from-blue-600 hover:to-indigo-600',
               'rounded-xl px-4 py-2.5 font-bold text-white shadow-lg hover:shadow-xl sm:rounded-2xl sm:px-6 sm:py-3',
               'transform transition-all duration-200 hover:scale-105 active:scale-95',
-              'flex h-full min-h-[4rem] w-full items-center justify-center gap-2 sm:min-h-[5rem]',
+              'flex h-full min-h-16 w-full items-center justify-center gap-2 sm:min-h-20',
               font_info.className
             )}
           >
@@ -84,7 +58,7 @@ export const GameContoller = ({ timerRef }: Props) => {
           initial={{ opacity: 0, scale: 0.9 }}
           animate={{ opacity: 1, scale: 1 }}
           transition={{ duration: 0.45, ease: 'easeInOut' }}
-          className="rounded-xl border border-blue-200 bg-gradient-to-r from-blue-50 to-indigo-50 p-2.5 sm:rounded-2xl sm:p-5 md:p-6 lg:p-4 dark:border-blue-800 dark:from-blue-950 dark:to-indigo-950"
+          className="rounded-xl border border-blue-200 bg-linear-to-r from-blue-50 to-indigo-50 p-2.5 sm:rounded-2xl sm:p-5 md:p-6 lg:p-4 dark:border-blue-800 dark:from-blue-950 dark:to-indigo-950"
         >
           <div className="flex items-center justify-center space-x-2 sm:space-x-3">
             <div>

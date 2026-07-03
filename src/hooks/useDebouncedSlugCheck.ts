@@ -9,12 +9,7 @@ import type { redirect_conflict_schema } from '~/db/db_shared_vals';
 const DEBOUNCE_MS = 400;
 
 export type SlugCheckStatus =
-  | 'idle'
-  | 'checking'
-  | 'available'
-  | 'taken'
-  | 'invalid'
-  | 'redirect_conflict';
+  'idle' | 'checking' | 'available' | 'taken' | 'invalid' | 'redirect_conflict';
 
 export type RedirectConflict = z.infer<typeof redirect_conflict_schema>;
 

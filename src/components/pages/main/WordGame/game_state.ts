@@ -11,6 +11,14 @@ export const grid_dimensions_atom = atom<[number, number]>([0, 0]);
 export const original_word_list_atom = atom<string[]>([]);
 export const started_atom = atom(false);
 export const completed_atom = atom(false);
+/** True when the player revealed AI word meanings before completing the puzzle. */
+export const practice_mode_atom = atom(false);
+/**
+ * Incremented every time a fresh play session starts within the same mounted puzzle.
+ * Consumers use this as a reset signal for per-session side effects, especially
+ * metrics submission and Turnstile tokens, without relying on puzzle remounts.
+ */
+export const game_session_nonce_atom = atom(0);
 export const current_selection_atom = atom<CellPosition[]>([]);
 export const found_words_atom = atom<Selection[]>([]);
 export const seconds_atom = atom(0);

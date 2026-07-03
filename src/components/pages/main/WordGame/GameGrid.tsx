@@ -14,12 +14,12 @@ import {
   grid_dimensions_atom,
   total_attempts_atom,
   original_word_list_atom,
-  word_msgs_atom,
-  seconds_atom
+  word_msgs_atom
 } from './game_state';
 import { AppContext } from '~/components/AppDataContext';
 import type { location_list_type } from '~/db/types';
 import { FaPlay } from 'react-icons/fa';
+import { useStartPuzzleGame } from './useStartPuzzleGame';
 
 type Props = {
   puzzle_id: number;
@@ -38,7 +38,9 @@ export const GameGrid = ({ timerRef, original_grid_data }: Props) => {
   const [gridDimensions] = useAtom(grid_dimensions_atom);
   const [, setTotalAttempts] = useAtom(total_attempts_atom);
   const [wordList] = useAtom(original_word_list_atom);
+  const [wordMsgs] = useAtom(word_msgs_atom);
 
+  const handleStart = useStartPuzzleGame(timerRef);
   const rows = gridDimensions[0] > 0 ? gridDimensions[0] : original_grid_data.length;
   const cols = gridDimensions[1] > 0 ? gridDimensions[1] : original_grid_data[0].length;
   const gridRef = useRef<HTMLDivElement>(null);
@@ -130,25 +132,6 @@ export const GameGrid = ({ timerRef, original_grid_data }: Props) => {
   }, [started, completed, rows, cols]);
 
   const font_info = FONT_INFO[script!];
-  const [wordMsgs] = useAtom(word_msgs_atom);
-  const [, setStarted] = useAtom(started_atom);
-  const [, setSeconds] = useAtom(seconds_atom);
-
-  const handleStart = () => {
-    setStarted(true);
-    setSeconds(0);
-    setCurrentSelection([]);
-    setFoundWords([]);
-    setTotalAttempts(0);
-    setCompleted(false);
-
-    if (timerRef.current) {
-      clearInterval(timerRef.current);
-    }
-    timerRef.current = setInterval(() => {
-      setSeconds((prev) => prev + 1);
-    }, 1000);
-  };
 
   // Prevent pull-to-refresh and other navigation gestures
   useEffect(() => {
@@ -553,7 +536,7 @@ export const GameGrid = ({ timerRef, original_grid_data }: Props) => {
             {/* Play Button Overlay - centered over the grid */}
             {!started && (
               <button
-                onClick={handleStart}
+                onClick={() => handleStart()}
                 className={cn(
                   // Blue gradient with light and dark variants
                   'group absolute inset-0 z-20 m-auto size-fit overflow-hidden',

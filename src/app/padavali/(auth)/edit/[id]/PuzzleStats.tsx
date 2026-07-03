@@ -36,13 +36,9 @@ type DateRange = {
 };
 
 type PeriodType = 'all_time' | 'last_week' | 'last_month' | 'last_3_months' | 'custom';
+type GameplayMode = 'all' | 'practice' | 'unguided';
 type ChartType =
-  | 'sessions-completions'
-  | 'avg-time'
-  | 'avg-accuracy'
-  | 'attempts'
-  | 'location'
-  | 'script';
+  'sessions-completions' | 'avg-time' | 'avg-accuracy' | 'attempts' | 'location' | 'script';
 
 const PERIOD_ITEMS = [
   { label: 'All Time', value: 'all_time' as const },
@@ -142,6 +138,49 @@ const CHART_TYPE_ITEMS = [
   { label: 'Location', value: 'location' as const },
   { label: 'Script', value: 'script' as const }
 ];
+
+const GAMEPLAY_MODE_ITEMS = [
+  { label: 'All', value: 'all' as const },
+  { label: 'Practice', value: 'practice' as const },
+  { label: 'No Hint', value: 'unguided' as const }
+];
+
+type StatsSession = {
+  id: number;
+  created_at: Date | string;
+  practice_mode: boolean;
+  location: string | null;
+  script: string | null;
+};
+
+type StatsCompletion = {
+  id: number;
+  created_at: Date | string;
+  session_id: number;
+  time_taken: number;
+  accuracy: number;
+  correct_attempts: number;
+  total_attempts: number;
+};
+
+function filterByGameplayMode(
+  sessions: StatsSession[],
+  stats: StatsCompletion[],
+  mode: GameplayMode
+): { sessions: StatsSession[]; stats: StatsCompletion[] } {
+  if (mode === 'all') return { sessions, stats };
+
+  const includedSessionIds = new Set(
+    sessions
+      .filter((session) => (mode === 'practice' ? session.practice_mode : !session.practice_mode))
+      .map((session) => session.id)
+  );
+
+  return {
+    sessions: sessions.filter((session) => includedSessionIds.has(session.id)),
+    stats: stats.filter((stat) => includedSessionIds.has(stat.session_id))
+  };
+}
 
 const DEFAULT_CHART_CONFIG = {
   sessions: {
@@ -348,6 +387,7 @@ type PuzzleStatsProps = {
 const PuzzleStats = ({ puzzleId, puzzleTitle }: PuzzleStatsProps) => {
   const isEmbedded = puzzleId != null;
   const [period, setPeriod] = useState<PeriodType>('last_month');
+  const [gameplayMode, setGameplayMode] = useState<GameplayMode>('unguided');
   const [chartType, setChartType] = useState<ChartType>('sessions-completions');
   const [selectedPuzzles, setSelectedPuzzles] = useState<SelectedPuzzle[]>(() =>
     puzzleId && puzzleTitle ? [{ id: puzzleId, title: puzzleTitle }] : []
@@ -390,12 +430,22 @@ const PuzzleStats = ({ puzzleId, puzzleTitle }: PuzzleStatsProps) => {
     }
   );
 
+  const filteredStatsData = useMemo(() => {
+    if (!statsQuery.data) return null;
+    const { sessions, stats } = filterByGameplayMode(
+      statsQuery.data.sessions,
+      statsQuery.data.stats,
+      gameplayMode
+    );
+    return { ...statsQuery.data, sessions, stats };
+  }, [statsQuery.data, gameplayMode]);
+
   // Process data for charts
   const chartData = useMemo(() => {
-    if (!statsQuery.data)
+    if (!filteredStatsData)
       return { dailyStats: [], locationFrequency: [], scriptFrequency: [], isBucketed: false };
 
-    const { sessions, stats } = statsQuery.data;
+    const { sessions, stats } = filteredStatsData;
 
     // Create daily aggregation
     const dailyMap = new Map<
@@ -515,13 +565,13 @@ const PuzzleStats = ({ puzzleId, puzzleTitle }: PuzzleStatsProps) => {
       .sort((a, b) => b.frequency - a.frequency);
 
     return { dailyStats, locationFrequency, scriptFrequency, isBucketed };
-  }, [statsQuery.data, allTime, effectiveDateRange]);
+  }, [filteredStatsData, allTime, effectiveDateRange]);
 
   // Summary statistics
   const summaryStats = useMemo(() => {
-    if (!statsQuery.data) return null;
+    if (!filteredStatsData) return null;
 
-    const { sessions, stats } = statsQuery.data;
+    const { sessions, stats } = filteredStatsData;
 
     // Calculate averages from completed sessions
     const avgTimeTaken =
@@ -541,7 +591,7 @@ const PuzzleStats = ({ puzzleId, puzzleTitle }: PuzzleStatsProps) => {
       avgTimeTaken,
       avgAccuracy
     };
-  }, [statsQuery.data]);
+  }, [filteredStatsData]);
 
   return (
     <div className="space-y-3 p-4">
@@ -556,11 +606,11 @@ const PuzzleStats = ({ puzzleId, puzzleTitle }: PuzzleStatsProps) => {
                 : `Analytics for ${selectedPuzzles.length} selected puzzles`}
           </p>
         </div>
-        <DateRangeControls
+        <StatsFilterControls
           period={period}
           setPeriod={setPeriod}
-          dateRange={dateRange}
-          setDateRange={setDateRange}
+          gameplayMode={gameplayMode}
+          setGameplayMode={setGameplayMode}
         />
       </div>
 
@@ -820,36 +870,41 @@ const StatsLoadingSkeleton = () => (
   </div>
 );
 
-// Date range controls component
-const DateRangeControls = ({
+// Top filter controls — gameplay mode + period
+const StatsFilterControls = ({
   period,
-  setPeriod
+  setPeriod,
+  gameplayMode,
+  setGameplayMode
 }: {
   period: PeriodType;
   setPeriod: (period: PeriodType) => void;
-  dateRange: DateRange;
-  setDateRange: React.Dispatch<React.SetStateAction<DateRange>>;
+  gameplayMode: GameplayMode;
+  setGameplayMode: (mode: GameplayMode) => void;
 }) => (
-  <div className="flex shrink-0 items-center gap-2">
-    <span className="text-xs font-medium text-muted-foreground">Period</span>
-    <Select
-      items={PERIOD_ITEMS}
-      value={period}
-      onValueChange={(value) => {
-        if (value) setPeriod(value);
-      }}
-    >
-      <SelectTrigger size="sm" className="h-8 w-36" aria-label="Select period">
-        <SelectValue />
-      </SelectTrigger>
-      <SelectContent>
-        <SelectItem value="all_time">All Time</SelectItem>
-        <SelectItem value="last_week">Last Week</SelectItem>
-        <SelectItem value="last_month">Last Month</SelectItem>
-        <SelectItem value="last_3_months">Last 3 Months</SelectItem>
-        <SelectItem value="custom">Custom Range</SelectItem>
-      </SelectContent>
-    </Select>
+  <div className="flex flex-col gap-2 sm:flex-row sm:items-center sm:gap-3">
+    <GameplayModeSelector gameplayMode={gameplayMode} setGameplayMode={setGameplayMode} />
+    <div className="flex shrink-0 items-center gap-2">
+      <span className="text-xs font-medium text-muted-foreground">Period</span>
+      <Select
+        items={PERIOD_ITEMS}
+        value={period}
+        onValueChange={(value) => {
+          if (value) setPeriod(value);
+        }}
+      >
+        <SelectTrigger size="sm" className="h-8 w-36" aria-label="Select period">
+          <SelectValue />
+        </SelectTrigger>
+        <SelectContent>
+          <SelectItem value="all_time">All Time</SelectItem>
+          <SelectItem value="last_week">Last Week</SelectItem>
+          <SelectItem value="last_month">Last Month</SelectItem>
+          <SelectItem value="last_3_months">Last 3 Months</SelectItem>
+          <SelectItem value="custom">Custom Range</SelectItem>
+        </SelectContent>
+      </Select>
+    </div>
   </div>
 );
 
@@ -1051,6 +1106,34 @@ const ChartSelector = ({
         <SelectItem value="attempts">Total and Correct Attempts</SelectItem>
         <SelectItem value="location">Location</SelectItem>
         <SelectItem value="script">Script</SelectItem>
+      </SelectContent>
+    </Select>
+  </div>
+);
+
+const GameplayModeSelector = ({
+  gameplayMode,
+  setGameplayMode
+}: {
+  gameplayMode: GameplayMode;
+  setGameplayMode: (mode: GameplayMode) => void;
+}) => (
+  <div className="flex flex-wrap items-center gap-2">
+    <label className="text-xs font-medium text-muted-foreground">Gameplay mode</label>
+    <Select
+      items={GAMEPLAY_MODE_ITEMS}
+      value={gameplayMode}
+      onValueChange={(value) => {
+        if (value) setGameplayMode(value);
+      }}
+    >
+      <SelectTrigger size="sm" className="h-8 w-32" aria-label="Select gameplay mode">
+        <SelectValue />
+      </SelectTrigger>
+      <SelectContent>
+        <SelectItem value="all">All</SelectItem>
+        <SelectItem value="practice">Practice</SelectItem>
+        <SelectItem value="unguided">No Hint</SelectItem>
       </SelectContent>
     </Select>
   </div>

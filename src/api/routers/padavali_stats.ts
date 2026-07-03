@@ -10,6 +10,7 @@ import { puzzle_gameplay_sessions, puzzle_gameplay_stats } from '~/db/schema';
 import { db } from '~/db/db';
 import { location_list_enum } from '~/db/types';
 import { script_list_enum } from '~/state/script_list';
+import { eq } from 'drizzle-orm';
 
 const submit_stats_route = publicProcedure
   .input(
@@ -21,7 +22,8 @@ const submit_stats_route = publicProcedure
         accuracy: z.number().int(),
         correct_attempts: z.number().int(),
         total_attempts: z.number().int(),
-        session_id: z.number().int()
+        session_id: z.number().int(),
+        practice_mode: z.boolean().default(false)
       })
     })
   )
@@ -31,7 +33,23 @@ const submit_stats_route = publicProcedure
     if (!is_valid) {
       throw new TRPCError({ code: 'BAD_REQUEST', message: 'Invalid turnstile token' });
     }
-    const { puzzle_id, time_taken, accuracy, correct_attempts, total_attempts, session_id } = info;
+    const {
+      puzzle_id,
+      time_taken,
+      accuracy,
+      correct_attempts,
+      total_attempts,
+      session_id,
+      practice_mode
+    } = info;
+
+    if (practice_mode) {
+      await db
+        .update(puzzle_gameplay_sessions)
+        .set({ practice_mode: true })
+        .where(eq(puzzle_gameplay_sessions.id, session_id));
+    }
+
     await db.insert(puzzle_gameplay_stats).values({
       puzzle_id,
       session_id,
@@ -52,10 +70,11 @@ const update_games_started_route = publicProcedure
       turnstile_token: z.string(),
       id: z.number().int(),
       location: location_list_enum,
-      script: script_list_enum
+      script: script_list_enum,
+      practice_mode: z.boolean().default(false)
     })
   )
-  .mutation(async ({ input: { turnstile_token, id, location, script } }) => {
+  .mutation(async ({ input: { turnstile_token, id, location, script, practice_mode } }) => {
     const is_valid = await verify_cloudflare_turnstile_token(turnstile_token);
     if (!is_valid) {
       throw new TRPCError({ code: 'BAD_REQUEST', message: 'Invalid turnstile token' });
@@ -66,11 +85,34 @@ const update_games_started_route = publicProcedure
       .values({
         puzzle_id: id,
         location,
-        script
+        script,
+        practice_mode
       })
       .returning();
 
     return { success: true, session_id: session_id };
+  });
+
+const update_session_practice_mode_route = publicProcedure
+  .input(
+    z.object({
+      turnstile_token: z.string(),
+      session_id: z.number().int(),
+      practice_mode: z.boolean()
+    })
+  )
+  .mutation(async ({ input: { turnstile_token, session_id, practice_mode } }) => {
+    const is_valid = await verify_cloudflare_turnstile_token(turnstile_token);
+    if (!is_valid) {
+      throw new TRPCError({ code: 'BAD_REQUEST', message: 'Invalid turnstile token' });
+    }
+
+    await db
+      .update(puzzle_gameplay_sessions)
+      .set({ practice_mode })
+      .where(eq(puzzle_gameplay_sessions.id, session_id));
+
+    return { success: true };
   });
 
 const get_stats_data_input_schema = z
@@ -104,6 +146,7 @@ const get_stats_data_route = protectedAdminProcedure
       columns: {
         id: true,
         created_at: true,
+        practice_mode: true,
         location: true,
         script: true
       },
@@ -159,5 +202,6 @@ const get_stats_data_route = protectedAdminProcedure
 export const padavali_stats_router = t.router({
   submit_stats: submit_stats_route,
   update_games_started: update_games_started_route,
+  update_session_practice_mode: update_session_practice_mode_route,
   get_stats_data: get_stats_data_route
 });
