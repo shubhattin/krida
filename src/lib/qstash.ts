@@ -3,7 +3,7 @@ import { z } from 'zod';
 
 const client = new Client(); // load from env
 
-const QSTAHS_PUBLISH_BASE_URL = process.env.QSTASH_PUBLISH_URL;
+const QSTAHS_PUBLISH_BASE_URL = `${process.env.NEXT_PUBLIC_SITE_URL}/api/qstash`;
 
 export const schedule_archival_publish_schema = z.object({
   puzzle_id: z.number().int().positive(),
@@ -13,15 +13,15 @@ export const schedule_archival_publish_schema = z.object({
 /**
  * Mark a scheduled puzzle as listed after expiration; invalidation is handled through key verification.
  */
-export const publishScheduleArchivalQueue = async (
+export const publishScheduleListingQueue = async (
   data: z.infer<typeof schedule_archival_publish_schema>,
   delay_s: number
 ) => {
-  if (!QSTAHS_PUBLISH_BASE_URL) return;
+  if (!process.env.NEXT_PUBLIC_SITE_URL) return;
   const body = schedule_archival_publish_schema.parse(data);
 
   await client.publishJSON({
-    url: QSTAHS_PUBLISH_BASE_URL + '/schedule_archival',
+    url: QSTAHS_PUBLISH_BASE_URL + '/schedule_listing',
     delay: delay_s,
     body
   });
@@ -39,7 +39,7 @@ export const publishScheduledPuzzleNotificationQueue = async (
   data: z.infer<typeof scheduled_puzzle_notification_publish_schema>,
   delay_s: number
 ) => {
-  if (!QSTAHS_PUBLISH_BASE_URL) return;
+  if (!process.env.NEXT_PUBLIC_SITE_URL) return;
   const body = scheduled_puzzle_notification_publish_schema.parse(data);
 
   await client.publishJSON({

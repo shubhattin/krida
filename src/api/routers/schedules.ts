@@ -10,10 +10,7 @@ import {
   invalidate_and_refresh_cached,
   NO_CACHE_PARAMS
 } from '~/util/cache.server/cache_loaders';
-import {
-  publishScheduleArchivalQueue,
-  publishScheduledPuzzleNotificationQueue
-} from '~/lib/qstash';
+import { publishScheduleListingQueue, publishScheduledPuzzleNotificationQueue } from '~/lib/qstash';
 import { generateRandomAlphanumeric } from '~/tools/kry';
 import { sendOneSignalNotification } from '~/lib/onesignal';
 import { DEFAULT_SHARE_IMAGE_INFO } from '~/components/tags/getPageMetaTags';
@@ -144,13 +141,13 @@ const add_puzzle_schedule_route = protectedAdminProcedure
       invalidate_and_refresh_cached(CACHE.current_schedule, NO_CACHE_PARAMS),
       invalidate_and_refresh_cached(CACHE.next_schedule, NO_CACHE_PARAMS),
       notify_new_puzzle(puzzle_id, schedule.id, start_time),
-      publishScheduleArchivalQueue(
+      publishScheduleListingQueue(
         {
           puzzle_id,
           schedule_id: schedule.id,
           archival_verify_key
         },
-        (schedule.end_time.getTime() - new Date().getTime()) / 1000 - 1 // delay
+        (schedule.start_time.getTime() - new Date().getTime()) / 1000 - 4 // 4 seconds prior listing start
       )
     ]);
 
@@ -204,13 +201,13 @@ const update_puzzle_schedule_route = protectedAdminProcedure
 
     await Promise.allSettled([
       notify_new_puzzle(puzzle_id, schedule_id, start_time),
-      publishScheduleArchivalQueue(
+      publishScheduleListingQueue(
         {
           puzzle_id,
           schedule_id,
           archival_verify_key
         },
-        (end_time.getTime() - new Date().getTime()) / 1000 - 1 // delay
+        (start_time.getTime() - new Date().getTime()) / 1000 - 4 // 4 seconds prior listing start
       ),
       invalidate_and_refresh_cached(CACHE.current_schedule, NO_CACHE_PARAMS),
       invalidate_and_refresh_cached(CACHE.next_schedule, NO_CACHE_PARAMS)
