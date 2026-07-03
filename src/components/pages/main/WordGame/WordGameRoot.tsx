@@ -50,7 +50,8 @@ import {
   puzzle_slug_atom,
   active_puzzle_id_atom,
   description_current_atom,
-  practice_mode_atom
+  practice_mode_atom,
+  game_session_nonce_atom
 } from './game_state';
 import { Popover, PopoverContent, PopoverTrigger } from '~/components/ui/popover';
 import { FaLink, FaRegStopCircle } from 'react-icons/fa';
@@ -120,6 +121,7 @@ export default function WordGameRoot(
     store.set(started_atom, false);
     store.set(completed_atom, false);
     store.set(practice_mode_atom, false);
+    store.set(game_session_nonce_atom, 0);
     store.set(current_selection_atom, []);
     store.set(found_words_atom, []);
     store.set(seconds_atom, 0);
@@ -253,9 +255,10 @@ function WordGame({
   }, [puzzle_id, puzzle_slug, utils, script]);
 
   const font_info = FONT_INFO[script as ScriptType];
-  const hintHiddenInPractice = practiceMode && started && !completed;
-  const hintBelowMeanings = started && !completed && !practiceMode;
-  const hintAtTop = !hintHiddenInPractice && !hintBelowMeanings;
+  const gameInProgress = started && !completed;
+  const hintHiddenInPractice = gameInProgress && practiceMode;
+  const hintBelowMeanings = gameInProgress && !practiceMode;
+  const hintAtTop = !gameInProgress;
 
   const timerRef = useRef<NodeJS.Timeout | null>(null);
   const [description_transliterated, setDescriptionTransliterated] =
@@ -385,17 +388,19 @@ function WordGame({
       )}
 
       <div className="container mx-auto max-w-7xl px-2 pt-3 sm:px-4 sm:pt-4 md:px-6 md:pt-5">
-        <div className="mb-2 flex flex-col items-center gap-2 sm:mb-3">
-          {hintAtTop ? (
-            <HintDialog puzzle_id={puzzle_id} puzzle_slug={puzzle_slug} timerRef={timerRef} />
-          ) : null}
-          {hintHiddenInPractice ? (
-            <span className="inline-flex items-center gap-1.5 rounded-full border border-amber-300/60 bg-amber-50 px-3 py-1 text-xs font-semibold text-amber-800 shadow-sm dark:border-amber-600/40 dark:bg-amber-950/50 dark:text-amber-200">
-              <Sparkles className="size-3" />
-              Practice mode
-            </span>
-          ) : null}
-        </div>
+        {hintAtTop || hintHiddenInPractice ? (
+          <div className="mb-2 flex flex-col items-center gap-2 sm:mb-3">
+            {hintAtTop ? (
+              <HintDialog puzzle_id={puzzle_id} puzzle_slug={puzzle_slug} timerRef={timerRef} />
+            ) : null}
+            {hintHiddenInPractice ? (
+              <span className="inline-flex items-center gap-1.5 rounded-full border border-amber-300/60 bg-amber-50 px-3 py-1 text-xs font-semibold text-amber-800 shadow-sm dark:border-amber-600/40 dark:bg-amber-950/50 dark:text-amber-200">
+                <Sparkles className="size-3" />
+                Practice mode
+              </span>
+            ) : null}
+          </div>
+        ) : null}
 
         {/* Title + inline script selector (desktop: right side, mobile: below title) */}
         <div className="relative mb-2 text-center sm:mb-3">

@@ -21,7 +21,10 @@ export function useWordMeanings(puzzle_id: number, puzzle_slug: string) {
     const run = async () => {
       const entries = await Promise.all(
         query.data!.words.map(async (w) => {
-          const tWord = await transliterate(w.word, DEFAULT_DATA_SCRIPT, script!);
+          const tWord =
+            script === DEFAULT_DATA_SCRIPT
+              ? w.word
+              : await transliterate(w.word, DEFAULT_DATA_SCRIPT, script!);
           return [w.word, tWord] as const;
         })
       );

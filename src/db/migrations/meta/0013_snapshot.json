@@ -1,5 +1,5 @@
 {
-  "id": "6d0bddba-3e0d-485d-8374-45beaf3cbf98",
+  "id": "1a8a8aee-76be-4e8c-80bc-555a6a33c95c",
   "prevId": "b147b691-a18e-474d-b3a5-f01fbc81ac25",
   "version": "7",
   "dialect": "postgresql",
@@ -226,6 +226,13 @@
           "notNull": true,
           "default": "now()"
         },
+        "practice_mode": {
+          "name": "practice_mode",
+          "type": "boolean",
+          "primaryKey": false,
+          "notNull": true,
+          "default": false
+        },
         "location": {
           "name": "location",
           "type": "varchar(25)",
@@ -311,13 +318,6 @@
           "primaryKey": false,
           "notNull": true,
           "default": "now()"
-        },
-        "practice_mode": {
-          "name": "practice_mode",
-          "type": "boolean",
-          "primaryKey": false,
-          "notNull": true,
-          "default": false
         },
         "time_taken": {
           "name": "time_taken",

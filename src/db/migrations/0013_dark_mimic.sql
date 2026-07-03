@@ -1,1 +1,0 @@
-ALTER TABLE "puzzle_gameplay_stats" ADD COLUMN "practice_mode" boolean DEFAULT false NOT NULL;

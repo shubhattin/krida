@@ -148,6 +148,7 @@ const GAMEPLAY_MODE_ITEMS = [
 type StatsSession = {
   id: number;
   created_at: Date | string;
+  practice_mode: boolean;
   location: string | null;
   script: string | null;
 };
@@ -156,7 +157,6 @@ type StatsCompletion = {
   id: number;
   created_at: Date | string;
   session_id: number;
-  practice_mode: boolean;
   time_taken: number;
   accuracy: number;
   correct_attempts: number;
@@ -170,20 +170,15 @@ function filterByGameplayMode(
 ): { sessions: StatsSession[]; stats: StatsCompletion[] } {
   if (mode === 'all') return { sessions, stats };
 
-  const practiceSessionIds = new Set(
-    stats.filter((stat) => stat.practice_mode).map((stat) => stat.session_id)
+  const includedSessionIds = new Set(
+    sessions
+      .filter((session) => (mode === 'practice' ? session.practice_mode : !session.practice_mode))
+      .map((session) => session.id)
   );
 
-  if (mode === 'practice') {
-    return {
-      sessions: sessions.filter((session) => practiceSessionIds.has(session.id)),
-      stats: stats.filter((stat) => stat.practice_mode)
-    };
-  }
-
   return {
-    sessions: sessions.filter((session) => !practiceSessionIds.has(session.id)),
-    stats: stats.filter((stat) => !stat.practice_mode)
+    sessions: sessions.filter((session) => includedSessionIds.has(session.id)),
+    stats: stats.filter((stat) => includedSessionIds.has(stat.session_id))
   };
 }
 

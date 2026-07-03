@@ -1,6 +1,6 @@
 'use client';
 
-import { useContext, useState, type RefObject } from 'react';
+import { useContext, useEffect, useState, type RefObject } from 'react';
 import { motion } from 'framer-motion';
 import { useAtom } from 'jotai';
 import { BookOpen, Lightbulb } from 'lucide-react';
@@ -31,13 +31,14 @@ import { cn } from '~/lib/utils';
 import {
   completed_atom,
   description_current_atom,
+  game_session_nonce_atom,
   practice_mode_atom,
   started_atom,
   title_current_atom,
   word_msgs_atom
 } from './game_state';
 import { useWordMeanings } from './useWordMeanings';
-import { WordMeaningsPanel } from './AIWordExplanations';
+import { WordMeaningsPanel } from './WordMeaningsPanel';
 import { useStartPuzzleGame } from './useStartPuzzleGame';
 
 type Props = {
@@ -56,14 +57,23 @@ export function HintDialog({ puzzle_id, puzzle_slug, timerRef }: Props) {
   const [wordMsgs] = useAtom(word_msgs_atom);
   const [started] = useAtom(started_atom);
   const [completed] = useAtom(completed_atom);
+  const [gameSessionNonce] = useAtom(game_session_nonce_atom);
   const [practiceMode, setPracticeMode] = useAtom(practice_mode_atom);
   const startGame = useStartPuzzleGame(timerRef);
   const meanings = useWordMeanings(puzzle_id, puzzle_slug);
   const font_info = FONT_INFO[script!];
 
-  const showMeanings = revealed || practiceMode;
+  const showMeanings = practiceMode || revealed;
+
+  useEffect(() => {
+    setRevealed(false);
+  }, [gameSessionNonce]);
 
   const revealMeanings = () => {
+    if (completed || started) {
+      setRevealed(true);
+      return;
+    }
     setPracticeMode(true);
     setRevealed(true);
   };
@@ -78,16 +88,14 @@ export function HintDialog({ puzzle_id, puzzle_slug, timerRef }: Props) {
 
   const handlePlay = () => {
     setOpen(false);
-    if (!started) {
-      startGame();
+    if (!completed) {
+      setPracticeMode(true);
+      startGame({ resetPracticeMode: false });
     }
   };
 
   const handleOpenChange = (next: boolean) => {
     setOpen(next);
-    if (next) {
-      setRevealed(practiceMode);
-    }
   };
 
   return (

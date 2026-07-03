@@ -536,7 +536,7 @@ export const GameGrid = ({ timerRef, original_grid_data }: Props) => {
             {/* Play Button Overlay - centered over the grid */}
             {!started && (
               <button
-                onClick={handleStart}
+                onClick={() => handleStart()}
                 className={cn(
                   // Blue gradient with light and dark variants
                   'group absolute inset-0 z-20 m-auto size-fit overflow-hidden',

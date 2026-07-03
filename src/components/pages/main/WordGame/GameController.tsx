@@ -5,17 +5,9 @@ import { GoStopwatch } from 'react-icons/go';
 import { motion } from 'framer-motion';
 import { FONT_INFO } from '~/state/script_font_data';
 import { useAtom } from 'jotai';
-import {
-  started_atom,
-  completed_atom,
-  seconds_atom,
-  found_words_atom,
-  word_msgs_atom,
-  total_attempts_atom,
-  current_selection_atom,
-  practice_mode_atom
-} from './game_state';
+import { started_atom, completed_atom, seconds_atom, word_msgs_atom } from './game_state';
 import { AppContext } from '~/components/AppDataContext';
+import { useStartPuzzleGame } from './useStartPuzzleGame';
 
 // Format seconds to mm:ss
 export const formatTime = (totalSeconds: number) => {
@@ -30,40 +22,20 @@ type Props = {
 
 export const GameContoller = ({ timerRef }: Props) => {
   const { script } = useContext(AppContext);
-  const [started, setStarted] = useAtom(started_atom);
-  const [completed, setCompleted] = useAtom(completed_atom);
-  const [seconds, setSeconds] = useAtom(seconds_atom);
-  const [, setCurrentSelection] = useAtom(current_selection_atom);
-  const [, setFoundWords] = useAtom(found_words_atom);
-  const [, setTotalAttempts] = useAtom(total_attempts_atom);
-  const [, setPracticeMode] = useAtom(practice_mode_atom);
+  const [started] = useAtom(started_atom);
+  const [completed] = useAtom(completed_atom);
+  const [seconds] = useAtom(seconds_atom);
   const [wordMsgs] = useAtom(word_msgs_atom);
+  const startGame = useStartPuzzleGame(timerRef);
 
   const font_info = FONT_INFO[script!];
-
-  const handleRestart = () => {
-    setStarted(true);
-    setSeconds(0);
-    setCurrentSelection([]);
-    setFoundWords([]);
-    setTotalAttempts(0);
-    setCompleted(false);
-    setPracticeMode(false);
-
-    if (timerRef.current) {
-      clearInterval(timerRef.current);
-    }
-    timerRef.current = setInterval(() => {
-      setSeconds((prev) => prev + 1);
-    }, 1000);
-  };
 
   return (
     <>
       {completed && (
         <div>
           <motion.button
-            onClick={handleRestart}
+            onClick={() => startGame()}
             initial={{ opacity: 0, scale: 0.9 }}
             animate={{ opacity: 1, scale: 1 }}
             transition={{ duration: 0.3, ease: 'easeInOut' }}
