@@ -1,10 +1,10 @@
-import type sharp from 'sharp';
+type WebpOptions = import('sharp').WebpOptions;
 
 export const resizeImage = async (
   inputPng: Buffer | string,
   width: number,
   height: number,
-  webp_options?: sharp.WebpOptions
+  webp_options?: WebpOptions
 ) => {
   const sharpModule = (await import('sharp')).default;
 
