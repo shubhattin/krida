@@ -152,6 +152,8 @@ export const ai_batch_responses = pgTable(
     batch_id: text().notNull(),
     custom_id: text().notNull(),
     type: text().notNull().$type<'image' | 'text' | 'object'>(),
+    /** whether the output has output has been extracted and stored in db */
+    resolved: boolean().notNull().default(false),
     /** if the resource should be auto added to the main database */
     auto_approved: boolean().notNull().default(false),
     /** Extra info to store for future reference */

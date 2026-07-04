@@ -8,7 +8,7 @@ import ms from 'ms';
 */
 
 /** Polling Interval for Batch API via QStash */
-export const BATCH_POLLING_INTERVAL_MS = ms('10mins');
+export const BATCH_POLLING_INTERVAL_S = ms('10mins') / 1000;
 
 export const image_batch_metadata_schema = z.object({
   type: z.literal('image'),
@@ -18,8 +18,8 @@ export const image_batch_metadata_schema = z.object({
   image_description: z.string(),
   /** to be editted upon batch completion */
   success: z.boolean().optional(),
-  /** s3 uploaded image id (upload after successful batch completion) */
-  uploaded_image_id: z.string().optional()
+  /** image_assets id (upload after successful batch completion) */
+  uploaded_image_id: z.number().int().optional()
 });
 
 export const batch_metadata_schema = z.discriminatedUnion('type', [image_batch_metadata_schema]);
