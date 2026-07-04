@@ -16,6 +16,7 @@ import { relations } from 'drizzle-orm';
 import type { location_list_type } from './types';
 import { type ScriptType } from '~/state/script_list';
 import { ATTACHMENT_TYPE_LIST } from './db_shared_vals';
+import { BatchMetadata } from '~/util/types/ai_batch_metadata';
 
 export const word_puzzles = pgTable(
   'word_puzzles',
@@ -140,6 +141,24 @@ export const puzzle_game_schedules = pgTable(
     index('puzzle_game_schedules_end_time_idx').on(table.end_time),
     index('puzzle_game_schedules_puzzle_id_created_at_idx').on(table.puzzle_id, table.created_at),
     index('puzzle_game_schedules_created_at_idx').on(table.created_at)
+  ]
+);
+
+/** Stores the metadata and batch_id used for fetching and working with final responses */
+export const ai_batch_responses = pgTable(
+  'ai_batch_responses',
+  {
+    /** id returned by the Batch API */
+    batch_id: text().notNull(),
+    custom_id: text().notNull(),
+    type: text().notNull().$type<'image' | 'text' | 'object'>(),
+    /** if the resource should be auto added to the main database */
+    auto_approved: boolean().notNull().default(false),
+    /** Extra info to store for future reference */
+    metadata: jsonb().notNull().$type<BatchMetadata>()
+  },
+  (table) => [
+    uniqueIndex('ai_batch_responses_batch_id_custom_id_idx').on(table.batch_id, table.custom_id)
   ]
 );
 

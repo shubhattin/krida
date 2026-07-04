@@ -15,20 +15,20 @@ import type { S3Client } from '@aws-sdk/client-s3';
  * Keeps exact 3:2 ratio at a web-friendly resolution.
  * Width × Height in pixels → 768 × 512 px.
  */
-const IMAGE_CONFIG = {
+export const IMAGE_CONFIG = {
   HEIGHT: 512,
   WIDTH: 768,
   ASPECT_RATIO: '3:2',
   IMAGE_GEN_DIMS: '1536x1024'
 } as const;
 
-const OPENROUTER_MODELS = {
+export const OPENROUTER_MODELS = {
   image_prompt: 'openai/gpt-5.4',
   file_name: 'openai/gpt-5.4-nano',
   image_generation: 'openai/gpt-5.4-image-2'
 } as const;
 
-const OPENAI_MODELS = {
+export const OPENAI_MODELS = {
   image_generation: 'gpt-image-2'
 } as const;
 
@@ -157,6 +157,7 @@ export const generateFileNameAndDescription = async (
   return response.output;
 };
 
+/** If image is already provided then this would only upload the image to S3 */
 export const generateSavePuzzleImage = async (
   input: GeneratePuzzleImageInput,
   s3Client: S3Client,
