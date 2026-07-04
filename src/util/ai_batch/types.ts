@@ -21,7 +21,9 @@ export const ai_batch_gpt_image_1_background_schema = z.enum(['transparent', 'op
 export type AiBatchGptImage1Background = z.infer<typeof ai_batch_gpt_image_1_background_schema>;
 
 export const ai_batch_gpt_image_1_output_format_schema = z.enum(['png', 'jpeg', 'webp']);
-export type AiBatchGptImage1OutputFormat = z.infer<typeof ai_batch_gpt_image_1_output_format_schema>;
+export type AiBatchGptImage1OutputFormat = z.infer<
+  typeof ai_batch_gpt_image_1_output_format_schema
+>;
 
 export const ai_batch_gpt_image_2_quality_schema = z.enum(['low', 'medium', 'high', 'auto']);
 export type AiBatchGptImage2Quality = z.infer<typeof ai_batch_gpt_image_2_quality_schema>;
@@ -38,7 +40,9 @@ export const ai_batch_gpt_image_2_background_schema = z.enum(['opaque', 'auto'])
 export type AiBatchGptImage2Background = z.infer<typeof ai_batch_gpt_image_2_background_schema>;
 
 export const ai_batch_gpt_image_2_output_format_schema = z.enum(['png', 'jpeg', 'webp']);
-export type AiBatchGptImage2OutputFormat = z.infer<typeof ai_batch_gpt_image_2_output_format_schema>;
+export type AiBatchGptImage2OutputFormat = z.infer<
+  typeof ai_batch_gpt_image_2_output_format_schema
+>;
 
 /** @deprecated Use model-specific quality schemas instead. */
 export const ai_batch_image_quality_schema = ai_batch_gpt_image_2_quality_schema;

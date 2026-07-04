@@ -84,9 +84,7 @@ function getSingleEndpoint(inputs: AiBatchInput[]): AiBatchEndpoint {
 }
 
 function assertSingleModel(inputs: AiBatchInput[]) {
-  const models = new Set(
-    ai_batch_inputs_schema.parse(inputs).map((input) => input.model)
-  );
+  const models = new Set(ai_batch_inputs_schema.parse(inputs).map((input) => input.model));
 
   if (models.size !== 1) {
     throw new Error('A single OpenAI batch can only target one model.');
