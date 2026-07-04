@@ -2,7 +2,7 @@ import { generateImage, generateText, Output } from 'ai';
 import type { OpenAIImageModelGenerationOptions } from '@ai-sdk/openai';
 import { z } from 'zod';
 import { image_assets } from '~/db/schema';
-import type { db } from '~/db/db';
+import type { TxOrDb } from '~/db/db';
 import { resizeImage } from '~/util/sharp/resize.server';
 import { uploadAssetFile, deleteAssetFile } from '~/util/s3/upload_file.server';
 import { PROJECT_S3_ALIAS } from '~/constants';
@@ -15,20 +15,20 @@ import type { S3Client } from '@aws-sdk/client-s3';
  * Keeps exact 3:2 ratio at a web-friendly resolution.
  * Width × Height in pixels → 768 × 512 px.
  */
-const IMAGE_CONFIG = {
+export const IMAGE_CONFIG = {
   HEIGHT: 512,
   WIDTH: 768,
   ASPECT_RATIO: '3:2',
   IMAGE_GEN_DIMS: '1536x1024'
 } as const;
 
-const OPENROUTER_MODELS = {
+export const OPENROUTER_MODELS = {
   image_prompt: 'openai/gpt-5.4',
   file_name: 'openai/gpt-5.4-nano',
   image_generation: 'openai/gpt-5.4-image-2'
 } as const;
 
-const OPENAI_MODELS = {
+export const OPENAI_MODELS = {
   image_generation: 'gpt-image-2'
 } as const;
 
@@ -147,20 +147,21 @@ export const generateFileNameAndDescription = async (
           .describe(
             'A short file_name (2–4 words, underscores, lowercase) for the image prompt provided.'
           ),
-        description: z.string().describe('A 3–5 word description for the image prompt provided.')
+        description: z.string().describe('A short word description for the image prompt provided.')
       })
     }),
     system:
-      'Generate a short file_name (2–4 words, underscores, lowercase) and a 3–5 word description for the image prompt provided.',
+      'Generate a short file_name (2–4 words, underscores, lowercase) and a 4-5 word description for the image prompt provided.',
     prompt: image_prompt
   });
   return response.output;
 };
 
+/** If image is already provided then this would only upload the image to S3 */
 export const generateSavePuzzleImage = async (
   input: GeneratePuzzleImageInput,
   s3Client: S3Client,
-  db_instance: typeof db,
+  db_instance: TxOrDb,
   s3_bucket_name?: string,
   existing_image_b64?: string,
   existing_file_name_description?: { file_name: string; description: string }

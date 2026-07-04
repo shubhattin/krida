@@ -13,8 +13,8 @@ import {
 import Link from 'next/link';
 import dayjs from 'dayjs';
 import relativeTime from 'dayjs/plugin/relativeTime';
-import { useEffect, useState } from 'react';
-import { client } from '~/api/client';
+import { useEffect, useMemo, useState } from 'react';
+import { client, client_q } from '~/api/client';
 import { Skeleton } from '~/components/ui/skeleton';
 import { Label } from '~/components/ui/label';
 import {
@@ -45,8 +45,13 @@ import {
 } from 'lipilekhika/typing';
 import { useQuery } from '@tanstack/react-query';
 import { Button } from '~/components/ui/button';
+import { Checkbox } from '~/components/ui/checkbox';
 import { DataTable } from '~/components/ui/data-table';
-import { listTableColumns } from './list-table-columns';
+import { createListTableColumns } from './list-table-columns';
+import { BatchPuzzleImageCostNote } from '~/components/pages/main/batch-image/BatchPuzzleImageCostNote';
+import { useInvalidatePuzzleImageBatchQueries } from '~/components/pages/main/batch-image/usePuzzleImageBatchStatus';
+import { toast } from 'sonner';
+import { getCDNUrl } from '~/constants';
 
 dayjs.extend(relativeTime);
 
@@ -101,6 +106,45 @@ const ListPage = () => {
   const [sort_by, setSortBy] = useState<'created_at' | 'updated_at'>('created_at');
   const [order_by, setOrderBy] = useState<'asc' | 'desc'>('desc');
   const [layout, setLayout] = useState<ListLayout>('cards');
+  const [selected_ids, setSelectedIds] = useState<Set<number>>(() => new Set());
+  const [auto_approved, setAutoApproved] = useState(true);
+  const { invalidateBatchManager, invalidatePuzzleStatus } = useInvalidatePuzzleImageBatchQueries();
+
+  const batch_trigger_mut = client_q.batch_ai.trigger_batch_puzzle_image_gen.useMutation({
+    onSuccess: async (data, variables) => {
+      await Promise.all([
+        invalidateBatchManager(),
+        ...variables.puzzles.map((puzzle) => invalidatePuzzleStatus(puzzle.puzzle_id))
+      ]);
+      toast.success(
+        `Queued background image generation for ${data.puzzle_count} puzzle${data.puzzle_count === 1 ? '' : 's'}.`
+      );
+      setSelectedIds(new Set());
+    },
+    onError: (err) => {
+      toast.error(err.message || 'Failed to queue background image generation');
+    }
+  });
+
+  const toggleSelection = (id: number, checked: boolean) => {
+    setSelectedIds((prev) => {
+      const next = new Set(prev);
+      if (checked) next.add(id);
+      else next.delete(id);
+      return next;
+    });
+  };
+
+  const toggleAllOnPage = (ids: number[], checked: boolean) => {
+    setSelectedIds((prev) => {
+      const next = new Set(prev);
+      for (const id of ids) {
+        if (checked) next.add(id);
+        else next.delete(id);
+      }
+      return next;
+    });
+  };
 
   const ctx = createTypingContext('Devanagari');
 
@@ -146,6 +190,17 @@ const ListPage = () => {
   });
 
   const puzzle_list = puzzle_list_q.data?.list ?? [];
+  const page_ids = useMemo(() => puzzle_list.map((item) => item.id), [puzzle_list]);
+  const table_columns = useMemo(
+    () =>
+      createListTableColumns({
+        selected_ids,
+        onToggle: toggleSelection,
+        onToggleAll: toggleAllOnPage,
+        page_ids
+      }),
+    [selected_ids, page_ids]
+  );
   const displayedTableKey = puzzle_list.map((item) => item.id).join(',');
   const pageCount = puzzle_list_q.data?.pageCount ?? 1;
   const hasPrev = puzzle_list_q.data?.hasPrev ?? false;
@@ -177,6 +232,52 @@ const ListPage = () => {
 
   return (
     <div className="space-y-4">
+      {selected_ids.size > 0 ? (
+        <div className="flex flex-col gap-3 rounded-xl border border-blue-200/70 bg-blue-50/60 p-3 shadow-sm sm:flex-row sm:items-center sm:justify-between dark:border-blue-900/50 dark:bg-blue-950/20">
+          <div className="space-y-1">
+            <p className="text-sm font-semibold">{selected_ids.size} puzzle(s) selected</p>
+            <BatchPuzzleImageCostNote />
+          </div>
+          <div className="flex flex-col gap-2 sm:items-end">
+            <label className="flex items-center gap-2 text-sm">
+              <Checkbox
+                checked={auto_approved}
+                onCheckedChange={(checked) => setAutoApproved(checked === true)}
+              />
+              Auto apply generated images to puzzles
+            </label>
+            <div className="flex flex-wrap items-center gap-2">
+              <Button
+                type="button"
+                disabled={batch_trigger_mut.isPending}
+                onClick={() =>
+                  batch_trigger_mut.mutate({
+                    auto_approved,
+                    puzzles: [...selected_ids].map((puzzle_id) => ({ puzzle_id }))
+                  })
+                }
+              >
+                Generate batch images
+              </Button>
+              <Button
+                type="button"
+                variant="outline"
+                onClick={() => setSelectedIds(new Set())}
+                disabled={batch_trigger_mut.isPending}
+              >
+                Clear selection
+              </Button>
+              <Button
+                render={<Link href="/padavali/batch_manager" />}
+                nativeButton={false}
+                variant="ghost"
+              >
+                Batch Manager
+              </Button>
+            </div>
+          </div>
+        </div>
+      ) : null}
       <div className="rounded-xl border border-slate-200/60 bg-white/50 p-3 shadow-sm backdrop-blur-sm sm:p-4 dark:border-slate-700/40 dark:bg-slate-800/30">
         <div className="flex flex-col items-center space-y-3">
           <div className="flex items-center gap-3">
@@ -322,9 +423,31 @@ const ListPage = () => {
         layout === 'cards' && (
           <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4">
             {puzzle_list.map((item) => (
-              <div key={item.id}>
+              <div key={item.id} className="relative">
+                <div className="absolute top-3 left-3 z-10">
+                  <Checkbox
+                    checked={selected_ids.has(item.id)}
+                    onCheckedChange={(checked) => toggleSelection(item.id, checked === true)}
+                    aria-label={`Select puzzle ${item.title}`}
+                    onClick={(e) => e.stopPropagation()}
+                  />
+                </div>
+                {item.image?.s3_key ? (
+                  <div className="pointer-events-none absolute top-3 right-3 z-10 size-14 overflow-hidden rounded-md border border-border/80 bg-muted shadow-sm">
+                    <img
+                      src={getCDNUrl(item.image.s3_key)}
+                      alt=""
+                      className="size-full object-cover"
+                    />
+                  </div>
+                ) : null}
                 <Link href={`/padavali/edit/${item.id}`}>
-                  <Card className="group border-l-3 border-l-blue-500/40 p-2 shadow-sm transition-all duration-200 hover:translate-x-0.5 hover:border-l-blue-500 hover:bg-slate-50 hover:shadow-md dark:border-l-blue-400/40 dark:hover:border-l-blue-400 dark:hover:bg-slate-800/60">
+                  <Card
+                    className={cn(
+                      'group border-l-3 border-l-blue-500/40 p-2 pl-10 shadow-sm transition-all duration-200 hover:translate-x-0.5 hover:border-l-blue-500 hover:bg-slate-50 hover:shadow-md dark:border-l-blue-400/40 dark:hover:border-l-blue-400 dark:hover:bg-slate-800/60',
+                      item.image?.s3_key && 'pr-20'
+                    )}
+                  >
                     <CardHeader>
                       <CardTitle>{item.title}</CardTitle>
                       <CardDescription className="space-y-1">
@@ -358,7 +481,7 @@ const ListPage = () => {
         layout === 'table' && (
           <DataTable
             key={displayedTableKey}
-            columns={listTableColumns}
+            columns={table_columns}
             data={puzzle_list}
             getRowId={(row) => String(row.id)}
           />

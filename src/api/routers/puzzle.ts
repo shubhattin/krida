@@ -1,7 +1,12 @@
 import { z } from 'zod';
 import { protectedAdminProcedure, publicProcedure, t } from '../trpc_init';
 import { db, type transactionType } from '~/db/db';
-import { word_puzzle_attachments, word_puzzle_redirects, word_puzzles } from '~/db/schema';
+import {
+  word_puzzle_attachments,
+  word_puzzle_redirects,
+  word_puzzles,
+  image_assets
+} from '~/db/schema';
 import { and, asc, count, desc, eq, ilike, inArray, or, sql } from 'drizzle-orm';
 import { revalidatePath } from 'next/cache';
 import { padavali_stats_router } from './padavali_stats';
@@ -454,7 +459,7 @@ export const get_puzzle_list_page = async (input: z.input<typeof get_puzzle_list
 
   await delay(400);
 
-  const [countResult, list] = await Promise.all([
+  const [countResult, rows] = await Promise.all([
     db.select({ count: count() }).from(word_puzzles).where(whereClause),
     db
       .select({
@@ -464,14 +469,21 @@ export const get_puzzle_list_page = async (input: z.input<typeof get_puzzle_list
         description: word_puzzles.description,
         listed: word_puzzles.listed,
         created_at: word_puzzles.created_at,
-        updated_at: word_puzzles.updated_at
+        updated_at: word_puzzles.updated_at,
+        image_s3_key: image_assets.s3_key
       })
       .from(word_puzzles)
+      .leftJoin(image_assets, eq(word_puzzles.image_id, image_assets.id))
       .where(whereClause)
       .orderBy(orderPrimary, orderTiebreaker)
       .limit(size)
       .offset(offset)
   ]);
+
+  const list = rows.map(({ image_s3_key, ...puzzle }) => ({
+    ...puzzle,
+    image: image_s3_key ? { s3_key: image_s3_key } : null
+  }));
 
   const total = Number(countResult[0]?.count ?? 0);
   const pageCount = Math.max(1, Math.ceil(total / size));

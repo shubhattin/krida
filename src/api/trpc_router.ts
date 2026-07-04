@@ -4,13 +4,15 @@ import { schedules_router } from './routers/schedules';
 import { ai_image_assets_router } from './routers/ai_image_gen';
 import { image_assets_router } from './routers/image_assets';
 import { public_ai_router } from './routers/public_ai';
+import { batch_ai_router } from './routers/batch_ai';
 
 export const appRouter = t.router({
   puzzle: puzzle_router,
   schedules: schedules_router,
   ai_image_gen: ai_image_assets_router,
   image_assets: image_assets_router,
-  public_ai: public_ai_router
+  public_ai: public_ai_router,
+  batch_ai: batch_ai_router
 });
 
 export type AppRouter = typeof appRouter;
