@@ -6,11 +6,47 @@ export type AiBatchCompletionWindow = z.infer<typeof ai_batch_completion_window_
 export const ai_batch_endpoint_schema = z.enum(['/v1/images/generations', '/v1/responses']);
 export type AiBatchEndpoint = z.infer<typeof ai_batch_endpoint_schema>;
 
-export const ai_batch_image_quality_schema = z.enum(['low', 'medium', 'high']);
-export type AiBatchImageQuality = z.infer<typeof ai_batch_image_quality_schema>;
+export const ai_batch_gpt_image_1_quality_schema = z.enum(['low', 'medium', 'high', 'auto']);
+export type AiBatchGptImage1Quality = z.infer<typeof ai_batch_gpt_image_1_quality_schema>;
 
-export const ai_batch_image_size_schema = z.enum(['1024x1024', '1536x1024', '1024x1536']);
-export type AiBatchImageSize = z.infer<typeof ai_batch_image_size_schema>;
+export const ai_batch_gpt_image_1_size_schema = z.enum([
+  '1024x1024',
+  '1024x1536',
+  '1536x1024',
+  'auto'
+]);
+export type AiBatchGptImage1Size = z.infer<typeof ai_batch_gpt_image_1_size_schema>;
+
+export const ai_batch_gpt_image_1_background_schema = z.enum(['transparent', 'opaque', 'auto']);
+export type AiBatchGptImage1Background = z.infer<typeof ai_batch_gpt_image_1_background_schema>;
+
+export const ai_batch_gpt_image_1_output_format_schema = z.enum(['png', 'jpeg', 'webp']);
+export type AiBatchGptImage1OutputFormat = z.infer<typeof ai_batch_gpt_image_1_output_format_schema>;
+
+export const ai_batch_gpt_image_2_quality_schema = z.enum(['low', 'medium', 'high', 'auto']);
+export type AiBatchGptImage2Quality = z.infer<typeof ai_batch_gpt_image_2_quality_schema>;
+
+export const ai_batch_gpt_image_2_size_schema = z.enum([
+  '1024x1024',
+  '1536x1024',
+  '1024x1536',
+  'auto'
+]);
+export type AiBatchGptImage2Size = z.infer<typeof ai_batch_gpt_image_2_size_schema>;
+
+export const ai_batch_gpt_image_2_background_schema = z.enum(['opaque', 'auto']);
+export type AiBatchGptImage2Background = z.infer<typeof ai_batch_gpt_image_2_background_schema>;
+
+export const ai_batch_gpt_image_2_output_format_schema = z.enum(['png', 'jpeg', 'webp']);
+export type AiBatchGptImage2OutputFormat = z.infer<typeof ai_batch_gpt_image_2_output_format_schema>;
+
+/** @deprecated Use model-specific quality schemas instead. */
+export const ai_batch_image_quality_schema = ai_batch_gpt_image_2_quality_schema;
+export type AiBatchImageQuality = AiBatchGptImage2Quality;
+
+/** @deprecated Use model-specific size schemas instead. */
+export const ai_batch_image_size_schema = ai_batch_gpt_image_2_size_schema;
+export type AiBatchImageSize = AiBatchGptImage2Size;
 
 export const ai_batch_response_input_text_schema = z.object({
   type: z.literal('input_text'),
@@ -102,15 +138,58 @@ export const ai_batch_reasoning_schema = z.object({
 });
 export type AiBatchReasoning = z.input<typeof ai_batch_reasoning_schema>;
 
-export const ai_batch_image_input_schema = z.object({
-  type: z.literal('image'),
-  custom_id: z.string().min(1),
-  prompt: z.string().min(1),
-  model: z.literal('gpt-image-2').default('gpt-image-2'),
-  quality: ai_batch_image_quality_schema.default('medium'),
-  size: ai_batch_image_size_schema.default('1536x1024'),
-  body: ai_batch_extra_body_schema.optional()
-});
+export const ai_batch_gpt_image_1_input_schema = z
+  .object({
+    type: z.literal('image'),
+    custom_id: z.string().min(1),
+    prompt: z.string().min(1),
+    model: z.literal('gpt-image-1'),
+    quality: ai_batch_gpt_image_1_quality_schema.default('medium'),
+    size: ai_batch_gpt_image_1_size_schema.default('auto'),
+    background: ai_batch_gpt_image_1_background_schema.optional(),
+    output_format: ai_batch_gpt_image_1_output_format_schema.optional(),
+    output_compression: z.number().int().min(0).max(100).optional(),
+    body: ai_batch_extra_body_schema.optional()
+  })
+  .refine(
+    (value) =>
+      value.output_compression === undefined ||
+      value.output_format === 'jpeg' ||
+      value.output_format === 'webp',
+    {
+      message: 'output_compression is only supported with output_format jpeg or webp'
+    }
+  );
+export type AiBatchGptImage1Input = z.input<typeof ai_batch_gpt_image_1_input_schema>;
+
+export const ai_batch_gpt_image_2_input_schema = z
+  .object({
+    type: z.literal('image'),
+    custom_id: z.string().min(1),
+    prompt: z.string().min(1),
+    model: z.literal('gpt-image-2').default('gpt-image-2'),
+    quality: ai_batch_gpt_image_2_quality_schema.default('medium'),
+    size: ai_batch_gpt_image_2_size_schema.default('1536x1024'),
+    background: ai_batch_gpt_image_2_background_schema.optional(),
+    output_format: ai_batch_gpt_image_2_output_format_schema.optional(),
+    output_compression: z.number().int().min(0).max(100).optional(),
+    body: ai_batch_extra_body_schema.optional()
+  })
+  .refine(
+    (value) =>
+      value.output_compression === undefined ||
+      value.output_format === 'jpeg' ||
+      value.output_format === 'webp',
+    {
+      message: 'output_compression is only supported with output_format jpeg or webp'
+    }
+  );
+export type AiBatchGptImage2Input = z.input<typeof ai_batch_gpt_image_2_input_schema>;
+
+export const ai_batch_image_input_schema = z.discriminatedUnion('model', [
+  ai_batch_gpt_image_1_input_schema,
+  ai_batch_gpt_image_2_input_schema
+]);
 export type AiBatchImageInput = z.input<typeof ai_batch_image_input_schema>;
 
 export const ai_batch_text_input_schema = z.object({
@@ -171,19 +250,31 @@ export type AiBatchOutputExpectation = z.infer<typeof ai_batch_output_expectatio
 export const ai_batch_output_expectations_schema = z.array(ai_batch_output_expectation_schema);
 export type AiBatchOutputExpectations = z.infer<typeof ai_batch_output_expectations_schema>;
 
+const ai_batch_image_line_body_schema = z.discriminatedUnion('model', [
+  z
+    .object({
+      model: z.literal('gpt-image-1'),
+      prompt: z.string().min(1),
+      quality: ai_batch_gpt_image_1_quality_schema,
+      size: ai_batch_gpt_image_1_size_schema
+    })
+    .passthrough(),
+  z
+    .object({
+      model: z.literal('gpt-image-2'),
+      prompt: z.string().min(1),
+      quality: ai_batch_gpt_image_2_quality_schema,
+      size: ai_batch_gpt_image_2_size_schema
+    })
+    .passthrough()
+]);
+
 export const ai_batch_line_schema = z.discriminatedUnion('url', [
   z.object({
     custom_id: z.string().min(1),
     method: z.literal('POST'),
     url: z.literal('/v1/images/generations'),
-    body: z
-      .object({
-        model: z.literal('gpt-image-2'),
-        prompt: z.string().min(1),
-        quality: ai_batch_image_quality_schema,
-        size: ai_batch_image_size_schema
-      })
-      .passthrough()
+    body: ai_batch_image_line_body_schema
   }),
   z.object({
     custom_id: z.string().min(1),
@@ -228,7 +319,7 @@ export const ai_batch_image_body_schema = z
     created: z.number(),
     background: z.string().optional(),
     output_format: z.enum(['png', 'jpeg', 'webp']).optional(),
-    quality: ai_batch_image_quality_schema,
+    quality: z.union([ai_batch_gpt_image_1_quality_schema, ai_batch_gpt_image_2_quality_schema]),
     size: z.string(),
     data: z.array(
       z.strictObject({

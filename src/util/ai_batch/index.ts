@@ -83,21 +83,38 @@ function getSingleEndpoint(inputs: AiBatchInput[]): AiBatchEndpoint {
   return endpoint;
 }
 
+function assertSingleModel(inputs: AiBatchInput[]) {
+  const models = new Set(
+    ai_batch_inputs_schema.parse(inputs).map((input) => input.model)
+  );
+
+  if (models.size !== 1) {
+    throw new Error('A single OpenAI batch can only target one model.');
+  }
+}
+
 export function toAiBatchLine(input: AiBatchInput): AiBatchLine {
   const parsed = ai_batch_input_schema.parse(input);
 
   if (parsed.type === 'image') {
+    const body = {
+      ...parsed.body,
+      model: parsed.model,
+      prompt: parsed.prompt,
+      quality: parsed.quality,
+      size: parsed.size,
+      ...(parsed.background !== undefined ? { background: parsed.background } : {}),
+      ...(parsed.output_format !== undefined ? { output_format: parsed.output_format } : {}),
+      ...(parsed.output_compression !== undefined
+        ? { output_compression: parsed.output_compression }
+        : {})
+    };
+
     return ai_batch_line_schema.parse({
       custom_id: parsed.custom_id,
       method: 'POST',
       url: '/v1/images/generations',
-      body: {
-        ...parsed.body,
-        model: parsed.model,
-        prompt: parsed.prompt,
-        quality: parsed.quality,
-        size: parsed.size
-      }
+      body
     });
   }
 
@@ -144,6 +161,7 @@ export function toAiBatchJsonl(inputs: AiBatchInput[]): string {
   const parsed = ai_batch_inputs_schema.parse(inputs);
   assertUniqueCustomIds(parsed);
   getSingleEndpoint(parsed);
+  assertSingleModel(parsed);
 
   return parsed.map((input) => JSON.stringify(toAiBatchLine(input))).join('\n');
 }
@@ -152,6 +170,7 @@ export async function createAiBatch(openai: OpenAIBatchClient, inputs: AiBatchIn
   const parsed = ai_batch_inputs_schema.parse(inputs);
   assertUniqueCustomIds(parsed);
   const endpoint = getSingleEndpoint(parsed);
+  assertSingleModel(parsed);
   const requests_jsonl = parsed.map((input) => JSON.stringify(toAiBatchLine(input))).join('\n');
 
   const file = await openai.files.create({
