@@ -387,13 +387,19 @@ export type AiBatchPollingStatus = z.infer<typeof ai_batch_polling_status_schema
 
 export const ai_batch_pending_result_schema = z.object({
   status: ai_batch_polling_status_schema,
-  batch_id: z.string()
+  batch_id: z.string(),
+  input_file_id: z.string(),
+  output_file_id: z.string().optional(),
+  error_file_id: z.string().optional()
 });
 export type AiBatchPendingResult = z.infer<typeof ai_batch_pending_result_schema>;
 
 export const ai_batch_completed_result_schema = z.object({
   status: z.literal('completed'),
   batch_id: z.string(),
+  input_file_id: z.string(),
+  output_file_id: z.string().optional(),
+  error_file_id: z.string().optional(),
   responses: z.array(ai_batch_output_schema),
   errors: z.array(ai_batch_output_schema).default([])
 });
@@ -404,3 +410,9 @@ export const ai_batch_result_schema = z.discriminatedUnion('status', [
   ai_batch_completed_result_schema
 ]);
 export type AiBatchResult = z.infer<typeof ai_batch_result_schema>;
+
+export const ai_batch_created_schema = z.object({
+  batch_id: z.string(),
+  input_file_id: z.string()
+});
+export type AiBatchCreated = z.infer<typeof ai_batch_created_schema>;

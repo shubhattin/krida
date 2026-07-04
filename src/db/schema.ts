@@ -153,11 +153,15 @@ export const ai_batch_responses = pgTable(
     custom_id: text().notNull(),
     type: text().notNull().$type<'image' | 'text' | 'object'>(),
     /** whether the output has output has been extracted and stored in db */
-    resolved: boolean().notNull().default(false),
+    output_resolved: boolean().notNull().default(false),
     /** if the resource should be auto added to the main database */
     auto_approved: boolean().notNull().default(false),
     /** Extra info to store for future reference */
-    metadata: jsonb().notNull().$type<BatchMetadata>()
+    metadata: jsonb().notNull().$type<BatchMetadata>(),
+    /** Uploaded id for openai batch file input */
+    input_file_id: text().notNull(),
+    /** Uploaded id for openai batch file output(will be null untill resolved) */
+    output_file_id: text()
   },
   (table) => [
     uniqueIndex('ai_batch_responses_batch_id_custom_id_idx').on(table.batch_id, table.custom_id)

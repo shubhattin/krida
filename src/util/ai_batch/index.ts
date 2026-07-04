@@ -11,6 +11,7 @@ import {
   ai_batch_output_expectations_schema,
   ai_batch_polling_status_schema,
   ai_batch_raw_output_line_schema,
+  ai_batch_created_schema,
   type AiBatchEndpoint,
   type AiBatchInput,
   type AiBatchLine,
@@ -20,7 +21,7 @@ import {
   type AiBatchResult
 } from './types';
 
-export type { AiBatchInput, AiBatchOutput } from './types';
+export type { AiBatchInput, AiBatchOutput, AiBatchCreated } from './types';
 
 type OpenAIBatchClient = Pick<OpenAI, 'batches' | 'files'>;
 
@@ -182,7 +183,10 @@ export async function createAiBatch(openai: OpenAIBatchClient, inputs: AiBatchIn
     completion_window: '24h'
   });
 
-  return batch.id;
+  return ai_batch_created_schema.parse({
+    batch_id: batch.id,
+    input_file_id: file.id
+  });
 }
 
 function createExpectationMap(options?: GetAiBatchResultOptions) {
@@ -377,6 +381,18 @@ function formatBatchErrorFileMessage(batch_id: string, text: string) {
   return `Completed batch ${batch_id} only has an error_file_id. First error lines:\n${lines}`;
 }
 
+function toBatchFileIds(batch: {
+  input_file_id: string;
+  output_file_id?: string | null;
+  error_file_id?: string | null;
+}) {
+  return {
+    input_file_id: batch.input_file_id,
+    output_file_id: batch.output_file_id ?? undefined,
+    error_file_id: batch.error_file_id ?? undefined
+  };
+}
+
 export async function getAiBatchResult(
   openai: OpenAIBatchClient,
   batch_id: string,
@@ -387,7 +403,8 @@ export async function getAiBatchResult(
   if (batch.status !== 'completed') {
     return {
       status: ai_batch_polling_status_schema.parse(batch.status),
-      batch_id: batch.id
+      batch_id: batch.id,
+      ...toBatchFileIds(batch)
     };
   }
 
@@ -413,6 +430,7 @@ export async function getAiBatchResult(
   return ai_batch_completed_result_schema.parse({
     status: 'completed',
     batch_id: batch.id,
+    ...toBatchFileIds(batch),
     responses,
     errors
   });
