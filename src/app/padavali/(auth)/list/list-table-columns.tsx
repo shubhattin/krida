@@ -16,6 +16,7 @@ export type PuzzleListItem = {
   listed: boolean;
   created_at: Date;
   updated_at: Date | null;
+  image: { s3_key: string } | null;
 };
 
 type ListTableSelectionOptions = {

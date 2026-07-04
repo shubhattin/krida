@@ -51,6 +51,7 @@ import { createListTableColumns } from './list-table-columns';
 import { BatchPuzzleImageCostNote } from '~/components/pages/main/batch-image/BatchPuzzleImageCostNote';
 import { useInvalidatePuzzleImageBatchQueries } from '~/components/pages/main/batch-image/usePuzzleImageBatchStatus';
 import { toast } from 'sonner';
+import { getCDNUrl } from '~/constants';
 
 dayjs.extend(relativeTime);
 
@@ -428,8 +429,22 @@ const ListPage = () => {
                     onClick={(e) => e.stopPropagation()}
                   />
                 </div>
+                {item.image?.s3_key ? (
+                  <div className="pointer-events-none absolute top-3 right-3 z-10 size-14 overflow-hidden rounded-md border border-border/80 bg-muted shadow-sm">
+                    <img
+                      src={getCDNUrl(item.image.s3_key)}
+                      alt=""
+                      className="size-full object-cover"
+                    />
+                  </div>
+                ) : null}
                 <Link href={`/padavali/edit/${item.id}`}>
-                  <Card className="group border-l-3 border-l-blue-500/40 p-2 pl-10 shadow-sm transition-all duration-200 hover:translate-x-0.5 hover:border-l-blue-500 hover:bg-slate-50 hover:shadow-md dark:border-l-blue-400/40 dark:hover:border-l-blue-400 dark:hover:bg-slate-800/60">
+                  <Card
+                    className={cn(
+                      'group border-l-3 border-l-blue-500/40 p-2 pl-10 shadow-sm transition-all duration-200 hover:translate-x-0.5 hover:border-l-blue-500 hover:bg-slate-50 hover:shadow-md dark:border-l-blue-400/40 dark:hover:border-l-blue-400 dark:hover:bg-slate-800/60',
+                      item.image?.s3_key && 'pr-20'
+                    )}
+                  >
                     <CardHeader>
                       <CardTitle>{item.title}</CardTitle>
                       <CardDescription className="space-y-1">
