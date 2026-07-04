@@ -1,4 +1,5 @@
 import type OpenAI from 'openai';
+import { toFile } from 'openai';
 import { z } from 'zod';
 import {
   ai_batch_api_error_schema,
@@ -173,7 +174,9 @@ export async function createAiBatch(openai: OpenAIBatchClient, inputs: AiBatchIn
   const requests_jsonl = parsed.map((input) => JSON.stringify(toAiBatchLine(input))).join('\n');
 
   const file = await openai.files.create({
-    file: new Blob([requests_jsonl], { type: 'application/jsonl' }),
+    file: await toFile(Buffer.from(requests_jsonl), 'batch-input.jsonl', {
+      type: 'application/jsonl'
+    }),
     purpose: 'batch'
   });
 

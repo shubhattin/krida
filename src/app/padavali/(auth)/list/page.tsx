@@ -5,7 +5,7 @@ import AddPuzzleDialog from './AddPuzzleDialog';
 import { Button } from '~/components/ui/button';
 import dayjs from 'dayjs';
 import relativeTime from 'dayjs/plugin/relativeTime';
-import { ArrowLeftIcon, BarChart3Icon, CalendarIcon } from 'lucide-react';
+import { ArrowLeftIcon, BarChart3Icon, CalendarIcon, LayersIcon } from 'lucide-react';
 import { getCachedSession } from '~/lib/cache_server_route_data';
 import ListPage from './ListPage';
 
@@ -45,6 +45,17 @@ const List = async () => {
             Schedules
           </Button>
         </Link>
+        <Button
+          render={
+            <Link href="/padavali/batch_manager" className="inline-flex items-center gap-2" />
+          }
+          nativeButton={false}
+          variant="outline"
+          className="text-base font-semibold"
+        >
+          <LayersIcon className="size-4 shrink-0" />
+          Batch Manager
+        </Button>
         <AddPuzzleDialog />
       </div>
       <ListPage />

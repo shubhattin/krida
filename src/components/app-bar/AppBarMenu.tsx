@@ -23,7 +23,7 @@ import {
 import { SiGithub } from 'react-icons/si';
 import { FaYoutube, FaInstagram } from 'react-icons/fa';
 import { IoExtensionPuzzleSharp } from 'react-icons/io5';
-import { useTheme } from 'next-themes';
+import { useTheme } from '@teispace/next-themes';
 
 import { Button } from '@/components/ui/button';
 import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover';

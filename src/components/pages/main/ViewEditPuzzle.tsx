@@ -55,6 +55,14 @@ import { Progress } from '@/components/ui/progress';
 import { Skeleton } from '@/components/ui/skeleton';
 import { Textarea } from '@/components/ui/textarea';
 import { getCDNUrl } from '~/constants';
+import { Checkbox } from '@/components/ui/checkbox';
+import { BatchPuzzleImageCostNote } from '~/components/pages/main/batch-image/BatchPuzzleImageCostNote';
+import { BatchPuzzleImageReviewDialog } from '~/components/pages/main/batch-image/BatchPuzzleImageReviewDialog';
+import { BatchPuzzleImageStatus } from '~/components/pages/main/batch-image/BatchPuzzleImageStatus';
+import {
+  useInvalidatePuzzleImageBatchQueries,
+  usePuzzleImageBatchStatus
+} from '~/components/pages/main/batch-image/usePuzzleImageBatchStatus';
 import {
   DndContext,
   closestCenter,
@@ -1266,9 +1274,13 @@ const PuzzleImageSection = ({ word_puzzle }: { word_puzzle: Puzzle }) => {
   const [image_id, setImageId] = useAtom(image_id_atom);
   const [image_info, setImageInfo] = useAtom(image_info_atom);
   const [dialog_open, setDialogOpen] = useState(false);
+  const [review_open, setReviewOpen] = useState(false);
   const [title] = useAtom(title_atom);
   const [description] = useAtom(description_atom);
   const [wordList] = useAtom(word_list_atom);
+
+  const batch_status_q = usePuzzleImageBatchStatus(word_puzzle.id);
+  const batch_status = batch_status_q.data ?? null;
 
   const handleClearImage = () => {
     setImageId(null);
@@ -1286,9 +1298,39 @@ const PuzzleImageSection = ({ word_puzzle }: { word_puzzle: Puzzle }) => {
     setDialogOpen(false);
   };
 
+  const show_batch_status =
+    batch_status !== null &&
+    (batch_status.status === 'processing' ||
+      batch_status.status === 'failed' ||
+      batch_status.status === 'ready_for_review');
+
   return (
     <div className="space-y-3">
       <span className="text-lg font-bold">Puzzle Image</span>
+
+      {show_batch_status && batch_status ? (
+        <div className="space-y-2">
+          <BatchPuzzleImageStatus
+            status={batch_status}
+            onRefresh={() => void batch_status_q.refetch()}
+            isRefreshing={batch_status_q.isFetching}
+          />
+          {batch_status.status === 'ready_for_review' ? (
+            <Button type="button" variant="secondary" size="sm" onClick={() => setReviewOpen(true)}>
+              Review generated image
+            </Button>
+          ) : null}
+        </div>
+      ) : null}
+
+      {batch_status && batch_status.status === 'ready_for_review' ? (
+        <BatchPuzzleImageReviewDialog
+          open={review_open}
+          onOpenChange={setReviewOpen}
+          batchStatus={batch_status}
+          onApproved={handleImageAdded}
+        />
+      ) : null}
 
       {image_info ? (
         <div className="flex flex-col items-start gap-3">
@@ -1717,7 +1759,11 @@ const CreateNewImageTab = ({
   onStartGeneration,
   onDelete,
   onDeleteAndRegenerate,
-  onMakeImage
+  onMakeImage,
+  auto_approved,
+  onAutoApprovedChange,
+  onGenerateInBackground,
+  isBatchQueuing
 }: {
   phase: GenerationPhase;
   custom_prompt: string;
@@ -1728,7 +1774,13 @@ const CreateNewImageTab = ({
   onDelete: () => void;
   onDeleteAndRegenerate: () => void;
   onMakeImage: () => void;
+  auto_approved: boolean;
+  onAutoApprovedChange: (checked: boolean) => void;
+  onGenerateInBackground: () => void;
+  isBatchQueuing: boolean;
 }) => {
+  const batch_disabled = isWorking || isBatchQueuing;
+
   return (
     <div className="flex flex-col items-center gap-4 py-1">
       {phase.state === 'idle' && (
@@ -1746,6 +1798,29 @@ const CreateNewImageTab = ({
             <Wand2 className="size-4" />
             Create AI Image
           </Button>
+          <div className="w-full max-w-sm space-y-3 rounded-lg border border-border bg-muted/20 p-3">
+            <div className="space-y-1">
+              <p className="text-sm font-semibold">Cheaper background generation</p>
+              <BatchPuzzleImageCostNote />
+            </div>
+            <label className="flex items-center gap-2 text-sm">
+              <Checkbox
+                checked={auto_approved}
+                onCheckedChange={(checked) => onAutoApprovedChange(checked === true)}
+              />
+              Auto apply generated image to puzzle
+            </label>
+            <Button
+              type="button"
+              variant="outline"
+              className="w-full gap-2"
+              disabled={batch_disabled}
+              onClick={onGenerateInBackground}
+            >
+              <RefreshCw className={isBatchQueuing ? 'size-4 animate-spin' : 'size-4'} />
+              Generate in Background
+            </Button>
+          </div>
         </div>
       )}
 
@@ -1827,7 +1902,9 @@ const AIImageDialogContent = ({
   onImageCleared: () => void;
 }) => {
   const queryClient = useQueryClient();
+  const { invalidateAll } = useInvalidatePuzzleImageBatchQueries();
   const [active_tab, setActiveTab] = useState<ImageDialogTab>('create-new');
+  const [auto_approved, setAutoApproved] = useState(true);
   const [phase, setPhase] = useState<GenerationPhase>(
     existing_image
       ? { state: 'done', image_prompt: '', image_info: existing_image }
@@ -1874,6 +1951,24 @@ const AIImageDialogContent = ({
       invalidateImageAssetsList();
     },
     onError: () => toast.error('Failed to delete image')
+  });
+
+  const batch_trigger_mut = client_q.batch_ai.trigger_batch_puzzle_image_gen.useMutation({
+    onSuccess: async (_data, variables) => {
+      await invalidateAll(puzzle_id);
+      if (variables.auto_approved) {
+        toast.success(
+          'Background image generation queued. It will be applied automatically when ready.'
+        );
+      } else {
+        toast.success(
+          'Background image generation queued. Review it from the puzzle page when ready.'
+        );
+      }
+    },
+    onError: (err) => {
+      toast.error(err.message || 'Failed to queue background image generation');
+    }
   });
 
   const startGeneration = (existing_image_prompt?: string) => {
@@ -1954,7 +2049,25 @@ const AIImageDialogContent = ({
     }
   };
 
-  const isWorking = phase.state === 'generating' || delete_mut.isPending || generate_mut.isPending;
+  const isWorking =
+    phase.state === 'generating' ||
+    delete_mut.isPending ||
+    generate_mut.isPending ||
+    batch_trigger_mut.isPending;
+
+  const handleGenerateInBackground = () => {
+    batch_trigger_mut.mutate({
+      auto_approved,
+      puzzles: [
+        {
+          puzzle_id,
+          title,
+          description,
+          words
+        }
+      ]
+    });
+  };
 
   return (
     <DialogContent
@@ -1992,6 +2105,10 @@ const AIImageDialogContent = ({
             }}
             onDeleteAndRegenerate={handleDeleteAndRegenerate}
             onMakeImage={handleMakeImage}
+            auto_approved={auto_approved}
+            onAutoApprovedChange={setAutoApproved}
+            onGenerateInBackground={handleGenerateInBackground}
+            isBatchQueuing={batch_trigger_mut.isPending}
           />
         </TabsContent>
 
