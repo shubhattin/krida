@@ -147,11 +147,11 @@ export const generateFileNameAndDescription = async (
           .describe(
             'A short file_name (2–4 words, underscores, lowercase) for the image prompt provided.'
           ),
-        description: z.string().describe('A 3–5 word description for the image prompt provided.')
+        description: z.string().describe('A short word description for the image prompt provided.')
       })
     }),
     system:
-      'Generate a short file_name (2–4 words, underscores, lowercase) and a 3–5 word description for the image prompt provided.',
+      'Generate a short file_name (2–4 words, underscores, lowercase) and a 4-5 word description for the image prompt provided.',
     prompt: image_prompt
   });
   return response.output;
