@@ -108,11 +108,14 @@ const ListPage = () => {
   const [layout, setLayout] = useState<ListLayout>('cards');
   const [selected_ids, setSelectedIds] = useState<Set<number>>(() => new Set());
   const [auto_approved, setAutoApproved] = useState(true);
-  const { invalidateBatchManager } = useInvalidatePuzzleImageBatchQueries();
+  const { invalidateBatchManager, invalidatePuzzleStatus } = useInvalidatePuzzleImageBatchQueries();
 
   const batch_trigger_mut = client_q.batch_ai.trigger_batch_puzzle_image_gen.useMutation({
-    onSuccess: async (data) => {
-      await invalidateBatchManager();
+    onSuccess: async (data, variables) => {
+      await Promise.all([
+        invalidateBatchManager(),
+        ...variables.puzzles.map((puzzle) => invalidatePuzzleStatus(puzzle.puzzle_id))
+      ]);
       toast.success(
         `Queued background image generation for ${data.puzzle_count} puzzle${data.puzzle_count === 1 ? '' : 's'}.`
       );

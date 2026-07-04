@@ -18,25 +18,16 @@ import {
 import { Spinner } from '~/components/ui/spinner';
 import { Skeleton } from '~/components/ui/skeleton';
 import { getCDNUrl } from '~/constants';
+import {
+  PUZZLE_IMAGE_BATCH_STATUS_LABELS,
+  PUZZLE_IMAGE_BATCH_STATUS_VARIANTS
+} from '~/util/ai_batch/batch_image_status';
 import { BatchPuzzleImageReviewDialog } from '~/components/pages/main/batch-image/BatchPuzzleImageReviewDialog';
 import { useInvalidatePuzzleImageBatchQueries } from '~/components/pages/main/batch-image/usePuzzleImageBatchStatus';
 
 type RouterOutput = inferRouterOutputs<AppRouter>;
 type BatchManagerGroup = RouterOutput['batch_ai']['get_batch_manager_groups'][number];
 type BatchManagerItem = BatchManagerGroup['items'][number];
-
-const status_label: Record<BatchManagerItem['status'], string> = {
-  processing: 'Pending',
-  ready_for_review: 'Ready',
-  failed: 'Failed'
-};
-
-const status_variant: Record<BatchManagerItem['status'], 'secondary' | 'default' | 'destructive'> =
-  {
-    processing: 'secondary',
-    ready_for_review: 'default',
-    failed: 'destructive'
-  };
 
 const BatchManagerPage = () => {
   const { invalidateAll } = useInvalidatePuzzleImageBatchQueries();
@@ -95,6 +86,16 @@ const BatchManagerPage = () => {
           {Array.from({ length: 3 }).map((_, index) => (
             <Skeleton key={index} className="h-16 w-full rounded-xl" />
           ))}
+        </div>
+      ) : groups_q.isError ? (
+        <div className="rounded-xl border border-destructive/40 bg-destructive/5 p-8 text-center">
+          <p className="font-medium text-destructive">Failed to load batch jobs</p>
+          <p className="mt-1 text-sm text-muted-foreground">
+            {groups_q.error.message || 'Something went wrong while fetching batch groups.'}
+          </p>
+          <Button type="button" className="mt-4" onClick={() => void groups_q.refetch()}>
+            Try again
+          </Button>
         </div>
       ) : groups.length === 0 ? (
         <div className="rounded-xl border border-dashed border-border p-8 text-center">
@@ -159,7 +160,11 @@ const BatchManagerPage = () => {
                         {item.image_asset ? (
                           <img
                             src={getCDNUrl(item.image_asset.s3_key)}
-                            alt=""
+                            alt={
+                              item.puzzle_title
+                                ? `Generated preview for ${item.puzzle_title}`
+                                : 'Generated puzzle card preview'
+                            }
                             className="size-16 shrink-0 rounded-md border border-border object-cover"
                           />
                         ) : (
@@ -172,8 +177,8 @@ const BatchManagerPage = () => {
                             <p className="truncate font-medium">
                               {item.puzzle_title ?? `Puzzle #${item.puzzle_id ?? '?'}`}
                             </p>
-                            <Badge variant={status_variant[item.status]}>
-                              {status_label[item.status]}
+                            <Badge variant={PUZZLE_IMAGE_BATCH_STATUS_VARIANTS[item.status]}>
+                              {PUZZLE_IMAGE_BATCH_STATUS_LABELS[item.status]}
                             </Badge>
                             {item.auto_approved ? (
                               <Badge variant="outline">Auto-apply</Badge>

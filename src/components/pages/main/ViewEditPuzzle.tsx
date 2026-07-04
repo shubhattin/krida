@@ -170,6 +170,8 @@ const lipi_lekhika_active_atom = atom<boolean>(true);
 const attachments_atom = atom<Puzzle['attachments']>([]);
 /** null = no image; undefined = not yet hydrated (unused); number = image_id */
 const image_id_atom = atom<number | null>(null);
+/** Persisted puzzle image_id baseline for unsaved-change detection */
+const image_baseline_atom = atom<number | null>(null);
 /** The current image s3_key + dimensions as fetched (kept in sync with image_id changes) */
 const image_info_atom = atom<{ id: number; s3_key: string; width: number; height: number } | null>(
   null
@@ -191,6 +193,7 @@ const ViewEditPuzzle = ({ word_puzzle: initialWordPuzzle }: ViewEditProps) => {
     [lipi_lekhika_active_atom, true],
     [attachments_atom, word_puzzle.attachments],
     [image_id_atom, word_puzzle.image?.id ?? null],
+    [image_baseline_atom, word_puzzle.image?.id ?? null],
     [image_info_atom, word_puzzle.image ?? null]
   ]);
 
@@ -1095,14 +1098,14 @@ const SaveButton = ({ word_puzzle }: { word_puzzle: Puzzle }) => {
   const [gridData] = useAtom(grid_data_atom);
   const [attachments, setAttachments] = useAtom(attachments_atom);
   const [image_id] = useAtom(image_id_atom);
+  const [image_baseline, setImageBaseline] = useAtom(image_baseline_atom);
   const initialRef = useRef({
     title: word_puzzle.title,
     wordList: word_puzzle.word_list,
     gridData: word_puzzle.grid_data,
     listed: word_puzzle.listed,
     description: word_puzzle.description,
-    attachments: word_puzzle.attachments,
-    image_id: word_puzzle.image?.id ?? null
+    attachments: word_puzzle.attachments
   });
   const [listed] = useAtom(listed_atom);
   const [description] = useAtom(description_atom);
@@ -1135,9 +1138,9 @@ const SaveButton = ({ word_puzzle }: { word_puzzle: Puzzle }) => {
           gridData,
           listed,
           description,
-          attachments: updatedAttachments,
-          image_id
+          attachments: updatedAttachments
         };
+        setImageBaseline(image_id);
 
         // Clear React Query cache for the puzzle carousel
         void queryClient.invalidateQueries({ queryKey: ['listed_puzzles_carousel'] });
@@ -1178,9 +1181,9 @@ const SaveButton = ({ word_puzzle }: { word_puzzle: Puzzle }) => {
       listed !== initialRef.current.listed ||
       description !== initialRef.current.description ||
       JSON.stringify(attachments) !== JSON.stringify(initialRef.current.attachments) ||
-      image_id !== initialRef.current.image_id
+      image_id !== image_baseline
     );
-  }, [title, wordList, gridData, listed, description, attachments, image_id]);
+  }, [title, wordList, gridData, listed, description, attachments, image_id, image_baseline]);
 
   const handleSave = () => {
     const data = {
@@ -1272,6 +1275,7 @@ const SaveButton = ({ word_puzzle }: { word_puzzle: Puzzle }) => {
 
 const PuzzleImageSection = ({ word_puzzle }: { word_puzzle: Puzzle }) => {
   const [image_id, setImageId] = useAtom(image_id_atom);
+  const [, setImageBaseline] = useAtom(image_baseline_atom);
   const [image_info, setImageInfo] = useAtom(image_info_atom);
   const [dialog_open, setDialogOpen] = useState(false);
   const [review_open, setReviewOpen] = useState(false);
@@ -1298,11 +1302,46 @@ const PuzzleImageSection = ({ word_puzzle }: { word_puzzle: Puzzle }) => {
     setDialogOpen(false);
   };
 
+  const handleBatchImageApproved = (info: {
+    id: number;
+    s3_key: string;
+    width: number;
+    height: number;
+  }) => {
+    setImageId(info.id);
+    setImageInfo(info);
+    setImageBaseline(info.id);
+    setReviewOpen(false);
+  };
+
+  useEffect(() => {
+    if (!batch_status?.image_asset || batch_status.metadata.success !== true) {
+      return;
+    }
+
+    const asset = batch_status.image_asset;
+    const next_image = {
+      id: asset.id,
+      s3_key: asset.s3_key,
+      width: asset.width,
+      height: asset.height
+    };
+
+    if (batch_status.auto_approved || batch_status.status === 'auto_applying') {
+      if (image_id !== next_image.id || image_info?.s3_key !== next_image.s3_key) {
+        setImageId(next_image.id);
+        setImageInfo(next_image);
+        setImageBaseline(next_image.id);
+      }
+    }
+  }, [batch_status, image_id, image_info, setImageId, setImageInfo, setImageBaseline]);
+
   const show_batch_status =
     batch_status !== null &&
     (batch_status.status === 'processing' ||
       batch_status.status === 'failed' ||
-      batch_status.status === 'ready_for_review');
+      batch_status.status === 'ready_for_review' ||
+      batch_status.status === 'auto_applying');
 
   return (
     <div className="space-y-3">
@@ -1328,7 +1367,7 @@ const PuzzleImageSection = ({ word_puzzle }: { word_puzzle: Puzzle }) => {
           open={review_open}
           onOpenChange={setReviewOpen}
           batchStatus={batch_status}
-          onApproved={handleImageAdded}
+          onApproved={handleBatchImageApproved}
         />
       ) : null}
 

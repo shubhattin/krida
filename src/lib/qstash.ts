@@ -5,7 +5,9 @@ const client = new Client(); // load from env
 
 const QSTAHS_PUBLISH_BASE_URL = `${process.env.NEXT_PUBLIC_SITE_URL}/api/qstash`;
 
-const PRDO_MODE = process.env.NODE_ENV === 'production';
+const PROD_MODE =
+  process.env.VERCEL_ENV === 'production' ||
+  (process.env.VERCEL_ENV === undefined && process.env.NODE_ENV === 'production');
 
 export const schedule_archival_publish_schema = z.object({
   puzzle_id: z.number().int().positive(),
@@ -19,7 +21,7 @@ export const publishScheduleListingQueue = async (
   data: z.infer<typeof schedule_archival_publish_schema>,
   delay_s: number
 ) => {
-  if (!process.env.NEXT_PUBLIC_SITE_URL || !PRDO_MODE) return;
+  if (!process.env.NEXT_PUBLIC_SITE_URL || !PROD_MODE) return;
   const body = schedule_archival_publish_schema.parse(data);
 
   await client.publishJSON({
@@ -41,7 +43,7 @@ export const publishScheduledPuzzleNotificationQueue = async (
   data: z.infer<typeof scheduled_puzzle_notification_publish_schema>,
   delay_s: number
 ) => {
-  if (!process.env.NEXT_PUBLIC_SITE_URL || !PRDO_MODE) return;
+  if (!process.env.NEXT_PUBLIC_SITE_URL || !PROD_MODE) return;
   const body = scheduled_puzzle_notification_publish_schema.parse(data);
 
   await client.publishJSON({
@@ -55,13 +57,14 @@ export const publishScheduledPuzzleNotificationQueue = async (
 };
 
 export const ai_batch_results_publish_schema = z.object({
-  batch_id: z.string().min(1)
+  batch_id: z.string().min(1),
+  poll_attempt: z.number().int().min(0).default(0)
 });
 export const publishAiBatchResultsQueue = async (
   data: z.infer<typeof ai_batch_results_publish_schema>,
   delay_s: number
 ) => {
-  if (!process.env.NEXT_PUBLIC_SITE_URL || !PRDO_MODE) return;
+  if (!process.env.NEXT_PUBLIC_SITE_URL || !PROD_MODE) return;
   const body = ai_batch_results_publish_schema.parse(data);
 
   await client.publishJSON({

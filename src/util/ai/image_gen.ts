@@ -2,7 +2,7 @@ import { generateImage, generateText, Output } from 'ai';
 import type { OpenAIImageModelGenerationOptions } from '@ai-sdk/openai';
 import { z } from 'zod';
 import { image_assets } from '~/db/schema';
-import type { db } from '~/db/db';
+import type { TxOrDb } from '~/db/db';
 import { resizeImage } from '~/util/sharp/resize.server';
 import { uploadAssetFile, deleteAssetFile } from '~/util/s3/upload_file.server';
 import { PROJECT_S3_ALIAS } from '~/constants';
@@ -161,7 +161,7 @@ export const generateFileNameAndDescription = async (
 export const generateSavePuzzleImage = async (
   input: GeneratePuzzleImageInput,
   s3Client: S3Client,
-  db_instance: typeof db,
+  db_instance: TxOrDb,
   s3_bucket_name?: string,
   existing_image_b64?: string,
   existing_file_name_description?: { file_name: string; description: string }
