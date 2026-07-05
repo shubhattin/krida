@@ -146,7 +146,7 @@ const ListPage = () => {
     });
   };
 
-  const ctx = createTypingContext('Devanagari');
+  const ctx = useMemo(() => createTypingContext('Devanagari'), []);
 
   useEffect(() => {
     ctx.ready;
