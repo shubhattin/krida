@@ -26,6 +26,11 @@ import {
   parsePuzzleIdFromBatchCustomId
 } from '~/util/ai_batch/puzzle_image';
 import { derivePuzzleImageBatchUiStatus } from '~/util/ai_batch/batch_image_status';
+import {
+  CACHE,
+  invalidate_and_refresh_cached,
+  NO_CACHE_PARAMS
+} from '~/util/cache.server/cache_loaders';
 
 const openai = new OpenAI({
   apiKey: process.env.OPENAI_API_KEY
@@ -266,10 +271,16 @@ export const approve_connect_puzzle_image_id_func = async (batch_id: string, cus
     const { uploaded_image_id, puzzle_id } = metadata;
 
     const puzzle = await tx.query.word_puzzles.findFirst({
-      columns: { image_id: true },
+      columns: { image_id: true, slug: true, listed: true },
       where: eq(word_puzzles.id, puzzle_id)
     });
-    const previous_image_id = puzzle?.image_id ?? null;
+    if (!puzzle) {
+      throw new TRPCError({
+        code: 'NOT_FOUND',
+        message: `Puzzle not found for batch_id ${batch_id} and custom_id ${custom_id}`
+      });
+    }
+    const previous_image_id = puzzle.image_id;
 
     await Promise.all([
       tx
@@ -287,6 +298,18 @@ export const approve_connect_puzzle_image_id_func = async (batch_id: string, cus
           )
         )
     ]);
+
+    // refresh cache
+    const current_schedule = await CACHE.current_schedule.get(NO_CACHE_PARAMS);
+    await Promise.all([
+      // if puzzle is in current schedule then invalidate the cache
+      current_schedule &&
+        current_schedule.puzzle.id === puzzle_id &&
+        invalidate_and_refresh_cached(CACHE.current_schedule, NO_CACHE_PARAMS),
+      invalidate_and_refresh_cached(CACHE.word_puzzle, { slug: puzzle.slug }),
+      puzzle.listed && invalidate_and_refresh_cached(CACHE.listed_puzzle_list, NO_CACHE_PARAMS)
+    ]);
+
     return {
       success: true,
       puzzle_id,

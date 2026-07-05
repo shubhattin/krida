@@ -336,10 +336,10 @@ const update_puzzle_slug_route = protectedAdminProcedure
 
     revalidatePath('/padavali/list');
 
-    await CACHE.word_puzzle.delete({ slug: current_slug });
-    await CACHE.word_meanings.delete({ slug: current_slug });
-    await invalidate_and_refresh_cached(CACHE.word_puzzle, { slug: new_slug });
-    await invalidate_and_refresh_cached(CACHE.word_meanings, { slug: new_slug });
+    await Promise.all([
+      invalidate_and_refresh_cached(CACHE.word_puzzle, { slug: new_slug }),
+      invalidate_and_refresh_cached(CACHE.word_meanings, { slug: current_slug })
+    ]);
 
     await Promise.allSettled([
       puzzle.listed && invalidate_and_refresh_cached(CACHE.listed_puzzle_list, NO_CACHE_PARAMS),
