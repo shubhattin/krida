@@ -31,6 +31,7 @@ import {
   invalidate_and_refresh_cached,
   NO_CACHE_PARAMS
 } from '~/util/cache.server/cache_loaders';
+import ms from 'ms';
 
 const openai = new OpenAI({
   apiKey: process.env.OPENAI_API_KEY
@@ -44,7 +45,10 @@ const trigger_puzzle_input_schema = z.object({
   words: z.array(z.string()).optional()
 });
 
-const POLL_CLAIM_STALE_MS = 15 * 60 * 1000;
+/** How long a poll "claim" on an unresolved batch row stays exclusive.
+ *  Concurrent pollers (QStash + manual) skip rows claimed within this window.
+ *  After it expires, another worker may reclaim the row if the first crashed mid-upload. */
+const POLL_CLAIM_STALE_MS = ms('12mins');
 
 async function deleteImageAssetById(image_id: number) {
   const asset = await db.query.image_assets.findFirst({
