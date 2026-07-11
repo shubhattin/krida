@@ -50,48 +50,76 @@ export const GameInfo = () => {
     if (!completed) return;
 
     let rafId: number | null = null;
+    const isWideScreen =
+      typeof window !== 'undefined' && window.matchMedia('(min-width: 640px)').matches;
 
     if (isPerfect) {
       const colors = ['#4ade80', '#22d3ee', '#a78bfa', '#fb923c', '#f472b6'];
 
-      // Center burst — same as standard completion so wide screens aren't empty in the middle
-      confetti({
-        particleCount: 120,
-        spread: 80,
-        origin: { y: 0.65 },
-        colors
-      });
-
-      // Side streams for the grand perfect-score celebration
-      const duration = 3000;
-      const end = Date.now() + duration;
-
-      const frame = () => {
+      if (isWideScreen) {
         confetti({
-          particleCount: 5,
-          angle: 60,
-          spread: 55,
-          origin: { x: 0, y: 0.65 },
+          particleCount: 120,
+          spread: 80,
+          origin: { y: 0.65 },
           colors
         });
+
+        const duration = 3000;
+        const end = Date.now() + duration;
+
+        const frame = () => {
+          confetti({
+            particleCount: 5,
+            angle: 60,
+            spread: 55,
+            origin: { x: 0, y: 0.65 },
+            colors
+          });
+          confetti({
+            particleCount: 5,
+            angle: 120,
+            spread: 55,
+            origin: { x: 1, y: 0.65 },
+            colors
+          });
+          confetti({
+            particleCount: 4,
+            spread: 100,
+            origin: { x: 0.5, y: 0.55 },
+            colors
+          });
+          if (Date.now() < end) {
+            rafId = requestAnimationFrame(frame);
+          }
+        };
+        frame();
+      } else {
+        // Mobile: center-only, but bigger and longer than a standard completion burst
         confetti({
-          particleCount: 5,
-          angle: 120,
-          spread: 55,
-          origin: { x: 1, y: 0.65 },
-          colors
-        });
-        confetti({
-          particleCount: 4,
+          particleCount: 200,
           spread: 100,
-          origin: { x: 0.5, y: 0.55 },
+          startVelocity: 42,
+          origin: { y: 0.6 },
           colors
         });
-        if (Date.now() < end) {
-          rafId = requestAnimationFrame(frame);
-        }
-      };
-      frame();
+
+        const duration = 2500;
+        const end = Date.now() + duration;
+
+        const frame = () => {
+          confetti({
+            particleCount: 10,
+            spread: 110,
+            startVelocity: 32,
+            origin: { x: 0.5, y: 0.55 },
+            colors
+          });
+          if (Date.now() < end) {
+            rafId = requestAnimationFrame(frame);
+          }
+        };
+        frame();
+      }
     } else {
       // More intense single burst for standard completion
       confetti({

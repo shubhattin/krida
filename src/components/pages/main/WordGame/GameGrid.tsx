@@ -46,6 +46,7 @@ export const GameGrid = ({ timerRef, original_grid_data }: Props) => {
   const rows = gridDimensions[0] > 0 ? gridDimensions[0] : original_grid_data.length;
   const cols = gridDimensions[1] > 0 ? gridDimensions[1] : original_grid_data[0].length;
   const gridRef = useRef<HTMLDivElement>(null);
+  const lastGridSizeRef = useRef({ width: 0, height: 0 });
 
   // Mutable ref to track the live selection during a drag gesture.
   // React state (`currentSelection`) is captured in closures at render-time,
@@ -60,6 +61,8 @@ export const GameGrid = ({ timerRef, original_grid_data }: Props) => {
   const [lastHandPos, setLastHandPos] = useState<CellPosition | null>(null);
   const [revealHandPos, setRevealHandPos] = useState<CellPosition | null>(null);
   const [revealPath, setRevealPath] = useState<CellPosition[]>([]);
+  /** Bumped when the grid layout size changes so SVG trail points are recomputed. */
+  const [layoutTick, setLayoutTick] = useState(0);
 
   useEffect(() => {
     if (handPos) {
@@ -255,6 +258,50 @@ export const GameGrid = ({ timerRef, original_grid_data }: Props) => {
     };
   }, [started, completed]);
 
+  // Redraw SVG trails when the grid's laid-out size changes (resize, orientation, font, etc.)
+  useEffect(() => {
+    const el = gridRef.current;
+    if (!el) return;
+
+    let rafId: number | null = null;
+
+    const syncLayout = () => {
+      const { width, height } = el.getBoundingClientRect();
+      const rounded = { width: Math.round(width), height: Math.round(height) };
+      const prev = lastGridSizeRef.current;
+      if (rounded.width === prev.width && rounded.height === prev.height) return;
+      if (rounded.width === 0 || rounded.height === 0) return;
+
+      lastGridSizeRef.current = rounded;
+      setLayoutTick((t) => t + 1);
+    };
+
+    const scheduleSync = () => {
+      if (rafId !== null) return;
+      rafId = requestAnimationFrame(() => {
+        rafId = null;
+        syncLayout();
+      });
+    };
+
+    syncLayout();
+
+    const observer = new ResizeObserver(scheduleSync);
+    observer.observe(el);
+
+    window.addEventListener('resize', scheduleSync, { passive: true });
+    window.addEventListener('orientationchange', scheduleSync, { passive: true });
+    window.visualViewport?.addEventListener('resize', scheduleSync, { passive: true });
+
+    return () => {
+      if (rafId !== null) cancelAnimationFrame(rafId);
+      observer.disconnect();
+      window.removeEventListener('resize', scheduleSync);
+      window.removeEventListener('orientationchange', scheduleSync);
+      window.visualViewport?.removeEventListener('resize', scheduleSync);
+    };
+  }, [rows, cols, script]);
+
   // helper to go from a cell index to its pixel center
   const getCenter = ({ row, col }: CellPosition) => {
     if (!gridRef.current) return { x: 0, y: 0 };
@@ -402,13 +449,16 @@ export const GameGrid = ({ timerRef, original_grid_data }: Props) => {
   );
 
   // build the SVG <polyline> points strings
-  const buildPoints = (cells: CellPosition[]) =>
-    cells
+  // layoutTick is read so trails recompute after resize without stale coordinates
+  const buildPoints = (cells: CellPosition[]) => {
+    void layoutTick;
+    return cells
       .map((c) => {
         const { x, y } = getCenter(c);
         return `${x},${y}`;
       })
       .join(' ');
+  };
 
   // helpers for hit-testing and coloring
   const isCellInCurrentSelection = (r: number, c: number) =>
