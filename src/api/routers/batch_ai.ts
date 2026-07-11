@@ -371,7 +371,7 @@ export const approve_connect_puzzle_image_id_func = async (batch_id: string, cus
     const { uploaded_image_id, puzzle_id } = metadata;
 
     const puzzle = await tx.query.word_puzzles.findFirst({
-      columns: { image_id: true, slug: true, listed: true },
+      columns: { slug: true, listed: true },
       where: eq(word_puzzles.id, puzzle_id)
     });
     if (!puzzle) {
@@ -380,7 +380,6 @@ export const approve_connect_puzzle_image_id_func = async (batch_id: string, cus
         message: `Puzzle not found for batch_id ${batch_id} and custom_id ${custom_id}`
       });
     }
-    const previous_image_id = puzzle.image_id;
 
     await Promise.all([
       tx
@@ -413,21 +412,11 @@ export const approve_connect_puzzle_image_id_func = async (batch_id: string, cus
     return {
       success: true,
       puzzle_id,
-      uploaded_image_id,
-      previous_image_id
+      uploaded_image_id
     };
   });
 
   scheduleOpenAiBatchCleanup(batch_id);
-
-  if (result.previous_image_id !== null && result.previous_image_id !== result.uploaded_image_id) {
-    await deleteImageAssetById(result.previous_image_id).catch((err) => {
-      console.error(
-        `Failed to delete replaced puzzle image asset ${result.previous_image_id}:`,
-        err
-      );
-    });
-  }
 
   return {
     success: result.success,
