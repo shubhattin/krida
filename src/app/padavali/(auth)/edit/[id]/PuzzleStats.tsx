@@ -662,7 +662,6 @@ const PuzzleStats = ({ puzzleId, puzzleTitle }: PuzzleStatsProps) => {
           {/* Summary Cards */}
           <SummaryCards summaryStats={summaryStats} />
 
-
           {summaryStats.totalSessions === 0 ? (
             <p className="py-4 text-center text-sm text-muted-foreground">
               No data available for the selected time period
@@ -715,9 +714,7 @@ const TopPuzzlesLeader = ({
             </div>
             <div className="min-w-0 text-left">
               <p className="text-sm font-semibold tracking-tight">Top puzzles</p>
-              <p className="text-xs font-normal text-muted-foreground">
-                Top 10 by plays
-              </p>
+              <p className="text-xs font-normal text-muted-foreground">Top 10 by plays</p>
             </div>
           </div>
         </AccordionTrigger>
