@@ -52,10 +52,19 @@ export const GameInfo = () => {
     let rafId: number | null = null;
 
     if (isPerfect) {
-      // Grand confetti for perfect score / full accuracy (3 seconds stream)
+      const colors = ['#4ade80', '#22d3ee', '#a78bfa', '#fb923c', '#f472b6'];
+
+      // Center burst — same as standard completion so wide screens aren't empty in the middle
+      confetti({
+        particleCount: 120,
+        spread: 80,
+        origin: { y: 0.65 },
+        colors
+      });
+
+      // Side streams for the grand perfect-score celebration
       const duration = 3000;
       const end = Date.now() + duration;
-      const colors = ['#4ade80', '#22d3ee', '#a78bfa', '#fb923c', '#f472b6'];
 
       const frame = () => {
         confetti({
@@ -70,6 +79,12 @@ export const GameInfo = () => {
           angle: 120,
           spread: 55,
           origin: { x: 1, y: 0.65 },
+          colors
+        });
+        confetti({
+          particleCount: 4,
+          spread: 100,
+          origin: { x: 0.5, y: 0.55 },
           colors
         });
         if (Date.now() < end) {
