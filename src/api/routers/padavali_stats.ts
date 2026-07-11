@@ -6,11 +6,11 @@ import {
   verify_cloudflare_turnstile_token
 } from '../trpc_init';
 import { z } from 'zod';
-import { puzzle_gameplay_sessions, puzzle_gameplay_stats } from '~/db/schema';
+import { puzzle_gameplay_sessions, puzzle_gameplay_stats, word_puzzles } from '~/db/schema';
 import { db } from '~/db/db';
 import { location_list_enum } from '~/db/types';
 import { script_list_enum } from '~/state/script_list';
-import { eq } from 'drizzle-orm';
+import { and, count, desc, eq, gte, inArray, lte } from 'drizzle-orm';
 
 const submit_stats_route = publicProcedure
   .input(
@@ -199,9 +199,102 @@ const get_stats_data_route = protectedAdminProcedure
     return { sessions, stats, correct_attempts: total_words };
   });
 
+const get_top_puzzles_input_schema = z
+  .object({
+    all_time: z.boolean(),
+    start_date: z.date().optional(),
+    end_date: z.date().optional(),
+    limit: z.number().int().min(1).max(50).default(10)
+  })
+  .superRefine((data, ctx) => {
+    if (!data.all_time && (!data.start_date || !data.end_date)) {
+      ctx.addIssue({
+        code: 'custom',
+        message: 'start_date and end_date are required when all_time is false',
+        path: ['start_date']
+      });
+    }
+    if (!data.all_time && data.start_date && data.end_date && data.start_date > data.end_date) {
+      ctx.addIssue({
+        code: 'custom',
+        message: 'start_date must be before end_date',
+        path: ['end_date']
+      });
+    }
+  });
+
+/** Top puzzles by plays — totals both practice and no-hint sessions. */
+const get_top_puzzles_route = protectedAdminProcedure
+  .input(get_top_puzzles_input_schema)
+  .query(async ({ input: { all_time, start_date, end_date, limit } }) => {
+    const dateConditions =
+      !all_time && start_date && end_date
+        ? [
+            gte(puzzle_gameplay_sessions.created_at, start_date),
+            lte(puzzle_gameplay_sessions.created_at, end_date)
+          ]
+        : [];
+
+    const topSessions = await db
+      .select({
+        puzzle_id: puzzle_gameplay_sessions.puzzle_id,
+        title: word_puzzles.title,
+        started: count()
+      })
+      .from(puzzle_gameplay_sessions)
+      .innerJoin(word_puzzles, eq(word_puzzles.id, puzzle_gameplay_sessions.puzzle_id))
+      .where(dateConditions.length > 0 ? and(...dateConditions) : undefined)
+      .groupBy(puzzle_gameplay_sessions.puzzle_id, word_puzzles.title)
+      .orderBy(desc(count()))
+      .limit(limit);
+
+    if (topSessions.length === 0) {
+      return {
+        puzzles: [] as { puzzle_id: number; title: string; started: number; completed: number }[]
+      };
+    }
+
+    const puzzleIds = topSessions.map((row) => row.puzzle_id);
+    const statsDateConditions =
+      !all_time && start_date && end_date
+        ? [
+            gte(puzzle_gameplay_stats.created_at, start_date),
+            lte(puzzle_gameplay_stats.created_at, end_date)
+          ]
+        : [];
+
+    const completionRows = await db
+      .select({
+        puzzle_id: puzzle_gameplay_stats.puzzle_id,
+        completed: count()
+      })
+      .from(puzzle_gameplay_stats)
+      .where(
+        and(
+          inArray(puzzle_gameplay_stats.puzzle_id, puzzleIds),
+          ...(statsDateConditions.length > 0 ? statsDateConditions : [])
+        )
+      )
+      .groupBy(puzzle_gameplay_stats.puzzle_id);
+
+    const completedByPuzzle = new Map(
+      completionRows.map((row) => [row.puzzle_id, Number(row.completed)])
+    );
+
+    return {
+      puzzles: topSessions.map((row) => ({
+        puzzle_id: row.puzzle_id,
+        title: row.title,
+        started: Number(row.started),
+        completed: completedByPuzzle.get(row.puzzle_id) ?? 0
+      }))
+    };
+  });
+
 export const padavali_stats_router = t.router({
   submit_stats: submit_stats_route,
   update_games_started: update_games_started_route,
   update_session_practice_mode: update_session_practice_mode_route,
-  get_stats_data: get_stats_data_route
+  get_stats_data: get_stats_data_route,
+  get_top_puzzles: get_top_puzzles_route
 });
