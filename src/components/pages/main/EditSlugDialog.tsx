@@ -91,6 +91,7 @@ export const EditSlugDialog = ({ puzzleId, currentSlug, onSlugUpdated }: Props) 
       void utils.puzzle.get_puzzle_slugs.invalidate({ puzzle_id: puzzleId });
 
       void invalidatePage('/padavali/puzzles');
+      void invalidatePage('/padavali/list');
       void invalidatePage(`/padavali/${currentSlug}`);
       void invalidatePage(`/padavali/${data.slug}`);
 

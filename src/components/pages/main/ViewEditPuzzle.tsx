@@ -1147,6 +1147,7 @@ const SaveButton = ({ word_puzzle }: { word_puzzle: Puzzle }) => {
 
         // Invalidate Next.js cache routes on the server
         void invalidatePage('/padavali/puzzles');
+        void invalidatePage('/padavali/list');
         void invalidatePage(`/padavali/${word_puzzle.slug}`);
       }
     },
@@ -1164,6 +1165,7 @@ const SaveButton = ({ word_puzzle }: { word_puzzle: Puzzle }) => {
 
       // Invalidate Next.js cache routes on the server
       void invalidatePage('/padavali/puzzles');
+      void invalidatePage('/padavali/list');
       void invalidatePage(`/padavali/${word_puzzle.slug}`);
 
       router.push('/padavali/list');
