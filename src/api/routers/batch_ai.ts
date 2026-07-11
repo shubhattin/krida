@@ -32,6 +32,7 @@ import {
   NO_CACHE_PARAMS
 } from '~/util/cache.server/cache_loaders';
 import ms from 'ms';
+import { waitUntil } from '@vercel/functions';
 
 const openai = new OpenAI({
   apiKey: process.env.OPENAI_API_KEY
@@ -77,6 +78,40 @@ async function deleteImageAssetById(image_id: number) {
 
   const [deleted] = await db.delete(image_assets).where(eq(image_assets.id, image_id)).returning();
   return { deleted: deleted !== undefined };
+}
+
+/** Delete OpenAI Files API objects (batch input/output). Ignores already-deleted files. */
+async function deleteOpenAiFiles(file_ids: (string | null | undefined)[]) {
+  const unique_ids = [...new Set(file_ids.filter((id): id is string => !!id))];
+  await Promise.all(
+    unique_ids.map((file_id) =>
+      openai.files.delete(file_id).catch((err) => {
+        console.error(`Failed to delete OpenAI file ${file_id}:`, err);
+      })
+    )
+  );
+}
+
+/**
+ * Input/output file ids are shared across all rows for a batch_id.
+ * Only delete them once no DB rows remain for that batch.
+ */
+function scheduleOpenAiBatchFilesCleanup(
+  batch_id: string,
+  files: { input_file_id: string; output_file_id?: string | null }
+) {
+  const cleanup = (async () => {
+    const remaining = await db.query.ai_batch_responses.findFirst({
+      columns: { batch_id: true },
+      where: eq(ai_batch_responses.batch_id, batch_id)
+    });
+    if (remaining) return;
+    await deleteOpenAiFiles([files.input_file_id, files.output_file_id]);
+  })().catch((err) => {
+    console.error(`Failed OpenAI batch file cleanup for batch ${batch_id}:`, err);
+  });
+
+  waitUntil(cleanup);
 }
 
 async function tryClaimBatchRow(batch_id: string, custom_id: string) {
@@ -265,7 +300,7 @@ export const approve_connect_puzzle_image_id_func = async (batch_id: string, cus
         message: `No metadata found for batch_id ${batch_id} and custom_id ${custom_id}`
       });
     }
-    const { metadata } = ai_batch_data;
+    const { metadata, input_file_id, output_file_id } = ai_batch_data;
     if (metadata.success !== true || metadata.uploaded_image_id === undefined) {
       throw new TRPCError({
         code: 'BAD_REQUEST',
@@ -318,8 +353,15 @@ export const approve_connect_puzzle_image_id_func = async (batch_id: string, cus
       success: true,
       puzzle_id,
       uploaded_image_id,
-      previous_image_id
+      previous_image_id,
+      input_file_id,
+      output_file_id
     };
+  });
+
+  scheduleOpenAiBatchFilesCleanup(batch_id, {
+    input_file_id: result.input_file_id,
+    output_file_id: result.output_file_id
   });
 
   if (result.previous_image_id !== null && result.previous_image_id !== result.uploaded_image_id) {
@@ -823,6 +865,11 @@ const discard_puzzle_image_batch_response_route = protectedAdminProcedure
       .where(
         and(eq(ai_batch_responses.batch_id, batch_id), eq(ai_batch_responses.custom_id, custom_id))
       );
+
+    scheduleOpenAiBatchFilesCleanup(batch_id, {
+      input_file_id: row.input_file_id,
+      output_file_id: row.output_file_id
+    });
 
     return {
       success: true,

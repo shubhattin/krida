@@ -716,7 +716,7 @@ const TopPuzzlesLeader = ({
             <div className="min-w-0 text-left">
               <p className="text-sm font-semibold tracking-tight">Top puzzles</p>
               <p className="text-xs font-normal text-muted-foreground">
-                Top 10 by plays (practice + no hint)
+                Top 10 by plays
               </p>
             </div>
           </div>
