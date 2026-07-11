@@ -14,7 +14,8 @@ import {
   grid_dimensions_atom,
   total_attempts_atom,
   original_word_list_atom,
-  word_msgs_atom
+  word_msgs_atom,
+  revealed_word_atom
 } from './game_state';
 import { AppContext } from '~/components/AppDataContext';
 import type { location_list_type } from '~/db/types';
@@ -39,6 +40,7 @@ export const GameGrid = ({ timerRef, original_grid_data }: Props) => {
   const [, setTotalAttempts] = useAtom(total_attempts_atom);
   const [wordList] = useAtom(original_word_list_atom);
   const [wordMsgs] = useAtom(word_msgs_atom);
+  const [revealedWord, setRevealedWord] = useAtom(revealed_word_atom);
 
   const handleStart = useStartPuzzleGame(timerRef);
   const rows = gridDimensions[0] > 0 ? gridDimensions[0] : original_grid_data.length;
@@ -56,12 +58,69 @@ export const GameGrid = ({ timerRef, original_grid_data }: Props) => {
   const [demoState, setDemoState] = useState<'idle' | 'selecting' | 'success' | 'fail'>('idle');
   const [handPos, setHandPos] = useState<CellPosition | null>(null);
   const [lastHandPos, setLastHandPos] = useState<CellPosition | null>(null);
+  const [revealHandPos, setRevealHandPos] = useState<CellPosition | null>(null);
+  const [revealPath, setRevealPath] = useState<CellPosition[]>([]);
 
   useEffect(() => {
     if (handPos) {
       setLastHandPos(handPos);
     }
   }, [handPos]);
+
+  // Clear reveal highlight once the player finds that word
+  useEffect(() => {
+    if (!revealedWord) {
+      setRevealPath([]);
+      setRevealHandPos(null);
+      return;
+    }
+    if (foundWords.some((fw) => fw.word === revealedWord.word)) {
+      setRevealedWord(null);
+    }
+  }, [foundWords, revealedWord, setRevealedWord]);
+
+  // Trace orange highlight with the hand, then keep the path and hide the hand
+  useEffect(() => {
+    if (!started || completed || !revealedWord?.cells.length) {
+      if (!revealedWord) {
+        setRevealPath([]);
+        setRevealHandPos(null);
+      }
+      return;
+    }
+
+    let isMounted = true;
+    let timeoutId: NodeJS.Timeout;
+    const path = revealedWord.cells;
+    const stepMs = 480;
+
+    setRevealPath([]);
+    setRevealHandPos(null);
+
+    const animate = async () => {
+      for (let i = 0; i < path.length; i++) {
+        if (!isMounted) return;
+        const next = path.slice(0, i + 1);
+        setRevealPath(next);
+        setRevealHandPos(path[i]!);
+        await new Promise((resolve) => {
+          timeoutId = setTimeout(resolve, stepMs);
+        });
+      }
+      if (!isMounted) return;
+      await new Promise((resolve) => {
+        timeoutId = setTimeout(resolve, 350);
+      });
+      if (isMounted) setRevealHandPos(null);
+    };
+
+    animate();
+
+    return () => {
+      isMounted = false;
+      clearTimeout(timeoutId);
+    };
+  }, [revealedWord, started, completed]);
 
   useEffect(() => {
     if (started || completed) {
@@ -369,8 +428,11 @@ export const GameGrid = ({ timerRef, original_grid_data }: Props) => {
     }
   }, [foundWords.length, wordList.length, started]);
 
-  const displayPos = handPos ?? lastHandPos;
-  const isVisible = !!handPos && !started && !completed;
+  const demoDisplayPos = handPos ?? lastHandPos;
+  const isDemoHandVisible = !!handPos && !started && !completed;
+  const isRevealHandVisible = started && !completed && !!revealHandPos;
+  const isHandVisible = isDemoHandVisible || isRevealHandVisible;
+  const displayPos = isDemoHandVisible ? demoDisplayPos : revealHandPos;
 
   return (
     <>
@@ -416,6 +478,7 @@ export const GameGrid = ({ timerRef, original_grid_data }: Props) => {
                     foundWords={foundWords}
                     demoPath={demoPath}
                     demoState={demoState}
+                    revealedCells={revealPath}
                   />
                 ))
               )}
@@ -430,8 +493,8 @@ export const GameGrid = ({ timerRef, original_grid_data }: Props) => {
                 animate={{
                   left: displayPos ? `${((displayPos.col + 0.5) / cols) * 100}%` : '50%',
                   top: displayPos ? `${((displayPos.row + 0.5) / rows) * 100}%` : '50%',
-                  opacity: isVisible ? 1 : 0,
-                  scale: isVisible ? 1 : 0.8
+                  opacity: isHandVisible ? 1 : 0,
+                  scale: isHandVisible ? 1 : 0.8
                 }}
                 transition={{
                   left: { type: 'spring', stiffness: 100, damping: 15 },
@@ -474,6 +537,29 @@ export const GameGrid = ({ timerRef, original_grid_data }: Props) => {
                   />
                 </g>
               ))}
+
+              {/* Revealed word trail — grows with the hand */}
+              {started && !completed && revealPath.length > 1 && (
+                <g>
+                  <polyline
+                    points={buildPoints(revealPath)}
+                    fill="none"
+                    className="stroke-orange-300 dark:stroke-orange-400"
+                    strokeWidth={12}
+                    strokeLinecap="round"
+                    strokeLinejoin="round"
+                    opacity={0.35}
+                  />
+                  <polyline
+                    points={buildPoints(revealPath)}
+                    fill="none"
+                    className="stroke-orange-500 dark:stroke-orange-400"
+                    strokeWidth={6}
+                    strokeLinecap="round"
+                    strokeLinejoin="round"
+                  />
+                </g>
+              )}
 
               {/* Current selection trail in blue with glow effect */}
               {currentSelection.length > 1 && (
@@ -569,6 +655,7 @@ type GridCellProps = {
   foundWords: { cells: CellPosition[]; word: string }[];
   demoPath: CellPosition[];
   demoState: 'idle' | 'selecting' | 'success' | 'fail';
+  revealedCells: CellPosition[];
 };
 
 const GridCell = ({
@@ -580,13 +667,16 @@ const GridCell = ({
   currentSelection,
   foundWords,
   demoPath,
-  demoState
+  demoState,
+  revealedCells
 }: GridCellProps) => {
   const isInCurrent = currentSelection.some((cell) => cell.row === row && cell.col === col);
   const isInFound = foundWords.some((sel) =>
     sel.cells.some((cell) => cell.row === row && cell.col === col)
   );
   const isInDemo = demoPath.some((cell) => cell.row === row && cell.col === col);
+  const isInRevealed =
+    started && revealedCells.some((cell) => cell.row === row && cell.col === col);
   const isLast =
     isInCurrent &&
     currentSelection.length !== 0 &&
@@ -624,6 +714,14 @@ const GridCell = ({
             demoState === 'selecting' &&
               'border-blue-400 bg-linear-to-br from-blue-100 to-indigo-200 text-blue-800 shadow-blue-200 dark:border-blue-500 dark:from-blue-900 dark:to-indigo-800 dark:text-blue-100 dark:shadow-blue-900'
           ],
+        isInRevealed &&
+          !isInFound &&
+          !isInCurrent && [
+            'border-orange-400 dark:border-orange-500',
+            'bg-linear-to-br from-orange-100 to-amber-200 dark:from-orange-950 dark:to-amber-900',
+            'text-orange-900 dark:text-orange-100',
+            'ring-2 shadow-orange-200 ring-orange-300/70 dark:shadow-orange-950 dark:ring-orange-500/45'
+          ],
         isInFound && [
           'border-emerald-400 dark:border-emerald-500',
           'bg-linear-to-br from-emerald-100 to-green-200 dark:from-emerald-900 dark:to-green-800',
@@ -640,6 +738,7 @@ const GridCell = ({
         isLast && 'ring-opacity-50 ring-4 ring-blue-300 dark:ring-blue-600',
         !isInCurrent &&
           !isInFound &&
+          !isInRevealed &&
           started &&
           'hover:bg-linear-to-br hover:from-slate-100 hover:to-slate-200 dark:hover:from-slate-600 dark:hover:to-slate-700'
       )}

@@ -8,6 +8,7 @@ import {
   found_words_atom,
   game_session_nonce_atom,
   practice_mode_atom,
+  revealed_word_atom,
   seconds_atom,
   started_atom,
   total_attempts_atom
@@ -22,6 +23,7 @@ export function useStartPuzzleGame(timerRef: RefObject<NodeJS.Timeout | null>) {
   const setSeconds = useSetAtom(seconds_atom);
   const setCurrentSelection = useSetAtom(current_selection_atom);
   const setFoundWords = useSetAtom(found_words_atom);
+  const setRevealedWord = useSetAtom(revealed_word_atom);
   const setTotalAttempts = useSetAtom(total_attempts_atom);
   const setCompleted = useSetAtom(completed_atom);
   const setPracticeMode = useSetAtom(practice_mode_atom);
@@ -35,6 +37,7 @@ export function useStartPuzzleGame(timerRef: RefObject<NodeJS.Timeout | null>) {
       setSeconds(0);
       setCurrentSelection([]);
       setFoundWords([]);
+      setRevealedWord(null);
       setTotalAttempts(0);
       setCompleted(false);
       setGameSessionNonce((prev) => prev + 1);
@@ -55,6 +58,7 @@ export function useStartPuzzleGame(timerRef: RefObject<NodeJS.Timeout | null>) {
       setSeconds,
       setCurrentSelection,
       setFoundWords,
+      setRevealedWord,
       setTotalAttempts,
       setCompleted,
       setGameSessionNonce,

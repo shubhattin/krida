@@ -21,6 +21,8 @@ export const practice_mode_atom = atom(false);
 export const game_session_nonce_atom = atom(0);
 export const current_selection_atom = atom<CellPosition[]>([]);
 export const found_words_atom = atom<Selection[]>([]);
+/** Visual-only highlight of an unfound word; does not count as selected. */
+export const revealed_word_atom = atom<Selection | null>(null);
 export const seconds_atom = atom(0);
 export const total_attempts_atom = atom(0);
 export const word_msgs_atom = atom<typeof word_game_msgs>({} as typeof word_game_msgs);

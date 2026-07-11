@@ -16,7 +16,7 @@ import { ScriptSelector } from '~/components/pages/main/ScriptSelector';
 import { cn } from '~/lib/utils';
 import Icon from '~/tools/Icon';
 import { LanguageIcon } from '~/components/icons';
-import { Calendar, InfoIcon, Sparkles } from 'lucide-react';
+import { Calendar, Eye, InfoIcon, Sparkles } from 'lucide-react';
 import { IoShareSocialOutline } from 'react-icons/io5';
 import { copy_text_to_clipboard } from '~/tools/kry';
 import { toast } from 'sonner';
@@ -51,7 +51,9 @@ import {
   active_puzzle_id_atom,
   description_current_atom,
   practice_mode_atom,
-  game_session_nonce_atom
+  game_session_nonce_atom,
+  revealed_word_atom,
+  type CellPosition
 } from './game_state';
 import { Popover, PopoverContent, PopoverTrigger } from '~/components/ui/popover';
 import { FaLink, FaRegStopCircle } from 'react-icons/fa';
@@ -70,6 +72,7 @@ import { z } from 'zod';
 import { RiPlayList2Fill } from 'react-icons/ri';
 import { IoLogoYoutube } from 'react-icons/io';
 import { HintDialog } from './HintDialog';
+import { findAllTraversals } from '~/tools/puzzle/puzzle_tools';
 
 export type WordGameProps = {
   grid_data: string[][];
@@ -125,6 +128,7 @@ export default function WordGameRoot(
     store.set(game_session_nonce_atom, 0);
     store.set(current_selection_atom, []);
     store.set(found_words_atom, []);
+    store.set(revealed_word_atom, null);
     store.set(seconds_atom, 0);
     store.set(total_attempts_atom, 0);
     store.set(word_msgs_atom, props.initial_script_data.word_msgs);
@@ -144,26 +148,32 @@ export default function WordGameRoot(
   );
 }
 
-// Compact Stop Button Component
-const CompactStopButton = ({
+// Compact Stop + Reveal controls while a game is active
+const CompactGameActionButtons = ({
   timerRef,
-  className
+  original_grid_data
 }: {
   timerRef: React.RefObject<NodeJS.Timeout | null>;
-  className?: string;
+  original_grid_data: string[][];
 }) => {
   const { script } = useContext(AppContext);
   const [started] = useAtom(started_atom);
   const [completed, setCompleted] = useAtom(completed_atom);
   const [, setStarted] = useAtom(started_atom);
   const [wordMsgs] = useAtom(word_msgs_atom);
-  const [, setFoundWords] = useAtom(found_words_atom);
+  const [foundWords, setFoundWords] = useAtom(found_words_atom);
   const [, setSeconds] = useAtom(seconds_atom);
   const [, setCurrentSelection] = useAtom(current_selection_atom);
   const [, setTotalAttempts] = useAtom(total_attempts_atom);
   const [, setPracticeMode] = useAtom(practice_mode_atom);
+  const [wordList] = useAtom(original_word_list_atom);
+  const [gridDimensions] = useAtom(grid_dimensions_atom);
+  const [revealedWord, setRevealedWord] = useAtom(revealed_word_atom);
 
   const font_info = FONT_INFO[script!];
+
+  const remainingWords = wordList.filter((w) => !foundWords.some((fw) => fw.word === w));
+  const canReveal = remainingWords.length > 0;
 
   const handleStop = () => {
     setStarted(false);
@@ -173,6 +183,7 @@ const CompactStopButton = ({
     setCompleted(false);
     setPracticeMode(false);
     setSeconds(0);
+    setRevealedWord(null);
 
     if (timerRef.current) {
       clearInterval(timerRef.current);
@@ -180,30 +191,71 @@ const CompactStopButton = ({
     }
   };
 
+  const handleReveal = () => {
+    if (!canReveal) return;
+
+    // Prefer a different word than the one currently highlighted when possible
+    const candidates =
+      remainingWords.length > 1 && revealedWord
+        ? remainingWords.filter((w) => w !== revealedWord.word)
+        : remainingWords;
+    const word = candidates[Math.floor(Math.random() * candidates.length)]!;
+    const dims: [number, number] =
+      gridDimensions[0] > 0
+        ? gridDimensions
+        : [original_grid_data.length, original_grid_data[0]?.length ?? 0];
+    const traversals = findAllTraversals(original_grid_data, dims, [word]).get(0) ?? [];
+    if (traversals.length === 0) return;
+
+    const path = traversals[Math.floor(Math.random() * traversals.length)]!;
+    const cells: CellPosition[] = path.map(([row, col]) => ({ row, col }));
+    setRevealedWord({ cells, word });
+  };
+
   if (!started || completed) return null;
 
   return (
-    <>
-      {/* Stop Button for <lg screens - centered below game controls */}
-      <div className="flex justify-center sm:-mb-2">
-        <motion.button
-          onClick={handleStop}
-          initial={{ opacity: 0, scale: 0.9 }}
-          animate={{ opacity: 1, scale: 1 }}
-          transition={{ duration: 0.3, ease: 'easeInOut' }}
-          className={cn(
-            'group relative overflow-hidden bg-red-500',
-            'rounded-lg px-3 py-1.5 font-medium text-white shadow-md hover:shadow-lg',
-            'transform transition-all duration-200 hover:scale-105 active:scale-95',
-            'flex items-center justify-center gap-2 text-base',
-            font_info.className
-          )}
-        >
-          <FaRegStopCircle className="-mt-1 size-4.5" />
-          <span>{wordMsgs.stop}</span>
-        </motion.button>
-      </div>
-    </>
+    <div className="flex items-center justify-center gap-2.5 sm:-mb-2">
+      <motion.button
+        type="button"
+        onClick={handleStop}
+        initial={{ opacity: 0, scale: 0.9 }}
+        animate={{ opacity: 1, scale: 1 }}
+        transition={{ duration: 0.3, ease: 'easeInOut' }}
+        className={cn(
+          'group relative overflow-hidden bg-red-500 hover:bg-red-600',
+          'rounded-lg px-3 py-1.5 font-medium text-white shadow-md hover:shadow-lg',
+          'transform transition-all duration-200 hover:scale-105 active:scale-95',
+          'flex items-center justify-center gap-2 text-base',
+          font_info.className
+        )}
+      >
+        <FaRegStopCircle className="-mt-1 size-4.5" />
+        <span>{wordMsgs.stop}</span>
+      </motion.button>
+
+      <motion.button
+        type="button"
+        onClick={handleReveal}
+        disabled={!canReveal}
+        initial={{ opacity: 0, scale: 0.9 }}
+        animate={{ opacity: 1, scale: 1 }}
+        transition={{ duration: 0.3, ease: 'easeInOut', delay: 0.05 }}
+        className={cn(
+          'group relative overflow-hidden',
+          'rounded-lg px-3 py-1.5 font-medium text-white shadow-md hover:shadow-lg',
+          'transform transition-all duration-200 hover:scale-105 active:scale-95',
+          'flex items-center justify-center gap-2 text-base',
+          'bg-linear-to-r from-orange-600 to-amber-700 hover:from-orange-500 hover:to-amber-600',
+          'shadow-orange-600/30 dark:from-orange-700 dark:to-amber-800 dark:shadow-orange-900/40 dark:hover:from-orange-600 dark:hover:to-amber-700',
+          'disabled:pointer-events-none disabled:opacity-40',
+          font_info.className
+        )}
+      >
+        <Eye className="-mt-0.5 size-4.5" />
+        <span>{wordMsgs.reveal}</span>
+      </motion.button>
+    </div>
   );
 };
 
@@ -542,7 +594,7 @@ function WordGame({
                 duration: 0.4
               }}
             >
-              <CompactStopButton timerRef={timerRef} />
+              <CompactGameActionButtons timerRef={timerRef} original_grid_data={org_grid_data} />
             </motion.div>
           </motion.div>
         )}
