@@ -10,7 +10,8 @@ import {
   varchar,
   uniqueIndex,
   pgEnum,
-  smallint
+  smallint,
+  primaryKey
 } from 'drizzle-orm/pg-core';
 import { relations } from 'drizzle-orm';
 import type { location_list_type } from './types';
@@ -144,28 +145,33 @@ export const puzzle_game_schedules = pgTable(
   ]
 );
 
-/** Stores the metadata and batch_id used for fetching and working with final responses */
+/** One OpenAI Batch API job — shared fields for all custom_id responses in the batch. */
+export const ai_batches = pgTable('ai_batches', {
+  /** id returned by the Batch API */
+  batch_id: text().primaryKey(),
+  type: text().notNull().$type<'image' | 'text' | 'object'>(),
+  /** whether OpenAI batch output has been fetched and applied to all response rows */
+  output_resolved: boolean().notNull().default(false),
+  /** Uploaded id for openai batch file input */
+  input_file_id: text().notNull(),
+  /** Uploaded id for openai batch file output (null until resolved) */
+  output_file_id: text()
+});
+
+/** Per custom_id response / job within an OpenAI batch. */
 export const ai_batch_responses = pgTable(
   'ai_batch_responses',
   {
-    /** id returned by the Batch API */
-    batch_id: text().notNull(),
+    batch_id: text()
+      .notNull()
+      .references(() => ai_batches.batch_id, { onDelete: 'cascade' }),
     custom_id: text().notNull(),
-    type: text().notNull().$type<'image' | 'text' | 'object'>(),
-    /** whether the output has output has been extracted and stored in db */
-    output_resolved: boolean().notNull().default(false),
     /** if the resource should be auto added to the main database */
     auto_approved: boolean().notNull().default(false),
     /** Extra info to store for future reference */
-    metadata: jsonb().notNull().$type<BatchMetadata>(),
-    /** Uploaded id for openai batch file input */
-    input_file_id: text().notNull(),
-    /** Uploaded id for openai batch file output(will be null untill resolved) */
-    output_file_id: text()
+    metadata: jsonb().notNull().$type<BatchMetadata>()
   },
-  (table) => [
-    uniqueIndex('ai_batch_responses_batch_id_custom_id_idx').on(table.batch_id, table.custom_id)
-  ]
+  (table) => [primaryKey({ columns: [table.batch_id, table.custom_id] })]
 );
 
 // relations
@@ -219,5 +225,16 @@ export const puzzle_game_schedulesRelations = relations(puzzle_game_schedules, (
   puzzle: one(word_puzzles, {
     fields: [puzzle_game_schedules.puzzle_id],
     references: [word_puzzles.id]
+  })
+}));
+
+export const ai_batchesRelations = relations(ai_batches, ({ many }) => ({
+  responses: many(ai_batch_responses)
+}));
+
+export const ai_batch_responsesRelations = relations(ai_batch_responses, ({ one }) => ({
+  batch: one(ai_batches, {
+    fields: [ai_batch_responses.batch_id],
+    references: [ai_batches.batch_id]
   })
 }));

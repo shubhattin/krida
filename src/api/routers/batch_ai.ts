@@ -12,9 +12,9 @@ import { TRPCError } from '@trpc/server';
 import { createAiBatch, getAiBatchResult, type AiBatchInput } from '~/util/ai_batch';
 import type { AiBatchPollingStatus } from '~/util/ai_batch/types';
 import { OpenAI } from 'openai';
-import { ai_batch_responses, image_assets, word_puzzles } from '~/db/schema';
+import { ai_batches, ai_batch_responses, image_assets, word_puzzles } from '~/db/schema';
 import { createS3Client, deleteAssetFile } from '~/util/s3/upload_file.server';
-import { and, desc, eq, inArray } from 'drizzle-orm';
+import { and, desc, eq, inArray, sql } from 'drizzle-orm';
 import {
   BATCH_POLLING_INTERVAL_S,
   image_batch_metadata_schema,
@@ -32,6 +32,7 @@ import {
   NO_CACHE_PARAMS
 } from '~/util/cache.server/cache_loaders';
 import ms from 'ms';
+import { waitUntil } from '@vercel/functions';
 
 const openai = new OpenAI({
   apiKey: process.env.OPENAI_API_KEY
@@ -79,6 +80,48 @@ async function deleteImageAssetById(image_id: number) {
   return { deleted: deleted !== undefined };
 }
 
+/** Delete OpenAI Files API objects (batch input/output). Ignores already-deleted files. */
+async function deleteOpenAiFiles(file_ids: (string | null | undefined)[]) {
+  const unique_ids = [...new Set(file_ids.filter((id): id is string => !!id))];
+  await Promise.all(
+    unique_ids.map((file_id) =>
+      openai.files.delete(file_id).catch((err) => {
+        console.error(`Failed to delete OpenAI file ${file_id}:`, err);
+      })
+    )
+  );
+}
+
+/**
+ * File ids live on ai_batches (shared across custom_ids).
+ * After the last response row is gone, delete the batch row and OpenAI files.
+ */
+function scheduleOpenAiBatchCleanup(batch_id: string) {
+  const cleanup = (async () => {
+    const remaining = await db.query.ai_batch_responses.findFirst({
+      columns: { batch_id: true },
+      where: eq(ai_batch_responses.batch_id, batch_id)
+    });
+    if (remaining) return;
+
+    const batch = await db.query.ai_batches.findFirst({
+      columns: { input_file_id: true, output_file_id: true },
+      where: eq(ai_batches.batch_id, batch_id)
+    });
+    if (!batch) return;
+
+    await db.delete(ai_batches).where(eq(ai_batches.batch_id, batch_id));
+    await deleteOpenAiFiles([batch.input_file_id, batch.output_file_id]);
+  })().catch((err) => {
+    console.error(`Failed OpenAI batch file cleanup for batch ${batch_id}:`, err);
+  });
+
+  waitUntil(cleanup);
+}
+
+/** Item not yet finalized — same role as the old `output_resolved = false` row filter. */
+const responseItemUnprocessed = sql`${ai_batch_responses.metadata}->>'success' IS NULL`;
+
 async function tryClaimBatchRow(batch_id: string, custom_id: string) {
   return db.transaction(async (tx) => {
     const rows = await tx
@@ -88,7 +131,7 @@ async function tryClaimBatchRow(batch_id: string, custom_id: string) {
         and(
           eq(ai_batch_responses.batch_id, batch_id),
           eq(ai_batch_responses.custom_id, custom_id),
-          eq(ai_batch_responses.output_resolved, false)
+          responseItemUnprocessed
         )
       )
       .for('update')
@@ -108,16 +151,21 @@ async function tryClaimBatchRow(batch_id: string, custom_id: string) {
     }
 
     const claimed_metadata = { ...metadata, poll_claimed_at: new Date().toISOString() };
-    await tx
+    const updated = await tx
       .update(ai_batch_responses)
       .set({ metadata: claimed_metadata })
       .where(
         and(
           eq(ai_batch_responses.batch_id, batch_id),
           eq(ai_batch_responses.custom_id, custom_id),
-          eq(ai_batch_responses.output_resolved, false)
+          responseItemUnprocessed
         )
-      );
+      )
+      .returning();
+
+    if (updated.length === 0) {
+      return null;
+    }
 
     return { ...row, metadata: claimed_metadata };
   });
@@ -176,22 +224,27 @@ const trigger_batch_puzzle_image_gen_route = protectedAdminProcedure
     }
     const { batch_id, input_file_id } = await createAiBatch(openai, batch_requests);
     try {
-      await db.insert(ai_batch_responses).values(
-        resolved_puzzles.map((puzzle, index) => ({
-          batch_id: batch_id,
-          custom_id: getPuzzleImageBatchCustomId(puzzle.id),
-          type: 'image' as const,
-          auto_approved,
-          input_file_id,
-          metadata: {
-            type: 'image' as const,
-            puzzle_id: puzzle.id,
-            image_prompt: image_prompts[index],
-            file_name: file_name_descriptions[index].file_name,
-            image_description: file_name_descriptions[index].description
-          }
-        }))
-      );
+      await db.transaction(async (tx) => {
+        await tx.insert(ai_batches).values({
+          batch_id,
+          type: 'image',
+          input_file_id
+        });
+        await tx.insert(ai_batch_responses).values(
+          resolved_puzzles.map((puzzle, index) => ({
+            batch_id,
+            custom_id: getPuzzleImageBatchCustomId(puzzle.id),
+            auto_approved,
+            metadata: {
+              type: 'image' as const,
+              puzzle_id: puzzle.id,
+              image_prompt: image_prompts[index],
+              file_name: file_name_descriptions[index].file_name,
+              image_description: file_name_descriptions[index].description
+            }
+          }))
+        );
+      });
       await publishAiBatchResultsQueue({ batch_id, poll_attempt: 0 }, BATCH_POLLING_INTERVAL_S);
     } catch (err) {
       await openai.batches.cancel(batch_id).catch((cancel_err) => {
@@ -231,23 +284,66 @@ function toPollItem(custom_id: string, metadata: BatchMetadata): PollBatchPuzzle
   };
 }
 
-async function updateBatchRow(
+function isResponseItemProcessed(metadata: BatchMetadata): boolean {
+  return metadata.success !== undefined;
+}
+
+/**
+ * Finalize a response row only if it is still unprocessed (`metadata.success` unset).
+ * Returns false if another worker already wrote success/failure (CAS vs old output_resolved=false).
+ */
+async function updateBatchResponse(
   tx: transactionType,
   batch_id: string,
   custom_id: string,
   metadata: BatchMetadata,
   output_file_id?: string | null
-) {
-  await tx
+): Promise<boolean> {
+  const updated = await tx
     .update(ai_batch_responses)
+    .set({ metadata })
+    .where(
+      and(
+        eq(ai_batch_responses.batch_id, batch_id),
+        eq(ai_batch_responses.custom_id, custom_id),
+        responseItemUnprocessed
+      )
+    )
+    .returning();
+
+  if (updated.length === 0) {
+    return false;
+  }
+
+  if (output_file_id != null) {
+    await tx.update(ai_batches).set({ output_file_id }).where(eq(ai_batches.batch_id, batch_id));
+  }
+
+  return true;
+}
+
+/** Mark batch output resolved once every custom_id has success set in metadata. */
+async function markBatchOutputResolvedIfComplete(
+  tx: transactionType,
+  batch_id: string,
+  output_file_id?: string | null
+) {
+  const responses = await tx.query.ai_batch_responses.findMany({
+    where: eq(ai_batch_responses.batch_id, batch_id),
+    columns: { metadata: true }
+  });
+  const all_processed = responses.every((row) =>
+    isResponseItemProcessed(image_batch_metadata_schema.parse(row.metadata))
+  );
+  if (!all_processed) return;
+
+  await tx
+    .update(ai_batches)
     .set({
-      metadata,
       output_resolved: true,
       ...(output_file_id != null ? { output_file_id } : {})
     })
-    .where(
-      and(eq(ai_batch_responses.batch_id, batch_id), eq(ai_batch_responses.custom_id, custom_id))
-    );
+    .where(and(eq(ai_batches.batch_id, batch_id), eq(ai_batches.output_resolved, false)));
 }
 
 /** Connects uploaded image to puzzle and removes the batch response row. */
@@ -322,6 +418,8 @@ export const approve_connect_puzzle_image_id_func = async (batch_id: string, cus
     };
   });
 
+  scheduleOpenAiBatchCleanup(batch_id);
+
   if (result.previous_image_id !== null && result.previous_image_id !== result.uploaded_image_id) {
     await deleteImageAssetById(result.previous_image_id).catch((err) => {
       console.error(
@@ -390,17 +488,20 @@ function buildProcessedMessage(items: PollBatchPuzzleImageGenItem[]) {
 export const poll_batch_puzzle_image_gen_func = async (
   batch_id: string
 ): Promise<PollBatchPuzzleImageGenResult> => {
-  const db_rows = await db.query.ai_batch_responses.findMany({
-    where: eq(ai_batch_responses.batch_id, batch_id)
+  const ai_batch = await db.query.ai_batches.findFirst({
+    where: eq(ai_batches.batch_id, batch_id),
+    with: { responses: true }
   });
-  if (db_rows.length === 0) {
+  if (!ai_batch || ai_batch.responses.length === 0) {
     throw new TRPCError({
       code: 'NOT_FOUND',
       message: `No batch responses found for batch_id ${batch_id}`
     });
   }
 
-  if (db_rows.every((row) => row.output_resolved)) {
+  const db_rows = ai_batch.responses;
+
+  if (ai_batch.output_resolved) {
     const items = await autoApproveEligibleRows(
       batch_id,
       db_rows.map((row) =>
@@ -427,9 +528,11 @@ export const poll_batch_puzzle_image_gen_func = async (
       await db.transaction(async (tx) => {
         await Promise.all(
           db_rows
-            .filter((row) => !row.output_resolved)
+            .filter(
+              (row) => !isResponseItemProcessed(image_batch_metadata_schema.parse(row.metadata))
+            )
             .map((row) =>
-              updateBatchRow(
+              updateBatchResponse(
                 tx,
                 batch_id,
                 row.custom_id,
@@ -441,6 +544,7 @@ export const poll_batch_puzzle_image_gen_func = async (
               )
             )
         );
+        await markBatchOutputResolvedIfComplete(tx, batch_id, batch_output_file_id);
       });
       return {
         status: 'terminal_failure',
@@ -465,8 +569,9 @@ export const poll_batch_puzzle_image_gen_func = async (
   const items: PollBatchPuzzleImageGenItem[] = [];
 
   for (const row of db_rows) {
-    if (row.output_resolved) {
-      items.push(toPollItem(row.custom_id, image_batch_metadata_schema.parse(row.metadata)));
+    const row_metadata = image_batch_metadata_schema.parse(row.metadata);
+    if (isResponseItemProcessed(row_metadata)) {
+      items.push(toPollItem(row.custom_id, row_metadata));
       continue;
     }
 
@@ -478,13 +583,11 @@ export const poll_batch_puzzle_image_gen_func = async (
           eq(ai_batch_responses.custom_id, row.custom_id)
         )
       });
-      if (resolved_row?.output_resolved) {
-        items.push(
-          toPollItem(
-            resolved_row.custom_id,
-            image_batch_metadata_schema.parse(resolved_row.metadata)
-          )
-        );
+      if (resolved_row) {
+        const resolved_metadata = image_batch_metadata_schema.parse(resolved_row.metadata);
+        if (isResponseItemProcessed(resolved_metadata)) {
+          items.push(toPollItem(resolved_row.custom_id, resolved_metadata));
+        }
       }
       continue;
     }
@@ -494,10 +597,32 @@ export const poll_batch_puzzle_image_gen_func = async (
     const output = output_by_custom_id.get(row.custom_id);
 
     if (!output || !output.success || output.type !== 'image' || !output.image_b64) {
-      await db.transaction(async (tx) => {
-        await updateBatchRow(tx, batch_id, row.custom_id, { ...metadata, success: false });
+      const wrote = await db.transaction(async (tx) => {
+        const ok = await updateBatchResponse(tx, batch_id, row.custom_id, {
+          ...metadata,
+          success: false
+        });
+        await markBatchOutputResolvedIfComplete(tx, batch_id, batch_output_file_id);
+        return ok;
       });
-      items.push({ custom_id: row.custom_id, success: false });
+      if (wrote) {
+        items.push({ custom_id: row.custom_id, success: false });
+      } else {
+        const resolved_row = await db.query.ai_batch_responses.findFirst({
+          where: and(
+            eq(ai_batch_responses.batch_id, batch_id),
+            eq(ai_batch_responses.custom_id, row.custom_id)
+          )
+        });
+        if (resolved_row) {
+          items.push(
+            toPollItem(
+              resolved_row.custom_id,
+              image_batch_metadata_schema.parse(resolved_row.metadata)
+            )
+          );
+        }
+      }
       continue;
     }
 
@@ -511,26 +636,37 @@ export const poll_batch_puzzle_image_gen_func = async (
     );
 
     if (!upload_result.success) {
-      await db.transaction(async (tx) => {
-        await updateBatchRow(tx, batch_id, row.custom_id, { ...metadata, success: false });
+      const wrote = await db.transaction(async (tx) => {
+        const ok = await updateBatchResponse(tx, batch_id, row.custom_id, {
+          ...metadata,
+          success: false
+        });
+        await markBatchOutputResolvedIfComplete(tx, batch_id, batch_output_file_id);
+        return ok;
       });
-      items.push({ custom_id: row.custom_id, success: false });
+      if (wrote) {
+        items.push({ custom_id: row.custom_id, success: false });
+      } else {
+        const resolved_row = await db.query.ai_batch_responses.findFirst({
+          where: and(
+            eq(ai_batch_responses.batch_id, batch_id),
+            eq(ai_batch_responses.custom_id, row.custom_id)
+          )
+        });
+        if (resolved_row) {
+          items.push(
+            toPollItem(
+              resolved_row.custom_id,
+              image_batch_metadata_schema.parse(resolved_row.metadata)
+            )
+          );
+        }
+      }
       continue;
     }
 
     const persisted = await db.transaction(async (tx) => {
-      const still_unresolved = await tx.query.ai_batch_responses.findFirst({
-        where: and(
-          eq(ai_batch_responses.batch_id, batch_id),
-          eq(ai_batch_responses.custom_id, row.custom_id),
-          eq(ai_batch_responses.output_resolved, false)
-        )
-      });
-      if (!still_unresolved) {
-        return false;
-      }
-
-      await updateBatchRow(
+      const wrote = await updateBatchResponse(
         tx,
         batch_id,
         row.custom_id,
@@ -541,6 +677,10 @@ export const poll_batch_puzzle_image_gen_func = async (
         },
         batch_output_file_id
       );
+      if (!wrote) {
+        return false;
+      }
+      await markBatchOutputResolvedIfComplete(tx, batch_id, batch_output_file_id);
       return true;
     });
 
@@ -554,13 +694,11 @@ export const poll_batch_puzzle_image_gen_func = async (
           eq(ai_batch_responses.custom_id, row.custom_id)
         )
       });
-      if (resolved_row?.output_resolved) {
-        items.push(
-          toPollItem(
-            resolved_row.custom_id,
-            image_batch_metadata_schema.parse(resolved_row.metadata)
-          )
-        );
+      if (resolved_row) {
+        const resolved_metadata = image_batch_metadata_schema.parse(resolved_row.metadata);
+        if (isResponseItemProcessed(resolved_metadata)) {
+          items.push(toPollItem(resolved_row.custom_id, resolved_metadata));
+        }
       }
       continue;
     }
@@ -662,9 +800,17 @@ const get_puzzle_image_batch_status_route = protectedAdminProcedure
   .input(z.object({ puzzle_id: z.number().int() }))
   .query(async ({ input: { puzzle_id } }) => {
     const custom_id = getPuzzleImageBatchCustomId(puzzle_id);
-    const rows = await db.query.ai_batch_responses.findMany({
-      where: and(eq(ai_batch_responses.custom_id, custom_id), eq(ai_batch_responses.type, 'image'))
-    });
+    const rows = await db
+      .select({
+        batch_id: ai_batch_responses.batch_id,
+        custom_id: ai_batch_responses.custom_id,
+        output_resolved: ai_batches.output_resolved,
+        auto_approved: ai_batch_responses.auto_approved,
+        metadata: ai_batch_responses.metadata
+      })
+      .from(ai_batch_responses)
+      .innerJoin(ai_batches, eq(ai_batch_responses.batch_id, ai_batches.batch_id))
+      .where(and(eq(ai_batch_responses.custom_id, custom_id), eq(ai_batches.type, 'image')));
     if (rows.length === 0) {
       return null;
     }
@@ -691,10 +837,21 @@ const get_puzzle_image_batch_status_route = protectedAdminProcedure
   });
 
 const get_batch_manager_groups_route = protectedAdminProcedure.query(async () => {
-  const rows = await db.query.ai_batch_responses.findMany({
-    where: eq(ai_batch_responses.type, 'image'),
-    orderBy: [desc(ai_batch_responses.batch_id)]
+  const batches = await db.query.ai_batches.findMany({
+    where: eq(ai_batches.type, 'image'),
+    orderBy: [desc(ai_batches.batch_id)],
+    with: { responses: true }
   });
+
+  const rows = batches.flatMap((batch) =>
+    batch.responses.map((response) => ({
+      batch_id: batch.batch_id,
+      custom_id: response.custom_id,
+      output_resolved: batch.output_resolved,
+      auto_approved: response.auto_approved,
+      metadata: response.metadata
+    }))
+  );
 
   const puzzle_ids = new Set<number>();
   const image_ids = new Set<number>();
@@ -823,6 +980,8 @@ const discard_puzzle_image_batch_response_route = protectedAdminProcedure
       .where(
         and(eq(ai_batch_responses.batch_id, batch_id), eq(ai_batch_responses.custom_id, custom_id))
       );
+
+    scheduleOpenAiBatchCleanup(batch_id);
 
     return {
       success: true,
