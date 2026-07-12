@@ -14,7 +14,7 @@ export const BATCH_POLLING_INTERVAL_S = ms('5mins') / 1000;
 export const MAX_BATCH_POLL_ATTEMPTS = Math.ceil((24 * 60 * 60) / BATCH_POLLING_INTERVAL_S);
 
 export const image_batch_metadata_schema = z.object({
-  type: z.literal('image'),
+  type: z.literal('puzzle-image'),
   puzzle_id: z.number().int(),
   image_prompt: z.string(),
   file_name: z.string(),

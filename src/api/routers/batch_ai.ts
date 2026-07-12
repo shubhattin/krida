@@ -236,7 +236,7 @@ const trigger_batch_puzzle_image_gen_route = protectedAdminProcedure
             custom_id: getPuzzleImageBatchCustomId(puzzle.id),
             auto_approved,
             metadata: {
-              type: 'image' as const,
+              type: 'puzzle-image' as const,
               puzzle_id: puzzle.id,
               image_prompt: image_prompts[index],
               file_name: file_name_descriptions[index].file_name,

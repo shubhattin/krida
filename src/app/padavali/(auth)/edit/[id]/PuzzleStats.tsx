@@ -713,7 +713,7 @@ const TopPuzzlesLeader = ({
               <TrophyIcon className="size-3.5 text-amber-600 dark:text-amber-400" />
             </div>
             <div className="min-w-0 text-left">
-              <p className="text-sm font-semibold tracking-tight">Top puzzles</p>
+              <p className="text-sm font-semibold tracking-tight">Top Played Puzzles</p>
               <p className="text-xs font-normal text-muted-foreground">Top 10 by plays</p>
             </div>
           </div>
