@@ -5,7 +5,7 @@ export const word_game_msgs = {
   play: 'क्रीड',
   replay: 'पुनः',
   stop: 'विरमतु',
-  reveal: 'प्रकाशय',
+  reveal: 'प्रकाशयतु',
   time_taken: 'गृहीत-कालम्',
   found_words: 'लब्ध-शब्दाः',
   time_elapsed: 'अतीत-समयः'
