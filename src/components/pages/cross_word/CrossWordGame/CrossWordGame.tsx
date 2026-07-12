@@ -71,7 +71,7 @@ export function CrossWordGame() {
           <div className="relative w-full max-w-[min(100%,24rem)]">
             <CrossWordGrid game={game} />
             {!started ? (
-              <div className="absolute inset-0 flex items-center justify-center rounded-lg bg-background/70 backdrop-blur-md">
+              <div className="absolute inset-0 flex items-center justify-center rounded-lg bg-background/25 backdrop-blur-[2px]">
                 <GameControls game={game} />
               </div>
             ) : null}
