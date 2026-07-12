@@ -165,25 +165,6 @@
   --shadow-2xl: var(--shadow-2xl);
 }
 
-@layer utilities {
-  /* Crossword grid — theme-aware playable + striped blocked cells */
-  .cw-cell-playable {
-    background-color: var(--card);
-    color: var(--card-foreground);
-  }
-
-  .cw-cell-blocked {
-    background-color: var(--muted);
-    background-image: repeating-linear-gradient(
-      -45deg,
-      transparent,
-      transparent 5px,
-      color-mix(in oklch, var(--muted-foreground) 28%, transparent) 5px,
-      color-mix(in oklch, var(--muted-foreground) 28%, transparent) 6px
-    );
-  }
-}
-
 @layer base {
   * {
     @apply border-border outline-ring/50;

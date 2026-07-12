@@ -13,7 +13,16 @@ const examplePuzzle = crossWordPuzzleSchema.parse(NAMES_OF_SHIVA_PUZZLE);
 
 export default function CrossWordPage() {
   return (
-    <main className="min-h-dvh">
+    <main className="relative min-h-dvh overflow-hidden">
+      {/* Decorative background glow */}
+      <div
+        aria-hidden
+        className="pointer-events-none absolute top-0 left-1/2 -translate-x-1/2 h-[600px] w-[800px] rounded-full opacity-[0.07]"
+        style={{
+          background:
+            'radial-gradient(ellipse at center, hsl(var(--primary)), transparent 70%)'
+        }}
+      />
       <CrossWordGameRoot puzzle={examplePuzzle} />
     </main>
   );

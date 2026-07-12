@@ -1,8 +1,11 @@
 'use client';
 
 import { useAtomValue } from 'jotai';
+import { motion } from 'framer-motion';
+import { Timer, Trophy } from 'lucide-react';
 import { formatElapsed } from '~/util/cross_word/cross_word_schema';
 import { completed_atom, progress_atom, seconds_atom, started_atom } from './game_state';
+import styles from './crossword-game.module.css';
 
 export function GameProgress() {
   const started = useAtomValue(started_atom);
@@ -13,22 +16,32 @@ export function GameProgress() {
   if (!started) return null;
 
   return (
-    <div
+    <motion.div
+      initial={{ opacity: 0, y: -10 }}
+      animate={{ opacity: 1, y: 0 }}
+      transition={{ duration: 0.3, ease: 'easeOut' }}
       className="flex items-center gap-4 text-sm text-muted-foreground"
       aria-live="polite"
       aria-atomic="true"
     >
-      <span className="font-mono tabular-nums text-foreground">{formatElapsed(seconds)}</span>
-      <div className="h-1.5 min-w-24 flex-1 overflow-hidden rounded-full bg-muted">
-        <div
-          className="h-full rounded-full bg-primary transition-[width] duration-300 ease-out"
-          style={{ width: `${progress.percent}%` }}
+      <div className={styles.timerBadge}>
+        <Timer className="size-3.5 text-primary" />
+        <span className="font-mono tabular-nums text-foreground">{formatElapsed(seconds)}</span>
+      </div>
+      <div className={`h-2 min-w-24 flex-1 overflow-hidden ${styles.progressBar} bg-muted/50`}>
+        <motion.div
+          className={`h-full ${styles.progressFill}`}
+          initial={{ width: 0 }}
+          animate={{ width: `${progress.percent}%` }}
+          transition={{ duration: 0.4, ease: [0.25, 0.46, 0.45, 0.94] }}
         />
       </div>
-      <span className="shrink-0 tabular-nums">
-        {progress.solvedCount}/{progress.total}
-        {completed ? ' ✓' : ''}
-      </span>
-    </div>
+      <div className={styles.scoreBadge}>
+        <span className="flex items-center gap-1.5 tabular-nums">
+          {completed && <Trophy className="size-3.5 text-amber-500" />}
+          {progress.solvedCount}/{progress.total}
+        </span>
+      </div>
+    </motion.div>
   );
 }

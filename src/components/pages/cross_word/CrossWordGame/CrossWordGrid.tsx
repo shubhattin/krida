@@ -1,7 +1,8 @@
 'use client';
 
 import { useAtomValue } from 'jotai';
-import { useMemo, useRef } from 'react';
+import { useMemo, useRef, useEffect, useState } from 'react';
+import { motion } from 'framer-motion';
 import { CrossWordCell } from './CrossWordCell';
 import {
   active_focus_atom,
@@ -12,6 +13,7 @@ import {
 } from './game_state';
 import { cellKey, getEntryCells, isBlockedCell, isFixedCell } from '~/util/cross_word/cross_word_schema';
 import { useCrossWordGame } from './useCrossWordGame';
+import styles from './crossword-game.module.css';
 
 type CrossWordGridProps = {
   game: ReturnType<typeof useCrossWordGame>;
@@ -24,6 +26,36 @@ export function CrossWordGrid({ game }: CrossWordGridProps) {
   const solvedIds = useAtomValue(solved_entry_ids_atom);
   const incorrectIds = useAtomValue(incorrect_entry_ids_atom);
   const boardRef = useRef<HTMLDivElement>(null);
+
+  // Track which cells were "just solved" so we can fire the pulse animation once
+  const prevSolvedIdsRef = useRef<string[]>([]);
+  const [justSolvedCells, setJustSolvedCells] = useState<Set<string>>(new Set());
+
+  useEffect(() => {
+    const prevIds = prevSolvedIdsRef.current;
+    const newlysolvedEntryIds = solvedIds.filter((id) => !prevIds.includes(id));
+    if (newlysolvedEntryIds.length === 0) {
+      prevSolvedIdsRef.current = solvedIds;
+      return;
+    }
+
+    // Collect all cell keys for newly solved entries
+    const newCellKeys = new Set<string>();
+    for (const entryId of newlysolvedEntryIds) {
+      const entry = entries.find((e) => e.id === entryId);
+      if (!entry) continue;
+      for (const cell of getEntryCells(entry)) {
+        newCellKeys.add(cellKey(cell.row, cell.col));
+      }
+    }
+
+    prevSolvedIdsRef.current = solvedIds;
+    setJustSolvedCells(newCellKeys);
+
+    // Clear the justSolved flag after the animation completes (600ms)
+    const timer = setTimeout(() => setJustSolvedCells(new Set()), 600);
+    return () => clearTimeout(timer);
+  }, [solvedIds, entries]);
 
   const clueNumberByCell = useMemo(() => {
     const map = new Map<string, number>();
@@ -59,16 +91,19 @@ export function CrossWordGrid({ game }: CrossWordGridProps) {
   const [rows, cols] = puzzle.dimensions;
 
   return (
-    <div
+    <motion.div
       ref={boardRef}
       tabIndex={0}
       role="grid"
       aria-label={`${puzzle.title} crossword grid`}
       className="mx-auto w-full max-w-[min(100vw-2rem,22rem)] outline-none sm:max-w-[24rem]"
       onClick={() => boardRef.current?.focus()}
+      initial={{ opacity: 0, scale: 0.97 }}
+      animate={{ opacity: 1, scale: 1 }}
+      transition={{ duration: 0.4, ease: 'easeOut' }}
     >
       <div
-        className="grid aspect-square w-full gap-px border-2 border-border bg-border"
+        className={`grid aspect-square w-full gap-px bg-border/60 ${styles.gridContainer}`}
         style={{
           gridTemplateColumns: `repeat(${cols}, 1fr)`,
           gridTemplateRows: `repeat(${rows}, 1fr)`
@@ -82,6 +117,7 @@ export function CrossWordGrid({ game }: CrossWordGridProps) {
             const inActiveWord = game.isCellInActiveWord(r, c);
             const solved = game.isCellSolved(r, c);
             const incorrect = incorrectOnlyCells.has(cellKey(r, c));
+            const justSolved = justSolvedCells.has(cellKey(r, c));
 
             return (
               <div
@@ -101,6 +137,7 @@ export function CrossWordGrid({ game }: CrossWordGridProps) {
                   selected={!!selected}
                   inActiveWord={inActiveWord}
                   solved={solved}
+                  justSolved={justSolved}
                   incorrect={incorrect}
                   disabled={!game.started || game.completed}
                   onSelect={() => {
@@ -116,6 +153,6 @@ export function CrossWordGrid({ game }: CrossWordGridProps) {
           })
         )}
       </div>
-    </div>
+    </motion.div>
   );
 }

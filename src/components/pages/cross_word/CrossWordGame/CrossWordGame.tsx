@@ -2,6 +2,7 @@
 
 import { useEffect, useRef } from 'react';
 import { useAtomValue } from 'jotai';
+import { motion } from 'framer-motion';
 import { CrossWordGrid } from './CrossWordGrid';
 import { CluePanel } from './CluePanel';
 import { GameProgress } from './GameProgress';
@@ -9,6 +10,7 @@ import { GameControls } from './GameControls';
 import { CompletionCelebration } from './CompletionCelebration';
 import { useCrossWordGame } from './useCrossWordGame';
 import { puzzle_atom, started_atom } from './game_state';
+import styles from './crossword-game.module.css';
 
 export function CrossWordGame() {
   const timerRef = useRef<ReturnType<typeof setInterval> | null>(null);
@@ -42,14 +44,23 @@ export function CrossWordGame() {
 
   return (
     <div className="mx-auto flex w-full max-w-3xl flex-col gap-5 px-4 py-8 sm:px-6">
-      <header className="text-center">
-        <h1 className="text-2xl font-semibold tracking-tight text-foreground sm:text-3xl">
+      <motion.header
+        className="text-center"
+        initial={{ opacity: 0, y: -20 }}
+        animate={{ opacity: 1, y: 0 }}
+        transition={{ duration: 0.5, ease: 'easeOut' }}
+      >
+        <h1
+          className={`text-2xl font-bold tracking-tight sm:text-3xl md:text-4xl ${styles.titleGradient}`}
+        >
           {puzzle.title}
         </h1>
-        <p className="mt-1 text-sm text-muted-foreground">
-          Sanskrit epithets · Latin letters
-        </p>
-      </header>
+        {puzzle.description && (
+          <p className={`mt-1.5 ${styles.subtitle}`}>
+            {puzzle.description}
+          </p>
+        )}
+      </motion.header>
 
       <GameProgress />
       <CompletionCelebration />
@@ -59,15 +70,20 @@ export function CrossWordGame() {
           <div className="relative w-full max-w-[min(100%,24rem)]">
             <CrossWordGrid game={game} />
             {!started ? (
-              <div className="absolute inset-0 flex items-center justify-center bg-background/70">
+              <div className={`absolute inset-0 flex items-center justify-center ${styles.startOverlay}`}>
                 <GameControls game={game} />
               </div>
             ) : null}
           </div>
           {started ? (
-            <div className="flex justify-center">
+            <motion.div
+              className="flex justify-center"
+              initial={{ opacity: 0 }}
+              animate={{ opacity: 1 }}
+              transition={{ delay: 0.2, duration: 0.3 }}
+            >
               <GameControls game={game} />
-            </div>
+            </motion.div>
           ) : null}
         </div>
 

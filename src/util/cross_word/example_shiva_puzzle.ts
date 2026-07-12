@@ -3,7 +3,7 @@ import type { crossWordPuzzleSchema } from './cross_word_schema';
 
 /**
  * 6×6 prototype puzzle — Names of Shiva.
- * Answers are Latin transliterations of Sanskrit epithets.
+ * Answers
  *
  * Layout (■ = blocked):
  *   S H I V A ■
