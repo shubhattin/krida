@@ -1,0 +1,148 @@
+/* ── Blocked cell diagonal hatch pattern ── */
+/* Cannot be expressed in Tailwind: uses color-mix() inside repeating-linear-gradient */
+.blocked {
+  background-color: color-mix(in oklch, var(--muted) 80%, transparent);
+  background-image: repeating-linear-gradient(
+    -45deg,
+    transparent,
+    transparent 5px,
+    color-mix(in oklch, var(--muted-foreground) 18%, transparent) 5px,
+    color-mix(in oklch, var(--muted-foreground) 18%, transparent) 6px
+  );
+}
+
+/* ── Word-accepted pulse — fires once per solve ── */
+/* Cannot be expressed in Tailwind: multi-step box-shadow + scale keyframe */
+.cellJustSolved {
+  animation: solvedPulse 0.55s cubic-bezier(0.25, 0.46, 0.45, 0.94);
+}
+
+@keyframes solvedPulse {
+  0% {
+    transform: scale(1);
+    box-shadow: 0 0 0 0 hsl(138 65% 52% / 0.7);
+  }
+  35% {
+    transform: scale(1.08);
+    box-shadow: 0 0 0 6px hsl(138 65% 52% / 0.4);
+  }
+  70% {
+    transform: scale(0.97);
+    box-shadow: 0 0 0 10px hsl(138 65% 52% / 0.1);
+  }
+  100% {
+    transform: scale(1);
+    box-shadow: 0 0 0 14px hsl(138 65% 52% / 0);
+  }
+}
+
+/* ── Incorrect cell shake ── */
+.cellIncorrect {
+  animation: shake 0.35s ease-in-out;
+}
+
+@keyframes shake {
+  0%,
+  100% {
+    transform: translateX(0);
+  }
+  25% {
+    transform: translateX(-2px);
+  }
+  75% {
+    transform: translateX(2px);
+  }
+}
+
+/* ── Progress bar shimmer ── */
+/* Cannot be expressed in Tailwind: animated background-position on a gradient */
+.progressFill {
+  border-radius: 9999px;
+  background: linear-gradient(90deg, var(--primary), hsl(262 83% 65%), var(--primary));
+  background-size: 200% 100%;
+  animation: progressShimmer 3s ease-in-out infinite;
+  box-shadow: 0 0 10px color-mix(in oklch, var(--primary) 50%, transparent);
+}
+
+@keyframes progressShimmer {
+  0%,
+  100% {
+    background-position: 0% 50%;
+  }
+  50% {
+    background-position: 100% 50%;
+  }
+}
+
+/* ── Title animated gradient text ── */
+/* Cannot be expressed in Tailwind: animated background-position on gradient clip */
+.titleGradient {
+  background: linear-gradient(135deg, var(--foreground), var(--primary), hsl(262 83% 65%));
+  background-clip: text;
+  -webkit-background-clip: text;
+  -webkit-text-fill-color: transparent;
+  background-size: 200% 200%;
+  animation: titleGradientShift 6s ease-in-out infinite;
+}
+
+@keyframes titleGradientShift {
+  0%,
+  100% {
+    background-position: 0% 50%;
+  }
+  50% {
+    background-position: 100% 50%;
+  }
+}
+
+/* ── Start button hover (pseudo-class with box-shadow + translateY) ── */
+.startButton {
+  transition: all 0.3s ease;
+}
+.startButton:hover {
+  box-shadow:
+    0 6px 20px color-mix(in oklch, var(--primary) 50%, transparent),
+    0 0 30px color-mix(in oklch, var(--primary) 25%, transparent);
+  transform: translateY(-1px);
+}
+
+/* ── Reset button ripple overlay (pseudo-element) ── */
+.resetButton {
+  position: relative;
+  overflow: hidden;
+}
+.resetButton::before {
+  content: '';
+  position: absolute;
+  inset: 0;
+  border-radius: inherit;
+  background: linear-gradient(
+    135deg,
+    color-mix(in oklch, var(--muted) 50%, transparent),
+    color-mix(in oklch, var(--muted) 20%, transparent)
+  );
+  opacity: 0;
+  transition: opacity 0.3s ease;
+}
+.resetButton:hover::before {
+  opacity: 1;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .cellJustSolved,
+  .cellIncorrect,
+  .progressFill,
+  .titleGradient {
+    animation: none;
+  }
+
+  .startButton,
+  .resetButton,
+  .resetButton::before {
+    transition: none;
+  }
+
+  .startButton:hover {
+    transform: none;
+  }
+}
