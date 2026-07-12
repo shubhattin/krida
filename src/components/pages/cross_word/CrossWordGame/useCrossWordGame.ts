@@ -1,6 +1,6 @@
 'use client';
 
-import { type RefObject, useCallback } from 'react';
+import { type RefObject, useCallback, useEffect } from 'react';
 import { useAtom, useAtomValue, useSetAtom, useStore } from 'jotai';
 import {
   active_focus_atom,
@@ -88,6 +88,10 @@ export function useCrossWordGame(timerRef: RefObject<ReturnType<typeof setInterv
       timerRef.current = null;
     }
   }, [timerRef]);
+
+  useEffect(() => {
+    return clearTimer;
+  }, [clearTimer]);
 
   const startTimer = useCallback(() => {
     clearTimer();
@@ -350,7 +354,12 @@ export function useCrossWordGame(timerRef: RefObject<ReturnType<typeof setInterv
         return;
       }
 
-      if (event.key.length === 1 && /[a-zA-Z]/.test(event.key) && !event.ctrlKey && !event.metaKey) {
+      if (
+        event.key.length === 1 &&
+        /[a-zA-Z]/.test(event.key) &&
+        !event.ctrlKey &&
+        !event.metaKey
+      ) {
         event.preventDefault();
         typeLetter(event.key);
       }

@@ -41,9 +41,7 @@ export default function CrossWordGameRoot({ puzzle }: CrossWordGameRootProps) {
     store.set(incorrect_entry_ids_atom, []);
     store.set(celebration_fired_atom, false);
     return store;
-    // Intentionally mount-once; remount via key when puzzle id changes.
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, []);
+  }, [puzzle.id, puzzle]);
 
   return (
     <Provider store={jotaiStore} key={String(puzzle.id)}>

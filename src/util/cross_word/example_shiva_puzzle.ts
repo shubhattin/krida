@@ -16,8 +16,7 @@ import type { crossWordPuzzleSchema } from './cross_word_schema';
 export const NAMES_OF_SHIVA_PUZZLE = {
   id: 'names-of-shiva',
   title: 'Names of Shiva',
-  description:
-    'Different names of Shiva — fill this Sanskrit crossword using Latin letters. Each clue points to a classic epithet of Mahadeva drawn from Hindu tradition: the auspicious one, the remover, the fierce storm form, the radiant deity, and the formidable presence. Answers are English transliterations, not Devanagari script.',
+  description: 'Different names of Shiva — fill this Sanskrit crossword using letters',
   dimensions: [6, 6] as [number, number],
   grid: [
     ['S', '', '', '', '', null],

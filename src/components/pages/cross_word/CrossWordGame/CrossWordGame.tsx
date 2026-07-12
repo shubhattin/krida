@@ -51,7 +51,9 @@ export function CrossWordGame() {
         transition={{ duration: 0.5, ease: 'easeOut' }}
       >
         {/* titleGradient stays in module: animated background-position on gradient clip */}
-        <h1 className={`text-2xl font-bold tracking-tight sm:text-3xl md:text-4xl ${styles.titleGradient}`}>
+        <h1
+          className={`text-2xl font-bold tracking-tight sm:text-3xl md:text-4xl ${styles.titleGradient}`}
+        >
           {puzzle.title}
         </h1>
         {puzzle.description && (

@@ -47,7 +47,7 @@ export function CrossWordCell({
       aria-label={`Row ${row + 1}, column ${col + 1}${clueNumber ? `, clue ${clueNumber}` : ''}${letter ? `, letter ${letter}` : ', empty'}`}
       className={cn(
         // Base
-        'relative size-full outline-none bg-card text-card-foreground',
+        'relative size-full bg-card text-card-foreground outline-none',
         'flex items-center justify-center font-bold uppercase',
         'text-[clamp(1rem,4.5vw,1.5rem)] leading-none',
         'transition-all duration-150',
@@ -55,13 +55,15 @@ export function CrossWordCell({
         // Fixed (pre-filled) cell
         fixed && 'bg-muted/80 text-muted-foreground',
         // Solved — light warm green gradient + readable text
-        solved && 'bg-[linear-gradient(135deg,hsl(138_65%_52%/0.22),hsl(152_60%_48%/0.28))] text-emerald-700 dark:text-emerald-400',
+        solved &&
+          'bg-[linear-gradient(135deg,hsl(138_65%_52%/0.22),hsl(152_60%_48%/0.28))] text-emerald-700 dark:text-emerald-400',
         // Pulse fires once on word acceptance (CSS keyframe — must stay in module)
         justSolved && styles.cellJustSolved,
         // Active word path — warm amber, clearly distinct from cursor
         inActiveWord && !selected && !solved && 'bg-[hsl(38_95%_55%/0.15)]',
         // Selected cursor — strongest signal, primary ring + background tint
-        selected && 'z-10 bg-primary/20 shadow-[inset_0_0_0_2.5px_hsl(var(--primary)),0_0_16px_hsl(var(--primary)/0.45)]',
+        selected &&
+          'z-10 bg-primary/20 shadow-[inset_0_0_0_2.5px_hsl(var(--primary)),0_0_16px_hsl(var(--primary)/0.45)]',
         // Incorrect
         incorrect && !solved && 'bg-destructive/10 text-destructive',
         incorrect && !solved && styles.cellIncorrect,

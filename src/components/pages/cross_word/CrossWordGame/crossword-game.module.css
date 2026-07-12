@@ -18,10 +18,22 @@
 }
 
 @keyframes solvedPulse {
-  0%   { transform: scale(1);    box-shadow: 0 0 0 0    hsl(138 65% 52% / 0.7); }
-  35%  { transform: scale(1.08); box-shadow: 0 0 0 6px  hsl(138 65% 52% / 0.4); }
-  70%  { transform: scale(0.97); box-shadow: 0 0 0 10px hsl(138 65% 52% / 0.1); }
-  100% { transform: scale(1);    box-shadow: 0 0 0 14px hsl(138 65% 52% / 0); }
+  0% {
+    transform: scale(1);
+    box-shadow: 0 0 0 0 hsl(138 65% 52% / 0.7);
+  }
+  35% {
+    transform: scale(1.08);
+    box-shadow: 0 0 0 6px hsl(138 65% 52% / 0.4);
+  }
+  70% {
+    transform: scale(0.97);
+    box-shadow: 0 0 0 10px hsl(138 65% 52% / 0.1);
+  }
+  100% {
+    transform: scale(1);
+    box-shadow: 0 0 0 14px hsl(138 65% 52% / 0);
+  }
 }
 
 /* ── Incorrect cell shake ── */
@@ -30,29 +42,36 @@
 }
 
 @keyframes shake {
-  0%, 100% { transform: translateX(0); }
-  25%       { transform: translateX(-2px); }
-  75%       { transform: translateX(2px); }
+  0%,
+  100% {
+    transform: translateX(0);
+  }
+  25% {
+    transform: translateX(-2px);
+  }
+  75% {
+    transform: translateX(2px);
+  }
 }
 
 /* ── Progress bar shimmer ── */
 /* Cannot be expressed in Tailwind: animated background-position on a gradient */
 .progressFill {
   border-radius: 9999px;
-  background: linear-gradient(
-    90deg,
-    var(--primary),
-    hsl(262 83% 65%),
-    var(--primary)
-  );
+  background: linear-gradient(90deg, var(--primary), hsl(262 83% 65%), var(--primary));
   background-size: 200% 100%;
   animation: progressShimmer 3s ease-in-out infinite;
   box-shadow: 0 0 10px color-mix(in oklch, var(--primary) 50%, transparent);
 }
 
 @keyframes progressShimmer {
-  0%, 100% { background-position: 0% 50%; }
-  50%       { background-position: 100% 50%; }
+  0%,
+  100% {
+    background-position: 0% 50%;
+  }
+  50% {
+    background-position: 100% 50%;
+  }
 }
 
 /* ── Title animated gradient text ── */
@@ -67,8 +86,13 @@
 }
 
 @keyframes titleGradientShift {
-  0%, 100% { background-position: 0% 50%; }
-  50%       { background-position: 100% 50%; }
+  0%,
+  100% {
+    background-position: 0% 50%;
+  }
+  50% {
+    background-position: 100% 50%;
+  }
 }
 
 /* ── Start button hover (pseudo-class with box-shadow + translateY) ── */
@@ -102,4 +126,23 @@
 }
 .resetButton:hover::before {
   opacity: 1;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .cellJustSolved,
+  .cellIncorrect,
+  .progressFill,
+  .titleGradient {
+    animation: none;
+  }
+
+  .startButton,
+  .resetButton,
+  .resetButton::before {
+    transition: none;
+  }
+
+  .startButton:hover {
+    transform: none;
+  }
 }

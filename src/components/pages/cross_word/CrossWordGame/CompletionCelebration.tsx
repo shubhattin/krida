@@ -1,7 +1,7 @@
 'use client';
 
-import { useAtom, useAtomValue } from 'jotai';
-import { useEffect } from 'react';
+import { useSetAtom, useAtomValue } from 'jotai';
+import { useEffect, useRef } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import confetti from 'canvas-confetti';
 import { Sparkles } from 'lucide-react';
@@ -10,11 +10,17 @@ import { formatElapsed } from '~/util/cross_word/cross_word_schema';
 
 export function CompletionCelebration() {
   const completed = useAtomValue(completed_atom);
-  const [fired, setFired] = useAtom(celebration_fired_atom);
+  const setFired = useSetAtom(celebration_fired_atom);
   const seconds = useAtomValue(seconds_atom);
+  const hasTriggeredRef = useRef(false);
 
   useEffect(() => {
-    if (!completed || fired) return;
+    if (!completed) {
+      hasTriggeredRef.current = false;
+      return;
+    }
+    if (hasTriggeredRef.current) return;
+    hasTriggeredRef.current = true;
     setFired(true);
 
     const prefersReduced =
@@ -35,7 +41,7 @@ export function CompletionCelebration() {
     frame();
 
     return () => cancelAnimationFrame(raf);
-  }, [completed, fired, setFired]);
+  }, [completed, setFired]);
 
   return (
     <AnimatePresence>
@@ -45,7 +51,7 @@ export function CompletionCelebration() {
           animate={{ opacity: 1, y: 0, scale: 1 }}
           exit={{ opacity: 0, y: -10 }}
           transition={{ duration: 0.5, ease: [0.34, 1.56, 0.64, 1] }}
-          className="rounded-2xl border border-emerald-500/30 bg-[linear-gradient(135deg,hsl(var(--card)/0.9),hsl(142_71%_45%/0.08))] p-6 shadow-[0_8px_32px_hsl(0_0%_0%/0.2),0_0_20px_hsl(142_71%_45%/0.1)] backdrop-blur-2xl"
+          className="rounded-2xl border border-emerald-500/30 bg-[linear-gradient(135deg,color-mix(in_oklch,var(--card)_90%,transparent),color-mix(in_oklch,hsl(142_71%_45%)_8%,transparent))] p-6 shadow-[0_8px_32px_color-mix(in_oklch,var(--foreground)_20%,transparent),0_0_20px_color-mix(in_oklch,hsl(142_71%_45%)_10%,transparent)] backdrop-blur-2xl"
         >
           <div className="flex items-center gap-3">
             <div className="flex size-10 items-center justify-center rounded-full bg-emerald-500/20">
@@ -53,9 +59,7 @@ export function CompletionCelebration() {
             </div>
             <div>
               <p className="font-semibold text-foreground">Puzzle Complete!</p>
-              <p className="text-sm text-muted-foreground">
-                Finished in {formatElapsed(seconds)}
-              </p>
+              <p className="text-sm text-muted-foreground">Finished in {formatElapsed(seconds)}</p>
             </div>
           </div>
         </motion.div>

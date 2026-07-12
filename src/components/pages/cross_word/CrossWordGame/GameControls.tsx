@@ -62,11 +62,7 @@ export function GameControls({ game }: GameControlsProps) {
   }
 
   return (
-    <motion.div
-      initial={{ opacity: 0 }}
-      animate={{ opacity: 1 }}
-      transition={{ duration: 0.2 }}
-    >
+    <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} transition={{ duration: 0.2 }}>
       {/* resetButton keeps in module: ::before pseudo-element ripple */}
       <Button
         size="sm"

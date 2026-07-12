@@ -160,7 +160,9 @@ export function cellKey(row: number, col: number) {
   return `${row}:${col}`;
 }
 
-export function getEntryCells(entry: Pick<CrossWordEntry, 'row' | 'col' | 'direction' | 'answer'>): CellPosition[] {
+export function getEntryCells(
+  entry: Pick<CrossWordEntry, 'row' | 'col' | 'direction' | 'answer'>
+): CellPosition[] {
   return Array.from({ length: entry.answer.length }, (_, i) =>
     entry.direction === 'across'
       ? { row: entry.row, col: entry.col + i }
@@ -240,7 +242,9 @@ export function isEntryFilled(
   playerGrid: (string | null)[][],
   template: CrossWordCell[][]
 ) {
-  return getEntryCells(entry).every(({ row, col }) => getCellLetter(playerGrid, template, row, col) !== '');
+  return getEntryCells(entry).every(
+    ({ row, col }) => getCellLetter(playerGrid, template, row, col) !== ''
+  );
 }
 
 export function isEntryCorrect(

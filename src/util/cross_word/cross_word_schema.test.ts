@@ -20,12 +20,16 @@ describe('crossWordPuzzleSchema', () => {
   it('rejects non-rectangular grids', () => {
     const result = crossWordPuzzleSchema.safeParse({
       ...NAMES_OF_SHIVA_PUZZLE,
+      dimensions: [2, 6],
       grid: [
         ['', '', '', '', '', null],
         [null, '']
       ]
     });
     expect(result.success).toBe(false);
+    if (result.success) return;
+    expect(result.error.issues[0]?.path).toEqual(['grid', 1]);
+    expect(result.error.issues[0]?.message).toMatch(/Row 1 must have 6 columns/);
   });
 
   it('rejects out-of-bounds placements', () => {
@@ -43,6 +47,9 @@ describe('crossWordPuzzleSchema', () => {
       ]
     });
     expect(result.success).toBe(false);
+    if (result.success) return;
+    expect(result.error.issues.some((issue) => issue.path[0] === 'entries')).toBe(true);
+    expect(result.error.issues.some((issue) => issue.message.includes('out of bounds'))).toBe(true);
   });
 
   it('rejects crossing conflicts', () => {
@@ -62,6 +69,11 @@ describe('crossWordPuzzleSchema', () => {
       ]
     });
     expect(result.success).toBe(false);
+    if (result.success) return;
+    expect(result.error.issues.some((issue) => issue.path.join('.') === 'grid.0.0')).toBe(true);
+    expect(result.error.issues.some((issue) => issue.message.includes('Crossing conflict'))).toBe(
+      true
+    );
   });
 });
 
@@ -85,7 +97,8 @@ describe('game helpers', () => {
     // Seed player letters for empty cells of SHIVA
     for (const { row, col } of getEntryCells(shiva)) {
       if (puzzle.grid[row]![col] === '') {
-        player[row]![col] = shiva.answer[getEntryCells(shiva).findIndex((c) => c.row === row && c.col === col)]!;
+        player[row]![col] =
+          shiva.answer[getEntryCells(shiva).findIndex((c) => c.row === row && c.col === col)]!;
       }
     }
 

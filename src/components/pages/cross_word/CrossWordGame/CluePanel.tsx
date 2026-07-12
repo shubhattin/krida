@@ -25,7 +25,7 @@ export function CluePanel({ game }: CluePanelProps) {
 
   const renderGroup = (title: string, icon: React.ReactNode, list: typeof entries) => (
     <div className="flex flex-col gap-2">
-      <h3 className="flex items-center gap-2 text-xs font-semibold uppercase tracking-[0.15em] text-muted-foreground">
+      <h3 className="flex items-center gap-2 text-xs font-semibold tracking-[0.15em] text-muted-foreground uppercase">
         {icon}
         {title}
       </h3>
@@ -38,19 +38,23 @@ export function CluePanel({ game }: CluePanelProps) {
               <button
                 type="button"
                 disabled={!game.started || game.completed}
+                aria-current={active ? 'true' : undefined}
                 onClick={() => game.focusCell(entry.row, entry.col, { direction: entry.direction })}
                 className={cn(
                   'w-full rounded-lg px-2.5 py-2 text-left text-sm leading-snug transition-all duration-200',
                   'disabled:cursor-default disabled:opacity-60',
                   // Active clue — gradient bg + left border accent
-                  active && 'bg-[linear-gradient(135deg,hsl(var(--primary)/0.18),hsl(262_83%_65%/0.12))] border-l-[3px] border-primary text-foreground',
-                  !active && !solved && 'text-foreground/70 hover:bg-muted/40 hover:text-foreground/90',
+                  active &&
+                    'border-l-[3px] border-primary bg-[linear-gradient(135deg,hsl(var(--primary)/0.18),hsl(262_83%_65%/0.12))] text-foreground',
+                  !active &&
+                    !solved &&
+                    'text-foreground/70 hover:bg-muted/40 hover:text-foreground/90',
                   solved && 'text-muted-foreground/80 line-through'
                 )}
               >
                 <span className="flex items-start gap-1.5">
                   {/* Clue number badge */}
-                  <span className="inline-flex items-center justify-center min-w-5 h-5 rounded bg-muted/50 text-[0.7rem] font-bold shrink-0 mr-0.5">
+                  <span className="mr-0.5 inline-flex h-5 min-w-5 shrink-0 items-center justify-center rounded bg-muted/50 text-[0.7rem] font-bold">
                     {entry.number}
                   </span>
                   <span className="flex-1">

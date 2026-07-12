@@ -11,7 +11,12 @@ import {
   puzzle_atom,
   solved_entry_ids_atom
 } from './game_state';
-import { cellKey, getEntryCells, isBlockedCell, isFixedCell } from '~/util/cross_word/cross_word_schema';
+import {
+  cellKey,
+  getEntryCells,
+  isBlockedCell,
+  isFixedCell
+} from '~/util/cross_word/cross_word_schema';
 import { useCrossWordGame } from './useCrossWordGame';
 
 type CrossWordGridProps = {
