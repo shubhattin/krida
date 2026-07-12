@@ -24,19 +24,24 @@ export function GameProgress() {
       aria-live="polite"
       aria-atomic="true"
     >
-      <div className={styles.timerBadge}>
+      {/* Timer badge */}
+      <div className="inline-flex items-center gap-2 rounded-lg border border-border/40 bg-card/60 px-3 py-1 backdrop-blur-md">
         <Timer className="size-3.5 text-primary" />
         <span className="font-mono tabular-nums text-foreground">{formatElapsed(seconds)}</span>
       </div>
-      <div className={`h-2 min-w-24 flex-1 overflow-hidden ${styles.progressBar} bg-muted/50`}>
+
+      {/* Progress bar — shimmer uses CSS module (animated background-position) */}
+      <div className="relative h-2 min-w-24 flex-1 overflow-hidden rounded-full bg-muted/50">
         <motion.div
-          className={`h-full ${styles.progressFill}`}
+          className={styles.progressFill}
           initial={{ width: 0 }}
           animate={{ width: `${progress.percent}%` }}
           transition={{ duration: 0.4, ease: [0.25, 0.46, 0.45, 0.94] }}
         />
       </div>
-      <div className={styles.scoreBadge}>
+
+      {/* Score badge */}
+      <div className="rounded-lg border border-primary/30 bg-[linear-gradient(135deg,hsl(var(--primary)/0.15),hsl(262_83%_58%/0.1))] px-3 py-1 font-semibold">
         <span className="flex items-center gap-1.5 tabular-nums">
           {completed && <Trophy className="size-3.5 text-amber-500" />}
           {progress.solvedCount}/{progress.total}

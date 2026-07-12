@@ -36,12 +36,7 @@ export function CrossWordCell({
   onSelect
 }: CrossWordCellProps) {
   if (blocked) {
-    return (
-      <div
-        aria-hidden
-        className={cn(styles.blocked, 'size-full')}
-      />
-    );
+    return <div aria-hidden className={cn(styles.blocked, 'size-full')} />;
   }
 
   return (
@@ -51,23 +46,23 @@ export function CrossWordCell({
       onClick={onSelect}
       aria-label={`Row ${row + 1}, column ${col + 1}${clueNumber ? `, clue ${clueNumber}` : ''}${letter ? `, letter ${letter}` : ', empty'}`}
       className={cn(
-        styles.playable,
-        'relative size-full outline-none',
+        // Base
+        'relative size-full outline-none bg-card text-card-foreground',
         'flex items-center justify-center font-bold uppercase',
         'text-[clamp(1rem,4.5vw,1.5rem)] leading-none',
         'transition-all duration-150',
         'focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-inset',
+        // Fixed (pre-filled) cell
         fixed && 'bg-muted/80 text-muted-foreground',
-        // Priority order matters: selected > inWord > solved
-        // solved bg is always shown if solved
-        solved && styles.cellSolved,
-        solved && 'text-emerald-700 dark:text-emerald-400',
-        // Pulse fires once on first solve
+        // Solved — light warm green gradient + readable text
+        solved && 'bg-[linear-gradient(135deg,hsl(138_65%_52%/0.22),hsl(152_60%_48%/0.28))] text-emerald-700 dark:text-emerald-400',
+        // Pulse fires once on word acceptance (CSS keyframe — must stay in module)
         justSolved && styles.cellJustSolved,
-        // Active word — warm amber tint (clearly different from cursor highlight)
-        inActiveWord && !selected && !solved && styles.cellInWord,
-        // Selected cursor — strongest signal, overrides everything visually
-        selected && styles.cellSelected,
+        // Active word path — warm amber, clearly distinct from cursor
+        inActiveWord && !selected && !solved && 'bg-[hsl(38_95%_55%/0.15)]',
+        // Selected cursor — strongest signal, primary ring + background tint
+        selected && 'z-10 bg-primary/20 shadow-[inset_0_0_0_2.5px_hsl(var(--primary)),0_0_16px_hsl(var(--primary)/0.45)]',
+        // Incorrect
         incorrect && !solved && 'bg-destructive/10 text-destructive',
         incorrect && !solved && styles.cellIncorrect,
         disabled && 'cursor-default'

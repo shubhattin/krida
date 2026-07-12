@@ -1,9 +1,5 @@
-.playable {
-  background-color: var(--card);
-  color: var(--card-foreground);
-  transition: all 0.2s ease;
-}
-
+/* ── Blocked cell diagonal hatch pattern ── */
+/* Cannot be expressed in Tailwind: uses color-mix() inside repeating-linear-gradient */
 .blocked {
   background-color: color-mix(in oklch, var(--muted) 80%, transparent);
   background-image: repeating-linear-gradient(
@@ -15,32 +11,8 @@
   );
 }
 
-/* ── Glowing selected cell ── */
-/* Strong white ring + vivid glow so the cursor cell is unmistakable */
-.cellSelected {
-  background-color: hsl(var(--primary) / 0.22);
-  box-shadow:
-    inset 0 0 0 2.5px hsl(var(--primary)),
-    0 0 16px hsl(var(--primary) / 0.45);
-  z-index: 10;
-}
-
-/* ── Active word highlight ── */
-/* Warm amber tint — clearly different from the selected-cell blue/purple */
-.cellInWord {
-  background-color: hsl(38 95% 55% / 0.15);
-}
-
-/* ── Solved cell (lighter, warmer green) ── */
-.cellSolved {
-  background: linear-gradient(
-    135deg,
-    hsl(138 65% 52% / 0.22),
-    hsl(152 60% 48% / 0.28)
-  );
-}
-
-/* ── Solved cell pulse — fires once when a word is first accepted ── */
+/* ── Word-accepted pulse — fires once per solve ── */
+/* Cannot be expressed in Tailwind: multi-step box-shadow + scale keyframe */
 .cellJustSolved {
   animation: solvedPulse 0.55s cubic-bezier(0.25, 0.46, 0.45, 0.94);
 }
@@ -52,160 +24,41 @@
   100% { transform: scale(1);    box-shadow: 0 0 0 14px hsl(138 65% 52% / 0); }
 }
 
-/* ── Incorrect cell subtle shake ── */
+/* ── Incorrect cell shake ── */
 .cellIncorrect {
   animation: shake 0.35s ease-in-out;
 }
 
 @keyframes shake {
   0%, 100% { transform: translateX(0); }
-  25% { transform: translateX(-2px); }
-  75% { transform: translateX(2px); }
+  25%       { transform: translateX(-2px); }
+  75%       { transform: translateX(2px); }
 }
 
-/* ── Letter pop-in animation ── */
-.letterEnter {
-  animation: letterPop 0.25s cubic-bezier(0.34, 1.56, 0.64, 1);
-}
-
-@keyframes letterPop {
-  0% { transform: scale(0.5); opacity: 0; }
-  100% { transform: scale(1); opacity: 1; }
-}
-
-/* ── Progress bar glow ── */
-.progressBar {
-  position: relative;
-  overflow: hidden;
-  border-radius: 9999px;
-}
-
+/* ── Progress bar shimmer ── */
+/* Cannot be expressed in Tailwind: animated background-position on a gradient */
 .progressFill {
   border-radius: 9999px;
   background: linear-gradient(
     90deg,
-    hsl(var(--primary)),
+    var(--primary),
     hsl(262 83% 65%),
-    hsl(var(--primary))
+    var(--primary)
   );
   background-size: 200% 100%;
   animation: progressShimmer 3s ease-in-out infinite;
-  box-shadow: 0 0 10px hsl(var(--primary) / 0.5);
-  transition: width 0.4s cubic-bezier(0.25, 0.46, 0.45, 0.94);
+  box-shadow: 0 0 10px color-mix(in oklch, var(--primary) 50%, transparent);
 }
 
 @keyframes progressShimmer {
   0%, 100% { background-position: 0% 50%; }
-  50% { background-position: 100% 50%; }
+  50%       { background-position: 100% 50%; }
 }
 
-/* ── Clue panel glass card ── */
-.cluePanel {
-  background: hsl(var(--card) / 0.6);
-  backdrop-filter: blur(12px);
-  -webkit-backdrop-filter: blur(12px);
-  border: 1px solid hsl(var(--border) / 0.5);
-  border-radius: 1rem;
-  padding: 1.25rem;
-  box-shadow: 0 4px 24px hsl(0 0% 0% / 0.15);
-}
-
-/* ── Active clue pill ── */
-.clueActive {
-  background: linear-gradient(
-    135deg,
-    hsl(var(--primary) / 0.18),
-    hsl(262 83% 65% / 0.12)
-  );
-  border-left: 3px solid hsl(var(--primary));
-}
-
-/* ── Grid container glow ── */
-.gridContainer {
-  border: 2px solid hsl(var(--border) / 0.6);
-  border-radius: 0.5rem;
-  overflow: hidden;
-  box-shadow:
-    0 0 20px hsl(var(--primary) / 0.08),
-    0 8px 32px hsl(0 0% 0% / 0.2);
-}
-
-/* ── Start overlay with blur ── */
-.startOverlay {
-  backdrop-filter: blur(6px);
-  -webkit-backdrop-filter: blur(6px);
-  background: hsl(var(--background) / 0.7);
-  border-radius: 0.5rem;
-}
-
-/* ── Start button gradient ── */
-.startButton {
-  background: linear-gradient(
-    135deg,
-    hsl(var(--primary)),
-    hsl(262 83% 58%)
-  ) !important;
-  border: none !important;
-  color: hsl(var(--primary-foreground)) !important;
-  box-shadow:
-    0 4px 15px hsl(var(--primary) / 0.4),
-    0 0 20px hsl(var(--primary) / 0.15);
-  transition: all 0.3s ease;
-}
-.startButton:hover {
-  box-shadow:
-    0 6px 20px hsl(var(--primary) / 0.5),
-    0 0 30px hsl(var(--primary) / 0.25);
-  transform: translateY(-1px);
-}
-
-/* ── Section header gradient text ── */
-.sectionHeader {
-  background: linear-gradient(
-    135deg,
-    hsl(var(--foreground)),
-    hsl(var(--muted-foreground))
-  );
-  background-clip: text;
-  -webkit-background-clip: text;
-  -webkit-text-fill-color: transparent;
-  letter-spacing: 0.15em;
-}
-
-/* ── Timer badge ── */
-.timerBadge {
-  background: hsl(var(--card) / 0.6);
-  backdrop-filter: blur(8px);
-  -webkit-backdrop-filter: blur(8px);
-  border: 1px solid hsl(var(--border) / 0.4);
-  border-radius: 0.5rem;
-  padding: 0.25rem 0.75rem;
-  display: inline-flex;
-  align-items: center;
-  gap: 0.5rem;
-}
-
-/* ── Score badge ── */
-.scoreBadge {
-  background: linear-gradient(
-    135deg,
-    hsl(var(--primary) / 0.15),
-    hsl(262 83% 58% / 0.1)
-  );
-  border: 1px solid hsl(var(--primary) / 0.3);
-  border-radius: 0.5rem;
-  padding: 0.25rem 0.75rem;
-  font-weight: 600;
-}
-
-/* ── Title gradient ── */
+/* ── Title animated gradient text ── */
+/* Cannot be expressed in Tailwind: animated background-position on gradient clip */
 .titleGradient {
-  background: linear-gradient(
-    135deg,
-    hsl(var(--foreground)),
-    hsl(var(--primary)),
-    hsl(262 83% 65%)
-  );
+  background: linear-gradient(135deg, var(--foreground), var(--primary), hsl(262 83% 65%));
   background-clip: text;
   -webkit-background-clip: text;
   -webkit-text-fill-color: transparent;
@@ -215,27 +68,21 @@
 
 @keyframes titleGradientShift {
   0%, 100% { background-position: 0% 50%; }
-  50% { background-position: 100% 50%; }
+  50%       { background-position: 100% 50%; }
 }
 
-/* ── Completion card ── */
-.completionCard {
-  background: linear-gradient(
-    135deg,
-    hsl(var(--card) / 0.9),
-    hsl(142 71% 45% / 0.08)
-  );
-  backdrop-filter: blur(16px);
-  -webkit-backdrop-filter: blur(16px);
-  border: 1px solid hsl(142 71% 45% / 0.3);
-  border-radius: 1rem;
-  padding: 1.5rem;
+/* ── Start button hover (pseudo-class with box-shadow + translateY) ── */
+.startButton {
+  transition: all 0.3s ease;
+}
+.startButton:hover {
   box-shadow:
-    0 8px 32px hsl(0 0% 0% / 0.2),
-    0 0 20px hsl(142 71% 45% / 0.1);
+    0 6px 20px color-mix(in oklch, var(--primary) 50%, transparent),
+    0 0 30px color-mix(in oklch, var(--primary) 25%, transparent);
+  transform: translateY(-1px);
 }
 
-/* ── Reset button styling ── */
+/* ── Reset button ripple overlay (pseudo-element) ── */
 .resetButton {
   position: relative;
   overflow: hidden;
@@ -247,34 +94,12 @@
   border-radius: inherit;
   background: linear-gradient(
     135deg,
-    hsl(var(--muted) / 0.5),
-    hsl(var(--muted) / 0.2)
+    color-mix(in oklch, var(--muted) 50%, transparent),
+    color-mix(in oklch, var(--muted) 20%, transparent)
   );
   opacity: 0;
   transition: opacity 0.3s ease;
 }
 .resetButton:hover::before {
   opacity: 1;
-}
-
-/* ── Subtitle styling ── */
-.subtitle {
-  color: hsl(var(--muted-foreground));
-  font-size: 0.85rem;
-  letter-spacing: 0.05em;
-}
-
-/* ── Clue number badge ── */
-.clueNumber {
-  display: inline-flex;
-  align-items: center;
-  justify-content: center;
-  min-width: 1.25rem;
-  height: 1.25rem;
-  border-radius: 0.25rem;
-  background: hsl(var(--muted) / 0.5);
-  font-size: 0.7rem;
-  font-weight: 700;
-  margin-right: 0.5rem;
-  flex-shrink: 0;
 }

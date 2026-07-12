@@ -4,7 +4,6 @@ import { useAtomValue } from 'jotai';
 import { motion } from 'framer-motion';
 import { ArrowRight, ArrowDown, CheckCircle2 } from 'lucide-react';
 import { cn } from '~/lib/utils';
-import styles from './crossword-game.module.css';
 import { active_focus_atom, numbered_entries_atom, solved_entry_ids_atom } from './game_state';
 import type { useCrossWordGame } from './useCrossWordGame';
 
@@ -26,7 +25,7 @@ export function CluePanel({ game }: CluePanelProps) {
 
   const renderGroup = (title: string, icon: React.ReactNode, list: typeof entries) => (
     <div className="flex flex-col gap-2">
-      <h3 className={cn('flex items-center gap-2 text-xs font-semibold uppercase', styles.sectionHeader)}>
+      <h3 className="flex items-center gap-2 text-xs font-semibold uppercase tracking-[0.15em] text-muted-foreground">
         {icon}
         {title}
       </h3>
@@ -43,14 +42,17 @@ export function CluePanel({ game }: CluePanelProps) {
                 className={cn(
                   'w-full rounded-lg px-2.5 py-2 text-left text-sm leading-snug transition-all duration-200',
                   'disabled:cursor-default disabled:opacity-60',
-                  active && styles.clueActive,
-                  active && 'text-foreground',
+                  // Active clue — gradient bg + left border accent
+                  active && 'bg-[linear-gradient(135deg,hsl(var(--primary)/0.18),hsl(262_83%_65%/0.12))] border-l-[3px] border-primary text-foreground',
                   !active && !solved && 'text-foreground/70 hover:bg-muted/40 hover:text-foreground/90',
                   solved && 'text-muted-foreground/80 line-through'
                 )}
               >
                 <span className="flex items-start gap-1.5">
-                  <span className={styles.clueNumber}>{entry.number}</span>
+                  {/* Clue number badge */}
+                  <span className="inline-flex items-center justify-center min-w-5 h-5 rounded bg-muted/50 text-[0.7rem] font-bold shrink-0 mr-0.5">
+                    {entry.number}
+                  </span>
                   <span className="flex-1">
                     {entry.clue}
                     {solved && (
@@ -71,7 +73,7 @@ export function CluePanel({ game }: CluePanelProps) {
       initial={{ opacity: 0, x: 20 }}
       animate={{ opacity: 1, x: 0 }}
       transition={{ duration: 0.4, ease: 'easeOut' }}
-      className={cn('flex flex-col gap-5', styles.cluePanel)}
+      className="flex flex-col gap-5 rounded-2xl border border-border/50 bg-card/60 p-5 shadow-[0_4px_24px_hsl(0_0%_0%/0.15)] backdrop-blur-xl"
     >
       {renderGroup('Across', <ArrowRight className="size-3.5" />, across)}
       {renderGroup('Down', <ArrowDown className="size-3.5" />, down)}

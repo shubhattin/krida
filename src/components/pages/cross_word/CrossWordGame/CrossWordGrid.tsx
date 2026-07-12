@@ -13,7 +13,6 @@ import {
 } from './game_state';
 import { cellKey, getEntryCells, isBlockedCell, isFixedCell } from '~/util/cross_word/cross_word_schema';
 import { useCrossWordGame } from './useCrossWordGame';
-import styles from './crossword-game.module.css';
 
 type CrossWordGridProps = {
   game: ReturnType<typeof useCrossWordGame>;
@@ -39,7 +38,6 @@ export function CrossWordGrid({ game }: CrossWordGridProps) {
       return;
     }
 
-    // Collect all cell keys for newly solved entries
     const newCellKeys = new Set<string>();
     for (const entryId of newlysolvedEntryIds) {
       const entry = entries.find((e) => e.id === entryId);
@@ -52,7 +50,6 @@ export function CrossWordGrid({ game }: CrossWordGridProps) {
     prevSolvedIdsRef.current = solvedIds;
     setJustSolvedCells(newCellKeys);
 
-    // Clear the justSolved flag after the animation completes (600ms)
     const timer = setTimeout(() => setJustSolvedCells(new Set()), 600);
     return () => clearTimeout(timer);
   }, [solvedIds, entries]);
@@ -103,7 +100,7 @@ export function CrossWordGrid({ game }: CrossWordGridProps) {
       transition={{ duration: 0.4, ease: 'easeOut' }}
     >
       <div
-        className={`grid aspect-square w-full gap-px bg-border/60 ${styles.gridContainer}`}
+        className="grid aspect-square w-full gap-px overflow-hidden rounded-lg border-2 border-border/60 bg-border/60 shadow-[0_0_20px_hsl(var(--primary)/0.08),0_8px_32px_hsl(0_0%_0%/0.2)]"
         style={{
           gridTemplateColumns: `repeat(${cols}, 1fr)`,
           gridTemplateRows: `repeat(${rows}, 1fr)`

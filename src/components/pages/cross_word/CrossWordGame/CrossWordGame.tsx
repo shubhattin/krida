@@ -50,13 +50,12 @@ export function CrossWordGame() {
         animate={{ opacity: 1, y: 0 }}
         transition={{ duration: 0.5, ease: 'easeOut' }}
       >
-        <h1
-          className={`text-2xl font-bold tracking-tight sm:text-3xl md:text-4xl ${styles.titleGradient}`}
-        >
+        {/* titleGradient stays in module: animated background-position on gradient clip */}
+        <h1 className={`text-2xl font-bold tracking-tight sm:text-3xl md:text-4xl ${styles.titleGradient}`}>
           {puzzle.title}
         </h1>
         {puzzle.description && (
-          <p className={`mt-1.5 ${styles.subtitle}`}>
+          <p className="mt-1.5 text-[0.85rem] tracking-wider text-muted-foreground">
             {puzzle.description}
           </p>
         )}
@@ -70,7 +69,7 @@ export function CrossWordGame() {
           <div className="relative w-full max-w-[min(100%,24rem)]">
             <CrossWordGrid game={game} />
             {!started ? (
-              <div className={`absolute inset-0 flex items-center justify-center ${styles.startOverlay}`}>
+              <div className="absolute inset-0 flex items-center justify-center rounded-lg bg-background/70 backdrop-blur-md">
                 <GameControls game={game} />
               </div>
             ) : null}
