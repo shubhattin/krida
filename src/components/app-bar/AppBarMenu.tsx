@@ -34,7 +34,7 @@ import { useAtom } from 'jotai';
 import { PWAInstallButton } from '../PWA/PWAInit';
 import { BsVectorPen } from 'react-icons/bs';
 import { signIn, signOut, useSession } from '~/lib/auth-client';
-import { active_puzzle_id_atom } from '~/components/pages/main/WordGame/game_state';
+import { active_puzzle_id_atom } from '~/components/pages/padavali/WordGame/game_state';
 
 const accountMenuLinkClass =
   'flex w-full items-center gap-3 rounded-lg border border-slate-200 bg-slate-50 p-3 text-left text-sm font-medium text-slate-700 transition-all duration-200 hover:scale-[1.02] hover:border-slate-300 hover:bg-slate-100 active:scale-[0.98] dark:border-slate-700 dark:bg-slate-800/50 dark:text-slate-300 dark:hover:border-slate-600 dark:hover:bg-slate-700/50';

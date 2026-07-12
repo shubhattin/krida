@@ -1,6 +1,6 @@
 'use client';
 
-import WordGameRoot, { type WordGameProps } from '~/components/pages/main/WordGame/WordGameRoot';
+import WordGameRoot, { type WordGameProps } from '~/components/pages/padavali/WordGame/WordGameRoot';
 import { type ScriptType } from '~/state/script_list';
 import { Sparkles } from 'lucide-react';
 import { useState } from 'react';

@@ -5,7 +5,7 @@ import { useContext, useEffect, useMemo, useState } from 'react';
 import { transliterate } from 'lipilekhika';
 import Link from 'next/link';
 import { SearchIcon, ExternalLinkIcon } from 'lucide-react';
-import { ScriptSelector } from '~/components/pages/main/ScriptSelector';
+import { ScriptSelector } from '~/components/pages/padavali/ScriptSelector';
 import Icon from '~/tools/Icon';
 import { LanguageIcon } from '~/components/icons';
 import { AppContext } from '~/components/AppDataContext';
@@ -22,13 +22,13 @@ import {
 } from 'lipilekhika/typing';
 import { DEFAULT_DATA_SCRIPT, type ScriptType } from '~/state/script_list';
 import { motion } from 'framer-motion';
-import { PuzzlePreviewCard } from '~/components/pages/main/PuzzlePreviewCard';
+import { PuzzlePreviewCard } from '~/components/pages/padavali/PuzzlePreviewCard';
 import {
   mergeDisplayPuzzles,
   mapListedPuzzlesForDisplay,
   NORMAL_TITLE_SCRIPT,
   type DisplayPuzzle
-} from '~/components/pages/main/listed_puzzle_display';
+} from '~/components/pages/padavali/listed_puzzle_display';
 import { matchesPuzzleWordSearch } from '~/util/puzzle/search';
 
 const EMBED_PAGE_LIMIT = 8;

@@ -12,7 +12,7 @@ import { GameGrid } from './GameGrid';
 import { GameHelp } from './Help';
 import { AIWordExplanations } from './AIWordExplanations';
 import { createStore, Provider, useAtom, useSetAtom } from 'jotai';
-import { ScriptSelector } from '~/components/pages/main/ScriptSelector';
+import { ScriptSelector } from '~/components/pages/padavali/ScriptSelector';
 import { cn } from '~/lib/utils';
 import Icon from '~/tools/Icon';
 import { LanguageIcon } from '~/components/icons';
@@ -66,7 +66,7 @@ import {
   MorePuzzlesAccordion,
   CompletionMorePuzzlesCarousel,
   getCarouselPuzzlesQueryFn
-} from '~/components/pages/main/WordGame/MorePuzzlesCarousel';
+} from '~/components/pages/padavali/WordGame/MorePuzzlesCarousel';
 import { attachment_schema, DEFAULT_YOUTUBE_EMBED } from '~/db/db_shared_vals';
 import { z } from 'zod';
 import { RiPlayList2Fill } from 'react-icons/ri';

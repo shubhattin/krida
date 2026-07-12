@@ -31,7 +31,7 @@ import { Switch } from '~/components/ui/switch';
 import { Textarea } from '~/components/ui/textarea';
 import { toast } from 'sonner';
 import { useDebouncedSlugCheck } from '~/hooks/useDebouncedSlugCheck';
-import { SlugRedirectConflictPrompt } from '~/components/pages/main/SlugRedirectConflictPrompt';
+import { SlugRedirectConflictPrompt } from '~/components/pages/padavali/SlugRedirectConflictPrompt';
 import { cn } from '~/lib/utils';
 import Icon from '~/tools/Icon';
 import { LanguageIcon } from '~/components/icons';

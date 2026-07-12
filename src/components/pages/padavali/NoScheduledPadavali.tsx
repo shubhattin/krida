@@ -6,9 +6,9 @@ import { ClockIcon, Loader2Icon, SparklesIcon, LayoutGridIcon } from 'lucide-rea
 import { motion } from 'framer-motion';
 import { IoExtensionPuzzleSharp } from 'react-icons/io5';
 import { client } from '~/api/client';
-import { ListedPuzzlesBrowseEmbed } from '~/components/pages/main/ListedPuzzlesBrowseEmbed';
+import { ListedPuzzlesBrowseEmbed } from '~/components/pages/padavali/ListedPuzzlesBrowseEmbed';
 import type { ListedPuzzlesType } from '~/util/cache.server/cache_loaders';
-import type { DisplayPuzzle } from '~/components/pages/main/listed_puzzle_display';
+import type { DisplayPuzzle } from '~/components/pages/padavali/listed_puzzle_display';
 
 const NEXT_PUZZLE_CACHE_REFRESH_BUFFER_MS = 3_000;
 const COUNTDOWN_SHOW_SECONDS_THRESHOLD_MS = 20 * 60 * 1000;

@@ -56,13 +56,13 @@ import { Skeleton } from '@/components/ui/skeleton';
 import { Textarea } from '@/components/ui/textarea';
 import { getCDNUrl } from '~/constants';
 import { Checkbox } from '@/components/ui/checkbox';
-import { BatchPuzzleImageCostNote } from '~/components/pages/main/batch-image/BatchPuzzleImageCostNote';
-import { BatchPuzzleImageReviewDialog } from '~/components/pages/main/batch-image/BatchPuzzleImageReviewDialog';
-import { BatchPuzzleImageStatus } from '~/components/pages/main/batch-image/BatchPuzzleImageStatus';
+import { BatchPuzzleImageCostNote } from '~/components/pages/padavali/batch-image/BatchPuzzleImageCostNote';
+import { BatchPuzzleImageReviewDialog } from '~/components/pages/padavali/batch-image/BatchPuzzleImageReviewDialog';
+import { BatchPuzzleImageStatus } from '~/components/pages/padavali/batch-image/BatchPuzzleImageStatus';
 import {
   useInvalidatePuzzleImageBatchQueries,
   usePuzzleImageBatchStatus
-} from '~/components/pages/main/batch-image/usePuzzleImageBatchStatus';
+} from '~/components/pages/padavali/batch-image/usePuzzleImageBatchStatus';
 import {
   DndContext,
   closestCenter,
@@ -99,7 +99,7 @@ import {
   ATTACHMENT_TYPE_NAMES,
   puzzle_update_input_schema
 } from '~/db/db_shared_vals';
-import { SlugField } from '~/components/pages/main/EditSlugDialog';
+import { SlugField } from '~/components/pages/padavali/EditSlugDialog';
 import {
   Accordion,
   AccordionContent,

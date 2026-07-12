@@ -29,7 +29,7 @@ import { Input } from '~/components/ui/input';
 import { Label } from '~/components/ui/label';
 import { toast } from 'sonner';
 import { useDebouncedSlugCheck } from '~/hooks/useDebouncedSlugCheck';
-import { SlugRedirectConflictPrompt } from '~/components/pages/main/SlugRedirectConflictPrompt';
+import { SlugRedirectConflictPrompt } from '~/components/pages/padavali/SlugRedirectConflictPrompt';
 import {
   Accordion,
   AccordionContent,

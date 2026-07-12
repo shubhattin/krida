@@ -9,12 +9,12 @@ import { ArrowRightIcon, LayoutGridIcon, ExternalLinkIcon } from 'lucide-react';
 import { client } from '~/api/client';
 import { AppContext } from '~/components/AppDataContext';
 import { DEFAULT_DATA_SCRIPT } from '~/state/script_list';
-import { PuzzlePreviewCard } from '~/components/pages/main/PuzzlePreviewCard';
+import { PuzzlePreviewCard } from '~/components/pages/padavali/PuzzlePreviewCard';
 import {
   mapListedPuzzlesForDisplay,
   NORMAL_TITLE_SCRIPT,
   PUZZLE_CARD_IMAGE_ASPECT_RATIO
-} from '~/components/pages/main/listed_puzzle_display';
+} from '~/components/pages/padavali/listed_puzzle_display';
 import {
   Carousel,
   CarouselContent,
@@ -35,7 +35,7 @@ import {
   started_atom,
   completed_atom,
   pending_navigation_url_atom
-} from '~/components/pages/main/WordGame/game_state';
+} from '~/components/pages/padavali/WordGame/game_state';
 
 const carouselNavButtonClass =
   'static top-auto right-auto bottom-auto left-auto size-7 shrink-0 translate-x-0 translate-y-0 rounded-full border border-slate-300 bg-white text-slate-700 shadow-sm hover:bg-slate-50 disabled:opacity-35 dark:border-slate-600 dark:bg-slate-800 dark:text-slate-100 dark:hover:bg-slate-700';

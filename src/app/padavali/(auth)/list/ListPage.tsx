@@ -48,8 +48,8 @@ import { Button } from '~/components/ui/button';
 import { Checkbox } from '~/components/ui/checkbox';
 import { DataTable } from '~/components/ui/data-table';
 import { createListTableColumns } from './list-table-columns';
-import { BatchPuzzleImageCostNote } from '~/components/pages/main/batch-image/BatchPuzzleImageCostNote';
-import { useInvalidatePuzzleImageBatchQueries } from '~/components/pages/main/batch-image/usePuzzleImageBatchStatus';
+import { BatchPuzzleImageCostNote } from '~/components/pages/padavali/batch-image/BatchPuzzleImageCostNote';
+import { useInvalidatePuzzleImageBatchQueries } from '~/components/pages/padavali/batch-image/usePuzzleImageBatchStatus';
 import { toast } from 'sonner';
 import { getCDNUrl } from '~/constants';
 

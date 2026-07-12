@@ -13,11 +13,11 @@ import {
   started_atom,
   completed_atom,
   pending_navigation_url_atom
-} from '~/components/pages/main/WordGame/game_state';
+} from '~/components/pages/padavali/WordGame/game_state';
 import {
   PUZZLE_CARD_IMAGE_ASPECT_RATIO,
   type DisplayPuzzle
-} from '~/components/pages/main/listed_puzzle_display';
+} from '~/components/pages/padavali/listed_puzzle_display';
 
 type Props = {
   puzzle: DisplayPuzzle;

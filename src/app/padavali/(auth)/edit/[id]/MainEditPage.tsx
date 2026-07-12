@@ -1,7 +1,7 @@
 'use client';
 
 import { lazy, Suspense } from 'react';
-import ViewEditPuzzle, { type ViewEditProps } from '~/components/pages/main/ViewEditPuzzle';
+import ViewEditPuzzle, { type ViewEditProps } from '~/components/pages/padavali/ViewEditPuzzle';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '~/components/ui/tabs';
 
 const PuzzleStats = lazy(() => import('./PuzzleStats'));

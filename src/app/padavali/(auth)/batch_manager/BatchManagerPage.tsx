@@ -22,8 +22,8 @@ import {
   PUZZLE_IMAGE_BATCH_STATUS_LABELS,
   PUZZLE_IMAGE_BATCH_STATUS_VARIANTS
 } from '~/util/ai_batch/batch_image_status';
-import { BatchPuzzleImageReviewDialog } from '~/components/pages/main/batch-image/BatchPuzzleImageReviewDialog';
-import { useInvalidatePuzzleImageBatchQueries } from '~/components/pages/main/batch-image/usePuzzleImageBatchStatus';
+import { BatchPuzzleImageReviewDialog } from '~/components/pages/padavali/batch-image/BatchPuzzleImageReviewDialog';
+import { useInvalidatePuzzleImageBatchQueries } from '~/components/pages/padavali/batch-image/usePuzzleImageBatchStatus';
 
 type RouterOutput = inferRouterOutputs<AppRouter>;
 type BatchManagerGroup = RouterOutput['batch_ai']['get_batch_manager_groups'][number];

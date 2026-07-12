@@ -8,7 +8,7 @@ import { getMetadata } from '~/components/tags/getPageMetaTags';
 import {
   mapListedPuzzlesForDisplay,
   NORMAL_TITLE_SCRIPT
-} from '~/components/pages/main/listed_puzzle_display';
+} from '~/components/pages/padavali/listed_puzzle_display';
 
 const ListedPage = async () => {
   const listed_puzzles = await CACHE.listed_puzzle_list.get(NO_CACHE_PARAMS);

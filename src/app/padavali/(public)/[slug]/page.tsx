@@ -1,9 +1,9 @@
 import { type Metadata } from 'next';
 import Link from 'next/link';
 import { notFound, permanentRedirect, redirect } from 'next/navigation';
-import WordGame from '~/components/pages/main/WordGame/WordGameRoot';
+import WordGame from '~/components/pages/padavali/WordGame/WordGameRoot';
 import { DEFAULT_DATA_SCRIPT } from '~/state/script_list';
-import { get_transliterated_word_game_msgs } from '~/components/pages/main/WordGame/msgs';
+import { get_transliterated_word_game_msgs } from '~/components/pages/padavali/WordGame/msgs';
 import { transliterate_wasm } from 'lipilekhika';
 import { getCachedScript } from '~/lib/cache_server_route_data';
 import { CACHE, NO_CACHE_PARAMS, type PuzzleType } from '~/util/cache.server/cache_loaders';

@@ -1,16 +1,16 @@
 import { Metadata } from 'next';
 import { DEFAULT_DATA_SCRIPT } from '~/state/script_list';
-import { get_transliterated_word_game_msgs } from '~/components/pages/main/WordGame/msgs';
+import { get_transliterated_word_game_msgs } from '~/components/pages/padavali/WordGame/msgs';
 import { transliterate_wasm } from 'lipilekhika';
 import MainPagePadavali from './MainPagePadavali';
 import { getCachedScript } from '~/lib/cache_server_route_data';
 import { CACHE, NO_CACHE_PARAMS } from '~/util/cache.server/cache_loaders';
 import { getMetadata } from '~/components/tags/getPageMetaTags';
-import { NoScheduledPadavali } from '~/components/pages/main/NoScheduledPadavali';
+import { NoScheduledPadavali } from '~/components/pages/padavali/NoScheduledPadavali';
 import {
   mapListedPuzzlesForDisplay,
   NORMAL_TITLE_SCRIPT
-} from '~/components/pages/main/listed_puzzle_display';
+} from '~/components/pages/padavali/listed_puzzle_display';
 
 export const dynamic = 'force-dynamic';
 

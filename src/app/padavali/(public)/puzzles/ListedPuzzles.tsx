@@ -9,7 +9,7 @@ import { Button } from '~/components/ui/button';
 import { ArrowLeftIcon, SearchIcon, SparklesIcon } from 'lucide-react';
 import { IoExtensionPuzzleSharp } from 'react-icons/io5';
 import Link from 'next/link';
-import { ScriptSelector } from '~/components/pages/main/ScriptSelector';
+import { ScriptSelector } from '~/components/pages/padavali/ScriptSelector';
 import Icon from '~/tools/Icon';
 import { LanguageIcon } from '~/components/icons';
 import { AppContext } from '~/components/AppDataContext';
@@ -21,9 +21,9 @@ import {
   mergeDisplayPuzzles,
   NORMAL_TITLE_SCRIPT,
   type DisplayPuzzle
-} from '~/components/pages/main/listed_puzzle_display';
+} from '~/components/pages/padavali/listed_puzzle_display';
 import { matchesPuzzleWordSearch } from '~/util/puzzle/search';
-import { PuzzlePreviewCard } from '~/components/pages/main/PuzzlePreviewCard';
+import { PuzzlePreviewCard } from '~/components/pages/padavali/PuzzlePreviewCard';
 import { InputGroup, InputGroupAddon, InputGroupInput } from '~/components/ui/input-group';
 import { Switch } from '~/components/ui/switch';
 import { Label } from '~/components/ui/label';
