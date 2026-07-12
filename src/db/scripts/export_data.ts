@@ -6,14 +6,22 @@ import {
   puzzle_gameplay_stats,
   word_puzzles,
   puzzle_gameplay_sessions,
-  word_puzzle_attachments
+  word_puzzle_attachments,
+  ai_batch_responses,
+  ai_batches,
+  word_puzzle_redirects,
+  image_assets
 } from '~/db/schema';
 import {
   WordPuzzleSchemaZod,
   WordPuzzleAttachmentSchemaZod,
   PuzzleGamePlayStatsSchemaZod,
   PuzzleGameScheduleSchemaZod,
-  PuzzleGamePlaySessionSchemaZod
+  PuzzleGamePlaySessionSchemaZod,
+  AiBatchResponseSchemaZod,
+  AiBatchSchemaZod,
+  WordPuzzleRedirectSchemaZod,
+  ImageAssetSchemaZod
 } from '~/db/schema_zod';
 import { z } from 'zod';
 import { sql } from 'drizzle-orm';
@@ -41,7 +49,11 @@ const main = async () => {
       puzzle_gameplay_stats: PuzzleGamePlayStatsSchemaZod.array(),
       puzzle_game_schedules: PuzzleGameScheduleSchemaZod.array(),
       puzzle_gameplay_sessions: PuzzleGamePlaySessionSchemaZod.array(),
-      word_puzzle_attachments: WordPuzzleAttachmentSchemaZod.array()
+      word_puzzle_attachments: WordPuzzleAttachmentSchemaZod.array(),
+      ai_batch_responses: AiBatchResponseSchemaZod.array(),
+      ai_batches: AiBatchSchemaZod.array(),
+      word_puzzle_redirects: WordPuzzleRedirectSchemaZod.array(),
+      image_assets: ImageAssetSchemaZod.array()
     })
     .parse(JSON.parse((await readFile(`./out/${in_file_name}`)).toString()));
 
@@ -49,13 +61,28 @@ const main = async () => {
     // deleting all the tables initially
     try {
       await tx.delete(word_puzzles);
+      await tx.delete(word_puzzle_redirects);
       await tx.delete(word_puzzle_attachments);
       await tx.delete(puzzle_gameplay_stats);
       await tx.delete(puzzle_game_schedules);
       await tx.delete(puzzle_gameplay_sessions);
+      await tx.delete(ai_batch_responses);
+      await tx.delete(ai_batches);
+      await tx.delete(image_assets);
       console.log(chalk.green('✓ Deleted All Tables Successfully'));
     } catch (e) {
       console.log(chalk.red('✗ Error while deleting tables:'), chalk.yellow(e));
+    }
+
+    // inserting image_assets
+    try {
+      await tx.insert(image_assets).values(data.image_assets);
+      console.log(
+        chalk.green('✓ Successfully added values into table'),
+        chalk.blue('`image_assets`')
+      );
+    } catch (e) {
+      console.log(chalk.red('✗ Error while inserting image_assets:'), chalk.yellow(e));
     }
 
     // inserting word_puzzles
@@ -67,6 +94,17 @@ const main = async () => {
       );
     } catch (e) {
       console.log(chalk.red('✗ Error while inserting word_puzzles:'), chalk.yellow(e));
+    }
+
+    // inserting word_puzzle_redirects
+    try {
+      await tx.insert(word_puzzle_redirects).values(data.word_puzzle_redirects);
+      console.log(
+        chalk.green('✓ Successfully added values into table'),
+        chalk.blue('`word_puzzle_redirects`')
+      );
+    } catch (e) {
+      console.log(chalk.red('✗ Error while inserting word_puzzle_redirects:'), chalk.yellow(e));
     }
 
     // inserting word_puzzle_attachments
@@ -135,6 +173,12 @@ const main = async () => {
       );
       await tx.execute(
         sql`SELECT setval('"puzzle_gameplay_sessions_id_seq"', (select MAX(id) from "puzzle_gameplay_sessions"))`
+      );
+      await tx.execute(
+        sql`SELECT setval('"word_puzzle_redirects_id_seq"', (select MAX(id) from "word_puzzle_redirects"))`
+      );
+      await tx.execute(
+        sql`SELECT setval('"image_assets_id_seq"', (select MAX(id) from "image_assets"))`
       );
       console.log(chalk.green('✓ Successfully resetted ALL SERIAL'));
     } catch (e) {

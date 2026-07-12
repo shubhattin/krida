@@ -12,13 +12,21 @@ export const import_data = async (confirm_env = true) => {
   const puzzle_gameplay_stats = await db.query.puzzle_gameplay_stats.findMany();
   const puzzle_game_schedules = await db.query.puzzle_game_schedules.findMany();
   const puzzle_gameplay_sessions = await db.query.puzzle_gameplay_sessions.findMany();
+  const ai_batch_responses = await db.query.ai_batch_responses.findMany();
+  const ai_batches = await db.query.ai_batches.findMany();
+  const word_puzzle_redirects = await db.query.word_puzzle_redirects.findMany();
+  const image_assets = await db.query.image_assets.findMany();
 
   const json_data = {
     word_puzzles,
     word_puzzle_attachments,
     puzzle_game_schedules,
     puzzle_gameplay_sessions,
-    puzzle_gameplay_stats
+    puzzle_gameplay_stats,
+    ai_batch_responses,
+    ai_batches,
+    word_puzzle_redirects,
+    image_assets
   };
 
   await make_dir('./out');
