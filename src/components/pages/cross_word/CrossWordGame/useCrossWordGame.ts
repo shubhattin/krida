@@ -412,6 +412,7 @@ export function useCrossWordGame(timerRef: RefObject<ReturnType<typeof setInterv
     focusCell,
     handleKeyDown,
     typeLetter,
+    backspace,
     isCellInActiveWord,
     isCellSolved,
     getDisplayLetter,

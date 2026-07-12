@@ -9,9 +9,10 @@ import type { useCrossWordGame } from './useCrossWordGame';
 
 type CluePanelProps = {
   game: ReturnType<typeof useCrossWordGame>;
+  onRequestKeyboard?: () => void;
 };
 
-export function CluePanel({ game }: CluePanelProps) {
+export function CluePanel({ game, onRequestKeyboard }: CluePanelProps) {
   const entries = useAtomValue(numbered_entries_atom);
   const focus = useAtomValue(active_focus_atom);
   const solvedIds = useAtomValue(solved_entry_ids_atom);
@@ -39,7 +40,10 @@ export function CluePanel({ game }: CluePanelProps) {
                 type="button"
                 disabled={!game.started || game.completed}
                 aria-current={active ? 'true' : undefined}
-                onClick={() => game.focusCell(entry.row, entry.col, { direction: entry.direction })}
+                onClick={() => {
+                  game.focusCell(entry.row, entry.col, { direction: entry.direction });
+                  onRequestKeyboard?.();
+                }}
                 className={cn(
                   'w-full rounded-lg px-2.5 py-2 text-left text-sm leading-snug transition-all duration-200',
                   'disabled:cursor-default disabled:opacity-60',

@@ -1,6 +1,6 @@
 'use client';
 
-import { useEffect, useRef } from 'react';
+import { useEffect, useRef, useCallback } from 'react';
 import { useAtomValue } from 'jotai';
 import { motion } from 'framer-motion';
 import { CrossWordGrid } from './CrossWordGrid';
@@ -8,15 +8,23 @@ import { CluePanel } from './CluePanel';
 import { GameProgress } from './GameProgress';
 import { GameControls } from './GameControls';
 import { CompletionCelebration } from './CompletionCelebration';
+import {
+  CrossWordKeyboardBridge,
+  CROSSWORD_KB_ATTR,
+  type CrossWordKeyboardBridgeHandle
+} from './CrossWordKeyboardBridge';
 import { useCrossWordGame } from './useCrossWordGame';
-import { puzzle_atom, started_atom } from './game_state';
+import { puzzle_atom, started_atom, completed_atom } from './game_state';
 import styles from './crossword-game.module.css';
 
 export function CrossWordGame() {
   const timerRef = useRef<ReturnType<typeof setInterval> | null>(null);
+  const keyboardRef = useRef<CrossWordKeyboardBridgeHandle>(null);
+  const boardAnchorRef = useRef<HTMLDivElement>(null);
   const game = useCrossWordGame(timerRef);
   const puzzle = useAtomValue(puzzle_atom);
   const started = useAtomValue(started_atom);
+  const completed = useAtomValue(completed_atom);
 
   useEffect(() => {
     return () => {
@@ -24,21 +32,60 @@ export function CrossWordGame() {
     };
   }, []);
 
+  const requestKeyboard = useCallback(() => {
+    if (completed) return;
+    keyboardRef.current?.focus();
+    const vv = typeof window !== 'undefined' ? window.visualViewport : null;
+    if (vv && boardAnchorRef.current) {
+      const rect = boardAnchorRef.current.getBoundingClientRect();
+      const visibleBottom = vv.offsetTop + vv.height;
+      if (rect.bottom > visibleBottom - 12) {
+        boardAnchorRef.current.scrollIntoView({ block: 'nearest', behavior: 'smooth' });
+      }
+    }
+  }, [completed]);
+
+  // Physical keyboard when focus is NOT on the bridge (e.g. board div / page chrome)
   useEffect(() => {
     if (!started) return;
     const onKeyDown = (event: KeyboardEvent) => {
       const target = event.target as HTMLElement | null;
-      if (
-        target &&
-        (target.tagName === 'INPUT' || target.tagName === 'TEXTAREA' || target.isContentEditable)
-      ) {
+      if (!target) {
+        game.handleKeyDown(event);
         return;
       }
+
+      // Bridge owns its own key events — avoid double handling
+      if (target.getAttribute(CROSSWORD_KB_ATTR) === 'true') return;
+
+      if (target.tagName === 'INPUT' || target.tagName === 'TEXTAREA' || target.isContentEditable) {
+        return;
+      }
+
       game.handleKeyDown(event);
     };
     window.addEventListener('keydown', onKeyDown);
     return () => window.removeEventListener('keydown', onKeyDown);
   }, [game.handleKeyDown, started]);
+
+  // Keep board above keyboard when viewport shrinks
+  useEffect(() => {
+    if (!started || completed) return;
+    const vv = window.visualViewport;
+    if (!vv) return;
+
+    const onResize = () => {
+      if (document.activeElement?.getAttribute(CROSSWORD_KB_ATTR) !== 'true') return;
+      boardAnchorRef.current?.scrollIntoView({ block: 'nearest', behavior: 'smooth' });
+    };
+
+    vv.addEventListener('resize', onResize);
+    vv.addEventListener('scroll', onResize);
+    return () => {
+      vv.removeEventListener('resize', onResize);
+      vv.removeEventListener('scroll', onResize);
+    };
+  }, [started, completed]);
 
   if (!puzzle) return null;
 
@@ -50,7 +97,6 @@ export function CrossWordGame() {
         animate={{ opacity: 1, y: 0 }}
         transition={{ duration: 0.5, ease: 'easeOut' }}
       >
-        {/* titleGradient stays in module: animated background-position on gradient clip */}
         <h1
           className={`text-2xl font-bold tracking-tight sm:text-3xl md:text-4xl ${styles.titleGradient}`}
         >
@@ -68,11 +114,17 @@ export function CrossWordGame() {
 
       <div className="grid gap-8 md:grid-cols-[minmax(0,1fr)_minmax(12rem,16rem)] md:items-start">
         <div className="flex flex-col items-center gap-3">
-          <div className="relative w-full max-w-[min(100%,24rem)]">
-            <CrossWordGrid game={game} />
+          <div ref={boardAnchorRef} className="relative w-full max-w-[min(100%,24rem)]">
+            <CrossWordKeyboardBridge
+              ref={keyboardRef}
+              onKeyDown={game.handleKeyDown}
+              onTypeLetter={game.typeLetter}
+              onBackspace={game.backspace}
+            />
+            <CrossWordGrid game={game} onRequestKeyboard={requestKeyboard} />
             {!started ? (
               <div className="absolute inset-0 flex items-center justify-center rounded-lg bg-background/25 backdrop-blur-[2px]">
-                <GameControls game={game} />
+                <GameControls game={game} onAfterStart={requestKeyboard} />
               </div>
             ) : null}
           </div>
@@ -83,13 +135,13 @@ export function CrossWordGame() {
               animate={{ opacity: 1 }}
               transition={{ delay: 0.2, duration: 0.3 }}
             >
-              <GameControls game={game} />
+              <GameControls game={game} onAfterStart={requestKeyboard} />
             </motion.div>
           ) : null}
         </div>
 
         <aside className="md:sticky md:top-6">
-          <CluePanel game={game} />
+          <CluePanel game={game} onRequestKeyboard={requestKeyboard} />
         </aside>
       </div>
     </div>

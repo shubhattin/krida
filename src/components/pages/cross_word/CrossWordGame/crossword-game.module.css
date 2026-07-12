@@ -128,6 +128,28 @@
   opacity: 1;
 }
 
+/*
+ * Hidden keyboard bridge — must stay focusable (not display:none / visibility:hidden)
+ * so iOS/Android will open the OS virtual keyboard.
+ */
+.keyboardBridge {
+  position: absolute;
+  left: 0;
+  top: 0;
+  width: 1px;
+  height: 1px;
+  margin: 0;
+  padding: 0;
+  border: 0;
+  opacity: 0;
+  caret-color: transparent;
+  color: transparent;
+  background: transparent;
+  outline: none;
+  pointer-events: none;
+  z-index: 0;
+}
+
 @media (prefers-reduced-motion: reduce) {
   .cellJustSolved,
   .cellIncorrect,

@@ -21,9 +21,10 @@ import { useCrossWordGame } from './useCrossWordGame';
 
 type CrossWordGridProps = {
   game: ReturnType<typeof useCrossWordGame>;
+  onRequestKeyboard?: () => void;
 };
 
-export function CrossWordGrid({ game }: CrossWordGridProps) {
+export function CrossWordGrid({ game, onRequestKeyboard }: CrossWordGridProps) {
   const puzzle = useAtomValue(puzzle_atom);
   const entries = useAtomValue(numbered_entries_atom);
   const focus = useAtomValue(active_focus_atom);
@@ -99,7 +100,7 @@ export function CrossWordGrid({ game }: CrossWordGridProps) {
       role="grid"
       aria-label={`${puzzle.title} crossword grid`}
       className="mx-auto w-full max-w-[min(100vw-2rem,22rem)] outline-none sm:max-w-[24rem]"
-      onClick={() => boardRef.current?.focus()}
+      onClick={() => onRequestKeyboard?.()}
       initial={{ opacity: 0, scale: 0.97 }}
       animate={{ opacity: 1, scale: 1 }}
       transition={{ duration: 0.4, ease: 'easeOut' }}
@@ -147,7 +148,8 @@ export function CrossWordGrid({ game }: CrossWordGridProps) {
                     game.focusCell(r, c, {
                       toggle: focus?.row === r && focus?.col === c
                     });
-                    boardRef.current?.focus();
+                    // Must focus the hidden input inside the same tap gesture (iOS)
+                    onRequestKeyboard?.();
                   }}
                 />
               </div>

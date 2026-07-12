@@ -11,11 +11,18 @@ import styles from './crossword-game.module.css';
 
 type GameControlsProps = {
   game: ReturnType<typeof useCrossWordGame>;
+  onAfterStart?: () => void;
 };
 
-export function GameControls({ game }: GameControlsProps) {
+export function GameControls({ game, onAfterStart }: GameControlsProps) {
   const started = useAtomValue(started_atom);
   const completed = useAtomValue(completed_atom);
+
+  const handleStart = () => {
+    game.startGame();
+    // Same user gesture: open OS keyboard after jotai/start commit paints
+    requestAnimationFrame(() => onAfterStart?.());
+  };
 
   if (!started) {
     return (
@@ -27,7 +34,7 @@ export function GameControls({ game }: GameControlsProps) {
         {/* startButton keeps in module: hover pseudo-class with box-shadow+translateY */}
         <Button
           size="lg"
-          onClick={game.startGame}
+          onClick={handleStart}
           className={cn(
             'gap-2 border-none bg-[linear-gradient(135deg,hsl(var(--primary)),hsl(262_83%_58%))] text-primary-foreground',
             'shadow-[0_4px_15px_hsl(var(--primary)/0.4),0_0_20px_hsl(var(--primary)/0.15)]',
@@ -51,7 +58,7 @@ export function GameControls({ game }: GameControlsProps) {
         <Button
           size="sm"
           variant="outline"
-          onClick={game.startGame}
+          onClick={handleStart}
           className="gap-1.5 border-emerald-500/30 text-emerald-600 hover:bg-emerald-500/10 hover:text-emerald-500 dark:text-emerald-400 dark:hover:text-emerald-400"
         >
           <PartyPopper className="size-4" />
