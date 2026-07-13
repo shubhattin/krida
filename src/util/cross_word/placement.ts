@@ -75,30 +75,44 @@ export function findAllRuns(grid: CrossordPuzzleGridCell[][]): WordPlacement[] {
   return runs;
 }
 
-function runSpellsWord(
-  grid: CrossordPuzzleGridCell[][],
-  run: WordPlacement,
-  word: string
-): boolean {
-  if (run.cells.length !== word.length) return false;
-  const upper = word.toUpperCase();
-  for (let i = 0; i < run.cells.length; i++) {
-    const [r, c] = run.cells[i]!;
-    const letter = getCellLetter(grid[r]![c]!);
-    if (!letter || letter !== upper[i]) return false;
-  }
-  return true;
-}
-
 export function findPlacementsForWord(
   grid: CrossordPuzzleGridCell[][],
-  word: string,
-  runs?: WordPlacement[]
+  word: string
 ): WordPlacement[] {
   const trimmed = word.trim();
   if (!trimmed) return [];
-  const allRuns = runs ?? findAllRuns(grid);
-  return allRuns.filter((run) => runSpellsWord(grid, run, trimmed));
+  const upper = trimmed.toUpperCase();
+  const rows = grid.length;
+  const cols = grid[0]?.length ?? 0;
+  const placements: WordPlacement[] = [];
+
+  const addPlacementIfMatched = (
+    row: number,
+    col: number,
+    direction: CrossWordPuzzleWord['direction']
+  ) => {
+    const endRow = direction === 'vertical' ? row + upper.length : row;
+    const endCol = direction === 'horizontal' ? col + upper.length : col;
+    if (endRow > rows || endCol > cols) return;
+
+    const cells: [number, number][] = [];
+    for (let i = 0; i < upper.length; i++) {
+      const r = direction === 'vertical' ? row + i : row;
+      const c = direction === 'horizontal' ? col + i : col;
+      if (getCellLetter(grid[r]![c]!) !== upper[i]) return;
+      cells.push([r, c]);
+    }
+    placements.push({ location: [row, col], direction, cells });
+  };
+
+  for (let row = 0; row < rows; row++) {
+    for (let col = 0; col < cols; col++) {
+      addPlacementIfMatched(row, col, 'horizontal');
+      addPlacementIfMatched(row, col, 'vertical');
+    }
+  }
+
+  return placements;
 }
 
 function placementHasVisibleLetter(
@@ -111,6 +125,11 @@ function placementHasVisibleLetter(
   });
 }
 
+function isContainedWithin(placement: WordPlacement, containingPlacement: WordPlacement): boolean {
+  const containingCells = new Set(containingPlacement.cells.map(([row, col]) => cellKey(row, col)));
+  return placement.cells.every(([row, col]) => containingCells.has(cellKey(row, col)));
+}
+
 /**
  * Analyze word_list against grid. Only words with exactly one matching
  * horizontal/vertical path get a resolved location/direction.
@@ -119,11 +138,10 @@ export function analyzeWordPlacements(
   grid: CrossordPuzzleGridCell[][],
   wordList: Pick<CrossWordPuzzleWord, 'word' | 'description'>[]
 ): PlacementAnalysis {
-  const runs = findAllRuns(grid);
-  const statuses: WordPlacementStatus[] = [];
-  const resolvedWordList: CrossWordPuzzleWord[] = [];
+  const statuses: (WordPlacementStatus | undefined)[] = [];
   const occupiedCells = new Set<string>();
   const noVisibleHintWords: { wordIndex: number; word: string }[] = [];
+  const resolvedLongerPlacements: WordPlacement[] = [];
 
   // Duplicate detection across word list (case-insensitive)
   const wordCountMap = new Map<string, number[]>();
@@ -141,51 +159,74 @@ export function analyzeWordPlacements(
     }
   }
 
-  for (let i = 0; i < wordList.length; i++) {
+  const placementOrder = wordList
+    .map((item, index) => ({ index, length: item.word.trim().length }))
+    .toSorted((a, b) => b.length - a.length || a.index - b.index);
+
+  // Resolve long words first, then their potential subwords. This permits
+  // intentional overlap such as PRANAYAMA and YAMA on the same path.
+  for (const { index: i } of placementOrder) {
     const item = wordList[i]!;
     const word = item.word.trim();
     if (!word) {
-      statuses.push({ status: 'empty' });
+      statuses[i] = { status: 'empty' };
       continue;
     }
 
     if (duplicateIndices.has(i)) {
       const indices = wordCountMap.get(word.toUpperCase()) ?? [i];
-      statuses.push({ status: 'duplicate', word, indices });
+      statuses[i] = { status: 'duplicate', word, indices };
       continue;
     }
 
-    const placements = findPlacementsForWord(grid, word, runs);
+    const placements = findPlacementsForWord(grid, word).filter(
+      (placement) =>
+        !resolvedLongerPlacements.some((longerPlacement) =>
+          isContainedWithin(placement, longerPlacement)
+        )
+    );
     if (placements.length === 0) {
-      statuses.push({ status: 'missing', word });
+      statuses[i] = { status: 'missing', word };
     } else if (placements.length > 1) {
-      statuses.push({ status: 'ambiguous', word, placements });
+      statuses[i] = { status: 'ambiguous', word, placements };
     } else {
       const placement = placements[0]!;
       const hasVisibleLetter = placementHasVisibleLetter(grid, placement);
-      statuses.push({ status: 'ok', placement, hasVisibleLetter });
-      if (!hasVisibleLetter) {
-        noVisibleHintWords.push({ wordIndex: i, word: word.toUpperCase() });
-      }
-      resolvedWordList.push({
-        word: word.toUpperCase(),
-        location: placement.location,
-        direction: placement.direction,
-        description: item.description ?? null
-      });
-      for (const [r, c] of placement.cells) {
-        occupiedCells.add(cellKey(r, c));
-      }
+      statuses[i] = { status: 'ok', placement, hasVisibleLetter };
+      resolvedLongerPlacements.push(placement);
     }
   }
 
-  const nonEmpty = statuses.filter((s) => s.status !== 'empty');
+  const resolvedStatuses = statuses.map((status) => status ?? { status: 'empty' as const });
+  const resolvedWordList: CrossWordPuzzleWord[] = [];
+
+  for (let i = 0; i < resolvedStatuses.length; i++) {
+    const status = resolvedStatuses[i]!;
+    if (status.status !== 'ok') continue;
+
+    const item = wordList[i]!;
+    const word = item.word.trim().toUpperCase();
+    if (!status.hasVisibleLetter) {
+      noVisibleHintWords.push({ wordIndex: i, word });
+    }
+    resolvedWordList.push({
+      word,
+      location: status.placement.location,
+      direction: status.placement.direction,
+      description: item.description ?? null
+    });
+    for (const [r, c] of status.placement.cells) {
+      occupiedCells.add(cellKey(r, c));
+    }
+  }
+
+  const nonEmpty = resolvedStatuses.filter((s) => s.status !== 'empty');
   const hasAllValid =
     nonEmpty.length > 0 && nonEmpty.every((s) => s.status === 'ok') && duplicateIndices.size === 0;
   const canList = hasAllValid;
 
   return {
-    statuses,
+    statuses: resolvedStatuses,
     resolvedWordList,
     occupiedCells,
     hasAllValid,

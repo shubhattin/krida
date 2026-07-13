@@ -41,3 +41,25 @@ export function cellHasLetter(cell: CrossordPuzzleGridCell): boolean {
 export function getCellLetter(cell: CrossordPuzzleGridCell): string {
   return cell.text.toUpperCase();
 }
+
+/** 0-based row → A, B, … Z, AA, AB, … */
+export function rowIndexToLetter(row: number): string {
+  let n = Math.floor(row);
+  if (n < 0) return '';
+  let label = '';
+  do {
+    label = String.fromCharCode(65 + (n % 26)) + label;
+    n = Math.floor(n / 26) - 1;
+  } while (n >= 0);
+  return label;
+}
+
+/** 0-based col → 1-based number string */
+export function colIndexToNumberLabel(col: number): string {
+  return String(Math.floor(col) + 1);
+}
+
+/** Display ref like A5 for internal [row, col] indices */
+export function formatGridCellRef(row: number, col: number): string {
+  return `${rowIndexToLetter(row)}${colIndexToNumberLabel(col)}`;
+}

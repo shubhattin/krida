@@ -48,8 +48,11 @@ import {
   cellHasLetter,
   clampDimension,
   createEmptyGridData,
+  formatGridCellRef,
   isBoxCell,
-  normalizeAlphaLetter
+  normalizeAlphaLetter,
+  rowIndexToLetter,
+  colIndexToNumberLabel
 } from '~/util/cross_word/grid';
 import { invalidatePage } from '~/tools/invalidate_nextjs_server_route';
 
@@ -287,6 +290,9 @@ const DimensionsField = () => {
 
 const WordListEditor = () => {
   const [wordList, setWordList] = useAtom(word_list_atom);
+  const [gridData] = useAtom(grid_data_atom);
+
+  const analysis = useMemo(() => analyzeWordPlacements(gridData, wordList), [gridData, wordList]);
 
   const addWord = () =>
     setWordList((prev) => [
@@ -310,39 +316,59 @@ const WordListEditor = () => {
       <Label className="text-lg font-semibold">Words & clues</Label>
       <div className="flex flex-col gap-2">
         <AnimatePresence mode="popLayout">
-          {wordList.map((item, idx) => (
-            <motion.div
-              key={item.id}
-              initial={{ opacity: 0, height: 0 }}
-              animate={{ opacity: 1, height: 'auto' }}
-              exit={{ opacity: 0, height: 0 }}
-              className="flex flex-wrap items-start gap-2 overflow-hidden sm:flex-nowrap"
-            >
-              <Input
-                value={item.word}
-                onChange={(e) =>
-                  updateWord(idx, {
-                    word: e.currentTarget.value.toUpperCase().replace(/[^A-Z]/g, '')
-                  })
-                }
-                placeholder="WORD"
-                className="w-36 font-mono uppercase sm:w-44"
-              />
-              <Input
-                value={item.description}
-                onChange={(e) => updateWord(idx, { description: e.currentTarget.value })}
-                placeholder="Clue / description (optional)"
-                className="min-w-0 flex-1"
-              />
-              <Button
-                variant="ghost"
-                className="p-0 text-red-500 has-[>svg]:p-0 dark:text-red-400"
-                onClick={() => removeWord(idx)}
+          {wordList.map((item, idx) => {
+            const status = analysis.statuses[idx];
+            const startLabel =
+              status?.status === 'ok'
+                ? `${formatGridCellRef(status.placement.location[0], status.placement.location[1])} ${
+                    status.placement.direction === 'horizontal' ? '→' : '↓'
+                  }`
+                : '—';
+
+            return (
+              <motion.div
+                key={item.id}
+                initial={{ opacity: 0, height: 0 }}
+                animate={{ opacity: 1, height: 'auto' }}
+                exit={{ opacity: 0, height: 0 }}
+                className="flex flex-wrap items-start gap-2 overflow-hidden sm:flex-nowrap"
               >
-                <IoMdClose className="inline-block" />
-              </Button>
-            </motion.div>
-          ))}
+                <Input
+                  value={item.word}
+                  onChange={(e) =>
+                    updateWord(idx, {
+                      word: e.currentTarget.value.toUpperCase().replace(/[^A-Z]/g, '')
+                    })
+                  }
+                  placeholder="WORD"
+                  className="w-36 font-mono uppercase sm:w-44"
+                />
+                <Input
+                  value={item.description}
+                  onChange={(e) => updateWord(idx, { description: e.currentTarget.value })}
+                  placeholder="Clue / description (optional)"
+                  className="min-w-0 flex-1"
+                />
+                <span
+                  className="inline-flex h-9 min-w-14 shrink-0 items-center justify-center rounded-md border border-border bg-muted/40 px-2 font-mono text-xs text-muted-foreground"
+                  title={
+                    status?.status === 'ok'
+                      ? `Starts at ${formatGridCellRef(status.placement.location[0], status.placement.location[1])} (${status.placement.direction})`
+                      : 'Start cell resolved when the word has a unique placement'
+                  }
+                >
+                  {startLabel}
+                </span>
+                <Button
+                  variant="ghost"
+                  className="p-0 text-red-500 has-[>svg]:p-0 dark:text-red-400"
+                  onClick={() => removeWord(idx)}
+                >
+                  <IoMdClose className="inline-block" />
+                </Button>
+              </motion.div>
+            );
+          })}
         </AnimatePresence>
         <Button variant="outline" size="sm" className="w-fit gap-1" onClick={addWord}>
           <IoMdAdd className="text-lg" /> Add Word
@@ -433,14 +459,13 @@ const PlacementAnalysisPanel = ({
                         {status.placements.map((p, pIdx) => (
                           <div key={pIdx} className="flex items-center gap-1 text-xs">
                             <span className="font-semibold">
-                              Path {pIdx + 1} ({p.direction}):
+                              Path {pIdx + 1} ({p.direction} @{' '}
+                              {formatGridCellRef(p.location[0], p.location[1])}):
                             </span>
                             <div className="flex items-center gap-1">
                               {p.cells.map(([r, c], i) => (
                                 <span key={i} className="flex items-center gap-1">
-                                  <span className="font-semibold">
-                                    {r + 1},{c + 1}
-                                  </span>
+                                  <span className="font-semibold">{formatGridCellRef(r, c)}</span>
                                   {i < p.cells.length - 1 && <ArrowRight className="size-3" />}
                                 </span>
                               ))}
@@ -593,65 +618,82 @@ const GridEditor = ({
       <div
         ref={gridRef}
         className="grid w-full max-w-3xl gap-1.5"
-        style={{ gridTemplateColumns: `repeat(${cols}, minmax(0, 1fr))` }}
+        style={{ gridTemplateColumns: `1.5rem repeat(${cols}, minmax(0, 1fr))` }}
       >
-        {gridData.map((row, r) =>
-          row.map((cell, c) => {
-            const isBox = isBoxCell(cell);
-            const hasLetter = cellHasLetter(cell);
-            const isOccupied = occupiedCells.has(`${r},${c}`);
-            const isVisible = hasLetter && cell.is_visible;
+        {/* Corner spacer + column number headers */}
+        <div aria-hidden className="h-5" />
+        {Array.from({ length: cols }, (_, c) => (
+          <div
+            key={`col-h-${c}`}
+            className="flex h-5 items-center justify-center font-mono text-[10px] text-muted-foreground sm:text-xs"
+          >
+            {colIndexToNumberLabel(c)}
+          </div>
+        ))}
 
-            return (
-              <div
-                key={`${r}-${c}`}
-                className={cn(
-                  'flex flex-col items-center gap-0.5 rounded border p-0.5 transition-all',
-                  isBox && 'border-muted-foreground/30 bg-muted/60',
-                  !isBox &&
-                    isVisible &&
-                    'border-emerald-300 bg-emerald-50 dark:border-emerald-800 dark:bg-emerald-950/40',
-                  !isBox && !isVisible && 'border-border bg-background',
-                  isOccupied && 'ring-1 ring-blue-400 ring-offset-1 dark:ring-blue-500'
-                )}
-              >
-                <Input
-                  type="text"
-                  inputMode="text"
-                  autoComplete="off"
-                  data-grid-r={r}
-                  data-grid-c={c}
-                  value={cell.text}
-                  onChange={(e) => setLetter(r, c, e.currentTarget.value)}
-                  onKeyDown={(e) => handleCellKeyDown(r, c, e)}
-                  className="h-8 px-0 text-center font-mono text-sm uppercase"
-                  maxLength={2}
-                  aria-label={
-                    isBox
-                      ? `Blocked cell ${r + 1},${c + 1} — type a letter to open`
-                      : `Cell ${r + 1},${c + 1}`
-                  }
-                />
-                <div className="flex items-center gap-1">
-                  <label
-                    className="inline-flex items-center"
-                    title={
-                      hasLetter ? 'Prefilled / visible' : 'Add a letter before marking as prefilled'
+        {gridData.map((row, r) => (
+          <div key={`row-${r}`} className="contents">
+            <div className="flex items-center justify-center font-mono text-[10px] text-muted-foreground sm:text-xs">
+              {rowIndexToLetter(r)}
+            </div>
+            {row.map((cell, c) => {
+              const isBox = isBoxCell(cell);
+              const hasLetter = cellHasLetter(cell);
+              const isOccupied = occupiedCells.has(`${r},${c}`);
+              const isVisible = hasLetter && cell.is_visible;
+              const cellRef = formatGridCellRef(r, c);
+
+              return (
+                <div
+                  key={`${r}-${c}`}
+                  className={cn(
+                    'flex flex-col items-center gap-0.5 rounded border p-0.5 transition-all',
+                    isBox && 'border-muted-foreground/30 bg-muted/60',
+                    !isBox &&
+                      isVisible &&
+                      'border-emerald-300 bg-emerald-50 dark:border-emerald-800 dark:bg-emerald-950/40',
+                    !isBox && !isVisible && 'border-border bg-background',
+                    isOccupied && 'ring-1 ring-blue-400 ring-offset-1 dark:ring-blue-500'
+                  )}
+                >
+                  <Input
+                    type="text"
+                    inputMode="text"
+                    autoComplete="off"
+                    data-grid-r={r}
+                    data-grid-c={c}
+                    value={cell.text}
+                    onChange={(e) => setLetter(r, c, e.currentTarget.value)}
+                    onKeyDown={(e) => handleCellKeyDown(r, c, e)}
+                    className="h-8 px-0 text-center font-mono text-sm uppercase"
+                    maxLength={2}
+                    aria-label={
+                      isBox ? `Blocked cell ${cellRef} — type a letter to open` : `Cell ${cellRef}`
                     }
-                  >
-                    <Checkbox
-                      checked={isVisible}
-                      disabled={!hasLetter}
-                      onCheckedChange={(checked) => toggleVisible(r, c, checked === true)}
-                      className="border-emerald-400 data-[state=checked]:border-emerald-500 data-[state=checked]:bg-emerald-500"
-                      aria-label={`Visible cell ${r + 1},${c + 1}`}
-                    />
-                  </label>
+                  />
+                  <div className="flex items-center gap-1">
+                    <label
+                      className="inline-flex items-center"
+                      title={
+                        hasLetter
+                          ? 'Prefilled / visible'
+                          : 'Add a letter before marking as prefilled'
+                      }
+                    >
+                      <Checkbox
+                        checked={isVisible}
+                        disabled={!hasLetter}
+                        onCheckedChange={(checked) => toggleVisible(r, c, checked === true)}
+                        className="border-emerald-400 data-[state=checked]:border-emerald-500 data-[state=checked]:bg-emerald-500"
+                        aria-label={`Visible cell ${cellRef}`}
+                      />
+                    </label>
+                  </div>
                 </div>
-              </div>
-            );
-          })
-        )}
+              );
+            })}
+          </div>
+        ))}
       </div>
     </div>
   );

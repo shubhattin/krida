@@ -5,6 +5,9 @@ import {
   createLetterCell,
   normalizeAlphaLetter,
   clampDimension,
+  formatGridCellRef,
+  rowIndexToLetter,
+  colIndexToNumberLabel,
   CROSSWORD_MIN_DIM,
   CROSSWORD_MAX_DIM
 } from './grid';
@@ -33,11 +36,24 @@ describe('grid helpers', () => {
     expect(clampDimension(100)).toBe(CROSSWORD_MAX_DIM);
     expect(clampDimension(10)).toBe(10);
   });
+
+  it('formats A1-style cell refs from 0-based indices', () => {
+    expect(rowIndexToLetter(0)).toBe('A');
+    expect(rowIndexToLetter(1)).toBe('B');
+    expect(rowIndexToLetter(25)).toBe('Z');
+    expect(rowIndexToLetter(26)).toBe('AA');
+    expect(colIndexToNumberLabel(0)).toBe('1');
+    expect(colIndexToNumberLabel(4)).toBe('5');
+    expect(formatGridCellRef(0, 4)).toBe('A5');
+    expect(formatGridCellRef(1, 4)).toBe('B5');
+  });
 });
 
 describe('placement analysis', () => {
   const letter = (ch: string, visible = false) => createLetterCell(ch, visible);
   const box = () => createEmptyCell();
+  const gridFromRows = (rows: string[]) =>
+    rows.map((row) => [...row].map((ch) => (ch === '.' ? box() : letter(ch))));
 
   it('finds horizontal and vertical runs', () => {
     const grid = [
@@ -92,6 +108,41 @@ describe('placement analysis', () => {
       location: [0, 1],
       direction: 'horizontal'
     });
+  });
+
+  it('finds words when an intersecting word extends their letter run', () => {
+    // ADIYOGI intersects immediately after AHIMSA's final A, so the first
+    // row reads AHIMSAA. Both intended paths must still be found.
+    const grid = gridFromRows([
+      'AHIMSAA',
+      '......D',
+      '......I',
+      '......Y',
+      '......O',
+      '......G',
+      '......I'
+    ]);
+    const analysis = analyzeWordPlacements(grid, [{ word: 'AHIMSA' }, { word: 'ADIYOGI' }]);
+
+    expect(analysis.statuses.every((status) => status.status === 'ok')).toBe(true);
+    expect(analysis.resolvedWordList).toEqual(
+      expect.arrayContaining([
+        expect.objectContaining({ word: 'AHIMSA', location: [0, 0], direction: 'horizontal' }),
+        expect.objectContaining({ word: 'ADIYOGI', location: [0, 6], direction: 'vertical' })
+      ])
+    );
+  });
+
+  it('uses a standalone subword instead of its occurrence within a longer word', () => {
+    const grid = gridFromRows(['PRANAYAMA', '.........', 'YAMA.....']);
+    // Intentionally list the shorter word first to verify longest-first matching.
+    const analysis = analyzeWordPlacements(grid, [{ word: 'YAMA' }, { word: 'PRANAYAMA' }]);
+
+    expect(analysis.statuses.every((status) => status.status === 'ok')).toBe(true);
+    expect(analysis.resolvedWordList).toEqual([
+      expect.objectContaining({ word: 'YAMA', location: [2, 0], direction: 'horizontal' }),
+      expect.objectContaining({ word: 'PRANAYAMA', location: [0, 0], direction: 'horizontal' })
+    ]);
   });
 
   it('missing word status', () => {
