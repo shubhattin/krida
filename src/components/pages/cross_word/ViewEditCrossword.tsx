@@ -1,6 +1,6 @@
 'use client';
 
-import { useMemo, useRef, useState } from 'react';
+import { useMemo, useRef, useState, type KeyboardEvent } from 'react';
 import { atom, useAtom } from 'jotai';
 import { useHydrateAtoms } from 'jotai/utils';
 import { useRouter } from 'next/navigation';
@@ -48,6 +48,7 @@ import {
   cellHasLetter,
   clampDimension,
   createEmptyGridData,
+  isBoxCell,
   normalizeAlphaLetter
 } from '~/util/cross_word/grid';
 import { invalidatePage } from '~/tools/invalidate_nextjs_server_route';
@@ -435,7 +436,31 @@ const PlacementAnalysisPanel = ({
         </motion.div>
       )}
 
-      {analysis.hasAllValid && (
+      {analysis.noVisibleHintWords.length > 0 && (
+        <motion.div
+          key="no-visible-hints"
+          initial={{ opacity: 0, y: -10, scale: 0.95 }}
+          animate={{ opacity: 1, y: 0, scale: 1 }}
+          exit={{ opacity: 0, y: -10, scale: 0.95 }}
+          className="rounded-lg border border-amber-200 bg-amber-50 p-3 dark:border-amber-800 dark:bg-amber-950"
+        >
+          <div className="flex flex-col gap-1 text-sm text-amber-700 dark:text-amber-300">
+            {analysis.noVisibleHintWords.map(({ word, wordIndex }, idx) => (
+              <motion.div
+                key={`novis-${wordIndex}`}
+                initial={{ opacity: 0, x: -10 }}
+                animate={{ opacity: 1, x: 0 }}
+                transition={{ delay: 0.05 * idx }}
+              >
+                &quot;<span className="font-semibold">{word}</span>&quot; has no visible (prefilled)
+                letter — mark at least one with the green checkbox.
+              </motion.div>
+            ))}
+          </div>
+        </motion.div>
+      )}
+
+      {analysis.hasAllValid && analysis.noVisibleHintWords.length === 0 && (
         <motion.div
           key="success"
           initial={{ opacity: 0, y: -10, scale: 0.95 }}
@@ -463,7 +488,8 @@ const GridEditor = ({
   dimensions: [number, number];
 }) => {
   const [gridData, setGridData] = useAtom(grid_data_atom);
-  const cols = dimensions[1];
+  const gridRef = useRef<HTMLDivElement>(null);
+  const [rows, cols] = dimensions;
 
   const updateCell = (r: number, c: number, next: CrossordPuzzleGridCell) => {
     setGridData((prev) => {
@@ -475,27 +501,53 @@ const GridEditor = ({
 
   const setLetter = (r: number, c: number, raw: string) => {
     const cell = gridData[r]?.[c];
-    if (!cell || cell.type === 'box') return;
+    if (!cell) return;
     const letter = normalizeAlphaLetter(raw);
     updateCell(r, c, {
-      type: 'alpha',
       text: letter,
+      // Clearing the letter turns the cell into a blocked box
       is_visible: letter ? cell.is_visible : false
     });
   };
 
-  const toggleBox = (r: number, c: number, checked: boolean) => {
-    if (checked) {
-      updateCell(r, c, { type: 'box' });
-    } else {
-      updateCell(r, c, { type: 'alpha', text: '', is_visible: false });
-    }
-  };
-
   const toggleVisible = (r: number, c: number, checked: boolean) => {
     const cell = gridData[r]?.[c];
-    if (!cell || cell.type !== 'alpha' || !cell.text) return;
+    if (!cell || !cellHasLetter(cell)) return;
     updateCell(r, c, { ...cell, is_visible: checked });
+  };
+
+  const focusCellInput = (r: number, c: number) => {
+    const el = gridRef.current?.querySelector<HTMLInputElement>(
+      `input[data-grid-r="${r}"][data-grid-c="${c}"]`
+    );
+    if (!el) return false;
+    el.focus();
+    el.select();
+    return true;
+  };
+
+  /** Move focus one step in direction if a neighbor cell exists. */
+  const moveFocus = (r: number, c: number, dRow: number, dCol: number) => {
+    const nextR = r + dRow;
+    const nextC = c + dCol;
+    if (nextR < 0 || nextC < 0 || nextR >= rows || nextC >= cols) return;
+    focusCellInput(nextR, nextC);
+  };
+
+  const handleCellKeyDown = (r: number, c: number, e: KeyboardEvent<HTMLInputElement>) => {
+    if (e.key === 'ArrowLeft') {
+      e.preventDefault();
+      moveFocus(r, c, 0, -1);
+    } else if (e.key === 'ArrowRight') {
+      e.preventDefault();
+      moveFocus(r, c, 0, 1);
+    } else if (e.key === 'ArrowUp') {
+      e.preventDefault();
+      moveFocus(r, c, -1, 0);
+    } else if (e.key === 'ArrowDown') {
+      e.preventDefault();
+      moveFocus(r, c, 1, 0);
+    }
   };
 
   return (
@@ -512,32 +564,29 @@ const GridEditor = ({
             />
             <PopoverContent className="max-w-xs text-xs">
               When checked, this letter is shown to the player at the start of a new game as a hint.
-              Only available when the cell has a letter.
+              Empty cells are blocked boxes — type a letter to make a playable cell.
             </PopoverContent>
           </Popover>
         </span>
-        <span className="inline-flex items-center gap-1.5">
-          <span className="size-3 rounded-sm bg-red-500" />
-          Box (blocked)
-        </span>
       </div>
       <div
+        ref={gridRef}
         className="grid w-full max-w-3xl gap-1.5"
         style={{ gridTemplateColumns: `repeat(${cols}, minmax(0, 1fr))` }}
       >
         {gridData.map((row, r) =>
           row.map((cell, c) => {
-            const isBox = cell.type === 'box';
+            const isBox = isBoxCell(cell);
             const hasLetter = cellHasLetter(cell);
             const isOccupied = occupiedCells.has(`${r},${c}`);
-            const isVisible = cell.type === 'alpha' && cell.is_visible;
+            const isVisible = hasLetter && cell.is_visible;
 
             return (
               <div
                 key={`${r}-${c}`}
                 className={cn(
                   'flex flex-col items-center gap-0.5 rounded border p-0.5 transition-all',
-                  isBox && 'border-red-300 bg-red-50 dark:border-red-800 dark:bg-red-950/40',
+                  isBox && 'border-muted-foreground/30 bg-muted/60',
                   !isBox &&
                     isVisible &&
                     'border-emerald-300 bg-emerald-50 dark:border-emerald-800 dark:bg-emerald-950/40',
@@ -549,33 +598,34 @@ const GridEditor = ({
                   type="text"
                   inputMode="text"
                   autoComplete="off"
-                  disabled={isBox}
-                  value={cell.type === 'alpha' ? cell.text : ''}
+                  data-grid-r={r}
+                  data-grid-c={c}
+                  value={cell.text}
                   onChange={(e) => setLetter(r, c, e.currentTarget.value)}
+                  onKeyDown={(e) => handleCellKeyDown(r, c, e)}
                   className="h-8 px-0 text-center font-mono text-sm uppercase"
                   maxLength={2}
+                  aria-label={
+                    isBox
+                      ? `Blocked cell ${r + 1},${c + 1} — type a letter to open`
+                      : `Cell ${r + 1},${c + 1}`
+                  }
                 />
                 <div className="flex items-center gap-1">
-                  {!hasLetter && (
-                    <label className="inline-flex items-center" title="Mark as box">
-                      <Checkbox
-                        checked={isBox}
-                        onCheckedChange={(checked) => toggleBox(r, c, checked === true)}
-                        className="border-red-400 data-[state=checked]:border-red-500 data-[state=checked]:bg-red-500"
-                        aria-label={`Box cell ${r + 1},${c + 1}`}
-                      />
-                    </label>
-                  )}
-                  {hasLetter && !isBox && (
-                    <label className="inline-flex items-center" title="Prefilled / visible">
-                      <Checkbox
-                        checked={isVisible}
-                        onCheckedChange={(checked) => toggleVisible(r, c, checked === true)}
-                        className="border-emerald-400 data-[state=checked]:border-emerald-500 data-[state=checked]:bg-emerald-500"
-                        aria-label={`Visible cell ${r + 1},${c + 1}`}
-                      />
-                    </label>
-                  )}
+                  <label
+                    className="inline-flex items-center"
+                    title={
+                      hasLetter ? 'Prefilled / visible' : 'Add a letter before marking as prefilled'
+                    }
+                  >
+                    <Checkbox
+                      checked={isVisible}
+                      disabled={!hasLetter}
+                      onCheckedChange={(checked) => toggleVisible(r, c, checked === true)}
+                      className="border-emerald-400 data-[state=checked]:border-emerald-500 data-[state=checked]:bg-emerald-500"
+                      aria-label={`Visible cell ${r + 1},${c + 1}`}
+                    />
+                  </label>
                 </div>
               </div>
             );

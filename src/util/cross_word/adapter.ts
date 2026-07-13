@@ -5,6 +5,7 @@ import {
   type CrossWordEntry,
   type CrossWordGamePuzzle
 } from './game_model';
+import { cellHasLetter } from './grid';
 
 export function dbDirectionToGame(direction: CrossWordPuzzleWord['direction']): CrossWordDirection {
   return direction === 'horizontal' ? 'across' : 'down';
@@ -19,14 +20,14 @@ export function entryIdFromWord(word: Pick<CrossWordPuzzleWord, 'location' | 'di
 }
 
 /**
- * Map DB grid cell to legacy game cell:
- * - box → null (blocked)
- * - alpha with is_visible + letter → fixed letter
- * - alpha otherwise → '' (editable; answer comes from word_list)
+ * Map DB grid cell to game cell:
+ * - blank text → null (blocked box)
+ * - letter + is_visible → fixed/prefilled letter
+ * - letter + !is_visible → '' (player fills; answer from word_list)
  */
 export function gridCellToGameCell(cell: CrossordPuzzleGridCell): CrossWordCell {
-  if (cell.type === 'box') return null;
-  if (cell.is_visible && cell.text) return cell.text.toUpperCase();
+  if (!cellHasLetter(cell)) return null;
+  if (cell.is_visible) return cell.text.toUpperCase();
   return '';
 }
 

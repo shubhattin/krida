@@ -2,7 +2,7 @@
 
 import { useState } from 'react';
 import Link from 'next/link';
-import { ArrowLeftIcon, SettingsIcon } from 'lucide-react';
+import { ArrowLeftIcon, PencilIcon, SettingsIcon } from 'lucide-react';
 import { Card, CardDescription, CardHeader, CardTitle } from '~/components/ui/card';
 import { Button } from '~/components/ui/button';
 import CrossWordGameRoot from '~/components/pages/cross_word/CrossWordGame/CrossWordGameRoot';
@@ -35,7 +35,7 @@ export default function CrosswordPublicClient({ puzzles, isAdmin }: CrosswordPub
   if (selected) {
     return (
       <div className="relative">
-        <div className="absolute top-2 left-2 z-20 sm:top-4 sm:left-4">
+        <div className="absolute top-2 left-2 z-20 flex flex-wrap items-center gap-2 sm:top-4 sm:left-4">
           <Button
             type="button"
             variant="outline"
@@ -46,6 +46,23 @@ export default function CrosswordPublicClient({ puzzles, isAdmin }: CrosswordPub
             <ArrowLeftIcon className="size-4 shrink-0" />
             Back to puzzles
           </Button>
+          {isAdmin ? (
+            <Button
+              render={
+                <Link
+                  href={`/crossword/edit/${selected.id}`}
+                  className="inline-flex items-center gap-1.5"
+                />
+              }
+              nativeButton={false}
+              variant="outline"
+              size="sm"
+              className="bg-background/80 backdrop-blur-sm"
+            >
+              <PencilIcon className="size-3.5 shrink-0" />
+              Edit puzzle
+            </Button>
+          ) : null}
         </div>
         <CrossWordGameRoot puzzle={selected as CrossordPuzzle} />
       </div>

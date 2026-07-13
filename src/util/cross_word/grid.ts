@@ -4,19 +4,19 @@ export const CROSSWORD_MIN_DIM = 3;
 export const CROSSWORD_MAX_DIM = 30;
 export const CROSSWORD_DEFAULT_DIM: [number, number] = [10, 10];
 
-export function createEmptyAlphaCell(): CrossordPuzzleGridCell {
-  return { type: 'alpha', text: '', is_visible: false };
+/** Empty text = blocked box slot */
+export function createEmptyCell(): CrossordPuzzleGridCell {
+  return { text: '', is_visible: false };
 }
 
-export function createBoxCell(): CrossordPuzzleGridCell {
-  return { type: 'box' };
+export function createLetterCell(letter: string, is_visible = false): CrossordPuzzleGridCell {
+  return { text: letter.toUpperCase(), is_visible };
 }
 
+/** New grids start as all blocked boxes; type letters to open playable cells. */
 export function createEmptyGridData(dimensions: [number, number]): CrossordPuzzleGridCell[][] {
   const [rows, cols] = dimensions;
-  return Array.from({ length: rows }, () =>
-    Array.from({ length: cols }, () => createEmptyAlphaCell())
-  );
+  return Array.from({ length: rows }, () => Array.from({ length: cols }, () => createEmptyCell()));
 }
 
 export function clampDimension(value: number): number {
@@ -29,16 +29,15 @@ export function normalizeAlphaLetter(raw: string): string {
   return matches[matches.length - 1]!;
 }
 
-export function isAlphaCell(
-  cell: CrossordPuzzleGridCell
-): cell is Extract<CrossordPuzzleGridCell, { type: 'alpha' }> {
-  return cell.type === 'alpha';
+/** Blank text means a blocked box. */
+export function isBoxCell(cell: CrossordPuzzleGridCell): boolean {
+  return cell.text.length === 0;
 }
 
 export function cellHasLetter(cell: CrossordPuzzleGridCell): boolean {
-  return cell.type === 'alpha' && cell.text.length > 0;
+  return cell.text.length > 0;
 }
 
 export function getCellLetter(cell: CrossordPuzzleGridCell): string {
-  return cell.type === 'alpha' ? cell.text.toUpperCase() : '';
+  return cell.text.toUpperCase();
 }

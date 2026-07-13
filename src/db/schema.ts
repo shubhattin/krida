@@ -54,7 +54,7 @@ export const crossord_puzzles = pgTable('crossord_puzzles', {
   description: text(),
   /** Whether the puzzle is listed publically on the website */
   grid_dimensions: jsonb().notNull().$type<[number, number]>(),
-  /** Blank space represents empty slot and null represents a box */
+  /** Blank text = blocked box; letter cells are playable (is_visible = prefilled hint). */
   grid_data: jsonb().notNull().$type<CrossordPuzzleGridCell[][]>(),
   word_list: jsonb().notNull().$type<CrossWordPuzzleWord[]>(),
   listed: boolean().notNull().default(false),

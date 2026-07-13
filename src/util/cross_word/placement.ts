@@ -1,5 +1,5 @@
 import type { CrossordPuzzleGridCell, CrossWordPuzzleWord } from '~/db/schema_zod';
-import { getCellLetter, isAlphaCell } from './grid';
+import { cellHasLetter, getCellLetter } from './grid';
 
 export type WordPlacement = {
   location: [number, number];
@@ -9,7 +9,7 @@ export type WordPlacement = {
 
 export type WordPlacementStatus =
   | { status: 'empty' }
-  | { status: 'ok'; placement: WordPlacement }
+  | { status: 'ok'; placement: WordPlacement; hasVisibleLetter: boolean }
   | { status: 'missing'; word: string }
   | { status: 'ambiguous'; word: string; placements: WordPlacement[] }
   | { status: 'duplicate'; word: string; indices: number[] };
@@ -21,13 +21,18 @@ export type PlacementAnalysis = {
   occupiedCells: Set<string>;
   hasAllValid: boolean;
   canList: boolean;
+  /** Found words that have no prefilled/visible letter */
+  noVisibleHintWords: { wordIndex: number; word: string }[];
 };
 
 function cellKey(r: number, c: number) {
   return `${r},${c}`;
 }
 
-/** Collect contiguous alpha runs (length >= 2) in both directions. */
+/**
+ * Collect contiguous letter runs (length >= 2) in both directions.
+ * Blank (box) cells break a run — only filled letters count.
+ */
 export function findAllRuns(grid: CrossordPuzzleGridCell[][]): WordPlacement[] {
   const rows = grid.length;
   const cols = grid[0]?.length ?? 0;
@@ -37,10 +42,10 @@ export function findAllRuns(grid: CrossordPuzzleGridCell[][]): WordPlacement[] {
   for (let r = 0; r < rows; r++) {
     let c = 0;
     while (c < cols) {
-      while (c < cols && !isAlphaCell(grid[r]![c]!)) c++;
+      while (c < cols && !cellHasLetter(grid[r]![c]!)) c++;
       const start = c;
       const cells: [number, number][] = [];
-      while (c < cols && isAlphaCell(grid[r]![c]!)) {
+      while (c < cols && cellHasLetter(grid[r]![c]!)) {
         cells.push([r, c]);
         c++;
       }
@@ -54,10 +59,10 @@ export function findAllRuns(grid: CrossordPuzzleGridCell[][]): WordPlacement[] {
   for (let c = 0; c < cols; c++) {
     let r = 0;
     while (r < rows) {
-      while (r < rows && !isAlphaCell(grid[r]![c]!)) r++;
+      while (r < rows && !cellHasLetter(grid[r]![c]!)) r++;
       const start = r;
       const cells: [number, number][] = [];
-      while (r < rows && isAlphaCell(grid[r]![c]!)) {
+      while (r < rows && cellHasLetter(grid[r]![c]!)) {
         cells.push([r, c]);
         r++;
       }
@@ -96,6 +101,16 @@ export function findPlacementsForWord(
   return allRuns.filter((run) => runSpellsWord(grid, run, trimmed));
 }
 
+function placementHasVisibleLetter(
+  grid: CrossordPuzzleGridCell[][],
+  placement: WordPlacement
+): boolean {
+  return placement.cells.some(([r, c]) => {
+    const cell = grid[r]?.[c];
+    return cell?.is_visible === true && cell.text.length > 0;
+  });
+}
+
 /**
  * Analyze word_list against grid. Only words with exactly one matching
  * horizontal/vertical path get a resolved location/direction.
@@ -108,6 +123,7 @@ export function analyzeWordPlacements(
   const statuses: WordPlacementStatus[] = [];
   const resolvedWordList: CrossWordPuzzleWord[] = [];
   const occupiedCells = new Set<string>();
+  const noVisibleHintWords: { wordIndex: number; word: string }[] = [];
 
   // Duplicate detection across word list (case-insensitive)
   const wordCountMap = new Map<string, number[]>();
@@ -146,7 +162,11 @@ export function analyzeWordPlacements(
       statuses.push({ status: 'ambiguous', word, placements });
     } else {
       const placement = placements[0]!;
-      statuses.push({ status: 'ok', placement });
+      const hasVisibleLetter = placementHasVisibleLetter(grid, placement);
+      statuses.push({ status: 'ok', placement, hasVisibleLetter });
+      if (!hasVisibleLetter) {
+        noVisibleHintWords.push({ wordIndex: i, word: word.toUpperCase() });
+      }
       resolvedWordList.push({
         word: word.toUpperCase(),
         location: placement.location,
@@ -164,7 +184,14 @@ export function analyzeWordPlacements(
     nonEmpty.length > 0 && nonEmpty.every((s) => s.status === 'ok') && duplicateIndices.size === 0;
   const canList = hasAllValid;
 
-  return { statuses, resolvedWordList, occupiedCells, hasAllValid, canList };
+  return {
+    statuses,
+    resolvedWordList,
+    occupiedCells,
+    hasAllValid,
+    canList,
+    noVisibleHintWords
+  };
 }
 
 /** Resolve word_list placements for persistence; keeps unresolved words with placeholder location. */

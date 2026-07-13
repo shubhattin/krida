@@ -1,8 +1,8 @@
 import { describe, expect, it } from 'vitest';
 import {
   createEmptyGridData,
-  createEmptyAlphaCell,
-  createBoxCell,
+  createEmptyCell,
+  createLetterCell,
   normalizeAlphaLetter,
   clampDimension,
   CROSSWORD_MIN_DIM,
@@ -14,11 +14,11 @@ import { numberEntries, createEmptyPlayerGrid, isFixedCell, isBlockedCell } from
 import type { CrossordPuzzle } from '~/db/schema_zod';
 
 describe('grid helpers', () => {
-  it('createEmptyGridData fills alpha cells', () => {
+  it('createEmptyGridData fills blocked box cells', () => {
     const grid = createEmptyGridData([3, 4]);
     expect(grid).toHaveLength(3);
     expect(grid[0]).toHaveLength(4);
-    expect(grid[0]![0]).toEqual({ type: 'alpha', text: '', is_visible: false });
+    expect(grid[0]![0]).toEqual({ text: '', is_visible: false });
   });
 
   it('normalizeAlphaLetter overwrites with last letter and uppercases', () => {
@@ -36,17 +36,14 @@ describe('grid helpers', () => {
 });
 
 describe('placement analysis', () => {
-  const makeAlpha = (letter: string, visible = false) => ({
-    type: 'alpha' as const,
-    text: letter,
-    is_visible: visible
-  });
+  const letter = (ch: string, visible = false) => createLetterCell(ch, visible);
+  const box = () => createEmptyCell();
 
   it('finds horizontal and vertical runs', () => {
     const grid = [
-      [makeAlpha('C'), makeAlpha('A'), makeAlpha('T'), createBoxCell()],
-      [makeAlpha('A'), createEmptyAlphaCell(), createEmptyAlphaCell(), createEmptyAlphaCell()],
-      [makeAlpha('R'), createEmptyAlphaCell(), createEmptyAlphaCell(), createEmptyAlphaCell()]
+      [letter('C'), letter('A'), letter('T'), box()],
+      [letter('A'), box(), box(), box()],
+      [letter('R'), box(), box(), box()]
     ];
     const runs = findAllRuns(grid);
     expect(runs.some((r) => r.direction === 'horizontal' && r.cells.length === 3)).toBe(true);
@@ -55,19 +52,46 @@ describe('placement analysis', () => {
 
   it('unique placement resolves ok', () => {
     const grid = [
-      [makeAlpha('C'), makeAlpha('A'), makeAlpha('T')],
-      [createBoxCell(), createBoxCell(), createBoxCell()],
-      [createEmptyAlphaCell(), createEmptyAlphaCell(), createEmptyAlphaCell()]
+      [letter('C', true), letter('A'), letter('T')],
+      [box(), box(), box()],
+      [box(), box(), box()]
     ];
     const analysis = analyzeWordPlacements(grid, [{ word: 'CAT', description: 'feline' }]);
     expect(analysis.hasAllValid).toBe(true);
     expect(analysis.canList).toBe(true);
+    expect(analysis.noVisibleHintWords).toHaveLength(0);
     expect(analysis.resolvedWordList[0]).toMatchObject({
       word: 'CAT',
       location: [0, 0],
       direction: 'horizontal'
     });
     expect(analysis.occupiedCells.has('0,0')).toBe(true);
+  });
+
+  it('warns when found word has no visible letter', () => {
+    const grid = [
+      [letter('C'), letter('A'), letter('T')],
+      [box(), box(), box()],
+      [box(), box(), box()]
+    ];
+    const analysis = analyzeWordPlacements(grid, [{ word: 'CAT' }]);
+    expect(analysis.statuses[0]?.status).toBe('ok');
+    expect(analysis.noVisibleHintWords).toEqual([{ wordIndex: 0, word: 'CAT' }]);
+    expect(analysis.canList).toBe(true);
+  });
+
+  it('finds word bounded by empty (box) cells', () => {
+    // Blank text cells break runs — only filled letters count
+    const grid = [
+      [box(), letter('A'), letter('H'), letter('I'), letter('M'), letter('S'), letter('A'), box()]
+    ];
+    const analysis = analyzeWordPlacements(grid, [{ word: 'AHIMSA' }]);
+    expect(analysis.statuses[0]?.status).toBe('ok');
+    expect(analysis.resolvedWordList[0]).toMatchObject({
+      word: 'AHIMSA',
+      location: [0, 1],
+      direction: 'horizontal'
+    });
   });
 
   it('missing word status', () => {
@@ -79,15 +103,9 @@ describe('placement analysis', () => {
 
   it('ambiguous paths require disambiguation', () => {
     const grid = [
-      [makeAlpha('A'), makeAlpha('B'), createBoxCell(), makeAlpha('A'), makeAlpha('B')],
-      [createBoxCell(), createBoxCell(), createBoxCell(), createBoxCell(), createBoxCell()],
-      [
-        createEmptyAlphaCell(),
-        createEmptyAlphaCell(),
-        createEmptyAlphaCell(),
-        createEmptyAlphaCell(),
-        createEmptyAlphaCell()
-      ]
+      [letter('A'), letter('B'), box(), letter('A'), letter('B')],
+      [box(), box(), box(), box(), box()],
+      [box(), box(), box(), box(), box()]
     ];
     const placements = findPlacementsForWord(grid, 'AB');
     expect(placements.length).toBe(2);
@@ -97,7 +115,7 @@ describe('placement analysis', () => {
   });
 
   it('duplicate word list entries', () => {
-    const grid = [[makeAlpha('H'), makeAlpha('I')]];
+    const grid = [[letter('H'), letter('I')]];
     const analysis = analyzeWordPlacements(grid, [{ word: 'HI' }, { word: 'HI' }]);
     expect(analysis.statuses[0]?.status).toBe('duplicate');
     expect(analysis.canList).toBe(false);
@@ -106,9 +124,9 @@ describe('placement analysis', () => {
 
 describe('adapter and game model', () => {
   it('gridCellToGameCell mapping', () => {
-    expect(gridCellToGameCell({ type: 'box' })).toBeNull();
-    expect(gridCellToGameCell({ type: 'alpha', text: 'S', is_visible: true })).toBe('S');
-    expect(gridCellToGameCell({ type: 'alpha', text: 'H', is_visible: false })).toBe('');
+    expect(gridCellToGameCell({ text: '', is_visible: false })).toBeNull();
+    expect(gridCellToGameCell({ text: 'S', is_visible: true })).toBe('S');
+    expect(gridCellToGameCell({ text: 'H', is_visible: false })).toBe('');
   });
 
   it('toCrossWordGamePuzzle adapts DB puzzle', () => {
@@ -120,11 +138,15 @@ describe('adapter and game model', () => {
       grid_dimensions: [2, 3],
       grid_data: [
         [
-          { type: 'alpha', text: 'C', is_visible: true },
-          { type: 'alpha', text: 'A', is_visible: false },
-          { type: 'alpha', text: 'T', is_visible: false }
+          { text: 'C', is_visible: true },
+          { text: 'A', is_visible: false },
+          { text: 'T', is_visible: false }
         ],
-        [{ type: 'box' }, { type: 'box' }, { type: 'box' }]
+        [
+          { text: '', is_visible: false },
+          { text: '', is_visible: false },
+          { text: '', is_visible: false }
+        ]
       ],
       word_list: [
         {

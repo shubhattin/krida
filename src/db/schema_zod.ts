@@ -33,23 +33,19 @@ export const CrossWordPuzzleWordSchema = z.object({
   direction: z.enum(['horizontal', 'vertical']),
   description: z.string().optional().nullable().describe('Optional description of the word')
 });
-export const CrossordPuzzleGridCellSchema = z.discriminatedUnion('type', [
-  z.object({
-    type: z.literal('alpha'),
-    text: z.string().max(1).min(0),
-    is_visible: z.boolean().default(false)
-  }),
-  z.object({
-    type: z.literal('box')
-  })
-]);
+export const CrossordPuzzleGridCellSchema = z.object({
+  /** Blank text = blocked box; any letter = playable cell */
+  text: z.string().max(1).min(0).default(''),
+  /** When true, the letter is shown to the player as a prefilled hint */
+  is_visible: z.boolean().default(false)
+});
 export type CrossWordPuzzleWord = z.infer<typeof CrossWordPuzzleWordSchema>;
 export type CrossordPuzzleGridCell = z.infer<typeof CrossordPuzzleGridCellSchema>;
 export const CrossordPuzzleSchemaZod = createSelectSchema(crossord_puzzles, {
   /** (m,n) */
   grid_dimensions: z.tuple([z.number().int().min(3), z.number().int().min(3)]),
   word_list: CrossWordPuzzleWordSchema.array(),
-  /** mxn grid data */
+  /** mxn grid; blank text cells are boxes, letters are playable */
   grid_data: CrossordPuzzleGridCellSchema.array().array(),
   created_at: z.coerce.date(),
   updated_at: z.coerce.date().optional(),
