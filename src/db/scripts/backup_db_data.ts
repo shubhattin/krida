@@ -18,6 +18,7 @@ import ms from 'ms';
 
 // Load environment variables from .env
 dotenv.config({ path: '../../../.env' });
+const MIN_BACKUPS_TO_KEEP = 12;
 
 const OUT_FOLDER = './backup';
 const envs_parsed = z
@@ -212,7 +213,6 @@ async function main() {
     './backup/backup.zip'
   );
 
-  const MIN_BACKUPS_TO_KEEP = 5;
   await cleanupOldBackups(
     envs.AWS_DB_BACKUP_BUCKET_NAME,
     BACKUP_FOLDER_NAME + '/',
