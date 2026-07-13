@@ -497,7 +497,7 @@ const ListPage = () => {
           )}
         </div>
       )}
-      {(pageCount > 1 || puzzle_list_q.data?.total) && (
+      {pageCount > 1 || puzzle_list_q.data?.total ? (
         <Pagination>
           <PaginationContent>
             <PaginationItem>
@@ -551,6 +551,8 @@ const ListPage = () => {
             </PaginationItem>
           </PaginationContent>
         </Pagination>
+      ) : (
+        <></>
       )}
     </div>
   );

@@ -6,7 +6,7 @@ import { motion, AnimatePresence } from 'framer-motion';
 import confetti from 'canvas-confetti';
 import { Sparkles } from 'lucide-react';
 import { celebration_fired_atom, completed_atom, seconds_atom } from './game_state';
-import { formatElapsed } from '~/util/cross_word/cross_word_schema';
+import { formatElapsed } from '~/util/cross_word/game_model';
 
 export function CompletionCelebration() {
   const completed = useAtomValue(completed_atom);

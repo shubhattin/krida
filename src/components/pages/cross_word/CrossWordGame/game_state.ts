@@ -4,9 +4,9 @@ import { atom } from 'jotai';
 import type {
   CellPosition,
   CrossWordDirection,
-  CrossWordPuzzle,
+  CrossWordGamePuzzle,
   NumberedEntry
-} from '~/util/cross_word/cross_word_schema';
+} from '~/util/cross_word/game_model';
 
 export type ActiveFocus = {
   row: number;
@@ -15,7 +15,7 @@ export type ActiveFocus = {
   entryId: string;
 };
 
-export const puzzle_atom = atom<CrossWordPuzzle | null>(null);
+export const puzzle_atom = atom<CrossWordGamePuzzle | null>(null);
 export const numbered_entries_atom = atom<NumberedEntry[]>([]);
 export const player_grid_atom = atom<(string | null)[][]>([]);
 export const started_atom = atom(false);

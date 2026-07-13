@@ -19,14 +19,22 @@ import {
 import {
   createEmptyPlayerGrid,
   numberEntries,
-  type CrossWordPuzzle
-} from '~/util/cross_word/cross_word_schema';
+  type CrossWordGamePuzzle
+} from '~/util/cross_word/game_model';
+import type { CrossordPuzzle } from '~/db/schema_zod';
+import { toCrossWordGamePuzzle } from '~/util/cross_word/adapter';
 
 export type CrossWordGameRootProps = {
-  puzzle: CrossWordPuzzle;
+  puzzle: CrossordPuzzle | CrossWordGamePuzzle;
 };
 
-export default function CrossWordGameRoot({ puzzle }: CrossWordGameRootProps) {
+function isDbPuzzle(puzzle: CrossordPuzzle | CrossWordGamePuzzle): puzzle is CrossordPuzzle {
+  return 'grid_data' in puzzle && 'word_list' in puzzle;
+}
+
+export default function CrossWordGameRoot({ puzzle: raw }: CrossWordGameRootProps) {
+  const puzzle = useMemo(() => (isDbPuzzle(raw) ? toCrossWordGamePuzzle(raw) : raw), [raw]);
+
   const jotaiStore = useMemo(() => {
     const store = createStore();
     store.set(puzzle_atom, puzzle);

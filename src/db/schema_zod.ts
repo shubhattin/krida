@@ -31,13 +31,13 @@ export const CrossWordPuzzleWordSchema = z.object({
   /** starting index in the nxn grid array */
   location: z.tuple([z.number().int().min(0), z.number().int().min(0)]),
   direction: z.enum(['horizontal', 'vertical']),
-  description: z.string().optional().nullable().describe("Optional description of the word")
+  description: z.string().optional().nullable().describe('Optional description of the word')
 });
 export const CrossordPuzzleGridCellSchema = z.discriminatedUnion('type', [
   z.object({
     type: z.literal('alpha'),
     text: z.string().max(1).min(0),
-    is_visible: z.boolean().default(false),
+    is_visible: z.boolean().default(false)
   }),
   z.object({
     type: z.literal('box')
