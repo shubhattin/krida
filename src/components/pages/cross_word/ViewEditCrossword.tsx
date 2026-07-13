@@ -54,6 +54,7 @@ import {
 import { invalidatePage } from '~/tools/invalidate_nextjs_server_route';
 
 type EditableWord = {
+  id: string;
   word: string;
   description: string;
   location: [number, number];
@@ -71,12 +72,26 @@ export type ViewEditCrosswordProps = {
   puzzle: CrossordPuzzle;
 };
 
+function createEditableWordId() {
+  return crypto.randomUUID();
+}
+
 function toEditableWords(words: CrossWordPuzzleWord[]): EditableWord[] {
   return words.map((w) => ({
+    id: createEditableWordId(),
     word: w.word,
     description: w.description ?? '',
     location: w.location,
     direction: w.direction
+  }));
+}
+
+function editableWordsComparable(words: EditableWord[]) {
+  return words.map(({ word, description, location, direction }) => ({
+    word,
+    description,
+    location,
+    direction
   }));
 }
 
@@ -276,7 +291,13 @@ const WordListEditor = () => {
   const addWord = () =>
     setWordList((prev) => [
       ...prev,
-      { word: '', description: '', location: [0, 0], direction: 'horizontal' }
+      {
+        id: createEditableWordId(),
+        word: '',
+        description: '',
+        location: [0, 0],
+        direction: 'horizontal'
+      }
     ]);
 
   const removeWord = (index: number) => setWordList((prev) => prev.filter((_, i) => i !== index));
@@ -291,7 +312,7 @@ const WordListEditor = () => {
         <AnimatePresence mode="popLayout">
           {wordList.map((item, idx) => (
             <motion.div
-              key={idx}
+              key={item.id}
               initial={{ opacity: 0, height: 0 }}
               animate={{ opacity: 1, height: 'auto' }}
               exit={{ opacity: 0, height: 0 }}
@@ -696,7 +717,8 @@ const SaveControls = ({ puzzle }: { puzzle: CrossordPuzzle }) => {
       listed !== initialRef.current.listed ||
       JSON.stringify(gridDimensions) !== JSON.stringify(initialRef.current.gridDimensions) ||
       JSON.stringify(gridData) !== JSON.stringify(initialRef.current.gridData) ||
-      JSON.stringify(wordList) !== JSON.stringify(initialRef.current.wordList)
+      JSON.stringify(editableWordsComparable(wordList)) !==
+        JSON.stringify(editableWordsComparable(initialRef.current.wordList))
     );
   }, [title, description, listed, gridDimensions, gridData, wordList]);
 

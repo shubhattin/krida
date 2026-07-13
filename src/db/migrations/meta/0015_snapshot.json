@@ -1,5 +1,5 @@
 {
-  "id": "0b5a46ea-f905-49b0-82d9-1a7c41746e4d",
+  "id": "05f07288-1b46-429c-b198-f0d04ca45323",
   "prevId": "6e4b22f0-424f-4702-879b-3b3168205751",
   "version": "7",
   "dialect": "postgresql",
@@ -181,7 +181,71 @@
           "notNull": false
         }
       },
-      "indexes": {},
+      "indexes": {
+        "crossord_puzzles_listed_created_at_idx": {
+          "name": "crossord_puzzles_listed_created_at_idx",
+          "columns": [
+            {
+              "expression": "listed",
+              "isExpression": false,
+              "asc": true,
+              "nulls": "last"
+            },
+            {
+              "expression": "created_at",
+              "isExpression": false,
+              "asc": true,
+              "nulls": "last"
+            }
+          ],
+          "isUnique": false,
+          "concurrently": false,
+          "method": "btree",
+          "with": {}
+        },
+        "crossord_puzzles_listed_updated_at_idx": {
+          "name": "crossord_puzzles_listed_updated_at_idx",
+          "columns": [
+            {
+              "expression": "listed",
+              "isExpression": false,
+              "asc": true,
+              "nulls": "last"
+            },
+            {
+              "expression": "updated_at",
+              "isExpression": false,
+              "asc": true,
+              "nulls": "last"
+            }
+          ],
+          "isUnique": false,
+          "concurrently": false,
+          "method": "btree",
+          "with": {}
+        },
+        "crossord_puzzles_listed_last_listed_at_idx": {
+          "name": "crossord_puzzles_listed_last_listed_at_idx",
+          "columns": [
+            {
+              "expression": "listed",
+              "isExpression": false,
+              "asc": true,
+              "nulls": "last"
+            },
+            {
+              "expression": "last_listed_at",
+              "isExpression": false,
+              "asc": true,
+              "nulls": "last"
+            }
+          ],
+          "isUnique": false,
+          "concurrently": false,
+          "method": "btree",
+          "with": {}
+        }
+      },
       "foreignKeys": {},
       "compositePrimaryKeys": {},
       "uniqueConstraints": {},

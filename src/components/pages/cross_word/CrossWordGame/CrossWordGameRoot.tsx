@@ -33,7 +33,7 @@ function isDbPuzzle(puzzle: CrossordPuzzle | CrossWordGamePuzzle): puzzle is Cro
 }
 
 export default function CrossWordGameRoot({ puzzle: raw }: CrossWordGameRootProps) {
-  const puzzle = useMemo(() => (isDbPuzzle(raw) ? toCrossWordGamePuzzle(raw) : raw), [raw]);
+  const puzzle = isDbPuzzle(raw) ? toCrossWordGamePuzzle(raw) : raw;
 
   const jotaiStore = useMemo(() => {
     const store = createStore();

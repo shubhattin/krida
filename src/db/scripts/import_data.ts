@@ -16,6 +16,7 @@ export const import_data = async (confirm_env = true) => {
   const ai_batches = await db.query.ai_batches.findMany();
   const word_puzzle_redirects = await db.query.word_puzzle_redirects.findMany();
   const image_assets = await db.query.image_assets.findMany();
+  const crossord_puzzles = await db.query.crossord_puzzles.findMany();
 
   const json_data = {
     word_puzzles,
@@ -26,7 +27,8 @@ export const import_data = async (confirm_env = true) => {
     ai_batch_responses,
     ai_batches,
     word_puzzle_redirects,
-    image_assets
+    image_assets,
+    crossord_puzzles
   };
 
   await make_dir('./out');

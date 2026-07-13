@@ -116,7 +116,6 @@ const get_puzzle_list_page_route = protectedAdminProcedure
 const add_puzzle_route = protectedAdminProcedure
   .input(crossword_add_input_schema)
   .mutation(async ({ input }) => {
-    revalidateCrosswordPaths();
     const dimensions = input.grid_dimensions;
     const [inserted] = await db
       .insert(crossord_puzzles)
@@ -130,15 +129,13 @@ const add_puzzle_route = protectedAdminProcedure
       })
       .returning();
 
+    revalidateCrosswordPaths();
     return { id: inserted!.id };
   });
 
 const update_puzzle_route = protectedAdminProcedure
   .input(crossword_update_input_schema)
   .mutation(async ({ input: { puzzle_id, puzzle_data } }) => {
-    revalidateCrosswordPaths();
-    revalidatePath(`/crossword/edit/${puzzle_id}`);
-
     const existing = await db.query.crossord_puzzles.findFirst({
       columns: { id: true, listed: true },
       where: (tbl, { eq: eqFn }) => eqFn(tbl.id, puzzle_id)
@@ -171,6 +168,8 @@ const update_puzzle_route = protectedAdminProcedure
       })
       .where(eq(crossord_puzzles.id, puzzle_id));
 
+    revalidateCrosswordPaths();
+    revalidatePath(`/crossword/edit/${puzzle_id}`);
     return { success: true as const };
   });
 
@@ -182,8 +181,6 @@ const set_listed_route = protectedAdminProcedure
     })
   )
   .mutation(async ({ input: { puzzle_id, listed } }) => {
-    revalidateCrosswordPaths();
-
     const existing = await db.query.crossord_puzzles.findFirst({
       where: (tbl, { eq: eqFn }) => eqFn(tbl.id, puzzle_id)
     });
@@ -210,15 +207,13 @@ const set_listed_route = protectedAdminProcedure
       })
       .where(eq(crossord_puzzles.id, puzzle_id));
 
+    revalidateCrosswordPaths();
     return { success: true as const };
   });
 
 const delete_puzzle_route = protectedAdminProcedure
   .input(z.object({ id: z.number().int() }))
   .mutation(async ({ input: { id } }) => {
-    revalidateCrosswordPaths();
-    revalidatePath(`/crossword/edit/${id}`);
-
     const existing = await db.query.crossord_puzzles.findFirst({
       columns: { id: true },
       where: (tbl, { eq: eqFn }) => eqFn(tbl.id, id)
@@ -228,6 +223,9 @@ const delete_puzzle_route = protectedAdminProcedure
     }
 
     await db.delete(crossord_puzzles).where(eq(crossord_puzzles.id, id));
+
+    revalidateCrosswordPaths();
+    revalidatePath(`/crossword/edit/${id}`);
     return { success: true as const };
   });
 

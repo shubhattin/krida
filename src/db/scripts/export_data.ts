@@ -10,7 +10,8 @@ import {
   ai_batch_responses,
   ai_batches,
   word_puzzle_redirects,
-  image_assets
+  image_assets,
+  crossord_puzzles
 } from '~/db/schema';
 import {
   WordPuzzleSchemaZod,
@@ -21,7 +22,8 @@ import {
   AiBatchResponseSchemaZod,
   AiBatchSchemaZod,
   WordPuzzleRedirectSchemaZod,
-  ImageAssetSchemaZod
+  ImageAssetSchemaZod,
+  CrossordPuzzleSchemaZod
 } from '~/db/schema_zod';
 import { z } from 'zod';
 import { sql } from 'drizzle-orm';
@@ -53,7 +55,8 @@ const main = async () => {
       ai_batch_responses: AiBatchResponseSchemaZod.array(),
       ai_batches: AiBatchSchemaZod.array(),
       word_puzzle_redirects: WordPuzzleRedirectSchemaZod.array(),
-      image_assets: ImageAssetSchemaZod.array()
+      image_assets: ImageAssetSchemaZod.array(),
+      crossord_puzzles: CrossordPuzzleSchemaZod.array()
     })
     .parse(JSON.parse((await readFile(`./out/${in_file_name}`)).toString()));
 
@@ -69,6 +72,7 @@ const main = async () => {
       await tx.delete(ai_batch_responses);
       await tx.delete(ai_batches);
       await tx.delete(image_assets);
+      await tx.delete(crossord_puzzles);
       console.log(chalk.green('✓ Deleted All Tables Successfully'));
     } catch (e) {
       console.log(chalk.red('✗ Error while deleting tables:'), chalk.yellow(e));
@@ -94,6 +98,17 @@ const main = async () => {
       );
     } catch (e) {
       console.log(chalk.red('✗ Error while inserting word_puzzles:'), chalk.yellow(e));
+    }
+
+    // inserting crossord_puzzles
+    try {
+      await tx.insert(crossord_puzzles).values(data.crossord_puzzles);
+      console.log(
+        chalk.green('✓ Successfully added values into table'),
+        chalk.blue('`crossord_puzzles`')
+      );
+    } catch (e) {
+      console.log(chalk.red('✗ Error while inserting crossord_puzzles:'), chalk.yellow(e));
     }
 
     // inserting word_puzzle_redirects
@@ -161,6 +176,9 @@ const main = async () => {
     try {
       await tx.execute(
         sql`SELECT setval('"word_puzzles_id_seq"', (select MAX(id) from "word_puzzles"))`
+      );
+      await tx.execute(
+        sql`SELECT setval('"crossord_puzzles_id_seq"', (select MAX(id) from "crossord_puzzles"))`
       );
       await tx.execute(
         sql`SELECT setval('"word_puzzle_attachments_id_seq"', (select MAX(id) from "word_puzzle_attachments"))`
