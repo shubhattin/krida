@@ -5,9 +5,11 @@ import { ai_image_assets_router } from './routers/ai_image_gen';
 import { image_assets_router } from './routers/image_assets';
 import { public_ai_router } from './routers/public_ai';
 import { batch_ai_router } from './routers/batch_ai';
+import { crossword_router } from './routers/crossword';
 
 export const appRouter = t.router({
   puzzle: puzzle_router,
+  crossword: crossword_router,
   schedules: schedules_router,
   ai_image_gen: ai_image_assets_router,
   image_assets: image_assets_router,

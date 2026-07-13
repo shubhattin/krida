@@ -28,9 +28,9 @@ import {
   nextPlayableCell,
   type CrossWordDirection,
   type CrossWordEntry,
-  type CrossWordPuzzle,
+  type CrossWordGamePuzzle,
   type NumberedEntry
-} from '~/util/cross_word/cross_word_schema';
+} from '~/util/cross_word/game_model';
 
 function pickPreferredEntry(
   covering: CrossWordEntry[],
@@ -51,7 +51,7 @@ function pickPreferredEntry(
 function evaluateEntries(
   entries: NumberedEntry[],
   playerGrid: (string | null)[][],
-  puzzle: CrossWordPuzzle
+  puzzle: CrossWordGamePuzzle
 ) {
   const solved: string[] = [];
   const incorrect: string[] = [];

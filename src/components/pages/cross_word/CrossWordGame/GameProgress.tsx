@@ -3,7 +3,7 @@
 import { useAtomValue } from 'jotai';
 import { motion } from 'framer-motion';
 import { Timer, Trophy } from 'lucide-react';
-import { formatElapsed } from '~/util/cross_word/cross_word_schema';
+import { formatElapsed } from '~/util/cross_word/game_model';
 import { completed_atom, progress_atom, seconds_atom, started_atom } from './game_state';
 import styles from './crossword-game.module.css';
 
