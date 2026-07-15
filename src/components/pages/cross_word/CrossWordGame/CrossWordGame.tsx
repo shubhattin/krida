@@ -9,6 +9,7 @@ import { GameProgress } from './GameProgress';
 import { GameControls } from './GameControls';
 import { CompletionCelebration } from './CompletionCelebration';
 import { AnimatePresence } from 'framer-motion';
+import { Sparkles } from 'lucide-react';
 import {
   CrossWordKeyboardBridge,
   CROSSWORD_KB_ATTR,
@@ -21,7 +22,7 @@ import styles from './crossword-game.module.css';
 function ActiveClueCard({ activeEntry }: { activeEntry: any }) {
   return (
     <div className="w-full max-w-[24rem] px-1">
-      <div className="relative flex min-h-[5.5rem] w-full flex-col justify-center rounded-2xl border border-border/40 bg-card/65 p-4 shadow-[0_4px_20px_oklch(0_0_0/0.04)] backdrop-blur-md transition-all duration-200 dark:shadow-[0_10px_35px_oklch(0_0_0/0.25)]">
+      <div className="relative flex min-h-[6.5rem] w-full flex-col justify-center rounded-2xl border border-border/40 bg-card/65 p-4 shadow-[0_4px_20px_oklch(0_0_0/0.04)] backdrop-blur-md transition-all duration-200 dark:shadow-[0_10px_35px_oklch(0_0_0/0.25)]">
         <AnimatePresence mode="wait">
           {activeEntry ? (
             <motion.div
@@ -45,13 +46,20 @@ function ActiveClueCard({ activeEntry }: { activeEntry: any }) {
           ) : (
             <motion.div
               key="placeholder"
-              initial={{ opacity: 0 }}
-              animate={{ opacity: 1 }}
-              exit={{ opacity: 0 }}
-              className="flex items-center justify-center py-2 text-center"
+              initial={{ opacity: 0, scale: 0.96 }}
+              animate={{ opacity: 1, scale: 1 }}
+              exit={{ opacity: 0, scale: 0.96 }}
+              transition={{ duration: 0.2 }}
+              className="flex flex-col items-center justify-center gap-1.5 py-1 text-center"
             >
-              <p className="text-xs tracking-wider text-muted-foreground/80">
-                Tap any cell on the grid to see the clue
+              <div className="flex items-center gap-2">
+                <Sparkles className="size-4 animate-pulse text-violet-500 dark:text-violet-400" />
+                <span className="bg-gradient-to-r from-violet-600 to-indigo-600 bg-clip-text text-xs font-semibold tracking-wider text-transparent uppercase dark:from-violet-300 dark:to-indigo-300">
+                  Ready to Solve
+                </span>
+              </div>
+              <p className="text-[0.85rem] leading-snug font-medium text-foreground/80">
+                Select a cell on the grid to reveal its clue
               </p>
             </motion.div>
           )}

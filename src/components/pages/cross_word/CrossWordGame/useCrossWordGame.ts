@@ -100,6 +100,22 @@ export function useCrossWordGame(timerRef: RefObject<ReturnType<typeof setInterv
     }, 1000);
   }, [clearTimer, setSeconds, timerRef]);
 
+  /**
+   * CELL SELECTION ALGORITHM
+   *
+   * 1. Direction is resolved with the existing toggle heuristic (double-tap same cell → switch axis).
+   * 2. After picking the entry, the cursor is placed on the FIRST WRITABLE cell at or after the
+   *    tapped position in the entry's direction.
+   *    "Writable" = editable template  +  no letter in playerGrid  +  not part of a solved entry.
+   * 3. If the tapped cell itself is writable the cursor lands there (normal case).
+   * 4. If the tapped cell already has text we advance forward, skipping filled/solved cells,
+   *    so the cursor ring only ever marks the cell that actually accepts keyboard input.
+   * 5. If every remaining cell is filled (whole word done) the cursor stays on the tapped cell
+   *    so the user can still see the word highlight (review mode).
+   * 6. INTERSECTION EDGE CASE: if a non-writable cell sits at the axis of two entries (e.g. "A"
+   *    shared by ASANA across and ADI down), a fresh tap prefers the SHORTER word first.
+   *    A second tap on the same cell toggles to the longer word via the usual direction-switch.
+   */
   const focusCell = useCallback(
     (row: number, col: number, options?: { direction?: CrossWordDirection; toggle?: boolean }) => {
       if (!puzzle) return;
@@ -110,25 +126,78 @@ export function useCrossWordGame(timerRef: RefObject<ReturnType<typeof setInterv
       if (covering.length === 0) return;
 
       const current = store.get(active_focus_atom);
+
+      // Helper to check if the clicked cell is writable
+      const pg = store.get(player_grid_atom);
+      const sids = store.get(solved_entry_ids_atom);
+      const clickedIsWritable =
+        isEditableCell(puzzle.grid[row]?.[col] ?? null) &&
+        (pg[row]?.[col] ?? '') === '' &&
+        !findEntriesAtCell(entries, row, col).some((e) => sids.includes(e.id));
+
+      const isCurrentEntryCoveringClick = current && covering.some((e) => e.id === current.entryId);
+
+      // Determine if this is a toggle action:
+      // 1. Explicit toggle option is passed.
+      // 2. Or, the clicked cell is writable, no explicit direction is requested, and the cursor is already on it.
+      // 3. Or, the clicked cell is NOT writable, no explicit direction is requested, and it is part of the currently active entry.
+      const isToggle = !!(
+        options?.toggle ||
+        (current && !options?.direction && clickedIsWritable && current.row === row && current.col === col) ||
+        (current && !options?.direction && !clickedIsWritable && isCurrentEntryCoveringClick)
+      );
+
       let preferred = options?.direction;
 
-      if (options?.toggle && current && current.row === row && current.col === col) {
+      // Toggle: switch axis (ACROSS ↔ DOWN)
+      if (isToggle && current) {
         const other = covering.find((entry) => entry.direction !== current.direction);
         preferred = other?.direction ?? current.direction;
       }
 
-      const entry = pickPreferredEntry(covering, preferred, current?.entryId);
+      // Intersection edge case for fresh clicks (non-toggles, no explicit direction):
+      // Prefer the shorter word first at non-writable intersections.
+      let orderedCovering = covering;
+      if (!isToggle && !options?.direction && covering.length > 1) {
+        if (!clickedIsWritable) {
+          orderedCovering = [...covering].sort((a, b) => a.answer.length - b.answer.length);
+          preferred = orderedCovering[0]!.direction;
+        }
+      }
+
+      const entry = pickPreferredEntry(orderedCovering, preferred, current?.entryId);
       if (!entry) return;
 
-      const nextFocus: ActiveFocus = {
-        row,
-        col,
-        direction: entry.direction,
-        entryId: entry.id
+      // Snapshot mutable state once (avoids stale closure issues).
+      const currentPlayerGrid = store.get(player_grid_atom);
+      const solvedIds = store.get(solved_entry_ids_atom);
+
+      // A cell is writable if its template is editable, it holds no letter, and it is not
+      // part of an already-solved entry.
+      const isCellWritable = (r: number, c: number): boolean => {
+        if (!isEditableCell(puzzle.grid[r]?.[c] ?? null)) return false;
+        if ((currentPlayerGrid[r]?.[c] ?? '') !== '') return false;
+        return !findEntriesAtCell(entries, r, c).some((e) => solvedIds.includes(e.id));
       };
-      setFocus(nextFocus);
+
+      // Advance cursor to first writable cell starting from the tapped position.
+      let cursorRow = row;
+      let cursorCol = col;
+      if (!isCellWritable(row, col)) {
+        let cursor = nextCellInEntry(entry, row, col, 1);
+        while (cursor && !isCellWritable(cursor.row, cursor.col)) {
+          cursor = nextCellInEntry(entry, cursor.row, cursor.col, 1);
+        }
+        if (cursor) {
+          cursorRow = cursor.row;
+          cursorCol = cursor.col;
+        }
+        // cursor === null → whole word filled → stay on tapped cell (review mode)
+      }
+
+      setFocus({ row: cursorRow, col: cursorCol, direction: entry.direction, entryId: entry.id });
     },
-    [puzzle, setFocus, store]
+    [entries, puzzle, setFocus, store]
   );
 
   const startGame = useCallback(() => {
@@ -220,15 +289,24 @@ export function useCrossWordGame(timerRef: RefObject<ReturnType<typeof setInterv
       const entry = entries.find((e) => e.id === focus.entryId);
       if (!entry) return;
 
-      // If the focused cell is fixed, advance to the next editable cell first
+      // Helper: is a cell part of a solved entry (read-only at runtime)?
+      const solvedIds = store.get(solved_entry_ids_atom);
+      const isCellSolvedNow = (row: number, col: number) =>
+        findEntriesAtCell(entries, row, col).some((e) => solvedIds.includes(e.id));
+
+      // Helper: is this cell writable — editable template AND not already solved
+      const isWritable = (row: number, col: number) =>
+        isEditableCell(puzzle.grid[row]![col]!) && !isCellSolvedNow(row, col);
+
+      // Advance from the current focus to the first writable cell in the entry
       let targetRow = focus.row;
       let targetCol = focus.col;
-      if (!isEditableCell(puzzle.grid[targetRow]![targetCol]!)) {
+      if (!isWritable(targetRow, targetCol)) {
         let cursor = nextCellInEntry(entry, targetRow, targetCol, 1);
-        while (cursor && !isEditableCell(puzzle.grid[cursor.row]![cursor.col]!)) {
+        while (cursor && !isWritable(cursor.row, cursor.col)) {
           cursor = nextCellInEntry(entry, cursor.row, cursor.col, 1);
         }
-        if (!cursor) return;
+        if (!cursor) return; // whole entry is already solved/fixed — nothing to type
         targetRow = cursor.row;
         targetCol = cursor.col;
       }
@@ -240,14 +318,18 @@ export function useCrossWordGame(timerRef: RefObject<ReturnType<typeof setInterv
         return copy;
       });
 
-      const next = nextCellInEntry(entry, targetRow, targetCol, 1);
+      // Advance the cursor, skipping over solved cells
+      let next = nextCellInEntry(entry, targetRow, targetCol, 1);
+      while (next && isCellSolvedNow(next.row, next.col)) {
+        next = nextCellInEntry(entry, next.row, next.col, 1);
+      }
       setFocus({
         ...focus,
         row: next?.row ?? targetRow,
         col: next?.col ?? targetCol
       });
     },
-    [applyEvaluation, completed, entries, focus, puzzle, setFocus, setPlayerGrid, started]
+    [applyEvaluation, completed, entries, focus, puzzle, setFocus, setPlayerGrid, started, store]
   );
 
   const backspace = useCallback(() => {
