@@ -19,7 +19,7 @@
   background: #ffffff;
   color: oklch(0.25 0.04 260);
   border: 1px solid oklch(0.92 0.01 250);
-  box-shadow: 
+  box-shadow:
     0 1px 2px oklch(0 0 0 / 0.04),
     inset 0 1.5px 0 0 #ffffff;
 }
@@ -28,7 +28,7 @@
 .playCell:not(:disabled):hover {
   transform: translateY(-1.5px) scale(1.03);
   z-index: 20;
-  box-shadow: 
+  box-shadow:
     0 4px 12px oklch(0 0 0 / 0.08),
     0 1px 3px oklch(0 0 0 / 0.02);
   border-color: oklch(0.8 0.02 250);
@@ -39,7 +39,7 @@
   background: oklch(0.28 0.025 260);
   color: oklch(0.95 0.01 250);
   border: 1px solid oklch(0.38 0.03 260);
-  box-shadow: 
+  box-shadow:
     0 2px 4px oklch(0 0 0 / 0.2),
     inset 0 1px 0 0 oklch(1 0 0 / 0.05);
 }
@@ -47,7 +47,7 @@
 :global(.dark) .playCell:not(:disabled):hover {
   background: oklch(0.31 0.03 260);
   border-color: oklch(0.48 0.04 260);
-  box-shadow: 
+  box-shadow:
     0 6px 16px oklch(0 0 0 / 0.35),
     inset 0 1px 0 0 oklch(1 0 0 / 0.08);
 }
@@ -70,14 +70,14 @@
 .cellActiveWord {
   background: oklch(0.96 0.035 85); /* Soft, beautiful glowing apricot */
   border-color: oklch(0.88 0.06 85);
-  box-shadow: 
+  box-shadow:
     0 2px 8px oklch(0.88 0.06 85 / 0.15),
     inset 0 1px 0 0 #ffffff;
 }
 :global(.dark) .cellActiveWord {
   background: oklch(0.36 0.07 240 / 0.5); /* Glowing translucent indigo */
   border-color: oklch(0.45 0.12 240);
-  box-shadow: 
+  box-shadow:
     0 4px 12px oklch(0.45 0.12 240 / 0.2),
     inset 0 1px 0 0 oklch(1 0 0 / 0.05);
 }
@@ -87,7 +87,7 @@
   z-index: 30 !important;
   background: #ffffff;
   border: 2.5px solid var(--primary);
-  box-shadow: 
+  box-shadow:
     0 0 0 3.5px oklch(from var(--primary) l c h / 0.22),
     0 4px 12px oklch(from var(--primary) l c h / 0.18);
   transform: scale(1.05) translateY(-1.5px) !important;
@@ -95,7 +95,7 @@
 :global(.dark) .cellSelected {
   background: oklch(0.32 0.03 260);
   border: 2.5px solid oklch(0.65 0.22 280); /* Neon violet glow */
-  box-shadow: 
+  box-shadow:
     0 0 16px oklch(0.65 0.22 280 / 0.65),
     0 0 0 3.5px oklch(0.65 0.22 280 / 0.28),
     inset 0 1px 0 0 oklch(1 0 0 / 0.1);
@@ -106,7 +106,7 @@
   background: linear-gradient(135deg, oklch(0.88 0.12 145), oklch(0.82 0.16 150));
   color: oklch(0.35 0.12 150);
   border-color: oklch(0.75 0.15 150);
-  box-shadow: 
+  box-shadow:
     0 2px 6px oklch(0.82 0.16 150 / 0.2),
     inset 0 1.5px 0 0 #ffffff;
 }
@@ -114,7 +114,7 @@
   background: linear-gradient(135deg, oklch(0.4 0.12 150), oklch(0.3 0.1 155));
   color: oklch(0.85 0.12 150);
   border-color: oklch(0.48 0.14 150);
-  box-shadow: 
+  box-shadow:
     0 4px 12px oklch(0.3 0.1 155 / 0.3),
     inset 0 1px 0 0 oklch(1 0 0 / 0.08);
 }
@@ -178,14 +178,27 @@
 
 /* ── Incorrect cell shake ── */
 .cellIncorrect {
-  animation: shake 0.36s cubic-bezier(.36,.07,.19,.97) both;
+  animation: shake 0.36s cubic-bezier(0.36, 0.07, 0.19, 0.97) both;
 }
 
 @keyframes shake {
-  10%, 90% { transform: translate3d(-1px, 0, 0); }
-  20%, 80% { transform: translate3d(2px, 0, 0); }
-  30%, 50%, 70% { transform: translate3d(-3px, 0, 0); }
-  40%, 60% { transform: translate3d(3px, 0, 0); }
+  10%,
+  90% {
+    transform: translate3d(-1px, 0, 0);
+  }
+  20%,
+  80% {
+    transform: translate3d(2px, 0, 0);
+  }
+  30%,
+  50%,
+  70% {
+    transform: translate3d(-3px, 0, 0);
+  }
+  40%,
+  60% {
+    transform: translate3d(3px, 0, 0);
+  }
 }
 
 /* ── Progress bar shimmer ── */
@@ -198,8 +211,13 @@
 }
 
 @keyframes progressShimmer {
-  0%, 100% { background-position: 0% 50%; }
-  50% { background-position: 100% 50%; }
+  0%,
+  100% {
+    background-position: 0% 50%;
+  }
+  50% {
+    background-position: 100% 50%;
+  }
 }
 
 /* ── Title animated gradient text ── */
@@ -213,8 +231,13 @@
 }
 
 @keyframes titleGradientShift {
-  0%, 100% { background-position: 0% 50%; }
-  50% { background-position: 100% 50%; }
+  0%,
+  100% {
+    background-position: 0% 50%;
+  }
+  50% {
+    background-position: 100% 50%;
+  }
 }
 
 /* ── Start button hover ── */

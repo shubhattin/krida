@@ -8,14 +8,58 @@ import { CluePanel } from './CluePanel';
 import { GameProgress } from './GameProgress';
 import { GameControls } from './GameControls';
 import { CompletionCelebration } from './CompletionCelebration';
+import { AnimatePresence } from 'framer-motion';
 import {
   CrossWordKeyboardBridge,
   CROSSWORD_KB_ATTR,
   type CrossWordKeyboardBridgeHandle
 } from './CrossWordKeyboardBridge';
 import { useCrossWordGame } from './useCrossWordGame';
-import { puzzle_atom, started_atom, completed_atom } from './game_state';
+import { puzzle_atom, started_atom, completed_atom, active_entry_atom } from './game_state';
 import styles from './crossword-game.module.css';
+
+function ActiveClueCard({ activeEntry }: { activeEntry: any }) {
+  return (
+    <div className="w-full max-w-[24rem] px-1">
+      <div className="relative flex min-h-[5.5rem] w-full flex-col justify-center rounded-2xl border border-border/40 bg-card/65 p-4 shadow-[0_4px_20px_oklch(0_0_0/0.04)] backdrop-blur-md transition-all duration-200 dark:shadow-[0_10px_35px_oklch(0_0_0/0.25)]">
+        <AnimatePresence mode="wait">
+          {activeEntry ? (
+            <motion.div
+              key={activeEntry.id}
+              initial={{ opacity: 0, y: 5 }}
+              animate={{ opacity: 1, y: 0 }}
+              exit={{ opacity: 0, y: -5 }}
+              transition={{ duration: 0.18, ease: 'easeOut' }}
+              className="flex flex-col gap-1.5"
+            >
+              <div className="flex items-center justify-between gap-2">
+                <span className="inline-flex items-center gap-1.5 rounded-full bg-primary/10 px-3 py-0.5 text-[0.65rem] font-bold tracking-wider text-primary uppercase dark:bg-primary/20">
+                  <span className="size-1.5 animate-pulse rounded-full bg-primary" />
+                  {activeEntry.number} {activeEntry.direction}
+                </span>
+              </div>
+              <p className="text-[0.95rem] leading-snug font-medium text-foreground/90">
+                {activeEntry.clue}
+              </p>
+            </motion.div>
+          ) : (
+            <motion.div
+              key="placeholder"
+              initial={{ opacity: 0 }}
+              animate={{ opacity: 1 }}
+              exit={{ opacity: 0 }}
+              className="flex items-center justify-center py-2 text-center"
+            >
+              <p className="text-xs tracking-wider text-muted-foreground/80">
+                Tap any cell on the grid to see the clue
+              </p>
+            </motion.div>
+          )}
+        </AnimatePresence>
+      </div>
+    </div>
+  );
+}
 
 export function CrossWordGame() {
   const timerRef = useRef<ReturnType<typeof setInterval> | null>(null);
@@ -25,6 +69,7 @@ export function CrossWordGame() {
   const puzzle = useAtomValue(puzzle_atom);
   const started = useAtomValue(started_atom);
   const completed = useAtomValue(completed_atom);
+  const activeEntry = useAtomValue(active_entry_atom);
 
   useEffect(() => {
     return () => {
@@ -98,8 +143,8 @@ export function CrossWordGame() {
       // Do not deselect if clicking inside the grid itself
       if (target.closest('[role="grid"]')) return;
 
-      // Do not deselect if clicking inside the clue panel or on any control/action button
-      if (target.closest('aside') || target.closest('button')) return;
+      // Do not deselect if clicking on any control/action button
+      if (target.closest('button')) return;
 
       game.clearFocus();
     };
@@ -113,7 +158,7 @@ export function CrossWordGame() {
   if (!puzzle) return null;
 
   return (
-    <div className="mx-auto flex w-full max-w-3xl flex-col gap-5 px-4 py-8 sm:px-6">
+    <div className="mx-auto flex w-full max-w-xl flex-col items-center gap-5 px-4 py-8 sm:px-6">
       <motion.header
         className="text-center"
         initial={{ opacity: 0, y: -20 }}
@@ -135,37 +180,34 @@ export function CrossWordGame() {
       <GameProgress />
       <CompletionCelebration />
 
-      <div className="grid gap-8 md:grid-cols-[minmax(0,1fr)_minmax(12rem,16rem)] md:items-start">
-        <div className="flex flex-col items-center gap-3">
-          <div ref={boardAnchorRef} className="relative w-full max-w-[min(100%,24rem)]">
-            <CrossWordKeyboardBridge
-              ref={keyboardRef}
-              onKeyDown={game.handleKeyDown}
-              onTypeLetter={game.typeLetter}
-              onBackspace={game.backspace}
-            />
-            <CrossWordGrid game={game} onRequestKeyboard={requestKeyboard} />
-            {!started ? (
-              <div className="absolute inset-0 flex items-center justify-center rounded-lg bg-background/25 backdrop-blur-[2px]">
-                <GameControls game={game} onAfterStart={requestKeyboard} />
-              </div>
-            ) : null}
-          </div>
-          {started ? (
-            <motion.div
-              className="flex justify-center"
-              initial={{ opacity: 0 }}
-              animate={{ opacity: 1 }}
-              transition={{ delay: 0.2, duration: 0.3 }}
-            >
+      <div className="flex w-full flex-col items-center gap-5">
+        <div ref={boardAnchorRef} className="relative w-full max-w-[min(100%,24rem)]">
+          <CrossWordKeyboardBridge
+            ref={keyboardRef}
+            onKeyDown={game.handleKeyDown}
+            onTypeLetter={game.typeLetter}
+            onBackspace={game.backspace}
+          />
+          <CrossWordGrid game={game} onRequestKeyboard={requestKeyboard} />
+          {!started ? (
+            <div className="absolute inset-0 flex items-center justify-center rounded-lg bg-background/25 backdrop-blur-[2px]">
               <GameControls game={game} onAfterStart={requestKeyboard} />
-            </motion.div>
+            </div>
           ) : null}
         </div>
 
-        <aside className="md:sticky md:top-6">
-          <CluePanel game={game} onRequestKeyboard={requestKeyboard} />
-        </aside>
+        {started && !completed && <ActiveClueCard activeEntry={activeEntry} />}
+
+        {started ? (
+          <motion.div
+            className="flex justify-center"
+            initial={{ opacity: 0 }}
+            animate={{ opacity: 1 }}
+            transition={{ delay: 0.2, duration: 0.3 }}
+          >
+            <GameControls game={game} onAfterStart={requestKeyboard} />
+          </motion.div>
+        ) : null}
       </div>
     </div>
   );
