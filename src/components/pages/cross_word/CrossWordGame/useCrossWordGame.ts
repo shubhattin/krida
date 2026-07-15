@@ -143,7 +143,11 @@ export function useCrossWordGame(timerRef: RefObject<ReturnType<typeof setInterv
       // 3. Or, the clicked cell is NOT writable, no explicit direction is requested, and it is part of the currently active entry.
       const isToggle = !!(
         options?.toggle ||
-        (current && !options?.direction && clickedIsWritable && current.row === row && current.col === col) ||
+        (current &&
+          !options?.direction &&
+          clickedIsWritable &&
+          current.row === row &&
+          current.col === col) ||
         (current && !options?.direction && !clickedIsWritable && isCurrentEntryCoveringClick)
       );
 
