@@ -101,8 +101,9 @@ export function CrossWordGrid({ game, onRequestKeyboard }: CrossWordGridProps) {
       transition={{ duration: 0.4, ease: 'easeOut' }}
     >
       <div
-        className="grid aspect-square w-full gap-px overflow-hidden rounded-lg border-2 border-border/60 bg-border/60 shadow-[0_0_20px_hsl(var(--primary)/0.08),0_8px_32px_hsl(0_0%_0%/0.2)]"
+        className="grid aspect-square w-full overflow-hidden rounded-2xl border-[3px] border-[oklch(0.90_0.01_250)] dark:border-[oklch(0.16_0.02_260)] bg-[oklch(0.90_0.01_250)] dark:bg-[oklch(0.16_0.02_260)] p-1 shadow-[0_10px_30px_oklch(0_0_0/0.08)] dark:shadow-[0_20px_50px_oklch(0_0_0/0.45)]"
         style={{
+          gap: '3px',
           gridTemplateColumns: `repeat(${cols}, 1fr)`,
           gridTemplateRows: `repeat(${rows}, 1fr)`
         }}

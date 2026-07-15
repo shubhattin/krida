@@ -1,61 +1,194 @@
-/* ── Blocked cell diagonal hatch pattern ── */
-/* Cannot be expressed in Tailwind: uses color-mix() inside repeating-linear-gradient */
+/* ── Playable Crossword Cell (Tactile Tile) ── */
+.playCell {
+  position: relative;
+  width: 100%;
+  height: 100%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-weight: 800;
+  text-transform: uppercase;
+  font-family: var(--font-sans);
+  border-radius: 6px;
+  outline: none;
+  transition: all 0.2s cubic-bezier(0.2, 0.8, 0.2, 1);
+  user-select: none;
+  cursor: pointer;
+
+  /* Light Theme Default */
+  background: #ffffff;
+  color: oklch(0.25 0.04 260);
+  border: 1px solid oklch(0.92 0.01 250);
+  box-shadow: 
+    0 1px 2px oklch(0 0 0 / 0.04),
+    inset 0 1.5px 0 0 #ffffff;
+}
+
+/* Light mode hover effect */
+.playCell:not(:disabled):hover {
+  transform: translateY(-1.5px) scale(1.03);
+  z-index: 20;
+  box-shadow: 
+    0 4px 12px oklch(0 0 0 / 0.08),
+    0 1px 3px oklch(0 0 0 / 0.02);
+  border-color: oklch(0.8 0.02 250);
+}
+
+/* Dark Theme overrides */
+:global(.dark) .playCell {
+  background: oklch(0.28 0.025 260);
+  color: oklch(0.95 0.01 250);
+  border: 1px solid oklch(0.38 0.03 260);
+  box-shadow: 
+    0 2px 4px oklch(0 0 0 / 0.2),
+    inset 0 1px 0 0 oklch(1 0 0 / 0.05);
+}
+
+:global(.dark) .playCell:not(:disabled):hover {
+  background: oklch(0.31 0.03 260);
+  border-color: oklch(0.48 0.04 260);
+  box-shadow: 
+    0 6px 16px oklch(0 0 0 / 0.35),
+    inset 0 1px 0 0 oklch(1 0 0 / 0.08);
+}
+
+/* ── Fixed (Pre-filled) Cells ── */
+.cellFixed {
+  background: oklch(0.95 0.005 250);
+  color: oklch(0.5 0.02 250);
+  border: 1px dashed oklch(0.85 0.01 250);
+  box-shadow: none;
+}
+:global(.dark) .cellFixed {
+  background: oklch(0.22 0.015 260);
+  color: oklch(0.6 0.02 260);
+  border: 1px dashed oklch(0.3 0.02 260);
+  box-shadow: none;
+}
+
+/* ── Active Word Path Highlight ── */
+.cellActiveWord {
+  background: oklch(0.96 0.035 85); /* Soft, beautiful glowing apricot */
+  border-color: oklch(0.88 0.06 85);
+  box-shadow: 
+    0 2px 8px oklch(0.88 0.06 85 / 0.15),
+    inset 0 1px 0 0 #ffffff;
+}
+:global(.dark) .cellActiveWord {
+  background: oklch(0.36 0.07 240 / 0.5); /* Glowing translucent indigo */
+  border-color: oklch(0.45 0.12 240);
+  box-shadow: 
+    0 4px 12px oklch(0.45 0.12 240 / 0.2),
+    inset 0 1px 0 0 oklch(1 0 0 / 0.05);
+}
+
+/* ── Selected Cursor Cell ── */
+.cellSelected {
+  z-index: 30 !important;
+  background: #ffffff;
+  border: 2.5px solid var(--primary);
+  box-shadow: 
+    0 0 0 3.5px oklch(from var(--primary) l c h / 0.22),
+    0 4px 12px oklch(from var(--primary) l c h / 0.18);
+  transform: scale(1.05) translateY(-1.5px) !important;
+}
+:global(.dark) .cellSelected {
+  background: oklch(0.32 0.03 260);
+  border: 2.5px solid oklch(0.65 0.22 280); /* Neon violet glow */
+  box-shadow: 
+    0 0 16px oklch(0.65 0.22 280 / 0.65),
+    0 0 0 3.5px oklch(0.65 0.22 280 / 0.28),
+    inset 0 1px 0 0 oklch(1 0 0 / 0.1);
+}
+
+/* ── Solved Cells (Premium Emerald Gradient) ── */
+.cellSolved {
+  background: linear-gradient(135deg, oklch(0.88 0.12 145), oklch(0.82 0.16 150));
+  color: oklch(0.35 0.12 150);
+  border-color: oklch(0.75 0.15 150);
+  box-shadow: 
+    0 2px 6px oklch(0.82 0.16 150 / 0.2),
+    inset 0 1.5px 0 0 #ffffff;
+}
+:global(.dark) .cellSolved {
+  background: linear-gradient(135deg, oklch(0.4 0.12 150), oklch(0.3 0.1 155));
+  color: oklch(0.85 0.12 150);
+  border-color: oklch(0.48 0.14 150);
+  box-shadow: 
+    0 4px 12px oklch(0.3 0.1 155 / 0.3),
+    inset 0 1px 0 0 oklch(1 0 0 / 0.08);
+}
+
+/* ── Incorrect Cells ── */
+.cellIncorrectState {
+  background: oklch(0.95 0.03 20);
+  color: oklch(0.55 0.15 20);
+  border-color: oklch(0.85 0.08 20);
+}
+:global(.dark) .cellIncorrectState {
+  background: oklch(0.28 0.04 20);
+  color: oklch(0.8 0.15 20);
+  border-color: oklch(0.5 0.1 20);
+  box-shadow: 0 0 10px oklch(0.5 0.1 20 / 0.3);
+}
+
+/* ── Blocked Cells ── */
 .blocked {
-  background-color: color-mix(in oklch, var(--muted) 80%, transparent);
-  background-image: repeating-linear-gradient(
-    -45deg,
-    transparent,
-    transparent 5px,
-    color-mix(in oklch, var(--muted-foreground) 18%, transparent) 5px,
-    color-mix(in oklch, var(--muted-foreground) 18%, transparent) 6px
-  );
+  width: 100%;
+  height: 100%;
+  border-radius: 6px;
+  transition: all 0.3s ease;
+
+  /* Base/Light Theme: soft warm grey with elegant dots */
+  background-color: oklch(0.92 0.01 250);
+  background-image: radial-gradient(oklch(0.84 0.01 250) 1.2px, transparent 1.2px);
+  background-size: 8px 8px;
+}
+
+/* Dark Theme overrides: deep void background with subtle micro-dots */
+:global(.dark) .blocked {
+  background-color: oklch(0.12 0.015 260);
+  background-image: radial-gradient(oklch(0.19 0.02 260) 1px, transparent 1px);
+  background-size: 8px 8px;
 }
 
 /* ── Word-accepted pulse — fires once per solve ── */
-/* Cannot be expressed in Tailwind: multi-step box-shadow + scale keyframe */
 .cellJustSolved {
-  animation: solvedPulse 0.55s cubic-bezier(0.25, 0.46, 0.45, 0.94);
+  animation: solvedPulse 0.65s cubic-bezier(0.175, 0.885, 0.32, 1.275);
 }
 
 @keyframes solvedPulse {
   0% {
     transform: scale(1);
-    box-shadow: 0 0 0 0 hsl(138 65% 52% / 0.7);
+    box-shadow: 0 0 0 0 oklch(0.72 0.2 152 / 0.8);
   }
-  35% {
-    transform: scale(1.08);
-    box-shadow: 0 0 0 6px hsl(138 65% 52% / 0.4);
+  40% {
+    transform: scale(1.14);
+    box-shadow: 0 0 0 8px oklch(0.72 0.2 152 / 0.45);
   }
   70% {
-    transform: scale(0.97);
-    box-shadow: 0 0 0 10px hsl(138 65% 52% / 0.1);
+    transform: scale(0.96);
+    box-shadow: 0 0 0 14px oklch(0.72 0.2 152 / 0.15);
   }
   100% {
     transform: scale(1);
-    box-shadow: 0 0 0 14px hsl(138 65% 52% / 0);
+    box-shadow: 0 0 0 20px oklch(0.72 0.2 152 / 0);
   }
 }
 
 /* ── Incorrect cell shake ── */
 .cellIncorrect {
-  animation: shake 0.35s ease-in-out;
+  animation: shake 0.36s cubic-bezier(.36,.07,.19,.97) both;
 }
 
 @keyframes shake {
-  0%,
-  100% {
-    transform: translateX(0);
-  }
-  25% {
-    transform: translateX(-2px);
-  }
-  75% {
-    transform: translateX(2px);
-  }
+  10%, 90% { transform: translate3d(-1px, 0, 0); }
+  20%, 80% { transform: translate3d(2px, 0, 0); }
+  30%, 50%, 70% { transform: translate3d(-3px, 0, 0); }
+  40%, 60% { transform: translate3d(3px, 0, 0); }
 }
 
 /* ── Progress bar shimmer ── */
-/* Cannot be expressed in Tailwind: animated background-position on a gradient */
 .progressFill {
   border-radius: 9999px;
   background: linear-gradient(90deg, var(--primary), hsl(262 83% 65%), var(--primary));
@@ -65,17 +198,11 @@
 }
 
 @keyframes progressShimmer {
-  0%,
-  100% {
-    background-position: 0% 50%;
-  }
-  50% {
-    background-position: 100% 50%;
-  }
+  0%, 100% { background-position: 0% 50%; }
+  50% { background-position: 100% 50%; }
 }
 
 /* ── Title animated gradient text ── */
-/* Cannot be expressed in Tailwind: animated background-position on gradient clip */
 .titleGradient {
   background: linear-gradient(135deg, var(--foreground), var(--primary), hsl(262 83% 65%));
   background-clip: text;
@@ -86,16 +213,11 @@
 }
 
 @keyframes titleGradientShift {
-  0%,
-  100% {
-    background-position: 0% 50%;
-  }
-  50% {
-    background-position: 100% 50%;
-  }
+  0%, 100% { background-position: 0% 50%; }
+  50% { background-position: 100% 50%; }
 }
 
-/* ── Start button hover (pseudo-class with box-shadow + translateY) ── */
+/* ── Start button hover ── */
 .startButton {
   transition: all 0.3s ease;
 }
@@ -103,10 +225,10 @@
   box-shadow:
     0 6px 20px color-mix(in oklch, var(--primary) 50%, transparent),
     0 0 30px color-mix(in oklch, var(--primary) 25%, transparent);
-  transform: translateY(-1px);
+  transform: translateY(-1.5px);
 }
 
-/* ── Reset button ripple overlay (pseudo-element) ── */
+/* ── Reset button ripple overlay ── */
 .resetButton {
   position: relative;
   overflow: hidden;
@@ -128,10 +250,7 @@
   opacity: 1;
 }
 
-/*
- * Hidden keyboard bridge — must stay focusable (not display:none / visibility:hidden)
- * so iOS/Android will open the OS virtual keyboard.
- */
+/* Hidden keyboard bridge */
 .keyboardBridge {
   position: absolute;
   left: 0;
@@ -154,17 +273,14 @@
   .cellJustSolved,
   .cellIncorrect,
   .progressFill,
-  .titleGradient {
+  .titleGradient,
+  .playCell:not(:disabled):hover {
     animation: none;
+    transform: none !important;
   }
-
   .startButton,
   .resetButton,
   .resetButton::before {
     transition: none;
-  }
-
-  .startButton:hover {
-    transform: none;
   }
 }
