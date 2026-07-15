@@ -87,6 +87,29 @@ export function CrossWordGame() {
     };
   }, [started, completed]);
 
+  // Click outside to deselect
+  useEffect(() => {
+    if (!started || completed) return;
+
+    const handleDocumentClick = (event: MouseEvent) => {
+      const target = event.target as HTMLElement | null;
+      if (!target) return;
+
+      // Do not deselect if clicking inside the grid itself
+      if (target.closest('[role="grid"]')) return;
+
+      // Do not deselect if clicking inside the clue panel or on any control/action button
+      if (target.closest('aside') || target.closest('button')) return;
+
+      game.clearFocus();
+    };
+
+    document.addEventListener('mousedown', handleDocumentClick);
+    return () => {
+      document.removeEventListener('mousedown', handleDocumentClick);
+    };
+  }, [game, started, completed]);
+
   if (!puzzle) return null;
 
   return (

@@ -389,6 +389,10 @@ export function useCrossWordGame(timerRef: RefObject<ReturnType<typeof setInterv
     [entries, store]
   );
 
+  const clearFocus = useCallback(() => {
+    setFocus(null);
+  }, [setFocus]);
+
   const getDisplayLetter = useCallback(
     (row: number, col: number) => {
       if (!puzzle) return '';
@@ -416,6 +420,7 @@ export function useCrossWordGame(timerRef: RefObject<ReturnType<typeof setInterv
     isCellInActiveWord,
     isCellSolved,
     getDisplayLetter,
-    clearTimer
+    clearTimer,
+    clearFocus
   };
 }
