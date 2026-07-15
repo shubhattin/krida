@@ -90,7 +90,7 @@ describe('placement analysis', () => {
       [box(), box(), box()],
       [box(), box(), box()]
     ];
-    const analysis = analyzeWordPlacements(grid, [{ word: 'CAT' }]);
+    const analysis = analyzeWordPlacements(grid, [{ word: 'CAT', description: 'feline' }]);
     expect(analysis.statuses[0]?.status).toBe('ok');
     expect(analysis.noVisibleHintWords).toEqual([{ wordIndex: 0, word: 'CAT' }]);
     expect(analysis.canList).toBe(true);
@@ -101,7 +101,7 @@ describe('placement analysis', () => {
     const grid = [
       [box(), letter('A'), letter('H'), letter('I'), letter('M'), letter('S'), letter('A'), box()]
     ];
-    const analysis = analyzeWordPlacements(grid, [{ word: 'AHIMSA' }]);
+    const analysis = analyzeWordPlacements(grid, [{ word: 'AHIMSA', description: 'non-violence' }]);
     expect(analysis.statuses[0]?.status).toBe('ok');
     expect(analysis.resolvedWordList[0]).toMatchObject({
       word: 'AHIMSA',
@@ -122,7 +122,10 @@ describe('placement analysis', () => {
       '......G',
       '......I'
     ]);
-    const analysis = analyzeWordPlacements(grid, [{ word: 'AHIMSA' }, { word: 'ADIYOGI' }]);
+    const analysis = analyzeWordPlacements(grid, [
+      { word: 'AHIMSA', description: 'non-violence' },
+      { word: 'ADIYOGI', description: 'first yogi' }
+    ]);
 
     expect(analysis.statuses.every((status) => status.status === 'ok')).toBe(true);
     expect(analysis.resolvedWordList).toEqual(
@@ -136,7 +139,10 @@ describe('placement analysis', () => {
   it('uses a standalone subword instead of its occurrence within a longer word', () => {
     const grid = gridFromRows(['PRANAYAMA', '.........', 'YAMA.....']);
     // Intentionally list the shorter word first to verify longest-first matching.
-    const analysis = analyzeWordPlacements(grid, [{ word: 'YAMA' }, { word: 'PRANAYAMA' }]);
+    const analysis = analyzeWordPlacements(grid, [
+      { word: 'YAMA', description: 'restraint' },
+      { word: 'PRANAYAMA', description: 'breath control' }
+    ]);
 
     expect(analysis.statuses.every((status) => status.status === 'ok')).toBe(true);
     expect(analysis.resolvedWordList).toEqual([
@@ -147,7 +153,7 @@ describe('placement analysis', () => {
 
   it('missing word status', () => {
     const grid = createEmptyGridData([3, 3]);
-    const analysis = analyzeWordPlacements(grid, [{ word: 'DOG' }]);
+    const analysis = analyzeWordPlacements(grid, [{ word: 'DOG', description: 'canine' }]);
     expect(analysis.statuses[0]?.status).toBe('missing');
     expect(analysis.canList).toBe(false);
   });
@@ -160,14 +166,17 @@ describe('placement analysis', () => {
     ];
     const placements = findPlacementsForWord(grid, 'AB');
     expect(placements.length).toBe(2);
-    const analysis = analyzeWordPlacements(grid, [{ word: 'AB' }]);
+    const analysis = analyzeWordPlacements(grid, [{ word: 'AB', description: 'letters' }]);
     expect(analysis.statuses[0]?.status).toBe('ambiguous');
     expect(analysis.canList).toBe(false);
   });
 
   it('duplicate word list entries', () => {
     const grid = [[letter('H'), letter('I')]];
-    const analysis = analyzeWordPlacements(grid, [{ word: 'HI' }, { word: 'HI' }]);
+    const analysis = analyzeWordPlacements(grid, [
+      { word: 'HI', description: 'greeting' },
+      { word: 'HI', description: 'greeting' }
+    ]);
     expect(analysis.statuses[0]?.status).toBe('duplicate');
     expect(analysis.canList).toBe(false);
   });

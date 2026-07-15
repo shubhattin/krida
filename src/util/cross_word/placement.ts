@@ -213,7 +213,7 @@ export function analyzeWordPlacements(
       word,
       location: status.placement.location,
       direction: status.placement.direction,
-      description: item.description ?? null
+      description: item.description.trim()
     });
     for (const [r, c] of status.placement.cells) {
       occupiedCells.add(cellKey(r, c));
@@ -248,14 +248,14 @@ export function resolveWordListForSave(
         word: item.word.trim().toUpperCase(),
         location: status.placement.location,
         direction: status.placement.direction,
-        description: item.description?.trim() ? item.description.trim() : null
+        description: item.description.trim()
       };
     }
     return {
       word: item.word.trim().toUpperCase(),
       location: item.location ?? [0, 0],
       direction: item.direction ?? 'horizontal',
-      description: item.description?.trim() ? item.description.trim() : null
+      description: item.description.trim()
     };
   });
 }

@@ -31,7 +31,8 @@ export const CrossWordPuzzleWordSchema = z.object({
   /** starting index in the nxn grid array */
   location: z.tuple([z.number().int().min(0), z.number().int().min(0)]),
   direction: z.enum(['horizontal', 'vertical']),
-  description: z.string().optional().nullable().describe('Optional description of the word')
+  /** Clue shown to the player — required and non-empty */
+  description: z.string().trim().min(1, 'Clue is required')
 });
 export const CrossordPuzzleGridCellSchema = z.object({
   /** Blank text = blocked box; any letter = playable cell */

@@ -346,7 +346,7 @@ const WordListEditor = () => {
                 <Input
                   value={item.description}
                   onChange={(e) => updateWord(idx, { description: e.currentTarget.value })}
-                  placeholder="Clue / description (optional)"
+                  placeholder="Clue / description"
                   className="min-w-0 flex-1"
                 />
                 <span
@@ -771,6 +771,14 @@ const SaveControls = ({ puzzle }: { puzzle: CrossordPuzzle }) => {
       return;
     }
 
+    const missingClue = wordList.find(
+      (w) => w.word.trim().length > 0 && w.description.trim().length === 0
+    );
+    if (missingClue) {
+      toast.error(`Add a clue for "${missingClue.word.trim().toUpperCase()}"`);
+      return;
+    }
+
     const data = {
       puzzle_id: puzzle.id,
       puzzle_data: {
@@ -779,12 +787,14 @@ const SaveControls = ({ puzzle }: { puzzle: CrossordPuzzle }) => {
         listed,
         grid_dimensions: gridDimensions,
         grid_data: gridData,
-        word_list: wordList.map((w) => ({
-          word: w.word,
-          location: w.location,
-          direction: w.direction,
-          description: w.description.trim() ? w.description.trim() : null
-        }))
+        word_list: wordList
+          .filter((w) => w.word.trim().length > 0)
+          .map((w) => ({
+            word: w.word,
+            location: w.location,
+            direction: w.direction,
+            description: w.description.trim()
+          }))
       }
     };
 
