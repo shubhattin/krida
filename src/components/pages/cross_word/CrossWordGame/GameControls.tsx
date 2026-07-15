@@ -20,7 +20,8 @@ export function GameControls({ game, onAfterStart }: GameControlsProps) {
 
   const handleStart = () => {
     game.startGame();
-    // Same user gesture: open OS keyboard after jotai/start commit paints
+    // After Start paints: optionally auto-open the in-app on-screen keyboard
+    // (touch devices). Physical keyboards keep working via window keydown.
     requestAnimationFrame(() => onAfterStart?.());
   };
 

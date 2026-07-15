@@ -479,6 +479,22 @@ export function useCrossWordGame(timerRef: RefObject<ReturnType<typeof setInterv
     setFocus(null);
   }, [setFocus]);
 
+  /**
+   * True when the focused cell sits at an Across ∩ Down intersection,
+   * so the on-screen path-switch control (and Space / re-tap) can flip axes.
+   */
+  const canToggleDirection = !!(
+    focus &&
+    puzzle &&
+    findEntriesAtCell(puzzle.entries, focus.row, focus.col).length > 1
+  );
+
+  /** Flip Across ↔ Down at the current intersection (same as re-tapping / Space). */
+  const toggleDirection = useCallback(() => {
+    if (!focus || !canToggleDirection) return;
+    focusCell(focus.row, focus.col, { toggle: true });
+  }, [canToggleDirection, focus, focusCell]);
+
   const getDisplayLetter = useCallback(
     (row: number, col: number) => {
       if (!puzzle) return '';
@@ -503,6 +519,8 @@ export function useCrossWordGame(timerRef: RefObject<ReturnType<typeof setInterv
     handleKeyDown,
     typeLetter,
     backspace,
+    canToggleDirection,
+    toggleDirection,
     isCellInActiveWord,
     isCellSolved,
     getDisplayLetter,

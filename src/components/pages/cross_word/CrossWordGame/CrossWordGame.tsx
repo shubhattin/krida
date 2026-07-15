@@ -1,28 +1,24 @@
 'use client';
 
-import { useEffect, useRef, useCallback } from 'react';
+import { useEffect, useRef, useState } from 'react';
 import { useAtomValue } from 'jotai';
-import { motion } from 'framer-motion';
+import { motion, AnimatePresence } from 'framer-motion';
+import { Sparkles } from 'lucide-react';
 import { CrossWordGrid } from './CrossWordGrid';
-import { CluePanel } from './CluePanel';
 import { GameProgress } from './GameProgress';
 import { GameControls } from './GameControls';
 import { CompletionCelebration } from './CompletionCelebration';
-import { AnimatePresence } from 'framer-motion';
-import { Sparkles } from 'lucide-react';
-import {
-  CrossWordKeyboardBridge,
-  CROSSWORD_KB_ATTR,
-  type CrossWordKeyboardBridgeHandle
-} from './CrossWordKeyboardBridge';
+import { CrossWordOnScreenKeyboard } from './CrossWordOnScreenKeyboard';
 import { useCrossWordGame } from './useCrossWordGame';
+import { shouldAutoOpenOnScreenKeyboard } from './touch_device';
 import { puzzle_atom, started_atom, completed_atom, active_entry_atom } from './game_state';
+import { cn } from '~/lib/utils';
 import styles from './crossword-game.module.css';
 
 function ActiveClueCard({ activeEntry }: { activeEntry: any }) {
   return (
     <div className="w-full max-w-[24rem] px-1">
-      <div className="relative flex min-h-[6.5rem] w-full flex-col justify-center rounded-2xl border border-border/40 bg-card/65 p-4 shadow-[0_4px_20px_oklch(0_0_0/0.04)] backdrop-blur-md transition-all duration-200 dark:shadow-[0_10px_35px_oklch(0_0_0/0.25)]">
+      <div className="relative flex min-h-19 w-full flex-col justify-center rounded-2xl border border-border/40 bg-card/65 p-3 shadow-[0_4px_20px_oklch(0_0_0/0.04)] backdrop-blur-md transition-all duration-200 sm:min-h-22 sm:p-4 dark:shadow-[0_10px_35px_oklch(0_0_0/0.25)]">
         <AnimatePresence mode="wait">
           {activeEntry ? (
             <motion.div
@@ -54,7 +50,7 @@ function ActiveClueCard({ activeEntry }: { activeEntry: any }) {
             >
               <div className="flex items-center gap-2">
                 <Sparkles className="size-4 animate-pulse text-violet-500 dark:text-violet-400" />
-                <span className="bg-gradient-to-r from-violet-600 to-indigo-600 bg-clip-text text-xs font-semibold tracking-wider text-transparent uppercase dark:from-violet-300 dark:to-indigo-300">
+                <span className="bg-linear-to-r from-violet-600 to-indigo-600 bg-clip-text text-xs font-semibold tracking-wider text-transparent uppercase dark:from-violet-300 dark:to-indigo-300">
                   Ready to Solve
                 </span>
               </div>
@@ -71,13 +67,12 @@ function ActiveClueCard({ activeEntry }: { activeEntry: any }) {
 
 export function CrossWordGame() {
   const timerRef = useRef<ReturnType<typeof setInterval> | null>(null);
-  const keyboardRef = useRef<CrossWordKeyboardBridgeHandle>(null);
-  const boardAnchorRef = useRef<HTMLDivElement>(null);
   const game = useCrossWordGame(timerRef);
   const puzzle = useAtomValue(puzzle_atom);
   const started = useAtomValue(started_atom);
   const completed = useAtomValue(completed_atom);
   const activeEntry = useAtomValue(active_entry_atom);
+  const [keyboardOpen, setKeyboardOpen] = useState(false);
 
   useEffect(() => {
     return () => {
@@ -85,20 +80,22 @@ export function CrossWordGame() {
     };
   }, []);
 
-  const requestKeyboard = useCallback(() => {
-    if (completed) return;
-    keyboardRef.current?.focus();
-    const vv = typeof window !== 'undefined' ? window.visualViewport : null;
-    if (vv && boardAnchorRef.current) {
-      const rect = boardAnchorRef.current.getBoundingClientRect();
-      const visibleBottom = vv.offsetTop + vv.height;
-      if (rect.bottom > visibleBottom - 12) {
-        boardAnchorRef.current.scrollIntoView({ block: 'nearest', behavior: 'smooth' });
-      }
+  // Close the panel when the session ends or resets; never leave it open idle.
+  useEffect(() => {
+    if (!started || completed) {
+      setKeyboardOpen(false);
     }
-  }, [completed]);
+  }, [started, completed]);
 
-  // Physical keyboard when focus is NOT on the bridge (e.g. board div / page chrome)
+  const handleAfterStart = () => {
+    // Auto-open only on touch-capable devices (phones, tablets, touch laptops).
+    // Desktop users keep a closed panel and can reveal it via the keyboard icon.
+    if (shouldAutoOpenOnScreenKeyboard()) {
+      setKeyboardOpen(true);
+    }
+  };
+
+  // Physical keyboard input while the game is active.
   useEffect(() => {
     if (!started) return;
     const onKeyDown = (event: KeyboardEvent) => {
@@ -107,9 +104,6 @@ export function CrossWordGame() {
         game.handleKeyDown(event);
         return;
       }
-
-      // Bridge owns its own key events — avoid double handling
-      if (target.getAttribute(CROSSWORD_KB_ATTR) === 'true') return;
 
       if (target.tagName === 'INPUT' || target.tagName === 'TEXTAREA' || target.isContentEditable) {
         return;
@@ -121,26 +115,8 @@ export function CrossWordGame() {
     return () => window.removeEventListener('keydown', onKeyDown);
   }, [game.handleKeyDown, started]);
 
-  // Keep board above keyboard when viewport shrinks
-  useEffect(() => {
-    if (!started || completed) return;
-    const vv = window.visualViewport;
-    if (!vv) return;
-
-    const onResize = () => {
-      if (document.activeElement?.getAttribute(CROSSWORD_KB_ATTR) !== 'true') return;
-      boardAnchorRef.current?.scrollIntoView({ block: 'nearest', behavior: 'smooth' });
-    };
-
-    vv.addEventListener('resize', onResize);
-    vv.addEventListener('scroll', onResize);
-    return () => {
-      vv.removeEventListener('resize', onResize);
-      vv.removeEventListener('scroll', onResize);
-    };
-  }, [started, completed]);
-
-  // Click outside to deselect
+  // Click outside to deselect grid focus — keyboard panel buttons are excluded
+  // via the generic `button` check so typing never clears selection.
   useEffect(() => {
     if (!started || completed) return;
 
@@ -148,11 +124,9 @@ export function CrossWordGame() {
       const target = event.target as HTMLElement | null;
       if (!target) return;
 
-      // Do not deselect if clicking inside the grid itself
       if (target.closest('[role="grid"]')) return;
-
-      // Do not deselect if clicking on any control/action button
       if (target.closest('button')) return;
+      if (target.closest('[data-crossword-onscreen-kb="true"]')) return;
 
       game.clearFocus();
     };
@@ -166,7 +140,7 @@ export function CrossWordGame() {
   if (!puzzle) return null;
 
   return (
-    <div className="mx-auto flex w-full max-w-xl flex-col items-center gap-5 px-4 py-8 sm:px-6">
+    <div className="mx-auto flex w-full max-w-xl flex-col items-center gap-4 px-4 py-8 sm:gap-5 sm:px-6">
       <motion.header
         className="text-center"
         initial={{ opacity: 0, y: -20 }}
@@ -188,21 +162,47 @@ export function CrossWordGame() {
       <GameProgress />
       <CompletionCelebration />
 
-      <div className="flex w-full flex-col items-center gap-5">
-        <div ref={boardAnchorRef} className="relative w-full max-w-[min(100%,24rem)]">
-          <CrossWordKeyboardBridge
-            ref={keyboardRef}
-            onKeyDown={game.handleKeyDown}
-            onTypeLetter={game.typeLetter}
-            onBackspace={game.backspace}
-          />
-          <CrossWordGrid game={game} onRequestKeyboard={requestKeyboard} />
+      <div className="flex w-full flex-col items-center gap-1.5 sm:gap-4">
+        <div
+          className={cn(
+            'relative w-full max-w-[min(100%,24rem)]',
+            // Reserve seam space for the floating toggle when the panel is closed.
+            started && !completed && !keyboardOpen && 'pb-5'
+          )}
+        >
+          <CrossWordGrid game={game} />
           {!started ? (
             <div className="absolute inset-0 flex items-center justify-center rounded-lg bg-background/25 backdrop-blur-[2px]">
-              <GameControls game={game} onAfterStart={requestKeyboard} />
+              <GameControls game={game} onAfterStart={handleAfterStart} />
+            </div>
+          ) : null}
+          {/* Toggle sits on the grid/keyboard seam so it doesn't add a gap row. */}
+          {started && !completed ? (
+            <div className="absolute right-1 bottom-0 z-20 translate-y-1/2 sm:right-0">
+              <CrossWordOnScreenKeyboard
+                open={keyboardOpen}
+                onOpenChange={setKeyboardOpen}
+                onTypeLetter={game.typeLetter}
+                onBackspace={game.backspace}
+                onToggleDirection={game.toggleDirection}
+                canToggleDirection={game.canToggleDirection}
+                toggleOnly
+              />
             </div>
           ) : null}
         </div>
+
+        {started && !completed ? (
+          <CrossWordOnScreenKeyboard
+            open={keyboardOpen}
+            onOpenChange={setKeyboardOpen}
+            onTypeLetter={game.typeLetter}
+            onBackspace={game.backspace}
+            onToggleDirection={game.toggleDirection}
+            canToggleDirection={game.canToggleDirection}
+            panelOnly
+          />
+        ) : null}
 
         {started && !completed && <ActiveClueCard activeEntry={activeEntry} />}
 
@@ -213,7 +213,7 @@ export function CrossWordGame() {
             animate={{ opacity: 1 }}
             transition={{ delay: 0.2, duration: 0.3 }}
           >
-            <GameControls game={game} onAfterStart={requestKeyboard} />
+            <GameControls game={game} onAfterStart={handleAfterStart} />
           </motion.div>
         ) : null}
       </div>
