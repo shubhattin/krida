@@ -162,12 +162,12 @@ export function CrossWordGame() {
       <GameProgress />
       <CompletionCelebration />
 
-      <div className="flex w-full flex-col items-center gap-1.5 sm:gap-4">
+      <div className="flex w-full flex-col items-center gap-1 sm:gap-4">
         <div
           className={cn(
             'relative w-full max-w-[min(100%,24rem)]',
             // Reserve seam space for the floating toggle when the panel is closed.
-            started && !completed && !keyboardOpen && 'pb-5'
+            started && !completed && !keyboardOpen && 'pb-4'
           )}
         >
           <CrossWordGrid game={game} />

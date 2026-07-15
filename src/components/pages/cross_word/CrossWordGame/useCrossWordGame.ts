@@ -217,9 +217,15 @@ export function useCrossWordGame(timerRef: RefObject<ReturnType<typeof setInterv
 
     const first = entries[0];
     if (first) {
+      // The entry can begin with a prefilled hint. Start on its first writable
+      // cell so the selection always communicates where the first typed letter
+      // will be placed, just as selecting that fixed cell does during play.
+      const firstWritableCell = getEntryCells(first).find(({ row, col }) =>
+        isEditableCell(puzzle.grid[row]?.[col] ?? null)
+      );
       setFocus({
-        row: first.row,
-        col: first.col,
+        row: firstWritableCell?.row ?? first.row,
+        col: firstWritableCell?.col ?? first.col,
         direction: first.direction,
         entryId: first.id
       });
@@ -322,10 +328,20 @@ export function useCrossWordGame(timerRef: RefObject<ReturnType<typeof setInterv
         return copy;
       });
 
-      // Advance the cursor, skipping over solved cells
+      // Advance the cursor, skipping over solved cells. A fixed letter in the
+      // middle of an entry is not an input target, so move past it to show
+      // where the next typed letter will land. Keep a fixed final cell as the
+      // cursor destination to preserve the existing end-of-word behavior.
       let next = nextCellInEntry(entry, targetRow, targetCol, 1);
-      while (next && isCellSolvedNow(next.row, next.col)) {
-        next = nextCellInEntry(entry, next.row, next.col, 1);
+      while (next) {
+        const followingCell = nextCellInEntry(entry, next.row, next.col, 1);
+        const nextIsFixed = isFixedCell(puzzle.grid[next.row]![next.col]!);
+
+        if (!isCellSolvedNow(next.row, next.col) && (!nextIsFixed || !followingCell)) {
+          break;
+        }
+
+        next = followingCell;
       }
       setFocus({
         ...focus,
@@ -340,8 +356,17 @@ export function useCrossWordGame(timerRef: RefObject<ReturnType<typeof setInterv
     if (!puzzle || !started || completed || !focus) return;
     const template = puzzle.grid[focus.row]?.[focus.col];
     const currentValue = playerGrid[focus.row]?.[focus.col] ?? '';
+    const solvedIds = store.get(solved_entry_ids_atom);
+    const isCellSolvedNow = (row: number, col: number) =>
+      findEntriesAtCell(entries, row, col).some((entry) => solvedIds.includes(entry.id));
 
-    if (isEditableCell(template ?? null) && currentValue !== '') {
+    // Solved entry cells are locked exactly like prefilled hint cells: they
+    // remain visible but cannot be erased, even where entries intersect.
+    if (
+      isEditableCell(template ?? null) &&
+      currentValue !== '' &&
+      !isCellSolvedNow(focus.row, focus.col)
+    ) {
       setPlayerGrid((prev) => {
         const copy = prev.map((row) => [...row]);
         copy[focus.row]![focus.col] = '';
@@ -358,7 +383,10 @@ export function useCrossWordGame(timerRef: RefObject<ReturnType<typeof setInterv
 
     setFocus({ ...focus, row: prevCell.row, col: prevCell.col });
 
-    if (isEditableCell(puzzle.grid[prevCell.row]![prevCell.col]!)) {
+    if (
+      isEditableCell(puzzle.grid[prevCell.row]![prevCell.col]!) &&
+      !isCellSolvedNow(prevCell.row, prevCell.col)
+    ) {
       setPlayerGrid((prev) => {
         const copy = prev.map((row) => [...row]);
         copy[prevCell.row]![prevCell.col] = '';
@@ -375,7 +403,8 @@ export function useCrossWordGame(timerRef: RefObject<ReturnType<typeof setInterv
     puzzle,
     setFocus,
     setPlayerGrid,
-    started
+    started,
+    store
   ]);
 
   const moveWithArrow = useCallback(

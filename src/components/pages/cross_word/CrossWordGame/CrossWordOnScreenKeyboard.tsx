@@ -1,6 +1,6 @@
 'use client';
 
-import type { ReactNode } from 'react';
+import type { PointerEvent, ReactNode } from 'react';
 import { AnimatePresence, motion } from 'framer-motion';
 import { ArrowLeftRight, Delete, Keyboard, X } from 'lucide-react';
 import { Button } from '~/components/ui/button';
@@ -23,6 +23,26 @@ type CrossWordOnScreenKeyboardProps = {
   /** When true, only the expandable key panel is rendered (no duplicate toggle row). */
   panelOnly?: boolean;
 };
+
+/**
+ * Shared keycap styling. Light theme leans on crisp borders + soft drop shadows
+ * for depth; dark theme keeps the same shadow language but lifts the contrast
+ * so keys stay legible and tactile against the deep navy panel.
+ */
+const KEY_BASE =
+  'group/key h-10 min-w-0 flex-1 touch-manipulation rounded-xl px-0 text-[0.95rem] font-bold tracking-wide select-none';
+const KEY_LIGHT =
+  'border border-border/70 bg-linear-to-b from-white to-muted/50 text-foreground ' +
+  'shadow-[0_1px_0_oklch(1_0_0/0.9)_inset,0_1px_2px_oklch(0_0_0/0.08),0_4px_8px_-3px_oklch(0_0_0/0.12)] ' +
+  'hover:from-muted/40 hover:to-muted/70 hover:shadow-[0_1px_0_oklch(1_0_0/0.8)_inset,0_2px_4px_oklch(0_0_0/0.1),0_6px_12px_-4px_oklch(0_0_0/0.16)]';
+const KEY_DARK =
+  'dark:border-white/10 dark:from-white/7 dark:to-white/2 dark:text-foreground ' +
+  'dark:shadow-[0_1px_0_oklch(1_0_0/0.08)_inset,0_1px_2px_oklch(0_0_0/0.4),0_6px_14px_-4px_oklch(0_0_0/0.6)] ' +
+  'dark:hover:from-white/12 dark:hover:to-white/4 dark:hover:shadow-[0_1px_0_oklch(1_0_0/0.1)_inset,0_2px_5px_oklch(0_0_0/0.45),0_8px_18px_-4px_oklch(0_0_0/0.7)]';
+// Pressed state: key sinks slightly, loses its drop shadow, gains an inner glow.
+const KEY_PRESSED =
+  'active:translate-y-[1.5px] active:scale-[0.97] active:shadow-[inset_0_2px_5px_oklch(0_0_0/0.18)] ' +
+  'dark:active:shadow-[inset_0_2px_6px_oklch(0_0_0/0.6)] active:transition-[transform,box-shadow] active:duration-75';
 
 function KeyButton({
   label,
@@ -53,17 +73,53 @@ function KeyButton({
         event.currentTarget.blur();
         onClick();
       }}
+      onPointerDown={(event) => {
+        const target = event.currentTarget;
+        const ripple = target.querySelector<HTMLElement>('[data-key-ripple="true"]');
+        if (!ripple) return;
+
+        const rect = target.getBoundingClientRect();
+        const size = Math.max(rect.width, rect.height) * 1.1;
+        const x = event.clientX - rect.left - size / 2;
+        const y = event.clientY - rect.top - size / 2;
+
+        // Reset then re-trigger the ripple animation from the press point.
+        ripple.style.opacity = '0';
+        ripple.style.width = ripple.style.height = `${size}px`;
+        ripple.style.left = `${x}px`;
+        ripple.style.top = `${y}px`;
+        // Force reflow so the restart is picked up.
+        void ripple.offsetWidth;
+        ripple.animate(
+          [
+            { transform: 'scale(0.2)', opacity: '0.5' },
+            { transform: 'scale(1)', opacity: '0' }
+          ],
+          { duration: 450, easing: 'ease-out', fill: 'forwards' }
+        );
+      }}
       className={cn(
-        'h-10 min-w-0 flex-1 touch-manipulation rounded-xl border-border/50 bg-gradient-to-b from-background to-muted/40 px-0 text-[0.95rem] font-bold tracking-wide text-foreground shadow-[0_1px_0_oklch(1_0_0/0.55)_inset,0_2px_6px_oklch(0_0_0/0.06)] transition-[transform,box-shadow,background-color] duration-150',
-        'hover:from-muted/30 hover:to-muted/60 hover:shadow-[0_1px_0_oklch(1_0_0/0.4)_inset,0_3px_10px_oklch(0_0_0/0.1)]',
-        'active:translate-y-px active:shadow-none',
-        'dark:border-border/40 dark:from-card/80 dark:to-muted/30 dark:shadow-[0_1px_0_oklch(1_0_0/0.08)_inset,0_4px_12px_oklch(0_0_0/0.35)]',
-        'dark:hover:from-muted/40 dark:hover:to-muted/50',
-        wide && 'max-w-[4.25rem] flex-[1.35]',
+        KEY_BASE,
+        KEY_LIGHT,
+        KEY_DARK,
+        KEY_PRESSED,
+        'group/key relative overflow-hidden transition-[transform,box-shadow,background-color] duration-150 ease-out',
+        wide && 'max-w-17 flex-[1.35]',
         className
       )}
     >
-      {children ?? label}
+      {/* Flash overlay: a quick white wash on press for tactile feedback. */}
+      <span
+        aria-hidden="true"
+        className="pointer-events-none absolute inset-0 rounded-[inherit] bg-primary opacity-0 transition-opacity duration-100 group-active/key:opacity-15 dark:group-active/key:opacity-25"
+      />
+      {/* Ripple: expands from the press point. Spawned via JS on pointer down. */}
+      <span
+        aria-hidden="true"
+        data-key-ripple="true"
+        className="pointer-events-none absolute rounded-full bg-primary/30 opacity-0"
+      />
+      <span className="relative z-10">{children ?? label}</span>
     </Button>
   );
 }
@@ -87,8 +143,11 @@ function KeyboardToggle({
             aria-pressed={open}
             onClick={() => onOpenChange(!open)}
             className={cn(
-              'rounded-full border-border/50 bg-card/90 shadow-md backdrop-blur-sm',
-              open && 'ring-2 ring-primary/25'
+              'rounded-full border-border/60 bg-card/95 shadow-[0_2px_8px_oklch(0_0_0/0.12),0_1px_0_oklch(1_0_0/0.6)_inset] backdrop-blur-sm transition-all duration-150',
+              'hover:shadow-[0_4px_12px_oklch(0_0_0/0.16),0_1px_0_oklch(1_0_0/0.5)_inset]',
+              'active:translate-y-px active:shadow-[inset_0_1px_3px_oklch(0_0_0/0.15)]',
+              'dark:border-white/10 dark:bg-card/80 dark:shadow-[0_4px_14px_oklch(0_0_0/0.5),0_1px_0_oklch(1_0_0/0.08)_inset]',
+              open && 'ring-2 ring-primary/40 dark:ring-primary/50'
             )}
           />
         }
@@ -122,7 +181,7 @@ export function CrossWordOnScreenKeyboard({
     <TooltipProvider>
       <div className="flex w-full max-w-[24rem] flex-col items-center">
         {!panelOnly ? (
-          <div className="mb-1.5 flex w-full items-center justify-end px-1 sm:mb-2.5">
+          <div className="mb-1 flex w-full items-center justify-end px-1 sm:mb-2">
             <KeyboardToggle open={open} onOpenChange={onOpenChange} />
           </div>
         ) : null}
@@ -142,12 +201,14 @@ export function CrossWordOnScreenKeyboard({
             >
               <div
                 className={cn(
-                  'relative flex w-full flex-col gap-1.5 rounded-2xl border border-border/45 p-2 sm:gap-2 sm:p-3',
-                  'bg-gradient-to-br from-card/90 via-card/70 to-primary/5',
-                  'shadow-[0_8px_28px_oklch(0_0_0/0.08),0_1px_0_oklch(1_0_0/0.5)_inset]',
-                  'backdrop-blur-md dark:from-card/80 dark:via-card/55 dark:to-primary/10',
-                  'dark:shadow-[0_16px_40px_oklch(0_0_0/0.4),0_1px_0_oklch(1_0_0/0.06)_inset]',
-                  'ring-1 ring-primary/10 dark:ring-primary/20'
+                  'relative flex w-full flex-col gap-1.5 rounded-2xl border p-2 sm:gap-2 sm:p-3',
+                  'border-border/60',
+                  'bg-linear-to-br from-card/95 via-card/75 to-primary/6',
+                  'shadow-[0_10px_30px_-6px_oklch(0_0_0/0.12),0_1px_0_oklch(1_0_0/0.6)_inset]',
+                  'backdrop-blur-md',
+                  'dark:border-white/10 dark:from-white/6 dark:via-card/60 dark:to-primary/12',
+                  'dark:shadow-[0_20px_50px_-10px_oklch(0_0_0/0.65),0_1px_0_oklch(1_0_0/0.07)_inset]',
+                  'ring-1 ring-primary/10 dark:ring-primary/25'
                 )}
               >
                 {/* Close floats in the corner so we don't reserve a full header row. */}
@@ -195,7 +256,7 @@ export function CrossWordOnScreenKeyboard({
                       wide
                       className={cn(
                         canToggleDirection &&
-                          'border-primary/35 text-primary dark:border-primary/45'
+                          'border-primary/40 text-primary dark:border-primary/50'
                       )}
                     >
                       <ArrowLeftRight />
