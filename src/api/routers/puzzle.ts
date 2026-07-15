@@ -78,6 +78,29 @@ const update_puzzle_attachments = async (
   const deleted_attachments = current_attachments.filter(
     (attachment) => !attachments.some((a) => a.id === attachment.id)
   );
+
+  const update_existing =
+    updated_attachments.length > 0
+      ? (() => {
+          const value_rows = updated_attachments.map(
+            (a) =>
+              sql`(${a.id!}::int, ${a.type}::attachment_type, ${a.url}::text, ${a.order_index}::smallint, ${a.title}::text)`
+          );
+          return tx.execute(sql`
+            UPDATE ${word_puzzle_attachments} AS t
+            SET
+              type = v.type,
+              url = v.url,
+              order_index = v.order_index,
+              title = v.title,
+              updated_at = now()
+            FROM (VALUES ${sql.join(value_rows, sql`, `)}) AS v(id, type, url, order_index, title)
+            WHERE t.puzzle_id = ${puzzle_id}
+              AND t.id = v.id
+          `);
+        })()
+      : Promise.resolve();
+
   const [new_attachments_inserted] = await Promise.all([
     new_attachments.length > 0
       ? tx
@@ -104,22 +127,7 @@ const update_puzzle_attachments = async (
           )
         )
       : Promise.resolve(),
-    ...updated_attachments.map((a) =>
-      tx
-        .update(word_puzzle_attachments)
-        .set({
-          type: a.type,
-          url: a.url,
-          order_index: a.order_index,
-          title: a.title
-        })
-        .where(
-          and(
-            eq(word_puzzle_attachments.id, a.id!),
-            eq(word_puzzle_attachments.puzzle_id, puzzle_id)
-          )
-        )
-    )
+    update_existing
   ]);
 
   return {

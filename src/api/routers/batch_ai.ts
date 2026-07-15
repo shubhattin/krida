@@ -515,24 +515,32 @@ export const poll_batch_puzzle_image_gen_func = async (
 
     if (TERMINAL_FAILURE_STATUSES.has(openai_status)) {
       await db.transaction(async (tx) => {
-        await Promise.all(
-          db_rows
-            .filter(
-              (row) => !isResponseItemProcessed(image_batch_metadata_schema.parse(row.metadata))
-            )
-            .map((row) =>
-              updateBatchResponse(
-                tx,
-                batch_id,
-                row.custom_id,
-                {
-                  ...image_batch_metadata_schema.parse(row.metadata),
-                  success: false
-                },
-                batch_output_file_id
-              )
-            )
+        const unprocessed_rows = db_rows.filter(
+          (row) => !isResponseItemProcessed(image_batch_metadata_schema.parse(row.metadata))
         );
+        if (unprocessed_rows.length > 0) {
+          const value_rows = unprocessed_rows.map((row) => {
+            const metadata = {
+              ...image_batch_metadata_schema.parse(row.metadata),
+              success: false as const
+            };
+            return sql`(${row.custom_id}::text, ${JSON.stringify(metadata)}::jsonb)`;
+          });
+          await tx.execute(sql`
+            UPDATE ${ai_batch_responses} AS t
+            SET metadata = v.metadata
+            FROM (VALUES ${sql.join(value_rows, sql`, `)}) AS v(custom_id, metadata)
+            WHERE t.batch_id = ${batch_id}
+              AND t.custom_id = v.custom_id
+              AND t.metadata->>'success' IS NULL
+          `);
+          if (batch_output_file_id != null) {
+            await tx
+              .update(ai_batches)
+              .set({ output_file_id: batch_output_file_id })
+              .where(eq(ai_batches.batch_id, batch_id));
+          }
+        }
         await markBatchOutputResolvedIfComplete(tx, batch_id, batch_output_file_id);
       });
       return {
