@@ -175,25 +175,25 @@ const main = async () => {
     // resetting SERIAL
     try {
       await tx.execute(
-        sql`SELECT setval('"word_puzzles_id_seq"', (select MAX(id) from "word_puzzles"))`
+        sql`SELECT setval('"word_puzzles_id_seq"', (select MAX(id) from "padavali_puzzles"))`
       );
       await tx.execute(
         sql`SELECT setval('"crossord_puzzles_id_seq"', (select MAX(id) from "crossord_puzzles"))`
       );
       await tx.execute(
-        sql`SELECT setval('"word_puzzle_attachments_id_seq"', (select MAX(id) from "word_puzzle_attachments"))`
+        sql`SELECT setval('"word_puzzle_attachments_id_seq"', (select MAX(id) from "padavali_attachments"))`
       );
       await tx.execute(
-        sql`SELECT setval('"puzzle_gameplay_stats_id_seq"', (select MAX(id) from "puzzle_gameplay_stats"))`
+        sql`SELECT setval('"puzzle_gameplay_stats_id_seq"', (select MAX(id) from "padavali_gameplay_stats"))`
       );
       await tx.execute(
-        sql`SELECT setval('"puzzle_game_schedules_id_seq"', (select MAX(id) from "puzzle_game_schedules"))`
+        sql`SELECT setval('"puzzle_game_schedules_id_seq"', (select MAX(id) from "padavali_schedules"))`
       );
       await tx.execute(
-        sql`SELECT setval('"puzzle_gameplay_sessions_id_seq"', (select MAX(id) from "puzzle_gameplay_sessions"))`
+        sql`SELECT setval('"puzzle_gameplay_sessions_id_seq"', (select MAX(id) from "padavali_sessions"))`
       );
       await tx.execute(
-        sql`SELECT setval('"word_puzzle_redirects_id_seq"', (select MAX(id) from "word_puzzle_redirects"))`
+        sql`SELECT setval('"word_puzzle_redirects_id_seq"', (select MAX(id) from "padavali_redirects"))`
       );
       await tx.execute(
         sql`SELECT setval('"image_assets_id_seq"', (select MAX(id) from "image_assets"))`
