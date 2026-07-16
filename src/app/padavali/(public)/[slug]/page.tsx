@@ -6,7 +6,8 @@ import { DEFAULT_DATA_SCRIPT } from '~/state/script_list';
 import { get_transliterated_word_game_msgs } from '~/components/pages/padavali/WordGame/msgs';
 import { transliterate_wasm } from 'lipilekhika';
 import { getCachedScript } from '~/lib/cache_server_route_data';
-import { CACHE, NO_CACHE_PARAMS, type PuzzleType } from '~/util/cache.server/cache_loaders';
+import { CACHE, NO_CACHE_PARAMS } from '~/util/cache.server/cache_loaders';
+import type { PadavaliPuzzleType } from '~/util/cache.server/padavali_cache';
 import { cache, Suspense } from 'react';
 import { ArrowLeftIcon } from 'lucide-react';
 import { getMetadata } from '~/components/tags/getPageMetaTags';
@@ -15,7 +16,7 @@ import { db } from '~/db/db';
 type Props = { params: Promise<{ slug: string }> };
 
 type SlugResolution =
-  | { type: 'puzzle'; puzzle: PuzzleType }
+  | { type: 'puzzle'; puzzle: PadavaliPuzzleType }
   | { type: 'redirect'; targetSlug: string }
   | { type: 'not_found' };
 

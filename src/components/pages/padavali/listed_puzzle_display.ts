@@ -1,9 +1,9 @@
-import type { ListedPuzzlesType } from '~/util/cache.server/cache_loaders';
+import type { PadavaliListedPuzzlesType } from '~/util/cache.server/padavali_cache';
 
 export const NORMAL_TITLE_SCRIPT = 'Normal' as const;
 export const PUZZLE_CARD_IMAGE_ASPECT_RATIO = [3, 2] as const;
 
-export type ListedPuzzle = ListedPuzzlesType[number];
+export type ListedPuzzle = PadavaliListedPuzzlesType[number];
 
 export type DisplayPuzzle = ListedPuzzle & {
   description_original: string | null;
@@ -11,7 +11,7 @@ export type DisplayPuzzle = ListedPuzzle & {
 };
 
 export function mapListedPuzzlesForDisplay(
-  org: ListedPuzzlesType,
+  org: PadavaliListedPuzzlesType,
   transliterated_texts: string[],
   normal_titles: string[]
 ): DisplayPuzzle[] {
@@ -40,7 +40,7 @@ export function mapListedPuzzlesForDisplay(
 
 export function mergeDisplayPuzzles(
   rows: DisplayPuzzle[],
-  org: ListedPuzzlesType,
+  org: PadavaliListedPuzzlesType,
   normal_titles: string[] | undefined
 ): DisplayPuzzle[] {
   return rows.map((puzzle, index) => ({

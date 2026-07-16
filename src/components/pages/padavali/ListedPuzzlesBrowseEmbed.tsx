@@ -9,9 +9,8 @@ import { ScriptSelector } from '~/components/pages/padavali/ScriptSelector';
 import Icon from '~/tools/Icon';
 import { LanguageIcon } from '~/components/icons';
 import { AppContext } from '~/components/AppDataContext';
-import { cn } from '~/lib/utils';
 import { FONT_INFO } from '~/state/script_font_data';
-import type { ListedPuzzlesType } from '~/util/cache.server/cache_loaders';
+import type { PadavaliListedPuzzlesType } from '~/util/cache.server/padavali_cache';
 import { InputGroup, InputGroupAddon, InputGroupInput } from '~/components/ui/input-group';
 import { Switch } from '~/components/ui/switch';
 import { Label } from '~/components/ui/label';
@@ -34,7 +33,7 @@ import { matchesPuzzleWordSearch } from '~/util/puzzle/search';
 const EMBED_PAGE_LIMIT = 8;
 
 type Props = {
-  listed_puzzles: ListedPuzzlesType;
+  listed_puzzles: PadavaliListedPuzzlesType;
   listed_puzzles_init_transliterated: DisplayPuzzle[];
 };
 

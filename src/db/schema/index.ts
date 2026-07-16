@@ -15,7 +15,7 @@ export * from './crossword_schema';
 
 /** Relations */
 
-export const word_puzzlesRelations = relations(padavali_puzzles, ({ many, one }) => ({
+export const padavali_puzzlesRelations = relations(padavali_puzzles, ({ many, one }) => ({
   stats: many(padavali_gameplay_stats),
   schedules: many(padavali_schedules),
   sessions: many(padavali_sessions),
@@ -27,40 +27,46 @@ export const word_puzzlesRelations = relations(padavali_puzzles, ({ many, one })
   redirects: many(padavali_redirects)
 }));
 
-export const word_puzzle_redirectsRelations = relations(padavali_redirects, ({ one }) => ({
+export const padavali_puzzle_redirectsRelations = relations(padavali_redirects, ({ one }) => ({
   puzzle: one(padavali_puzzles, {
     fields: [padavali_redirects.puzzle_id],
     references: [padavali_puzzles.id]
   })
 }));
 
-export const word_puzzle_attachmentsRelations = relations(padavali_attachments, ({ one }) => ({
+export const padavali_puzzle_attachmentsRelations = relations(padavali_attachments, ({ one }) => ({
   puzzle: one(padavali_puzzles, {
     fields: [padavali_attachments.puzzle_id],
     references: [padavali_puzzles.id]
   })
 }));
 
-export const puzzle_gameplay_sessionsRelations = relations(padavali_sessions, ({ one }) => ({
-  puzzle: one(padavali_puzzles, {
-    fields: [padavali_sessions.puzzle_id],
-    references: [padavali_puzzles.id]
-  }),
-  stats: one(padavali_gameplay_stats)
-}));
-
-export const puzzle_gameplay_statsRelations = relations(padavali_gameplay_stats, ({ one }) => ({
-  puzzle: one(padavali_puzzles, {
-    fields: [padavali_gameplay_stats.puzzle_id],
-    references: [padavali_puzzles.id]
-  }),
-  session: one(padavali_sessions, {
-    fields: [padavali_gameplay_stats.session_id],
-    references: [padavali_sessions.id]
+export const padavali_puzzle_gameplay_sessionsRelations = relations(
+  padavali_sessions,
+  ({ one }) => ({
+    puzzle: one(padavali_puzzles, {
+      fields: [padavali_sessions.puzzle_id],
+      references: [padavali_puzzles.id]
+    }),
+    stats: one(padavali_gameplay_stats)
   })
-}));
+);
 
-export const puzzle_game_schedulesRelations = relations(padavali_schedules, ({ one }) => ({
+export const padavali_puzzle_gameplay_statsRelations = relations(
+  padavali_gameplay_stats,
+  ({ one }) => ({
+    puzzle: one(padavali_puzzles, {
+      fields: [padavali_gameplay_stats.puzzle_id],
+      references: [padavali_puzzles.id]
+    }),
+    session: one(padavali_sessions, {
+      fields: [padavali_gameplay_stats.session_id],
+      references: [padavali_sessions.id]
+    })
+  })
+);
+
+export const padavali_puzzle_game_schedulesRelations = relations(padavali_schedules, ({ one }) => ({
   puzzle: one(padavali_puzzles, {
     fields: [padavali_schedules.puzzle_id],
     references: [padavali_puzzles.id]

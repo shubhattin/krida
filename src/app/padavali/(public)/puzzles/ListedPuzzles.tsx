@@ -15,7 +15,7 @@ import { LanguageIcon } from '~/components/icons';
 import { AppContext } from '~/components/AppDataContext';
 import { cn } from '~/lib/utils';
 import { FONT_INFO } from '~/state/script_font_data';
-import type { ListedPuzzlesType } from '~/util/cache.server/cache_loaders';
+import type { PadavaliListedPuzzlesType } from '~/util/cache.server/padavali_cache';
 import {
   mapListedPuzzlesForDisplay,
   mergeDisplayPuzzles,
@@ -43,7 +43,7 @@ import {
 } from '~/components/ui/pagination';
 
 type Props = {
-  listed_puzzles: ListedPuzzlesType;
+  listed_puzzles: PadavaliListedPuzzlesType;
   script: ScriptType;
   listed_puzzles_init_transliterated: DisplayPuzzle[];
 };

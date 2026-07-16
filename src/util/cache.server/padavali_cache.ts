@@ -13,8 +13,8 @@ import {
 
 export { NO_CACHE_PARAMS } from './create_cached_loader';
 
-type PuzzleType = z.infer<typeof puzzle_schema>;
-export type { PuzzleType };
+type PadavaliPuzzleType = z.infer<typeof puzzle_schema>;
+export type { PadavaliPuzzleType };
 
 const current_schedule_schema = z.object({
   id: z.number().int(),
@@ -23,7 +23,7 @@ const current_schedule_schema = z.object({
   puzzle: puzzle_schema
 });
 
-export type CurrentScheduleType = z.infer<typeof current_schedule_schema> | undefined;
+export type PadavaliCurrentScheduleType = z.infer<typeof current_schedule_schema> | undefined;
 
 const next_schedule_schema = z.object({
   id: z.number().int(),
@@ -33,7 +33,7 @@ const next_schedule_schema = z.object({
   })
 });
 
-export type NextScheduleType = z.infer<typeof next_schedule_schema> | undefined;
+export type PadavaliNextScheduleType = z.infer<typeof next_schedule_schema> | undefined;
 
 const listed_puzzle_schema = z.object({
   id: z.number().int(),
@@ -44,7 +44,7 @@ const listed_puzzle_schema = z.object({
   image: image_schema.nullable()
 });
 
-export type ListedPuzzlesType = z.infer<typeof listed_puzzle_schema>[];
+export type PadavaliListedPuzzlesType = z.infer<typeof listed_puzzle_schema>[];
 
 const schedule_sentinel_from_cache = <T>(raw: unknown): T | null => {
   if (raw === 'undefined') return undefined as T;
@@ -52,7 +52,7 @@ const schedule_sentinel_from_cache = <T>(raw: unknown): T | null => {
   return null;
 };
 
-const load_current_schedule = createCachedLoader<NoCacheParams, CurrentScheduleType>({
+const load_current_schedule = createCachedLoader<NoCacheParams, PadavaliCurrentScheduleType>({
   getKey: () => REDIS_CACHE_KEYS.padavali_current_schedule(),
   fetch: async () => {
     const currentTime = new Date();
@@ -89,12 +89,12 @@ const load_current_schedule = createCachedLoader<NoCacheParams, CurrentScheduleT
         }
       }
     });
-    return data satisfies CurrentScheduleType;
+    return data satisfies PadavaliCurrentScheduleType;
   },
   schema: current_schedule_schema,
   toCacheValue: (data) => data ?? 'undefined',
   fromCacheValue: (raw) => {
-    const parsed = schedule_sentinel_from_cache<CurrentScheduleType>(raw);
+    const parsed = schedule_sentinel_from_cache<PadavaliCurrentScheduleType>(raw);
     if (parsed === null) return null;
     if (parsed === undefined) return undefined;
     return current_schedule_schema.parse(parsed);
@@ -110,7 +110,7 @@ const load_current_schedule = createCachedLoader<NoCacheParams, CurrentScheduleT
       : undefined
 });
 
-const load_next_schedule = createCachedLoader<NoCacheParams, NextScheduleType>({
+const load_next_schedule = createCachedLoader<NoCacheParams, PadavaliNextScheduleType>({
   getKey: () => REDIS_CACHE_KEYS.padavali_next_schedule(),
   fetch: async () => {
     const currentTime = new Date();
@@ -129,12 +129,12 @@ const load_next_schedule = createCachedLoader<NoCacheParams, NextScheduleType>({
         }
       }
     });
-    return data satisfies NextScheduleType;
+    return data satisfies PadavaliNextScheduleType;
   },
   schema: next_schedule_schema,
   toCacheValue: (data) => data ?? 'undefined',
   fromCacheValue: (raw) => {
-    const parsed = schedule_sentinel_from_cache<NextScheduleType>(raw);
+    const parsed = schedule_sentinel_from_cache<PadavaliNextScheduleType>(raw);
     if (parsed === null) return null;
     if (parsed === undefined) return undefined;
     return next_schedule_schema.parse(parsed);
@@ -143,7 +143,7 @@ const load_next_schedule = createCachedLoader<NoCacheParams, NextScheduleType>({
     data ? { exat: Math.floor(data.start_time.getTime() / 1000) } : undefined
 });
 
-const load_listed_puzzle_list = createCachedLoader<NoCacheParams, ListedPuzzlesType>({
+const load_listed_puzzle_list = createCachedLoader<NoCacheParams, PadavaliListedPuzzlesType>({
   getKey: () => REDIS_CACHE_KEYS.padavali_listed_puzzle_list(),
   schema: listed_puzzle_schema.array(),
   fetch: async () => {
@@ -170,16 +170,16 @@ const load_listed_puzzle_list = createCachedLoader<NoCacheParams, ListedPuzzlesT
         desc(created_at)
       ]
     });
-    return data satisfies ListedPuzzlesType;
+    return data satisfies PadavaliListedPuzzlesType;
   }
 });
 
-export type WordPuzzleParams = { slug: string };
+export type PadavaliPuzzleParams = { slug: string };
 
-const load_word_puzzle = createCachedLoader<WordPuzzleParams, PuzzleType | undefined>({
+const load_word_puzzle = createCachedLoader<PadavaliPuzzleParams, PadavaliPuzzleType | undefined>({
   getKey: ({ slug }) => REDIS_CACHE_KEYS.padavali_word_puzzle(slug),
   schema: puzzle_schema,
-  shouldCache: (data): data is PuzzleType => data !== undefined,
+  shouldCache: (data): data is PadavaliPuzzleType => data !== undefined,
   fetch: async ({ slug }) => {
     const data = await db.query.padavali_puzzles.findFirst({
       where: (tbl, { eq }) => eq(tbl.slug, slug),
@@ -204,11 +204,11 @@ const load_word_puzzle = createCachedLoader<WordPuzzleParams, PuzzleType | undef
         }
       }
     });
-    return data satisfies PuzzleType | undefined;
+    return data satisfies PadavaliPuzzleType | undefined;
   }
 });
 
-const load_word_meanings = createCachedLoader<WordPuzzleParams, WordMeaningsType>({
+const load_word_meanings = createCachedLoader<PadavaliPuzzleParams, WordMeaningsType>({
   getKey: ({ slug }) => REDIS_CACHE_KEYS.padavali_word_meanings(slug),
   ttlSeconds: Math.floor(ms('90days') / 1000),
   schema: word_meanings_schema,
@@ -222,11 +222,11 @@ const load_word_meanings = createCachedLoader<WordPuzzleParams, WordMeaningsType
 });
 
 export type PadavaliCacheLoaders = {
-  current_schedule: CachedLoader<NoCacheParams, CurrentScheduleType>;
-  next_schedule: CachedLoader<NoCacheParams, NextScheduleType>;
-  listed_puzzle_list: CachedLoader<NoCacheParams, ListedPuzzlesType>;
-  word_puzzle: CachedLoader<WordPuzzleParams, PuzzleType | undefined>;
-  word_meanings: CachedLoader<WordPuzzleParams, WordMeaningsType>;
+  current_schedule: CachedLoader<NoCacheParams, PadavaliCurrentScheduleType>;
+  next_schedule: CachedLoader<NoCacheParams, PadavaliNextScheduleType>;
+  listed_puzzle_list: CachedLoader<NoCacheParams, PadavaliListedPuzzlesType>;
+  word_puzzle: CachedLoader<PadavaliPuzzleParams, PadavaliPuzzleType | undefined>;
+  word_meanings: CachedLoader<PadavaliPuzzleParams, WordMeaningsType>;
 };
 
 export const padavali_cache_loaders: PadavaliCacheLoaders = {

@@ -7,7 +7,7 @@ import { motion } from 'framer-motion';
 import { IoExtensionPuzzleSharp } from 'react-icons/io5';
 import { client } from '~/api/client';
 import { ListedPuzzlesBrowseEmbed } from '~/components/pages/padavali/ListedPuzzlesBrowseEmbed';
-import type { ListedPuzzlesType } from '~/util/cache.server/cache_loaders';
+import type { PadavaliListedPuzzlesType } from '~/util/cache.server/padavali_cache';
 import type { DisplayPuzzle } from '~/components/pages/padavali/listed_puzzle_display';
 
 const NEXT_PUZZLE_CACHE_REFRESH_BUFFER_MS = 3_000;
@@ -89,7 +89,7 @@ type Props = {
         puzzle: { id: number };
       }
     | undefined;
-  listed_puzzles: ListedPuzzlesType;
+  listed_puzzles: PadavaliListedPuzzlesType;
   listed_puzzles_init_transliterated: DisplayPuzzle[];
 };
 

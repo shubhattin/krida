@@ -89,15 +89,15 @@ const main = async () => {
       console.log(chalk.red('✗ Error while inserting image_assets:'), chalk.yellow(e));
     }
 
-    // inserting word_puzzles
+    // inserting padavali_puzzles
     try {
       await tx.insert(padavali_puzzles).values(data.padavali_puzzles);
       console.log(
         chalk.green('✓ Successfully added values into table'),
-        chalk.blue('`word_puzzles`')
+        chalk.blue('`padavali_puzzles`')
       );
     } catch (e) {
-      console.log(chalk.red('✗ Error while inserting word_puzzles:'), chalk.yellow(e));
+      console.log(chalk.red('✗ Error while inserting padavali_puzzles:'), chalk.yellow(e));
     }
 
     // inserting crossord_puzzles
@@ -111,40 +111,46 @@ const main = async () => {
       console.log(chalk.red('✗ Error while inserting crossord_puzzles:'), chalk.yellow(e));
     }
 
-    // inserting word_puzzle_redirects
+    // inserting padavali_puzzle_redirects
     try {
       await tx.insert(padavali_redirects).values(data.padavali_redirects);
       console.log(
         chalk.green('✓ Successfully added values into table'),
-        chalk.blue('`word_puzzle_redirects`')
+        chalk.blue('`padavali_puzzle_redirects`')
       );
     } catch (e) {
-      console.log(chalk.red('✗ Error while inserting word_puzzle_redirects:'), chalk.yellow(e));
+      console.log(chalk.red('✗ Error while inserting padavali_puzzle_redirects:'), chalk.yellow(e));
     }
 
-    // inserting word_puzzle_attachments
+    // inserting padavali_puzzle_attachments
     try {
       await tx.insert(padavali_attachments).values(data.padavali_attachments);
       console.log(
         chalk.green('✓ Successfully added values into table'),
-        chalk.blue('`word_puzzle_attachments`')
+        chalk.blue('`padavali_puzzle_attachments`')
       );
     } catch (e) {
-      console.log(chalk.red('✗ Error while inserting word_puzzle_attachments:'), chalk.yellow(e));
+      console.log(
+        chalk.red('✗ Error while inserting padavali_puzzle_attachments:'),
+        chalk.yellow(e)
+      );
     }
 
-    // inserting puzzle_game_schedules
+    // inserting padavali_puzzle_game_schedules
     try {
       await tx.insert(padavali_schedules).values(data.padavali_schedules);
       console.log(
         chalk.green('✓ Successfully added values into table'),
-        chalk.blue('`puzzle_game_schedules`')
+        chalk.blue('`padavali_puzzle_game_schedules`')
       );
     } catch (e) {
-      console.log(chalk.red('✗ Error while inserting puzzle_game_schedules:'), chalk.yellow(e));
+      console.log(
+        chalk.red('✗ Error while inserting padavali_puzzle_game_schedules:'),
+        chalk.yellow(e)
+      );
     }
 
-    // inserting puzzle_gameplay_sessions
+    // inserting padavali_puzzle_gameplay_sessions
     try {
       const chunks = chunkArray(data.padavali_sessions, 5000);
       for (const chunk of chunks) {
@@ -152,13 +158,16 @@ const main = async () => {
       }
       console.log(
         chalk.green('✓ Successfully added values into table'),
-        chalk.blue('`puzzle_gameplay_sessions`')
+        chalk.blue('`padavali_puzzle_gameplay_sessions`')
       );
     } catch (e) {
-      console.log(chalk.red('✗ Error while inserting puzzle_gameplay_sessions:'), chalk.yellow(e));
+      console.log(
+        chalk.red('✗ Error while inserting padavali_puzzle_gameplay_sessions:'),
+        chalk.yellow(e)
+      );
     }
 
-    // inserting puzzle_gameplay_stats
+    // inserting padavali_puzzle_gameplay_stats
     try {
       const chunks = chunkArray(data.padavali_gameplay_stats, 5000);
       for (const chunk of chunks) {
@@ -166,13 +175,18 @@ const main = async () => {
       }
       console.log(
         chalk.green('✓ Successfully added values into table'),
-        chalk.blue('`puzzle_gameplay_stats`')
+        chalk.blue('`padavali_puzzle_gameplay_stats`')
       );
     } catch (e) {
-      console.log(chalk.red('✗ Error while inserting puzzle_gameplay_stats:'), chalk.yellow(e));
+      console.log(
+        chalk.red('✗ Error while inserting padavali_puzzle_gameplay_stats:'),
+        chalk.yellow(e)
+      );
     }
 
     // resetting SERIAL
+    // here for tables that have been renamed later have thier old .*_seq names
+    // like word_puzzles -> padavali_puzzles, still has word_puzzles_id_seq (not padavali_puzzles_id_seq)
     try {
       await tx.execute(
         sql`SELECT setval('"word_puzzles_id_seq"', (select MAX(id) from "padavali_puzzles"))`
