@@ -11,7 +11,7 @@ import {
 } from '~/components/pages/padavali/listed_puzzle_display';
 
 const ListedPage = async () => {
-  const listed_puzzles = await CACHE.padavali_listed_puzzle_list.get(NO_CACHE_PARAMS);
+  const listed_puzzles = await CACHE.padavali.listed_puzzle_list.get(NO_CACHE_PARAMS);
 
   const script = await getCachedScript();
 

@@ -32,12 +32,12 @@ import {
 import { escapeIlikeToken, tokenizeSearchQuery } from '~/util/puzzle/search';
 
 const puzzle_in_current_schedule = async (id: number) => {
-  const current_schedule = await CACHE.padavali_current_schedule.get(NO_CACHE_PARAMS);
+  const current_schedule = await CACHE.padavali.current_schedule.get(NO_CACHE_PARAMS);
   return current_schedule?.puzzle.id === id;
 };
 
 const puzzle_in_next_schedule = async (id: number) => {
-  const next_schedule = await CACHE.padavali_next_schedule.get(NO_CACHE_PARAMS);
+  const next_schedule = await CACHE.padavali.next_schedule.get(NO_CACHE_PARAMS);
   return next_schedule?.puzzle.id === id;
 };
 
@@ -287,15 +287,15 @@ const update_puzzle_route = protectedAdminProcedure
 
     await Promise.allSettled([
       (puzzle_data.listed || prev_listed !== puzzle_data.listed) &&
-        invalidate_and_refresh_cached(CACHE.padavali_listed_puzzle_list, NO_CACHE_PARAMS),
-      invalidate_and_refresh_cached(CACHE.padavali_word_puzzle, {
+        invalidate_and_refresh_cached(CACHE.padavali.listed_puzzle_list, NO_CACHE_PARAMS),
+      invalidate_and_refresh_cached(CACHE.padavali.word_puzzle, {
         slug: puzzle_slug
       }),
-      invalidate_and_refresh_cached(CACHE.padavali_word_meanings, {
+      invalidate_and_refresh_cached(CACHE.padavali.word_meanings, {
         slug: puzzle_slug
       }),
       (await puzzle_in_current_schedule(puzzle_id)) &&
-        invalidate_and_refresh_cached(CACHE.padavali_current_schedule, NO_CACHE_PARAMS),
+        invalidate_and_refresh_cached(CACHE.padavali.current_schedule, NO_CACHE_PARAMS),
       puzzle_data.listed &&
         !prev_listed &&
         notify_for_listed_puzzle(puzzle_data_rest.title, puzzle_slug)
@@ -345,17 +345,17 @@ const update_puzzle_slug_route = protectedAdminProcedure
     revalidatePath('/padavali/list');
 
     await Promise.all([
-      invalidate_and_refresh_cached(CACHE.padavali_word_puzzle, { slug: new_slug }),
-      invalidate_and_refresh_cached(CACHE.padavali_word_meanings, { slug: current_slug })
+      invalidate_and_refresh_cached(CACHE.padavali.word_puzzle, { slug: new_slug }),
+      invalidate_and_refresh_cached(CACHE.padavali.word_meanings, { slug: current_slug })
     ]);
 
     await Promise.allSettled([
       puzzle.listed &&
-        invalidate_and_refresh_cached(CACHE.padavali_listed_puzzle_list, NO_CACHE_PARAMS),
+        invalidate_and_refresh_cached(CACHE.padavali.listed_puzzle_list, NO_CACHE_PARAMS),
       (await puzzle_in_current_schedule(puzzle_id)) &&
-        invalidate_and_refresh_cached(CACHE.padavali_current_schedule, NO_CACHE_PARAMS),
+        invalidate_and_refresh_cached(CACHE.padavali.current_schedule, NO_CACHE_PARAMS),
       (await puzzle_in_next_schedule(puzzle_id)) &&
-        invalidate_and_refresh_cached(CACHE.padavali_next_schedule, NO_CACHE_PARAMS)
+        invalidate_and_refresh_cached(CACHE.padavali.next_schedule, NO_CACHE_PARAMS)
     ]);
 
     return { success: true as const, slug: new_slug };
@@ -415,15 +415,15 @@ const delete_puzzle_route = protectedAdminProcedure
     });
 
     await Promise.allSettled([
-      listed && invalidate_and_refresh_cached(CACHE.padavali_listed_puzzle_list, NO_CACHE_PARAMS),
-      invalidate_and_refresh_cached(CACHE.padavali_word_puzzle, {
+      listed && invalidate_and_refresh_cached(CACHE.padavali.listed_puzzle_list, NO_CACHE_PARAMS),
+      invalidate_and_refresh_cached(CACHE.padavali.word_puzzle, {
         slug: normalizedSlug
       }),
-      CACHE.padavali_word_meanings.delete({ slug: normalizedSlug }),
+      CACHE.padavali.word_meanings.delete({ slug: normalizedSlug }),
       (await puzzle_in_current_schedule(id)) &&
-        invalidate_and_refresh_cached(CACHE.padavali_current_schedule, NO_CACHE_PARAMS),
+        invalidate_and_refresh_cached(CACHE.padavali.current_schedule, NO_CACHE_PARAMS),
       (await puzzle_in_next_schedule(id)) &&
-        invalidate_and_refresh_cached(CACHE.padavali_next_schedule, NO_CACHE_PARAMS)
+        invalidate_and_refresh_cached(CACHE.padavali.next_schedule, NO_CACHE_PARAMS)
     ]);
     return {
       success: true
@@ -522,7 +522,7 @@ const get_listed_puzzles_preview_input_schema = z.object({
 const get_listed_puzzles_preview_route = publicProcedure
   .input(get_listed_puzzles_preview_input_schema)
   .query(async ({ input }) => {
-    const listed = await CACHE.padavali_listed_puzzle_list.get(NO_CACHE_PARAMS);
+    const listed = await CACHE.padavali.listed_puzzle_list.get(NO_CACHE_PARAMS);
     let filtered = listed;
     if (input.exclude_slug) {
       filtered = filtered.filter((puzzle) => puzzle.slug !== input.exclude_slug);
@@ -535,10 +535,10 @@ const get_listed_puzzles_preview_route = publicProcedure
 
 const refresh_current_schedule_route = publicProcedure.mutation(async () => {
   await Promise.all([
-    invalidate_and_refresh_cached(CACHE.padavali_current_schedule, NO_CACHE_PARAMS),
-    invalidate_and_refresh_cached(CACHE.padavali_next_schedule, NO_CACHE_PARAMS)
+    invalidate_and_refresh_cached(CACHE.padavali.current_schedule, NO_CACHE_PARAMS),
+    invalidate_and_refresh_cached(CACHE.padavali.next_schedule, NO_CACHE_PARAMS)
   ]);
-  const current = await CACHE.padavali_current_schedule.get(NO_CACHE_PARAMS);
+  const current = await CACHE.padavali.current_schedule.get(NO_CACHE_PARAMS);
   return { has_current: current !== undefined };
 });
 
@@ -607,8 +607,8 @@ const delete_redirect_slug_route = protectedAdminProcedure
       );
 
     await Promise.allSettled([
-      CACHE.padavali_word_puzzle.delete({ slug: redirect_slug }),
-      CACHE.padavali_word_meanings.delete({ slug: redirect_slug })
+      CACHE.padavali.word_puzzle.delete({ slug: redirect_slug }),
+      CACHE.padavali.word_meanings.delete({ slug: redirect_slug })
     ]);
     revalidatePath(`/padavali/${redirect_slug}`);
 

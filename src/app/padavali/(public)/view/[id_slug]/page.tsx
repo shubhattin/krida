@@ -15,7 +15,7 @@ import { PreviewWarningBanner } from './PreviewWarningBanner';
 type Props = { params: Promise<{ id_slug: string }> };
 
 const word_puzzle_get_cached_func = cache((params: { slug: string }) =>
-  CACHE.padavali_word_puzzle.get(params)
+  CACHE.padavali.word_puzzle.get(params)
 );
 
 const parseParams = async (params: Promise<{ id_slug: string }>) => {
@@ -52,7 +52,7 @@ const MainEdit = async ({ params }: Props) => {
 
   const [word_puzzle, next_schedule] = await Promise.all([
     word_puzzle_get_cached_func({ slug }),
-    CACHE.padavali_next_schedule.get(NO_CACHE_PARAMS)
+    CACHE.padavali.next_schedule.get(NO_CACHE_PARAMS)
   ]);
 
   const isValid = word_puzzle && word_puzzle.id === id;

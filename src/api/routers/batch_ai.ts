@@ -399,15 +399,15 @@ export const approve_connect_puzzle_image_id_func = async (batch_id: string, cus
     ]);
 
     // refresh cache
-    const current_schedule = await CACHE.padavali_current_schedule.get(NO_CACHE_PARAMS);
+    const current_schedule = await CACHE.padavali.current_schedule.get(NO_CACHE_PARAMS);
     await Promise.all([
       // if puzzle is in current schedule then invalidate the cache
       current_schedule &&
         current_schedule.puzzle.id === puzzle_id &&
-        invalidate_and_refresh_cached(CACHE.padavali_current_schedule, NO_CACHE_PARAMS),
-      invalidate_and_refresh_cached(CACHE.padavali_word_puzzle, { slug: puzzle.slug }),
+        invalidate_and_refresh_cached(CACHE.padavali.current_schedule, NO_CACHE_PARAMS),
+      invalidate_and_refresh_cached(CACHE.padavali.word_puzzle, { slug: puzzle.slug }),
       puzzle.listed &&
-        invalidate_and_refresh_cached(CACHE.padavali_listed_puzzle_list, NO_CACHE_PARAMS)
+        invalidate_and_refresh_cached(CACHE.padavali.listed_puzzle_list, NO_CACHE_PARAMS)
     ]);
 
     return {

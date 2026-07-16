@@ -59,8 +59,8 @@ export const POST = verifySignatureAppRouter(async (req: Request) => {
       )
   ]);
   await Promise.allSettled([
-    invalidate_and_refresh_cached(CACHE.padavali_listed_puzzle_list, NO_CACHE_PARAMS),
-    invalidate_and_refresh_cached(CACHE.padavali_word_puzzle, {
+    invalidate_and_refresh_cached(CACHE.padavali.listed_puzzle_list, NO_CACHE_PARAMS),
+    invalidate_and_refresh_cached(CACHE.padavali.word_puzzle, {
       slug: schedule.puzzle.slug
     }),
     notify_for_listed_puzzle(schedule.puzzle.title, schedule.puzzle.slug)
