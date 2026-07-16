@@ -12,7 +12,7 @@ import { TRPCError } from '@trpc/server';
 import { createAiBatch, getAiBatchResult, type AiBatchInput } from '~/util/ai_batch';
 import type { AiBatchPollingStatus } from '~/util/ai_batch/types';
 import { OpenAI } from 'openai';
-import { ai_batches, ai_batch_responses, image_assets, word_puzzles } from '~/db/schema';
+import { ai_batches, ai_batch_responses, image_assets, padavali_puzzles } from '~/db/schema';
 import { createS3Client, deleteAssetFile } from '~/util/s3/upload_file.server';
 import { and, desc, eq, inArray, sql } from 'drizzle-orm';
 import {
@@ -180,7 +180,7 @@ const trigger_batch_puzzle_image_gen_route = protectedAdminProcedure
   )
   .mutation(async ({ input: { auto_approved, puzzles: puzzle_inputs } }) => {
     const puzzle_ids = puzzle_inputs.map((puzzle) => puzzle.puzzle_id);
-    const db_puzzles = await db.query.word_puzzles.findMany({
+    const db_puzzles = await db.query.padavali_puzzles.findMany({
       columns: {
         id: true,
         title: true,
@@ -370,9 +370,9 @@ export const approve_connect_puzzle_image_id_func = async (batch_id: string, cus
     }
     const { uploaded_image_id, puzzle_id } = metadata;
 
-    const puzzle = await tx.query.word_puzzles.findFirst({
+    const puzzle = await tx.query.padavali_puzzles.findFirst({
       columns: { slug: true, listed: true },
-      where: eq(word_puzzles.id, puzzle_id)
+      where: eq(padavali_puzzles.id, puzzle_id)
     });
     if (!puzzle) {
       throw new TRPCError({
@@ -383,11 +383,11 @@ export const approve_connect_puzzle_image_id_func = async (batch_id: string, cus
 
     await Promise.all([
       tx
-        .update(word_puzzles)
+        .update(padavali_puzzles)
         .set({
           image_id: uploaded_image_id
         })
-        .where(eq(word_puzzles.id, puzzle_id)),
+        .where(eq(padavali_puzzles.id, puzzle_id)),
       tx
         .delete(ai_batch_responses)
         .where(
@@ -399,14 +399,15 @@ export const approve_connect_puzzle_image_id_func = async (batch_id: string, cus
     ]);
 
     // refresh cache
-    const current_schedule = await CACHE.current_schedule.get(NO_CACHE_PARAMS);
+    const current_schedule = await CACHE.padavali.current_schedule.get(NO_CACHE_PARAMS);
     await Promise.all([
       // if puzzle is in current schedule then invalidate the cache
       current_schedule &&
         current_schedule.puzzle.id === puzzle_id &&
-        invalidate_and_refresh_cached(CACHE.current_schedule, NO_CACHE_PARAMS),
-      invalidate_and_refresh_cached(CACHE.word_puzzle, { slug: puzzle.slug }),
-      puzzle.listed && invalidate_and_refresh_cached(CACHE.listed_puzzle_list, NO_CACHE_PARAMS)
+        invalidate_and_refresh_cached(CACHE.padavali.current_schedule, NO_CACHE_PARAMS),
+      invalidate_and_refresh_cached(CACHE.padavali.word_puzzle, { slug: puzzle.slug }),
+      puzzle.listed &&
+        invalidate_and_refresh_cached(CACHE.padavali.listed_puzzle_list, NO_CACHE_PARAMS)
     ]);
 
     return {
@@ -749,9 +750,9 @@ async function enrichBatchRowWithAssetAndPuzzle(row: {
   const puzzle_id = metadata.puzzle_id ?? parsePuzzleIdFromBatchCustomId(row.custom_id);
   let puzzle_title: string | null = null;
   if (puzzle_id !== null) {
-    const puzzle = await db.query.word_puzzles.findFirst({
+    const puzzle = await db.query.padavali_puzzles.findFirst({
       columns: { title: true },
-      where: eq(word_puzzles.id, puzzle_id)
+      where: eq(padavali_puzzles.id, puzzle_id)
     });
     puzzle_title = puzzle?.title ?? null;
   }
@@ -867,9 +868,9 @@ const get_batch_manager_groups_route = protectedAdminProcedure.query(async () =>
 
   const [puzzles, assets] = await Promise.all([
     puzzle_ids.size > 0
-      ? db.query.word_puzzles.findMany({
+      ? db.query.padavali_puzzles.findMany({
           columns: { id: true, title: true },
-          where: inArray(word_puzzles.id, [...puzzle_ids])
+          where: inArray(padavali_puzzles.id, [...puzzle_ids])
         })
       : Promise.resolve([]),
     image_ids.size > 0

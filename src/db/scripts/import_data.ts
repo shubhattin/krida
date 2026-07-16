@@ -7,28 +7,28 @@ export const import_data = async (confirm_env = true) => {
 
   console.log(`Fetching Data from ${dbMode} Database...`);
 
-  const word_puzzles = await db.query.word_puzzles.findMany();
-  const word_puzzle_attachments = await db.query.word_puzzle_attachments.findMany();
-  const puzzle_gameplay_stats = await db.query.puzzle_gameplay_stats.findMany();
-  const puzzle_game_schedules = await db.query.puzzle_game_schedules.findMany();
-  const puzzle_gameplay_sessions = await db.query.puzzle_gameplay_sessions.findMany();
+  const padavali_puzzles = await db.query.padavali_puzzles.findMany();
+  const padavali_attachments = await db.query.padavali_attachments.findMany();
+  const padavali_gameplay_stats = await db.query.padavali_gameplay_stats.findMany();
+  const padavali_schedules = await db.query.padavali_schedules.findMany();
+  const padavali_sessions = await db.query.padavali_sessions.findMany();
   const ai_batch_responses = await db.query.ai_batch_responses.findMany();
   const ai_batches = await db.query.ai_batches.findMany();
-  const word_puzzle_redirects = await db.query.word_puzzle_redirects.findMany();
+  const padavali_redirects = await db.query.padavali_redirects.findMany();
   const image_assets = await db.query.image_assets.findMany();
-  const crossord_puzzles = await db.query.crossord_puzzles.findMany();
+  const crossword_puzzles = await db.query.crossword_puzzles.findMany();
 
   const json_data = {
-    word_puzzles,
-    word_puzzle_attachments,
-    puzzle_game_schedules,
-    puzzle_gameplay_sessions,
-    puzzle_gameplay_stats,
+    padavali_puzzles,
+    padavali_attachments,
+    padavali_schedules,
+    padavali_sessions,
+    padavali_gameplay_stats,
     ai_batch_responses,
     ai_batches,
-    word_puzzle_redirects,
+    padavali_redirects,
     image_assets,
-    crossord_puzzles
+    crossword_puzzles
   };
 
   await make_dir('./out');

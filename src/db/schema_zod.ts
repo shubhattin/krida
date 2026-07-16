@@ -1,22 +1,22 @@
 import { z } from 'zod';
 import {
-  word_puzzles,
-  puzzle_gameplay_stats,
-  puzzle_game_schedules,
-  puzzle_gameplay_sessions,
-  word_puzzle_attachments,
+  padavali_puzzles,
+  padavali_gameplay_stats,
+  padavali_schedules,
+  padavali_sessions,
+  padavali_attachments,
   ai_batch_responses,
   ai_batches,
-  word_puzzle_redirects,
+  padavali_redirects,
   image_assets,
-  crossord_puzzles
+  crossword_puzzles
 } from './schema';
 import { createSelectSchema } from 'drizzle-zod';
 import { location_list_enum } from './types';
 import { script_list_enum } from '~/state/script_list';
 import { image_batch_metadata_schema } from '~/util/types/ai_batch_metadata';
 
-export const WordPuzzleSchemaZod = createSelectSchema(word_puzzles, {
+export const PadavaliPuzzleSchemaZod = createSelectSchema(padavali_puzzles, {
   word_list: z.string().array(),
   grid_data: z.string().array().array(),
   grid_dimensions: z.tuple([z.number().int().min(3), z.number().int().min(3)]),
@@ -42,7 +42,7 @@ export const CrossordPuzzleGridCellSchema = z.object({
 });
 export type CrossWordPuzzleWord = z.infer<typeof CrossWordPuzzleWordSchema>;
 export type CrossordPuzzleGridCell = z.infer<typeof CrossordPuzzleGridCellSchema>;
-export const CrossordPuzzleSchemaZod = createSelectSchema(crossord_puzzles, {
+export const CrossordPuzzleSchemaZod = createSelectSchema(crossword_puzzles, {
   /** (m,n) */
   grid_dimensions: z.tuple([z.number().int().min(3), z.number().int().min(3)]),
   word_list: CrossWordPuzzleWordSchema.array(),
@@ -54,24 +54,24 @@ export const CrossordPuzzleSchemaZod = createSelectSchema(crossord_puzzles, {
 });
 export type CrossordPuzzle = z.infer<typeof CrossordPuzzleSchemaZod>;
 
-export const PuzzleGamePlayStatsSchemaZod = createSelectSchema(puzzle_gameplay_stats, {
+export const PadavaliGamePlayStatsSchemaZod = createSelectSchema(padavali_gameplay_stats, {
   created_at: z.coerce.date()
 });
 
-export const PuzzleGameScheduleSchemaZod = createSelectSchema(puzzle_game_schedules, {
+export const PadavaliScheduleSchemaZod = createSelectSchema(padavali_schedules, {
   created_at: z.coerce.date(),
   updated_at: z.coerce.date().optional(),
   start_time: z.coerce.date(),
   end_time: z.coerce.date()
 });
 
-export const PuzzleGamePlaySessionSchemaZod = createSelectSchema(puzzle_gameplay_sessions, {
+export const PadavaliSessionSchemaZod = createSelectSchema(padavali_sessions, {
   created_at: z.coerce.date(),
   location: location_list_enum,
   script: script_list_enum.nullable().optional()
 });
 
-export const WordPuzzleAttachmentSchemaZod = createSelectSchema(word_puzzle_attachments, {
+export const PadavaliAttachmentSchemaZod = createSelectSchema(padavali_attachments, {
   created_at: z.coerce.date(),
   updated_at: z.coerce.date().optional().nullable()
 });
@@ -82,7 +82,7 @@ export const AiBatchResponseSchemaZod = createSelectSchema(ai_batch_responses, {
 
 export const AiBatchSchemaZod = createSelectSchema(ai_batches);
 
-export const WordPuzzleRedirectSchemaZod = createSelectSchema(word_puzzle_redirects, {
+export const PadavaliRedirectSchemaZod = createSelectSchema(padavali_redirects, {
   created_at: z.coerce.date()
 });
 

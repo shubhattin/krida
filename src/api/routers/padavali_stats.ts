@@ -6,7 +6,7 @@ import {
   verify_cloudflare_turnstile_token
 } from '../trpc_init';
 import { z } from 'zod';
-import { puzzle_gameplay_sessions, puzzle_gameplay_stats, word_puzzles } from '~/db/schema';
+import { padavali_sessions, padavali_gameplay_stats, padavali_puzzles } from '~/db/schema';
 import { db } from '~/db/db';
 import { location_list_enum } from '~/db/types';
 import { script_list_enum } from '~/state/script_list';
@@ -45,12 +45,12 @@ const submit_stats_route = publicProcedure
 
     if (practice_mode) {
       await db
-        .update(puzzle_gameplay_sessions)
+        .update(padavali_sessions)
         .set({ practice_mode: true })
-        .where(eq(puzzle_gameplay_sessions.id, session_id));
+        .where(eq(padavali_sessions.id, session_id));
     }
 
-    await db.insert(puzzle_gameplay_stats).values({
+    await db.insert(padavali_gameplay_stats).values({
       puzzle_id,
       session_id,
       time_taken,
@@ -81,7 +81,7 @@ const update_games_started_route = publicProcedure
     }
 
     const [{ id: session_id }] = await db
-      .insert(puzzle_gameplay_sessions)
+      .insert(padavali_sessions)
       .values({
         puzzle_id: id,
         location,
@@ -108,9 +108,9 @@ const update_session_practice_mode_route = publicProcedure
     }
 
     await db
-      .update(puzzle_gameplay_sessions)
+      .update(padavali_sessions)
       .set({ practice_mode })
-      .where(eq(puzzle_gameplay_sessions.id, session_id));
+      .where(eq(padavali_sessions.id, session_id));
 
     return { success: true };
   });
@@ -142,7 +142,7 @@ const get_stats_data_input_schema = z
 const get_stats_data_route = protectedAdminProcedure
   .input(get_stats_data_input_schema)
   .query(async ({ input: { puzzle_ids, all_time, start_date, end_date } }) => {
-    const sessions = await db.query.puzzle_gameplay_sessions.findMany({
+    const sessions = await db.query.padavali_sessions.findMany({
       columns: {
         id: true,
         created_at: true,
@@ -163,7 +163,7 @@ const get_stats_data_route = protectedAdminProcedure
       }
     });
 
-    const stats = await db.query.puzzle_gameplay_stats.findMany({
+    const stats = await db.query.padavali_gameplay_stats.findMany({
       columns: {
         id: true,
         created_at: true,
@@ -187,7 +187,7 @@ const get_stats_data_route = protectedAdminProcedure
     });
 
     let total_words = 0;
-    const puzzles = await db.query.word_puzzles.findMany({
+    const puzzles = await db.query.padavali_puzzles.findMany({
       columns: { word_list: true },
       where:
         puzzle_ids && puzzle_ids.length > 0
@@ -230,21 +230,21 @@ const get_top_puzzles_route = protectedAdminProcedure
     const dateConditions =
       !all_time && start_date && end_date
         ? [
-            gte(puzzle_gameplay_sessions.created_at, start_date),
-            lte(puzzle_gameplay_sessions.created_at, end_date)
+            gte(padavali_sessions.created_at, start_date),
+            lte(padavali_sessions.created_at, end_date)
           ]
         : [];
 
     const topSessions = await db
       .select({
-        puzzle_id: puzzle_gameplay_sessions.puzzle_id,
-        title: word_puzzles.title,
+        puzzle_id: padavali_sessions.puzzle_id,
+        title: padavali_puzzles.title,
         started: count()
       })
-      .from(puzzle_gameplay_sessions)
-      .innerJoin(word_puzzles, eq(word_puzzles.id, puzzle_gameplay_sessions.puzzle_id))
+      .from(padavali_sessions)
+      .innerJoin(padavali_puzzles, eq(padavali_puzzles.id, padavali_sessions.puzzle_id))
       .where(dateConditions.length > 0 ? and(...dateConditions) : undefined)
-      .groupBy(puzzle_gameplay_sessions.puzzle_id, word_puzzles.title)
+      .groupBy(padavali_sessions.puzzle_id, padavali_puzzles.title)
       .orderBy(desc(count()))
       .limit(limit);
 
@@ -258,24 +258,24 @@ const get_top_puzzles_route = protectedAdminProcedure
     const statsDateConditions =
       !all_time && start_date && end_date
         ? [
-            gte(puzzle_gameplay_stats.created_at, start_date),
-            lte(puzzle_gameplay_stats.created_at, end_date)
+            gte(padavali_gameplay_stats.created_at, start_date),
+            lte(padavali_gameplay_stats.created_at, end_date)
           ]
         : [];
 
     const completionRows = await db
       .select({
-        puzzle_id: puzzle_gameplay_stats.puzzle_id,
+        puzzle_id: padavali_gameplay_stats.puzzle_id,
         completed: count()
       })
-      .from(puzzle_gameplay_stats)
+      .from(padavali_gameplay_stats)
       .where(
         and(
-          inArray(puzzle_gameplay_stats.puzzle_id, puzzleIds),
+          inArray(padavali_gameplay_stats.puzzle_id, puzzleIds),
           ...(statsDateConditions.length > 0 ? statsDateConditions : [])
         )
       )
-      .groupBy(puzzle_gameplay_stats.puzzle_id);
+      .groupBy(padavali_gameplay_stats.puzzle_id);
 
     const completedByPuzzle = new Map(
       completionRows.map((row) => [row.puzzle_id, Number(row.completed)])

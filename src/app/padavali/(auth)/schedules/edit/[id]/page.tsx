@@ -15,7 +15,7 @@ const Main = async ({ params }: Props) => {
 
   const schedule_id = z.object({ id: z.coerce.number().int() }).parse(await params).id;
 
-  const schedule = (await db.query.puzzle_game_schedules.findFirst({
+  const schedule = (await db.query.padavali_schedules.findFirst({
     where: (tbl, { eq }) => eq(tbl.id, schedule_id),
     with: {
       puzzle: {

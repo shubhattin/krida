@@ -6,7 +6,8 @@ import { DEFAULT_DATA_SCRIPT } from '~/state/script_list';
 import { get_transliterated_word_game_msgs } from '~/components/pages/padavali/WordGame/msgs';
 import { transliterate_wasm } from 'lipilekhika';
 import { getCachedScript } from '~/lib/cache_server_route_data';
-import { CACHE, NO_CACHE_PARAMS, type PuzzleType } from '~/util/cache.server/cache_loaders';
+import { CACHE, NO_CACHE_PARAMS } from '~/util/cache.server/cache_loaders';
+import type { PadavaliPuzzleType } from '~/util/cache.server/padavali_cache';
 import { cache, Suspense } from 'react';
 import { ArrowLeftIcon } from 'lucide-react';
 import { getMetadata } from '~/components/tags/getPageMetaTags';
@@ -15,17 +16,17 @@ import { db } from '~/db/db';
 type Props = { params: Promise<{ slug: string }> };
 
 type SlugResolution =
-  | { type: 'puzzle'; puzzle: PuzzleType }
+  | { type: 'puzzle'; puzzle: PadavaliPuzzleType }
   | { type: 'redirect'; targetSlug: string }
   | { type: 'not_found' };
 
 const resolve_puzzle_slug = cache(async (slug: string): Promise<SlugResolution> => {
-  const word_puzzle = await CACHE.word_puzzle.get({ slug });
+  const word_puzzle = await CACHE.padavali.word_puzzle.get({ slug });
   if (word_puzzle) {
     return { type: 'puzzle', puzzle: word_puzzle };
   }
 
-  const redirect_entry = await db.query.word_puzzle_redirects.findFirst({
+  const redirect_entry = await db.query.padavali_redirects.findFirst({
     where: (tbl, { eq }) => eq(tbl.slug, slug),
     with: {
       puzzle: {
@@ -47,7 +48,7 @@ const get_puzzle_for_metadata = async (slug: string) => {
     return resolution.puzzle;
   }
   if (resolution.type === 'redirect') {
-    return CACHE.word_puzzle.get({ slug: resolution.targetSlug });
+    return CACHE.padavali.word_puzzle.get({ slug: resolution.targetSlug });
   }
   return undefined;
 };
@@ -99,8 +100,8 @@ const WordGameSuspense = async ({ slug }: { slug: string }) => {
   const word_puzzle = resolution.puzzle;
 
   const [current_schedule, next_schedule] = await Promise.all([
-    CACHE.current_schedule.get(NO_CACHE_PARAMS),
-    CACHE.next_schedule.get(NO_CACHE_PARAMS)
+    CACHE.padavali.current_schedule.get(NO_CACHE_PARAMS),
+    CACHE.padavali.next_schedule.get(NO_CACHE_PARAMS)
   ]);
 
   if (current_schedule && word_puzzle.id === current_schedule.puzzle.id) {

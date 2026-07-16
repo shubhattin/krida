@@ -13,7 +13,7 @@ import { cache } from 'react';
 type Props = { params: Promise<{ id: string }> };
 
 const get_word_puzzle_cached_func = cache(async (id: number) => {
-  return await db.query.word_puzzles.findFirst({
+  return await db.query.padavali_puzzles.findFirst({
     where: (tbl, { eq }) => eq(tbl.id, id),
     with: {
       attachments: {

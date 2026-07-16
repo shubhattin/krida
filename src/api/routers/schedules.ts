@@ -1,7 +1,7 @@
 import { protectedAdminProcedure, t } from '~/api/trpc_init';
 import { z } from 'zod';
 import { db, type transactionType } from '~/db/db';
-import { puzzle_game_schedules } from '~/db/schema';
+import { padavali_schedules } from '~/db/schema';
 import { revalidatePath } from 'next/cache';
 import { and, eq } from 'drizzle-orm';
 import { delay } from '~/tools/delay';
@@ -32,10 +32,10 @@ const set_schedule_notification_key = async (
   notification_key: string | null
 ) => {
   await tx
-    .update(puzzle_game_schedules)
+    .update(padavali_schedules)
     .set({ notification_key })
     .where(
-      and(eq(puzzle_game_schedules.id, schedule_id), eq(puzzle_game_schedules.puzzle_id, puzzle_id))
+      and(eq(padavali_schedules.id, schedule_id), eq(padavali_schedules.puzzle_id, puzzle_id))
     );
 };
 
@@ -59,7 +59,7 @@ const notify_new_puzzle = async (puzzle_id: number, schedule_id: number, start_t
   } else {
     // current_time >= start_time
 
-    const prev_schedule = (await db.query.puzzle_game_schedules.findFirst({
+    const prev_schedule = (await db.query.padavali_schedules.findFirst({
       where: (table, { eq, and }) => and(eq(table.id, schedule_id), eq(table.puzzle_id, puzzle_id)),
       columns: {
         start_time: true
@@ -69,7 +69,7 @@ const notify_new_puzzle = async (puzzle_id: number, schedule_id: number, start_t
     // as it would have already been notified in the past
     if (current_time >= prev_schedule.start_time) return 'skipped';
 
-    const title = (await db.query.word_puzzles.findFirst({
+    const title = (await db.query.padavali_puzzles.findFirst({
       where: (table, { eq }) => eq(table.id, puzzle_id),
       columns: {
         title: true
@@ -107,7 +107,7 @@ const add_puzzle_schedule_route = protectedAdminProcedure
   )
   .mutation(async ({ input }) => {
     const { puzzle_id, start_time, end_time } = input;
-    const existing_schedule = await db.query.puzzle_game_schedules.findFirst({
+    const existing_schedule = await db.query.padavali_schedules.findFirst({
       columns: {
         id: true
       },
@@ -127,7 +127,7 @@ const add_puzzle_schedule_route = protectedAdminProcedure
     const listing_verify_key = generateRandomAlphanumeric(32);
     const [schedule] = await db.transaction(async (tx) => {
       return tx
-        .insert(puzzle_game_schedules)
+        .insert(padavali_schedules)
         .values({
           puzzle_id,
           start_time,
@@ -138,8 +138,8 @@ const add_puzzle_schedule_route = protectedAdminProcedure
     });
 
     await Promise.allSettled([
-      invalidate_and_refresh_cached(CACHE.current_schedule, NO_CACHE_PARAMS),
-      invalidate_and_refresh_cached(CACHE.next_schedule, NO_CACHE_PARAMS),
+      invalidate_and_refresh_cached(CACHE.padavali.current_schedule, NO_CACHE_PARAMS),
+      invalidate_and_refresh_cached(CACHE.padavali.next_schedule, NO_CACHE_PARAMS),
       notify_new_puzzle(puzzle_id, schedule.id, start_time),
       publishScheduleListingQueue(
         {
@@ -163,12 +163,12 @@ const delete_puzzle_schedule_route = protectedAdminProcedure
     revalidatePath('/padavali/schedules');
 
     await db.transaction(async (tx) => {
-      await tx.delete(puzzle_game_schedules).where(eq(puzzle_game_schedules.id, schedule_id));
+      await tx.delete(padavali_schedules).where(eq(padavali_schedules.id, schedule_id));
     });
 
     await Promise.allSettled([
-      invalidate_and_refresh_cached(CACHE.current_schedule, NO_CACHE_PARAMS),
-      invalidate_and_refresh_cached(CACHE.next_schedule, NO_CACHE_PARAMS)
+      invalidate_and_refresh_cached(CACHE.padavali.current_schedule, NO_CACHE_PARAMS),
+      invalidate_and_refresh_cached(CACHE.padavali.next_schedule, NO_CACHE_PARAMS)
     ]);
 
     return { success: true };
@@ -189,13 +189,10 @@ const update_puzzle_schedule_route = protectedAdminProcedure
     const listing_verify_key = generateRandomAlphanumeric(32);
     await db.transaction(async (tx) => {
       await tx
-        .update(puzzle_game_schedules)
+        .update(padavali_schedules)
         .set({ start_time, end_time, listing_verify_key })
         .where(
-          and(
-            eq(puzzle_game_schedules.id, schedule_id),
-            eq(puzzle_game_schedules.puzzle_id, puzzle_id)
-          )
+          and(eq(padavali_schedules.id, schedule_id), eq(padavali_schedules.puzzle_id, puzzle_id))
         );
     });
 
@@ -209,8 +206,8 @@ const update_puzzle_schedule_route = protectedAdminProcedure
         },
         (start_time.getTime() - new Date().getTime()) / 1000 - 4 // 4 seconds prior listing start
       ),
-      invalidate_and_refresh_cached(CACHE.current_schedule, NO_CACHE_PARAMS),
-      invalidate_and_refresh_cached(CACHE.next_schedule, NO_CACHE_PARAMS)
+      invalidate_and_refresh_cached(CACHE.padavali.current_schedule, NO_CACHE_PARAMS),
+      invalidate_and_refresh_cached(CACHE.padavali.next_schedule, NO_CACHE_PARAMS)
     ]);
 
     return { success: true };
@@ -219,7 +216,7 @@ const update_puzzle_schedule_route = protectedAdminProcedure
 const get_past_schedules_route = protectedAdminProcedure.query(async () => {
   await delay(500);
   const current_time = new Date();
-  const past_schedules = await db.query.puzzle_game_schedules.findMany({
+  const past_schedules = await db.query.padavali_schedules.findMany({
     columns: {
       id: true,
       start_time: true,
