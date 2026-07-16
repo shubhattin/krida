@@ -6,7 +6,7 @@ import {
   invalidate_and_refresh_cached,
   NO_CACHE_PARAMS
 } from '~/util/cache.server/cache_loaders';
-import { puzzle_game_schedules, word_puzzles } from '~/db/schema';
+import { padavali_schedules, padavali_puzzles } from '~/db/schema';
 import { and, eq } from 'drizzle-orm';
 import { notify_for_listed_puzzle } from '~/api/routers/puzzle';
 
@@ -16,7 +16,7 @@ export const POST = verifySignatureAppRouter(async (req: Request) => {
   const { puzzle_id, schedule_id, listing_verify_key } =
     schedule_archival_publish_schema.parse(body);
 
-  const schedule = await db.query.puzzle_game_schedules.findFirst({
+  const schedule = await db.query.padavali_schedules.findFirst({
     where: (table, { eq, and }) =>
       and(
         eq(table.id, schedule_id),
@@ -43,22 +43,19 @@ export const POST = verifySignatureAppRouter(async (req: Request) => {
 
   await Promise.all([
     db
-      .update(word_puzzles)
+      .update(padavali_puzzles)
       .set({
         listed: true,
         last_listed_at: new Date()
       })
-      .where(eq(word_puzzles.id, puzzle_id)),
+      .where(eq(padavali_puzzles.id, puzzle_id)),
     db
-      .update(puzzle_game_schedules)
+      .update(padavali_schedules)
       .set({
         listing_verify_key: null
       })
       .where(
-        and(
-          eq(puzzle_game_schedules.id, schedule_id),
-          eq(puzzle_game_schedules.puzzle_id, puzzle_id)
-        )
+        and(eq(padavali_schedules.id, schedule_id), eq(padavali_schedules.puzzle_id, puzzle_id))
       )
   ]);
   await Promise.allSettled([

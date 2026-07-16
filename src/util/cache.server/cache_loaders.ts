@@ -56,7 +56,7 @@ const load_current_schedule = createCachedLoader<NoCacheParams, CurrentScheduleT
   getKey: () => REDIS_CACHE_KEYS.current_schedule(),
   fetch: async () => {
     const currentTime = new Date();
-    const data = await db.query.puzzle_game_schedules.findFirst({
+    const data = await db.query.padavali_schedules.findFirst({
       columns: {
         id: true,
         start_time: true,
@@ -114,7 +114,7 @@ const load_next_schedule = createCachedLoader<NoCacheParams, NextScheduleType>({
   getKey: () => REDIS_CACHE_KEYS.next_schedule(),
   fetch: async () => {
     const currentTime = new Date();
-    const data = await db.query.puzzle_game_schedules.findFirst({
+    const data = await db.query.padavali_schedules.findFirst({
       columns: {
         id: true,
         start_time: true
@@ -147,7 +147,7 @@ const load_listed_puzzle_list = createCachedLoader<NoCacheParams, ListedPuzzlesT
   getKey: () => REDIS_CACHE_KEYS.listed_puzzle_list(),
   schema: listed_puzzle_schema.array(),
   fetch: async () => {
-    const data = await db.query.word_puzzles.findMany({
+    const data = await db.query.padavali_puzzles.findMany({
       columns: {
         id: true,
         slug: true,
@@ -181,7 +181,7 @@ const load_word_puzzle = createCachedLoader<WordPuzzleParams, PuzzleType | undef
   schema: puzzle_schema,
   shouldCache: (data): data is PuzzleType => data !== undefined,
   fetch: async ({ slug }) => {
-    const data = await db.query.word_puzzles.findFirst({
+    const data = await db.query.padavali_puzzles.findFirst({
       where: (tbl, { eq }) => eq(tbl.slug, slug),
       with: {
         attachments: {

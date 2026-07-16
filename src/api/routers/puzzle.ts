@@ -2,9 +2,9 @@ import { z } from 'zod';
 import { protectedAdminProcedure, publicProcedure, t } from '../trpc_init';
 import { db, type transactionType } from '~/db/db';
 import {
-  word_puzzle_attachments,
-  word_puzzle_redirects,
-  word_puzzles,
+  padavali_attachments,
+  padavali_redirects,
+  padavali_puzzles,
   image_assets
 } from '~/db/schema';
 import { and, asc, count, desc, eq, ilike, inArray, or, sql } from 'drizzle-orm';
@@ -59,7 +59,7 @@ const update_puzzle_attachments = async (
   puzzle_id: number,
   attachments: AttachmentInput
 ) => {
-  const current_attachments = await tx.query.word_puzzle_attachments.findMany({
+  const current_attachments = await tx.query.padavali_attachments.findMany({
     where: (tbl, { eq }) => eq(tbl.puzzle_id, puzzle_id),
     columns: {
       id: true
@@ -87,7 +87,7 @@ const update_puzzle_attachments = async (
               sql`(${a.id!}::int, ${a.type}::attachment_type, ${a.url}::text, ${a.order_index}::smallint, ${a.title}::text)`
           );
           return tx.execute(sql`
-            UPDATE ${word_puzzle_attachments} AS t
+            UPDATE ${padavali_attachments} AS t
             SET
               type = v.type,
               url = v.url,
@@ -104,7 +104,7 @@ const update_puzzle_attachments = async (
   const [new_attachments_inserted] = await Promise.all([
     new_attachments.length > 0
       ? tx
-          .insert(word_puzzle_attachments)
+          .insert(padavali_attachments)
           .values(
             new_attachments.map((a) => ({
               puzzle_id,
@@ -117,11 +117,11 @@ const update_puzzle_attachments = async (
           .returning()
       : ([] as { id: number }[]),
     deleted_attachments.length > 0
-      ? tx.delete(word_puzzle_attachments).where(
+      ? tx.delete(padavali_attachments).where(
           and(
-            eq(word_puzzle_attachments.puzzle_id, puzzle_id),
+            eq(padavali_attachments.puzzle_id, puzzle_id),
             inArray(
-              word_puzzle_attachments.id,
+              padavali_attachments.id,
               deleted_attachments.map((a) => a.id)
             )
           )
@@ -150,11 +150,11 @@ const resolve_slug_availability = async (slug: string, options: SlugAvailability
   }
 
   const [existing_puzzle, existing_redirect] = await Promise.all([
-    db.query.word_puzzles.findFirst({
+    db.query.padavali_puzzles.findFirst({
       where: (tbl, { eq }) => eq(tbl.slug, normalized),
       columns: { id: true, slug: true, title: true }
     }),
-    db.query.word_puzzle_redirects.findFirst({
+    db.query.padavali_redirects.findFirst({
       where: (tbl, { eq }) => eq(tbl.slug, normalized),
       with: {
         puzzle: {
@@ -217,7 +217,7 @@ const assert_slug_usable_for_mutation = async (
 };
 
 const delete_redirect_for_slug = async (tx: transactionType, slug: string) => {
-  await tx.delete(word_puzzle_redirects).where(eq(word_puzzle_redirects.slug, slug));
+  await tx.delete(padavali_redirects).where(eq(padavali_redirects.slug, slug));
 };
 
 const upsert_redirect_for_puzzle = async (
@@ -226,13 +226,13 @@ const upsert_redirect_for_puzzle = async (
   redirect_slug: string
 ) => {
   await tx
-    .insert(word_puzzle_redirects)
+    .insert(padavali_redirects)
     .values({
       puzzle_id,
       slug: redirect_slug
     })
     .onConflictDoUpdate({
-      target: word_puzzle_redirects.slug,
+      target: padavali_redirects.slug,
       set: { puzzle_id }
     });
 };
@@ -252,7 +252,7 @@ const update_puzzle_route = protectedAdminProcedure
   .input(puzzle_update_input_schema)
   .mutation(async ({ input: { puzzle_id, puzzle_data, puzzle_slug, image_id } }) => {
     revalidatePath('/padavali/list');
-    const existing = await db.query.word_puzzles.findFirst({
+    const existing = await db.query.padavali_puzzles.findFirst({
       columns: {
         listed: true
       },
@@ -266,9 +266,9 @@ const update_puzzle_route = protectedAdminProcedure
 
     const { newly_added_index_ids } = await db.transaction(async (tx) => {
       const updated = await tx
-        .update(word_puzzles)
+        .update(padavali_puzzles)
         .set({ ...puzzle_data_rest, image_id })
-        .where(and(eq(word_puzzles.id, puzzle_id), eq(word_puzzles.slug, puzzle_slug)))
+        .where(and(eq(padavali_puzzles.id, puzzle_id), eq(padavali_puzzles.slug, puzzle_slug)))
         .returning();
 
       if (updated.length === 0) {
@@ -277,9 +277,9 @@ const update_puzzle_route = protectedAdminProcedure
 
       if (!prev_listed && puzzle_data.listed) {
         await tx
-          .update(word_puzzles)
+          .update(padavali_puzzles)
           .set({ last_listed_at: new Date() })
-          .where(and(eq(word_puzzles.id, puzzle_id), eq(word_puzzles.slug, puzzle_slug)));
+          .where(and(eq(padavali_puzzles.id, puzzle_id), eq(padavali_puzzles.slug, puzzle_slug)));
       }
 
       return update_puzzle_attachments(tx, puzzle_id, attachments);
@@ -313,7 +313,7 @@ const update_puzzle_slug_route = protectedAdminProcedure
       return { success: true as const, slug: new_slug };
     }
 
-    const puzzle = await db.query.word_puzzles.findFirst({
+    const puzzle = await db.query.padavali_puzzles.findFirst({
       columns: { id: true, listed: true },
       where: (tbl, { and, eq }) => and(eq(tbl.id, puzzle_id), eq(tbl.slug, current_slug))
     });
@@ -330,9 +330,9 @@ const update_puzzle_slug_route = protectedAdminProcedure
       await delete_redirect_for_slug(tx, new_slug);
 
       const updated = await tx
-        .update(word_puzzles)
+        .update(padavali_puzzles)
         .set({ slug: new_slug })
-        .where(and(eq(word_puzzles.id, puzzle_id), eq(word_puzzles.slug, current_slug)))
+        .where(and(eq(padavali_puzzles.id, puzzle_id), eq(padavali_puzzles.slug, current_slug)))
         .returning();
 
       if (updated.length === 0) {
@@ -375,7 +375,7 @@ const add_puzzle_route = protectedAdminProcedure
       }
 
       return tx
-        .insert(word_puzzles)
+        .insert(padavali_puzzles)
         .values({
           title: input.title,
           slug: input.slug,
@@ -396,7 +396,7 @@ const delete_puzzle_route = protectedAdminProcedure
   .mutation(async ({ input: { id, slug } }) => {
     revalidatePath('/padavali/list');
     const normalizedSlug = normalizeSlug(slug);
-    const puzzle = await db.query.word_puzzles.findFirst({
+    const puzzle = await db.query.padavali_puzzles.findFirst({
       columns: {
         listed: true
       },
@@ -409,8 +409,8 @@ const delete_puzzle_route = protectedAdminProcedure
 
     await db.transaction(async (tx) => {
       await tx
-        .delete(word_puzzles)
-        .where(and(eq(word_puzzles.id, id), eq(word_puzzles.slug, normalizedSlug)));
+        .delete(padavali_puzzles)
+        .where(and(eq(padavali_puzzles.id, id), eq(padavali_puzzles.slug, normalizedSlug)));
     });
 
     await Promise.allSettled([
@@ -445,13 +445,13 @@ export const get_puzzle_list_page = async (input: z.input<typeof get_puzzle_list
   const trimmedSearch = search_title?.trim();
   const conditions = [];
   if (typeof listed_filter === 'boolean') {
-    conditions.push(eq(word_puzzles.listed, listed_filter));
+    conditions.push(eq(padavali_puzzles.listed, listed_filter));
   }
   if (trimmedSearch) {
     for (const token of tokenizeSearchQuery(trimmedSearch)) {
       const pattern = `%${escapeIlikeToken(token)}%`;
       conditions.push(
-        or(ilike(word_puzzles.title, pattern), ilike(word_puzzles.description, pattern))!
+        or(ilike(padavali_puzzles.title, pattern), ilike(padavali_puzzles.description, pattern))!
       );
     }
   }
@@ -459,29 +459,30 @@ export const get_puzzle_list_page = async (input: z.input<typeof get_puzzle_list
 
   const sortCol =
     sort_by === 'updated_at'
-      ? sql`coalesce(${word_puzzles.updated_at}, ${word_puzzles.created_at})`
-      : word_puzzles.created_at;
+      ? sql`coalesce(${padavali_puzzles.updated_at}, ${padavali_puzzles.created_at})`
+      : padavali_puzzles.created_at;
   const orderPrimary = order_by === 'desc' ? desc(sortCol) : asc(sortCol);
-  const orderTiebreaker = order_by === 'desc' ? desc(word_puzzles.id) : asc(word_puzzles.id);
+  const orderTiebreaker =
+    order_by === 'desc' ? desc(padavali_puzzles.id) : asc(padavali_puzzles.id);
   const offset = (page - 1) * size;
 
   await delay(400);
 
   const [countResult, rows] = await Promise.all([
-    db.select({ count: count() }).from(word_puzzles).where(whereClause),
+    db.select({ count: count() }).from(padavali_puzzles).where(whereClause),
     db
       .select({
-        id: word_puzzles.id,
-        slug: word_puzzles.slug,
-        title: word_puzzles.title,
-        description: word_puzzles.description,
-        listed: word_puzzles.listed,
-        created_at: word_puzzles.created_at,
-        updated_at: word_puzzles.updated_at,
+        id: padavali_puzzles.id,
+        slug: padavali_puzzles.slug,
+        title: padavali_puzzles.title,
+        description: padavali_puzzles.description,
+        listed: padavali_puzzles.listed,
+        created_at: padavali_puzzles.created_at,
+        updated_at: padavali_puzzles.updated_at,
         image_s3_key: image_assets.s3_key
       })
-      .from(word_puzzles)
-      .leftJoin(image_assets, eq(word_puzzles.image_id, image_assets.id))
+      .from(padavali_puzzles)
+      .leftJoin(image_assets, eq(padavali_puzzles.image_id, image_assets.id))
       .where(whereClause)
       .orderBy(orderPrimary, orderTiebreaker)
       .limit(size)
@@ -543,7 +544,7 @@ const refresh_current_schedule_route = publicProcedure.mutation(async () => {
 const get_puzzle_slugs_route = protectedAdminProcedure
   .input(z.object({ puzzle_id: z.number().int() }))
   .query(async ({ input: { puzzle_id } }) => {
-    const puzzle = await db.query.word_puzzles.findFirst({
+    const puzzle = await db.query.padavali_puzzles.findFirst({
       columns: { slug: true },
       where: (tbl, { eq }) => eq(tbl.id, puzzle_id),
       with: {
@@ -579,7 +580,7 @@ const delete_redirect_slug_route = protectedAdminProcedure
     })
   )
   .mutation(async ({ input: { puzzle_id, redirect_slug } }) => {
-    const puzzle = await db.query.word_puzzles.findFirst({
+    const puzzle = await db.query.padavali_puzzles.findFirst({
       columns: { id: true, slug: true },
       where: (tbl, { eq }) => eq(tbl.id, puzzle_id)
     });
@@ -590,7 +591,7 @@ const delete_redirect_slug_route = protectedAdminProcedure
       throw new Error('Cannot delete the current slug');
     }
 
-    const redirect = await db.query.word_puzzle_redirects.findFirst({
+    const redirect = await db.query.padavali_redirects.findFirst({
       columns: { id: true },
       where: (tbl, { and, eq }) => and(eq(tbl.slug, redirect_slug), eq(tbl.puzzle_id, puzzle_id))
     });
@@ -599,12 +600,9 @@ const delete_redirect_slug_route = protectedAdminProcedure
     }
 
     await db
-      .delete(word_puzzle_redirects)
+      .delete(padavali_redirects)
       .where(
-        and(
-          eq(word_puzzle_redirects.id, redirect.id),
-          eq(word_puzzle_redirects.puzzle_id, puzzle_id)
-        )
+        and(eq(padavali_redirects.id, redirect.id), eq(padavali_redirects.puzzle_id, puzzle_id))
       );
 
     await Promise.allSettled([

@@ -25,7 +25,7 @@ const resolve_puzzle_slug = cache(async (slug: string): Promise<SlugResolution> 
     return { type: 'puzzle', puzzle: word_puzzle };
   }
 
-  const redirect_entry = await db.query.word_puzzle_redirects.findFirst({
+  const redirect_entry = await db.query.padavali_redirects.findFirst({
     where: (tbl, { eq }) => eq(tbl.slug, slug),
     with: {
       puzzle: {

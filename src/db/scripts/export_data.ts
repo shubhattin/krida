@@ -2,26 +2,26 @@ import { dbClient_ext, queryClient } from './client';
 import { readFile } from 'fs/promises';
 import { dbMode, take_input } from '~/tools/kry.server';
 import {
-  puzzle_game_schedules,
-  puzzle_gameplay_stats,
-  word_puzzles,
-  puzzle_gameplay_sessions,
-  word_puzzle_attachments,
+  padavali_schedules,
+  padavali_gameplay_stats,
+  padavali_puzzles,
+  padavali_sessions,
+  padavali_attachments,
   ai_batch_responses,
   ai_batches,
-  word_puzzle_redirects,
+  padavali_redirects,
   image_assets,
   crossord_puzzles
 } from '~/db/schema';
 import {
-  WordPuzzleSchemaZod,
-  WordPuzzleAttachmentSchemaZod,
-  PuzzleGamePlayStatsSchemaZod,
-  PuzzleGameScheduleSchemaZod,
-  PuzzleGamePlaySessionSchemaZod,
+  PadavaliPuzzleSchemaZod,
+  PadavaliAttachmentSchemaZod,
+  PadavaliGamePlayStatsSchemaZod,
+  PadavaliScheduleSchemaZod,
+  PadavaliSessionSchemaZod,
   AiBatchResponseSchemaZod,
   AiBatchSchemaZod,
-  WordPuzzleRedirectSchemaZod,
+  PadavaliRedirectSchemaZod,
   ImageAssetSchemaZod,
   CrossordPuzzleSchemaZod
 } from '~/db/schema_zod';
@@ -47,28 +47,28 @@ const main = async () => {
 
   const data = z
     .object({
-      word_puzzles: WordPuzzleSchemaZod.array(),
-      puzzle_gameplay_stats: PuzzleGamePlayStatsSchemaZod.array(),
-      puzzle_game_schedules: PuzzleGameScheduleSchemaZod.array(),
-      puzzle_gameplay_sessions: PuzzleGamePlaySessionSchemaZod.array(),
-      word_puzzle_attachments: WordPuzzleAttachmentSchemaZod.array(),
+      padavali_puzzles: PadavaliPuzzleSchemaZod.array(),
+      padavali_gameplay_stats: PadavaliGamePlayStatsSchemaZod.array(),
+      padavali_schedules: PadavaliScheduleSchemaZod.array(),
+      padavali_sessions: PadavaliSessionSchemaZod.array(),
+      padavali_attachments: PadavaliAttachmentSchemaZod.array(),
+      padavali_redirects: PadavaliRedirectSchemaZod.array(),
+      crossord_puzzles: CrossordPuzzleSchemaZod.array(),
       ai_batch_responses: AiBatchResponseSchemaZod.array(),
       ai_batches: AiBatchSchemaZod.array(),
-      word_puzzle_redirects: WordPuzzleRedirectSchemaZod.array(),
-      image_assets: ImageAssetSchemaZod.array(),
-      crossord_puzzles: CrossordPuzzleSchemaZod.array()
+      image_assets: ImageAssetSchemaZod.array()
     })
     .parse(JSON.parse((await readFile(`./out/${in_file_name}`)).toString()));
 
   const tx = await dbClient_ext.transaction(async (tx) => {
     // deleting all the tables initially
     try {
-      await tx.delete(word_puzzles);
-      await tx.delete(word_puzzle_redirects);
-      await tx.delete(word_puzzle_attachments);
-      await tx.delete(puzzle_gameplay_stats);
-      await tx.delete(puzzle_game_schedules);
-      await tx.delete(puzzle_gameplay_sessions);
+      await tx.delete(padavali_puzzles);
+      await tx.delete(padavali_redirects);
+      await tx.delete(padavali_attachments);
+      await tx.delete(padavali_gameplay_stats);
+      await tx.delete(padavali_schedules);
+      await tx.delete(padavali_sessions);
       await tx.delete(ai_batch_responses);
       await tx.delete(ai_batches);
       await tx.delete(image_assets);
@@ -91,7 +91,7 @@ const main = async () => {
 
     // inserting word_puzzles
     try {
-      await tx.insert(word_puzzles).values(data.word_puzzles);
+      await tx.insert(padavali_puzzles).values(data.padavali_puzzles);
       console.log(
         chalk.green('✓ Successfully added values into table'),
         chalk.blue('`word_puzzles`')
@@ -113,7 +113,7 @@ const main = async () => {
 
     // inserting word_puzzle_redirects
     try {
-      await tx.insert(word_puzzle_redirects).values(data.word_puzzle_redirects);
+      await tx.insert(padavali_redirects).values(data.padavali_redirects);
       console.log(
         chalk.green('✓ Successfully added values into table'),
         chalk.blue('`word_puzzle_redirects`')
@@ -124,7 +124,7 @@ const main = async () => {
 
     // inserting word_puzzle_attachments
     try {
-      await tx.insert(word_puzzle_attachments).values(data.word_puzzle_attachments);
+      await tx.insert(padavali_attachments).values(data.padavali_attachments);
       console.log(
         chalk.green('✓ Successfully added values into table'),
         chalk.blue('`word_puzzle_attachments`')
@@ -135,7 +135,7 @@ const main = async () => {
 
     // inserting puzzle_game_schedules
     try {
-      await tx.insert(puzzle_game_schedules).values(data.puzzle_game_schedules);
+      await tx.insert(padavali_schedules).values(data.padavali_schedules);
       console.log(
         chalk.green('✓ Successfully added values into table'),
         chalk.blue('`puzzle_game_schedules`')
@@ -146,9 +146,9 @@ const main = async () => {
 
     // inserting puzzle_gameplay_sessions
     try {
-      const chunks = chunkArray(data.puzzle_gameplay_sessions, 5000);
+      const chunks = chunkArray(data.padavali_sessions, 5000);
       for (const chunk of chunks) {
-        await tx.insert(puzzle_gameplay_sessions).values(chunk);
+        await tx.insert(padavali_sessions).values(chunk);
       }
       console.log(
         chalk.green('✓ Successfully added values into table'),
@@ -160,9 +160,9 @@ const main = async () => {
 
     // inserting puzzle_gameplay_stats
     try {
-      const chunks = chunkArray(data.puzzle_gameplay_stats, 5000);
+      const chunks = chunkArray(data.padavali_gameplay_stats, 5000);
       for (const chunk of chunks) {
-        await tx.insert(puzzle_gameplay_stats).values(chunk);
+        await tx.insert(padavali_gameplay_stats).values(chunk);
       }
       console.log(
         chalk.green('✓ Successfully added values into table'),

@@ -14,7 +14,7 @@ const Main = async () => {
   if (!session || session.user.role !== 'admin') redirect('/padavali');
 
   const current_time = new Date();
-  const uncomming_schedules = await db.query.puzzle_game_schedules.findMany({
+  const uncomming_schedules = await db.query.padavali_schedules.findMany({
     columns: {
       id: true,
       start_time: true,
