@@ -1,8 +1,8 @@
 import { pgTable, serial, text, timestamp, jsonb, boolean, index } from 'drizzle-orm/pg-core';
 import type { CrossordPuzzleGridCell, CrossWordPuzzleWord } from '~/db/schema_zod';
 
-export const crossord_puzzles = pgTable(
-  'crossord_puzzles',
+export const crossword_puzzles = pgTable(
+  'crossword_puzzles',
   {
     id: serial().primaryKey(),
     /** slug is optional for now, will be put into use further down */
@@ -23,8 +23,8 @@ export const crossord_puzzles = pgTable(
     updated_at: timestamp({ withTimezone: true }).$onUpdate(() => new Date())
   },
   (table) => [
-    index('crossord_puzzles_listed_created_at_idx').on(table.listed, table.created_at),
-    index('crossord_puzzles_listed_updated_at_idx').on(table.listed, table.updated_at),
-    index('crossord_puzzles_listed_last_listed_at_idx').on(table.listed, table.last_listed_at)
+    index('crossword_puzzles_listed_created_at_idx').on(table.listed, table.created_at),
+    index('crossword_puzzles_listed_updated_at_idx').on(table.listed, table.updated_at),
+    index('crossword_puzzles_listed_last_listed_at_idx').on(table.listed, table.last_listed_at)
   ]
 );

@@ -11,7 +11,7 @@ import {
   ai_batches,
   padavali_redirects,
   image_assets,
-  crossord_puzzles
+  crossword_puzzles
 } from '~/db/schema';
 import {
   PadavaliPuzzleSchemaZod,
@@ -53,7 +53,7 @@ const main = async () => {
       padavali_sessions: PadavaliSessionSchemaZod.array(),
       padavali_attachments: PadavaliAttachmentSchemaZod.array(),
       padavali_redirects: PadavaliRedirectSchemaZod.array(),
-      crossord_puzzles: CrossordPuzzleSchemaZod.array(),
+      crossword_puzzles: CrossordPuzzleSchemaZod.array(),
       ai_batch_responses: AiBatchResponseSchemaZod.array(),
       ai_batches: AiBatchSchemaZod.array(),
       image_assets: ImageAssetSchemaZod.array()
@@ -72,7 +72,7 @@ const main = async () => {
       await tx.delete(ai_batch_responses);
       await tx.delete(ai_batches);
       await tx.delete(image_assets);
-      await tx.delete(crossord_puzzles);
+      await tx.delete(crossword_puzzles);
       console.log(chalk.green('✓ Deleted All Tables Successfully'));
     } catch (e) {
       console.log(chalk.red('✗ Error while deleting tables:'), chalk.yellow(e));
@@ -100,57 +100,51 @@ const main = async () => {
       console.log(chalk.red('✗ Error while inserting padavali_puzzles:'), chalk.yellow(e));
     }
 
-    // inserting crossord_puzzles
+    // inserting crossword_puzzles
     try {
-      await tx.insert(crossord_puzzles).values(data.crossord_puzzles);
+      await tx.insert(crossword_puzzles).values(data.crossword_puzzles);
       console.log(
         chalk.green('✓ Successfully added values into table'),
-        chalk.blue('`crossord_puzzles`')
+        chalk.blue('`crossword_puzzles`')
       );
     } catch (e) {
-      console.log(chalk.red('✗ Error while inserting crossord_puzzles:'), chalk.yellow(e));
+      console.log(chalk.red('✗ Error while inserting crossword_puzzles:'), chalk.yellow(e));
     }
 
-    // inserting padavali_puzzle_redirects
+    // inserting padavali_redirects
     try {
       await tx.insert(padavali_redirects).values(data.padavali_redirects);
       console.log(
         chalk.green('✓ Successfully added values into table'),
-        chalk.blue('`padavali_puzzle_redirects`')
+        chalk.blue('`padavali_redirects`')
       );
     } catch (e) {
-      console.log(chalk.red('✗ Error while inserting padavali_puzzle_redirects:'), chalk.yellow(e));
+      console.log(chalk.red('✗ Error while inserting padavali_redirects:'), chalk.yellow(e));
     }
 
-    // inserting padavali_puzzle_attachments
+    // inserting padavali_attachments
     try {
       await tx.insert(padavali_attachments).values(data.padavali_attachments);
       console.log(
         chalk.green('✓ Successfully added values into table'),
-        chalk.blue('`padavali_puzzle_attachments`')
+        chalk.blue('`padavali_attachments`')
       );
     } catch (e) {
-      console.log(
-        chalk.red('✗ Error while inserting padavali_puzzle_attachments:'),
-        chalk.yellow(e)
-      );
+      console.log(chalk.red('✗ Error while inserting padavali_attachments:'), chalk.yellow(e));
     }
 
-    // inserting padavali_puzzle_game_schedules
+    // inserting padavali_schedules
     try {
       await tx.insert(padavali_schedules).values(data.padavali_schedules);
       console.log(
         chalk.green('✓ Successfully added values into table'),
-        chalk.blue('`padavali_puzzle_game_schedules`')
+        chalk.blue('`padavali_schedules`')
       );
     } catch (e) {
-      console.log(
-        chalk.red('✗ Error while inserting padavali_puzzle_game_schedules:'),
-        chalk.yellow(e)
-      );
+      console.log(chalk.red('✗ Error while inserting padavali_schedules:'), chalk.yellow(e));
     }
 
-    // inserting padavali_puzzle_gameplay_sessions
+    // inserting padavali_sessions
     try {
       const chunks = chunkArray(data.padavali_sessions, 5000);
       for (const chunk of chunks) {
@@ -158,16 +152,13 @@ const main = async () => {
       }
       console.log(
         chalk.green('✓ Successfully added values into table'),
-        chalk.blue('`padavali_puzzle_gameplay_sessions`')
+        chalk.blue('`padavali_sessions`')
       );
     } catch (e) {
-      console.log(
-        chalk.red('✗ Error while inserting padavali_puzzle_gameplay_sessions:'),
-        chalk.yellow(e)
-      );
+      console.log(chalk.red('✗ Error while inserting padavali_sessions:'), chalk.yellow(e));
     }
 
-    // inserting padavali_puzzle_gameplay_stats
+    // inserting padavali_gameplay_stats
     try {
       const chunks = chunkArray(data.padavali_gameplay_stats, 5000);
       for (const chunk of chunks) {
@@ -175,39 +166,34 @@ const main = async () => {
       }
       console.log(
         chalk.green('✓ Successfully added values into table'),
-        chalk.blue('`padavali_puzzle_gameplay_stats`')
+        chalk.blue('`padavali_gameplay_stats`')
       );
     } catch (e) {
-      console.log(
-        chalk.red('✗ Error while inserting padavali_puzzle_gameplay_stats:'),
-        chalk.yellow(e)
-      );
+      console.log(chalk.red('✗ Error while inserting padavali_gameplay_stats:'), chalk.yellow(e));
     }
 
-    // resetting SERIAL
-    // here for tables that have been renamed later have thier old .*_seq names
-    // like word_puzzles -> padavali_puzzles, still has word_puzzles_id_seq (not padavali_puzzles_id_seq)
+    // resetting SERIAL (sequences renamed to match tables in 0017_rename_owned_sequences)
     try {
       await tx.execute(
-        sql`SELECT setval('"word_puzzles_id_seq"', (select MAX(id) from "padavali_puzzles"))`
+        sql`SELECT setval('"padavali_puzzles_id_seq"', (select MAX(id) from "padavali_puzzles"))`
       );
       await tx.execute(
-        sql`SELECT setval('"crossord_puzzles_id_seq"', (select MAX(id) from "crossord_puzzles"))`
+        sql`SELECT setval('"crossword_puzzles_id_seq"', (select MAX(id) from "crossword_puzzles"))`
       );
       await tx.execute(
-        sql`SELECT setval('"word_puzzle_attachments_id_seq"', (select MAX(id) from "padavali_attachments"))`
+        sql`SELECT setval('"padavali_attachments_id_seq"', (select MAX(id) from "padavali_attachments"))`
       );
       await tx.execute(
-        sql`SELECT setval('"puzzle_gameplay_stats_id_seq"', (select MAX(id) from "padavali_gameplay_stats"))`
+        sql`SELECT setval('"padavali_gameplay_stats_id_seq"', (select MAX(id) from "padavali_gameplay_stats"))`
       );
       await tx.execute(
-        sql`SELECT setval('"puzzle_game_schedules_id_seq"', (select MAX(id) from "padavali_schedules"))`
+        sql`SELECT setval('"padavali_schedules_id_seq"', (select MAX(id) from "padavali_schedules"))`
       );
       await tx.execute(
-        sql`SELECT setval('"puzzle_gameplay_sessions_id_seq"', (select MAX(id) from "padavali_sessions"))`
+        sql`SELECT setval('"padavali_sessions_id_seq"', (select MAX(id) from "padavali_sessions"))`
       );
       await tx.execute(
-        sql`SELECT setval('"word_puzzle_redirects_id_seq"', (select MAX(id) from "padavali_redirects"))`
+        sql`SELECT setval('"padavali_redirects_id_seq"', (select MAX(id) from "padavali_redirects"))`
       );
       await tx.execute(
         sql`SELECT setval('"image_assets_id_seq"', (select MAX(id) from "image_assets"))`

@@ -1,7 +1,7 @@
 import { z } from 'zod';
 import { protectedAdminProcedure, publicProcedure, t } from '../trpc_init';
 import { db } from '~/db/db';
-import { crossord_puzzles } from '~/db/schema';
+import { crossword_puzzles } from '~/db/schema';
 import { and, asc, count, desc, eq, ilike, or, sql } from 'drizzle-orm';
 import { revalidatePath } from 'next/cache';
 import { escapeIlikeToken, tokenizeSearchQuery } from '~/util/puzzle/search';
@@ -22,21 +22,21 @@ const revalidateCrosswordPaths = () => {
 const get_listed_puzzles_route = publicProcedure.query(async () => {
   const rows = await db
     .select({
-      id: crossord_puzzles.id,
-      title: crossord_puzzles.title,
-      description: crossord_puzzles.description,
-      grid_dimensions: crossord_puzzles.grid_dimensions,
-      grid_data: crossord_puzzles.grid_data,
-      word_list: crossord_puzzles.word_list,
-      listed: crossord_puzzles.listed,
-      last_listed_at: crossord_puzzles.last_listed_at,
-      created_at: crossord_puzzles.created_at,
-      updated_at: crossord_puzzles.updated_at,
-      slug: crossord_puzzles.slug
+      id: crossword_puzzles.id,
+      title: crossword_puzzles.title,
+      description: crossword_puzzles.description,
+      grid_dimensions: crossword_puzzles.grid_dimensions,
+      grid_data: crossword_puzzles.grid_data,
+      word_list: crossword_puzzles.word_list,
+      listed: crossword_puzzles.listed,
+      last_listed_at: crossword_puzzles.last_listed_at,
+      created_at: crossword_puzzles.created_at,
+      updated_at: crossword_puzzles.updated_at,
+      slug: crossword_puzzles.slug
     })
-    .from(crossord_puzzles)
-    .where(eq(crossord_puzzles.listed, true))
-    .orderBy(desc(crossord_puzzles.last_listed_at), desc(crossord_puzzles.created_at));
+    .from(crossword_puzzles)
+    .where(eq(crossword_puzzles.listed, true))
+    .orderBy(desc(crossword_puzzles.last_listed_at), desc(crossword_puzzles.created_at));
 
   return rows.map((row) => CrossordPuzzleSchemaZod.parse(row));
 });
@@ -44,7 +44,7 @@ const get_listed_puzzles_route = publicProcedure.query(async () => {
 const get_puzzle_by_id_route = protectedAdminProcedure
   .input(z.object({ id: z.number().int() }))
   .query(async ({ input: { id } }) => {
-    const row = await db.query.crossord_puzzles.findFirst({
+    const row = await db.query.crossword_puzzles.findFirst({
       where: (tbl, { eq: eqFn }) => eqFn(tbl.id, id)
     });
     if (!row) return null;
@@ -60,13 +60,13 @@ const get_puzzle_list_page_route = protectedAdminProcedure
     const trimmedSearch = search_title?.trim();
     const conditions = [];
     if (typeof listed_filter === 'boolean') {
-      conditions.push(eq(crossord_puzzles.listed, listed_filter));
+      conditions.push(eq(crossword_puzzles.listed, listed_filter));
     }
     if (trimmedSearch) {
       for (const token of tokenizeSearchQuery(trimmedSearch)) {
         const pattern = `%${escapeIlikeToken(token)}%`;
         conditions.push(
-          or(ilike(crossord_puzzles.title, pattern), ilike(crossord_puzzles.description, pattern))!
+          or(ilike(crossword_puzzles.title, pattern), ilike(crossword_puzzles.description, pattern))!
         );
       }
     }
@@ -74,26 +74,26 @@ const get_puzzle_list_page_route = protectedAdminProcedure
 
     const sortCol =
       sort_by === 'updated_at'
-        ? sql`coalesce(${crossord_puzzles.updated_at}, ${crossord_puzzles.created_at})`
-        : crossord_puzzles.created_at;
+        ? sql`coalesce(${crossword_puzzles.updated_at}, ${crossword_puzzles.created_at})`
+        : crossword_puzzles.created_at;
     const orderPrimary = order_by === 'desc' ? desc(sortCol) : asc(sortCol);
     const orderTiebreaker =
-      order_by === 'desc' ? desc(crossord_puzzles.id) : asc(crossord_puzzles.id);
+      order_by === 'desc' ? desc(crossword_puzzles.id) : asc(crossword_puzzles.id);
     const offset = (page - 1) * size;
 
     const [countResult, rows] = await Promise.all([
-      db.select({ count: count() }).from(crossord_puzzles).where(whereClause),
+      db.select({ count: count() }).from(crossword_puzzles).where(whereClause),
       db
         .select({
-          id: crossord_puzzles.id,
-          title: crossord_puzzles.title,
-          description: crossord_puzzles.description,
-          listed: crossord_puzzles.listed,
-          grid_dimensions: crossord_puzzles.grid_dimensions,
-          created_at: crossord_puzzles.created_at,
-          updated_at: crossord_puzzles.updated_at
+          id: crossword_puzzles.id,
+          title: crossword_puzzles.title,
+          description: crossword_puzzles.description,
+          listed: crossword_puzzles.listed,
+          grid_dimensions: crossword_puzzles.grid_dimensions,
+          created_at: crossword_puzzles.created_at,
+          updated_at: crossword_puzzles.updated_at
         })
-        .from(crossord_puzzles)
+        .from(crossword_puzzles)
         .where(whereClause)
         .orderBy(orderPrimary, orderTiebreaker)
         .limit(size)
@@ -118,7 +118,7 @@ const add_puzzle_route = protectedAdminProcedure
   .mutation(async ({ input }) => {
     const dimensions = input.grid_dimensions;
     const [inserted] = await db
-      .insert(crossord_puzzles)
+      .insert(crossword_puzzles)
       .values({
         title: input.title.trim(),
         description: input.description?.trim() ? input.description.trim() : null,
@@ -136,7 +136,7 @@ const add_puzzle_route = protectedAdminProcedure
 const update_puzzle_route = protectedAdminProcedure
   .input(crossword_update_input_schema)
   .mutation(async ({ input: { puzzle_id, puzzle_data } }) => {
-    const existing = await db.query.crossord_puzzles.findFirst({
+    const existing = await db.query.crossword_puzzles.findFirst({
       columns: { id: true, listed: true },
       where: (tbl, { eq: eqFn }) => eqFn(tbl.id, puzzle_id)
     });
@@ -156,7 +156,7 @@ const update_puzzle_route = protectedAdminProcedure
     const becomingListed = puzzle_data.listed && !existing.listed;
 
     await db
-      .update(crossord_puzzles)
+      .update(crossword_puzzles)
       .set({
         title: puzzle_data.title.trim(),
         description: puzzle_data.description?.trim() ? puzzle_data.description.trim() : null,
@@ -166,7 +166,7 @@ const update_puzzle_route = protectedAdminProcedure
         word_list: resolvedWordList,
         ...(becomingListed ? { last_listed_at: new Date() } : {})
       })
-      .where(eq(crossord_puzzles.id, puzzle_id));
+      .where(eq(crossword_puzzles.id, puzzle_id));
 
     revalidateCrosswordPaths();
     revalidatePath(`/crossword/edit/${puzzle_id}`);
@@ -181,7 +181,7 @@ const set_listed_route = protectedAdminProcedure
     })
   )
   .mutation(async ({ input: { puzzle_id, listed } }) => {
-    const existing = await db.query.crossord_puzzles.findFirst({
+    const existing = await db.query.crossword_puzzles.findFirst({
       where: (tbl, { eq: eqFn }) => eqFn(tbl.id, puzzle_id)
     });
     if (!existing) {
@@ -200,12 +200,12 @@ const set_listed_route = protectedAdminProcedure
     const becomingListed = listed && !existing.listed;
 
     await db
-      .update(crossord_puzzles)
+      .update(crossword_puzzles)
       .set({
         listed,
         ...(becomingListed ? { last_listed_at: new Date() } : {})
       })
-      .where(eq(crossord_puzzles.id, puzzle_id));
+      .where(eq(crossword_puzzles.id, puzzle_id));
 
     revalidateCrosswordPaths();
     return { success: true as const };
@@ -214,7 +214,7 @@ const set_listed_route = protectedAdminProcedure
 const delete_puzzle_route = protectedAdminProcedure
   .input(z.object({ id: z.number().int() }))
   .mutation(async ({ input: { id } }) => {
-    const existing = await db.query.crossord_puzzles.findFirst({
+    const existing = await db.query.crossword_puzzles.findFirst({
       columns: { id: true },
       where: (tbl, { eq: eqFn }) => eqFn(tbl.id, id)
     });
@@ -222,7 +222,7 @@ const delete_puzzle_route = protectedAdminProcedure
       throw new Error('Puzzle not found');
     }
 
-    await db.delete(crossord_puzzles).where(eq(crossord_puzzles.id, id));
+    await db.delete(crossword_puzzles).where(eq(crossword_puzzles.id, id));
 
     revalidateCrosswordPaths();
     revalidatePath(`/crossword/edit/${id}`);

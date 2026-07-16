@@ -14,7 +14,7 @@ import ViewEditCrossword from '~/components/pages/cross_word/ViewEditCrossword';
 type Props = { params: Promise<{ id: string }> };
 
 const get_crossword_cached = cache(async (id: number) => {
-  const row = await db.query.crossord_puzzles.findFirst({
+  const row = await db.query.crossword_puzzles.findFirst({
     where: (tbl, { eq }) => eq(tbl.id, id)
   });
   if (!row) return null;

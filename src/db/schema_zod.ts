@@ -9,7 +9,7 @@ import {
   ai_batches,
   padavali_redirects,
   image_assets,
-  crossord_puzzles
+  crossword_puzzles
 } from './schema';
 import { createSelectSchema } from 'drizzle-zod';
 import { location_list_enum } from './types';
@@ -42,7 +42,7 @@ export const CrossordPuzzleGridCellSchema = z.object({
 });
 export type CrossWordPuzzleWord = z.infer<typeof CrossWordPuzzleWordSchema>;
 export type CrossordPuzzleGridCell = z.infer<typeof CrossordPuzzleGridCellSchema>;
-export const CrossordPuzzleSchemaZod = createSelectSchema(crossord_puzzles, {
+export const CrossordPuzzleSchemaZod = createSelectSchema(crossword_puzzles, {
   /** (m,n) */
   grid_dimensions: z.tuple([z.number().int().min(3), z.number().int().min(3)]),
   word_list: CrossWordPuzzleWordSchema.array(),

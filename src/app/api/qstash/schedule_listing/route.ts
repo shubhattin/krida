@@ -41,23 +41,23 @@ export const POST = verifySignatureAppRouter(async (req: Request) => {
     return new Response('Invalid or expired request', { status: 400 });
   }
 
-  await Promise.all([
-    db
+  await db.transaction(async (tx) => {
+    await tx
       .update(padavali_puzzles)
       .set({
         listed: true,
         last_listed_at: new Date()
       })
-      .where(eq(padavali_puzzles.id, puzzle_id)),
-    db
+      .where(eq(padavali_puzzles.id, puzzle_id));
+    await tx
       .update(padavali_schedules)
       .set({
         listing_verify_key: null
       })
       .where(
         and(eq(padavali_schedules.id, schedule_id), eq(padavali_schedules.puzzle_id, puzzle_id))
-      )
-  ]);
+      );
+  });
   await Promise.allSettled([
     invalidate_and_refresh_cached(CACHE.padavali.listed_puzzle_list, NO_CACHE_PARAMS),
     invalidate_and_refresh_cached(CACHE.padavali.word_puzzle, {

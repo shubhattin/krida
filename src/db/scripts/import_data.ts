@@ -16,7 +16,7 @@ export const import_data = async (confirm_env = true) => {
   const ai_batches = await db.query.ai_batches.findMany();
   const padavali_redirects = await db.query.padavali_redirects.findMany();
   const image_assets = await db.query.image_assets.findMany();
-  const crossord_puzzles = await db.query.crossord_puzzles.findMany();
+  const crossword_puzzles = await db.query.crossword_puzzles.findMany();
 
   const json_data = {
     padavali_puzzles,
@@ -28,7 +28,7 @@ export const import_data = async (confirm_env = true) => {
     ai_batches,
     padavali_redirects,
     image_assets,
-    crossord_puzzles
+    crossword_puzzles
   };
 
   await make_dir('./out');

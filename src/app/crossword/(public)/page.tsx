@@ -1,7 +1,7 @@
 import type { Metadata } from 'next';
 import { getCachedSession } from '~/lib/cache_server_route_data';
 import { db } from '~/db/db';
-import { crossord_puzzles } from '~/db/schema';
+import { crossword_puzzles } from '~/db/schema';
 import { eq, desc } from 'drizzle-orm';
 import { CrossordPuzzleSchemaZod } from '~/db/schema_zod';
 import CrosswordPublicClient from '~/components/pages/cross_word/CrosswordPublicClient';
@@ -14,9 +14,9 @@ export default async function CrossWordPage() {
   const sessionPromise = getCachedSession();
   const rowsPromise = db
     .select()
-    .from(crossord_puzzles)
-    .where(eq(crossord_puzzles.listed, true))
-    .orderBy(desc(crossord_puzzles.last_listed_at), desc(crossord_puzzles.created_at));
+    .from(crossword_puzzles)
+    .where(eq(crossword_puzzles.listed, true))
+    .orderBy(desc(crossword_puzzles.last_listed_at), desc(crossword_puzzles.created_at));
 
   const [session, rows] = await Promise.all([sessionPromise, rowsPromise]);
   const is_admin = session?.user.role === 'admin';

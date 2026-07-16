@@ -27,7 +27,7 @@ export const padavali_puzzles = pgTable(
     word_list: jsonb().notNull().$type<string[]>(),
     grid_data: jsonb().notNull().$type<string[][]>(),
     grid_dimensions: jsonb().notNull().$type<[number, number]>(),
-    /** Whether the puzzle is listed publically on the website */
+    /** Whether the puzzle is listed publicly on the website */
     listed: boolean().notNull().default(false),
     last_listed_at: timestamp({ withTimezone: true }),
     image_id: integer().references(() => image_assets.id, { onDelete: 'set null' })
