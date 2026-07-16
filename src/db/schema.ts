@@ -40,6 +40,7 @@ export const word_puzzles = pgTable(
   (table) => [
     uniqueIndex('word_puzzles_slug_idx').on(table.slug),
     index('word_puzzles_listed_created_at_idx').on(table.listed, table.created_at),
+    index('word_puzzles_listed_updated_at_idx').on(table.listed, table.updated_at),
     index('word_puzzles_listed_last_listed_at_idx').on(table.listed, table.last_listed_at)
   ]
 );
@@ -163,7 +164,7 @@ export const puzzle_game_schedules = pgTable(
     end_time: timestamp({ withTimezone: true }).notNull(),
     created_at: timestamp({ withTimezone: true }).notNull().defaultNow(),
     updated_at: timestamp({ withTimezone: true }).$onUpdate(() => new Date()),
-    archival_verify_key: text(),
+    listing_verify_key: text(),
     notification_key: text()
   },
   (table) => [
@@ -203,7 +204,7 @@ export const ai_batch_responses = pgTable(
   (table) => [primaryKey({ columns: [table.batch_id, table.custom_id] })]
 );
 
-// relations
+/** Relations */
 
 export const word_puzzlesRelations = relations(word_puzzles, ({ many, one }) => ({
   stats: many(puzzle_gameplay_stats),

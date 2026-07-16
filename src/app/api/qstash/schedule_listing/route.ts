@@ -13,7 +13,7 @@ import { notify_for_listed_puzzle } from '~/api/routers/puzzle';
 export const POST = verifySignatureAppRouter(async (req: Request) => {
   console.log('QStash request received', new Date());
   const body = await req.json();
-  const { puzzle_id, schedule_id, archival_verify_key } =
+  const { puzzle_id, schedule_id, listing_verify_key } =
     schedule_archival_publish_schema.parse(body);
 
   const schedule = await db.query.puzzle_game_schedules.findFirst({
@@ -21,7 +21,7 @@ export const POST = verifySignatureAppRouter(async (req: Request) => {
       and(
         eq(table.id, schedule_id),
         eq(table.puzzle_id, puzzle_id),
-        eq(table.archival_verify_key, archival_verify_key)
+        eq(table.listing_verify_key, listing_verify_key)
       ),
     columns: {
       id: true
@@ -52,7 +52,7 @@ export const POST = verifySignatureAppRouter(async (req: Request) => {
     db
       .update(puzzle_game_schedules)
       .set({
-        archival_verify_key: null
+        listing_verify_key: null
       })
       .where(
         and(

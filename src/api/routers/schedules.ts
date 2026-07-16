@@ -124,7 +124,7 @@ const add_puzzle_schedule_route = protectedAdminProcedure
     }
 
     revalidatePath('/padavali/schedules');
-    const archival_verify_key = generateRandomAlphanumeric(32);
+    const listing_verify_key = generateRandomAlphanumeric(32);
     const [schedule] = await db.transaction(async (tx) => {
       return tx
         .insert(puzzle_game_schedules)
@@ -132,7 +132,7 @@ const add_puzzle_schedule_route = protectedAdminProcedure
           puzzle_id,
           start_time,
           end_time,
-          archival_verify_key
+          listing_verify_key
         })
         .returning();
     });
@@ -145,7 +145,7 @@ const add_puzzle_schedule_route = protectedAdminProcedure
         {
           puzzle_id,
           schedule_id: schedule.id,
-          archival_verify_key
+          listing_verify_key
         },
         (schedule.start_time.getTime() - new Date().getTime()) / 1000 - 4 // 4 seconds prior listing start
       )
@@ -186,11 +186,11 @@ const update_puzzle_schedule_route = protectedAdminProcedure
   .mutation(async ({ input: { schedule_id, puzzle_id, start_time, end_time } }) => {
     revalidatePath('/padavali/schedules');
 
-    const archival_verify_key = generateRandomAlphanumeric(32);
+    const listing_verify_key = generateRandomAlphanumeric(32);
     await db.transaction(async (tx) => {
       await tx
         .update(puzzle_game_schedules)
-        .set({ start_time, end_time, archival_verify_key })
+        .set({ start_time, end_time, listing_verify_key })
         .where(
           and(
             eq(puzzle_game_schedules.id, schedule_id),
@@ -205,7 +205,7 @@ const update_puzzle_schedule_route = protectedAdminProcedure
         {
           puzzle_id,
           schedule_id,
-          archival_verify_key
+          listing_verify_key
         },
         (start_time.getTime() - new Date().getTime()) / 1000 - 4 // 4 seconds prior listing start
       ),

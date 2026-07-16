@@ -12,7 +12,7 @@ const PROD_MODE =
 export const schedule_archival_publish_schema = z.object({
   puzzle_id: z.number().int().positive(),
   schedule_id: z.number().int().positive(),
-  archival_verify_key: z.string().length(32)
+  listing_verify_key: z.string().length(32)
 });
 /**
  * Mark a scheduled puzzle as listed after expiration; invalidation is handled through key verification.
