@@ -27,12 +27,12 @@ const get_puzzle_word_meanings_route = publicProcedure
   )
   .output(word_meaning_schema)
   .query(async ({ input: { puzzle_id, puzzle_slug } }) => {
-    const puzzle = await CACHE.word_puzzle.get({ slug: puzzle_slug });
+    const puzzle = await CACHE.padavali_word_puzzle.get({ slug: puzzle_slug });
     if (!puzzle || puzzle.id !== puzzle_id) {
       throw new TRPCError({ code: 'NOT_FOUND', message: 'Puzzle not found' });
     }
 
-    const response = await CACHE.word_meanings.get({ slug: puzzle_slug });
+    const response = await CACHE.padavali_word_meanings.get({ slug: puzzle_slug });
     return response;
   });
 

@@ -20,7 +20,7 @@ type SlugResolution =
   | { type: 'not_found' };
 
 const resolve_puzzle_slug = cache(async (slug: string): Promise<SlugResolution> => {
-  const word_puzzle = await CACHE.word_puzzle.get({ slug });
+  const word_puzzle = await CACHE.padavali_word_puzzle.get({ slug });
   if (word_puzzle) {
     return { type: 'puzzle', puzzle: word_puzzle };
   }
@@ -47,7 +47,7 @@ const get_puzzle_for_metadata = async (slug: string) => {
     return resolution.puzzle;
   }
   if (resolution.type === 'redirect') {
-    return CACHE.word_puzzle.get({ slug: resolution.targetSlug });
+    return CACHE.padavali_word_puzzle.get({ slug: resolution.targetSlug });
   }
   return undefined;
 };
@@ -99,8 +99,8 @@ const WordGameSuspense = async ({ slug }: { slug: string }) => {
   const word_puzzle = resolution.puzzle;
 
   const [current_schedule, next_schedule] = await Promise.all([
-    CACHE.current_schedule.get(NO_CACHE_PARAMS),
-    CACHE.next_schedule.get(NO_CACHE_PARAMS)
+    CACHE.padavali_current_schedule.get(NO_CACHE_PARAMS),
+    CACHE.padavali_next_schedule.get(NO_CACHE_PARAMS)
   ]);
 
   if (current_schedule && word_puzzle.id === current_schedule.puzzle.id) {

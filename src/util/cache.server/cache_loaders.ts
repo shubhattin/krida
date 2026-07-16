@@ -53,7 +53,7 @@ const schedule_sentinel_from_cache = <T>(raw: unknown): T | null => {
 };
 
 const load_current_schedule = createCachedLoader<NoCacheParams, CurrentScheduleType>({
-  getKey: () => REDIS_CACHE_KEYS.current_schedule(),
+  getKey: () => REDIS_CACHE_KEYS.padavali_current_schedule(),
   fetch: async () => {
     const currentTime = new Date();
     const data = await db.query.padavali_schedules.findFirst({
@@ -111,7 +111,7 @@ const load_current_schedule = createCachedLoader<NoCacheParams, CurrentScheduleT
 });
 
 const load_next_schedule = createCachedLoader<NoCacheParams, NextScheduleType>({
-  getKey: () => REDIS_CACHE_KEYS.next_schedule(),
+  getKey: () => REDIS_CACHE_KEYS.padavali_next_schedule(),
   fetch: async () => {
     const currentTime = new Date();
     const data = await db.query.padavali_schedules.findFirst({
@@ -144,7 +144,7 @@ const load_next_schedule = createCachedLoader<NoCacheParams, NextScheduleType>({
 });
 
 const load_listed_puzzle_list = createCachedLoader<NoCacheParams, ListedPuzzlesType>({
-  getKey: () => REDIS_CACHE_KEYS.listed_puzzle_list(),
+  getKey: () => REDIS_CACHE_KEYS.padavali_listed_puzzle_list(),
   schema: listed_puzzle_schema.array(),
   fetch: async () => {
     const data = await db.query.padavali_puzzles.findMany({
@@ -177,7 +177,7 @@ const load_listed_puzzle_list = createCachedLoader<NoCacheParams, ListedPuzzlesT
 type WordPuzzleParams = { slug: string };
 
 const load_word_puzzle = createCachedLoader<WordPuzzleParams, PuzzleType | undefined>({
-  getKey: ({ slug }) => REDIS_CACHE_KEYS.word_puzzle(slug),
+  getKey: ({ slug }) => REDIS_CACHE_KEYS.padavali_word_puzzle(slug),
   schema: puzzle_schema,
   shouldCache: (data): data is PuzzleType => data !== undefined,
   fetch: async ({ slug }) => {
@@ -218,7 +218,7 @@ export const invalidate_and_refresh_cached = async <TParams, TData>(
 };
 
 const load_word_meanings = createCachedLoader<WordPuzzleParams, WordMeaningsType>({
-  getKey: ({ slug }) => REDIS_CACHE_KEYS.word_meanings(slug),
+  getKey: ({ slug }) => REDIS_CACHE_KEYS.padavali_word_meanings(slug),
   ttlSeconds: Math.floor(ms('90days') / 1000),
   schema: word_meanings_schema,
   fetch: async ({ slug }) => {
@@ -231,17 +231,17 @@ const load_word_meanings = createCachedLoader<WordPuzzleParams, WordMeaningsType
 });
 
 export type CacheLoaderRegistry = {
-  current_schedule: CachedLoader<NoCacheParams, CurrentScheduleType>;
-  next_schedule: CachedLoader<NoCacheParams, NextScheduleType>;
-  listed_puzzle_list: CachedLoader<NoCacheParams, ListedPuzzlesType>;
-  word_puzzle: CachedLoader<WordPuzzleParams, PuzzleType | undefined>;
-  word_meanings: CachedLoader<WordPuzzleParams, WordMeaningsType>;
+  padavali_current_schedule: CachedLoader<NoCacheParams, CurrentScheduleType>;
+  padavali_next_schedule: CachedLoader<NoCacheParams, NextScheduleType>;
+  padavali_listed_puzzle_list: CachedLoader<NoCacheParams, ListedPuzzlesType>;
+  padavali_word_puzzle: CachedLoader<WordPuzzleParams, PuzzleType | undefined>;
+  padavali_word_meanings: CachedLoader<WordPuzzleParams, WordMeaningsType>;
 };
 
 export const CACHE = {
-  current_schedule: load_current_schedule,
-  next_schedule: load_next_schedule,
-  listed_puzzle_list: load_listed_puzzle_list,
-  word_puzzle: load_word_puzzle,
-  word_meanings: load_word_meanings
-} satisfies CacheLoaderRegistry;
+  padavali_current_schedule: load_current_schedule,
+  padavali_next_schedule: load_next_schedule,
+  padavali_listed_puzzle_list: load_listed_puzzle_list,
+  padavali_word_puzzle: load_word_puzzle,
+  padavali_word_meanings: load_word_meanings
+} as CacheLoaderRegistry;

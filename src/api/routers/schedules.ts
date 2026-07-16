@@ -138,8 +138,8 @@ const add_puzzle_schedule_route = protectedAdminProcedure
     });
 
     await Promise.allSettled([
-      invalidate_and_refresh_cached(CACHE.current_schedule, NO_CACHE_PARAMS),
-      invalidate_and_refresh_cached(CACHE.next_schedule, NO_CACHE_PARAMS),
+      invalidate_and_refresh_cached(CACHE.padavali_current_schedule, NO_CACHE_PARAMS),
+      invalidate_and_refresh_cached(CACHE.padavali_next_schedule, NO_CACHE_PARAMS),
       notify_new_puzzle(puzzle_id, schedule.id, start_time),
       publishScheduleListingQueue(
         {
@@ -167,8 +167,8 @@ const delete_puzzle_schedule_route = protectedAdminProcedure
     });
 
     await Promise.allSettled([
-      invalidate_and_refresh_cached(CACHE.current_schedule, NO_CACHE_PARAMS),
-      invalidate_and_refresh_cached(CACHE.next_schedule, NO_CACHE_PARAMS)
+      invalidate_and_refresh_cached(CACHE.padavali_current_schedule, NO_CACHE_PARAMS),
+      invalidate_and_refresh_cached(CACHE.padavali_next_schedule, NO_CACHE_PARAMS)
     ]);
 
     return { success: true };
@@ -206,8 +206,8 @@ const update_puzzle_schedule_route = protectedAdminProcedure
         },
         (start_time.getTime() - new Date().getTime()) / 1000 - 4 // 4 seconds prior listing start
       ),
-      invalidate_and_refresh_cached(CACHE.current_schedule, NO_CACHE_PARAMS),
-      invalidate_and_refresh_cached(CACHE.next_schedule, NO_CACHE_PARAMS)
+      invalidate_and_refresh_cached(CACHE.padavali_current_schedule, NO_CACHE_PARAMS),
+      invalidate_and_refresh_cached(CACHE.padavali_next_schedule, NO_CACHE_PARAMS)
     ]);
 
     return { success: true };
