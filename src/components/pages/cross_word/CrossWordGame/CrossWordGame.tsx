@@ -9,6 +9,8 @@ import { Sparkles, InfoIcon } from 'lucide-react';
 import { IoShareSocialOutline } from 'react-icons/io5';
 import { toast } from 'sonner';
 import { Popover, PopoverContent, PopoverTrigger } from '~/components/ui/popover';
+import { Switch } from '~/components/ui/switch';
+import { Label } from '~/components/ui/label';
 import { CrossWordGrid } from './CrossWordGrid';
 import { GameProgress } from './GameProgress';
 import { GameControls } from './GameControls';
@@ -161,7 +163,7 @@ export function CrossWordGame({
   const queryClient = useQueryClient();
   const [keyboardOpen, setKeyboardOpen] = useState(false);
   const hasMedia = !!(attachments && attachments.length > 0);
-  const useVirtualKeyboard = INPUT_VIRTUAL_KEYBOARD_ENABLED;
+  const [useVirtualKeyboard, setUseVirtualKeyboard] = useState(INPUT_VIRTUAL_KEYBOARD_ENABLED);
 
   const showAccordion = !completed && (location === 'main_page' || location === 'view_page');
   const showCompletionCarousel = completed;
@@ -541,6 +543,25 @@ export function CrossWordGame({
             <CluePanel game={game} className="max-h-[min(70vh,36rem)]" />
           </div>
         </div>
+      </div>
+
+      <div className="mt-6 flex items-center justify-center gap-2.5 border-t border-border/40 pt-4">
+        <Switch
+          id="crossword-virtual-keyboard"
+          size="sm"
+          checked={useVirtualKeyboard}
+          onCheckedChange={(checked) => {
+            setUseVirtualKeyboard(checked);
+            if (!checked) setKeyboardOpen(false);
+          }}
+          aria-label="Use in-app on-screen keyboard"
+        />
+        <Label
+          htmlFor="crossword-virtual-keyboard"
+          className="cursor-pointer text-xs font-medium text-muted-foreground"
+        >
+          On-screen keyboard
+        </Label>
       </div>
     </div>
   );
