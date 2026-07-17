@@ -9,7 +9,14 @@ import NotificationsOneSignal from '~/components/NotificationsOneSignal';
 import { client_q } from './client';
 import { queryClient as queryClientGlobal } from '~/state/queryClient';
 
-export default function Provider({ children }: { children: React.ReactNode }) {
+export default function Provider({
+  children,
+  enableNotifications = true
+}: {
+  children: React.ReactNode;
+  /** OneSignal is Padavali-only; Crossword passes false. */
+  enableNotifications?: boolean;
+}) {
   const [queryClient] = useState(queryClientGlobal);
   const [trpcClient] = useState(() =>
     client_q.createClient({
@@ -27,7 +34,7 @@ export default function Provider({ children }: { children: React.ReactNode }) {
       <QueryClientProvider client={queryClient}>
         <ReactQueryDevtools initialIsOpen={false} />
         {children}
-        <NotificationsOneSignal />
+        {enableNotifications ? <NotificationsOneSignal /> : null}
       </QueryClientProvider>
     </client_q.Provider>
   );

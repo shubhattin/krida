@@ -192,7 +192,7 @@ describe('adapter and game model', () => {
   it('toCrossWordGamePuzzle adapts DB puzzle', () => {
     const puzzle: CrossordPuzzle = {
       id: 1,
-      slug: null,
+      slug: 'test',
       title: 'Test',
       description: 'Desc',
       grid_dimensions: [2, 3],
@@ -218,6 +218,7 @@ describe('adapter and game model', () => {
       ],
       listed: true,
       last_listed_at: null,
+      image_id: null,
       created_at: new Date(),
       updated_at: undefined
     };

@@ -34,6 +34,29 @@ export const publishScheduleListingQueue = async (
   );
 };
 
+export const crossword_schedule_listing_publish_schema = z.object({
+  puzzle_id: z.number().int().positive(),
+  schedule_id: z.number().int().positive(),
+  listing_verify_key: z.string().length(32)
+});
+
+export const publishCrosswordScheduleListingQueue = async (
+  data: z.infer<typeof crossword_schedule_listing_publish_schema>,
+  delay_s: number
+) => {
+  if (!process.env.NEXT_PUBLIC_SITE_URL || !PROD_MODE) return;
+  const body = crossword_schedule_listing_publish_schema.parse(data);
+
+  await client.publishJSON({
+    url: QSTAHS_PUBLISH_BASE_URL + '/crossword/schedule_listing',
+    delay: delay_s,
+    body
+  });
+  console.log(
+    `Queue published to list crossword puzzle ${body.puzzle_id} for schedule ${body.schedule_id} (delay: ${delay_s}s)`
+  );
+};
+
 export const scheduled_puzzle_notification_publish_schema = z.object({
   puzzle_id: z.number().int().positive(),
   schedule_id: z.number().int().positive(),

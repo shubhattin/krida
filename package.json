@@ -47,6 +47,7 @@
     "drizzle-zod": "^0.8.3",
     "embla-carousel-react": "^8.6.0",
     "framer-motion": "^12.42.0",
+    "fuse.js": "^7.5.0",
     "jotai": "^2.20.1",
     "js-cookie": "^3.0.8",
     "lipilekhika": "^1.0.13",

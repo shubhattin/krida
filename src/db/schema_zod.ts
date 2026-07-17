@@ -9,12 +9,17 @@ import {
   ai_batches,
   padavali_redirects,
   image_assets,
-  crossword_puzzles
+  crossword_puzzles,
+  crossword_redirects,
+  crossword_attachments,
+  crossword_sessions,
+  crossword_gameplay_stats,
+  crossword_schedules
 } from './schema';
 import { createSelectSchema } from 'drizzle-zod';
 import { location_list_enum } from './types';
 import { script_list_enum } from '~/state/script_list';
-import { image_batch_metadata_schema } from '~/util/types/ai_batch_metadata';
+import { batch_metadata_schema } from '~/util/types/ai_batch_metadata';
 
 export const PadavaliPuzzleSchemaZod = createSelectSchema(padavali_puzzles, {
   word_list: z.string().array(),
@@ -77,7 +82,7 @@ export const PadavaliAttachmentSchemaZod = createSelectSchema(padavali_attachmen
 });
 
 export const AiBatchResponseSchemaZod = createSelectSchema(ai_batch_responses, {
-  metadata: image_batch_metadata_schema.optional().nullable()
+  metadata: batch_metadata_schema.optional().nullable()
 });
 
 export const AiBatchSchemaZod = createSelectSchema(ai_batches);
@@ -88,4 +93,29 @@ export const PadavaliRedirectSchemaZod = createSelectSchema(padavali_redirects, 
 
 export const ImageAssetSchemaZod = createSelectSchema(image_assets, {
   created_at: z.coerce.date()
+});
+
+export const CrosswordRedirectSchemaZod = createSelectSchema(crossword_redirects, {
+  created_at: z.coerce.date()
+});
+
+export const CrosswordAttachmentSchemaZod = createSelectSchema(crossword_attachments, {
+  created_at: z.coerce.date(),
+  updated_at: z.coerce.date().optional().nullable()
+});
+
+export const CrosswordSessionSchemaZod = createSelectSchema(crossword_sessions, {
+  created_at: z.coerce.date(),
+  location: location_list_enum.nullable().optional()
+});
+
+export const CrosswordGamePlayStatsSchemaZod = createSelectSchema(crossword_gameplay_stats, {
+  created_at: z.coerce.date()
+});
+
+export const CrosswordScheduleSchemaZod = createSelectSchema(crossword_schedules, {
+  created_at: z.coerce.date(),
+  updated_at: z.coerce.date().optional().nullable(),
+  start_time: z.coerce.date(),
+  end_time: z.coerce.date()
 });

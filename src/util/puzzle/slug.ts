@@ -16,7 +16,22 @@ export const RESERVED_SLUGS = new Set([
   'view'
 ]);
 
+/** First-segment paths under `/crossword/*` that must not be used as puzzle slugs. */
+export const CROSSWORD_RESERVED_SLUGS = new Set([
+  'analytics',
+  'archived',
+  'batch_manager',
+  'edit',
+  'list',
+  'puzzle',
+  'puzzles',
+  'schedules',
+  'view'
+]);
+
 export const isReservedSlug = (slug: string) => RESERVED_SLUGS.has(slug);
+
+export const isReservedCrosswordSlug = (slug: string) => CROSSWORD_RESERVED_SLUGS.has(slug);
 
 export const normalizeSlug = (input: string) => input.trim().toLowerCase();
 
@@ -30,6 +45,20 @@ export const slug_schema = z.string().transform(normalizeSlug).refine(isValidSlu
   message:
     'Slug may only contain lowercase letters, numbers, underscores, and dashes, and cannot match a reserved route name'
 });
+
+export const isValidCrosswordSlug = (slug: string) =>
+  slug.length > 0 &&
+  slug.length <= MAX_SLUG_LENGTH &&
+  SLUG_REGEX.test(slug) &&
+  !isReservedCrosswordSlug(slug);
+
+export const crossword_slug_schema = z
+  .string()
+  .transform(normalizeSlug)
+  .refine(isValidCrosswordSlug, {
+    message:
+      'Slug may only contain lowercase letters, numbers, underscores, and dashes, and cannot match a reserved route name'
+  });
 
 export const parseIdSlugParam = (param: string): { id: number; slug: string } | null => {
   let decoded: string;

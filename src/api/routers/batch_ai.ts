@@ -12,13 +12,21 @@ import { TRPCError } from '@trpc/server';
 import { createAiBatch, getAiBatchResult, type AiBatchInput } from '~/util/ai_batch';
 import type { AiBatchPollingStatus } from '~/util/ai_batch/types';
 import { OpenAI } from 'openai';
-import { ai_batches, ai_batch_responses, image_assets, padavali_puzzles } from '~/db/schema';
+import {
+  ai_batches,
+  ai_batch_responses,
+  image_assets,
+  padavali_puzzles,
+  crossword_puzzles
+} from '~/db/schema';
 import { createS3Client, deleteAssetFile } from '~/util/s3/upload_file.server';
 import { and, desc, eq, inArray, sql } from 'drizzle-orm';
 import {
   BATCH_POLLING_INTERVAL_S,
-  image_batch_metadata_schema,
-  type BatchMetadata
+  batch_metadata_schema,
+  puzzle_image_game_enum,
+  type BatchMetadata,
+  type PuzzleImageGame
 } from '~/util/types/ai_batch_metadata';
 import { publishAiBatchResultsQueue } from '~/lib/qstash';
 import {
@@ -43,8 +51,44 @@ const trigger_puzzle_input_schema = z.object({
   puzzle_id: z.number().int(),
   title: z.string().optional(),
   description: z.string().optional(),
+  /** Padavali-only; ignored for crossword (prompts use title + description). */
   words: z.array(z.string()).optional()
 });
+
+function parseBatchMetadata(metadata: unknown): BatchMetadata {
+  return batch_metadata_schema.parse(metadata);
+}
+
+function resolveBatchGame(metadata: BatchMetadata, custom_id: string): PuzzleImageGame {
+  return metadata.game ?? parsePuzzleIdFromBatchCustomId(custom_id)?.game ?? 'padavali';
+}
+
+function buildImageBatchMetadata(args: {
+  game: PuzzleImageGame;
+  puzzle_id: number;
+  image_prompt: string;
+  file_name: string;
+  image_description: string;
+}): BatchMetadata {
+  if (args.game === 'crossword') {
+    return {
+      type: 'crossword-puzzle-image',
+      game: 'crossword',
+      puzzle_id: args.puzzle_id,
+      image_prompt: args.image_prompt,
+      file_name: args.file_name,
+      image_description: args.image_description
+    };
+  }
+  return {
+    type: 'puzzle-image',
+    game: 'padavali',
+    puzzle_id: args.puzzle_id,
+    image_prompt: args.image_prompt,
+    file_name: args.file_name,
+    image_description: args.image_description
+  };
+}
 
 /** How long a poll "claim" on an unresolved batch row stays exclusive.
  *  Concurrent pollers (QStash + manual) skip rows claimed within this window.
@@ -142,7 +186,7 @@ async function tryClaimBatchRow(batch_id: string, custom_id: string) {
       return null;
     }
 
-    const metadata = image_batch_metadata_schema.parse(row.metadata);
+    const metadata = parseBatchMetadata(row.metadata);
     if (metadata.poll_claimed_at) {
       const claimed_at = Date.parse(metadata.poll_claimed_at);
       if (!Number.isNaN(claimed_at) && Date.now() - claimed_at < POLL_CLAIM_STALE_MS) {
@@ -174,20 +218,31 @@ async function tryClaimBatchRow(batch_id: string, custom_id: string) {
 const trigger_batch_puzzle_image_gen_route = protectedAdminProcedure
   .input(
     z.object({
+      game: puzzle_image_game_enum.default('padavali'),
       auto_approved: z.boolean().default(true),
       puzzles: z.array(trigger_puzzle_input_schema).min(1)
     })
   )
-  .mutation(async ({ input: { auto_approved, puzzles: puzzle_inputs } }) => {
+  .mutation(async ({ input: { game, auto_approved, puzzles: puzzle_inputs } }) => {
     const puzzle_ids = puzzle_inputs.map((puzzle) => puzzle.puzzle_id);
-    const db_puzzles = await db.query.padavali_puzzles.findMany({
-      columns: {
-        id: true,
-        title: true,
-        description: true
-      },
-      where: (tbl, { inArray }) => inArray(tbl.id, puzzle_ids)
-    });
+    const db_puzzles =
+      game === 'crossword'
+        ? await db.query.crossword_puzzles.findMany({
+            columns: {
+              id: true,
+              title: true,
+              description: true
+            },
+            where: (tbl, { inArray }) => inArray(tbl.id, puzzle_ids)
+          })
+        : await db.query.padavali_puzzles.findMany({
+            columns: {
+              id: true,
+              title: true,
+              description: true
+            },
+            where: (tbl, { inArray }) => inArray(tbl.id, puzzle_ids)
+          });
     if (db_puzzles.length !== puzzle_ids.length) {
       throw new TRPCError({
         code: 'BAD_REQUEST',
@@ -205,6 +260,7 @@ const trigger_batch_puzzle_image_gen_route = protectedAdminProcedure
       };
     });
 
+    // Both games: prompt from title + description only (no word list / clues).
     const image_prompts = await Promise.all(
       resolved_puzzles.map(async (puzzle) => generateImagePrompt(puzzle.title, puzzle.description))
     );
@@ -215,7 +271,7 @@ const trigger_batch_puzzle_image_gen_route = protectedAdminProcedure
     for (const [index, puzzle] of resolved_puzzles.entries()) {
       batch_requests.push({
         type: 'image',
-        custom_id: getPuzzleImageBatchCustomId(puzzle.id),
+        custom_id: getPuzzleImageBatchCustomId(puzzle.id, game),
         prompt: image_prompts[index],
         model: OPENAI_MODELS.image_generation,
         quality: 'medium',
@@ -233,15 +289,15 @@ const trigger_batch_puzzle_image_gen_route = protectedAdminProcedure
         await tx.insert(ai_batch_responses).values(
           resolved_puzzles.map((puzzle, index) => ({
             batch_id,
-            custom_id: getPuzzleImageBatchCustomId(puzzle.id),
+            custom_id: getPuzzleImageBatchCustomId(puzzle.id, game),
             auto_approved,
-            metadata: {
-              type: 'puzzle-image' as const,
+            metadata: buildImageBatchMetadata({
+              game,
               puzzle_id: puzzle.id,
               image_prompt: image_prompts[index],
               file_name: file_name_descriptions[index].file_name,
               image_description: file_name_descriptions[index].description
-            }
+            })
           }))
         );
       });
@@ -252,7 +308,7 @@ const trigger_batch_puzzle_image_gen_route = protectedAdminProcedure
       });
       throw err;
     }
-    return { batch_id, puzzle_count: resolved_puzzles.length };
+    return { batch_id, puzzle_count: resolved_puzzles.length, game };
   });
 
 const TERMINAL_FAILURE_STATUSES: ReadonlySet<AiBatchPollingStatus> = new Set([
@@ -333,7 +389,7 @@ async function markBatchOutputResolvedIfComplete(
     columns: { metadata: true }
   });
   const all_processed = responses.every((row) =>
-    isResponseItemProcessed(image_batch_metadata_schema.parse(row.metadata))
+    isResponseItemProcessed(parseBatchMetadata(row.metadata))
   );
   if (!all_processed) return;
 
@@ -361,7 +417,7 @@ export const approve_connect_puzzle_image_id_func = async (batch_id: string, cus
         message: `No metadata found for batch_id ${batch_id} and custom_id ${custom_id}`
       });
     }
-    const { metadata } = ai_batch_data;
+    const metadata = parseBatchMetadata(ai_batch_data.metadata);
     if (metadata.success !== true || metadata.uploaded_image_id === undefined) {
       throw new TRPCError({
         code: 'BAD_REQUEST',
@@ -369,6 +425,46 @@ export const approve_connect_puzzle_image_id_func = async (batch_id: string, cus
       });
     }
     const { uploaded_image_id, puzzle_id } = metadata;
+    const game = resolveBatchGame(metadata, custom_id);
+
+    if (game === 'crossword') {
+      const puzzle = await tx.query.crossword_puzzles.findFirst({
+        columns: { slug: true, listed: true },
+        where: eq(crossword_puzzles.id, puzzle_id)
+      });
+      if (!puzzle) {
+        throw new TRPCError({
+          code: 'NOT_FOUND',
+          message: `Puzzle not found for batch_id ${batch_id} and custom_id ${custom_id}`
+        });
+      }
+
+      await Promise.all([
+        tx
+          .update(crossword_puzzles)
+          .set({
+            image_id: uploaded_image_id
+          })
+          .where(eq(crossword_puzzles.id, puzzle_id)),
+        tx
+          .delete(ai_batch_responses)
+          .where(
+            and(
+              eq(ai_batch_responses.batch_id, batch_id),
+              eq(ai_batch_responses.custom_id, custom_id)
+            )
+          )
+      ]);
+
+      return {
+        success: true as const,
+        puzzle_id,
+        uploaded_image_id,
+        game,
+        slug: puzzle.slug,
+        listed: puzzle.listed
+      };
+    }
 
     const puzzle = await tx.query.padavali_puzzles.findFirst({
       columns: { slug: true, listed: true },
@@ -398,31 +494,45 @@ export const approve_connect_puzzle_image_id_func = async (batch_id: string, cus
         )
     ]);
 
-    // refresh cache
-    const current_schedule = await CACHE.padavali.current_schedule.get(NO_CACHE_PARAMS);
-    await Promise.all([
-      // if puzzle is in current schedule then invalidate the cache
-      current_schedule &&
-        current_schedule.puzzle.id === puzzle_id &&
-        invalidate_and_refresh_cached(CACHE.padavali.current_schedule, NO_CACHE_PARAMS),
-      invalidate_and_refresh_cached(CACHE.padavali.word_puzzle, { slug: puzzle.slug }),
-      puzzle.listed &&
-        invalidate_and_refresh_cached(CACHE.padavali.listed_puzzle_list, NO_CACHE_PARAMS)
-    ]);
-
     return {
-      success: true,
+      success: true as const,
       puzzle_id,
-      uploaded_image_id
+      uploaded_image_id,
+      game,
+      slug: puzzle.slug,
+      listed: puzzle.listed
     };
   });
+
+  if (result.game === 'crossword') {
+    const current_schedule = await CACHE.crossword.current_schedule.get(NO_CACHE_PARAMS);
+    await Promise.all([
+      current_schedule &&
+        current_schedule.puzzle.id === result.puzzle_id &&
+        invalidate_and_refresh_cached(CACHE.crossword.current_schedule, NO_CACHE_PARAMS),
+      invalidate_and_refresh_cached(CACHE.crossword.word_puzzle, { slug: result.slug }),
+      result.listed &&
+        invalidate_and_refresh_cached(CACHE.crossword.listed_puzzle_list, NO_CACHE_PARAMS)
+    ]);
+  } else {
+    const current_schedule = await CACHE.padavali.current_schedule.get(NO_CACHE_PARAMS);
+    await Promise.all([
+      current_schedule &&
+        current_schedule.puzzle.id === result.puzzle_id &&
+        invalidate_and_refresh_cached(CACHE.padavali.current_schedule, NO_CACHE_PARAMS),
+      invalidate_and_refresh_cached(CACHE.padavali.word_puzzle, { slug: result.slug }),
+      result.listed &&
+        invalidate_and_refresh_cached(CACHE.padavali.listed_puzzle_list, NO_CACHE_PARAMS)
+    ]);
+  }
 
   scheduleOpenAiBatchCleanup(batch_id);
 
   return {
     success: result.success,
     puzzle_id: result.puzzle_id,
-    uploaded_image_id: result.uploaded_image_id
+    uploaded_image_id: result.uploaded_image_id,
+    game: result.game
   };
 };
 
@@ -494,9 +604,7 @@ export const poll_batch_puzzle_image_gen_func = async (
   if (ai_batch.output_resolved) {
     const items = await autoApproveEligibleRows(
       batch_id,
-      db_rows.map((row) =>
-        toPollItem(row.custom_id, image_batch_metadata_schema.parse(row.metadata))
-      )
+      db_rows.map((row) => toPollItem(row.custom_id, parseBatchMetadata(row.metadata)))
     );
     return {
       status: 'already_resolved',
@@ -517,12 +625,12 @@ export const poll_batch_puzzle_image_gen_func = async (
     if (TERMINAL_FAILURE_STATUSES.has(openai_status)) {
       await db.transaction(async (tx) => {
         const unprocessed_rows = db_rows.filter(
-          (row) => !isResponseItemProcessed(image_batch_metadata_schema.parse(row.metadata))
+          (row) => !isResponseItemProcessed(parseBatchMetadata(row.metadata))
         );
         if (unprocessed_rows.length > 0) {
           const value_rows = unprocessed_rows.map((row) => {
             const metadata = {
-              ...image_batch_metadata_schema.parse(row.metadata),
+              ...parseBatchMetadata(row.metadata),
               success: false as const
             };
             return sql`(${row.custom_id}::text, ${JSON.stringify(metadata)}::jsonb)`;
@@ -567,7 +675,7 @@ export const poll_batch_puzzle_image_gen_func = async (
   const items: PollBatchPuzzleImageGenItem[] = [];
 
   for (const row of db_rows) {
-    const row_metadata = image_batch_metadata_schema.parse(row.metadata);
+    const row_metadata = parseBatchMetadata(row.metadata);
     if (isResponseItemProcessed(row_metadata)) {
       items.push(toPollItem(row.custom_id, row_metadata));
       continue;
@@ -582,7 +690,7 @@ export const poll_batch_puzzle_image_gen_func = async (
         )
       });
       if (resolved_row) {
-        const resolved_metadata = image_batch_metadata_schema.parse(resolved_row.metadata);
+        const resolved_metadata = parseBatchMetadata(resolved_row.metadata);
         if (isResponseItemProcessed(resolved_metadata)) {
           items.push(toPollItem(resolved_row.custom_id, resolved_metadata));
         }
@@ -590,7 +698,7 @@ export const poll_batch_puzzle_image_gen_func = async (
       continue;
     }
 
-    const metadata = image_batch_metadata_schema.parse(claimed_row.metadata);
+    const metadata = parseBatchMetadata(claimed_row.metadata);
 
     const output = output_by_custom_id.get(row.custom_id);
 
@@ -613,12 +721,7 @@ export const poll_batch_puzzle_image_gen_func = async (
           )
         });
         if (resolved_row) {
-          items.push(
-            toPollItem(
-              resolved_row.custom_id,
-              image_batch_metadata_schema.parse(resolved_row.metadata)
-            )
-          );
+          items.push(toPollItem(resolved_row.custom_id, parseBatchMetadata(resolved_row.metadata)));
         }
       }
       continue;
@@ -652,12 +755,7 @@ export const poll_batch_puzzle_image_gen_func = async (
           )
         });
         if (resolved_row) {
-          items.push(
-            toPollItem(
-              resolved_row.custom_id,
-              image_batch_metadata_schema.parse(resolved_row.metadata)
-            )
-          );
+          items.push(toPollItem(resolved_row.custom_id, parseBatchMetadata(resolved_row.metadata)));
         }
       }
       continue;
@@ -693,7 +791,7 @@ export const poll_batch_puzzle_image_gen_func = async (
         )
       });
       if (resolved_row) {
-        const resolved_metadata = image_batch_metadata_schema.parse(resolved_row.metadata);
+        const resolved_metadata = parseBatchMetadata(resolved_row.metadata);
         if (isResponseItemProcessed(resolved_metadata)) {
           items.push(toPollItem(resolved_row.custom_id, resolved_metadata));
         }
@@ -746,15 +844,25 @@ async function enrichBatchRowWithAssetAndPuzzle(row: {
   auto_approved: boolean;
   metadata: BatchMetadata;
 }) {
-  const metadata = image_batch_metadata_schema.parse(row.metadata);
-  const puzzle_id = metadata.puzzle_id ?? parsePuzzleIdFromBatchCustomId(row.custom_id);
+  const metadata = parseBatchMetadata(row.metadata);
+  const parsed_custom = parsePuzzleIdFromBatchCustomId(row.custom_id);
+  const puzzle_id = metadata.puzzle_id ?? parsed_custom?.puzzle_id ?? null;
+  const game = resolveBatchGame(metadata, row.custom_id);
   let puzzle_title: string | null = null;
   if (puzzle_id !== null) {
-    const puzzle = await db.query.padavali_puzzles.findFirst({
-      columns: { title: true },
-      where: eq(padavali_puzzles.id, puzzle_id)
-    });
-    puzzle_title = puzzle?.title ?? null;
+    if (game === 'crossword') {
+      const puzzle = await db.query.crossword_puzzles.findFirst({
+        columns: { title: true },
+        where: eq(crossword_puzzles.id, puzzle_id)
+      });
+      puzzle_title = puzzle?.title ?? null;
+    } else {
+      const puzzle = await db.query.padavali_puzzles.findFirst({
+        columns: { title: true },
+        where: eq(padavali_puzzles.id, puzzle_id)
+      });
+      puzzle_title = puzzle?.title ?? null;
+    }
   }
 
   let image_asset: {
@@ -787,6 +895,7 @@ async function enrichBatchRowWithAssetAndPuzzle(row: {
     output_resolved: row.output_resolved,
     auto_approved: row.auto_approved,
     metadata,
+    game,
     puzzle_id,
     puzzle_title,
     image_asset,
@@ -795,9 +904,14 @@ async function enrichBatchRowWithAssetAndPuzzle(row: {
 }
 
 const get_puzzle_image_batch_status_route = protectedAdminProcedure
-  .input(z.object({ puzzle_id: z.number().int() }))
-  .query(async ({ input: { puzzle_id } }) => {
-    const custom_id = getPuzzleImageBatchCustomId(puzzle_id);
+  .input(
+    z.object({
+      puzzle_id: z.number().int(),
+      game: puzzle_image_game_enum.default('padavali')
+    })
+  )
+  .query(async ({ input: { puzzle_id, game } }) => {
+    const custom_id = getPuzzleImageBatchCustomId(puzzle_id, game);
     const rows = await db
       .select({
         batch_id: ai_batch_responses.batch_id,
@@ -834,116 +948,127 @@ const get_puzzle_image_batch_status_route = protectedAdminProcedure
     return await enrichBatchRowWithAssetAndPuzzle(active_row);
   });
 
-const get_batch_manager_groups_route = protectedAdminProcedure.query(async () => {
-  const batches = await db.query.ai_batches.findMany({
-    where: eq(ai_batches.type, 'image'),
-    orderBy: [desc(ai_batches.batch_id)],
-    with: { responses: true }
+const get_batch_manager_groups_route = protectedAdminProcedure
+  .input(z.object({ game: puzzle_image_game_enum.default('padavali') }))
+  .query(async ({ input: { game } }) => {
+    const batches = await db.query.ai_batches.findMany({
+      where: eq(ai_batches.type, 'image'),
+      orderBy: [desc(ai_batches.batch_id)],
+      with: { responses: true }
+    });
+
+    const rows = batches.flatMap((batch) =>
+      batch.responses
+        .map((response) => ({
+          batch_id: batch.batch_id,
+          custom_id: response.custom_id,
+          output_resolved: batch.output_resolved,
+          auto_approved: response.auto_approved,
+          metadata: parseBatchMetadata(response.metadata)
+        }))
+        .filter((row) => resolveBatchGame(row.metadata, row.custom_id) === game)
+    );
+
+    const puzzle_ids = new Set<number>();
+    const image_ids = new Set<number>();
+    for (const row of rows) {
+      if (row.metadata.puzzle_id !== undefined) {
+        puzzle_ids.add(row.metadata.puzzle_id);
+      } else {
+        const parsed = parsePuzzleIdFromBatchCustomId(row.custom_id);
+        if (parsed !== null) puzzle_ids.add(parsed.puzzle_id);
+      }
+      if (row.metadata.uploaded_image_id !== undefined) {
+        image_ids.add(row.metadata.uploaded_image_id);
+      }
+    }
+
+    const puzzle_id_list = [...puzzle_ids];
+    const [puzzles, assets] = await Promise.all([
+      puzzle_id_list.length > 0
+        ? game === 'crossword'
+          ? db.query.crossword_puzzles.findMany({
+              columns: { id: true, title: true },
+              where: inArray(crossword_puzzles.id, puzzle_id_list)
+            })
+          : db.query.padavali_puzzles.findMany({
+              columns: { id: true, title: true },
+              where: inArray(padavali_puzzles.id, puzzle_id_list)
+            })
+        : Promise.resolve([]),
+      image_ids.size > 0
+        ? db.query.image_assets.findMany({
+            columns: {
+              id: true,
+              s3_key: true,
+              width: true,
+              height: true,
+              description: true
+            },
+            where: inArray(image_assets.id, [...image_ids])
+          })
+        : Promise.resolve([])
+    ]);
+
+    const puzzle_by_id = new Map(puzzles.map((puzzle) => [puzzle.id, puzzle]));
+    const asset_by_id = new Map(assets.map((asset) => [asset.id, asset]));
+
+    const groups = new Map<
+      string,
+      {
+        batch_id: string;
+        items: Awaited<ReturnType<typeof enrichBatchRowWithAssetAndPuzzle>>[];
+      }
+    >();
+
+    for (const row of rows) {
+      const metadata = row.metadata;
+      const puzzle_id =
+        metadata.puzzle_id ?? parsePuzzleIdFromBatchCustomId(row.custom_id)?.puzzle_id ?? null;
+      const puzzle_title = puzzle_id !== null ? (puzzle_by_id.get(puzzle_id)?.title ?? null) : null;
+      const image_asset =
+        metadata.uploaded_image_id !== undefined
+          ? (asset_by_id.get(metadata.uploaded_image_id) ?? null)
+          : null;
+
+      const item = {
+        batch_id: row.batch_id,
+        custom_id: row.custom_id,
+        output_resolved: row.output_resolved,
+        auto_approved: row.auto_approved,
+        metadata,
+        game,
+        puzzle_id,
+        puzzle_title,
+        image_asset,
+        status: derivePuzzleImageBatchUiStatus(row.output_resolved, metadata, row.auto_approved)
+      };
+
+      const existing = groups.get(row.batch_id);
+      if (existing) {
+        existing.items.push(item);
+      } else {
+        groups.set(row.batch_id, { batch_id: row.batch_id, items: [item] });
+      }
+    }
+
+    return [...groups.values()].map((group) => {
+      const counts = {
+        pending: 0,
+        ready: 0,
+        failed: 0,
+        auto_approved: 0
+      };
+      for (const item of group.items) {
+        if (item.status === 'processing') counts.pending++;
+        else if (item.status === 'ready_for_review' || item.status === 'auto_applying')
+          counts.ready++;
+        else if (item.status === 'failed') counts.failed++;
+        if (item.auto_approved) counts.auto_approved++;
+      }
+      return { ...group, counts };
+    });
   });
-
-  const rows = batches.flatMap((batch) =>
-    batch.responses.map((response) => ({
-      batch_id: batch.batch_id,
-      custom_id: response.custom_id,
-      output_resolved: batch.output_resolved,
-      auto_approved: response.auto_approved,
-      metadata: response.metadata
-    }))
-  );
-
-  const puzzle_ids = new Set<number>();
-  const image_ids = new Set<number>();
-  for (const row of rows) {
-    const metadata = image_batch_metadata_schema.parse(row.metadata);
-    if (metadata.puzzle_id !== undefined) {
-      puzzle_ids.add(metadata.puzzle_id);
-    } else {
-      const parsed = parsePuzzleIdFromBatchCustomId(row.custom_id);
-      if (parsed !== null) puzzle_ids.add(parsed);
-    }
-    if (metadata.uploaded_image_id !== undefined) {
-      image_ids.add(metadata.uploaded_image_id);
-    }
-  }
-
-  const [puzzles, assets] = await Promise.all([
-    puzzle_ids.size > 0
-      ? db.query.padavali_puzzles.findMany({
-          columns: { id: true, title: true },
-          where: inArray(padavali_puzzles.id, [...puzzle_ids])
-        })
-      : Promise.resolve([]),
-    image_ids.size > 0
-      ? db.query.image_assets.findMany({
-          columns: {
-            id: true,
-            s3_key: true,
-            width: true,
-            height: true,
-            description: true
-          },
-          where: inArray(image_assets.id, [...image_ids])
-        })
-      : Promise.resolve([])
-  ]);
-
-  const puzzle_by_id = new Map(puzzles.map((puzzle) => [puzzle.id, puzzle]));
-  const asset_by_id = new Map(assets.map((asset) => [asset.id, asset]));
-
-  const groups = new Map<
-    string,
-    {
-      batch_id: string;
-      items: Awaited<ReturnType<typeof enrichBatchRowWithAssetAndPuzzle>>[];
-    }
-  >();
-
-  for (const row of rows) {
-    const metadata = image_batch_metadata_schema.parse(row.metadata);
-    const puzzle_id = metadata.puzzle_id ?? parsePuzzleIdFromBatchCustomId(row.custom_id);
-    const puzzle_title = puzzle_id !== null ? (puzzle_by_id.get(puzzle_id)?.title ?? null) : null;
-    const image_asset =
-      metadata.uploaded_image_id !== undefined
-        ? (asset_by_id.get(metadata.uploaded_image_id) ?? null)
-        : null;
-
-    const item = {
-      batch_id: row.batch_id,
-      custom_id: row.custom_id,
-      output_resolved: row.output_resolved,
-      auto_approved: row.auto_approved,
-      metadata,
-      puzzle_id,
-      puzzle_title,
-      image_asset,
-      status: derivePuzzleImageBatchUiStatus(row.output_resolved, metadata, row.auto_approved)
-    };
-
-    const existing = groups.get(row.batch_id);
-    if (existing) {
-      existing.items.push(item);
-    } else {
-      groups.set(row.batch_id, { batch_id: row.batch_id, items: [item] });
-    }
-  }
-
-  return [...groups.values()].map((group) => {
-    const counts = {
-      pending: 0,
-      ready: 0,
-      failed: 0,
-      auto_approved: 0
-    };
-    for (const item of group.items) {
-      if (item.status === 'processing') counts.pending++;
-      else if (item.status === 'ready_for_review' || item.status === 'auto_applying')
-        counts.ready++;
-      else if (item.status === 'failed') counts.failed++;
-      if (item.auto_approved) counts.auto_approved++;
-    }
-    return { ...group, counts };
-  });
-});
 
 const discard_puzzle_image_batch_response_route = protectedAdminProcedure
   .input(
@@ -966,7 +1091,7 @@ const discard_puzzle_image_batch_response_route = protectedAdminProcedure
       });
     }
 
-    const metadata = image_batch_metadata_schema.parse(row.metadata);
+    const metadata = parseBatchMetadata(row.metadata);
     let deleted_image_id: number | null = null;
     if (metadata.uploaded_image_id !== undefined) {
       await deleteImageAssetById(metadata.uploaded_image_id);
@@ -984,7 +1109,7 @@ const discard_puzzle_image_batch_response_route = protectedAdminProcedure
     return {
       success: true,
       deleted_image_id,
-      puzzle_id: metadata.puzzle_id ?? parsePuzzleIdFromBatchCustomId(custom_id)
+      puzzle_id: metadata.puzzle_id ?? parsePuzzleIdFromBatchCustomId(custom_id)?.puzzle_id ?? null
     };
   });
 

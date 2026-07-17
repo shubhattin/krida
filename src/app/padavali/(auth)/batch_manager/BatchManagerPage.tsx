@@ -24,19 +24,32 @@ import {
 } from '~/util/ai_batch/batch_image_status';
 import { BatchPuzzleImageReviewDialog } from '~/components/pages/padavali/batch-image/BatchPuzzleImageReviewDialog';
 import { useInvalidatePuzzleImageBatchQueries } from '~/components/pages/padavali/batch-image/usePuzzleImageBatchStatus';
+import type { PuzzleImageGame } from '~/util/types/ai_batch_metadata';
 
 type RouterOutput = inferRouterOutputs<AppRouter>;
 type BatchManagerGroup = RouterOutput['batch_ai']['get_batch_manager_groups'][number];
 type BatchManagerItem = BatchManagerGroup['items'][number];
 
-const BatchManagerPage = () => {
-  const { invalidateAll } = useInvalidatePuzzleImageBatchQueries();
+type BatchManagerPageProps = {
+  game?: PuzzleImageGame;
+};
+
+const BatchManagerPage = ({ game = 'padavali' }: BatchManagerPageProps) => {
+  const { invalidateAll } = useInvalidatePuzzleImageBatchQueries(game);
   const [review_item, setReviewItem] = useState<BatchManagerItem | null>(null);
 
-  const groups_q = client_q.batch_ai.get_batch_manager_groups.useQuery(undefined, {
-    staleTime: 90_000,
-    refetchOnWindowFocus: false
-  });
+  const list_href = game === 'crossword' ? '/crossword/list' : '/padavali/list';
+  const edit_href = (puzzle_id: number) =>
+    game === 'crossword' ? `/crossword/edit/${puzzle_id}` : `/padavali/edit/${puzzle_id}`;
+  const title = game === 'crossword' ? 'Crossword Batch Manager' : 'Batch Manager';
+
+  const groups_q = client_q.batch_ai.get_batch_manager_groups.useQuery(
+    { game },
+    {
+      staleTime: 90_000,
+      refetchOnWindowFocus: false
+    }
+  );
 
   const poll_mut = client_q.batch_ai.poll_batch_puzzle_image_gen.useMutation({
     onSuccess: async (data) => {
@@ -64,7 +77,7 @@ const BatchManagerPage = () => {
     <div className="space-y-4">
       <div className="flex flex-wrap items-center justify-between gap-3">
         <div>
-          <h1 className="text-2xl font-bold">Batch Manager</h1>
+          <h1 className="text-2xl font-bold">{title}</h1>
           <p className="text-sm text-muted-foreground">
             Monitor background puzzle image batches, poll for results, and review generated images.
           </p>
@@ -103,7 +116,7 @@ const BatchManagerPage = () => {
           <p className="mt-1 text-sm text-muted-foreground">
             Queue background generation from the puzzle list or edit page.
           </p>
-          <Button render={<Link href="/padavali/list" />} nativeButton={false} className="mt-4">
+          <Button render={<Link href={list_href} />} nativeButton={false} className="mt-4">
             Go to puzzle list
           </Button>
         </div>
@@ -187,7 +200,7 @@ const BatchManagerPage = () => {
                           <p className="text-xs text-muted-foreground">{item.custom_id}</p>
                           {item.puzzle_id ? (
                             <Link
-                              href={`/padavali/edit/${item.puzzle_id}`}
+                              href={edit_href(item.puzzle_id)}
                               className="inline-flex items-center gap-1 text-xs text-primary hover:underline"
                             >
                               Open puzzle

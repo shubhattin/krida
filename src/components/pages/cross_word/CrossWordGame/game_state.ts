@@ -21,12 +21,25 @@ export const player_grid_atom = atom<(string | null)[][]>([]);
 export const started_atom = atom(false);
 export const completed_atom = atom(false);
 export const seconds_atom = atom(0);
+/**
+ * Incremented every time a fresh play session starts within the same mounted puzzle.
+ * Consumers use this as a reset signal for per-session side effects (metrics / Turnstile).
+ */
 export const game_session_nonce_atom = atom(0);
+/** Active crossword id for AppBar admin "Edit Current Puzzle" link. */
+export const active_crossword_id_atom = atom<number | null>(null);
 export const active_focus_atom = atom<ActiveFocus | null>(null);
 export const solved_entry_ids_atom = atom<string[]>([]);
 /** Entry ids that are fully filled but incorrect — soft feedback only. */
 export const incorrect_entry_ids_atom = atom<string[]>([]);
 export const celebration_fired_atom = atom(false);
+/** Cumulative letter inputs this session (accepted A–Z keystrokes). */
+export const letter_inputs_atom = atom(0);
+/**
+ * Cumulative incorrect full-entry evaluations this session.
+ * Incremented when a letter change leaves an affected, fully filled entry incorrect.
+ */
+export const incorrect_entry_attempts_atom = atom(0);
 
 export const progress_atom = atom((get) => {
   const entries = get(numbered_entries_atom);

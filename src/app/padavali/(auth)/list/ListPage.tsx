@@ -108,7 +108,8 @@ const ListPage = () => {
   const [layout, setLayout] = useState<ListLayout>('cards');
   const [selected_ids, setSelectedIds] = useState<Set<number>>(() => new Set());
   const [auto_approved, setAutoApproved] = useState(true);
-  const { invalidateBatchManager, invalidatePuzzleStatus } = useInvalidatePuzzleImageBatchQueries();
+  const { invalidateBatchManager, invalidatePuzzleStatus } =
+    useInvalidatePuzzleImageBatchQueries('padavali');
 
   const batch_trigger_mut = client_q.batch_ai.trigger_batch_puzzle_image_gen.useMutation({
     onSuccess: async (data, variables) => {
@@ -252,6 +253,7 @@ const ListPage = () => {
                 disabled={batch_trigger_mut.isPending}
                 onClick={() =>
                   batch_trigger_mut.mutate({
+                    game: 'padavali',
                     auto_approved,
                     puzzles: [...selected_ids].map((puzzle_id) => ({ puzzle_id }))
                   })

@@ -1,7 +1,7 @@
 import { z } from 'zod';
-import { slug_schema } from '~/util/puzzle/slug';
+import { crossword_slug_schema, slug_schema } from '~/util/puzzle/slug';
 
-export { slug_schema };
+export { crossword_slug_schema, slug_schema };
 
 export const ATTACHMENT_TYPE_LIST = [
   'link',

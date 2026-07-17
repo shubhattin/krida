@@ -1,5 +1,12 @@
 import { describe, expect, it } from 'vitest';
-import { isValidSlug, normalizeSlug, parseIdSlugParam, slug_schema } from './slug';
+import {
+  crossword_slug_schema,
+  isValidCrosswordSlug,
+  isValidSlug,
+  normalizeSlug,
+  parseIdSlugParam,
+  slug_schema
+} from './slug';
 
 describe('normalizeSlug', () => {
   it('trims and lowercases', () => {
@@ -33,6 +40,19 @@ describe('isValidSlug', () => {
   });
 });
 
+describe('isValidCrosswordSlug', () => {
+  it('accepts valid crossword slugs', () => {
+    expect(isValidCrosswordSlug('daily-grid')).toBe(true);
+  });
+
+  it('rejects crossword reserved routes including puzzle and batch_manager', () => {
+    expect(isValidCrosswordSlug('puzzle')).toBe(false);
+    expect(isValidCrosswordSlug('puzzles')).toBe(false);
+    expect(isValidCrosswordSlug('batch_manager')).toBe(false);
+    expect(isValidCrosswordSlug('analytics')).toBe(false);
+  });
+});
+
 describe('slug_schema', () => {
   it('normalizes before validating length', () => {
     const slug = 'a'.repeat(100);
@@ -42,6 +62,12 @@ describe('slug_schema', () => {
   it('rejects normalized slugs over max length', () => {
     const slug = 'a'.repeat(101);
     expect(() => slug_schema.parse(`  ${slug}  `)).toThrow();
+  });
+});
+
+describe('crossword_slug_schema', () => {
+  it('rejects reserved crossword route names after normalize', () => {
+    expect(() => crossword_slug_schema.parse('  Batch_Manager  ')).toThrow();
   });
 });
 

@@ -51,7 +51,9 @@ export function BatchPuzzleImageReviewDialog({
   onApproved,
   onDiscarded
 }: BatchPuzzleImageReviewDialogProps) {
-  const { invalidateAll } = useInvalidatePuzzleImageBatchQueries();
+  const { invalidateAll } = useInvalidatePuzzleImageBatchQueries(
+    batchStatus.game ?? batchStatus.metadata.game ?? 'padavali'
+  );
   const [discard_open, setDiscardOpen] = useState(false);
 
   const approve_mut = client_q.batch_ai.approve_puzzle_image.useMutation({

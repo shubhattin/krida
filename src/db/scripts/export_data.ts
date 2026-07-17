@@ -11,7 +11,12 @@ import {
   ai_batches,
   padavali_redirects,
   image_assets,
-  crossword_puzzles
+  crossword_puzzles,
+  crossword_redirects,
+  crossword_attachments,
+  crossword_sessions,
+  crossword_gameplay_stats,
+  crossword_schedules
 } from '~/db/schema';
 import {
   PadavaliPuzzleSchemaZod,
@@ -23,7 +28,12 @@ import {
   AiBatchSchemaZod,
   PadavaliRedirectSchemaZod,
   ImageAssetSchemaZod,
-  CrossordPuzzleSchemaZod
+  CrossordPuzzleSchemaZod,
+  CrosswordRedirectSchemaZod,
+  CrosswordAttachmentSchemaZod,
+  CrosswordSessionSchemaZod,
+  CrosswordGamePlayStatsSchemaZod,
+  CrosswordScheduleSchemaZod
 } from '~/db/schema_zod';
 import { z } from 'zod';
 import { sql } from 'drizzle-orm';
@@ -54,28 +64,41 @@ const main = async () => {
       padavali_attachments: PadavaliAttachmentSchemaZod.array(),
       padavali_redirects: PadavaliRedirectSchemaZod.array(),
       crossword_puzzles: CrossordPuzzleSchemaZod.array(),
+      // New crossword satellite tables default to [] for older backups
+      crossword_redirects: CrosswordRedirectSchemaZod.array().default([]),
+      crossword_attachments: CrosswordAttachmentSchemaZod.array().default([]),
+      crossword_sessions: CrosswordSessionSchemaZod.array().default([]),
+      crossword_gameplay_stats: CrosswordGamePlayStatsSchemaZod.array().default([]),
+      crossword_schedules: CrosswordScheduleSchemaZod.array().default([]),
       ai_batch_responses: AiBatchResponseSchemaZod.array(),
       ai_batches: AiBatchSchemaZod.array(),
       image_assets: ImageAssetSchemaZod.array()
     })
     .parse(JSON.parse((await readFile(`./out/${in_file_name}`)).toString()));
 
-  const tx = await dbClient_ext.transaction(async (tx) => {
+  await dbClient_ext.transaction(async (tx) => {
     // deleting all the tables initially
+    // Order: children first (stats → sessions → schedules/attachments/redirects → puzzles)
     try {
-      await tx.delete(padavali_puzzles);
-      await tx.delete(padavali_redirects);
-      await tx.delete(padavali_attachments);
       await tx.delete(padavali_gameplay_stats);
-      await tx.delete(padavali_schedules);
       await tx.delete(padavali_sessions);
+      await tx.delete(padavali_schedules);
+      await tx.delete(padavali_attachments);
+      await tx.delete(padavali_redirects);
+      await tx.delete(padavali_puzzles);
+      await tx.delete(crossword_gameplay_stats);
+      await tx.delete(crossword_sessions);
+      await tx.delete(crossword_schedules);
+      await tx.delete(crossword_attachments);
+      await tx.delete(crossword_redirects);
+      await tx.delete(crossword_puzzles);
       await tx.delete(ai_batch_responses);
       await tx.delete(ai_batches);
       await tx.delete(image_assets);
-      await tx.delete(crossword_puzzles);
       console.log(chalk.green('✓ Deleted All Tables Successfully'));
     } catch (e) {
       console.log(chalk.red('✗ Error while deleting tables:'), chalk.yellow(e));
+      throw e;
     }
 
     // inserting image_assets
@@ -87,6 +110,7 @@ const main = async () => {
       );
     } catch (e) {
       console.log(chalk.red('✗ Error while inserting image_assets:'), chalk.yellow(e));
+      throw e;
     }
 
     // inserting padavali_puzzles
@@ -98,6 +122,7 @@ const main = async () => {
       );
     } catch (e) {
       console.log(chalk.red('✗ Error while inserting padavali_puzzles:'), chalk.yellow(e));
+      throw e;
     }
 
     // inserting crossword_puzzles
@@ -109,6 +134,7 @@ const main = async () => {
       );
     } catch (e) {
       console.log(chalk.red('✗ Error while inserting crossword_puzzles:'), chalk.yellow(e));
+      throw e;
     }
 
     // inserting padavali_redirects
@@ -120,6 +146,19 @@ const main = async () => {
       );
     } catch (e) {
       console.log(chalk.red('✗ Error while inserting padavali_redirects:'), chalk.yellow(e));
+      throw e;
+    }
+
+    // inserting crossword_redirects
+    try {
+      await tx.insert(crossword_redirects).values(data.crossword_redirects);
+      console.log(
+        chalk.green('✓ Successfully added values into table'),
+        chalk.blue('`crossword_redirects`')
+      );
+    } catch (e) {
+      console.log(chalk.red('✗ Error while inserting crossword_redirects:'), chalk.yellow(e));
+      throw e;
     }
 
     // inserting padavali_attachments
@@ -131,6 +170,19 @@ const main = async () => {
       );
     } catch (e) {
       console.log(chalk.red('✗ Error while inserting padavali_attachments:'), chalk.yellow(e));
+      throw e;
+    }
+
+    // inserting crossword_attachments
+    try {
+      await tx.insert(crossword_attachments).values(data.crossword_attachments);
+      console.log(
+        chalk.green('✓ Successfully added values into table'),
+        chalk.blue('`crossword_attachments`')
+      );
+    } catch (e) {
+      console.log(chalk.red('✗ Error while inserting crossword_attachments:'), chalk.yellow(e));
+      throw e;
     }
 
     // inserting padavali_schedules
@@ -142,6 +194,19 @@ const main = async () => {
       );
     } catch (e) {
       console.log(chalk.red('✗ Error while inserting padavali_schedules:'), chalk.yellow(e));
+      throw e;
+    }
+
+    // inserting crossword_schedules
+    try {
+      await tx.insert(crossword_schedules).values(data.crossword_schedules);
+      console.log(
+        chalk.green('✓ Successfully added values into table'),
+        chalk.blue('`crossword_schedules`')
+      );
+    } catch (e) {
+      console.log(chalk.red('✗ Error while inserting crossword_schedules:'), chalk.yellow(e));
+      throw e;
     }
 
     // inserting padavali_sessions
@@ -156,6 +221,22 @@ const main = async () => {
       );
     } catch (e) {
       console.log(chalk.red('✗ Error while inserting padavali_sessions:'), chalk.yellow(e));
+      throw e;
+    }
+
+    // inserting crossword_sessions
+    try {
+      const chunks = chunkArray(data.crossword_sessions, 5000);
+      for (const chunk of chunks) {
+        await tx.insert(crossword_sessions).values(chunk);
+      }
+      console.log(
+        chalk.green('✓ Successfully added values into table'),
+        chalk.blue('`crossword_sessions`')
+      );
+    } catch (e) {
+      console.log(chalk.red('✗ Error while inserting crossword_sessions:'), chalk.yellow(e));
+      throw e;
     }
 
     // inserting padavali_gameplay_stats
@@ -170,6 +251,22 @@ const main = async () => {
       );
     } catch (e) {
       console.log(chalk.red('✗ Error while inserting padavali_gameplay_stats:'), chalk.yellow(e));
+      throw e;
+    }
+
+    // inserting crossword_gameplay_stats
+    try {
+      const chunks = chunkArray(data.crossword_gameplay_stats, 5000);
+      for (const chunk of chunks) {
+        await tx.insert(crossword_gameplay_stats).values(chunk);
+      }
+      console.log(
+        chalk.green('✓ Successfully added values into table'),
+        chalk.blue('`crossword_gameplay_stats`')
+      );
+    } catch (e) {
+      console.log(chalk.red('✗ Error while inserting crossword_gameplay_stats:'), chalk.yellow(e));
+      throw e;
     }
 
     // resetting SERIAL (sequences renamed to match tables in 0017_rename_owned_sequences)
@@ -196,11 +293,27 @@ const main = async () => {
         sql`SELECT setval('"padavali_redirects_id_seq"', (select MAX(id) from "padavali_redirects"))`
       );
       await tx.execute(
+        sql`SELECT setval('"crossword_attachments_id_seq"', (select MAX(id) from "crossword_attachments"))`
+      );
+      await tx.execute(
+        sql`SELECT setval('"crossword_gameplay_stats_id_seq"', (select MAX(id) from "crossword_gameplay_stats"))`
+      );
+      await tx.execute(
+        sql`SELECT setval('"crossword_schedules_id_seq"', (select MAX(id) from "crossword_schedules"))`
+      );
+      await tx.execute(
+        sql`SELECT setval('"crossword_sessions_id_seq"', (select MAX(id) from "crossword_sessions"))`
+      );
+      await tx.execute(
+        sql`SELECT setval('"crossword_redirects_id_seq"', (select MAX(id) from "crossword_redirects"))`
+      );
+      await tx.execute(
         sql`SELECT setval('"image_assets_id_seq"', (select MAX(id) from "image_assets"))`
       );
       console.log(chalk.green('✓ Successfully resetted ALL SERIAL'));
     } catch (e) {
       console.log(chalk.red('✗ Error while resetting SERIAL:'), chalk.yellow(e));
+      throw e;
     }
   });
 };
