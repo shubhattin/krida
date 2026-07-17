@@ -35,17 +35,32 @@ const submit_stats_route = publicProcedure
       session_id
     } = info;
 
-    await db.insert(crossword_gameplay_stats).values({
-      puzzle_id,
-      session_id,
-      time_taken,
-      accuracy,
-      total_entries,
-      total_cells,
-      prefilled_cells,
-      letter_inputs,
-      incorrect_entry_attempts
+    const session = await db.query.crossword_sessions.findFirst({
+      columns: { id: true },
+      where: (tbl, { and: andFn, eq: eqFn }) =>
+        andFn(eqFn(tbl.id, session_id), eqFn(tbl.puzzle_id, puzzle_id))
     });
+    if (!session) {
+      throw new TRPCError({
+        code: 'BAD_REQUEST',
+        message: 'Invalid session for puzzle'
+      });
+    }
+
+    await db
+      .insert(crossword_gameplay_stats)
+      .values({
+        puzzle_id,
+        session_id,
+        time_taken,
+        accuracy,
+        total_entries,
+        total_cells,
+        prefilled_cells,
+        letter_inputs,
+        incorrect_entry_attempts
+      })
+      .onConflictDoNothing({ target: crossword_gameplay_stats.session_id });
 
     return { submitted: true };
   });

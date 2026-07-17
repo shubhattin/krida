@@ -13,13 +13,23 @@ import {
 import { publishCrosswordScheduleListingQueue } from '~/lib/qstash';
 import { generateRandomAlphanumeric } from '~/tools/kry';
 
+const crossword_schedule_time_order = <T extends { start_time: Date; end_time: Date }>(
+  schema: z.ZodType<T>
+) =>
+  schema.refine((data) => data.start_time < data.end_time, {
+    message: 'start_time must be before end_time',
+    path: ['end_time']
+  });
+
 const add_puzzle_schedule_route = protectedAdminProcedure
   .input(
-    z.object({
-      puzzle_id: z.number().int(),
-      start_time: z.coerce.date(),
-      end_time: z.coerce.date()
-    })
+    crossword_schedule_time_order(
+      z.object({
+        puzzle_id: z.number().int(),
+        start_time: z.coerce.date(),
+        end_time: z.coerce.date()
+      })
+    )
   )
   .output(
     z.discriminatedUnion('success', [
@@ -93,12 +103,14 @@ const delete_puzzle_schedule_route = protectedAdminProcedure
 
 const update_puzzle_schedule_route = protectedAdminProcedure
   .input(
-    z.object({
-      schedule_id: z.number().int(),
-      puzzle_id: z.number().int(),
-      start_time: z.coerce.date(),
-      end_time: z.coerce.date()
-    })
+    crossword_schedule_time_order(
+      z.object({
+        schedule_id: z.number().int(),
+        puzzle_id: z.number().int(),
+        start_time: z.coerce.date(),
+        end_time: z.coerce.date()
+      })
+    )
   )
   .mutation(async ({ input: { schedule_id, puzzle_id, start_time, end_time } }) => {
     revalidatePath('/crossword/schedules');

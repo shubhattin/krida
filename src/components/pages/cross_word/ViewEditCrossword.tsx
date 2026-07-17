@@ -294,6 +294,7 @@ const SortableAttachmentItem = ({
             variant="ghost"
             size="icon"
             className="h-6 w-6 cursor-grab touch-none"
+            aria-label={`Reorder attachment ${index + 1}`}
             {...attributes}
             {...listeners}
           >
@@ -306,7 +307,13 @@ const SortableAttachmentItem = ({
             </span>
           </span>
         </div>
-        <Button variant="ghost" size="icon" className="ml-auto" onClick={onRemove}>
+        <Button
+          variant="ghost"
+          size="icon"
+          className="ml-auto"
+          aria-label={`Remove attachment ${index + 1}`}
+          onClick={onRemove}
+        >
           <IoMdClose className="size-4" />
         </Button>
       </div>
@@ -320,7 +327,7 @@ const SortableAttachmentItem = ({
               if (value) onUpdate('type', value as EditableAttachment['type']);
             }}
           >
-            <SelectTrigger className="w-40">
+            <SelectTrigger className="w-40" aria-label={`Attachment ${index + 1} type`}>
               <SelectValue />
             </SelectTrigger>
             <SelectContent>
@@ -338,6 +345,7 @@ const SortableAttachmentItem = ({
             type="text"
             className="w-64 text-sm"
             value={attachment.url}
+            aria-label={`Attachment ${index + 1} URL`}
             onInput={(e) => onUpdate('url', e.currentTarget.value)}
           />
         </div>
@@ -350,6 +358,7 @@ const SortableAttachmentItem = ({
           type="text"
           className="w-full text-sm"
           value={attachment.title ?? ''}
+          aria-label={`Attachment ${index + 1} title`}
           onChange={(e) => onUpdate('title', e.currentTarget.value || null)}
         />
       </div>

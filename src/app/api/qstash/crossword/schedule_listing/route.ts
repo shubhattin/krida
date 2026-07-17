@@ -8,6 +8,7 @@ import {
 } from '~/util/cache.server/cache_loaders';
 import { crossword_schedules, crossword_puzzles } from '~/db/schema';
 import { and, eq } from 'drizzle-orm';
+import { analyzeWordPlacements } from '~/util/cross_word/placement';
 
 export const POST = verifySignatureAppRouter(async (req: Request) => {
   console.log('QStash crossword schedule listing request received', new Date());
@@ -25,13 +26,21 @@ export const POST = verifySignatureAppRouter(async (req: Request) => {
     columns: { id: true },
     with: {
       puzzle: {
-        columns: { id: true, title: true, slug: true }
+        columns: { id: true, title: true, slug: true, grid_data: true, word_list: true }
       }
     }
   });
   if (!schedule) {
     console.error('Invalid or expired crossword schedule listing request');
     return new Response('Invalid or expired request', { status: 400 });
+  }
+
+  const analysis = analyzeWordPlacements(schedule.puzzle.grid_data, schedule.puzzle.word_list);
+  if (!analysis.canList) {
+    console.error(
+      `Crossword puzzle ${puzzle_id} cannot be listed: invalid word placements for schedule ${schedule_id}`
+    );
+    return new Response('Puzzle cannot be listed: invalid word placements', { status: 400 });
   }
 
   await db.transaction(async (tx) => {

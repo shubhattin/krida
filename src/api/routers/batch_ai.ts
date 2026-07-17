@@ -456,21 +456,13 @@ export const approve_connect_puzzle_image_id_func = async (batch_id: string, cus
           )
       ]);
 
-      const current_schedule = await CACHE.crossword.current_schedule.get(NO_CACHE_PARAMS);
-      await Promise.all([
-        current_schedule &&
-          current_schedule.puzzle.id === puzzle_id &&
-          invalidate_and_refresh_cached(CACHE.crossword.current_schedule, NO_CACHE_PARAMS),
-        invalidate_and_refresh_cached(CACHE.crossword.word_puzzle, { slug: puzzle.slug }),
-        puzzle.listed &&
-          invalidate_and_refresh_cached(CACHE.crossword.listed_puzzle_list, NO_CACHE_PARAMS)
-      ]);
-
       return {
-        success: true,
+        success: true as const,
         puzzle_id,
         uploaded_image_id,
-        game
+        game,
+        slug: puzzle.slug,
+        listed: puzzle.listed
       };
     }
 
@@ -502,23 +494,37 @@ export const approve_connect_puzzle_image_id_func = async (batch_id: string, cus
         )
     ]);
 
+    return {
+      success: true as const,
+      puzzle_id,
+      uploaded_image_id,
+      game,
+      slug: puzzle.slug,
+      listed: puzzle.listed
+    };
+  });
+
+  if (result.game === 'crossword') {
+    const current_schedule = await CACHE.crossword.current_schedule.get(NO_CACHE_PARAMS);
+    await Promise.all([
+      current_schedule &&
+        current_schedule.puzzle.id === result.puzzle_id &&
+        invalidate_and_refresh_cached(CACHE.crossword.current_schedule, NO_CACHE_PARAMS),
+      invalidate_and_refresh_cached(CACHE.crossword.word_puzzle, { slug: result.slug }),
+      result.listed &&
+        invalidate_and_refresh_cached(CACHE.crossword.listed_puzzle_list, NO_CACHE_PARAMS)
+    ]);
+  } else {
     const current_schedule = await CACHE.padavali.current_schedule.get(NO_CACHE_PARAMS);
     await Promise.all([
       current_schedule &&
-        current_schedule.puzzle.id === puzzle_id &&
+        current_schedule.puzzle.id === result.puzzle_id &&
         invalidate_and_refresh_cached(CACHE.padavali.current_schedule, NO_CACHE_PARAMS),
-      invalidate_and_refresh_cached(CACHE.padavali.word_puzzle, { slug: puzzle.slug }),
-      puzzle.listed &&
+      invalidate_and_refresh_cached(CACHE.padavali.word_puzzle, { slug: result.slug }),
+      result.listed &&
         invalidate_and_refresh_cached(CACHE.padavali.listed_puzzle_list, NO_CACHE_PARAMS)
     ]);
-
-    return {
-      success: true,
-      puzzle_id,
-      uploaded_image_id,
-      game
-    };
-  });
+  }
 
   scheduleOpenAiBatchCleanup(batch_id);
 

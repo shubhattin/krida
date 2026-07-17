@@ -45,16 +45,28 @@ type Props = {
   }[];
 };
 
+const IST_TZ = 'Asia/Kolkata';
+
 const formatDate = (date: Date) => {
   return date.toLocaleDateString('en-GB', {
     day: 'numeric',
     month: 'long',
-    year: 'numeric'
+    year: 'numeric',
+    timeZone: IST_TZ
+  });
+};
+
+const formatTime = (date: Date) => {
+  return date.toLocaleTimeString('en-GB', {
+    hour: '2-digit',
+    minute: '2-digit',
+    hour12: false,
+    timeZone: IST_TZ
   });
 };
 
 const formatScheduleRange = (startTime: Date, endTime: Date) => {
-  return `${formatDate(startTime)}, ${dayjs(startTime).format('HH:mm')} – ${formatDate(endTime)}, ${dayjs(endTime).format('HH:mm')}`;
+  return `${formatDate(startTime)}, ${formatTime(startTime)} – ${formatDate(endTime)}, ${formatTime(endTime)}`;
 };
 
 const ScheduleCardTitle = ({ title, puzzleId }: { title: string; puzzleId: number }) => (
@@ -64,6 +76,7 @@ const ScheduleCardTitle = ({ title, puzzleId }: { title: string; puzzleId: numbe
       href={`/crossword/edit/${puzzleId}`}
       target="_blank"
       rel="noopener noreferrer"
+      aria-label={`Open puzzle editor for ${title}`}
       className="inline-flex shrink-0 items-center justify-center text-muted-foreground transition-colors hover:text-blue-500"
     >
       <SquareArrowOutUpRightIcon className="size-3.5" />
@@ -118,6 +131,7 @@ const ListSchedules = ({ upcomming_schedules }: Props) => {
               <CardAction className="flex items-center gap-1 self-center">
                 <Link
                   href={`/crossword/schedules/edit/${schedule.id}`}
+                  aria-label={`Edit schedule for ${schedule.puzzle.title}`}
                   className="inline-flex items-center justify-center p-1 text-muted-foreground hover:text-blue-500"
                 >
                   <PencilIcon className="size-4" />
@@ -127,6 +141,7 @@ const ListSchedules = ({ upcomming_schedules }: Props) => {
                     render={
                       <button
                         type="button"
+                        aria-label={`Delete schedule for ${schedule.puzzle.title}`}
                         className="inline-flex cursor-pointer items-center justify-center p-1 outline-none hover:brightness-75"
                         disabled={del_schedule_mutation.isPending}
                       />
