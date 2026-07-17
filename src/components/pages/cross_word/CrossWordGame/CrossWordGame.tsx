@@ -396,7 +396,7 @@ export function CrossWordGame({
             type="button"
             onClick={() => {
               void shareText(
-                `${puzzle.title} - Crossword`,
+                `${puzzle.title} - Padajāla`,
                 get_general_share_msg(puzzle.title, puzzleSlug, puzzle.description),
                 'Puzzle link copied to clipboard'
               );
@@ -431,7 +431,12 @@ export function CrossWordGame({
         )}
       >
         {/* Left on desktop / below grid on mobile — matches padavali order */}
-        <div className={cn('order-2 min-w-0 lg:order-1 lg:col-span-3', !started && 'lg:mt-10')}>
+        <div
+          className={cn(
+            'order-2 flex min-w-0 items-center justify-center lg:order-1 lg:col-span-3',
+            !started && 'lg:mt-10'
+          )}
+        >
           {hasMedia ? (
             <div className="lg:sticky lg:top-6">
               <MediaAttachments attachments={attachments!} className="max-w-md lg:max-w-sm" />

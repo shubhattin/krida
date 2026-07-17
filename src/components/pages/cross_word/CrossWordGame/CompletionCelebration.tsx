@@ -239,7 +239,7 @@ export function CompletionCelebration({
                   try {
                     if (typeof navigator !== 'undefined' && navigator.share) {
                       await navigator.share({
-                        title: `${puzzle.title} - Crossword`,
+                        title: `${puzzle.title} - Padajāla`,
                         text
                       });
                     } else {
