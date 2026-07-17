@@ -53,7 +53,7 @@ export function CrosswordPreviewCard({ puzzle, compact = false, onNavigate }: Pr
         <div className={cn('flex flex-1 flex-col text-left', compact ? 'p-2' : 'p-3')}>
           <div
             className={cn(
-              'line-clamp-2 font-semibold text-slate-900 group-hover:text-violet-600 dark:text-slate-100 dark:group-hover:text-violet-400',
+              'line-clamp-2 font-semibold text-slate-900 group-hover:text-blue-600 dark:text-slate-100 dark:group-hover:text-blue-400',
               compact ? 'text-sm' : ''
             )}
           >

@@ -133,10 +133,10 @@ export function NoScheduledCrossword({ next_schedule, listed_puzzles }: Props) {
   }, [next_schedule, router]);
 
   return (
-    <div className="w-full bg-linear-to-br from-slate-50 via-violet-50 to-indigo-50 pb-12 dark:from-slate-900 dark:via-slate-800 dark:to-slate-900">
+    <div className="w-full bg-linear-to-br from-slate-50 via-blue-50 to-indigo-50 pb-12 dark:from-slate-900 dark:via-slate-800 dark:to-slate-900">
       <div className="relative overflow-hidden">
         <div className="pointer-events-none absolute inset-0 overflow-hidden">
-          <div className="absolute -top-20 left-1/2 h-64 w-64 -translate-x-1/2 rounded-full bg-violet-400/10 blur-3xl dark:bg-violet-500/10" />
+          <div className="absolute -top-20 left-1/2 h-64 w-64 -translate-x-1/2 rounded-full bg-blue-400/10 blur-3xl dark:bg-blue-500/10" />
           <div className="absolute -top-10 left-1/3 h-48 w-48 rounded-full bg-indigo-400/10 blur-2xl dark:bg-indigo-500/10" />
         </div>
 
@@ -147,11 +147,11 @@ export function NoScheduledCrossword({ next_schedule, listed_puzzles }: Props) {
               animate={{ opacity: 1 }}
               className="flex flex-col items-center gap-4"
             >
-              <div className="flex size-14 items-center justify-center rounded-2xl bg-linear-to-br from-violet-500 to-indigo-600 shadow-lg shadow-violet-500/30">
+              <div className="flex size-14 items-center justify-center rounded-2xl bg-linear-to-br from-blue-500 to-indigo-600 shadow-lg shadow-blue-500/30">
                 <Loader2Icon className="size-7 animate-spin text-white" />
               </div>
               <div>
-                <p className="text-lg font-semibold text-violet-600 dark:text-violet-400">
+                <p className="text-lg font-semibold text-blue-600 dark:text-blue-400">
                   Loading new puzzle…
                 </p>
                 <p className="mt-1 text-sm text-slate-500 dark:text-slate-400">
@@ -180,7 +180,7 @@ export function NoScheduledCrossword({ next_schedule, listed_puzzles }: Props) {
                 className="mb-5 flex flex-col items-center gap-4"
               >
                 <div className="relative">
-                  <div className="flex size-16 items-center justify-center rounded-2xl bg-linear-to-br from-violet-500 to-indigo-600 shadow-lg shadow-violet-500/25">
+                  <div className="flex size-16 items-center justify-center rounded-2xl bg-linear-to-br from-blue-500 to-indigo-600 shadow-lg shadow-blue-500/25">
                     <IoExtensionPuzzleSharp className="size-8 text-white" />
                   </div>
                   <motion.div
@@ -193,7 +193,7 @@ export function NoScheduledCrossword({ next_schedule, listed_puzzles }: Props) {
                 </div>
 
                 <div>
-                  <h1 className="bg-linear-to-r from-slate-800 via-violet-700 to-indigo-600 bg-clip-text text-2xl font-extrabold text-transparent sm:text-3xl dark:from-slate-100 dark:via-violet-300 dark:to-indigo-400">
+                  <h1 className="bg-linear-to-r from-slate-800 via-blue-700 to-indigo-600 bg-clip-text text-2xl font-extrabold text-transparent sm:text-3xl dark:from-slate-100 dark:via-blue-300 dark:to-indigo-400">
                     Explore Crossword Puzzles
                   </h1>
                   <p className="mt-1.5 text-sm text-slate-500 dark:text-slate-400">

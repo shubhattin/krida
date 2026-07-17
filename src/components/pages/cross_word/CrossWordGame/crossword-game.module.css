@@ -93,11 +93,11 @@
   transform: scale(1.05) translateY(-1.5px) !important;
 }
 :global(.dark) .cellSelected {
-  background: oklch(0.32 0.03 260);
-  border: 2.5px solid oklch(0.65 0.22 280); /* Neon violet glow */
+  background: oklch(0.32 0.03 250);
+  border: 2.5px solid oklch(0.65 0.18 250); /* Neon blue glow */
   box-shadow:
-    0 0 16px oklch(0.65 0.22 280 / 0.65),
-    0 0 0 3.5px oklch(0.65 0.22 280 / 0.28),
+    0 0 16px oklch(0.65 0.18 250 / 0.65),
+    0 0 0 3.5px oklch(0.65 0.18 250 / 0.28),
     inset 0 1px 0 0 oklch(1 0 0 / 0.1);
 }
 
@@ -220,26 +220,6 @@
   }
 }
 
-/* ── Title animated gradient text ── */
-.titleGradient {
-  background: linear-gradient(135deg, var(--foreground), var(--primary), hsl(262 83% 65%));
-  background-clip: text;
-  -webkit-background-clip: text;
-  -webkit-text-fill-color: transparent;
-  background-size: 200% 200%;
-  animation: titleGradientShift 6s ease-in-out infinite;
-}
-
-@keyframes titleGradientShift {
-  0%,
-  100% {
-    background-position: 0% 50%;
-  }
-  50% {
-    background-position: 100% 50%;
-  }
-}
-
 /* ── Start button hover ── */
 .startButton {
   transition: all 0.3s ease;
@@ -277,7 +257,6 @@
   .cellJustSolved,
   .cellIncorrect,
   .progressFill,
-  .titleGradient,
   .playCell:not(:disabled):hover {
     animation: none;
     transform: none !important;

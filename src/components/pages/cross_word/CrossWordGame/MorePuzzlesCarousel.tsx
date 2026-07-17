@@ -54,17 +54,17 @@ const ExploreMoreCarouselCard = () => {
     <Link
       href="/padajala/puzzles"
       onClick={(e) => guardNavigate(e, '/padajala/puzzles')}
-      className="group flex h-full flex-col overflow-hidden rounded-xl border border-dashed border-violet-300 bg-linear-to-br from-violet-50 to-indigo-50 no-underline shadow-lg transition-all duration-200 hover:border-violet-400 hover:shadow-xl dark:border-violet-600/60 dark:from-violet-950/40 dark:to-indigo-950/40 dark:hover:border-violet-500"
+      className="group flex h-full flex-col overflow-hidden rounded-xl border border-dashed border-blue-300 bg-linear-to-br from-blue-50 to-indigo-50 no-underline shadow-lg transition-all duration-200 hover:border-blue-400 hover:shadow-xl dark:border-blue-600/60 dark:from-blue-950/40 dark:to-indigo-950/40 dark:hover:border-blue-500"
     >
       <div
         className="flex flex-1 flex-col items-center justify-center gap-3 p-4 text-center"
         style={{ aspectRatio: '3 / 2' }}
       >
-        <div className="flex size-12 items-center justify-center rounded-full bg-linear-to-br from-violet-500 to-indigo-600 shadow-md transition-transform group-hover:scale-105">
+        <div className="flex size-12 items-center justify-center rounded-full bg-linear-to-br from-blue-500 to-indigo-600 shadow-md transition-transform group-hover:scale-105">
           <ArrowRightIcon className="size-6 text-white" />
         </div>
         <div>
-          <div className="text-sm font-semibold text-violet-700 sm:text-base dark:text-violet-300">
+          <div className="text-sm font-semibold text-blue-700 sm:text-base dark:text-blue-300">
             Explore more
           </div>
           <div className="mt-1 text-xs text-slate-500 dark:text-slate-400">View all puzzles</div>
@@ -157,7 +157,7 @@ export const MoreCrosswordPuzzlesCarousel = ({
               <Link
                 href="/padajala/puzzles"
                 onClick={(e) => guardNavigate(e, '/padajala/puzzles')}
-                className="flex items-center justify-center gap-1 rounded-full border border-violet-200/70 bg-violet-50/80 px-2.5 py-1 text-xs leading-none font-medium text-violet-600 no-underline transition-all duration-150 hover:bg-violet-100 hover:text-violet-700 dark:border-violet-700/50 dark:bg-violet-950/40 dark:text-violet-400 dark:hover:bg-violet-900/50"
+                className="flex items-center justify-center gap-1 rounded-full border border-blue-200/70 bg-blue-50/80 px-2.5 py-1 text-xs leading-none font-medium text-blue-600 no-underline transition-all duration-150 hover:bg-blue-100 hover:text-blue-700 dark:border-blue-700/50 dark:bg-blue-950/40 dark:text-blue-400 dark:hover:bg-blue-900/50"
               >
                 <ExternalLinkIcon className="relative size-3 shrink-0 translate-y-[-1.5px]" />
                 <span>View All</span>
@@ -222,7 +222,7 @@ export const MoreCrosswordPuzzlesAccordion = ({
               )}
             >
               <div className="flex items-center gap-1.5">
-                <div className="flex size-6 shrink-0 items-center justify-center rounded-md bg-linear-to-br from-violet-500 to-indigo-600 shadow-sm">
+                <div className="flex size-6 shrink-0 items-center justify-center rounded-md bg-linear-to-br from-blue-500 to-indigo-600 shadow-sm">
                   <LayoutGridIcon className="size-3.5 text-white" />
                 </div>
                 <span className="leading-none">More Puzzles</span>
@@ -233,7 +233,7 @@ export const MoreCrosswordPuzzlesAccordion = ({
               href="/padajala/puzzles"
               onClick={(e) => guardNavigate(e, '/padajala/puzzles')}
               aria-label="Browse all puzzles"
-              className="flex size-7 shrink-0 items-center justify-center rounded-full border border-violet-200/70 bg-violet-50/80 text-violet-600 shadow-sm transition-all duration-150 hover:bg-violet-100 hover:text-violet-700 dark:border-violet-700/50 dark:bg-violet-950/40 dark:text-violet-400 dark:hover:bg-violet-900/50"
+              className="flex size-7 shrink-0 items-center justify-center rounded-full border border-blue-200/70 bg-blue-50/80 text-blue-600 shadow-sm transition-all duration-150 hover:bg-blue-100 hover:text-blue-700 dark:border-blue-700/50 dark:bg-blue-950/40 dark:text-blue-400 dark:hover:bg-blue-900/50"
               title="Browse all puzzles"
             >
               <ExternalLinkIcon className="size-3.5" />

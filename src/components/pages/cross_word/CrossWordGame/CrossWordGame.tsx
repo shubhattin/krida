@@ -5,9 +5,10 @@ import { useAtom, useAtomValue } from 'jotai';
 import { useRouter } from 'next/navigation';
 import { useQueryClient } from '@tanstack/react-query';
 import { motion, AnimatePresence } from 'framer-motion';
-import { Sparkles } from 'lucide-react';
+import { Sparkles, InfoIcon } from 'lucide-react';
 import { IoShareSocialOutline } from 'react-icons/io5';
 import { toast } from 'sonner';
+import { Popover, PopoverContent, PopoverTrigger } from '~/components/ui/popover';
 import { CrossWordGrid } from './CrossWordGrid';
 import { GameProgress } from './GameProgress';
 import { GameControls } from './GameControls';
@@ -44,7 +45,7 @@ import {
   AlertDialogHeader,
   AlertDialogTitle
 } from '~/components/ui/alert-dialog';
-import styles from './crossword-game.module.css';
+import titleStyles from '~/components/pages/puzzle/puzzle-title.module.css';
 
 function ActiveClueCard({ activeEntry }: { activeEntry: any }) {
   return (
@@ -80,8 +81,8 @@ function ActiveClueCard({ activeEntry }: { activeEntry: any }) {
               className="flex flex-col items-center justify-center gap-1.5 py-1 text-center"
             >
               <div className="flex items-center gap-2">
-                <Sparkles className="size-4 animate-pulse text-violet-500 dark:text-violet-400" />
-                <span className="bg-linear-to-r from-violet-600 to-indigo-600 bg-clip-text text-xs font-semibold tracking-wider text-transparent uppercase dark:from-violet-300 dark:to-indigo-300">
+                <Sparkles className="size-4 animate-pulse text-blue-500 dark:text-blue-400" />
+                <span className="bg-linear-to-r from-blue-600 to-indigo-600 bg-clip-text text-xs font-semibold tracking-wider text-transparent uppercase dark:from-blue-300 dark:to-indigo-300">
                   Ready to Solve
                 </span>
               </div>
@@ -283,16 +284,36 @@ export function CrossWordGame({
       ) : null}
 
       <motion.header
-        className="mb-3 text-center sm:mb-4"
+        className="mb-3 flex items-center justify-center text-center sm:mb-4"
         initial={{ opacity: 0, y: -20 }}
         animate={{ opacity: 1, y: 0 }}
         transition={{ duration: 0.5, ease: 'easeOut' }}
       >
         <h1
-          className={`inline text-2xl font-bold tracking-tight sm:text-3xl md:text-4xl ${styles.titleGradient}`}
+          className={`inline text-2xl font-bold tracking-tight sm:text-3xl md:text-4xl ${titleStyles.titleGradient}`}
         >
           {puzzle.title}
         </h1>
+        {puzzle.description.trim() ? (
+          <Popover>
+            <PopoverTrigger
+              render={
+                <button className="mt-2 ml-3 align-middle outline-none hover:brightness-75" />
+              }
+            >
+              <InfoIcon className="size-3 sm:size-4" />
+            </PopoverTrigger>
+            <PopoverContent
+              side="top"
+              align="center"
+              className="z-80 w-fit max-w-[calc(100vw-32px)] overflow-hidden rounded-xl border border-slate-200 bg-linear-to-r from-amber-50 to-orange-50 px-3 py-2 shadow-xl outline-none sm:max-w-md md:max-w-lg dark:border-slate-700 dark:from-teal-950/80 dark:to-green-950/80"
+            >
+              <div className="text-sm font-semibold wrap-break-word whitespace-normal text-stone-600 dark:text-stone-200">
+                {puzzle.description}
+              </div>
+            </PopoverContent>
+          </Popover>
+        ) : null}
         {listed && puzzleSlug ? (
           <button
             type="button"
@@ -303,17 +324,12 @@ export function CrossWordGame({
                 'Puzzle link copied to clipboard'
               );
             }}
-            className="ml-3 inline-flex items-center justify-center align-middle text-slate-500 outline-none hover:text-slate-700 hover:brightness-75 dark:text-slate-400 dark:hover:text-slate-200"
+            className="mt-2 ml-3 inline-flex items-center justify-center align-middle text-slate-500 outline-none hover:text-slate-700 hover:brightness-75 dark:text-slate-400 dark:hover:text-slate-200"
             title="Share Puzzle"
             aria-label="Share Puzzle"
           >
             <IoShareSocialOutline className="size-3.5 sm:size-4.5" />
           </button>
-        ) : null}
-        {puzzle.description ? (
-          <p className="mt-1.5 text-[0.85rem] tracking-wider text-muted-foreground">
-            {puzzle.description}
-          </p>
         ) : null}
       </motion.header>
 

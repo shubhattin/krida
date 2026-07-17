@@ -68,6 +68,7 @@ import {
 } from '~/components/pages/padavali/WordGame/MorePuzzlesCarousel';
 import { attachment_schema } from '~/db/db_shared_vals';
 import { z } from 'zod';
+import titleStyles from '~/components/pages/puzzle/puzzle-title.module.css';
 import { HintDialog } from './HintDialog';
 import { findAllTraversals } from '~/tools/puzzle/puzzle_tools';
 import { MediaAttachments } from '~/components/pages/puzzle/MediaAttachments';
@@ -470,12 +471,9 @@ function WordGame({
 
           {/* Puzzle title */}
           <div
-            className={cn(
-              'bg-linear-to-r from-slate-800 to-slate-600 bg-clip-text py-1 text-2xl font-bold sm:text-3xl md:text-4xl dark:from-slate-100 dark:to-slate-300',
-              font_info.className
-            )}
+            className={cn('py-1 text-2xl font-bold sm:text-3xl md:text-4xl', font_info.className)}
           >
-            {title}
+            <span className={titleStyles.titleGradient}>{title}</span>
             {description && (
               <Popover>
                 <PopoverTrigger
