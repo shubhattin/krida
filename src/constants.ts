@@ -2,7 +2,7 @@
 export const PROJECT_S3_ALIAS = '002_krida' as const;
 
 /** List of games in the project */
-export const KRIDAS = ['padavali'] as const;
+export const KRIDAS = ['padavali', 'crossword'] as const;
 
 /** CDN URL for the project */
 const CLOUDFRONT_URL = process.env.NEXT_PUBLIC_AWS_CLOUDFRONT_URL;

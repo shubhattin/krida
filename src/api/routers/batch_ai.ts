@@ -728,7 +728,7 @@ export const poll_batch_puzzle_image_gen_func = async (
     }
 
     const upload_result = await generateSavePuzzleImage(
-      { title: '<batch>', existing_image_prompt: metadata.image_prompt },
+      { title: '<batch>', existing_image_prompt: metadata.image_prompt, game: metadata.game },
       s3Client,
       db,
       undefined,

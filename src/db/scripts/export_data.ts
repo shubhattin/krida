@@ -98,7 +98,6 @@ const main = async () => {
       console.log(chalk.green('✓ Deleted All Tables Successfully'));
     } catch (e) {
       console.log(chalk.red('✗ Error while deleting tables:'), chalk.yellow(e));
-      throw e;
     }
 
     // inserting image_assets
@@ -110,7 +109,6 @@ const main = async () => {
       );
     } catch (e) {
       console.log(chalk.red('✗ Error while inserting image_assets:'), chalk.yellow(e));
-      throw e;
     }
 
     // inserting padavali_puzzles
@@ -122,7 +120,6 @@ const main = async () => {
       );
     } catch (e) {
       console.log(chalk.red('✗ Error while inserting padavali_puzzles:'), chalk.yellow(e));
-      throw e;
     }
 
     // inserting crossword_puzzles
@@ -134,7 +131,6 @@ const main = async () => {
       );
     } catch (e) {
       console.log(chalk.red('✗ Error while inserting crossword_puzzles:'), chalk.yellow(e));
-      throw e;
     }
 
     // inserting padavali_redirects
@@ -146,7 +142,6 @@ const main = async () => {
       );
     } catch (e) {
       console.log(chalk.red('✗ Error while inserting padavali_redirects:'), chalk.yellow(e));
-      throw e;
     }
 
     // inserting crossword_redirects
@@ -158,7 +153,6 @@ const main = async () => {
       );
     } catch (e) {
       console.log(chalk.red('✗ Error while inserting crossword_redirects:'), chalk.yellow(e));
-      throw e;
     }
 
     // inserting padavali_attachments
@@ -170,7 +164,6 @@ const main = async () => {
       );
     } catch (e) {
       console.log(chalk.red('✗ Error while inserting padavali_attachments:'), chalk.yellow(e));
-      throw e;
     }
 
     // inserting crossword_attachments
@@ -182,7 +175,6 @@ const main = async () => {
       );
     } catch (e) {
       console.log(chalk.red('✗ Error while inserting crossword_attachments:'), chalk.yellow(e));
-      throw e;
     }
 
     // inserting padavali_schedules
@@ -194,7 +186,6 @@ const main = async () => {
       );
     } catch (e) {
       console.log(chalk.red('✗ Error while inserting padavali_schedules:'), chalk.yellow(e));
-      throw e;
     }
 
     // inserting crossword_schedules
@@ -206,7 +197,6 @@ const main = async () => {
       );
     } catch (e) {
       console.log(chalk.red('✗ Error while inserting crossword_schedules:'), chalk.yellow(e));
-      throw e;
     }
 
     // inserting padavali_sessions
@@ -221,7 +211,6 @@ const main = async () => {
       );
     } catch (e) {
       console.log(chalk.red('✗ Error while inserting padavali_sessions:'), chalk.yellow(e));
-      throw e;
     }
 
     // inserting crossword_sessions
@@ -236,7 +225,6 @@ const main = async () => {
       );
     } catch (e) {
       console.log(chalk.red('✗ Error while inserting crossword_sessions:'), chalk.yellow(e));
-      throw e;
     }
 
     // inserting padavali_gameplay_stats
@@ -251,7 +239,6 @@ const main = async () => {
       );
     } catch (e) {
       console.log(chalk.red('✗ Error while inserting padavali_gameplay_stats:'), chalk.yellow(e));
-      throw e;
     }
 
     // inserting crossword_gameplay_stats
@@ -266,7 +253,6 @@ const main = async () => {
       );
     } catch (e) {
       console.log(chalk.red('✗ Error while inserting crossword_gameplay_stats:'), chalk.yellow(e));
-      throw e;
     }
 
     // resetting SERIAL (sequences renamed to match tables in 0017_rename_owned_sequences)
@@ -313,7 +299,6 @@ const main = async () => {
       console.log(chalk.green('✓ Successfully resetted ALL SERIAL'));
     } catch (e) {
       console.log(chalk.red('✗ Error while resetting SERIAL:'), chalk.yellow(e));
-      throw e;
     }
   });
 };

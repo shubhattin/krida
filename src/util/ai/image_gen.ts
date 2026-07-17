@@ -5,7 +5,7 @@ import { image_assets } from '~/db/schema';
 import type { TxOrDb } from '~/db/db';
 import { resizeImage } from '~/util/sharp/resize.server';
 import { uploadAssetFile, deleteAssetFile } from '~/util/s3/upload_file.server';
-import { PROJECT_S3_ALIAS } from '~/constants';
+import { PROJECT_S3_ALIAS, KRIDAS } from '~/constants';
 import { openai, openrouter } from './providers';
 import crypto from 'node:crypto';
 import type { S3Client } from '@aws-sdk/client-s3';
@@ -77,7 +77,9 @@ export const generate_puzzle_image_input_schema = z.object({
   /** Sanskrit words in the puzzle to provide richer context for prompt generation */
   words: z.array(z.string()).optional(),
   /** Supply a pre-written image prompt to skip the prompt-generation step */
-  existing_image_prompt: z.string().optional()
+  existing_image_prompt: z.string().optional(),
+  /** Which game the image belongs to — controls the S3 subdirectory. Defaults to padavali for back-compat. */
+  game: z.enum(KRIDAS).default('padavali')
 });
 export type GeneratePuzzleImageInput = z.infer<typeof generate_puzzle_image_input_schema>;
 export const generate_puzzle_image_output_schema = z.discriminatedUnion('success', [
@@ -167,7 +169,7 @@ export const generateSavePuzzleImage = async (
   existing_file_name_description?: { file_name: string; description: string }
 ): Promise<GeneratePuzzleImageOutput> => {
   const start_time = Date.now();
-  const { title, description, existing_image_prompt } = input;
+  const { title, description, existing_image_prompt, game } = input;
 
   // ------------------------------------------------------------------
   // Step 1 — Generate image prompt (or use supplied one)
@@ -231,7 +233,7 @@ export const generateSavePuzzleImage = async (
   // Step 4 — Upload to S3
   // ------------------------------------------------------------------
   const s3_key =
-    `${PROJECT_S3_ALIAS}/padavali/image_assets/${file_name}_${crypto.randomUUID()}.webp` as const;
+    `${PROJECT_S3_ALIAS}/${game}/image_assets/${file_name}_${crypto.randomUUID()}.webp` as const;
 
   const assetBucketName = s3_bucket_name ?? process.env.AWS_S3_FILES_BUCKET_NAME ?? '';
   try {

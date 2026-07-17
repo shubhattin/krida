@@ -583,9 +583,32 @@ const refresh_current_schedule_route = publicProcedure.mutation(async () => {
   return { has_current: current !== undefined };
 });
 
+/** Same cap as padavali `get_listed_puzzles_preview`. */
+const LISTED_PUZZLES_PREVIEW_LIMIT = 16;
+
+const get_listed_puzzles_preview_input_schema = z.object({
+  exclude_slug: z.string().optional(),
+  exclude_id: z.number().optional()
+});
+
+const get_listed_puzzles_preview_route = publicProcedure
+  .input(get_listed_puzzles_preview_input_schema)
+  .query(async ({ input }) => {
+    const listed = await CACHE.crossword.listed_puzzle_list.get(NO_CACHE_PARAMS);
+    let filtered = listed;
+    if (input.exclude_slug) {
+      filtered = filtered.filter((puzzle) => puzzle.slug !== input.exclude_slug);
+    }
+    if (input.exclude_id !== undefined) {
+      filtered = filtered.filter((puzzle) => puzzle.id !== input.exclude_id);
+    }
+    return filtered.slice(0, LISTED_PUZZLES_PREVIEW_LIMIT);
+  });
+
 export const crossword_router = t.router({
   check_slug_availability: check_slug_availability_route,
   get_listed_puzzles: get_listed_puzzles_route,
+  get_listed_puzzles_preview: get_listed_puzzles_preview_route,
   get_puzzle_by_id: get_puzzle_by_id_route,
   get_puzzle_list_page: get_puzzle_list_page_route,
   add_puzzle: add_puzzle_route,

@@ -93,7 +93,7 @@ export function CrossWordGrid({ game }: CrossWordGridProps) {
       tabIndex={0}
       role="grid"
       aria-label={`${puzzle.title} crossword grid`}
-      className="mx-auto w-full max-w-[min(100vw-2rem,22rem)] outline-none sm:max-w-[24rem]"
+      className="mx-auto w-full max-w-[min(100vw-2rem,22rem)] outline-none sm:max-w-[24rem] lg:max-w-[28rem] xl:max-w-[30rem] 2xl:max-w-[32rem]"
       initial={{ opacity: 0, scale: 0.97 }}
       animate={{ opacity: 1, scale: 1 }}
       transition={{ duration: 0.4, ease: 'easeOut' }}

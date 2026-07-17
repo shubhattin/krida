@@ -17,7 +17,8 @@ import {
   seconds_atom,
   solved_entry_ids_atom,
   started_atom,
-  active_focus_atom
+  active_focus_atom,
+  pending_navigation_url_atom
 } from './game_state';
 import {
   createEmptyPlayerGrid,
@@ -53,6 +54,9 @@ export default function CrossWordGameRoot({
 }: CrossWordGameRootProps) {
   const puzzle = isDbPuzzle(raw) ? toCrossWordGamePuzzle(raw as CrossordPuzzle) : raw;
 
+  const listed = isDbPuzzle(raw) ? raw.listed : false;
+  const puzzleSlug = isDbPuzzle(raw) ? raw.slug : null;
+
   const attachments = useMemo(() => {
     const source =
       attachmentsProp ?? (isDbPuzzle(raw) && 'attachments' in raw ? raw.attachments : []);
@@ -76,6 +80,7 @@ export default function CrossWordGameRoot({
     store.set(celebration_fired_atom, false);
     store.set(letter_inputs_atom, 0);
     store.set(incorrect_entry_attempts_atom, 0);
+    store.set(pending_navigation_url_atom, null);
     return store;
   }, [puzzle.id, puzzle]);
 
@@ -84,7 +89,12 @@ export default function CrossWordGameRoot({
       <ActiveCrosswordRegistrar puzzleId={puzzle.id} />
       <Provider store={jotaiStore} key={String(puzzle.id)}>
         <CrossWordMetricsCollector puzzle_id={puzzle.id} location={location} />
-        <CrossWordGame attachments={attachments} />
+        <CrossWordGame
+          attachments={attachments}
+          listed={listed}
+          puzzleSlug={puzzleSlug}
+          location={location}
+        />
       </Provider>
     </>
   );

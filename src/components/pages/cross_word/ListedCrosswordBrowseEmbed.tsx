@@ -5,55 +5,15 @@ import Link from 'next/link';
 import Fuse from 'fuse.js';
 import { motion } from 'framer-motion';
 import { ExternalLinkIcon, SearchIcon } from 'lucide-react';
-import { IoExtensionPuzzleSharp } from 'react-icons/io5';
 import { InputGroup, InputGroupAddon, InputGroupInput } from '~/components/ui/input-group';
-import { getCDNUrl } from '~/constants';
 import type { CrosswordListedPuzzlesType } from '~/util/cache.server/crossword_cache';
+import { CrosswordPreviewCard } from '~/components/pages/cross_word/CrosswordPreviewCard';
 
 const EMBED_PAGE_LIMIT = 8;
-
-type ListedPuzzle = CrosswordListedPuzzlesType[number];
 
 type Props = {
   listed_puzzles: CrosswordListedPuzzlesType;
 };
-
-function CrosswordPuzzleCard({ puzzle }: { puzzle: ListedPuzzle }) {
-  const imageUrl = puzzle.image ? getCDNUrl(puzzle.image.s3_key) : null;
-
-  return (
-    <Link
-      href={`/crossword/${encodeURIComponent(puzzle.slug)}`}
-      className="group block h-full no-underline"
-    >
-      <motion.div
-        whileHover={{ scale: 1.02, y: -2 }}
-        whileTap={{ scale: 0.98 }}
-        className="flex h-full flex-col overflow-hidden rounded-xl border border-slate-200 bg-white shadow-lg transition-shadow duration-200 hover:shadow-xl dark:border-slate-700 dark:bg-slate-800"
-      >
-        <div className="relative aspect-3/2 w-full overflow-hidden bg-slate-100 dark:bg-slate-700">
-          {imageUrl ? (
-            <img src={imageUrl} alt="" className="size-full object-cover object-center" />
-          ) : (
-            <div className="flex size-full items-center justify-center bg-linear-to-br from-violet-100 to-indigo-100 dark:from-violet-950/40 dark:to-indigo-950/40">
-              <IoExtensionPuzzleSharp className="size-12 text-violet-500/70 sm:size-14 dark:text-violet-400/70" />
-            </div>
-          )}
-        </div>
-        <div className="flex flex-1 flex-col p-3 text-left">
-          <div className="line-clamp-2 font-semibold text-slate-900 group-hover:text-violet-600 dark:text-slate-100 dark:group-hover:text-violet-400">
-            {puzzle.title}
-          </div>
-          {puzzle.description ? (
-            <div className="mt-1 line-clamp-2 text-xs text-slate-500 dark:text-slate-400">
-              {puzzle.description}
-            </div>
-          ) : null}
-        </div>
-      </motion.div>
-    </Link>
-  );
-}
 
 export function ListedCrosswordBrowseEmbed({ listed_puzzles }: Props) {
   const [query, setQuery] = useState('');
@@ -112,15 +72,16 @@ export function ListedCrosswordBrowseEmbed({ listed_puzzles }: Props) {
           No puzzles match your search
         </p>
       ) : (
-        <div className="grid grid-cols-2 gap-3 sm:gap-4 lg:grid-cols-4">
+        <div className="grid grid-cols-2 items-stretch gap-3 sm:gap-4 lg:grid-cols-4">
           {visible.map((puzzle, index) => (
             <motion.div
               key={puzzle.id}
               initial={{ opacity: 0, y: 12 }}
               animate={{ opacity: 1, y: 0 }}
               transition={{ duration: 0.3, delay: index * 0.04 }}
+              className="h-full"
             >
-              <CrosswordPuzzleCard puzzle={puzzle} />
+              <CrosswordPreviewCard puzzle={puzzle} />
             </motion.div>
           ))}
         </div>

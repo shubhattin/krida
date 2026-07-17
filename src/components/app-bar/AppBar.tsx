@@ -25,7 +25,7 @@ const GAME_DEFAULTS: Record<
   },
   crossword: {
     title: 'Crossword',
-    description: 'English Crossword Puzzle',
+    description: 'Crossword Puzzle',
     href: '/crossword',
     imageUrl: '/img/icon_128_no_pad.png',
     showPwaControls: false

@@ -179,7 +179,7 @@ export function CrossWordOnScreenKeyboard({
 
   return (
     <TooltipProvider>
-      <div className="flex w-full max-w-[24rem] flex-col items-center">
+      <div className="flex w-full max-w-[24rem] flex-col items-center lg:max-w-md xl:max-w-120 2xl:max-w-lg">
         {!panelOnly ? (
           <div className="mb-1 flex w-full items-center justify-end px-1 sm:mb-2">
             <KeyboardToggle open={open} onOpenChange={onOpenChange} />

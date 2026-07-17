@@ -33,6 +33,8 @@ export const solved_entry_ids_atom = atom<string[]>([]);
 /** Entry ids that are fully filled but incorrect — soft feedback only. */
 export const incorrect_entry_ids_atom = atom<string[]>([]);
 export const celebration_fired_atom = atom(false);
+/** Pending in-app navigation URL when leaving mid-game (More Puzzles links). */
+export const pending_navigation_url_atom = atom<string | null>(null);
 /** Cumulative letter inputs this session (accepted A–Z keystrokes). */
 export const letter_inputs_atom = atom(0);
 /**

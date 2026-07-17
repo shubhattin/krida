@@ -837,6 +837,7 @@ function AIImageDialogContent({
       title,
       description,
       words,
+      game,
       existing_image_prompt: existing_image_prompt || undefined
     });
   };
@@ -849,7 +850,7 @@ function AIImageDialogContent({
         { id: current_image_id },
         {
           onSuccess: () => {
-            generate_mut.mutate({ title, description, words });
+            generate_mut.mutate({ title, description, words, game });
           },
           onError: () => {
             setPhase({ state: 'idle' });
@@ -873,6 +874,7 @@ function AIImageDialogContent({
               title,
               description,
               words,
+              game,
               existing_image_prompt: promptToUse || undefined
             });
           },

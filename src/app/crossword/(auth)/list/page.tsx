@@ -1,8 +1,9 @@
 import { Metadata } from 'next';
 import Link from 'next/link';
 import { redirect } from 'next/navigation';
-import { ArrowLeftIcon } from 'lucide-react';
+import { ArrowLeftIcon, BarChart3Icon, CalendarIcon, LayersIcon } from 'lucide-react';
 import { getCachedSession } from '~/lib/cache_server_route_data';
+import { Button } from '~/components/ui/button';
 import AddCrosswordDialog from './AddCrosswordDialog';
 import CrosswordListPage from './CrosswordListPage';
 
@@ -22,13 +23,41 @@ const List = async () => {
         </Link>
       </div>
       <div className="mt-2 mb-5 flex flex-wrap items-center justify-center gap-4 px-2">
+        <Button
+          render={<Link href="/crossword/analytics" className="inline-flex items-center gap-2" />}
+          nativeButton={false}
+          variant="outline"
+          className="text-base font-semibold"
+        >
+          <BarChart3Icon className="size-4 shrink-0" />
+          Analytics
+        </Button>
+        <Link href="/crossword/schedules">
+          <Button
+            variant={'outline'}
+            className="inline-flex items-center gap-2 text-base font-semibold"
+          >
+            <CalendarIcon className="size-4 shrink-0" />
+            Schedules
+          </Button>
+        </Link>
+        <Button
+          render={
+            <Link href="/crossword/batch_manager" className="inline-flex items-center gap-2" />
+          }
+          nativeButton={false}
+          variant="outline"
+          className="text-base font-semibold"
+        >
+          <LayersIcon className="size-4 shrink-0" />
+          Batch Manager
+        </Button>
         <AddCrosswordDialog />
       </div>
       <CrosswordListPage />
     </div>
   );
 };
-
 export default List;
 
 export const metadata: Metadata = {
