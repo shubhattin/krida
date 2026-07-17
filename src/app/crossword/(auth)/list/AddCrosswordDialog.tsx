@@ -1,9 +1,10 @@
 'use client';
 
-import { useState } from 'react';
+import { useEffect, useState } from 'react';
 import { useRouter } from 'next/navigation';
 import { IoMdAdd } from 'react-icons/io';
-import { client_q } from '~/api/client';
+import { CheckIcon, Loader2Icon, XIcon } from 'lucide-react';
+import { client, client_q } from '~/api/client';
 import { Button } from '~/components/ui/button';
 import {
   Dialog,
@@ -28,12 +29,33 @@ import { Input } from '~/components/ui/input';
 import { Label } from '~/components/ui/label';
 import { Textarea } from '~/components/ui/textarea';
 import { toast } from 'sonner';
+import { useDebouncedSlugCheck } from '~/hooks/useDebouncedSlugCheck';
+import { SlugRedirectConflictPrompt } from '~/components/pages/padavali/SlugRedirectConflictPrompt';
+import { cn } from '~/lib/utils';
 import {
   CROSSWORD_DEFAULT_DIM,
   CROSSWORD_MAX_DIM,
   CROSSWORD_MIN_DIM,
   clampDimension
 } from '~/util/cross_word/grid';
+import { isValidCrosswordSlug } from '~/util/puzzle/slug';
+
+const SlugStatusIcon = ({
+  status
+}: {
+  status: ReturnType<typeof useDebouncedSlugCheck>['status'];
+}) => {
+  if (status === 'checking') {
+    return <Loader2Icon className="size-4 animate-spin text-muted-foreground" />;
+  }
+  if (status === 'available') {
+    return <CheckIcon className="size-4 text-green-600" />;
+  }
+  if (status === 'taken' || status === 'invalid') {
+    return <XIcon className="size-4 text-red-600" />;
+  }
+  return null;
+};
 
 const AddCrosswordDialog = () => {
   const router = useRouter();
@@ -41,18 +63,31 @@ const AddCrosswordDialog = () => {
   const [confirmOpen, setConfirmOpen] = useState(false);
   const [title, setTitle] = useState('');
   const [description, setDescription] = useState('');
+  const [slug, setSlug] = useState('');
+  const [overrideRedirectSlug, setOverrideRedirectSlug] = useState(false);
   const [rows, setRows] = useState(CROSSWORD_DEFAULT_DIM[0]);
   const [cols, setCols] = useState(CROSSWORD_DEFAULT_DIM[1]);
+
+  const {
+    status: slugStatus,
+    normalizedSlug,
+    redirectConflict
+  } = useDebouncedSlugCheck(slug, {
+    enabled: open,
+    checkSlug: (params) => client.crossword.check_slug_availability.query(params),
+    isValidSlugFn: isValidCrosswordSlug
+  });
+
+  useEffect(() => {
+    setOverrideRedirectSlug(false);
+  }, [normalizedSlug]);
 
   const add_mut = client_q.crossword.add_puzzle.useMutation({
     onSuccess(data) {
       toast.success('Puzzle added successfully');
       setOpen(false);
       setConfirmOpen(false);
-      setTitle('');
-      setDescription('');
-      setRows(CROSSWORD_DEFAULT_DIM[0]);
-      setCols(CROSSWORD_DEFAULT_DIM[1]);
+      resetForm();
       router.push(`/crossword/edit/${data.id}`);
     },
     onError() {
@@ -61,13 +96,18 @@ const AddCrosswordDialog = () => {
     }
   });
 
-  const canSubmit = title.trim().length > 0;
+  const slugReady =
+    slugStatus === 'available' || (slugStatus === 'redirect_conflict' && overrideRedirectSlug);
+
+  const canSubmit = title.trim().length > 0 && slugReady && normalizedSlug.length > 0;
 
   const handleConfirmAdd = () => {
     add_mut.mutate({
       title: title.trim(),
+      slug: normalizedSlug,
       description: description.trim() ? description.trim() : null,
-      grid_dimensions: [clampDimension(rows), clampDimension(cols)]
+      grid_dimensions: [clampDimension(rows), clampDimension(cols)],
+      override_redirect_slug: slugStatus === 'redirect_conflict' && overrideRedirectSlug
     });
   };
 
@@ -75,6 +115,8 @@ const AddCrosswordDialog = () => {
     setConfirmOpen(false);
     setTitle('');
     setDescription('');
+    setSlug('');
+    setOverrideRedirectSlug(false);
     setRows(CROSSWORD_DEFAULT_DIM[0]);
     setCols(CROSSWORD_DEFAULT_DIM[1]);
   };
@@ -99,7 +141,7 @@ const AddCrosswordDialog = () => {
           <DialogHeader>
             <DialogTitle>Add New Crossword</DialogTitle>
             <DialogDescription>
-              Enter a title and grid size. You can fill words and the grid on the edit page.
+              Enter a title, slug, and grid size. You can fill words and the grid on the edit page.
             </DialogDescription>
           </DialogHeader>
           <div className="flex flex-col gap-4">
@@ -111,6 +153,44 @@ const AddCrosswordDialog = () => {
                 onChange={(e) => setTitle(e.currentTarget.value)}
                 placeholder="Puzzle title"
               />
+            </div>
+            <div className="flex flex-col gap-2">
+              <Label htmlFor="add-crossword-slug">Slug</Label>
+              <div className="relative">
+                <Input
+                  id="add-crossword-slug"
+                  value={slug}
+                  onChange={(e) => setSlug(e.currentTarget.value)}
+                  placeholder="my-puzzle-slug"
+                  className="pr-9"
+                />
+                <div className="absolute top-1/2 right-2.5 -translate-y-1/2">
+                  <SlugStatusIcon status={slugStatus} />
+                </div>
+              </div>
+              <p
+                className={cn(
+                  'text-xs',
+                  slugStatus === 'taken' || slugStatus === 'invalid'
+                    ? 'text-red-600'
+                    : 'text-muted-foreground'
+                )}
+              >
+                {slugStatus === 'invalid' &&
+                  'Only lowercase letters, numbers, underscores, and dashes are allowed.'}
+                {slugStatus === 'taken' &&
+                  'This slug is already used by another puzzle and cannot be reused.'}
+                {slugStatus === 'available' && `Available as "${normalizedSlug}".`}
+                {slugStatus === 'redirect_conflict' &&
+                  `Slug "${normalizedSlug}" conflicts with an existing redirect.`}
+              </p>
+              {slugStatus === 'redirect_conflict' && redirectConflict ? (
+                <SlugRedirectConflictPrompt
+                  conflict={redirectConflict}
+                  overrideConfirmed={overrideRedirectSlug}
+                  onOverrideChange={setOverrideRedirectSlug}
+                />
+              ) : null}
             </div>
             <div className="flex flex-col gap-2">
               <Label htmlFor="add-crossword-description">Description (optional)</Label>
@@ -166,8 +246,8 @@ const AddCrosswordDialog = () => {
           <AlertDialogHeader>
             <AlertDialogTitle>Confirm Add</AlertDialogTitle>
             <AlertDialogDescription>
-              Create puzzle &quot;{title.trim()}&quot; as a {clampDimension(rows)}×
-              {clampDimension(cols)} grid?
+              Create puzzle &quot;{title.trim()}&quot; with slug &quot;{normalizedSlug}&quot; as a{' '}
+              {clampDimension(rows)}×{clampDimension(cols)} grid?
             </AlertDialogDescription>
           </AlertDialogHeader>
           <AlertDialogFooter>

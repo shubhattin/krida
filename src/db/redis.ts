@@ -10,5 +10,9 @@ export const REDIS_CACHE_KEYS = {
   padavali_next_schedule: () => 'padavali:next_schedule',
   padavali_word_puzzle: (slug: string) => `padavali:word_puzzle:${slug}`,
   padavali_word_meanings: (slug: string) => `padavali:word_meanings:${slug}`,
-  padavali_listed_puzzle_list: () => 'padavali:listed_puzzle_list'
+  padavali_listed_puzzle_list: () => 'padavali:listed_puzzle_list',
+  crossword_current_schedule: () => 'crossword:current_schedule',
+  crossword_next_schedule: () => 'crossword:next_schedule',
+  crossword_word_puzzle: (slug: string) => `crossword:word_puzzle:${slug}`,
+  crossword_listed_puzzle_list: () => 'crossword:listed_puzzle_list'
 };

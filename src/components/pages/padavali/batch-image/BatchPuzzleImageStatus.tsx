@@ -23,6 +23,8 @@ type BatchPuzzleImageStatusProps = {
   onRefresh: () => void;
   isRefreshing?: boolean;
   showBatchManagerLink?: boolean;
+  /** Which game's batch manager to link to. Defaults to padavali. */
+  game?: 'padavali' | 'crossword';
   className?: string;
 };
 
@@ -44,9 +46,12 @@ export function BatchPuzzleImageStatus({
   onRefresh,
   isRefreshing,
   showBatchManagerLink = true,
+  game = 'padavali',
   className
 }: BatchPuzzleImageStatusProps) {
   const is_processing = status.status === 'processing';
+  const batch_manager_href =
+    game === 'crossword' ? '/crossword/batch_manager' : '/padavali/batch_manager';
 
   return (
     <div
@@ -67,7 +72,7 @@ export function BatchPuzzleImageStatus({
           </div>
           {showBatchManagerLink ? (
             <Link
-              href="/padavali/batch_manager"
+              href={batch_manager_href}
               className="text-xs text-primary underline-offset-4 hover:underline"
             >
               Open Batch Manager

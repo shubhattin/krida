@@ -20,7 +20,7 @@ const BatchManager = async () => {
           Puzzle List
         </Link>
       </div>
-      <BatchManagerPage />
+      <BatchManagerPage game="padavali" />
     </div>
   );
 };

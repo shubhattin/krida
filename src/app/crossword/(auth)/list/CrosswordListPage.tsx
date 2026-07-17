@@ -30,6 +30,10 @@ import { InputGroup, InputGroupAddon, InputGroupInput } from '~/components/ui/in
 import { useQuery, useQueryClient } from '@tanstack/react-query';
 import { Switch } from '~/components/ui/switch';
 import { toast } from 'sonner';
+import { Button } from '~/components/ui/button';
+import { Checkbox } from '~/components/ui/checkbox';
+import { BatchPuzzleImageCostNote } from '~/components/pages/padavali/batch-image/BatchPuzzleImageCostNote';
+import { useInvalidatePuzzleImageBatchQueries } from '~/components/pages/padavali/batch-image/usePuzzleImageBatchStatus';
 
 dayjs.extend(relativeTime);
 
@@ -81,6 +85,35 @@ const CrosswordListPage = () => {
   const [listed_filter_type, setListedFilterType] = useState<'all' | 'listed' | 'unlisted'>('all');
   const [sort_by, setSortBy] = useState<'created_at' | 'updated_at'>('created_at');
   const [order_by, setOrderBy] = useState<'asc' | 'desc'>('desc');
+  const [selected_ids, setSelectedIds] = useState<Set<number>>(() => new Set());
+  const [auto_approved, setAutoApproved] = useState(true);
+  const { invalidateBatchManager, invalidatePuzzleStatus } =
+    useInvalidatePuzzleImageBatchQueries('crossword');
+
+  const batch_trigger_mut = client_q.batch_ai.trigger_batch_puzzle_image_gen.useMutation({
+    onSuccess: async (data, variables) => {
+      await Promise.all([
+        invalidateBatchManager(),
+        ...variables.puzzles.map((puzzle) => invalidatePuzzleStatus(puzzle.puzzle_id))
+      ]);
+      toast.success(
+        `Queued background image generation for ${data.puzzle_count} puzzle${data.puzzle_count === 1 ? '' : 's'}.`
+      );
+      setSelectedIds(new Set());
+    },
+    onError: (err) => {
+      toast.error(err.message || 'Failed to queue background image generation');
+    }
+  });
+
+  const toggleSelection = (id: number, checked: boolean) => {
+    setSelectedIds((prev) => {
+      const next = new Set(prev);
+      if (checked) next.add(id);
+      else next.delete(id);
+      return next;
+    });
+  };
 
   useEffect(() => {
     setMounted(true);
@@ -153,6 +186,53 @@ const CrosswordListPage = () => {
 
   return (
     <div className="flex flex-col gap-4">
+      {selected_ids.size > 0 ? (
+        <div className="flex flex-col gap-3 rounded-xl border border-blue-200/70 bg-blue-50/60 p-3 shadow-sm sm:flex-row sm:items-center sm:justify-between dark:border-blue-900/50 dark:bg-blue-950/20">
+          <div className="space-y-1">
+            <p className="text-sm font-semibold">{selected_ids.size} puzzle(s) selected</p>
+            <BatchPuzzleImageCostNote />
+          </div>
+          <div className="flex flex-col gap-2 sm:items-end">
+            <label className="flex items-center gap-2 text-sm">
+              <Checkbox
+                checked={auto_approved}
+                onCheckedChange={(checked) => setAutoApproved(checked === true)}
+              />
+              Auto apply generated images to puzzles
+            </label>
+            <div className="flex flex-wrap items-center gap-2">
+              <Button
+                type="button"
+                disabled={batch_trigger_mut.isPending}
+                onClick={() =>
+                  batch_trigger_mut.mutate({
+                    game: 'crossword',
+                    auto_approved,
+                    puzzles: [...selected_ids].map((puzzle_id) => ({ puzzle_id }))
+                  })
+                }
+              >
+                Generate batch images
+              </Button>
+              <Button
+                type="button"
+                variant="outline"
+                onClick={() => setSelectedIds(new Set())}
+                disabled={batch_trigger_mut.isPending}
+              >
+                Clear selection
+              </Button>
+              <Button
+                render={<Link href="/crossword/batch_manager" />}
+                nativeButton={false}
+                variant="ghost"
+              >
+                Batch Manager
+              </Button>
+            </div>
+          </div>
+        </div>
+      ) : null}
       <div className="rounded-xl border border-slate-200/60 bg-white/50 p-3 shadow-sm backdrop-blur-sm sm:p-4 dark:border-slate-700/40 dark:bg-slate-800/30">
         <div className="flex flex-col items-center gap-3">
           <InputGroup className="w-full sm:w-64 lg:w-80">
@@ -252,6 +332,14 @@ const CrosswordListPage = () => {
         <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4">
           {puzzle_list.map((item) => (
             <div key={item.id} className="relative">
+              <div className="absolute top-3 left-3 z-10">
+                <Checkbox
+                  checked={selected_ids.has(item.id)}
+                  onCheckedChange={(checked) => toggleSelection(item.id, checked === true)}
+                  aria-label={`Select puzzle ${item.title}`}
+                  onClick={(e) => e.stopPropagation()}
+                />
+              </div>
               <div className="absolute top-3 right-3 z-10 flex items-center gap-2">
                 <Label className="inline-flex items-center gap-1.5 text-xs font-medium">
                   <Switch
@@ -266,7 +354,7 @@ const CrosswordListPage = () => {
                 </Label>
               </div>
               <Link href={`/crossword/edit/${item.id}`}>
-                <Card className="group border-l-3 border-l-blue-500/40 p-2 pr-24 shadow-sm transition-all duration-200 hover:translate-x-0.5 hover:border-l-blue-500 hover:bg-slate-50 hover:shadow-md dark:border-l-blue-400/40 dark:hover:border-l-blue-400 dark:hover:bg-slate-800/60">
+                <Card className="group border-l-3 border-l-blue-500/40 p-2 pr-24 pl-10 shadow-sm transition-all duration-200 hover:translate-x-0.5 hover:border-l-blue-500 hover:bg-slate-50 hover:shadow-md dark:border-l-blue-400/40 dark:hover:border-l-blue-400 dark:hover:bg-slate-800/60">
                   <CardHeader>
                     <CardTitle>{item.title}</CardTitle>
                     <CardDescription className="flex flex-col gap-1">

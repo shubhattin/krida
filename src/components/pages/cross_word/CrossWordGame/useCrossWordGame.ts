@@ -7,14 +7,15 @@ import {
   celebration_fired_atom,
   completed_atom,
   game_session_nonce_atom,
+  incorrect_entry_attempts_atom,
   incorrect_entry_ids_atom,
+  letter_inputs_atom,
   numbered_entries_atom,
   player_grid_atom,
   puzzle_atom,
   seconds_atom,
   solved_entry_ids_atom,
-  started_atom,
-  type ActiveFocus
+  started_atom
 } from './game_state';
 import {
   createEmptyPlayerGrid,
@@ -81,6 +82,8 @@ export function useCrossWordGame(timerRef: RefObject<ReturnType<typeof setInterv
   const setSolved = useSetAtom(solved_entry_ids_atom);
   const setIncorrect = useSetAtom(incorrect_entry_ids_atom);
   const setCelebrationFired = useSetAtom(celebration_fired_atom);
+  const setLetterInputs = useSetAtom(letter_inputs_atom);
+  const setIncorrectAttempts = useSetAtom(incorrect_entry_attempts_atom);
 
   const clearTimer = useCallback(() => {
     if (timerRef.current) {
@@ -213,6 +216,8 @@ export function useCrossWordGame(timerRef: RefObject<ReturnType<typeof setInterv
     setSolved([]);
     setIncorrect([]);
     setCelebrationFired(false);
+    setLetterInputs(0);
+    setIncorrectAttempts(0);
     setNonce((n) => n + 1);
 
     const first = entries[0];
@@ -241,6 +246,8 @@ export function useCrossWordGame(timerRef: RefObject<ReturnType<typeof setInterv
     setCompleted,
     setFocus,
     setIncorrect,
+    setIncorrectAttempts,
+    setLetterInputs,
     setNonce,
     setPlayerGrid,
     setSeconds,
@@ -259,6 +266,8 @@ export function useCrossWordGame(timerRef: RefObject<ReturnType<typeof setInterv
     setSolved([]);
     setIncorrect([]);
     setCelebrationFired(false);
+    setLetterInputs(0);
+    setIncorrectAttempts(0);
     setFocus(null);
     setNonce((n) => n + 1);
   }, [
@@ -268,6 +277,8 @@ export function useCrossWordGame(timerRef: RefObject<ReturnType<typeof setInterv
     setCompleted,
     setFocus,
     setIncorrect,
+    setIncorrectAttempts,
+    setLetterInputs,
     setNonce,
     setPlayerGrid,
     setSeconds,
@@ -321,12 +332,29 @@ export function useCrossWordGame(timerRef: RefObject<ReturnType<typeof setInterv
         targetCol = cursor.col;
       }
 
-      setPlayerGrid((prev) => {
-        const copy = prev.map((row) => [...row]);
-        copy[targetRow]![targetCol] = normalized;
-        applyEvaluation(copy);
-        return copy;
-      });
+      setLetterInputs((n) => n + 1);
+
+      const prevGrid = store.get(player_grid_atom);
+      const nextGrid = prevGrid.map((row) => [...row]);
+      nextGrid[targetRow]![targetCol] = normalized;
+
+      // Count incorrect full-entry evaluations for entries covering this cell.
+      const affected = findEntriesAtCell(entries, targetRow, targetCol);
+      let incorrectDelta = 0;
+      for (const affectedEntry of affected) {
+        if (
+          isEntryFilled(affectedEntry, nextGrid, puzzle.grid) &&
+          !isEntryCorrect(affectedEntry, nextGrid, puzzle.grid)
+        ) {
+          incorrectDelta += 1;
+        }
+      }
+      if (incorrectDelta > 0) {
+        setIncorrectAttempts((n) => n + incorrectDelta);
+      }
+
+      setPlayerGrid(nextGrid);
+      applyEvaluation(nextGrid);
 
       // Advance the cursor, skipping over solved cells. A fixed letter in the
       // middle of an entry is not an input target, so move past it to show
@@ -349,7 +377,19 @@ export function useCrossWordGame(timerRef: RefObject<ReturnType<typeof setInterv
         col: next?.col ?? targetCol
       });
     },
-    [applyEvaluation, completed, entries, focus, puzzle, setFocus, setPlayerGrid, started, store]
+    [
+      applyEvaluation,
+      completed,
+      entries,
+      focus,
+      puzzle,
+      setFocus,
+      setIncorrectAttempts,
+      setLetterInputs,
+      setPlayerGrid,
+      started,
+      store
+    ]
   );
 
   const backspace = useCallback(() => {

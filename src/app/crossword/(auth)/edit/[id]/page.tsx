@@ -8,17 +8,51 @@ import { FaPlay } from 'react-icons/fa';
 import { Provider as JotaiProvider } from 'jotai';
 import { getCachedSession } from '~/lib/cache_server_route_data';
 import { cache } from 'react';
-import { CrossordPuzzleSchemaZod } from '~/db/schema_zod';
-import ViewEditCrossword from '~/components/pages/cross_word/ViewEditCrossword';
+import { CrossordPuzzleSchemaZod, CrosswordAttachmentSchemaZod } from '~/db/schema_zod';
+import MainEditPage from './MainEditPage';
 
 type Props = { params: Promise<{ id: string }> };
 
 const get_crossword_cached = cache(async (id: number) => {
   const row = await db.query.crossword_puzzles.findFirst({
-    where: (tbl, { eq }) => eq(tbl.id, id)
+    where: (tbl, { eq }) => eq(tbl.id, id),
+    with: {
+      attachments: {
+        columns: {
+          id: true,
+          type: true,
+          url: true,
+          title: true,
+          order_index: true
+        },
+        orderBy: (tbl, { asc }) => asc(tbl.order_index)
+      },
+      image: {
+        columns: {
+          id: true,
+          s3_key: true,
+          width: true,
+          height: true
+        }
+      }
+    }
   });
   if (!row) return null;
-  return CrossordPuzzleSchemaZod.parse(row);
+  const puzzle = CrossordPuzzleSchemaZod.parse(row);
+  const attachments = row.attachments.map((a) =>
+    CrosswordAttachmentSchemaZod.pick({
+      id: true,
+      type: true,
+      url: true,
+      title: true,
+      order_index: true
+    }).parse(a)
+  );
+  return {
+    ...puzzle,
+    attachments,
+    image: row.image
+  };
 });
 
 export async function generateMetadata({ params }: Props): Promise<Metadata> {
@@ -57,17 +91,17 @@ const MainEdit = async ({ params }: Props) => {
           Main List
         </Link>
         <Link
-          href="/crossword"
+          href={`/crossword/view/${puzzle.id}:${puzzle.slug}`}
           target="_blank"
           className="inline-flex items-center gap-2 text-lg font-semibold"
-          title="Open the public crossword page"
+          title="For sharing unlisted puzzles and internal testing. This page is not the public listed URL."
         >
           <FaPlay className="size-4 shrink-0" />
-          Public Page
+          Preview
         </Link>
       </div>
       <JotaiProvider key={`crossword_edit_${puzzle.id}`}>
-        <ViewEditCrossword puzzle={puzzle} key={puzzle.id} />
+        <MainEditPage puzzle={puzzle} />
       </JotaiProvider>
     </>
   );

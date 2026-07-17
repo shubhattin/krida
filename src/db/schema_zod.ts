@@ -19,7 +19,7 @@ import {
 import { createSelectSchema } from 'drizzle-zod';
 import { location_list_enum } from './types';
 import { script_list_enum } from '~/state/script_list';
-import { image_batch_metadata_schema } from '~/util/types/ai_batch_metadata';
+import { batch_metadata_schema } from '~/util/types/ai_batch_metadata';
 
 export const PadavaliPuzzleSchemaZod = createSelectSchema(padavali_puzzles, {
   word_list: z.string().array(),
@@ -82,7 +82,7 @@ export const PadavaliAttachmentSchemaZod = createSelectSchema(padavali_attachmen
 });
 
 export const AiBatchResponseSchemaZod = createSelectSchema(ai_batch_responses, {
-  metadata: image_batch_metadata_schema.optional().nullable()
+  metadata: batch_metadata_schema.optional().nullable()
 });
 
 export const AiBatchSchemaZod = createSelectSchema(ai_batches);

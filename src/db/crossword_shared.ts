@@ -9,6 +9,9 @@ import {
   CROSSWORD_MAX_DIM,
   CROSSWORD_MIN_DIM
 } from '~/util/cross_word/grid';
+import { attachment_schema } from '~/db/db_shared_vals';
+import { crossword_slug_schema } from '~/util/puzzle/slug';
+import { location_list_enum } from '~/db/types';
 
 export const crossword_dimensions_schema = z.tuple([
   z.number().int().min(CROSSWORD_MIN_DIM).max(CROSSWORD_MAX_DIM),
@@ -17,20 +20,58 @@ export const crossword_dimensions_schema = z.tuple([
 
 export const crossword_add_input_schema = z.object({
   title: z.string().min(1),
+  slug: crossword_slug_schema,
   description: z.string().optional().nullable(),
-  grid_dimensions: crossword_dimensions_schema.default(CROSSWORD_DEFAULT_DIM)
+  grid_dimensions: crossword_dimensions_schema.default(CROSSWORD_DEFAULT_DIM),
+  override_redirect_slug: z.boolean().default(false)
 });
 
 export const crossword_update_input_schema = z.object({
   puzzle_id: z.number().int(),
+  puzzle_slug: crossword_slug_schema,
+  image_id: z.number().int().nullable(),
   puzzle_data: z.object({
     title: z.string().min(1),
     description: z.string().optional().nullable(),
     listed: z.boolean(),
     grid_dimensions: crossword_dimensions_schema,
     grid_data: CrossordPuzzleGridCellSchema.array().array(),
-    word_list: CrossWordPuzzleWordSchema.array()
+    word_list: CrossWordPuzzleWordSchema.array(),
+    attachments: attachment_schema
+      .omit({ id: true })
+      .extend({
+        id: z.number().int().nullable()
+      })
+      .array()
   })
+});
+
+export const crossword_update_slug_input_schema = z.object({
+  puzzle_id: z.number().int(),
+  current_slug: crossword_slug_schema,
+  new_slug: crossword_slug_schema,
+  override_redirect_slug: z.boolean().default(false)
+});
+
+export const crossword_submit_stats_input_schema = z.object({
+  turnstile_token: z.string(),
+  info: z.object({
+    puzzle_id: z.number().int(),
+    time_taken: z.number().int(),
+    accuracy: z.number().int(),
+    total_entries: z.number().int(),
+    total_cells: z.number().int(),
+    prefilled_cells: z.number().int(),
+    letter_inputs: z.number().int(),
+    incorrect_entry_attempts: z.number().int(),
+    session_id: z.number().int()
+  })
+});
+
+export const crossword_update_games_started_input_schema = z.object({
+  turnstile_token: z.string(),
+  id: z.number().int(),
+  location: location_list_enum
 });
 
 export const crossword_list_input_schema = z.object({

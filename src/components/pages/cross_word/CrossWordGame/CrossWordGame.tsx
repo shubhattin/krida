@@ -9,15 +9,18 @@ import { GameProgress } from './GameProgress';
 import { GameControls } from './GameControls';
 import { CompletionCelebration } from './CompletionCelebration';
 import { CrossWordOnScreenKeyboard } from './CrossWordOnScreenKeyboard';
+import { CluePanel } from './CluePanel';
 import { useCrossWordGame } from './useCrossWordGame';
 import { shouldAutoOpenOnScreenKeyboard } from './touch_device';
 import { puzzle_atom, started_atom, completed_atom, active_entry_atom } from './game_state';
 import { cn } from '~/lib/utils';
+import type { Attachment } from '~/util/puzzle/attachments';
+import { MediaAttachments } from '~/components/pages/puzzle/MediaAttachments';
 import styles from './crossword-game.module.css';
 
 function ActiveClueCard({ activeEntry }: { activeEntry: any }) {
   return (
-    <div className="w-full max-w-[24rem] px-1">
+    <div className="w-full max-w-[24rem] px-1 lg:hidden">
       <div className="relative flex min-h-19 w-full flex-col justify-center rounded-2xl border border-border/40 bg-card/65 p-3 shadow-[0_4px_20px_oklch(0_0_0/0.04)] backdrop-blur-md transition-all duration-200 sm:min-h-22 sm:p-4 dark:shadow-[0_10px_35px_oklch(0_0_0/0.25)]">
         <AnimatePresence mode="wait">
           {activeEntry ? (
@@ -65,7 +68,7 @@ function ActiveClueCard({ activeEntry }: { activeEntry: any }) {
   );
 }
 
-export function CrossWordGame() {
+export function CrossWordGame({ attachments }: { attachments?: Attachment[] }) {
   const timerRef = useRef<ReturnType<typeof setInterval> | null>(null);
   const game = useCrossWordGame(timerRef);
   const puzzle = useAtomValue(puzzle_atom);
@@ -73,6 +76,36 @@ export function CrossWordGame() {
   const completed = useAtomValue(completed_atom);
   const activeEntry = useAtomValue(active_entry_atom);
   const [keyboardOpen, setKeyboardOpen] = useState(false);
+  const hasMedia = !!(attachments && attachments.length > 0);
+
+  useEffect(() => {
+    const handleBeforeUnload = (e: BeforeUnloadEvent) => {
+      if (started && !completed) {
+        e.preventDefault();
+        e.returnValue = '';
+      }
+    };
+
+    const handlePopState = () => {
+      if (started && !completed) {
+        const confirmLeave = window.confirm(
+          'Are you sure you want to leave? Your current game progress will be lost.'
+        );
+        if (!confirmLeave) {
+          window.history.pushState(null, '', window.location.href);
+        }
+      }
+    };
+
+    window.addEventListener('beforeunload', handleBeforeUnload);
+    window.addEventListener('popstate', handlePopState);
+    window.history.pushState(null, '', window.location.href);
+
+    return () => {
+      window.removeEventListener('beforeunload', handleBeforeUnload);
+      window.removeEventListener('popstate', handlePopState);
+    };
+  }, [started, completed]);
 
   useEffect(() => {
     return () => {
@@ -127,6 +160,7 @@ export function CrossWordGame() {
       if (target.closest('[role="grid"]')) return;
       if (target.closest('button')) return;
       if (target.closest('[data-crossword-onscreen-kb="true"]')) return;
+      if (target.closest('[data-crossword-clue-panel="true"]')) return;
 
       game.clearFocus();
     };
@@ -140,7 +174,7 @@ export function CrossWordGame() {
   if (!puzzle) return null;
 
   return (
-    <div className="mx-auto flex w-full max-w-xl flex-col items-center gap-4 px-4 py-8 sm:gap-5 sm:px-6">
+    <div className="mx-auto flex w-full max-w-7xl flex-col items-center gap-4 px-4 py-8 sm:gap-5 sm:px-6">
       <motion.header
         className="text-center"
         initial={{ opacity: 0, y: -20 }}
@@ -159,63 +193,94 @@ export function CrossWordGame() {
         )}
       </motion.header>
 
+      {/* Mobile media (above progress); desktop media sits in the left column below. */}
+      {hasMedia ? (
+        <div className="w-full max-w-md lg:hidden">
+          <MediaAttachments attachments={attachments!} className="max-w-md" />
+        </div>
+      ) : null}
+
       <GameProgress />
       <CompletionCelebration />
 
-      <div className="flex w-full flex-col items-center gap-1 sm:gap-4">
-        <div
-          className={cn(
-            'relative w-full max-w-[min(100%,24rem)]',
-            // Reserve seam space for the floating toggle when the panel is closed.
-            started && !completed && !keyboardOpen && 'pb-4'
-          )}
-        >
-          <CrossWordGrid game={game} />
-          {!started ? (
-            <div className="absolute inset-0 flex items-center justify-center rounded-lg bg-background/25 backdrop-blur-[2px]">
-              <GameControls game={game} onAfterStart={handleAfterStart} />
-            </div>
-          ) : null}
-          {/* Toggle sits on the grid/keyboard seam so it doesn't add a gap row. */}
-          {started && !completed ? (
-            <div className="absolute right-1 bottom-0 z-20 translate-y-1/2 sm:right-0">
-              <CrossWordOnScreenKeyboard
-                open={keyboardOpen}
-                onOpenChange={setKeyboardOpen}
-                onTypeLetter={game.typeLetter}
-                onBackspace={game.backspace}
-                onToggleDirection={game.toggleDirection}
-                canToggleDirection={game.canToggleDirection}
-                toggleOnly
-              />
+      <div
+        className={cn(
+          'flex w-full flex-col items-center gap-4',
+          'lg:grid lg:grid-cols-[minmax(0,1fr)_auto_minmax(14rem,1fr)] lg:items-start lg:gap-6'
+        )}
+      >
+        {/* Left: media (desktop only) */}
+        <div className="hidden min-w-0 lg:block">
+          {hasMedia ? (
+            <div className="lg:sticky lg:top-6">
+              <MediaAttachments attachments={attachments!} className="max-w-sm" />
             </div>
           ) : null}
         </div>
 
-        {started && !completed ? (
-          <CrossWordOnScreenKeyboard
-            open={keyboardOpen}
-            onOpenChange={setKeyboardOpen}
-            onTypeLetter={game.typeLetter}
-            onBackspace={game.backspace}
-            onToggleDirection={game.toggleDirection}
-            canToggleDirection={game.canToggleDirection}
-            panelOnly
-          />
-        ) : null}
-
-        {started && !completed && <ActiveClueCard activeEntry={activeEntry} />}
-
-        {started ? (
-          <motion.div
-            className="flex justify-center"
-            initial={{ opacity: 0 }}
-            animate={{ opacity: 1 }}
-            transition={{ delay: 0.2, duration: 0.3 }}
+        {/* Center: grid + keyboard + mobile clue + controls */}
+        <div className="flex w-full flex-col items-center gap-1 sm:gap-4 lg:w-auto">
+          <div
+            className={cn(
+              'relative w-full max-w-[min(100%,24rem)]',
+              // Reserve seam space for the floating toggle when the panel is closed.
+              started && !completed && !keyboardOpen && 'pb-4'
+            )}
           >
-            <GameControls game={game} onAfterStart={handleAfterStart} />
-          </motion.div>
-        ) : null}
+            <CrossWordGrid game={game} />
+            {!started ? (
+              <div className="absolute inset-0 flex items-center justify-center rounded-lg bg-background/25 backdrop-blur-[2px]">
+                <GameControls game={game} onAfterStart={handleAfterStart} />
+              </div>
+            ) : null}
+            {/* Toggle sits on the grid/keyboard seam so it doesn't add a gap row. */}
+            {started && !completed ? (
+              <div className="absolute right-1 bottom-0 z-20 translate-y-1/2 sm:right-0">
+                <CrossWordOnScreenKeyboard
+                  open={keyboardOpen}
+                  onOpenChange={setKeyboardOpen}
+                  onTypeLetter={game.typeLetter}
+                  onBackspace={game.backspace}
+                  onToggleDirection={game.toggleDirection}
+                  canToggleDirection={game.canToggleDirection}
+                  toggleOnly
+                />
+              </div>
+            ) : null}
+          </div>
+
+          {started && !completed ? (
+            <CrossWordOnScreenKeyboard
+              open={keyboardOpen}
+              onOpenChange={setKeyboardOpen}
+              onTypeLetter={game.typeLetter}
+              onBackspace={game.backspace}
+              onToggleDirection={game.toggleDirection}
+              canToggleDirection={game.canToggleDirection}
+              panelOnly
+            />
+          ) : null}
+
+          {started && !completed && <ActiveClueCard activeEntry={activeEntry} />}
+
+          {started ? (
+            <motion.div
+              className="flex justify-center"
+              initial={{ opacity: 0 }}
+              animate={{ opacity: 1 }}
+              transition={{ delay: 0.2, duration: 0.3 }}
+            >
+              <GameControls game={game} onAfterStart={handleAfterStart} />
+            </motion.div>
+          ) : null}
+        </div>
+
+        {/* Right: sticky Across/Down clue rail (desktop) */}
+        <aside className="hidden min-w-0 lg:block" data-crossword-clue-panel="true">
+          <div className="lg:sticky lg:top-6 lg:max-h-[calc(100vh-3rem)] lg:overflow-y-auto">
+            <CluePanel game={game} />
+          </div>
+        </aside>
       </div>
     </div>
   );

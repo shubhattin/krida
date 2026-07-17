@@ -1,0 +1,43 @@
+'use client';
+
+import { motion } from 'framer-motion';
+import { Sparkles } from 'lucide-react';
+import CrossWordGameRoot from '~/components/pages/cross_word/CrossWordGame/CrossWordGameRoot';
+import type { CrosswordPuzzleType } from '~/util/cache.server/crossword_cache';
+
+type Props = {
+  word_puzzle: CrosswordPuzzleType;
+};
+
+export default function MainPageCrossword({ word_puzzle }: Props) {
+  return (
+    <div className="px-4 py-4 sm:px-6 sm:py-6">
+      <motion.div
+        initial={{ opacity: 0, y: -20 }}
+        animate={{ opacity: 1, y: 0 }}
+        transition={{ duration: 0.5, ease: 'easeOut' }}
+        className="w-full border-b border-slate-200/60 bg-linear-to-r from-violet-50 via-indigo-50 to-blue-50 dark:border-slate-700/60 dark:from-violet-950/30 dark:via-indigo-950/30 dark:to-blue-950/30"
+      >
+        <div className="flex items-center justify-center py-3">
+          <div className="flex items-center gap-2">
+            <motion.div
+              animate={{ rotate: [0, 15, -15, 0], scale: [1, 1.1, 1] }}
+              transition={{ duration: 1, repeat: Infinity, repeatDelay: 3 }}
+            >
+              <Sparkles className="-mt-1 size-5" />
+            </motion.div>
+            <h2 className="bg-linear-to-r from-slate-800 to-violet-600 bg-clip-text text-base font-bold text-transparent sm:text-lg dark:from-slate-100 dark:to-violet-400">
+              Current Puzzle
+            </h2>
+          </div>
+        </div>
+      </motion.div>
+      <CrossWordGameRoot
+        puzzle={word_puzzle}
+        location="main_page"
+        attachments={word_puzzle.attachments}
+        image={word_puzzle.image}
+      />
+    </div>
+  );
+}

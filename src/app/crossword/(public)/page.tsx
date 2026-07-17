@@ -1,26 +1,32 @@
-import type { Metadata } from 'next';
-import { getCachedSession } from '~/lib/cache_server_route_data';
-import { db } from '~/db/db';
-import { crossword_puzzles } from '~/db/schema';
-import { eq, desc } from 'drizzle-orm';
-import { CrossordPuzzleSchemaZod } from '~/db/schema_zod';
-import CrosswordPublicClient from '~/components/pages/cross_word/CrosswordPublicClient';
+import { type Metadata } from 'next';
+import { CACHE, NO_CACHE_PARAMS } from '~/util/cache.server/cache_loaders';
+import { getMetadata } from '~/components/tags/getPageMetaTags';
+import { NoScheduledCrossword } from '~/components/pages/cross_word/NoScheduledCrossword';
+import MainPageCrossword from '~/components/pages/cross_word/MainPageCrossword';
 
-export const metadata: Metadata = {
-  title: 'Crossword Puzzles'
-};
+export const dynamic = 'force-dynamic';
 
-export default async function CrossWordPage() {
-  const sessionPromise = getCachedSession();
-  const rowsPromise = db
-    .select()
-    .from(crossword_puzzles)
-    .where(eq(crossword_puzzles.listed, true))
-    .orderBy(desc(crossword_puzzles.last_listed_at), desc(crossword_puzzles.created_at));
+export default async function CrosswordHomePage() {
+  const [current_schedule, next_schedule, listed_puzzles] = await Promise.all([
+    CACHE.crossword.current_schedule.get(NO_CACHE_PARAMS),
+    CACHE.crossword.next_schedule.get(NO_CACHE_PARAMS),
+    CACHE.crossword.listed_puzzle_list.get(NO_CACHE_PARAMS)
+  ]);
 
-  const [session, rows] = await Promise.all([sessionPromise, rowsPromise]);
-  const is_admin = session?.user.role === 'admin';
-  const puzzles = rows.map((row) => CrossordPuzzleSchemaZod.parse(row));
+  if (!current_schedule) {
+    return (
+      <main className="relative min-h-dvh overflow-x-clip">
+        <div
+          aria-hidden
+          className="pointer-events-none absolute top-0 left-1/2 h-[600px] w-[800px] -translate-x-1/2 rounded-full opacity-[0.07]"
+          style={{
+            background: 'radial-gradient(ellipse at center, hsl(var(--primary)), transparent 70%)'
+          }}
+        />
+        <NoScheduledCrossword next_schedule={next_schedule} listed_puzzles={listed_puzzles} />
+      </main>
+    );
+  }
 
   return (
     <main className="relative min-h-dvh overflow-x-clip">
@@ -31,7 +37,15 @@ export default async function CrossWordPage() {
           background: 'radial-gradient(ellipse at center, hsl(var(--primary)), transparent 70%)'
         }}
       />
-      <CrosswordPublicClient puzzles={puzzles} isAdmin={!!is_admin} />
+      <MainPageCrossword word_puzzle={current_schedule.puzzle} />
     </main>
   );
 }
+
+export const metadata: Metadata = {
+  ...getMetadata({
+    title: 'Crossword',
+    description:
+      'Play the current scheduled crossword puzzle or browse the archive of listed puzzles.'
+  })
+};

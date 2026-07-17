@@ -9,11 +9,34 @@ import { AnimatePresence, motion } from 'framer-motion';
 import { ArrowRight, Info, Pencil } from 'lucide-react';
 import { FiSave } from 'react-icons/fi';
 import { IoMdAdd, IoMdClose } from 'react-icons/io';
-import { MdDeleteOutline } from 'react-icons/md';
+import { MdDeleteOutline, MdDragIndicator } from 'react-icons/md';
 import { toast } from 'sonner';
+import {
+  DndContext,
+  closestCenter,
+  KeyboardSensor,
+  PointerSensor,
+  useSensor,
+  useSensors,
+  type DragEndEvent
+} from '@dnd-kit/core';
+import {
+  arrayMove,
+  SortableContext,
+  sortableKeyboardCoordinates,
+  useSortable,
+  verticalListSortingStrategy
+} from '@dnd-kit/sortable';
+import { CSS } from '@dnd-kit/utilities';
 import { client_q } from '~/api/client';
 import type { CrossordPuzzle, CrossordPuzzleGridCell, CrossWordPuzzleWord } from '~/db/schema_zod';
 import { crossword_update_input_schema } from '~/db/crossword_shared';
+import {
+  ATTACHMENT_TYPE_NAMES,
+  type attachment_schema,
+  type image_schema
+} from '~/db/db_shared_vals';
+import type { z } from 'zod';
 import { Button } from '~/components/ui/button';
 import { Checkbox } from '~/components/ui/checkbox';
 import {
@@ -35,6 +58,19 @@ import {
   AlertDialogTitle,
   AlertDialogTrigger
 } from '~/components/ui/alert-dialog';
+import {
+  Accordion,
+  AccordionContent,
+  AccordionItem,
+  AccordionTrigger
+} from '~/components/ui/accordion';
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue
+} from '~/components/ui/select';
 import { Input } from '~/components/ui/input';
 import { Label } from '~/components/ui/label';
 import { Textarea } from '~/components/ui/textarea';
@@ -55,6 +91,8 @@ import {
   colIndexToNumberLabel
 } from '~/util/cross_word/grid';
 import { invalidatePage } from '~/tools/invalidate_nextjs_server_route';
+import { CrosswordSlugField } from '~/components/pages/cross_word/EditCrosswordSlugDialog';
+import { PuzzleCardImageSection } from '~/components/pages/puzzle/PuzzleCardImageSection';
 
 type EditableWord = {
   id: string;
@@ -64,15 +102,36 @@ type EditableWord = {
   direction: CrossWordPuzzleWord['direction'];
 };
 
+type EditableAttachment = Omit<z.infer<typeof attachment_schema>, 'id'> & {
+  id: number | null;
+};
+
+const ATTACHMENT_TYPE_ITEMS = [
+  { label: 'Select attachment type', value: null },
+  ...Object.entries(ATTACHMENT_TYPE_NAMES).map(([key, value]) => ({
+    label: value,
+    value: key
+  }))
+];
+
 const title_atom = atom('');
 const description_atom = atom<string | null>(null);
 const listed_atom = atom(false);
 const grid_dimensions_atom = atom<[number, number]>([10, 10]);
 const grid_data_atom = atom<CrossordPuzzleGridCell[][]>([]);
 const word_list_atom = atom<EditableWord[]>([]);
+const attachments_atom = atom<EditableAttachment[]>([]);
+const image_id_atom = atom<number | null>(null);
+const image_baseline_atom = atom<number | null>(null);
+const image_info_atom = atom<{ id: number; s3_key: string; width: number; height: number } | null>(
+  null
+);
 
 export type ViewEditCrosswordProps = {
-  puzzle: CrossordPuzzle;
+  puzzle: CrossordPuzzle & {
+    attachments: z.infer<typeof attachment_schema>[];
+    image?: z.infer<typeof image_schema> | null;
+  };
 };
 
 function createEditableWordId() {
@@ -98,20 +157,33 @@ function editableWordsComparable(words: EditableWord[]) {
   }));
 }
 
-export default function ViewEditCrossword({ puzzle }: ViewEditCrosswordProps) {
+export default function ViewEditCrossword({ puzzle: initialPuzzle }: ViewEditCrosswordProps) {
+  const [puzzle, setPuzzle] = useState(initialPuzzle);
+
   useHydrateAtoms([
     [title_atom, puzzle.title],
     [description_atom, puzzle.description],
     [listed_atom, puzzle.listed],
     [grid_dimensions_atom, puzzle.grid_dimensions],
     [grid_data_atom, puzzle.grid_data],
-    [word_list_atom, toEditableWords(puzzle.word_list)]
+    [word_list_atom, toEditableWords(puzzle.word_list)],
+    [attachments_atom, puzzle.attachments],
+    [image_id_atom, puzzle.image?.id ?? puzzle.image_id ?? null],
+    [image_baseline_atom, puzzle.image?.id ?? puzzle.image_id ?? null],
+    [image_info_atom, puzzle.image ?? null]
   ]);
 
   return (
     <div className="mx-auto flex w-full max-w-6xl flex-col gap-6 px-2 py-4 sm:px-4">
+      <CrosswordSlugField
+        slug={puzzle.slug}
+        puzzleId={puzzle.id}
+        onSlugUpdated={(slug) => setPuzzle((prev) => ({ ...prev, slug }))}
+      />
       <TitleField />
       <DescriptionField />
+      <AttachmentsEditor />
+      <CrosswordPuzzleImageSection puzzleId={puzzle.id} />
       <div className="flex flex-wrap items-center gap-6">
         <ListedSwitch />
         <DimensionsField />
@@ -122,6 +194,30 @@ export default function ViewEditCrossword({ puzzle }: ViewEditCrosswordProps) {
     </div>
   );
 }
+
+const CrosswordPuzzleImageSection = ({ puzzleId }: { puzzleId: number }) => {
+  const [image_id, setImageId] = useAtom(image_id_atom);
+  const [, setImageBaseline] = useAtom(image_baseline_atom);
+  const [image_info, setImageInfo] = useAtom(image_info_atom);
+  const [title] = useAtom(title_atom);
+  const [description] = useAtom(description_atom);
+  const [wordList] = useAtom(word_list_atom);
+
+  return (
+    <PuzzleCardImageSection
+      puzzleId={puzzleId}
+      game="crossword"
+      title={title}
+      description={description ?? ''}
+      words={wordList.map((w) => w.word).filter((w) => w.trim().length > 0)}
+      imageId={image_id}
+      imageInfo={image_info}
+      onImageIdChange={setImageId}
+      onImageInfoChange={setImageInfo}
+      onImageBaselineChange={setImageBaseline}
+    />
+  );
+};
 
 const TitleField = () => {
   const [title, setTitle] = useAtom(title_atom);
@@ -156,6 +252,201 @@ const DescriptionField = () => {
         placeholder="Optional puzzle description"
       />
     </div>
+  );
+};
+
+const SortableAttachmentItem = ({
+  attachment,
+  index,
+  onUpdate,
+  onRemove
+}: {
+  attachment: EditableAttachment;
+  index: number;
+  onUpdate: (field: keyof EditableAttachment, value: EditableAttachment[keyof EditableAttachment]) => void;
+  onRemove: () => void;
+}) => {
+  const { attributes, listeners, setNodeRef, transform, transition, isDragging } = useSortable({
+    id: `attachment-${index}`
+  });
+
+  const style = {
+    transform: CSS.Transform.toString(transform),
+    transition,
+    opacity: isDragging ? 0.5 : 1
+  };
+
+  return (
+    <div
+      ref={setNodeRef}
+      style={style}
+      className={cn(
+        'space-y-2 rounded-md border p-3',
+        isDragging && 'border-violet-300 bg-violet-50 dark:border-violet-700 dark:bg-violet-950'
+      )}
+    >
+      <div className="flex items-center">
+        <div className="flex items-center gap-x-2">
+          <Button
+            variant="ghost"
+            size="icon"
+            className="h-6 w-6 cursor-grab touch-none"
+            {...attributes}
+            {...listeners}
+          >
+            <MdDragIndicator className="size-4 text-gray-500" />
+          </Button>
+          <span className="flex items-center gap-x-2">
+            <Label className="text-sm font-semibold">Order Index</Label>
+            <span className="flex h-7 w-16 items-center justify-center rounded-md border bg-gray-50 px-2 text-sm dark:bg-gray-900">
+              {attachment.order_index}
+            </span>
+          </span>
+        </div>
+        <Button variant="ghost" size="icon" className="ml-auto" onClick={onRemove}>
+          <IoMdClose className="size-4" />
+        </Button>
+      </div>
+      <div className="flex flex-wrap items-center gap-3">
+        <div className="flex items-center gap-1">
+          <Label>Type</Label>
+          <Select
+            items={ATTACHMENT_TYPE_ITEMS}
+            value={attachment.type}
+            onValueChange={(value) => {
+              if (value) onUpdate('type', value as EditableAttachment['type']);
+            }}
+          >
+            <SelectTrigger className="w-40">
+              <SelectValue />
+            </SelectTrigger>
+            <SelectContent>
+              {Object.entries(ATTACHMENT_TYPE_NAMES).map(([key, value]) => (
+                <SelectItem key={key} value={key}>
+                  {value}
+                </SelectItem>
+              ))}
+            </SelectContent>
+          </Select>
+        </div>
+        <div className="flex items-center gap-1">
+          <Label>URL</Label>
+          <Input
+            type="text"
+            className="w-64 text-sm"
+            value={attachment.url}
+            onInput={(e) => onUpdate('url', e.currentTarget.value)}
+          />
+        </div>
+      </div>
+      <div className="flex items-center gap-2">
+        <Label>
+          Title <span className="text-xs text-gray-500 dark:text-gray-400">Optional</span>
+        </Label>
+        <Input
+          type="text"
+          className="w-full text-sm"
+          value={attachment.title ?? ''}
+          onChange={(e) => onUpdate('title', e.currentTarget.value || null)}
+        />
+      </div>
+    </div>
+  );
+};
+
+const AttachmentsEditor = () => {
+  const [attachments, setAttachments] = useAtom(attachments_atom);
+
+  const sensors = useSensors(
+    useSensor(PointerSensor),
+    useSensor(KeyboardSensor, {
+      coordinateGetter: sortableKeyboardCoordinates
+    })
+  );
+
+  const addAttachment = () => {
+    setAttachments((prev) => [
+      ...prev,
+      {
+        type: 'youtube_embed',
+        url: '',
+        title: null,
+        order_index: prev.length + 1,
+        id: null
+      }
+    ]);
+  };
+
+  const removeAttachment = (index: number) => {
+    setAttachments((prev) =>
+      prev
+        .filter((_, i) => i !== index)
+        .map((attachment, i) => ({
+          ...attachment,
+          order_index: i + 1
+        }))
+    );
+  };
+
+  const updateAttachment = (
+    index: number,
+    field: keyof EditableAttachment,
+    value: EditableAttachment[keyof EditableAttachment]
+  ) => {
+    setAttachments((prev) => prev.map((a, i) => (i === index ? { ...a, [field]: value } : a)));
+  };
+
+  const handleDragEnd = (event: DragEndEvent) => {
+    const { active, over } = event;
+    if (!over || active.id === over.id) return;
+
+    setAttachments((items) => {
+      const oldIndex = items.findIndex((_, i) => `attachment-${i}` === active.id);
+      const newIndex = items.findIndex((_, i) => `attachment-${i}` === over.id);
+      return arrayMove(items, oldIndex, newIndex).map((attachment, i) => ({
+        ...attachment,
+        order_index: i + 1
+      }));
+    });
+  };
+
+  return (
+    <Accordion className="w-fit max-w-full">
+      <AccordionItem value="attachments">
+        <AccordionTrigger className="text-base font-semibold">
+          Media Attachments ({attachments.length})
+        </AccordionTrigger>
+        <AccordionContent>
+          <DndContext sensors={sensors} collisionDetection={closestCenter} onDragEnd={handleDragEnd}>
+            <SortableContext
+              items={attachments.map((_, i) => `attachment-${i}`)}
+              strategy={verticalListSortingStrategy}
+            >
+              <div className="space-y-4">
+                {attachments.map((attachment, index) => (
+                  <SortableAttachmentItem
+                    key={`attachment-${index}`}
+                    attachment={attachment}
+                    index={index}
+                    onUpdate={(field, value) => updateAttachment(index, field, value)}
+                    onRemove={() => removeAttachment(index)}
+                  />
+                ))}
+              </div>
+            </SortableContext>
+          </DndContext>
+          <Button
+            variant="outline"
+            size="sm"
+            className={cn(attachments.length > 0 && 'mt-4')}
+            onClick={addAttachment}
+          >
+            <IoMdAdd />
+            Add Attachment
+          </Button>
+        </AccordionContent>
+      </AccordionItem>
+    </Accordion>
   );
 };
 
@@ -699,7 +990,7 @@ const GridEditor = ({
   );
 };
 
-const SaveControls = ({ puzzle }: { puzzle: CrossordPuzzle }) => {
+const SaveControls = ({ puzzle }: { puzzle: ViewEditCrosswordProps['puzzle'] }) => {
   const queryClient = useQueryClient();
   const router = useRouter();
   const [title] = useAtom(title_atom);
@@ -708,31 +999,62 @@ const SaveControls = ({ puzzle }: { puzzle: CrossordPuzzle }) => {
   const [gridDimensions] = useAtom(grid_dimensions_atom);
   const [gridData] = useAtom(grid_data_atom);
   const [wordList] = useAtom(word_list_atom);
+  const [attachments, setAttachments] = useAtom(attachments_atom);
+  const [image_id, setImageId] = useAtom(image_id_atom);
+  const [image_baseline, setImageBaseline] = useAtom(image_baseline_atom);
 
-  const initialRef = useRef({
+  const initialRef = useRef<{
+    title: string;
+    description: string | null;
+    listed: boolean;
+    gridDimensions: [number, number];
+    gridData: CrossordPuzzleGridCell[][];
+    wordList: EditableWord[];
+    attachments: EditableAttachment[];
+  }>({
     title: puzzle.title,
     description: puzzle.description,
     listed: puzzle.listed,
     gridDimensions: puzzle.grid_dimensions,
     gridData: puzzle.grid_data,
-    wordList: toEditableWords(puzzle.word_list)
+    wordList: toEditableWords(puzzle.word_list),
+    attachments: puzzle.attachments
   });
 
   const update_mut = client_q.crossword.update_puzzle.useMutation({
-    onSuccess: () => {
+    onSuccess: (data) => {
       toast.success('Puzzle updated successfully');
+
+      const updatedAttachments =
+        data.newly_added_index_ids.length > 0
+          ? attachments.map((val, i) => {
+              const elm = data.newly_added_index_ids.find(({ index }) => index === i);
+              return elm ? { ...val, id: elm.id } : val;
+            })
+          : attachments;
+
+      if (data.newly_added_index_ids.length > 0) {
+        setAttachments(updatedAttachments);
+      }
+
+      setImageBaseline(image_id);
+      setImageId(image_id);
+
       initialRef.current = {
         title,
         description,
         listed,
         gridDimensions,
         gridData,
-        wordList
+        wordList,
+        attachments: updatedAttachments
       };
       void queryClient.invalidateQueries({ queryKey: ['crossword_list'] });
       void invalidatePage('/crossword');
       void invalidatePage('/crossword/list');
+      void invalidatePage('/crossword/puzzles');
       void invalidatePage(`/crossword/edit/${puzzle.id}`);
+      void invalidatePage(`/crossword/${puzzle.slug}`);
     },
     onError(err) {
       toast.error(err.message || 'Failed to update puzzle');
@@ -745,6 +1067,7 @@ const SaveControls = ({ puzzle }: { puzzle: CrossordPuzzle }) => {
       void queryClient.invalidateQueries({ queryKey: ['crossword_list'] });
       void invalidatePage('/crossword');
       void invalidatePage('/crossword/list');
+      void invalidatePage('/crossword/puzzles');
       router.push('/crossword/list');
     },
     onError() {
@@ -760,9 +1083,21 @@ const SaveControls = ({ puzzle }: { puzzle: CrossordPuzzle }) => {
       JSON.stringify(gridDimensions) !== JSON.stringify(initialRef.current.gridDimensions) ||
       JSON.stringify(gridData) !== JSON.stringify(initialRef.current.gridData) ||
       JSON.stringify(editableWordsComparable(wordList)) !==
-        JSON.stringify(editableWordsComparable(initialRef.current.wordList))
+        JSON.stringify(editableWordsComparable(initialRef.current.wordList)) ||
+      JSON.stringify(attachments) !== JSON.stringify(initialRef.current.attachments) ||
+      image_id !== image_baseline
     );
-  }, [title, description, listed, gridDimensions, gridData, wordList]);
+  }, [
+    title,
+    description,
+    listed,
+    gridDimensions,
+    gridData,
+    wordList,
+    attachments,
+    image_id,
+    image_baseline
+  ]);
 
   const handleSave = () => {
     const analysis = analyzeWordPlacements(gridData, wordList);
@@ -781,6 +1116,8 @@ const SaveControls = ({ puzzle }: { puzzle: CrossordPuzzle }) => {
 
     const data = {
       puzzle_id: puzzle.id,
+      puzzle_slug: puzzle.slug,
+      image_id,
       puzzle_data: {
         title: title.trim(),
         description: description?.trim() ? description.trim() : null,
@@ -794,7 +1131,8 @@ const SaveControls = ({ puzzle }: { puzzle: CrossordPuzzle }) => {
             location: w.location,
             direction: w.direction,
             description: w.description.trim()
-          }))
+          })),
+        attachments
       }
     };
 
@@ -851,7 +1189,9 @@ const SaveControls = ({ puzzle }: { puzzle: CrossordPuzzle }) => {
           </AlertDialogHeader>
           <AlertDialogFooter>
             <AlertDialogCancel>Cancel</AlertDialogCancel>
-            <AlertDialogAction onClick={() => delete_mut.mutate({ id: puzzle.id })}>
+            <AlertDialogAction
+              onClick={() => delete_mut.mutate({ id: puzzle.id, slug: puzzle.slug })}
+            >
               Delete
             </AlertDialogAction>
           </AlertDialogFooter>
