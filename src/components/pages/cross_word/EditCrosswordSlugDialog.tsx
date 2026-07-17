@@ -93,10 +93,10 @@ export const EditCrosswordSlugDialog = ({ puzzleId, currentSlug, onSlugUpdated }
       void queryClient.invalidateQueries({ queryKey: ['crossword_list'] });
       void utils.crossword.get_puzzle_slugs.invalidate({ puzzle_id: puzzleId });
 
-      void invalidatePage('/crossword/puzzles');
-      void invalidatePage('/crossword/list');
-      void invalidatePage(`/crossword/${currentSlug}`);
-      void invalidatePage(`/crossword/${data.slug}`);
+      void invalidatePage('/padajala/puzzles');
+      void invalidatePage('/padajala/list');
+      void invalidatePage(`/padajala/${currentSlug}`);
+      void invalidatePage(`/padajala/${data.slug}`);
 
       onSlugUpdated(data.slug);
       setOpen(false);
@@ -271,7 +271,7 @@ export const CrosswordSlugField = ({
       toast.success('Redirect removed');
       setDeleteSlugConfirm(null);
       void utils.crossword.get_puzzle_slugs.invalidate({ puzzle_id: puzzleId });
-      void invalidatePage(`/crossword/${variables.redirect_slug}`);
+      void invalidatePage(`/padajala/${variables.redirect_slug}`);
     },
     onError() {
       toast.error('Failed to remove redirect');

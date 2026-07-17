@@ -52,7 +52,7 @@ export function BatchPuzzleImageStatus({
   const is_processing = status.status === 'processing';
   const resolvedGame = status.game ?? game;
   const batch_manager_href =
-    resolvedGame === 'crossword' ? '/crossword/batch_manager' : '/padavali/batch_manager';
+    resolvedGame === 'crossword' ? '/padajala/batch_manager' : '/padavali/batch_manager';
 
   return (
     <div

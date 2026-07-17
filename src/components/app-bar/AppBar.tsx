@@ -17,16 +17,16 @@ const GAME_DEFAULTS: Record<
   }
 > = {
   padavali: {
-    title: 'Padavali',
+    title: 'Padāvalī',
     description: 'Sanskrit Word Puzzle',
     href: '/padavali',
     imageUrl: '/img/icon_128_no_pad.png',
     showPwaControls: true
   },
   crossword: {
-    title: 'Crossword',
-    description: 'Crossword Puzzle',
-    href: '/crossword',
+    title: 'Padajāla',
+    description: 'Crossword Puzzles',
+    href: '/padajala',
     imageUrl: '/img/icon_128_no_pad.png',
     showPwaControls: false
   }

@@ -45,7 +45,7 @@ export function ListedCrosswordBrowseEmbed({ listed_puzzles }: Props) {
           Browse puzzles
         </h2>
         <Link
-          href="/crossword/puzzles"
+          href="/padajala/puzzles"
           className="flex items-center justify-center gap-0.5 rounded-full border border-violet-200/70 bg-violet-50/80 px-2 py-0.5 text-xs leading-none font-medium text-violet-600 no-underline transition-all duration-150 hover:bg-violet-100 hover:text-violet-700 dark:border-violet-700/50 dark:bg-violet-950/40 dark:text-violet-400 dark:hover:bg-violet-900/50"
         >
           <ExternalLinkIcon className="relative size-3 shrink-0 translate-y-[-1.5px]" />
@@ -91,7 +91,7 @@ export function ListedCrosswordBrowseEmbed({ listed_puzzles }: Props) {
         <p className="mt-4 text-center text-sm text-slate-500 dark:text-slate-400">
           Showing {EMBED_PAGE_LIMIT} of {filtered.length} matches.{' '}
           <Link
-            href="/crossword/puzzles"
+            href="/padajala/puzzles"
             className="font-medium text-violet-600 hover:underline dark:text-violet-400"
           >
             View all

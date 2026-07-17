@@ -55,7 +55,7 @@ const add_puzzle_schedule_route = protectedAdminProcedure
       return { success: false, error_code: 'already_exists_in_time_range' };
     }
 
-    revalidatePath('/crossword/schedules');
+    revalidatePath('/padajala/schedules');
     const listing_verify_key = generateRandomAlphanumeric(32);
     const [schedule] = await db.transaction(async (tx) => {
       return tx
@@ -88,7 +88,7 @@ const add_puzzle_schedule_route = protectedAdminProcedure
 const delete_puzzle_schedule_route = protectedAdminProcedure
   .input(z.object({ schedule_id: z.number().int() }))
   .mutation(async ({ input: { schedule_id } }) => {
-    revalidatePath('/crossword/schedules');
+    revalidatePath('/padajala/schedules');
 
     await db.transaction(async (tx) => {
       await tx.delete(crossword_schedules).where(eq(crossword_schedules.id, schedule_id));
@@ -114,7 +114,7 @@ const update_puzzle_schedule_route = protectedAdminProcedure
     )
   )
   .mutation(async ({ input: { schedule_id, puzzle_id, start_time, end_time } }) => {
-    revalidatePath('/crossword/schedules');
+    revalidatePath('/padajala/schedules');
 
     const listing_verify_key = generateRandomAlphanumeric(32);
     const [updated] = await db.transaction(async (tx) => {

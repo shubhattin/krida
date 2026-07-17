@@ -17,7 +17,7 @@ type Props = {
 
 export function CrosswordPreviewCard({ puzzle, compact = false, onNavigate }: Props) {
   const imageUrl = puzzle.image ? getCDNUrl(puzzle.image.s3_key) : null;
-  const href = `/crossword/${encodeURIComponent(puzzle.slug)}`;
+  const href = `/padajala/${encodeURIComponent(puzzle.slug)}`;
   const description = puzzle.description?.trim() || 'Play this crossword puzzle';
 
   return (

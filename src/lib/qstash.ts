@@ -48,7 +48,7 @@ export const publishCrosswordScheduleListingQueue = async (
   const body = crossword_schedule_listing_publish_schema.parse(data);
 
   await client.publishJSON({
-    url: QSTAHS_PUBLISH_BASE_URL + '/crossword/schedule_listing',
+    url: QSTAHS_PUBLISH_BASE_URL + '/padajala/schedule_listing',
     delay: delay_s,
     body
   });

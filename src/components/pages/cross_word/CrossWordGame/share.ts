@@ -4,7 +4,7 @@ export const get_crossword_share_url = (slug: string) => {
     (typeof window !== 'undefined'
       ? window.location.origin
       : 'https://krida.thesanskritchannel.org');
-  return `${base.replace(/\/$/, '')}/crossword/${encodeURIComponent(slug)}`;
+  return `${base.replace(/\/$/, '')}/padajala/${encodeURIComponent(slug)}`;
 };
 
 export const get_general_share_msg = (

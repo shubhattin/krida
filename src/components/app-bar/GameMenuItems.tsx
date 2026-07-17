@@ -83,7 +83,7 @@ export function CrosswordMenuItems({ onNavigate }: { onNavigate?: () => void }) 
     <>
       {activeCrosswordId != null && (
         <Link
-          href={`/crossword/edit/${activeCrosswordId}`}
+          href={`/padajala/edit/${activeCrosswordId}`}
           onClick={onNavigate}
           className={accountMenuLinkClass}
         >
@@ -98,7 +98,7 @@ export function CrosswordMenuItems({ onNavigate }: { onNavigate?: () => void }) 
           </div>
         </Link>
       )}
-      <Link href="/crossword/list" onClick={onNavigate} className={accountMenuLinkClass}>
+      <Link href="/padajala/list" onClick={onNavigate} className={accountMenuLinkClass}>
         <div className="flex h-8 w-8 items-center justify-center rounded-lg bg-linear-to-br from-purple-500 to-violet-600">
           <List className="size-4 text-white" />
         </div>
@@ -107,7 +107,7 @@ export function CrosswordMenuItems({ onNavigate }: { onNavigate?: () => void }) 
           <div className="text-xs text-slate-500 dark:text-slate-400">Admin crossword list</div>
         </div>
       </Link>
-      <Link href="/crossword/schedules" onClick={onNavigate} className={accountMenuLinkClass}>
+      <Link href="/padajala/schedules" onClick={onNavigate} className={accountMenuLinkClass}>
         <div className="flex h-8 w-8 items-center justify-center rounded-lg bg-linear-to-br from-emerald-500 to-teal-600">
           <Calendar className="size-4 text-white" />
         </div>
@@ -116,7 +116,7 @@ export function CrosswordMenuItems({ onNavigate }: { onNavigate?: () => void }) 
           <div className="text-xs text-slate-500 dark:text-slate-400">Manage schedules</div>
         </div>
       </Link>
-      <Link href="/crossword/analytics" onClick={onNavigate} className={accountMenuLinkClass}>
+      <Link href="/padajala/analytics" onClick={onNavigate} className={accountMenuLinkClass}>
         <div className="flex h-8 w-8 items-center justify-center rounded-lg bg-linear-to-br from-sky-500 to-blue-600">
           <BarChart3 className="size-4 text-white" />
         </div>
@@ -125,7 +125,7 @@ export function CrosswordMenuItems({ onNavigate }: { onNavigate?: () => void }) 
           <div className="text-xs text-slate-500 dark:text-slate-400">Gameplay stats</div>
         </div>
       </Link>
-      <Link href="/crossword/batch_manager" onClick={onNavigate} className={accountMenuLinkClass}>
+      <Link href="/padajala/batch_manager" onClick={onNavigate} className={accountMenuLinkClass}>
         <div className="flex h-8 w-8 items-center justify-center rounded-lg bg-linear-to-br from-fuchsia-500 to-pink-600">
           <Images className="size-4 text-white" />
         </div>

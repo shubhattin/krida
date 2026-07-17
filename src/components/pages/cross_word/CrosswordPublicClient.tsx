@@ -50,7 +50,7 @@ export default function CrosswordPublicClient({ puzzles, isAdmin }: CrosswordPub
             <Button
               render={
                 <Link
-                  href={`/crossword/edit/${selected.id}`}
+                  href={`/padajala/edit/${selected.id}`}
                   className="inline-flex items-center gap-1.5"
                 />
               }
@@ -80,7 +80,7 @@ export default function CrosswordPublicClient({ puzzles, isAdmin }: CrosswordPub
         </div>
         {isAdmin ? (
           <Button
-            render={<Link href="/crossword/list" className="inline-flex items-center gap-2" />}
+            render={<Link href="/padajala/list" className="inline-flex items-center gap-2" />}
             nativeButton={false}
             variant="outline"
           >

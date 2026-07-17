@@ -1066,11 +1066,11 @@ const SaveControls = ({ puzzle }: { puzzle: ViewEditCrosswordProps['puzzle'] }) 
         attachments: updatedAttachments
       };
       void queryClient.invalidateQueries({ queryKey: ['crossword_list'] });
-      void invalidatePage('/crossword');
-      void invalidatePage('/crossword/list');
-      void invalidatePage('/crossword/puzzles');
-      void invalidatePage(`/crossword/edit/${puzzle.id}`);
-      void invalidatePage(`/crossword/${puzzle.slug}`);
+      void invalidatePage('/padajala');
+      void invalidatePage('/padajala/list');
+      void invalidatePage('/padajala/puzzles');
+      void invalidatePage(`/padajala/edit/${puzzle.id}`);
+      void invalidatePage(`/padajala/${puzzle.slug}`);
     },
     onError(err) {
       toast.error(err.message || 'Failed to update puzzle');
@@ -1081,10 +1081,10 @@ const SaveControls = ({ puzzle }: { puzzle: ViewEditCrosswordProps['puzzle'] }) 
     onSuccess: () => {
       toast.success('Puzzle deleted');
       void queryClient.invalidateQueries({ queryKey: ['crossword_list'] });
-      void invalidatePage('/crossword');
-      void invalidatePage('/crossword/list');
-      void invalidatePage('/crossword/puzzles');
-      router.push('/crossword/list');
+      void invalidatePage('/padajala');
+      void invalidatePage('/padajala/list');
+      void invalidatePage('/padajala/puzzles');
+      router.push('/padajala/list');
     },
     onError() {
       toast.error('Failed to delete puzzle');

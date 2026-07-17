@@ -39,11 +39,11 @@ import { crossword_schedules_router } from './crossword_schedules';
 type AttachmentInput = z.infer<typeof CrosswordUpdateInputSchema>['puzzle_data']['attachments'];
 
 const revalidateCrosswordPaths = (slug?: string) => {
-  revalidatePath('/crossword');
-  revalidatePath('/crossword/puzzles');
-  revalidatePath('/crossword/list');
+  revalidatePath('/padajala');
+  revalidatePath('/padajala/puzzles');
+  revalidatePath('/padajala/list');
   if (slug) {
-    revalidatePath(`/crossword/${slug}`);
+    revalidatePath(`/padajala/${slug}`);
   }
 };
 
@@ -306,7 +306,7 @@ const add_puzzle_route = protectedAdminProcedure
     });
 
     await invalidate_and_refresh_cached(CACHE.crossword.listed_puzzle_list, NO_CACHE_PARAMS);
-    revalidatePath(`/crossword/edit/${inserted!.id}`);
+    revalidatePath(`/padajala/edit/${inserted!.id}`);
     return { id: inserted!.id };
   });
 
@@ -366,7 +366,7 @@ const update_puzzle_route = protectedAdminProcedure
         invalidate_and_refresh_cached(CACHE.crossword.next_schedule, NO_CACHE_PARAMS)
     ]);
 
-    revalidatePath(`/crossword/edit/${puzzle_id}`);
+    revalidatePath(`/padajala/edit/${puzzle_id}`);
     return { success: true as const, newly_added_index_ids };
   });
 
@@ -424,7 +424,7 @@ const update_puzzle_slug_route = protectedAdminProcedure
         invalidate_and_refresh_cached(CACHE.crossword.next_schedule, NO_CACHE_PARAMS)
     ]);
 
-    revalidatePath(`/crossword/edit/${puzzle_id}`);
+    revalidatePath(`/padajala/edit/${puzzle_id}`);
     return { success: true as const, slug: new_slug };
   });
 
@@ -488,7 +488,7 @@ const delete_puzzle_route = protectedAdminProcedure
     });
 
     revalidateCrosswordPaths(normalizedSlug);
-    revalidatePath(`/crossword/edit/${id}`);
+    revalidatePath(`/padajala/edit/${id}`);
 
     await Promise.allSettled([
       puzzle.listed &&
@@ -569,7 +569,7 @@ const delete_redirect_slug_route = protectedAdminProcedure
       );
 
     await CACHE.crossword.word_puzzle.delete({ slug: redirect_slug });
-    revalidatePath(`/crossword/${redirect_slug}`);
+    revalidatePath(`/padajala/${redirect_slug}`);
 
     return { success: true as const };
   });

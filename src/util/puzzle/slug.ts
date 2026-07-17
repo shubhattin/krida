@@ -16,7 +16,7 @@ export const RESERVED_SLUGS = new Set([
   'view'
 ]);
 
-/** First-segment paths under `/crossword/*` that must not be used as puzzle slugs. */
+/** First-segment paths under `/padajala/*` that must not be used as puzzle slugs. */
 export const CROSSWORD_RESERVED_SLUGS = new Set([
   'analytics',
   'archived',
