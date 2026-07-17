@@ -16,9 +16,15 @@ import { useCrossWordGame } from './useCrossWordGame';
 
 type CrossWordGridProps = {
   game: ReturnType<typeof useCrossWordGame>;
+  /**
+   * Called synchronously inside the cell-tap gesture after selection updates.
+   * Used by the native-input fallback to focus a hidden `<input>` so iOS/Android
+   * can open the OS soft keyboard (focus deferred to an effect often fails).
+   */
+  onRequestKeyboard?: () => void;
 };
 
-export function CrossWordGrid({ game }: CrossWordGridProps) {
+export function CrossWordGrid({ game, onRequestKeyboard }: CrossWordGridProps) {
   const puzzle = useAtomValue(puzzle_atom);
   const entries = useAtomValue(numbered_entries_atom);
   const focus = useAtomValue(active_focus_atom);
@@ -142,6 +148,8 @@ export function CrossWordGrid({ game }: CrossWordGridProps) {
                     game.focusCell(r, c, {
                       toggle: focus?.row === r && focus?.col === c
                     });
+                    // Must focus the hidden input inside the same tap gesture (iOS).
+                    onRequestKeyboard?.();
                   }}
                 />
               </div>

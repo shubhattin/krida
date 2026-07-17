@@ -1,6 +1,6 @@
 'use client';
 
-import type { PointerEvent, ReactNode } from 'react';
+import type { ReactNode } from 'react';
 import { AnimatePresence, motion } from 'framer-motion';
 import { ArrowLeftRight, Delete, Keyboard, X } from 'lucide-react';
 import { Button } from '~/components/ui/button';
@@ -18,6 +18,12 @@ type CrossWordOnScreenKeyboardProps = {
   onBackspace: () => void;
   onToggleDirection: () => void;
   canToggleDirection: boolean;
+  /**
+   * Feature gate for the in-app virtual keyboard experiment.
+   * When false, renders nothing (neither the floating toggle nor the key panel).
+   * Defaults to true so callers that omit it keep the shipped custom-keyboard UX.
+   */
+  enabled?: boolean;
   /** When true, only the floating toggle is rendered (parent places it on the grid seam). */
   toggleOnly?: boolean;
   /** When true, only the expandable key panel is rendered (no duplicate toggle row). */
@@ -143,18 +149,32 @@ function KeyboardToggle({
             aria-pressed={open}
             onClick={() => onOpenChange(!open)}
             className={cn(
-              'rounded-full border-border/60 bg-card/95 shadow-[0_2px_8px_oklch(0_0_0/0.12),0_1px_0_oklch(1_0_0/0.6)_inset] backdrop-blur-sm transition-all duration-150',
-              'hover:shadow-[0_4px_12px_oklch(0_0_0/0.16),0_1px_0_oklch(1_0_0/0.5)_inset]',
+              'rounded-full border-border/60 bg-card/95 text-foreground shadow-[0_2px_8px_oklch(0_0_0/0.12),0_1px_0_oklch(1_0_0/0.6)_inset] backdrop-blur-sm transition-all duration-150',
+              'hover:bg-muted/80 hover:shadow-[0_4px_12px_oklch(0_0_0/0.16),0_1px_0_oklch(1_0_0/0.5)_inset]',
               'active:translate-y-px active:shadow-[inset_0_1px_3px_oklch(0_0_0/0.15)]',
-              'dark:border-white/10 dark:bg-card/80 dark:shadow-[0_4px_14px_oklch(0_0_0/0.5),0_1px_0_oklch(1_0_0/0.08)_inset]',
-              open && 'ring-2 ring-primary/40 dark:ring-primary/50'
+              // Dark: elevated slate chip so the toggle stays visible on the navy game shell
+              'dark:border-white/15 dark:bg-slate-800/95 dark:text-slate-100',
+              'dark:shadow-[0_4px_14px_oklch(0_0_0/0.55),0_1px_0_oklch(1_0_0/0.1)_inset]',
+              'dark:hover:border-white/25 dark:hover:bg-slate-700 dark:hover:text-white',
+              'dark:active:shadow-[inset_0_1px_4px_oklch(0_0_0/0.45)]',
+              open &&
+                'ring-2 ring-primary/40 dark:border-primary/45 dark:bg-slate-700 dark:text-white dark:ring-primary/55 dark:hover:bg-slate-600'
             )}
           />
         }
       >
         <Keyboard />
       </TooltipTrigger>
-      <TooltipContent side="top">{open ? 'Hide keyboard' : 'Show keyboard'}</TooltipContent>
+      {/* Override inverted tooltip tokens so dark mode stays dark (not light-on-dark). */}
+      <TooltipContent
+        side="top"
+        className={cn(
+          'dark:border dark:border-white/10 dark:bg-slate-800 dark:text-slate-100 dark:shadow-lg',
+          'dark:[&>*:last-child]:bg-slate-800 dark:[&>*:last-child]:fill-slate-800'
+        )}
+      >
+        {open ? 'Hide keyboard' : 'Show keyboard'}
+      </TooltipContent>
     </Tooltip>
   );
 }
@@ -166,9 +186,14 @@ export function CrossWordOnScreenKeyboard({
   onBackspace,
   onToggleDirection,
   canToggleDirection,
+  enabled = true,
   toggleOnly = false,
   panelOnly = false
 }: CrossWordOnScreenKeyboardProps) {
+  // Experimentation: when the native-input path is active, hide both the toggle
+  // and the QWERTY panel entirely so players only use the OS soft keyboard.
+  if (!enabled) return null;
+
   if (toggleOnly) {
     return (
       <TooltipProvider>

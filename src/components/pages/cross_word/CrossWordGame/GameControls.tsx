@@ -20,8 +20,8 @@ export function GameControls({ game, onAfterStart }: GameControlsProps) {
 
   const handleStart = () => {
     game.startGame();
-    // After Start paints: optionally auto-open the in-app on-screen keyboard
-    // (touch devices). Physical keyboards keep working via window keydown.
+    // After Start paints: either auto-open the in-app keyboard (touch devices)
+    // or focus the native hidden-input bridge — depending on the experiment flag.
     requestAnimationFrame(() => onAfterStart?.());
   };
 

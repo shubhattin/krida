@@ -1,6 +1,6 @@
 'use client';
 
-import { useEffect, useRef, useState } from 'react';
+import { useCallback, useEffect, useRef, useState } from 'react';
 import { useAtom, useAtomValue } from 'jotai';
 import { useRouter } from 'next/navigation';
 import { useQueryClient } from '@tanstack/react-query';
@@ -14,6 +14,11 @@ import { GameProgress } from './GameProgress';
 import { GameControls } from './GameControls';
 import { CompletionCelebration } from './CompletionCelebration';
 import { CrossWordOnScreenKeyboard } from './CrossWordOnScreenKeyboard';
+import {
+  CROSSWORD_KB_ATTR,
+  CrossWordKeyboardBridge,
+  type CrossWordKeyboardBridgeHandle
+} from './CrossWordKeyboardBridge';
 import { GameHelp } from './Help';
 import { get_general_share_msg } from './share';
 import {
@@ -46,6 +51,20 @@ import {
   AlertDialogTitle
 } from '~/components/ui/alert-dialog';
 import titleStyles from '~/components/pages/puzzle/puzzle-title.module.css';
+
+/**
+ * Experimentation flag: how players type letters into the crossword.
+ *
+ * - `true`  → In-app on-screen keyboard (`CrossWordOnScreenKeyboard`). Physical
+ *             keyboards still work via the window `keydown` listener.
+ * - `false` → No in-app keyboard UI. A tiny hidden `<input>` (`CrossWordKeyboardBridge`)
+ *             is focused on cell tap so mobile OS soft keyboards open and capture
+ *             keystrokes (same pattern we used before the custom keyboard).
+ *
+ * Flip this to A/B test which path feels better on phones/tablets, then lock in
+ * the winner as the permanent default.
+ */
+const INPUT_VIRTUAL_KEYBOARD_ENABLED = false;
 
 function ActiveClueCard({ activeEntry }: { activeEntry: any }) {
   return (
@@ -129,6 +148,8 @@ export function CrossWordGame({
   location?: location_list_type;
 }) {
   const timerRef = useRef<ReturnType<typeof setInterval> | null>(null);
+  const keyboardRef = useRef<CrossWordKeyboardBridgeHandle>(null);
+  const boardAnchorRef = useRef<HTMLDivElement>(null);
   const game = useCrossWordGame(timerRef);
   const puzzle = useAtomValue(puzzle_atom);
   const started = useAtomValue(started_atom);
@@ -139,6 +160,7 @@ export function CrossWordGame({
   const queryClient = useQueryClient();
   const [keyboardOpen, setKeyboardOpen] = useState(false);
   const hasMedia = !!(attachments && attachments.length > 0);
+  const useVirtualKeyboard = INPUT_VIRTUAL_KEYBOARD_ENABLED;
 
   const showAccordion = !completed && (location === 'main_page' || location === 'view_page');
   const showCompletionCarousel = completed;
@@ -191,15 +213,38 @@ export function CrossWordGame({
     }
   }, [started, completed]);
 
-  const handleAfterStart = () => {
-    // Auto-open only on touch-capable devices (phones, tablets, touch laptops).
-    // Desktop users keep a closed panel and can reveal it via the keyboard icon.
-    if (shouldAutoOpenOnScreenKeyboard()) {
-      setKeyboardOpen(true);
+  /**
+   * Focus the hidden bridge input (native-keyboard experiment path only).
+   * Must run inside a user gesture (Start / cell tap) so mobile browsers allow
+   * the OS soft keyboard to open.
+   */
+  const requestKeyboard = useCallback(() => {
+    if (useVirtualKeyboard || completed) return;
+    keyboardRef.current?.focus();
+    const vv = typeof window !== 'undefined' ? window.visualViewport : null;
+    if (vv && boardAnchorRef.current) {
+      const rect = boardAnchorRef.current.getBoundingClientRect();
+      const visibleBottom = vv.offsetTop + vv.height;
+      if (rect.bottom > visibleBottom - 12) {
+        boardAnchorRef.current.scrollIntoView({ block: 'nearest', behavior: 'smooth' });
+      }
     }
+  }, [completed, useVirtualKeyboard]);
+
+  const handleAfterStart = () => {
+    if (useVirtualKeyboard) {
+      // Auto-open only on touch-capable devices (phones, tablets, touch laptops).
+      // Desktop users keep a closed panel and can reveal it via the keyboard icon.
+      if (shouldAutoOpenOnScreenKeyboard()) {
+        setKeyboardOpen(true);
+      }
+      return;
+    }
+    // Native-input path: focus the bridge so the OS soft keyboard can appear.
+    requestKeyboard();
   };
 
-  // Physical keyboard input while the game is active.
+  // Physical keyboard input while the game is active (and the bridge is NOT focused).
   useEffect(() => {
     if (!started) return;
     const onKeyDown = (event: KeyboardEvent) => {
@@ -208,6 +253,9 @@ export function CrossWordGame({
         game.handleKeyDown(event);
         return;
       }
+
+      // Bridge owns its own key/input events — avoid double handling.
+      if (target.getAttribute(CROSSWORD_KB_ATTR) === 'true') return;
 
       if (target.tagName === 'INPUT' || target.tagName === 'TEXTAREA' || target.isContentEditable) {
         return;
@@ -218,6 +266,25 @@ export function CrossWordGame({
     window.addEventListener('keydown', onKeyDown);
     return () => window.removeEventListener('keydown', onKeyDown);
   }, [game.handleKeyDown, started]);
+
+  // Keep the board visible above the OS soft keyboard when the viewport shrinks.
+  useEffect(() => {
+    if (useVirtualKeyboard || !started || completed) return;
+    const vv = window.visualViewport;
+    if (!vv) return;
+
+    const onResize = () => {
+      if (document.activeElement?.getAttribute(CROSSWORD_KB_ATTR) !== 'true') return;
+      boardAnchorRef.current?.scrollIntoView({ block: 'nearest', behavior: 'smooth' });
+    };
+
+    vv.addEventListener('resize', onResize);
+    vv.addEventListener('scroll', onResize);
+    return () => {
+      vv.removeEventListener('resize', onResize);
+      vv.removeEventListener('scroll', onResize);
+    };
+  }, [started, completed, useVirtualKeyboard]);
 
   // Click outside to deselect grid focus — keyboard panel buttons are excluded
   // via the generic `button` check so typing never clears selection.
@@ -231,6 +298,7 @@ export function CrossWordGame({
       if (target.closest('[role="grid"]')) return;
       if (target.closest('button')) return;
       if (target.closest('[data-crossword-onscreen-kb="true"]')) return;
+      if (target.closest(`[${CROSSWORD_KB_ATTR}="true"]`)) return;
 
       game.clearFocus();
     };
@@ -374,13 +442,25 @@ export function CrossWordGame({
         {/* Center: grid + keyboard + active clue + controls */}
         <div className="order-1 flex w-full flex-col items-center gap-1 sm:gap-4 lg:order-2 lg:col-span-6">
           <div
+            ref={boardAnchorRef}
             className={cn(
               'relative w-full max-w-[min(100%,24rem)] lg:max-w-100 xl:max-w-104 2xl:max-w-108',
               // Reserve seam space for the floating toggle when the panel is closed.
-              started && !completed && !keyboardOpen && 'pb-4'
+              useVirtualKeyboard && started && !completed && !keyboardOpen && 'pb-4'
             )}
           >
-            <CrossWordGrid game={game} />
+            {!useVirtualKeyboard ? (
+              <CrossWordKeyboardBridge
+                ref={keyboardRef}
+                onKeyDown={game.handleKeyDown}
+                onTypeLetter={game.typeLetter}
+                onBackspace={game.backspace}
+              />
+            ) : null}
+            <CrossWordGrid
+              game={game}
+              onRequestKeyboard={useVirtualKeyboard ? undefined : requestKeyboard}
+            />
             {!started ? (
               <div className="absolute inset-0 flex items-center justify-center rounded-lg bg-background/25 backdrop-blur-[2px]">
                 <GameControls game={game} onAfterStart={handleAfterStart} />
@@ -390,6 +470,7 @@ export function CrossWordGame({
             {started && !completed ? (
               <div className="absolute right-1 bottom-0 z-20 translate-y-1/2 sm:right-0">
                 <CrossWordOnScreenKeyboard
+                  enabled={useVirtualKeyboard}
                   open={keyboardOpen}
                   onOpenChange={setKeyboardOpen}
                   onTypeLetter={game.typeLetter}
@@ -404,6 +485,7 @@ export function CrossWordGame({
 
           {started && !completed ? (
             <CrossWordOnScreenKeyboard
+              enabled={useVirtualKeyboard}
               open={keyboardOpen}
               onOpenChange={setKeyboardOpen}
               onTypeLetter={game.typeLetter}
