@@ -194,7 +194,7 @@ export function NoScheduledCrossword({ next_schedule, listed_puzzles }: Props) {
 
                 <div>
                   <h1 className="bg-linear-to-r from-slate-800 via-violet-700 to-indigo-600 bg-clip-text text-2xl font-extrabold text-transparent sm:text-3xl dark:from-slate-100 dark:via-violet-300 dark:to-indigo-400">
-                    Crossword
+                    Explore Crossword Puzzles
                   </h1>
                   <p className="mt-1.5 text-sm text-slate-500 dark:text-slate-400">
                     {next_schedule

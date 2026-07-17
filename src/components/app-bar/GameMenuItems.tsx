@@ -8,7 +8,10 @@ import { active_crossword_id_atom } from '~/components/pages/cross_word/CrossWor
 import { useSession } from '~/lib/auth-client';
 
 const accountMenuLinkClass =
-  'flex w-full items-center gap-3 rounded-lg border border-slate-200 bg-slate-50 p-3 text-left text-sm font-medium text-slate-700 transition-all duration-200 hover:scale-[1.02] hover:border-slate-300 hover:bg-slate-100 active:scale-[0.98] dark:border-slate-700 dark:bg-slate-800/50 dark:text-slate-300 dark:hover:border-slate-600 dark:hover:bg-slate-700/50';
+  'flex min-w-0 w-full items-center gap-1.5 rounded-md border border-slate-200 bg-slate-50 px-2 py-1.5 text-left text-xs font-medium text-slate-700 transition-colors hover:border-slate-300 hover:bg-slate-100 dark:border-slate-700 dark:bg-slate-800/50 dark:text-slate-300 dark:hover:border-slate-600 dark:hover:bg-slate-700/50';
+
+const accountMenuIconClass =
+  'flex size-5 shrink-0 items-center justify-center rounded-md bg-linear-to-br';
 
 export function PadavaliMenuItems({ onNavigate }: { onNavigate?: () => void }) {
   const user_info = useSession().data?.user;
@@ -23,52 +26,35 @@ export function PadavaliMenuItems({ onNavigate }: { onNavigate?: () => void }) {
           onClick={onNavigate}
           className={accountMenuLinkClass}
         >
-          <div className="flex h-8 w-8 items-center justify-center rounded-lg bg-linear-to-br from-amber-500 to-orange-600">
-            <Pencil className="size-4 text-white" />
+          <div className={`${accountMenuIconClass} from-amber-500 to-orange-600`}>
+            <Pencil className="size-3 text-white" />
           </div>
-          <div>
-            <div className="font-medium">Edit Current Puzzle</div>
-            <div className="text-xs text-slate-500 dark:text-slate-400">
-              Open puzzle #{activePuzzleId} in editor
-            </div>
-          </div>
+          <span className="truncate">Edit #{activePuzzleId}</span>
         </Link>
       )}
       <Link href="/padavali/list" onClick={onNavigate} className={accountMenuLinkClass}>
-        <div className="flex h-8 w-8 items-center justify-center rounded-lg bg-linear-to-br from-purple-500 to-violet-600">
-          <List className="size-4 text-white" />
+        <div className={`${accountMenuIconClass} from-purple-500 to-violet-600`}>
+          <List className="size-3 text-white" />
         </div>
-        <div>
-          <div className="font-medium">Puzzle List</div>
-          <div className="text-xs text-slate-500 dark:text-slate-400">Admin puzzle list</div>
-        </div>
+        <span className="truncate">List</span>
       </Link>
       <Link href="/padavali/schedules" onClick={onNavigate} className={accountMenuLinkClass}>
-        <div className="flex h-8 w-8 items-center justify-center rounded-lg bg-linear-to-br from-emerald-500 to-teal-600">
-          <Calendar className="size-4 text-white" />
+        <div className={`${accountMenuIconClass} from-emerald-500 to-teal-600`}>
+          <Calendar className="size-3 text-white" />
         </div>
-        <div>
-          <div className="font-medium">Schedules</div>
-          <div className="text-xs text-slate-500 dark:text-slate-400">Manage schedules</div>
-        </div>
+        <span className="truncate">Schedules</span>
       </Link>
       <Link href="/padavali/analytics" onClick={onNavigate} className={accountMenuLinkClass}>
-        <div className="flex h-8 w-8 items-center justify-center rounded-lg bg-linear-to-br from-sky-500 to-blue-600">
-          <BarChart3 className="size-4 text-white" />
+        <div className={`${accountMenuIconClass} from-sky-500 to-blue-600`}>
+          <BarChart3 className="size-3 text-white" />
         </div>
-        <div>
-          <div className="font-medium">Analytics</div>
-          <div className="text-xs text-slate-500 dark:text-slate-400">Gameplay stats</div>
-        </div>
+        <span className="truncate">Analytics</span>
       </Link>
       <Link href="/padavali/batch_manager" onClick={onNavigate} className={accountMenuLinkClass}>
-        <div className="flex h-8 w-8 items-center justify-center rounded-lg bg-linear-to-br from-fuchsia-500 to-pink-600">
-          <Images className="size-4 text-white" />
+        <div className={`${accountMenuIconClass} from-fuchsia-500 to-pink-600`}>
+          <Images className="size-3 text-white" />
         </div>
-        <div>
-          <div className="font-medium">Batch Manager</div>
-          <div className="text-xs text-slate-500 dark:text-slate-400">AI image batches</div>
-        </div>
+        <span className="truncate">Batches</span>
       </Link>
     </>
   );
@@ -87,55 +73,38 @@ export function CrosswordMenuItems({ onNavigate }: { onNavigate?: () => void }) 
           onClick={onNavigate}
           className={accountMenuLinkClass}
         >
-          <div className="flex h-8 w-8 items-center justify-center rounded-lg bg-linear-to-br from-amber-500 to-orange-600">
-            <Pencil className="size-4 text-white" />
+          <div className={`${accountMenuIconClass} from-amber-500 to-orange-600`}>
+            <Pencil className="size-3 text-white" />
           </div>
-          <div>
-            <div className="font-medium">Edit Current Puzzle</div>
-            <div className="text-xs text-slate-500 dark:text-slate-400">
-              Open crossword #{activeCrosswordId} in editor
-            </div>
-          </div>
+          <span className="truncate">Edit #{activeCrosswordId}</span>
         </Link>
       )}
       <Link href="/padajala/list" onClick={onNavigate} className={accountMenuLinkClass}>
-        <div className="flex h-8 w-8 items-center justify-center rounded-lg bg-linear-to-br from-purple-500 to-violet-600">
-          <List className="size-4 text-white" />
+        <div className={`${accountMenuIconClass} from-purple-500 to-violet-600`}>
+          <List className="size-3 text-white" />
         </div>
-        <div>
-          <div className="font-medium">Puzzle List</div>
-          <div className="text-xs text-slate-500 dark:text-slate-400">Admin crossword list</div>
-        </div>
+        <span className="truncate">List</span>
       </Link>
       <Link href="/padajala/schedules" onClick={onNavigate} className={accountMenuLinkClass}>
-        <div className="flex h-8 w-8 items-center justify-center rounded-lg bg-linear-to-br from-emerald-500 to-teal-600">
-          <Calendar className="size-4 text-white" />
+        <div className={`${accountMenuIconClass} from-emerald-500 to-teal-600`}>
+          <Calendar className="size-3 text-white" />
         </div>
-        <div>
-          <div className="font-medium">Schedules</div>
-          <div className="text-xs text-slate-500 dark:text-slate-400">Manage schedules</div>
-        </div>
+        <span className="truncate">Schedules</span>
       </Link>
       <Link href="/padajala/analytics" onClick={onNavigate} className={accountMenuLinkClass}>
-        <div className="flex h-8 w-8 items-center justify-center rounded-lg bg-linear-to-br from-sky-500 to-blue-600">
-          <BarChart3 className="size-4 text-white" />
+        <div className={`${accountMenuIconClass} from-sky-500 to-blue-600`}>
+          <BarChart3 className="size-3 text-white" />
         </div>
-        <div>
-          <div className="font-medium">Analytics</div>
-          <div className="text-xs text-slate-500 dark:text-slate-400">Gameplay stats</div>
-        </div>
+        <span className="truncate">Analytics</span>
       </Link>
       <Link href="/padajala/batch_manager" onClick={onNavigate} className={accountMenuLinkClass}>
-        <div className="flex h-8 w-8 items-center justify-center rounded-lg bg-linear-to-br from-fuchsia-500 to-pink-600">
-          <Images className="size-4 text-white" />
+        <div className={`${accountMenuIconClass} from-fuchsia-500 to-pink-600`}>
+          <Images className="size-3 text-white" />
         </div>
-        <div>
-          <div className="font-medium">Batch Manager</div>
-          <div className="text-xs text-slate-500 dark:text-slate-400">AI image batches</div>
-        </div>
+        <span className="truncate">Batches</span>
       </Link>
     </>
   );
 }
 
-export { accountMenuLinkClass };
+export { accountMenuLinkClass, accountMenuIconClass };

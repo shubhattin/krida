@@ -243,7 +243,7 @@ const CrosswordListPage = () => {
               className="text-sm"
               value={search_title}
               onChange={(e) => setSearchTitle(e.currentTarget.value)}
-              placeholder="Search by title or description"
+              placeholder="Search Puzzles"
             />
           </InputGroup>
           <div className="flex flex-wrap items-center justify-center gap-2 sm:gap-4">

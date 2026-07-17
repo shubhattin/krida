@@ -75,10 +75,7 @@ const Main = async () => {
               </p>
               <Button
                 render={
-                  <Link
-                    href="/padajala/schedules/add"
-                    className="inline-flex items-center gap-2"
-                  />
+                  <Link href="/padajala/schedules/add" className="inline-flex items-center gap-2" />
                 }
                 nativeButton={false}
                 variant="link"

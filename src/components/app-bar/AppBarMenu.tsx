@@ -29,7 +29,7 @@ import { useAtom } from 'jotai';
 import { PWAInstallButton } from '../PWA/PWAInit';
 import { BsVectorPen } from 'react-icons/bs';
 import { signIn, signOut, useSession } from '~/lib/auth-client';
-import { accountMenuLinkClass } from '~/components/app-bar/GameMenuItems';
+import { accountMenuIconClass, accountMenuLinkClass } from '~/components/app-bar/GameMenuItems';
 
 function SignInMenuButton({ onNavigate }: { onNavigate?: () => void }) {
   return (
@@ -44,13 +44,10 @@ function SignInMenuButton({ onNavigate }: { onNavigate?: () => void }) {
       }}
       className={accountMenuLinkClass}
     >
-      <div className="flex h-8 w-8 items-center justify-center rounded-lg bg-linear-to-br from-slate-500 to-slate-600">
-        <LogIn className="size-4 text-white" />
+      <div className={`${accountMenuIconClass} from-slate-500 to-slate-600`}>
+        <LogIn className="size-3 text-white" />
       </div>
-      <div>
-        <div className="font-medium">Sign in</div>
-        <div className="text-xs text-slate-500 dark:text-slate-400">Continue with Google</div>
-      </div>
+      Sign in
     </button>
   );
 }
@@ -66,51 +63,49 @@ function LoggedInAccountMenu({
   if (!user_info) return null;
 
   return (
-    <div className="space-y-2">
-      {user_info.role === 'admin' && gameMenuItems}
+    <div className="space-y-1">
+      {user_info.role === 'admin' && gameMenuItems ? (
+        <div className="grid grid-cols-2 gap-1">{gameMenuItems}</div>
+      ) : null}
 
-      <a
-        href={`${process.env.NEXT_PUBLIC_BETTER_AUTH_URL}/user`}
-        target="_blank"
-        rel="noopener noreferrer"
-        onClick={onNavigate}
-        className={accountMenuLinkClass}
-      >
-        <div className="flex h-8 w-8 items-center justify-center rounded-lg bg-linear-to-br from-blue-500 to-cyan-600">
-          <User className="size-4 text-white" />
-        </div>
-        <div>
-          <div className="font-medium">User Profile</div>
-          <div className="text-xs text-slate-500 dark:text-slate-400">Account settings</div>
-        </div>
-      </a>
+      <div className="grid grid-cols-2 gap-1">
+        <a
+          href={`${process.env.NEXT_PUBLIC_BETTER_AUTH_URL}/user`}
+          target="_blank"
+          rel="noopener noreferrer"
+          onClick={onNavigate}
+          className={accountMenuLinkClass}
+        >
+          <div className={`${accountMenuIconClass} from-blue-500 to-cyan-600`}>
+            <User className="size-3 text-white" />
+          </div>
+          <span className="truncate">Profile</span>
+        </a>
 
-      <button
-        type="button"
-        onClick={() => {
-          onNavigate?.();
-          signOut();
-        }}
-        className={cn(
-          accountMenuLinkClass,
-          'border-red-200 bg-red-50 text-red-700 hover:border-red-300 hover:bg-red-100 dark:border-red-800 dark:bg-red-950/30 dark:text-red-300 dark:hover:border-red-700 dark:hover:bg-red-900/30'
-        )}
-      >
-        <div className="flex h-8 w-8 items-center justify-center rounded-lg bg-linear-to-br from-red-500 to-rose-600">
-          <LogOut className="size-4 text-white" />
-        </div>
-        <div>
-          <div className="font-medium">Log out</div>
-          <div className="text-xs text-red-500 dark:text-red-400">Sign out of your account</div>
-        </div>
-      </button>
+        <button
+          type="button"
+          onClick={() => {
+            onNavigate?.();
+            signOut();
+          }}
+          className={cn(
+            accountMenuLinkClass,
+            'border-red-200 bg-red-50 text-red-700 hover:border-red-300 hover:bg-red-100 dark:border-red-800 dark:bg-red-950/30 dark:text-red-300 dark:hover:border-red-700 dark:hover:bg-red-900/30'
+          )}
+        >
+          <div className={`${accountMenuIconClass} from-red-500 to-rose-600`}>
+            <LogOut className="size-3 text-white" />
+          </div>
+          <span className="truncate">Log out</span>
+        </button>
+      </div>
 
       {user_info.role !== 'admin' && (
-        <div className="rounded-lg border border-orange-200 bg-orange-50 p-3 dark:border-orange-800 dark:bg-orange-950/30">
-          <div className="text-sm font-medium text-orange-800 dark:text-orange-300">
-            Unauthorized Account
+        <div className="rounded-md border border-orange-200 bg-orange-50 px-2.5 py-1.5 dark:border-orange-800 dark:bg-orange-950/30">
+          <div className="text-xs font-medium text-orange-800 dark:text-orange-300">
+            Unauthorized
           </div>
-          <div className="text-xs text-orange-600 dark:text-orange-400">
+          <div className="text-[11px] text-orange-600 dark:text-orange-400">
             Contact admin for approval
           </div>
         </div>
@@ -127,7 +122,7 @@ function AccountMenuSection({
   gameMenuItems?: ReactNode;
 }) {
   return (
-    <div className="space-y-3">
+    <div className="space-y-2">
       <div className="flex items-center gap-2">
         <User className="h-4 w-4 text-slate-600 dark:text-slate-400" />
         <span className="text-sm font-medium text-slate-700 dark:text-slate-300">Account</span>
@@ -147,6 +142,7 @@ function GameMenuNavigateBridge({
 }) {
   return (
     <div
+      className="contents"
       onClick={(e) => {
         const target = e.target as HTMLElement | null;
         if (target?.closest('a')) onNavigate();

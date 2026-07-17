@@ -30,7 +30,7 @@ import {
 } from '~/components/pages/padavali/listed_puzzle_display';
 import { matchesPuzzleWordSearch } from '~/util/puzzle/search';
 
-const EMBED_PAGE_LIMIT = 8;
+const EMBED_PAGE_LIMIT = 12;
 
 type Props = {
   listed_puzzles: PadavaliListedPuzzlesType;
@@ -156,7 +156,7 @@ const BrowseEmbedView = ({ puzzles }: { puzzles: DisplayPuzzle[] }) => {
               }
               clearTypingContextOnKeyDown(e, typing_ctx);
             }}
-            placeholder="Search by title or description"
+            placeholder="Search Puzzles"
             aria-label="Search puzzles"
           />
         </InputGroup>

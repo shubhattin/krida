@@ -83,7 +83,7 @@ export const metadata: Metadata = {
   ...getMetadata({
     title: 'Padāvalī',
     description:
-      'Padavali is a fun, interactive Sanskrit Puzzle that tests your creativity, expands your vocabulary, ' +
+      'Padavali is a fun, interactive Sanskrit Jumbled Words Puzzle that tests your creativity, expands your vocabulary, ' +
       'and lets you challenge your friends to try and beat your score.'
   }),
   keywords:

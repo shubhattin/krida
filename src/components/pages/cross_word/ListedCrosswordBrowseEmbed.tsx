@@ -9,7 +9,7 @@ import { InputGroup, InputGroupAddon, InputGroupInput } from '~/components/ui/in
 import type { CrosswordListedPuzzlesType } from '~/util/cache.server/crossword_cache';
 import { CrosswordPreviewCard } from '~/components/pages/cross_word/CrosswordPreviewCard';
 
-const EMBED_PAGE_LIMIT = 8;
+const EMBED_PAGE_LIMIT = 12;
 
 type Props = {
   listed_puzzles: CrosswordListedPuzzlesType;
@@ -72,7 +72,7 @@ export function ListedCrosswordBrowseEmbed({ listed_puzzles }: Props) {
           No puzzles match your search
         </p>
       ) : (
-        <div className="grid grid-cols-2 items-stretch gap-3 sm:gap-4 lg:grid-cols-4">
+        <div className="grid grid-cols-2 gap-3 sm:gap-4 lg:grid-cols-3 xl:grid-cols-4">
           {visible.map((puzzle, index) => (
             <motion.div
               key={puzzle.id}

@@ -33,7 +33,7 @@ export function ListedCrosswordPuzzles({ listed_puzzles }: Props) {
   }, [fuse, listed_puzzles, query]);
 
   return (
-    <div className="relative mx-auto flex w-full max-w-5xl flex-col gap-6 px-4 py-8 sm:px-6">
+    <div className="relative mx-auto flex w-full max-w-6xl flex-col gap-6 px-4 py-8 sm:px-6">
       <div className="flex flex-wrap items-center justify-between gap-3">
         <div>
           <Link
@@ -45,7 +45,7 @@ export function ListedCrosswordPuzzles({ listed_puzzles }: Props) {
           </Link>
           <h1 className="text-2xl font-bold tracking-tight sm:text-3xl">Crossword Puzzles</h1>
           <p className="mt-1 text-sm text-muted-foreground">
-            Search and play from the listed puzzle archive.
+            Search and play from the crossword puzzles.
           </p>
         </div>
       </div>
@@ -57,7 +57,7 @@ export function ListedCrosswordPuzzles({ listed_puzzles }: Props) {
         <InputGroupInput
           value={query}
           onChange={(e) => setQuery(e.target.value)}
-          placeholder="Search by title or description…"
+          placeholder="Search Puzzles"
           aria-label="Search puzzles"
         />
       </InputGroup>
@@ -67,7 +67,7 @@ export function ListedCrosswordPuzzles({ listed_puzzles }: Props) {
           {listed_puzzles.length === 0 ? 'No listed puzzles yet.' : 'No puzzles match your search.'}
         </p>
       ) : (
-        <div className="grid grid-cols-1 items-stretch gap-4 sm:grid-cols-2 lg:grid-cols-3">
+        <div className="grid grid-cols-2 gap-3 sm:gap-4 lg:grid-cols-3 xl:grid-cols-4">
           {filtered.map((puzzle, index) => (
             <motion.div
               key={puzzle.id}

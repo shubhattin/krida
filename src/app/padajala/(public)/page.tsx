@@ -44,8 +44,10 @@ export default async function CrosswordHomePage() {
 
 export const metadata: Metadata = {
   ...getMetadata({
-    title: 'Crossword',
+    title: 'Padajāla',
     description:
-      'Play the current scheduled crossword puzzle or browse the archive of listed puzzles.'
-  })
+      'Best Sanskrit Crossword Puzzle Online. Tests your vocabulary and creativity. Expand your vocabulary and challenge your friends to try and beat your score.'
+  }),
+  keywords:
+    'Sanskrit, learning, games, Padajāla, crossword puzzle, Devanagari, Telugu, Kannada, Gujarati, Bengali, Odia, Indian scripts'
 };
