@@ -10,7 +10,7 @@ export const get_crossword_share_url = (slug: string) => {
 export const get_general_share_msg = (name: string, slug: string, description: string) => {
   const puzzle_url = get_crossword_share_url(slug);
   return [
-    `✨ Play Crossword — a Sanskrit crossword puzzle from The Sanskrit Channel!`,
+    `✨ Play Padajāla — a Sanskrit Crossword puzzle`,
     '',
     `🎯 ${name}` + (description ? ` : ${description}` : ''),
     '',
@@ -30,7 +30,7 @@ export const get_achievement_share_msg = (
 ) => {
   const puzzle_url = get_crossword_share_url(slug);
   return [
-    `✨ I just solved a Crossword — a Sanskrit crossword puzzle!`,
+    `✨ I just solved a Padajāla — a Sanskrit Crossword puzzle!`,
     '',
     `🎯 ${name}` + (description ? ` : ${description}` : ''),
     `⏱️ ${time_taken} · ${accuracy}% accuracy`,
@@ -40,6 +40,6 @@ export const get_achievement_share_msg = (
     `🔗 Play now:`,
     puzzle_url,
     '',
-    `📝 Solve Across & Down clues — challenge a friend!`
+    `📝 Solve Across & Down clues!`
   ].join('\n');
 };

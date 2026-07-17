@@ -11,14 +11,14 @@ type Props = {
 
 export default function MainPageCrossword({ word_puzzle }: Props) {
   return (
-    <div className="px-4 py-4 sm:px-6 sm:py-6">
+    <div className="px-4 pt-3 pb-4 sm:px-6 sm:pt-4 sm:pb-6">
       <motion.div
         initial={{ opacity: 0, y: -20 }}
         animate={{ opacity: 1, y: 0 }}
         transition={{ duration: 0.5, ease: 'easeOut' }}
         className="w-full border-b border-slate-200/60 bg-linear-to-r from-emerald-50 via-blue-50 to-indigo-50 dark:border-slate-700/60 dark:from-emerald-950/30 dark:via-blue-950/30 dark:to-indigo-950/30"
       >
-        <div className="flex items-center justify-center py-3">
+        <div className="flex items-center justify-center">
           <div className="flex items-center gap-2">
             <motion.div
               animate={{ rotate: [0, 15, -15, 0], scale: [1, 1.1, 1] }}

@@ -93,13 +93,13 @@ export function CrossWordGrid({ game }: CrossWordGridProps) {
       tabIndex={0}
       role="grid"
       aria-label={`${puzzle.title} crossword grid`}
-      className="mx-auto w-full max-w-[min(100vw-2rem,22rem)] outline-none sm:max-w-[24rem] lg:max-w-[28rem] xl:max-w-[30rem] 2xl:max-w-[32rem]"
+      className="mx-auto w-full max-w-[min(100vw-2rem,22rem)] outline-none sm:max-w-[24rem] lg:max-w-100 xl:max-w-104 2xl:max-w-108"
       initial={{ opacity: 0, scale: 0.97 }}
       animate={{ opacity: 1, scale: 1 }}
       transition={{ duration: 0.4, ease: 'easeOut' }}
     >
       <div
-        className="grid aspect-square w-full overflow-hidden rounded-2xl border-[3px] border-[oklch(0.90_0.01_250)] bg-[oklch(0.90_0.01_250)] p-1 shadow-[0_10px_30px_oklch(0_0_0/0.08)] dark:border-[oklch(0.16_0.02_260)] dark:bg-[oklch(0.16_0.02_260)] dark:shadow-[0_20px_50px_oklch(0_0_0/0.45)]"
+        className="grid aspect-square w-full overflow-hidden rounded-2xl border-[3px] border-[oklch(0.90_0.01_250)] bg-[oklch(0.90_0.01_250)] p-1 shadow-[0_10px_30px_oklch(0_0_0/0.08)] dark:border-[oklch(0.24_0.04_250)] dark:bg-[oklch(0.22_0.04_250)] dark:shadow-[0_16px_40px_oklch(0.15_0.04_250/0.45)]"
         style={{
           gap: '3px',
           gridTemplateColumns: `repeat(${cols}, 1fr)`,

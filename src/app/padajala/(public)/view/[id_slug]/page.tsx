@@ -48,7 +48,7 @@ export default async function CrosswordPreviewPage({ params }: Props) {
   if (!word_puzzle || word_puzzle.id !== id) notFound();
 
   return (
-    <main className="relative min-h-dvh overflow-x-clip">
+    <main className="relative min-h-dvh overflow-x-clip bg-linear-to-br from-slate-50 via-blue-50 to-indigo-50 dark:from-slate-900 dark:via-slate-800 dark:to-slate-900">
       <PreviewWarningBanner listed={word_puzzle.listed} slug={word_puzzle.slug} />
       <div className="px-4 pt-3 sm:px-6 sm:pt-4">
         <Link

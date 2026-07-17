@@ -65,7 +65,7 @@ export default async function CrosswordSlugPage({ params }: Props) {
   const slug = decodeURIComponent((await params).slug);
 
   return (
-    <main className="relative min-h-dvh overflow-x-clip">
+    <main className="relative min-h-dvh overflow-x-clip bg-linear-to-br from-slate-50 via-blue-50 to-indigo-50 dark:from-slate-900 dark:via-slate-800 dark:to-slate-900">
       <Suspense fallback={<PuzzleLoadingSkeleton />}>
         <div className="px-4 pt-4 sm:px-6 sm:pt-5">
           <Link

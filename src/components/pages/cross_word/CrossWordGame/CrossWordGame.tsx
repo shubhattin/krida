@@ -49,7 +49,7 @@ import titleStyles from '~/components/pages/puzzle/puzzle-title.module.css';
 
 function ActiveClueCard({ activeEntry }: { activeEntry: any }) {
   return (
-    <div className="w-full max-w-[24rem] px-1 lg:max-w-md xl:max-w-120 2xl:max-w-lg">
+    <div className="w-full max-w-[24rem] px-1 lg:max-w-100 xl:max-w-104 2xl:max-w-108">
       <div className="relative flex min-h-19 w-full flex-col justify-center rounded-2xl border border-border/40 bg-card/65 p-3 shadow-[0_4px_20px_oklch(0_0_0/0.04)] backdrop-blur-md transition-all duration-200 sm:min-h-22 sm:p-4 dark:shadow-[0_10px_35px_oklch(0_0_0/0.25)]">
         <AnimatePresence mode="wait">
           {activeEntry ? (
@@ -244,7 +244,16 @@ export function CrossWordGame({
   if (!puzzle) return null;
 
   return (
-    <div className="mx-auto w-full max-w-7xl px-2 py-6 sm:px-4 sm:py-8 md:px-6">
+    <div
+      className={cn(
+        'mx-auto w-full max-w-7xl bg-linear-to-br from-slate-50 via-blue-50 to-indigo-50 px-2 pt-2 pb-6 sm:px-4 sm:pt-3 sm:pb-12 md:px-6',
+        'dark:from-slate-900 dark:via-slate-800 dark:to-slate-900'
+      )}
+      style={{
+        WebkitOverflowScrolling: 'touch',
+        overscrollBehavior: started && !completed ? 'contain' : 'auto'
+      }}
+    >
       <AlertDialog
         open={!!pendingUrl}
         onOpenChange={(open) => {
@@ -342,13 +351,6 @@ export function CrossWordGame({
         </div>
       ) : null}
 
-      {/* Mobile media (above progress); desktop media sits in the left column below. */}
-      {hasMedia ? (
-        <div className="mb-3 w-full max-w-md lg:hidden">
-          <MediaAttachments attachments={attachments!} className="max-w-md" />
-        </div>
-      ) : null}
-
       <div className="mb-3 flex flex-col items-center gap-3 sm:mb-4">
         <GameProgress />
         <CompletionCelebration listed={listed} puzzleSlug={puzzleSlug} />
@@ -360,11 +362,11 @@ export function CrossWordGame({
           'lg:grid-cols-12 lg:items-start lg:gap-x-4 xl:gap-x-5'
         )}
       >
-        {/* Left: media (desktop) */}
-        <div className={cn('order-2 hidden min-w-0 lg:order-1 lg:col-span-3 lg:block')}>
+        {/* Left on desktop / below grid on mobile — matches padavali order */}
+        <div className={cn('order-2 min-w-0 lg:order-1 lg:col-span-3', !started && 'lg:mt-10')}>
           {hasMedia ? (
             <div className="lg:sticky lg:top-6">
-              <MediaAttachments attachments={attachments!} className="max-w-sm" />
+              <MediaAttachments attachments={attachments!} className="max-w-md lg:max-w-sm" />
             </div>
           ) : null}
         </div>
@@ -373,7 +375,7 @@ export function CrossWordGame({
         <div className="order-1 flex w-full flex-col items-center gap-1 sm:gap-4 lg:order-2 lg:col-span-6">
           <div
             className={cn(
-              'relative w-full max-w-[min(100%,24rem)] lg:max-w-md xl:max-w-120 2xl:max-w-lg',
+              'relative w-full max-w-[min(100%,24rem)] lg:max-w-100 xl:max-w-104 2xl:max-w-108',
               // Reserve seam space for the floating toggle when the panel is closed.
               started && !completed && !keyboardOpen && 'pb-4'
             )}

@@ -15,28 +15,14 @@ export default async function CrosswordHomePage() {
 
   if (!current_schedule) {
     return (
-      <main className="relative min-h-dvh overflow-x-clip">
-        <div
-          aria-hidden
-          className="pointer-events-none absolute top-0 left-1/2 h-[600px] w-[800px] -translate-x-1/2 rounded-full opacity-[0.07]"
-          style={{
-            background: 'radial-gradient(ellipse at center, hsl(var(--primary)), transparent 70%)'
-          }}
-        />
+      <main className="relative min-h-dvh overflow-x-clip bg-linear-to-br from-slate-50 via-blue-50 to-indigo-50 dark:from-slate-900 dark:via-slate-800 dark:to-slate-900">
         <NoScheduledCrossword next_schedule={next_schedule} listed_puzzles={listed_puzzles} />
       </main>
     );
   }
 
   return (
-    <main className="relative min-h-dvh overflow-x-clip">
-      <div
-        aria-hidden
-        className="pointer-events-none absolute top-0 left-1/2 h-[600px] w-[800px] -translate-x-1/2 rounded-full opacity-[0.07]"
-        style={{
-          background: 'radial-gradient(ellipse at center, hsl(var(--primary)), transparent 70%)'
-        }}
-      />
+    <main className="relative min-h-dvh overflow-x-clip bg-linear-to-br from-slate-50 via-blue-50 to-indigo-50 dark:from-slate-900 dark:via-slate-800 dark:to-slate-900">
       <MainPageCrossword word_puzzle={current_schedule.puzzle} />
     </main>
   );

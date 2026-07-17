@@ -34,21 +34,21 @@
   border-color: oklch(0.8 0.02 250);
 }
 
-/* Dark Theme overrides */
+/* Dark Theme overrides — blue slate tiles that sit on the page gradient */
 :global(.dark) .playCell {
-  background: oklch(0.28 0.025 260);
-  color: oklch(0.95 0.01 250);
-  border: 1px solid oklch(0.38 0.03 260);
+  background: oklch(0.34 0.04 250);
+  color: oklch(0.93 0.025 240);
+  border: 1px solid oklch(0.44 0.05 250);
   box-shadow:
-    0 2px 4px oklch(0 0 0 / 0.2),
-    inset 0 1px 0 0 oklch(1 0 0 / 0.05);
+    0 2px 4px oklch(0.15 0.04 250 / 0.35),
+    inset 0 1px 0 0 oklch(1 0 0 / 0.06);
 }
 
 :global(.dark) .playCell:not(:disabled):hover {
-  background: oklch(0.31 0.03 260);
-  border-color: oklch(0.48 0.04 260);
+  background: oklch(0.38 0.05 250);
+  border-color: oklch(0.52 0.07 250);
   box-shadow:
-    0 6px 16px oklch(0 0 0 / 0.35),
+    0 6px 16px oklch(0.2 0.05 250 / 0.4),
     inset 0 1px 0 0 oklch(1 0 0 / 0.08);
 }
 
@@ -60,9 +60,9 @@
   box-shadow: none;
 }
 :global(.dark) .cellFixed {
-  background: oklch(0.22 0.015 260);
-  color: oklch(0.6 0.02 260);
-  border: 1px dashed oklch(0.3 0.02 260);
+  background: oklch(0.26 0.03 250);
+  color: oklch(0.72 0.04 240);
+  border: 1px dashed oklch(0.38 0.04 250);
   box-shadow: none;
 }
 
@@ -75,11 +75,11 @@
     inset 0 1px 0 0 #ffffff;
 }
 :global(.dark) .cellActiveWord {
-  background: oklch(0.36 0.07 240 / 0.5); /* Glowing translucent indigo */
-  border-color: oklch(0.45 0.12 240);
+  background: oklch(0.4 0.07 245 / 0.7);
+  border-color: oklch(0.52 0.1 245);
   box-shadow:
-    0 4px 12px oklch(0.45 0.12 240 / 0.2),
-    inset 0 1px 0 0 oklch(1 0 0 / 0.05);
+    0 4px 12px oklch(0.45 0.1 245 / 0.25),
+    inset 0 1px 0 0 oklch(1 0 0 / 0.06);
 }
 
 /* ── Selected Cursor Cell ── */
@@ -93,11 +93,11 @@
   transform: scale(1.05) translateY(-1.5px) !important;
 }
 :global(.dark) .cellSelected {
-  background: oklch(0.32 0.03 250);
-  border: 2.5px solid oklch(0.65 0.18 250); /* Neon blue glow */
+  background: oklch(0.4 0.055 250);
+  border: 2.5px solid oklch(0.7 0.14 245);
   box-shadow:
-    0 0 16px oklch(0.65 0.18 250 / 0.65),
-    0 0 0 3.5px oklch(0.65 0.18 250 / 0.28),
+    0 0 16px oklch(0.65 0.14 245 / 0.45),
+    0 0 0 3.5px oklch(0.65 0.14 245 / 0.22),
     inset 0 1px 0 0 oklch(1 0 0 / 0.1);
 }
 
@@ -145,10 +145,10 @@
   background-size: 8px 8px;
 }
 
-/* Dark Theme overrides: deep void background with subtle micro-dots */
+/* Dark Theme: soft blue void that blends with the page gradient */
 :global(.dark) .blocked {
-  background-color: oklch(0.12 0.015 260);
-  background-image: radial-gradient(oklch(0.19 0.02 260) 1px, transparent 1px);
+  background-color: oklch(0.21 0.035 250);
+  background-image: radial-gradient(oklch(0.28 0.04 250) 1px, transparent 1px);
   background-size: 8px 8px;
 }
 
