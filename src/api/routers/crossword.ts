@@ -117,9 +117,18 @@ const add_puzzle_route = protectedAdminProcedure
   .input(crossword_add_input_schema)
   .mutation(async ({ input }) => {
     const dimensions = input.grid_dimensions;
+    // Temporary unique slug until add-dialog slug UX lands; title-based prefix + id suffix after insert.
+    const slugBase =
+      input.title
+        .trim()
+        .toLowerCase()
+        .replace(/[^a-z0-9]+/g, '-')
+        .replace(/^-+|-+$/g, '')
+        .slice(0, 40) || 'puzzle';
     const [inserted] = await db
       .insert(crossword_puzzles)
       .values({
+        slug: `${slugBase}-${Date.now()}`,
         title: input.title.trim(),
         description: input.description?.trim() ? input.description.trim() : null,
         grid_dimensions: dimensions,

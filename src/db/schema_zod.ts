@@ -9,7 +9,12 @@ import {
   ai_batches,
   padavali_redirects,
   image_assets,
-  crossword_puzzles
+  crossword_puzzles,
+  crossword_redirects,
+  crossword_attachments,
+  crossword_sessions,
+  crossword_gameplay_stats,
+  crossword_schedules
 } from './schema';
 import { createSelectSchema } from 'drizzle-zod';
 import { location_list_enum } from './types';
@@ -88,4 +93,29 @@ export const PadavaliRedirectSchemaZod = createSelectSchema(padavali_redirects, 
 
 export const ImageAssetSchemaZod = createSelectSchema(image_assets, {
   created_at: z.coerce.date()
+});
+
+export const CrosswordRedirectSchemaZod = createSelectSchema(crossword_redirects, {
+  created_at: z.coerce.date()
+});
+
+export const CrosswordAttachmentSchemaZod = createSelectSchema(crossword_attachments, {
+  created_at: z.coerce.date(),
+  updated_at: z.coerce.date().optional().nullable()
+});
+
+export const CrosswordSessionSchemaZod = createSelectSchema(crossword_sessions, {
+  created_at: z.coerce.date(),
+  location: location_list_enum
+});
+
+export const CrosswordGamePlayStatsSchemaZod = createSelectSchema(crossword_gameplay_stats, {
+  created_at: z.coerce.date()
+});
+
+export const CrosswordScheduleSchemaZod = createSelectSchema(crossword_schedules, {
+  created_at: z.coerce.date(),
+  updated_at: z.coerce.date().optional(),
+  start_time: z.coerce.date(),
+  end_time: z.coerce.date()
 });
