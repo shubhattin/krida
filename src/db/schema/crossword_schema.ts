@@ -110,7 +110,10 @@ export const crossword_gameplay_stats = pgTable(
     incorrect_entry_attempts: integer().notNull()
   },
   (table) => [
-    index('crossword_gameplay_stats_puzzle_id_created_at_idx').on(table.puzzle_id, table.created_at),
+    index('crossword_gameplay_stats_puzzle_id_created_at_idx').on(
+      table.puzzle_id,
+      table.created_at
+    ),
     uniqueIndex('crossword_gameplay_stats_session_id_idx').on(table.session_id)
   ]
 );

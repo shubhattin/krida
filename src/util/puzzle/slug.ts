@@ -52,10 +52,13 @@ export const isValidCrosswordSlug = (slug: string) =>
   SLUG_REGEX.test(slug) &&
   !isReservedCrosswordSlug(slug);
 
-export const crossword_slug_schema = z.string().transform(normalizeSlug).refine(isValidCrosswordSlug, {
-  message:
-    'Slug may only contain lowercase letters, numbers, underscores, and dashes, and cannot match a reserved route name'
-});
+export const crossword_slug_schema = z
+  .string()
+  .transform(normalizeSlug)
+  .refine(isValidCrosswordSlug, {
+    message:
+      'Slug may only contain lowercase letters, numbers, underscores, and dashes, and cannot match a reserved route name'
+  });
 
 export const parseIdSlugParam = (param: string): { id: number; slug: string } | null => {
   let decoded: string;

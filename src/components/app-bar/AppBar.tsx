@@ -40,13 +40,7 @@ export type AppBarProps = {
   gameMenuItems?: ReactNode;
 };
 
-export default function AppBar({
-  game,
-  title,
-  description,
-  imageUrl,
-  gameMenuItems
-}: AppBarProps) {
+export default function AppBar({ game, title, description, imageUrl, gameMenuItems }: AppBarProps) {
   const defaults = GAME_DEFAULTS[game];
   const resolvedTitle = title ?? defaults.title;
   const resolvedDescription = description ?? defaults.description;
@@ -81,10 +75,7 @@ export default function AppBar({
         <div className="flex shrink-0 items-center space-x-2">
           <SupportOptions />
           <div className="size-8 shrink-0">
-            <MenuButton
-              showPwaControls={defaults.showPwaControls}
-              gameMenuItems={gameMenuItems}
-            />
+            <MenuButton showPwaControls={defaults.showPwaControls} gameMenuItems={gameMenuItems} />
           </div>
         </div>
       </div>

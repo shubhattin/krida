@@ -246,7 +246,7 @@ export function PuzzleCardImageSection({
       )}
     </div>
   );
-};
+}
 
 // ---------------------------------------------------------------------------
 // AI Image Dialog — content

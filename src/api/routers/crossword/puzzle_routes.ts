@@ -217,7 +217,10 @@ const get_puzzle_list_page_route = protectedAdminProcedure
       for (const token of tokenizeSearchQuery(trimmedSearch)) {
         const pattern = `%${escapeIlikeToken(token)}%`;
         conditions.push(
-          or(ilike(crossword_puzzles.title, pattern), ilike(crossword_puzzles.description, pattern))!
+          or(
+            ilike(crossword_puzzles.title, pattern),
+            ilike(crossword_puzzles.description, pattern)
+          )!
         );
       }
     }

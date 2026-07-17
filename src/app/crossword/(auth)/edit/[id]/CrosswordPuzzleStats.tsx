@@ -419,8 +419,7 @@ const PuzzleStats = ({ puzzleId, puzzleTitle }: PuzzleStatsProps) => {
 
   // Process data for charts
   const chartData = useMemo(() => {
-    if (!filteredStatsData)
-      return { dailyStats: [], locationFrequency: [], isBucketed: false };
+    if (!filteredStatsData) return { dailyStats: [], locationFrequency: [], isBucketed: false };
 
     const { sessions, stats } = filteredStatsData;
 
@@ -769,9 +768,7 @@ const ChartsSection = ({
       >
         {chartType === 'location' ? (
           <BarChart
-            data={
-              chartData.locationFrequency
-            }
+            data={chartData.locationFrequency}
             margin={{ top: 8, right: 16, left: 8, bottom: 8 }}
           >
             <CartesianGrid strokeDasharray="3 3" className="stroke-muted/50" />

@@ -4,10 +4,7 @@ import { image_schema, attachment_schema } from '~/db/db_shared_vals';
 import { z } from 'zod';
 import { sql } from 'drizzle-orm';
 import { createCachedLoader, type CachedLoader, type NoCacheParams } from './create_cached_loader';
-import {
-  CrossWordPuzzleWordSchema,
-  CrossordPuzzleGridCellSchema
-} from '~/db/schema_zod';
+import { CrossWordPuzzleWordSchema, CrossordPuzzleGridCellSchema } from '~/db/schema_zod';
 
 export { NO_CACHE_PARAMS } from './create_cached_loader';
 
@@ -184,40 +181,39 @@ const load_listed_puzzle_list = createCachedLoader<NoCacheParams, CrosswordListe
 
 export type CrosswordPuzzleParams = { slug: string };
 
-const load_word_puzzle = createCachedLoader<
-  CrosswordPuzzleParams,
-  CrosswordPuzzleType | undefined
->({
-  getKey: ({ slug }) => REDIS_CACHE_KEYS.crossword_word_puzzle(slug),
-  schema: crossword_puzzle_schema,
-  shouldCache: (data): data is CrosswordPuzzleType => data !== undefined,
-  fetch: async ({ slug }) => {
-    const data = await db.query.crossword_puzzles.findFirst({
-      where: (tbl, { eq }) => eq(tbl.slug, slug),
-      with: {
-        attachments: {
-          columns: {
-            id: true,
-            title: true,
-            type: true,
-            url: true,
-            order_index: true
+const load_word_puzzle = createCachedLoader<CrosswordPuzzleParams, CrosswordPuzzleType | undefined>(
+  {
+    getKey: ({ slug }) => REDIS_CACHE_KEYS.crossword_word_puzzle(slug),
+    schema: crossword_puzzle_schema,
+    shouldCache: (data): data is CrosswordPuzzleType => data !== undefined,
+    fetch: async ({ slug }) => {
+      const data = await db.query.crossword_puzzles.findFirst({
+        where: (tbl, { eq }) => eq(tbl.slug, slug),
+        with: {
+          attachments: {
+            columns: {
+              id: true,
+              title: true,
+              type: true,
+              url: true,
+              order_index: true
+            },
+            orderBy: (tbl, { asc }) => asc(tbl.order_index)
           },
-          orderBy: (tbl, { asc }) => asc(tbl.order_index)
-        },
-        image: {
-          columns: {
-            id: true,
-            s3_key: true,
-            width: true,
-            height: true
+          image: {
+            columns: {
+              id: true,
+              s3_key: true,
+              width: true,
+              height: true
+            }
           }
         }
-      }
-    });
-    return data satisfies CrosswordPuzzleType | undefined;
+      });
+      return data satisfies CrosswordPuzzleType | undefined;
+    }
   }
-});
+);
 
 export type CrosswordCacheLoaders = {
   current_schedule: CachedLoader<NoCacheParams, CrosswordCurrentScheduleType>;

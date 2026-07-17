@@ -598,9 +598,7 @@ export const poll_batch_puzzle_image_gen_func = async (
   if (ai_batch.output_resolved) {
     const items = await autoApproveEligibleRows(
       batch_id,
-      db_rows.map((row) =>
-        toPollItem(row.custom_id, parseBatchMetadata(row.metadata))
-      )
+      db_rows.map((row) => toPollItem(row.custom_id, parseBatchMetadata(row.metadata)))
     );
     return {
       status: 'already_resolved',
@@ -717,12 +715,7 @@ export const poll_batch_puzzle_image_gen_func = async (
           )
         });
         if (resolved_row) {
-          items.push(
-            toPollItem(
-              resolved_row.custom_id,
-              parseBatchMetadata(resolved_row.metadata)
-            )
-          );
+          items.push(toPollItem(resolved_row.custom_id, parseBatchMetadata(resolved_row.metadata)));
         }
       }
       continue;
@@ -756,12 +749,7 @@ export const poll_batch_puzzle_image_gen_func = async (
           )
         });
         if (resolved_row) {
-          items.push(
-            toPollItem(
-              resolved_row.custom_id,
-              parseBatchMetadata(resolved_row.metadata)
-            )
-          );
+          items.push(toPollItem(resolved_row.custom_id, parseBatchMetadata(resolved_row.metadata)));
         }
       }
       continue;

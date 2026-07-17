@@ -102,7 +102,11 @@ const CrosswordPlaySuspense = async ({ slug }: { slug: string }) => {
   }
 
   if (!word_puzzle.listed) {
-    return <div className="px-4 py-8 text-center text-muted-foreground">This puzzle is not available.</div>;
+    return (
+      <div className="px-4 py-8 text-center text-muted-foreground">
+        This puzzle is not available.
+      </div>
+    );
   }
 
   return (

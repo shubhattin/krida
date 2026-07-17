@@ -1,8 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import {
-  getPuzzleImageBatchCustomId,
-  parsePuzzleIdFromBatchCustomId
-} from './puzzle_image';
+import { getPuzzleImageBatchCustomId, parsePuzzleIdFromBatchCustomId } from './puzzle_image';
 
 describe('getPuzzleImageBatchCustomId', () => {
   it('keeps padavali historical prefix by default', () => {

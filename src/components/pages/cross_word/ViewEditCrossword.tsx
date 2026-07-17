@@ -263,7 +263,10 @@ const SortableAttachmentItem = ({
 }: {
   attachment: EditableAttachment;
   index: number;
-  onUpdate: (field: keyof EditableAttachment, value: EditableAttachment[keyof EditableAttachment]) => void;
+  onUpdate: (
+    field: keyof EditableAttachment,
+    value: EditableAttachment[keyof EditableAttachment]
+  ) => void;
   onRemove: () => void;
 }) => {
   const { attributes, listeners, setNodeRef, transform, transition, isDragging } = useSortable({
@@ -417,7 +420,11 @@ const AttachmentsEditor = () => {
           Media Attachments ({attachments.length})
         </AccordionTrigger>
         <AccordionContent>
-          <DndContext sensors={sensors} collisionDetection={closestCenter} onDragEnd={handleDragEnd}>
+          <DndContext
+            sensors={sensors}
+            collisionDetection={closestCenter}
+            onDragEnd={handleDragEnd}
+          >
             <SortableContext
               items={attachments.map((_, i) => `attachment-${i}`)}
               strategy={verticalListSortingStrategy}
