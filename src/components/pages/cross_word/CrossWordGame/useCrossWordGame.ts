@@ -396,7 +396,8 @@ export function useCrossWordGame(timerRef: RefObject<ReturnType<typeof setInterv
     const currentFocus = store.get(active_focus_atom);
     if (!puzzle || !started || completed || !currentFocus) return;
     const template = puzzle.grid[currentFocus.row]?.[currentFocus.col];
-    const currentValue = playerGrid[currentFocus.row]?.[currentFocus.col] ?? '';
+    const currentGrid = store.get(player_grid_atom);
+    const currentValue = currentGrid[currentFocus.row]?.[currentFocus.col] ?? '';
     const solvedIds = store.get(solved_entry_ids_atom);
     const isCellSolvedNow = (row: number, col: number) =>
       findEntriesAtCell(entries, row, col).some((entry) => solvedIds.includes(entry.id));
@@ -408,12 +409,10 @@ export function useCrossWordGame(timerRef: RefObject<ReturnType<typeof setInterv
       currentValue !== '' &&
       !isCellSolvedNow(currentFocus.row, currentFocus.col)
     ) {
-      setPlayerGrid((prev) => {
-        const copy = prev.map((row) => [...row]);
-        copy[currentFocus.row]![currentFocus.col] = '';
-        applyEvaluation(copy);
-        return copy;
-      });
+      const nextGrid = currentGrid.map((row) => [...row]);
+      nextGrid[currentFocus.row]![currentFocus.col] = '';
+      setPlayerGrid(nextGrid);
+      applyEvaluation(nextGrid);
       return;
     }
 
@@ -428,24 +427,12 @@ export function useCrossWordGame(timerRef: RefObject<ReturnType<typeof setInterv
       isEditableCell(puzzle.grid[prevCell.row]![prevCell.col]!) &&
       !isCellSolvedNow(prevCell.row, prevCell.col)
     ) {
-      setPlayerGrid((prev) => {
-        const copy = prev.map((row) => [...row]);
-        copy[prevCell.row]![prevCell.col] = '';
-        applyEvaluation(copy);
-        return copy;
-      });
+      const nextGrid = currentGrid.map((row) => [...row]);
+      nextGrid[prevCell.row]![prevCell.col] = '';
+      setPlayerGrid(nextGrid);
+      applyEvaluation(nextGrid);
     }
-  }, [
-    applyEvaluation,
-    completed,
-    entries,
-    playerGrid,
-    puzzle,
-    setFocus,
-    setPlayerGrid,
-    started,
-    store
-  ]);
+  }, [applyEvaluation, completed, entries, puzzle, setFocus, setPlayerGrid, started, store]);
 
   const moveWithArrow = useCallback(
     (key: 'ArrowUp' | 'ArrowDown' | 'ArrowLeft' | 'ArrowRight') => {
