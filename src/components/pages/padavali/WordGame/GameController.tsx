@@ -8,6 +8,7 @@ import { useAtom } from 'jotai';
 import { started_atom, completed_atom, seconds_atom, word_msgs_atom } from './game_state';
 import { AppContext } from '~/components/AppDataContext';
 import { useStartPuzzleGame } from './useStartPuzzleGame';
+import playStyles from './play-button.module.css';
 
 // Format seconds to mm:ss
 export const formatTime = (totalSeconds: number) => {
@@ -44,11 +45,13 @@ export const GameContoller = ({ timerRef }: Props) => {
               'rounded-xl px-4 py-2.5 font-bold text-white shadow-lg hover:shadow-xl sm:rounded-2xl sm:px-6 sm:py-3',
               'transform transition-all duration-200 hover:scale-105 active:scale-95',
               'flex h-full min-h-16 w-full items-center justify-center gap-2 sm:min-h-20',
-              font_info.className
+              font_info.className,
+              playStyles.playButton
             )}
           >
-            <MdReplay className="text-xl sm:text-2xl" />
-            <span className="text-lg sm:text-xl">{wordMsgs.replay}</span>
+            <span className={playStyles.playButtonShine} aria-hidden />
+            <MdReplay className="relative text-xl sm:text-2xl" />
+            <span className="relative text-lg sm:text-xl">{wordMsgs.replay}</span>
           </motion.button>
         </div>
       )}

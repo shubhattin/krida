@@ -21,6 +21,7 @@ import { AppContext } from '~/components/AppDataContext';
 import type { location_list_type } from '~/db/types';
 import { FaPlay } from 'react-icons/fa';
 import { useStartPuzzleGame } from './useStartPuzzleGame';
+import playStyles from './play-button.module.css';
 
 type Props = {
   puzzle_id: number;
@@ -681,11 +682,13 @@ export const GameGrid = ({ timerRef, original_grid_data }: Props) => {
                   'rounded-xl px-3 pt-2.5 pb-1 font-bold text-white shadow-lg hover:shadow-xl sm:rounded-2xl sm:px-5 sm:py-4 sm:pb-2',
                   'transform transition-all duration-200 hover:scale-105 active:scale-95',
                   'flex items-center justify-center space-x-2 sm:space-x-3',
-                  font_info.className
+                  font_info.className,
+                  playStyles.playButton
                 )}
               >
-                <FaPlay className="-mt-2 size-5 sm:size-6 md:size-6.5 lg:size-7" />
-                <span className="text-xl sm:text-2xl">{wordMsgs.play}</span>
+                <span className={playStyles.playButtonShine} aria-hidden />
+                <FaPlay className="relative -mt-2 size-5 sm:size-6 md:size-6.5 lg:size-7" />
+                <span className="relative text-xl sm:text-2xl">{wordMsgs.play}</span>
               </button>
             )}
           </div>

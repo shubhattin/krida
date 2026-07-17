@@ -5,6 +5,7 @@ import { motion } from 'framer-motion';
 import { useAtom } from 'jotai';
 import { BookOpen, Lightbulb } from 'lucide-react';
 import { FaPlay } from 'react-icons/fa';
+import playStyles from './play-button.module.css';
 import {
   Dialog,
   DialogContent,
@@ -179,16 +180,18 @@ export function HintDialog({ puzzle_id, puzzle_slug, timerRef }: Props) {
                 type="button"
                 onClick={handlePlay}
                 className={cn(
-                  'inline-flex items-center justify-center gap-2 overflow-hidden',
+                  'group relative inline-flex items-center justify-center gap-2 overflow-hidden',
                   'bg-linear-to-r from-blue-500 to-indigo-500 hover:from-blue-600 hover:to-indigo-600',
                   'dark:from-blue-700 dark:to-indigo-700 dark:hover:from-blue-800 dark:hover:to-indigo-800',
                   'rounded-xl px-5 py-2.5 font-bold text-white shadow-lg',
                   'transform transition-all duration-200 hover:scale-105 active:scale-95',
-                  font_info.className
+                  font_info.className,
+                  playStyles.playButton
                 )}
               >
-                <FaPlay className="size-4 text-white" />
-                <span>{wordMsgs.play}</span>
+                <span className={playStyles.playButtonShine} aria-hidden />
+                <FaPlay className="relative size-4 text-white" />
+                <span className="relative">{wordMsgs.play}</span>
               </button>
             </DialogFooter>
           ) : null}

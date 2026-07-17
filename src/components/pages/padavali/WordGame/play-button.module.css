@@ -1,0 +1,46 @@
+/* Shared Play / Replay button hover + shine (Padavali Krida-style) */
+
+.playButton {
+  transition:
+    transform 0.2s ease,
+    box-shadow 0.3s ease,
+    filter 0.3s ease;
+}
+
+.playButton:hover {
+  filter: brightness(1.05);
+}
+
+.playButtonShine {
+  pointer-events: none;
+  position: absolute;
+  inset: 0;
+  background: linear-gradient(
+    110deg,
+    transparent 25%,
+    rgb(255 255 255 / 0.28) 45%,
+    transparent 65%
+  );
+  transform: translateX(-120%);
+  animation: playShine 2.8s ease-in-out infinite;
+}
+
+@keyframes playShine {
+  0%,
+  55% {
+    transform: translateX(-120%);
+  }
+  75%,
+  100% {
+    transform: translateX(120%);
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .playButton {
+    transition: none;
+  }
+  .playButtonShine {
+    animation: none;
+  }
+}

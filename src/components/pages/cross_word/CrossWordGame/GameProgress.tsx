@@ -20,7 +20,7 @@ export function GameProgress() {
       initial={{ opacity: 0, y: -10 }}
       animate={{ opacity: 1, y: 0 }}
       transition={{ duration: 0.3, ease: 'easeOut' }}
-      className="flex items-center gap-4 text-sm text-muted-foreground"
+      className="flex items-center justify-center gap-3 text-sm text-muted-foreground sm:gap-4"
     >
       <div className="inline-flex items-center gap-2 rounded-lg border border-border/40 bg-card/60 px-3 py-1 backdrop-blur-md">
         <Timer className="size-3.5 text-primary" />
@@ -34,7 +34,7 @@ export function GameProgress() {
       </div>
 
       <div
-        className="relative h-2 min-w-24 flex-1 overflow-hidden rounded-full bg-muted/50"
+        className="relative h-2 min-w-24 flex-1 overflow-hidden rounded-full bg-muted/50 sm:min-w-28"
         role="progressbar"
         aria-valuenow={progress.solvedCount}
         aria-valuemin={0}

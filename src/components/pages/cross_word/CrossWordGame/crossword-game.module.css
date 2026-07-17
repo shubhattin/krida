@@ -220,18 +220,41 @@
   }
 }
 
-/* ── Start button hover ── */
+/* ── Start button (Padavali-style blue play) ── */
 .startButton {
-  transition: all 0.3s ease;
+  transition:
+    transform 0.2s ease,
+    box-shadow 0.3s ease,
+    filter 0.3s ease;
 }
 .startButton:hover {
-  box-shadow:
-    0 6px 20px color-mix(in oklch, var(--primary) 50%, transparent),
-    0 0 30px color-mix(in oklch, var(--primary) 25%, transparent);
-  transform: translateY(-1.5px);
+  filter: brightness(1.05);
+}
+.startButtonShine {
+  pointer-events: none;
+  position: absolute;
+  inset: 0;
+  background: linear-gradient(
+    110deg,
+    transparent 25%,
+    rgb(255 255 255 / 0.28) 45%,
+    transparent 65%
+  );
+  transform: translateX(-120%);
+  animation: startShine 2.8s ease-in-out infinite;
+}
+@keyframes startShine {
+  0%,
+  55% {
+    transform: translateX(-120%);
+  }
+  75%,
+  100% {
+    transform: translateX(120%);
+  }
 }
 
-/* ── Reset button ripple overlay ── */
+/* ── Reset button ripple overlay (legacy; reset now lives in GameProgress) ── */
 .resetButton {
   position: relative;
   overflow: hidden;
@@ -284,8 +307,10 @@
     transform: none !important;
   }
   .startButton,
+  .startButtonShine,
   .resetButton,
   .resetButton::before {
+    animation: none;
     transition: none;
   }
 }

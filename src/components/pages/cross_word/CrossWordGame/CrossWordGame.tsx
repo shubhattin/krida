@@ -13,13 +13,14 @@ import { CrossWordGrid } from './CrossWordGrid';
 import { GameProgress } from './GameProgress';
 import { GameControls } from './GameControls';
 import { CompletionCelebration } from './CompletionCelebration';
+import { ResetPuzzleButton } from './ResetPuzzleButton';
 import { CrossWordOnScreenKeyboard } from './CrossWordOnScreenKeyboard';
 import {
   CROSSWORD_KB_ATTR,
   CrossWordKeyboardBridge,
   type CrossWordKeyboardBridgeHandle
 } from './CrossWordKeyboardBridge';
-import { GameHelp } from './Help';
+import { CluePanel } from './CluePanel';
 import { get_general_share_msg } from './share';
 import {
   CompletionMoreCrosswordPuzzlesCarousel,
@@ -32,7 +33,7 @@ import {
   puzzle_atom,
   started_atom,
   completed_atom,
-  active_entry_atom,
+  // active_entry_atom,
   pending_navigation_url_atom
 } from './game_state';
 import { cn } from '~/lib/utils';
@@ -154,7 +155,7 @@ export function CrossWordGame({
   const puzzle = useAtomValue(puzzle_atom);
   const started = useAtomValue(started_atom);
   const completed = useAtomValue(completed_atom);
-  const activeEntry = useAtomValue(active_entry_atom);
+  // const activeEntry = useAtomValue(active_entry_atom);
   const [pendingUrl, setPendingUrl] = useAtom(pending_navigation_url_atom);
   const router = useRouter();
   const queryClient = useQueryClient();
@@ -454,6 +455,12 @@ export function CrossWordGame({
               useVirtualKeyboard && started && !completed && !keyboardOpen && 'pb-4'
             )}
           >
+            {/* Float above the board corner — no layout row, doesn't cover cells */}
+            {started && !completed ? (
+              <div className="absolute top-0 right-3 z-20 -translate-y-[calc(100%+0.35rem)] sm:right-0">
+                <ResetPuzzleButton onReset={game.resetGame} />
+              </div>
+            ) : null}
             {!useVirtualKeyboard ? (
               <CrossWordKeyboardBridge
                 ref={keyboardRef}
@@ -501,9 +508,20 @@ export function CrossWordGame({
             />
           ) : null}
 
-          {started && !completed && <ActiveClueCard activeEntry={activeEntry} />}
+          {/* Central active-clue viewer — temporarily disabled; clue list is the source of truth */}
+          {/* {started && !completed ? (
+            <div className="hidden lg:block">
+              <ActiveClueCard activeEntry={activeEntry} />
+            </div>
+          ) : null} */}
 
-          {started ? (
+          {/* Mobile: full clue list directly under the active clue / grid */}
+          <CluePanel
+            game={game}
+            className="mt-2 max-h-72 w-full max-w-[min(100%,24rem)] sm:max-h-80 lg:hidden"
+          />
+
+          {started && completed ? (
             <motion.div
               className="flex justify-center"
               initial={{ opacity: 0 }}
@@ -515,12 +533,12 @@ export function CrossWordGame({
           ) : null}
         </div>
 
-        {/* Right: compact game guide (desktop sticky; stacks below on mobile) */}
-        <div className="order-3 lg:col-span-3">
-          <div className="lg:sticky lg:top-6 lg:mt-4">
-            <div className="overflow-hidden rounded-2xl border border-slate-200 bg-white shadow-xl dark:border-slate-700 dark:bg-slate-800">
-              <GameHelp />
-            </div>
+        {/* Desktop: clue list replaces the former game-help sidebar */}
+        <div className="order-3 hidden min-w-0 lg:col-span-3 lg:block">
+          <div
+            className={cn('lg:sticky lg:top-4', started && !completed ? 'lg:-mt-16' : 'lg:-mt-10')}
+          >
+            <CluePanel game={game} className="max-h-[min(70vh,36rem)]" />
           </div>
         </div>
       </div>

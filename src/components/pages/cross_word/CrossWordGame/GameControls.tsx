@@ -2,7 +2,7 @@
 
 import { useAtomValue } from 'jotai';
 import { motion } from 'framer-motion';
-import { Play, RotateCcw, PartyPopper } from 'lucide-react';
+import { Play, PartyPopper } from 'lucide-react';
 import { Button } from '~/components/ui/button';
 import { cn } from '~/lib/utils';
 import { completed_atom, started_atom } from './game_state';
@@ -32,18 +32,21 @@ export function GameControls({ game, onAfterStart }: GameControlsProps) {
         animate={{ scale: 1, opacity: 1 }}
         transition={{ duration: 0.3, ease: [0.34, 1.56, 0.64, 1] }}
       >
-        {/* startButton keeps in module: hover pseudo-class with box-shadow+translateY */}
         <Button
-          size="lg"
+          size="sm"
           onClick={handleStart}
           className={cn(
-            'gap-2 border-none bg-[linear-gradient(135deg,hsl(var(--primary)),hsl(262_83%_58%))] text-primary-foreground',
-            'shadow-[0_4px_15px_hsl(var(--primary)/0.4),0_0_20px_hsl(var(--primary)/0.15)]',
+            'group relative h-9 gap-1.5 overflow-hidden rounded-lg border-none px-3.5',
+            'bg-linear-to-r from-blue-500 to-indigo-500 text-sm font-bold text-white',
+            'shadow-md shadow-blue-500/30 hover:from-blue-600 hover:to-indigo-600 hover:shadow-lg hover:shadow-blue-500/35',
+            'dark:from-blue-600 dark:to-indigo-600 dark:shadow-blue-900/40 dark:hover:from-blue-700 dark:hover:to-indigo-700',
+            'transition-all duration-200 hover:scale-105 active:scale-95',
             styles.startButton
           )}
         >
-          <Play className="size-5" />
-          Start
+          <span className={styles.startButtonShine} aria-hidden />
+          <Play className="relative size-3.5 fill-current" />
+          <span className="relative">Start</span>
         </Button>
       </motion.div>
     );
@@ -69,18 +72,6 @@ export function GameControls({ game, onAfterStart }: GameControlsProps) {
     );
   }
 
-  return (
-    <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} transition={{ duration: 0.2 }}>
-      {/* resetButton keeps in module: ::before pseudo-element ripple */}
-      <Button
-        size="sm"
-        variant="ghost"
-        onClick={game.resetGame}
-        className={cn('gap-1.5', styles.resetButton)}
-      >
-        <RotateCcw className="size-3.5" />
-        Reset
-      </Button>
-    </motion.div>
-  );
+  // Mid-game reset lives in GameProgress (top bar).
+  return null;
 }
