@@ -46,7 +46,7 @@ export function toCrossWordGamePuzzle(puzzle: CrossordPuzzle): CrossWordGamePuzz
   return {
     id: puzzle.id,
     title: puzzle.title,
-    description: puzzle.description ?? '',
+    description: puzzle.description,
     dimensions: puzzle.grid_dimensions,
     grid: puzzle.grid_data.map((row) => row.map(gridCellToGameCell)),
     entries: puzzle.word_list.map(wordToEntry)

@@ -105,7 +105,7 @@ const AddCrosswordDialog = () => {
     add_mut.mutate({
       title: title.trim(),
       slug: normalizedSlug,
-      description: description.trim() ? description.trim() : null,
+      description: description.trim() ? description.trim() : '',
       grid_dimensions: [clampDimension(rows), clampDimension(cols)],
       override_redirect_slug: slugStatus === 'redirect_conflict' && overrideRedirectSlug
     });

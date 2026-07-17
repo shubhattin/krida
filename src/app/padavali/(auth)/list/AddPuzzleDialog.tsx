@@ -111,7 +111,7 @@ const AddPuzzleDialog = () => {
     add_puzzle_mut.mutate({
       title: title.trim(),
       slug: normalizedSlug,
-      description: description.trim() ? description.trim() : null,
+      description: description.trim() ? description.trim() : '',
       override_redirect_slug: slugStatus === 'redirect_conflict' && overrideRedirectSlug
     });
   };

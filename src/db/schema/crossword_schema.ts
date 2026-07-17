@@ -23,7 +23,7 @@ export const crossword_puzzles = pgTable(
     /** Short English title */
     title: text().notNull(),
     /** Description of the puzzle */
-    description: text(),
+    description: text().notNull().default(''),
     /** Grid size as [rows, cols] */
     grid_dimensions: jsonb().notNull().$type<[number, number]>(),
     /** Blank text = blocked box; letter cells are playable (is_visible = prefilled hint). */

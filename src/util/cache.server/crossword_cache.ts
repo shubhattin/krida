@@ -18,7 +18,7 @@ const crossword_puzzle_schema = z.object({
   grid_data: CrossordPuzzleGridCellSchema.array().array(),
   grid_dimensions: z.tuple([z.number().int(), z.number().int()]),
   listed: z.boolean(),
-  description: z.string().nullable(),
+  description: z.string(),
   attachments: z.array(attachment_schema),
   image: image_schema.nullable()
 });
@@ -48,7 +48,7 @@ const listed_puzzle_schema = z.object({
   id: z.number().int(),
   slug: z.string(),
   title: z.string(),
-  description: z.string().nullable(),
+  description: z.string(),
   image: image_schema.nullable()
 });
 

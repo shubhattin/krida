@@ -21,7 +21,7 @@ export const padavali_puzzles = pgTable(
     id: serial().primaryKey(),
     slug: text().notNull(),
     title: text().notNull(),
-    description: text(),
+    description: text().notNull().default(''),
     created_at: timestamp({ withTimezone: true }).notNull().defaultNow(),
     updated_at: timestamp({ withTimezone: true }).$onUpdate(() => new Date()), // NULL for not updated
     word_list: jsonb().notNull().$type<string[]>(),

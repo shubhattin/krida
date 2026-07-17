@@ -47,7 +47,7 @@ export const puzzle_schema = z.object({
   grid_data: z.string().array().array(),
   grid_dimensions: z.tuple([z.number().int(), z.number().int()]),
   listed: z.boolean(),
-  description: z.string().nullable(),
+  description: z.string(),
   attachments: z.array(attachment_schema),
   image: image_schema.nullable()
 });
@@ -61,8 +61,10 @@ export const puzzle_update_input_schema = z.object({
       title: true,
       listed: true,
       word_list: true,
-      grid_data: true,
-      description: true
+      grid_data: true
+    })
+    .extend({
+      description: z.string().trim().min(1, 'Description is required')
     })
     .and(
       z.object({
@@ -79,7 +81,7 @@ export const puzzle_update_input_schema = z.object({
 export const puzzle_add_input_schema = z.object({
   title: z.string().min(1),
   slug: slug_schema,
-  description: z.string().optional().nullable(),
+  description: z.string().default(''),
   override_redirect_slug: z.boolean().default(false)
 });
 

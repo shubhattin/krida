@@ -115,7 +115,7 @@ const ATTACHMENT_TYPE_ITEMS = [
 ];
 
 const title_atom = atom('');
-const description_atom = atom<string | null>(null);
+const description_atom = atom('');
 const listed_atom = atom(false);
 const grid_dimensions_atom = atom<[number, number]>([10, 10]);
 const grid_data_atom = atom<CrossordPuzzleGridCell[][]>([]);
@@ -142,7 +142,7 @@ function toEditableWords(words: CrossWordPuzzleWord[]): EditableWord[] {
   return words.map((w) => ({
     id: createEditableWordId(),
     word: w.word,
-    description: w.description ?? '',
+    description: w.description,
     location: w.location,
     direction: w.direction
   }));
@@ -208,7 +208,7 @@ const CrosswordPuzzleImageSection = ({ puzzleId }: { puzzleId: number }) => {
       puzzleId={puzzleId}
       game="crossword"
       title={title}
-      description={description ?? ''}
+      description={description}
       words={wordList.map((w) => w.word).filter((w) => w.trim().length > 0)}
       imageId={image_id}
       imageInfo={image_info}
@@ -245,11 +245,12 @@ const DescriptionField = () => {
       </Label>
       <Textarea
         id="crossword-description"
-        value={description ?? ''}
-        onChange={(e) => setDescription(e.currentTarget.value || null)}
+        value={description}
+        onChange={(e) => setDescription(e.currentTarget.value)}
         rows={3}
         className="max-w-2xl"
-        placeholder="Optional puzzle description"
+        placeholder="Enter a description for the puzzle..."
+        required
       />
     </div>
   );
@@ -1021,7 +1022,7 @@ const SaveControls = ({ puzzle }: { puzzle: ViewEditCrosswordProps['puzzle'] }) 
 
   const initialRef = useRef<{
     title: string;
-    description: string | null;
+    description: string;
     listed: boolean;
     gridDimensions: [number, number];
     gridData: CrossordPuzzleGridCell[][];
@@ -1116,6 +1117,11 @@ const SaveControls = ({ puzzle }: { puzzle: ViewEditCrosswordProps['puzzle'] }) 
   ]);
 
   const handleSave = () => {
+    if (!description.trim()) {
+      toast.error('Description is required');
+      return;
+    }
+
     const analysis = analyzeWordPlacements(gridData, wordList);
     if (listed && !analysis.canList) {
       toast.error('Cannot list until every word has exactly one valid placement');
@@ -1136,7 +1142,7 @@ const SaveControls = ({ puzzle }: { puzzle: ViewEditCrosswordProps['puzzle'] }) 
       image_id,
       puzzle_data: {
         title: title.trim(),
-        description: description?.trim() ? description.trim() : null,
+        description: description.trim(),
         listed,
         grid_dimensions: gridDimensions,
         grid_data: gridData,

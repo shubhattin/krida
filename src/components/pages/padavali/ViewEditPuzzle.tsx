@@ -129,7 +129,7 @@ const title_atom = atom<string>('');
 const word_list_atom = atom<string[]>([]);
 const grid_data_atom = atom<string[][]>([]);
 const listed_atom = atom<boolean>(false);
-const description_atom = atom<string | null>(null);
+const description_atom = atom<string>('');
 const lipi_lekhika_active_atom = atom<boolean>(true);
 const attachments_atom = atom<Puzzle['attachments']>([]);
 /** null = no image; undefined = not yet hydrated (unused); number = image_id */
@@ -1030,13 +1030,10 @@ const Description = () => {
   return (
     <div>
       <Label className="block font-medium">
-        <span className="text-lg font-bold">
-          Description
-          <span className="ml-3 text-xs text-gray-500 dark:text-gray-400">Optional</span>
-        </span>
+        <span className="text-lg font-bold">Description</span>
         <Input
           className="mt-1 w-full sm:w-[90%] md:w-2/3 lg:w-1/2"
-          value={description || ''}
+          value={description}
           onChange={(e) => setDescription(e.currentTarget.value)}
           onBeforeInput={(e) =>
             handleTypingBeforeInputEvent(
@@ -1049,6 +1046,7 @@ const Description = () => {
           onBlur={() => ctx.clearContext()}
           onKeyDown={(e) => clearTypingContextOnKeyDown(e, ctx)}
           placeholder="Enter a description for the puzzle..."
+          required
         />
       </Label>
     </div>
@@ -1152,6 +1150,11 @@ const SaveButton = ({ word_puzzle }: { word_puzzle: Puzzle }) => {
   }, [title, wordList, gridData, listed, description, attachments, image_id, image_baseline]);
 
   const handleSave = () => {
+    if (!description.trim()) {
+      toast.error('Description is required');
+      return;
+    }
+
     const data = {
       puzzle_id: word_puzzle.id,
       puzzle_slug: word_puzzle.slug,
@@ -1161,7 +1164,7 @@ const SaveButton = ({ word_puzzle }: { word_puzzle: Puzzle }) => {
         listed: listed,
         word_list: wordList,
         grid_data: gridData,
-        description: description !== '' ? description : null,
+        description: description.trim(),
         attachments
       }
     } satisfies z.infer<typeof puzzle_update_input_schema>;
@@ -1248,7 +1251,7 @@ const PuzzleImageSection = ({ word_puzzle }: { word_puzzle: Puzzle }) => {
       puzzleId={word_puzzle.id}
       game="padavali"
       title={title}
-      description={description ?? ''}
+      description={description}
       words={wordList}
       imageId={image_id}
       imageInfo={image_info}

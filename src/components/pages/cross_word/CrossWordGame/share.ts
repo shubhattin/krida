@@ -7,11 +7,7 @@ export const get_crossword_share_url = (slug: string) => {
   return `${base.replace(/\/$/, '')}/padajala/${encodeURIComponent(slug)}`;
 };
 
-export const get_general_share_msg = (
-  name: string,
-  slug: string,
-  description: string | null | undefined
-) => {
+export const get_general_share_msg = (name: string, slug: string, description: string) => {
   const puzzle_url = get_crossword_share_url(slug);
   return [
     `✨ Play Crossword — a Sanskrit crossword puzzle from The Sanskrit Channel!`,
@@ -27,7 +23,7 @@ export const get_general_share_msg = (
 
 export const get_achievement_share_msg = (
   name: string,
-  description: string | null | undefined,
+  description: string,
   time_taken: string,
   accuracy: number,
   slug: string

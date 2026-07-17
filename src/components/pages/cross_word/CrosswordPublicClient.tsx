@@ -105,7 +105,7 @@ export default function CrosswordPublicClient({ puzzles, isAdmin }: CrosswordPub
                 <CardHeader>
                   <CardTitle>{puzzle.title}</CardTitle>
                   <CardDescription className="line-clamp-3">
-                    {puzzle.description?.trim()
+                    {puzzle.description.trim()
                       ? puzzle.description
                       : `${puzzle.grid_dimensions[0]}×${puzzle.grid_dimensions[1]} grid`}
                   </CardDescription>

@@ -12,7 +12,7 @@ export type PuzzleListItem = {
   id: number;
   slug: string;
   title: string;
-  description: string | null;
+  description: string;
   listed: boolean;
   created_at: Date;
   updated_at: Date | null;

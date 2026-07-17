@@ -6,7 +6,7 @@ export const PUZZLE_CARD_IMAGE_ASPECT_RATIO = [3, 2] as const;
 export type ListedPuzzle = PadavaliListedPuzzlesType[number];
 
 export type DisplayPuzzle = ListedPuzzle & {
-  description_original: string | null;
+  description_original: string;
   title_normal: string;
 };
 
@@ -32,7 +32,7 @@ export function mapListedPuzzlesForDisplay(
   return org.map((puzzle, index) => ({
     ...puzzle,
     title: transliterated_texts[text_i++]!,
-    description: puzzle.description ? transliterated_texts[text_i++]! : null,
+    description: puzzle.description ? transliterated_texts[text_i++]! : '',
     description_original: puzzle.description,
     title_normal: normal_titles[index]!
   }));
@@ -46,9 +46,9 @@ export function mergeDisplayPuzzles(
   return rows.map((puzzle, index) => ({
     ...puzzle,
     description_original:
-      'description_original' in puzzle && puzzle.description_original != null
+      'description_original' in puzzle
         ? puzzle.description_original
-        : (org[index]?.description ?? null),
+        : (org[index]?.description ?? ''),
     title_normal: puzzle.title_normal ?? normal_titles?.[index] ?? ''
   }));
 }

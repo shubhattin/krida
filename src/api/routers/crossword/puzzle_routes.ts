@@ -296,7 +296,7 @@ const add_puzzle_route = protectedAdminProcedure
         .values({
           slug: input.slug,
           title: input.title.trim(),
-          description: input.description?.trim() ? input.description.trim() : null,
+          description: input.description?.trim() ?? '',
           grid_dimensions: dimensions,
           grid_data: createEmptyGridData(dimensions),
           word_list: [],

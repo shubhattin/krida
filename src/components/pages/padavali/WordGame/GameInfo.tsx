@@ -362,7 +362,7 @@ export const get_puzzle_share_url = (slug: string) => {
 
 const get_share_msg = (
   name: string,
-  description: string | null,
+  description: string,
   time_taken: string,
   accuracy: number,
   slug: string

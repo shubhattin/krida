@@ -21,7 +21,7 @@ export const crossword_dimensions_schema = z.tuple([
 export const crossword_add_input_schema = z.object({
   title: z.string().min(1),
   slug: crossword_slug_schema,
-  description: z.string().optional().nullable(),
+  description: z.string().default(''),
   grid_dimensions: crossword_dimensions_schema.default(CROSSWORD_DEFAULT_DIM),
   override_redirect_slug: z.boolean().default(false)
 });
@@ -33,7 +33,7 @@ export const crossword_update_input_schema = z.object({
   puzzle_data: z
     .object({
       title: z.string().min(1),
-      description: z.string().optional().nullable(),
+      description: z.string().trim().min(1, 'Description is required'),
       listed: z.boolean(),
       grid_dimensions: crossword_dimensions_schema,
       grid_data: CrossordPuzzleGridCellSchema.array().array(),

@@ -39,7 +39,7 @@ const listed_puzzle_schema = z.object({
   id: z.number().int(),
   slug: z.string(),
   title: z.string(),
-  description: z.string().nullable(),
+  description: z.string(),
   /** Image of the puzzle, used for the puzzle card thumbnail */
   image: image_schema.nullable()
 });

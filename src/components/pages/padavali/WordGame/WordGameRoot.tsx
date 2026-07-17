@@ -79,7 +79,7 @@ export type WordGameProps = {
   word_list: string[];
   listed: boolean;
   title: string;
-  description: string | null;
+  description: string;
   id: number;
   children?: React.ReactNode;
   attachments: z.infer<typeof attachment_schema>[];
@@ -258,7 +258,7 @@ const CompactGameActionButtons = ({
   );
 };
 
-const get_general_share_msg = (name: string, slug: string, description: string | null) => {
+const get_general_share_msg = (name: string, slug: string, description: string) => {
   const puzzle_url = get_puzzle_share_url(slug);
   return [
     `✨ Play Padavali — a super fun, interactive Sanskrit word puzzle!`,

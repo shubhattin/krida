@@ -380,7 +380,7 @@ const add_puzzle_route = protectedAdminProcedure
         .values({
           title: input.title,
           slug: input.slug,
-          description: input.description?.trim() ? input.description.trim() : null,
+          description: input.description?.trim() ?? '',
           word_list: [],
           grid_data: createEmptyGridData(DEFAULT_GRID_DIMENSIONS),
           grid_dimensions: DEFAULT_GRID_DIMENSIONS,

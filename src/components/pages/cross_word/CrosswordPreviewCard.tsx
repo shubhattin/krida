@@ -19,7 +19,7 @@ type Props = {
 export function CrosswordPreviewCard({ puzzle, compact = false, onNavigate }: Props) {
   const imageUrl = puzzle.image ? getCDNUrl(puzzle.image.s3_key) : null;
   const href = `/padajala/${encodeURIComponent(puzzle.slug)}`;
-  const description = puzzle.description?.trim() || null;
+  const description = puzzle.description.trim() || null;
   const [w, h] = PUZZLE_CARD_IMAGE_ASPECT_RATIO;
 
   return (

@@ -82,7 +82,7 @@ describe('matchesPuzzleWordSearch', () => {
         {
           title: 'puzzle one',
           title_normal: 'ganesh',
-          description: null,
+          description: '',
           description_original: 'located in mumbai'
         },
         'ganesh mumbai'
