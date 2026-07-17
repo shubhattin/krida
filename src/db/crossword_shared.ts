@@ -67,7 +67,7 @@ export const crossword_submit_stats_input_schema = z.object({
   turnstile_token: z.string(),
   info: z
     .object({
-      puzzle_id: z.number().int(),
+      puzzle_id: z.number().int().positive(),
       time_taken: z.number().int().nonnegative(),
       accuracy: z.number().int().min(0).max(100),
       total_entries: z.number().int().nonnegative(),

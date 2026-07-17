@@ -163,7 +163,8 @@ const get_listed_puzzles_route = publicProcedure.query(async () => {
       last_listed_at: crossword_puzzles.last_listed_at,
       created_at: crossword_puzzles.created_at,
       updated_at: crossword_puzzles.updated_at,
-      slug: crossword_puzzles.slug
+      slug: crossword_puzzles.slug,
+      image_id: crossword_puzzles.image_id
     })
     .from(crossword_puzzles)
     .where(eq(crossword_puzzles.listed, true))

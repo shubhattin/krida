@@ -126,34 +126,41 @@ export default function CrossWordMetricsCollector({
       const accuracy = denom === 0 ? 0 : Math.trunc((total_entries / denom) * 100);
       const session_id = update_games_started_mut.data.session_id;
 
-      submit_stats_mut.mutateAsync({
-        turnstile_token: turnstileToken,
-        info: {
-          puzzle_id,
-          session_id,
-          time_taken: seconds,
-          accuracy,
-          total_entries,
-          total_cells,
-          prefilled_cells,
-          letter_inputs: letterInputs,
-          incorrect_entry_attempts: incorrectEntryAttempts
+      void (async () => {
+        try {
+          await submit_stats_mut.mutateAsync({
+            turnstile_token: turnstileToken,
+            info: {
+              puzzle_id,
+              session_id,
+              time_taken: seconds,
+              accuracy,
+              total_entries,
+              total_cells,
+              prefilled_cells,
+              letter_inputs: letterInputs,
+              incorrect_entry_attempts: incorrectEntryAttempts
+            }
+          });
+          load_posthog((posthog) => {
+            posthog.capture('gameplay_completed', {
+              puzzle_id,
+              location,
+              game_type: 'crossword',
+              time_taken: seconds,
+              accuracy,
+              total_entries,
+              total_cells,
+              prefilled_cells,
+              letter_inputs: letterInputs,
+              incorrect_entry_attempts: incorrectEntryAttempts
+            });
+          });
+        } catch {
+          setTurnstileToken(null);
+          resetTurnstile();
         }
-      });
-      load_posthog((posthog) => {
-        posthog.capture('gameplay_completed', {
-          puzzle_id,
-          location,
-          game_type: 'crossword',
-          time_taken: seconds,
-          accuracy,
-          total_entries,
-          total_cells,
-          prefilled_cells,
-          letter_inputs: letterInputs,
-          incorrect_entry_attempts: incorrectEntryAttempts
-        });
-      });
+      })();
     }
   }, [
     turnstileToken,

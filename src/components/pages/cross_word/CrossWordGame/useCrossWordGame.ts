@@ -303,11 +303,12 @@ export function useCrossWordGame(timerRef: RefObject<ReturnType<typeof setInterv
 
   const typeLetter = useCallback(
     (letter: string) => {
-      if (!puzzle || !started || completed || !focus) return;
+      const currentFocus = store.get(active_focus_atom);
+      if (!puzzle || !started || completed || !currentFocus) return;
       const normalized = letter.toUpperCase();
       if (!/^[A-Z]$/.test(normalized)) return;
 
-      const entry = entries.find((e) => e.id === focus.entryId);
+      const entry = entries.find((e) => e.id === currentFocus.entryId);
       if (!entry) return;
 
       // Helper: is a cell part of a solved entry (read-only at runtime)?
@@ -320,8 +321,8 @@ export function useCrossWordGame(timerRef: RefObject<ReturnType<typeof setInterv
         isEditableCell(puzzle.grid[row]![col]!) && !isCellSolvedNow(row, col);
 
       // Advance from the current focus to the first writable cell in the entry
-      let targetRow = focus.row;
-      let targetCol = focus.col;
+      let targetRow = currentFocus.row;
+      let targetCol = currentFocus.col;
       if (!isWritable(targetRow, targetCol)) {
         let cursor = nextCellInEntry(entry, targetRow, targetCol, 1);
         while (cursor && !isWritable(cursor.row, cursor.col)) {
@@ -372,7 +373,7 @@ export function useCrossWordGame(timerRef: RefObject<ReturnType<typeof setInterv
         next = followingCell;
       }
       setFocus({
-        ...focus,
+        ...currentFocus,
         row: next?.row ?? targetRow,
         col: next?.col ?? targetCol
       });
@@ -381,7 +382,6 @@ export function useCrossWordGame(timerRef: RefObject<ReturnType<typeof setInterv
       applyEvaluation,
       completed,
       entries,
-      focus,
       puzzle,
       setFocus,
       setIncorrectAttempts,
@@ -393,9 +393,10 @@ export function useCrossWordGame(timerRef: RefObject<ReturnType<typeof setInterv
   );
 
   const backspace = useCallback(() => {
-    if (!puzzle || !started || completed || !focus) return;
-    const template = puzzle.grid[focus.row]?.[focus.col];
-    const currentValue = playerGrid[focus.row]?.[focus.col] ?? '';
+    const currentFocus = store.get(active_focus_atom);
+    if (!puzzle || !started || completed || !currentFocus) return;
+    const template = puzzle.grid[currentFocus.row]?.[currentFocus.col];
+    const currentValue = playerGrid[currentFocus.row]?.[currentFocus.col] ?? '';
     const solvedIds = store.get(solved_entry_ids_atom);
     const isCellSolvedNow = (row: number, col: number) =>
       findEntriesAtCell(entries, row, col).some((entry) => solvedIds.includes(entry.id));
@@ -405,23 +406,23 @@ export function useCrossWordGame(timerRef: RefObject<ReturnType<typeof setInterv
     if (
       isEditableCell(template ?? null) &&
       currentValue !== '' &&
-      !isCellSolvedNow(focus.row, focus.col)
+      !isCellSolvedNow(currentFocus.row, currentFocus.col)
     ) {
       setPlayerGrid((prev) => {
         const copy = prev.map((row) => [...row]);
-        copy[focus.row]![focus.col] = '';
+        copy[currentFocus.row]![currentFocus.col] = '';
         applyEvaluation(copy);
         return copy;
       });
       return;
     }
 
-    const entry = entries.find((e) => e.id === focus.entryId);
+    const entry = entries.find((e) => e.id === currentFocus.entryId);
     if (!entry) return;
-    const prevCell = nextCellInEntry(entry, focus.row, focus.col, -1);
+    const prevCell = nextCellInEntry(entry, currentFocus.row, currentFocus.col, -1);
     if (!prevCell) return;
 
-    setFocus({ ...focus, row: prevCell.row, col: prevCell.col });
+    setFocus({ ...currentFocus, row: prevCell.row, col: prevCell.col });
 
     if (
       isEditableCell(puzzle.grid[prevCell.row]![prevCell.col]!) &&
@@ -438,7 +439,6 @@ export function useCrossWordGame(timerRef: RefObject<ReturnType<typeof setInterv
     applyEvaluation,
     completed,
     entries,
-    focus,
     playerGrid,
     puzzle,
     setFocus,
@@ -449,7 +449,8 @@ export function useCrossWordGame(timerRef: RefObject<ReturnType<typeof setInterv
 
   const moveWithArrow = useCallback(
     (key: 'ArrowUp' | 'ArrowDown' | 'ArrowLeft' | 'ArrowRight') => {
-      if (!puzzle || !started || completed || !focus) return;
+      const currentFocus = store.get(active_focus_atom);
+      if (!puzzle || !started || completed || !currentFocus) return;
 
       const delta =
         key === 'ArrowUp'
@@ -460,11 +461,17 @@ export function useCrossWordGame(timerRef: RefObject<ReturnType<typeof setInterv
               ? { dRow: 0, dCol: -1, direction: 'across' as const }
               : { dRow: 0, dCol: 1, direction: 'across' as const };
 
-      const next = nextPlayableCell(puzzle.grid, focus.row, focus.col, delta.dRow, delta.dCol);
+      const next = nextPlayableCell(
+        puzzle.grid,
+        currentFocus.row,
+        currentFocus.col,
+        delta.dRow,
+        delta.dCol
+      );
       if (!next) return;
       focusCell(next.row, next.col, { direction: delta.direction });
     },
-    [completed, focus, focusCell, puzzle, started]
+    [completed, focusCell, puzzle, started, store]
   );
 
   const handleKeyDown = useCallback(

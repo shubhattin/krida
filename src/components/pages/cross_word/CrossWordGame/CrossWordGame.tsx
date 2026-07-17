@@ -79,21 +79,19 @@ export function CrossWordGame({ attachments }: { attachments?: Attachment[] }) {
   const hasMedia = !!(attachments && attachments.length > 0);
 
   useEffect(() => {
+    if (!(started && !completed)) return;
+
     const handleBeforeUnload = (e: BeforeUnloadEvent) => {
-      if (started && !completed) {
-        e.preventDefault();
-        e.returnValue = '';
-      }
+      e.preventDefault();
+      e.returnValue = '';
     };
 
     const handlePopState = () => {
-      if (started && !completed) {
-        const confirmLeave = window.confirm(
-          'Are you sure you want to leave? Your current game progress will be lost.'
-        );
-        if (!confirmLeave) {
-          window.history.pushState(null, '', window.location.href);
-        }
+      const confirmLeave = window.confirm(
+        'Are you sure you want to leave? Your current game progress will be lost.'
+      );
+      if (!confirmLeave) {
+        window.history.pushState(null, '', window.location.href);
       }
     };
 

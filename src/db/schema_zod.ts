@@ -106,7 +106,7 @@ export const CrosswordAttachmentSchemaZod = createSelectSchema(crossword_attachm
 
 export const CrosswordSessionSchemaZod = createSelectSchema(crossword_sessions, {
   created_at: z.coerce.date(),
-  location: location_list_enum
+  location: location_list_enum.nullable().optional()
 });
 
 export const CrosswordGamePlayStatsSchemaZod = createSelectSchema(crossword_gameplay_stats, {
@@ -115,7 +115,7 @@ export const CrosswordGamePlayStatsSchemaZod = createSelectSchema(crossword_game
 
 export const CrosswordScheduleSchemaZod = createSelectSchema(crossword_schedules, {
   created_at: z.coerce.date(),
-  updated_at: z.coerce.date().optional(),
+  updated_at: z.coerce.date().optional().nullable(),
   start_time: z.coerce.date(),
   end_time: z.coerce.date()
 });

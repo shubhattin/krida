@@ -13,7 +13,9 @@ const Main = async ({ params }: Props) => {
   const session = await getCachedSession();
   if (!session || session.user.role !== 'admin') redirect('/crossword');
 
-  const schedule_id = z.object({ id: z.coerce.number().int() }).parse(await params).id;
+  const schedule_id_parsed = z.object({ id: z.coerce.number().int() }).safeParse(await params);
+  if (!schedule_id_parsed.success) redirect('/crossword/schedules');
+  const schedule_id = schedule_id_parsed.data.id;
 
   const schedule = await db.query.crossword_schedules.findFirst({
     where: (tbl, { eq }) => eq(tbl.id, schedule_id),

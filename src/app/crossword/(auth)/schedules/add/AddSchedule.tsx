@@ -158,7 +158,7 @@ const AddSchedule = (props: Props) => {
     !startDate ||
     !endDate ||
     startDate > endDate ||
-    startDate === endDate;
+    startDate.getTime() === endDate.getTime();
 
   const handle_add_schedule = () => {
     if (type !== 'add') return;
@@ -509,13 +509,10 @@ const ISTDateTimePicker: React.FC<DatePickerProps> = ({
 
   useEffect(() => {
     if (!internalDate) return;
-    const selectedDate = internalDate.getDate();
-    const year = internalDate.getFullYear();
-    const month = internalDate.getMonth();
+    // Derive Y/M/D in Asia/Kolkata (YYYY-MM-DD) — avoid local getDate/getMonth/getFullYear
+    const dateStr = internalDate.toLocaleDateString('en-CA', { timeZone: 'Asia/Kolkata' });
     const [hours, minutes] = start_end_time.split(':').map(Number);
 
-    // making the IST date string manually to prevent any timezone issues
-    const dateStr = `${year}-${String(month + 1).padStart(2, '0')}-${String(selectedDate).padStart(2, '0')}`;
     const timeStr =
       `${String(hours || 0).padStart(2, '0')}:${String(minutes || 0).padStart(2, '0')}:` +
       (type === 'start' ? '01' : '00');

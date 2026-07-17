@@ -1,4 +1,5 @@
 import { protectedAdminProcedure, t } from '~/api/trpc_init';
+import { TRPCError } from '@trpc/server';
 import { z } from 'zod';
 import { db } from '~/db/db';
 import { crossword_schedules } from '~/db/schema';
@@ -70,16 +71,16 @@ const add_puzzle_schedule_route = protectedAdminProcedure
 
     await Promise.allSettled([
       invalidate_and_refresh_cached(CACHE.crossword.current_schedule, NO_CACHE_PARAMS),
-      invalidate_and_refresh_cached(CACHE.crossword.next_schedule, NO_CACHE_PARAMS),
-      publishCrosswordScheduleListingQueue(
-        {
-          puzzle_id,
-          schedule_id: schedule.id,
-          listing_verify_key
-        },
-        (schedule.start_time.getTime() - new Date().getTime()) / 1000 - 4
-      )
+      invalidate_and_refresh_cached(CACHE.crossword.next_schedule, NO_CACHE_PARAMS)
     ]);
+    await publishCrosswordScheduleListingQueue(
+      {
+        puzzle_id,
+        schedule_id: schedule.id,
+        listing_verify_key
+      },
+      (schedule.start_time.getTime() - new Date().getTime()) / 1000 - 4
+    );
 
     return { success: true, schedule_id: schedule.id };
   });
@@ -116,27 +117,32 @@ const update_puzzle_schedule_route = protectedAdminProcedure
     revalidatePath('/crossword/schedules');
 
     const listing_verify_key = generateRandomAlphanumeric(32);
-    await db.transaction(async (tx) => {
-      await tx
+    const [updated] = await db.transaction(async (tx) => {
+      return tx
         .update(crossword_schedules)
         .set({ start_time, end_time, listing_verify_key })
         .where(
           and(eq(crossword_schedules.id, schedule_id), eq(crossword_schedules.puzzle_id, puzzle_id))
-        );
+        )
+        .returning();
     });
 
+    if (!updated) {
+      throw new TRPCError({ code: 'NOT_FOUND', message: 'Schedule not found' });
+    }
+
     await Promise.allSettled([
-      publishCrosswordScheduleListingQueue(
-        {
-          puzzle_id,
-          schedule_id,
-          listing_verify_key
-        },
-        (start_time.getTime() - new Date().getTime()) / 1000 - 4
-      ),
       invalidate_and_refresh_cached(CACHE.crossword.current_schedule, NO_CACHE_PARAMS),
       invalidate_and_refresh_cached(CACHE.crossword.next_schedule, NO_CACHE_PARAMS)
     ]);
+    await publishCrosswordScheduleListingQueue(
+      {
+        puzzle_id,
+        schedule_id,
+        listing_verify_key
+      },
+      (start_time.getTime() - new Date().getTime()) / 1000 - 4
+    );
 
     return { success: true };
   });

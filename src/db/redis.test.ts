@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import { REDIS_CACHE_KEYS } from '~/db/redis';
+import { REDIS_CACHE_KEYS } from './redis';
 
 describe('REDIS_CACHE_KEYS crossword isolation', () => {
   it('uses crossword: prefix and no word_meanings key', () => {
