@@ -535,6 +535,7 @@ const TraversalAndGridData = ({ grid_dimensions }: { grid_dimensions: [number, n
         grid_dimensions={grid_dimensions}
         traversalsMap={traversalsMap}
         validWords={validWords}
+        occupiedCells={occupiedCells}
       />
       <GridData grid_dimensions={grid_dimensions} occupiedCells={occupiedCells} />
     </>
@@ -543,11 +544,13 @@ const TraversalAndGridData = ({ grid_dimensions }: { grid_dimensions: [number, n
 
 const TraversalAnalysis = ({
   traversalsMap,
-  validWords
+  validWords,
+  occupiedCells
 }: {
   grid_dimensions: [number, number];
   traversalsMap: Map<number, Traversal[]>;
   validWords: string[];
+  occupiedCells: Set<Coordinate>;
 }) => {
   const [wordList] = useAtom(word_list_atom);
   const [gridData] = useAtom(grid_data_atom);
@@ -558,7 +561,7 @@ const TraversalAnalysis = ({
         warnings: [],
         cellConflicts: [],
         hasAllValidWords: false,
-        occupiedCells: new Set<string>()
+        uncoveredLetterCount: 0
       };
     }
 
@@ -621,9 +624,23 @@ const TraversalAnalysis = ({
       }
     }
 
+    const occupiedKeys = new Set<string>();
+    for (const [r, c] of occupiedCells) {
+      occupiedKeys.add(`${r},${c}`);
+    }
+    let uncoveredLetterCount = 0;
+    for (let r = 0; r < gridData.length; r++) {
+      const row = gridData[r]!;
+      for (let c = 0; c < row.length; c++) {
+        if ((row[c] ?? '').trim().length === 0) continue;
+        if (!occupiedKeys.has(`${r},${c}`)) uncoveredLetterCount += 1;
+      }
+    }
+
     return {
       warnings,
       cellConflicts,
+      uncoveredLetterCount,
       hasAllValidWords: hasAllValidWords && warnings.length === 0 && cellConflicts.length === 0
     };
   })();
@@ -798,6 +815,36 @@ const TraversalAnalysis = ({
               </div>
             </div>
           </motion.div>
+        </motion.div>
+      )}
+
+      {analysisResult.uncoveredLetterCount > 0 && (
+        <motion.div
+          key="uncovered-letters"
+          initial={{ opacity: 0, y: -10, scale: 0.95 }}
+          animate={{ opacity: 1, y: 0, scale: 1 }}
+          exit={{ opacity: 0, y: -10, scale: 0.95 }}
+          transition={{ duration: 0.3, ease: 'easeOut' }}
+          className="rounded-lg border border-amber-200 bg-amber-50 p-3 dark:border-amber-800 dark:bg-amber-950"
+        >
+          <div className="flex items-center gap-2 text-sm text-amber-700 dark:text-amber-300">
+            <span>
+              Some cells on the grid have letters that aren&apos;t covered by any word
+              {analysisResult.uncoveredLetterCount > 1
+                ? ` (${analysisResult.uncoveredLetterCount})`
+                : ''}
+              .
+            </span>
+            <Popover>
+              <PopoverTrigger
+                render={<Info className="size-4 shrink-0 text-amber-600 dark:text-amber-400" />}
+                nativeButton={false}
+              />
+              <PopoverContent className="max-w-xs text-xs" align="center">
+                This might lead to unstable and unexpected behaviour in the game for players.
+              </PopoverContent>
+            </Popover>
+          </div>
         </motion.div>
       )}
 

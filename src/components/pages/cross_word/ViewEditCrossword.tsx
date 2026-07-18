@@ -719,6 +719,18 @@ const PlacementAnalysisPanel = ({
         status.status === 'duplicate'
     );
 
+  let uncoveredLetterCount = 0;
+  for (let r = 0; r < gridData.length; r++) {
+    const row = gridData[r]!;
+    for (let c = 0; c < row.length; c++) {
+      const cell = row[c]!;
+      if (!cellHasLetter(cell)) continue;
+      if (!analysis.occupiedCells.has(`${r},${c}`)) uncoveredLetterCount += 1;
+    }
+  }
+
+  const showSuccess = analysis.hasAllValid && analysis.noVisibleHintWords.length === 0;
+
   return (
     <AnimatePresence mode="wait">
       {warnings.length > 0 && (
@@ -813,7 +825,33 @@ const PlacementAnalysisPanel = ({
         </motion.div>
       )}
 
-      {analysis.hasAllValid && analysis.noVisibleHintWords.length === 0 && (
+      {uncoveredLetterCount > 0 && (
+        <motion.div
+          key="uncovered-letters"
+          initial={{ opacity: 0, y: -10, scale: 0.95 }}
+          animate={{ opacity: 1, y: 0, scale: 1 }}
+          exit={{ opacity: 0, y: -10, scale: 0.95 }}
+          className="rounded-lg border border-amber-200 bg-amber-50 p-3 dark:border-amber-800 dark:bg-amber-950"
+        >
+          <div className="flex items-center gap-2 text-sm text-amber-700 dark:text-amber-300">
+            <span>
+              Some cells on the grid have letters that aren&apos;t covered by any word
+              {uncoveredLetterCount > 1 ? ` (${uncoveredLetterCount})` : ''}.
+            </span>
+            <Popover>
+              <PopoverTrigger
+                render={<Info className="size-4 shrink-0 text-amber-600 dark:text-amber-400" />}
+                nativeButton={false}
+              />
+              <PopoverContent className="max-w-xs text-xs" align="center">
+                This might lead to unstable and unexpected behaviour in the game for players.
+              </PopoverContent>
+            </Popover>
+          </div>
+        </motion.div>
+      )}
+
+      {showSuccess && (
         <motion.div
           key="success"
           initial={{ opacity: 0, y: -10, scale: 0.95 }}
@@ -918,18 +956,28 @@ const GridEditor = ({
     if (!cell) return '';
     const isBox = isBoxCell(cell);
     const hasLetter = cellHasLetter(cell);
-    const isOccupied = occupiedCells.has(`${r},${c}`);
     const isVisible = hasLetter && cell.is_visible;
+    const isOccupied = occupiedCells.has(`${r},${c}`);
 
     return cn(
-      'h-9 rounded px-0 text-center font-mono text-sm uppercase transition-all duration-200',
-      isBox && 'bg-muted/50 text-muted-foreground',
+      // Override default Input border/focus (often bluish) with explicit state rings.
+      'h-9 rounded border bg-transparent px-0 text-center font-mono text-sm uppercase shadow-none transition-all duration-200',
+      'focus-visible:ring-2 focus-visible:ring-offset-0',
+      isBox &&
+        'border-transparent bg-muted/50 text-muted-foreground focus-visible:ring-muted-foreground/30',
+      // Prefilled hint → green
       isVisible &&
-        'bg-emerald-50 ring-1 ring-emerald-400/70 dark:bg-emerald-950/40 dark:ring-emerald-500/50',
-      isOccupied &&
+        'border-emerald-500 bg-emerald-50/80 focus-visible:ring-emerald-500/40 dark:border-emerald-400 dark:bg-emerald-950/40',
+      // Covered by a word, not prefilled → Padavali-style blue
+      hasLetter &&
         !isVisible &&
-        'ring-1 ring-blue-300 ring-opacity-50 shadow-sm dark:ring-blue-500 dark:ring-opacity-40',
-      isOccupied && isVisible && 'shadow-sm ring-1 ring-emerald-400/70 dark:ring-emerald-500/50'
+        isOccupied &&
+        'border-blue-300/80 focus-visible:ring-blue-400/30 dark:border-blue-500/60',
+      // Letter not covered by any word → white (orphan)
+      hasLetter &&
+        !isVisible &&
+        !isOccupied &&
+        'border-white focus-visible:ring-white/40 dark:border-white/70'
     );
   };
 
@@ -1001,6 +1049,20 @@ const GridEditor = ({
             })}
           </div>
         ))}
+      </div>
+      <div className="flex flex-wrap gap-x-5 gap-y-2 text-[11px] text-muted-foreground">
+        <div className="flex h-3 items-center gap-1.5">
+          <div className="size-2 shrink-0 rounded-full bg-emerald-500" aria-hidden />
+          <span className="leading-none">Prefilled</span>
+        </div>
+        <div className="flex h-3 items-center gap-1.5">
+          <div className="size-2 shrink-0 rounded-full bg-blue-400 dark:bg-blue-500" aria-hidden />
+          <span className="leading-none">In a word</span>
+        </div>
+        <div className="flex h-3 items-center gap-1.5">
+          <div className="size-2 shrink-0 rounded-full bg-white" aria-hidden />
+          <span className="leading-none">Not in any word</span>
+        </div>
       </div>
     </div>
   );

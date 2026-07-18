@@ -215,8 +215,22 @@ export function analyzeWordPlacements(
       direction: status.placement.direction,
       description: item.description.trim()
     });
-    for (const [r, c] of status.placement.cells) {
-      occupiedCells.add(cellKey(r, c));
+  }
+
+  // Coverage for editor warnings/highlights: include cells from any found placement
+  // (unique, ambiguous, or duplicate). Orphan letters are only those never matched.
+  for (let i = 0; i < resolvedStatuses.length; i++) {
+    const status = resolvedStatuses[i]!;
+    if (status.status === 'ok') {
+      for (const [r, c] of status.placement.cells) occupiedCells.add(cellKey(r, c));
+    } else if (status.status === 'ambiguous') {
+      for (const placement of status.placements) {
+        for (const [r, c] of placement.cells) occupiedCells.add(cellKey(r, c));
+      }
+    } else if (status.status === 'duplicate') {
+      for (const placement of findPlacementsForWord(grid, status.word)) {
+        for (const [r, c] of placement.cells) occupiedCells.add(cellKey(r, c));
+      }
     }
   }
 
