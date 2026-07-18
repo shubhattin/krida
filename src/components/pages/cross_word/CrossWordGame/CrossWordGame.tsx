@@ -4,8 +4,8 @@ import { useCallback, useEffect, useRef, useState } from 'react';
 import { useAtom, useAtomValue } from 'jotai';
 import { useRouter } from 'next/navigation';
 import { useQueryClient } from '@tanstack/react-query';
-import { motion, AnimatePresence } from 'framer-motion';
-import { Sparkles, InfoIcon } from 'lucide-react';
+import { motion } from 'framer-motion';
+import { InfoIcon } from 'lucide-react';
 import { IoShareSocialOutline } from 'react-icons/io5';
 import { toast } from 'sonner';
 import { Popover, PopoverContent, PopoverTrigger } from '~/components/ui/popover';
@@ -34,7 +34,6 @@ import {
   puzzle_atom,
   started_atom,
   completed_atom,
-  // active_entry_atom,
   pending_navigation_url_atom
 } from './game_state';
 import { cn } from '~/lib/utils';
@@ -66,57 +65,7 @@ import titleStyles from '~/components/pages/puzzle/puzzle-title.module.css';
  * Flip this to A/B test which path feels better on phones/tablets, then lock in
  * the winner as the permanent default.
  */
-const INPUT_VIRTUAL_KEYBOARD_ENABLED = false;
-
-function ActiveClueCard({ activeEntry }: { activeEntry: any }) {
-  return (
-    <div className="w-full max-w-[24rem] px-1 lg:max-w-100 xl:max-w-104 2xl:max-w-108">
-      <div className="relative flex min-h-19 w-full flex-col justify-center rounded-2xl border border-border/40 bg-card/65 p-3 shadow-[0_4px_20px_oklch(0_0_0/0.04)] backdrop-blur-md transition-all duration-200 sm:min-h-22 sm:p-4 dark:shadow-[0_10px_35px_oklch(0_0_0/0.25)]">
-        <AnimatePresence mode="wait">
-          {activeEntry ? (
-            <motion.div
-              key={activeEntry.id}
-              initial={{ opacity: 0, y: 5 }}
-              animate={{ opacity: 1, y: 0 }}
-              exit={{ opacity: 0, y: -5 }}
-              transition={{ duration: 0.18, ease: 'easeOut' }}
-              className="flex flex-col gap-1.5"
-            >
-              <div className="flex items-center justify-between gap-2">
-                <span className="inline-flex items-center gap-1.5 rounded-full bg-primary/10 px-3 py-0.5 text-[0.65rem] font-bold tracking-wider text-primary uppercase dark:bg-primary/20">
-                  <span className="size-1.5 animate-pulse rounded-full bg-primary" />
-                  {activeEntry.number} {activeEntry.direction}
-                </span>
-              </div>
-              <p className="text-[0.95rem] leading-snug font-medium text-foreground/90">
-                {activeEntry.clue}
-              </p>
-            </motion.div>
-          ) : (
-            <motion.div
-              key="placeholder"
-              initial={{ opacity: 0, scale: 0.96 }}
-              animate={{ opacity: 1, scale: 1 }}
-              exit={{ opacity: 0, scale: 0.96 }}
-              transition={{ duration: 0.2 }}
-              className="flex flex-col items-center justify-center gap-1.5 py-1 text-center"
-            >
-              <div className="flex items-center gap-2">
-                <Sparkles className="size-4 animate-pulse text-blue-500 dark:text-blue-400" />
-                <span className="bg-linear-to-r from-blue-600 to-indigo-600 bg-clip-text text-xs font-semibold tracking-wider text-transparent uppercase dark:from-blue-300 dark:to-indigo-300">
-                  Ready to Solve
-                </span>
-              </div>
-              <p className="text-[0.85rem] leading-snug font-medium text-foreground/80">
-                Select a cell on the grid to reveal its clue
-              </p>
-            </motion.div>
-          )}
-        </AnimatePresence>
-      </div>
-    </div>
-  );
-}
+const INPUT_VIRTUAL_KEYBOARD_ENABLED = true;
 
 async function shareText(title: string, text: string, successToast: string) {
   try {
@@ -156,7 +105,6 @@ export function CrossWordGame({
   const puzzle = useAtomValue(puzzle_atom);
   const started = useAtomValue(started_atom);
   const completed = useAtomValue(completed_atom);
-  // const activeEntry = useAtomValue(active_entry_atom);
   const [pendingUrl, setPendingUrl] = useAtom(pending_navigation_url_atom);
   const router = useRouter();
   const queryClient = useQueryClient();
@@ -539,13 +487,6 @@ export function CrossWordGame({
               panelOnly
             />
           ) : null}
-
-          {/* Central active-clue viewer — temporarily disabled; clue list is the source of truth */}
-          {/* {started && !completed ? (
-            <div className="hidden lg:block">
-              <ActiveClueCard activeEntry={activeEntry} />
-            </div>
-          ) : null} */}
 
           {/* Mobile: full clue list directly under the active clue / grid */}
           <CluePanel

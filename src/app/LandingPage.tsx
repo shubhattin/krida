@@ -509,7 +509,7 @@ export default function LandingPage() {
   };
 
   return (
-    <div className="min-h-screen overflow-x-hidden bg-slate-50 text-slate-900 transition-colors duration-300 dark:bg-slate-950 dark:text-slate-100">
+    <div className="relative left-1/2 min-h-screen w-screen max-w-[100vw] -translate-x-1/2 overflow-x-hidden bg-slate-50 text-slate-900 transition-colors duration-300 dark:bg-slate-950 dark:text-slate-100">
       {/* Decorative Radial Background Blobs */}
       <div className="pointer-events-none absolute inset-0 overflow-hidden">
         <div className="absolute -top-40 left-1/4 h-[500px] w-[500px] rounded-full bg-blue-400/10 blur-3xl dark:bg-blue-500/10" />
