@@ -995,9 +995,8 @@ const GridEditor = ({
         </kbd>{' '}
         on a letter to mark it as prefilled (soft-keyboard Enter works too).
       </p>
-      <p className="text-xs text-muted-foreground/80">
-        Navigate the grid with the arrow keys (↑ ↓ ← →). Empty cells are blocked boxes — type a
-        letter to open them.
+      <p className="hidden text-xs text-muted-foreground/80 sm:block">
+        Navigate the grid with the arrow keys (↑ ↓ ← →)
       </p>
       <div
         ref={gridRef}
