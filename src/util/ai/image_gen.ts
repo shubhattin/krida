@@ -91,7 +91,7 @@ export const generate_puzzle_image_input_schema = z.object({
   /** Supply a pre-written image prompt to skip the prompt-generation step */
   existing_image_prompt: z.string().optional(),
   /** Which game the image belongs to — controls the S3 subdirectory. Defaults to padavali for back-compat. */
-  game: z.enum(KRIDAS).default('padavali')
+  game: z.enum(KRIDAS)
 });
 export type GeneratePuzzleImageInput = z.infer<typeof generate_puzzle_image_input_schema>;
 export const generate_puzzle_image_output_schema = z.discriminatedUnion('success', [

@@ -279,9 +279,11 @@
 /*
  * Hidden keyboard bridge — must stay focusable (not display:none / visibility:hidden)
  * so iOS/Android will open the OS virtual keyboard when the in-app keyboard is off.
+ * `position: fixed` + JS pinning to visualViewport keeps iOS from scrolling the
+ * page back to the input when the player scrolls toward the clue list.
  */
 .keyboardBridge {
-  position: absolute;
+  position: fixed;
   left: 0;
   top: 0;
   width: 1px;

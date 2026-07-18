@@ -135,6 +135,7 @@ export function findEntriesAtCell(entries: CrossWordEntry[], row: number, col: n
   );
 }
 
+/** Next non-blocked, non-prefilled cell in a cardinal direction (for arrow keys). */
 export function nextPlayableCell(
   template: CrossWordCell[][],
   row: number,
@@ -148,7 +149,8 @@ export function nextPlayableCell(
   let c = col + dCol;
 
   while (r >= 0 && c >= 0 && r < rows && c < cols) {
-    if (template[r]![c] !== null) {
+    // Skip blocks and prefilled hints — arrows should land on player-editable cells only.
+    if (isEditableCell(template[r]![c]!)) {
       return { row: r, col: c };
     }
     r += dRow;

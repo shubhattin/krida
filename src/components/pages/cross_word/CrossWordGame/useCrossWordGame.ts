@@ -418,7 +418,12 @@ export function useCrossWordGame(timerRef: RefObject<ReturnType<typeof setInterv
 
     const entry = entries.find((e) => e.id === currentFocus.entryId);
     if (!entry) return;
-    const prevCell = nextCellInEntry(entry, currentFocus.row, currentFocus.col, -1);
+
+    // Step back past prefilled hints so backspace isn't blocked mid-word.
+    let prevCell = nextCellInEntry(entry, currentFocus.row, currentFocus.col, -1);
+    while (prevCell && isFixedCell(puzzle.grid[prevCell.row]![prevCell.col]!)) {
+      prevCell = nextCellInEntry(entry, prevCell.row, prevCell.col, -1);
+    }
     if (!prevCell) return;
 
     setFocus({ ...currentFocus, row: prevCell.row, col: prevCell.col });
@@ -467,13 +472,17 @@ export function useCrossWordGame(timerRef: RefObject<ReturnType<typeof setInterv
 
       if (event.key === 'Tab') {
         event.preventDefault();
-        if (!focus || entries.length === 0) return;
+        if (!focus || entries.length === 0 || !puzzle) return;
         const index = entries.findIndex((e) => e.id === focus.entryId);
         const dir = event.shiftKey ? -1 : 1;
         const nextEntry = entries[(index + dir + entries.length) % entries.length]!;
+        // Prefer the first writable cell so Tab isn't stranded on a prefilled start.
+        const firstWritable = getEntryCells(nextEntry).find(({ row, col }) =>
+          isEditableCell(puzzle.grid[row]?.[col] ?? null)
+        );
         setFocus({
-          row: nextEntry.row,
-          col: nextEntry.col,
+          row: firstWritable?.row ?? nextEntry.row,
+          col: firstWritable?.col ?? nextEntry.col,
           direction: nextEntry.direction,
           entryId: nextEntry.id
         });
@@ -513,7 +522,7 @@ export function useCrossWordGame(timerRef: RefObject<ReturnType<typeof setInterv
         typeLetter(event.key);
       }
     },
-    [backspace, completed, entries, focus, focusCell, moveWithArrow, setFocus, started, typeLetter]
+    [backspace, completed, entries, focus, focusCell, moveWithArrow, puzzle, setFocus, started, typeLetter]
   );
 
   const isCellInActiveWord = useCallback(

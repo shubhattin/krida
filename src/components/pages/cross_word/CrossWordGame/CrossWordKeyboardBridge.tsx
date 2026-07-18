@@ -70,6 +70,11 @@ export const CrossWordKeyboardBridge = forwardRef<
       focus() {
         const el = inputRef.current;
         if (!el) return;
+        const vv = typeof window !== 'undefined' ? window.visualViewport : null;
+        if (vv) {
+          el.style.top = `${Math.max(0, vv.offsetTop)}px`;
+          el.style.left = `${Math.max(0, vv.offsetLeft)}px`;
+        }
         el.focus({ preventScroll: true });
         // iOS sometimes needs a re-focus inside the same gesture tick.
         requestAnimationFrame(() => {
@@ -92,6 +97,32 @@ export const CrossWordKeyboardBridge = forwardRef<
       clearInput();
     }
   }, [started, completed, focus, clearInput]);
+
+  /**
+   * Keep the focused bridge inside the *visual* viewport. If it stays pinned to
+   * the grid (which can scroll off-screen), iOS scrolls the page back to the
+   * input and blocks reaching the clue list under the soft keyboard.
+   */
+  useEffect(() => {
+    const el = inputRef.current;
+    const vv = typeof window !== 'undefined' ? window.visualViewport : null;
+    if (!el || !vv) return;
+
+    const placeInVisualViewport = () => {
+      if (document.activeElement !== el) return;
+      // Top-left of the visible area — still focusable, never off-screen.
+      el.style.top = `${Math.max(0, vv.offsetTop)}px`;
+      el.style.left = `${Math.max(0, vv.offsetLeft)}px`;
+    };
+
+    placeInVisualViewport();
+    vv.addEventListener('resize', placeInVisualViewport);
+    vv.addEventListener('scroll', placeInVisualViewport);
+    return () => {
+      vv.removeEventListener('resize', placeInVisualViewport);
+      vv.removeEventListener('scroll', placeInVisualViewport);
+    };
+  }, [started, completed, focus]);
 
   const commitLetter = useCallback(
     (raw: string) => {

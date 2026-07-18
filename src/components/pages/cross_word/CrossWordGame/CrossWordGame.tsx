@@ -269,22 +269,58 @@ export function CrossWordGame({
     return () => window.removeEventListener('keydown', onKeyDown);
   }, [game.handleKeyDown, started]);
 
-  // Keep the board visible above the OS soft keyboard when the viewport shrinks.
+  /**
+   * Native soft-keyboard path: grow bottom padding by the keyboard inset so the
+   * clue list can be scrolled into the visible area above the OS keyboard.
+   *
+   * Only nudge the board into view when the keyboard is covering it. Do NOT
+   * listen to visualViewport `scroll` — that fights intentional scrolling toward
+   * the clues (the previous bug).
+   */
+  const [keyboardInset, setKeyboardInset] = useState(0);
+
   useEffect(() => {
-    if (useVirtualKeyboard || !started || completed) return;
+    if (useVirtualKeyboard || !started || completed) {
+      setKeyboardInset(0);
+      return;
+    }
     const vv = window.visualViewport;
     if (!vv) return;
 
-    const onResize = () => {
-      if (document.activeElement?.getAttribute(CROSSWORD_KB_ATTR) !== 'true') return;
-      boardAnchorRef.current?.scrollIntoView({ block: 'nearest', behavior: 'smooth' });
+    const syncKeyboardLayout = () => {
+      const bridgeFocused =
+        document.activeElement?.getAttribute(CROSSWORD_KB_ATTR) === 'true';
+      if (!bridgeFocused) {
+        setKeyboardInset(0);
+        return;
+      }
+
+      const inset = Math.max(0, Math.round(window.innerHeight - vv.height - vv.offsetTop));
+      setKeyboardInset(inset);
+
+      // Keyboard just opened / resized and is covering the board — lift it once.
+      if (inset < 48 || !boardAnchorRef.current) return;
+      const rect = boardAnchorRef.current.getBoundingClientRect();
+      const visibleBottom = vv.offsetTop + vv.height;
+      if (rect.bottom > visibleBottom - 12) {
+        boardAnchorRef.current.scrollIntoView({ block: 'nearest', behavior: 'smooth' });
+      }
     };
 
-    vv.addEventListener('resize', onResize);
-    vv.addEventListener('scroll', onResize);
+    vv.addEventListener('resize', syncKeyboardLayout);
+    // focusout runs before the next activeElement is set; defer so blur clears inset.
+    const onFocusChange = () => {
+      window.setTimeout(syncKeyboardLayout, 0);
+    };
+    document.addEventListener('focusin', onFocusChange);
+    document.addEventListener('focusout', onFocusChange);
+    syncKeyboardLayout();
+
     return () => {
-      vv.removeEventListener('resize', onResize);
-      vv.removeEventListener('scroll', onResize);
+      vv.removeEventListener('resize', syncKeyboardLayout);
+      document.removeEventListener('focusin', onFocusChange);
+      document.removeEventListener('focusout', onFocusChange);
+      setKeyboardInset(0);
     };
   }, [started, completed, useVirtualKeyboard]);
 
@@ -321,7 +357,9 @@ export function CrossWordGame({
       )}
       style={{
         WebkitOverflowScrolling: 'touch',
-        overscrollBehavior: started && !completed ? 'contain' : 'auto'
+        overscrollBehavior: started && !completed ? 'contain' : 'auto',
+        // Extra scroll room while the OS keyboard is open (native-input path only).
+        ...(keyboardInset > 0 ? { paddingBottom: `calc(${keyboardInset}px + 1.5rem)` } : {})
       }}
     >
       <AlertDialog

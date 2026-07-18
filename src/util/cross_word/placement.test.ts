@@ -13,7 +13,7 @@ import {
 } from './grid';
 import { analyzeWordPlacements, findAllRuns, findPlacementsForWord } from './placement';
 import { toCrossWordGamePuzzle, gridCellToGameCell } from './adapter';
-import { numberEntries, createEmptyPlayerGrid, isFixedCell, isBlockedCell } from './game_model';
+import { numberEntries, createEmptyPlayerGrid, isFixedCell, isBlockedCell, nextPlayableCell } from './game_model';
 import type { CrossordPuzzle } from '~/db/schema_zod';
 
 describe('grid helpers', () => {
@@ -243,5 +243,13 @@ describe('adapter and game model', () => {
     expect(player[0]![0]).toBe('C');
     expect(player[0]![1]).toBe('');
     expect(player[1]![0]).toBeNull();
+  });
+
+  it('nextPlayableCell skips prefilled (fixed) cells', () => {
+    // Row: editable | fixed | editable
+    const grid = [['', 'X', '']];
+    expect(nextPlayableCell(grid, 0, 0, 0, 1)).toEqual({ row: 0, col: 2 });
+    expect(nextPlayableCell(grid, 0, 2, 0, -1)).toEqual({ row: 0, col: 0 });
+    expect(nextPlayableCell(grid, 0, 0, 0, -1)).toBeNull();
   });
 });
