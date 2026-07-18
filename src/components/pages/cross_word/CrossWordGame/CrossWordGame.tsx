@@ -15,7 +15,6 @@ import { CrossWordGrid } from './CrossWordGrid';
 import { GameProgress } from './GameProgress';
 import { GameControls } from './GameControls';
 import { CompletionCelebration } from './CompletionCelebration';
-import { ResetPuzzleButton } from './ResetPuzzleButton';
 import { CrossWordOnScreenKeyboard } from './CrossWordOnScreenKeyboard';
 import {
   CROSSWORD_KB_ATTR,
@@ -423,7 +422,7 @@ export function CrossWordGame({
       ) : null}
 
       <div className="mb-3 flex flex-col items-center gap-3 sm:mb-4">
-        <GameProgress />
+        <GameProgress onReset={game.resetGame} />
         <CompletionCelebration listed={listed} puzzleSlug={puzzleSlug} />
       </div>
 
@@ -457,12 +456,6 @@ export function CrossWordGame({
               useVirtualKeyboard && started && !completed && !keyboardOpen && 'pb-4'
             )}
           >
-            {/* Float above the board corner — no layout row, doesn't cover cells */}
-            {started && !completed ? (
-              <div className="absolute top-0 right-3 z-20 -translate-y-[calc(100%+0.35rem)] sm:right-0">
-                <ResetPuzzleButton onReset={game.resetGame} />
-              </div>
-            ) : null}
             {!useVirtualKeyboard ? (
               <CrossWordKeyboardBridge
                 ref={keyboardRef}

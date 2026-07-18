@@ -6,6 +6,7 @@ import { ArrowLeftRight, Delete, Keyboard, X } from 'lucide-react';
 import { Button } from '~/components/ui/button';
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from '~/components/ui/tooltip';
 import { cn } from '~/lib/utils';
+import styles from './crossword-game.module.css';
 
 const ROW_1 = ['Q', 'W', 'E', 'R', 'T', 'Y', 'U', 'I', 'O', 'P'] as const;
 const ROW_2 = ['A', 'S', 'D', 'F', 'G', 'H', 'J', 'K', 'L'] as const;
@@ -30,33 +31,14 @@ type CrossWordOnScreenKeyboardProps = {
   panelOnly?: boolean;
 };
 
-/**
- * Shared keycap styling. Light theme leans on crisp borders + soft drop shadows
- * for depth; dark theme keeps the same shadow language but lifts the contrast
- * so keys stay legible and tactile against the deep navy panel.
- */
-const KEY_BASE =
-  'group/key h-10 min-w-0 flex-1 touch-manipulation rounded-xl px-0 text-[0.95rem] font-bold tracking-wide select-none';
-const KEY_LIGHT =
-  'border border-border/70 bg-linear-to-b from-white to-muted/50 text-foreground ' +
-  'shadow-[0_1px_0_oklch(1_0_0/0.9)_inset,0_1px_2px_oklch(0_0_0/0.08),0_4px_8px_-3px_oklch(0_0_0/0.12)] ' +
-  'hover:from-muted/40 hover:to-muted/70 hover:shadow-[0_1px_0_oklch(1_0_0/0.8)_inset,0_2px_4px_oklch(0_0_0/0.1),0_6px_12px_-4px_oklch(0_0_0/0.16)]';
-const KEY_DARK =
-  'dark:border-white/10 dark:from-white/7 dark:to-white/2 dark:text-foreground ' +
-  'dark:shadow-[0_1px_0_oklch(1_0_0/0.08)_inset,0_1px_2px_oklch(0_0_0/0.4),0_6px_14px_-4px_oklch(0_0_0/0.6)] ' +
-  'dark:hover:from-white/12 dark:hover:to-white/4 dark:hover:shadow-[0_1px_0_oklch(1_0_0/0.1)_inset,0_2px_5px_oklch(0_0_0/0.45),0_8px_18px_-4px_oklch(0_0_0/0.7)]';
-// Pressed state: key sinks slightly, loses its drop shadow, gains an inner glow.
-const KEY_PRESSED =
-  'active:translate-y-[1.5px] active:scale-[0.97] active:shadow-[inset_0_2px_5px_oklch(0_0_0/0.18)] ' +
-  'dark:active:shadow-[inset_0_2px_6px_oklch(0_0_0/0.6)] active:transition-[transform,box-shadow] active:duration-75';
-
 function KeyButton({
   label,
   ariaLabel,
   onClick,
   disabled,
   wide,
-  className,
+  accent,
+  muted,
   children
 }: {
   label?: string;
@@ -64,13 +46,13 @@ function KeyButton({
   onClick: () => void;
   disabled?: boolean;
   wide?: boolean;
-  className?: string;
+  accent?: boolean;
+  muted?: boolean;
   children?: ReactNode;
 }) {
   return (
-    <Button
+    <button
       type="button"
-      variant="outline"
       disabled={disabled}
       aria-label={ariaLabel}
       title={ariaLabel}
@@ -80,53 +62,39 @@ function KeyButton({
         onClick();
       }}
       onPointerDown={(event) => {
+        if (disabled) return;
         const target = event.currentTarget;
         const ripple = target.querySelector<HTMLElement>('[data-key-ripple="true"]');
         if (!ripple) return;
 
         const rect = target.getBoundingClientRect();
-        const size = Math.max(rect.width, rect.height) * 1.1;
+        const size = Math.max(rect.width, rect.height) * 1.15;
         const x = event.clientX - rect.left - size / 2;
         const y = event.clientY - rect.top - size / 2;
 
-        // Reset then re-trigger the ripple animation from the press point.
-        ripple.style.opacity = '0';
         ripple.style.width = ripple.style.height = `${size}px`;
         ripple.style.left = `${x}px`;
         ripple.style.top = `${y}px`;
-        // Force reflow so the restart is picked up.
-        void ripple.offsetWidth;
+        ripple.getAnimations().forEach((a) => a.cancel());
         ripple.animate(
           [
-            { transform: 'scale(0.2)', opacity: '0.5' },
+            { transform: 'scale(0.15)', opacity: '0.55' },
             { transform: 'scale(1)', opacity: '0' }
           ],
-          { duration: 450, easing: 'ease-out', fill: 'forwards' }
+          { duration: 420, easing: 'ease-out', fill: 'forwards' }
         );
       }}
       className={cn(
-        KEY_BASE,
-        KEY_LIGHT,
-        KEY_DARK,
-        KEY_PRESSED,
-        'group/key relative overflow-hidden transition-[transform,box-shadow,background-color] duration-150 ease-out',
-        wide && 'max-w-17 flex-[1.35]',
-        className
+        styles.kbKey,
+        wide && styles.kbKeyWide,
+        accent && styles.kbKeyAccent,
+        muted && styles.kbKeyMuted
       )}
     >
-      {/* Flash overlay: a quick white wash on press for tactile feedback. */}
-      <span
-        aria-hidden="true"
-        className="pointer-events-none absolute inset-0 rounded-[inherit] bg-primary opacity-0 transition-opacity duration-100 group-active/key:opacity-15 dark:group-active/key:opacity-25"
-      />
-      {/* Ripple: expands from the press point. Spawned via JS on pointer down. */}
-      <span
-        aria-hidden="true"
-        data-key-ripple="true"
-        className="pointer-events-none absolute rounded-full bg-primary/30 opacity-0"
-      />
-      <span className="relative z-10">{children ?? label}</span>
-    </Button>
+      <span aria-hidden className={styles.kbKeyFlash} />
+      <span aria-hidden data-key-ripple="true" className={styles.kbKeyRipple} />
+      <span className={styles.kbKeyLabel}>{children ?? label}</span>
+    </button>
   );
 }
 
@@ -279,10 +247,7 @@ export function CrossWordOnScreenKeyboard({
                       onClick={onToggleDirection}
                       disabled={!canToggleDirection}
                       wide
-                      className={cn(
-                        canToggleDirection &&
-                          'border-primary/40 text-primary dark:border-primary/50'
-                      )}
+                      accent={canToggleDirection}
                     >
                       <ArrowLeftRight />
                     </KeyButton>
@@ -296,12 +261,7 @@ export function CrossWordOnScreenKeyboard({
                       />
                     ))}
 
-                    <KeyButton
-                      ariaLabel="Delete letter"
-                      onClick={onBackspace}
-                      wide
-                      className="text-muted-foreground"
-                    >
+                    <KeyButton ariaLabel="Delete letter" onClick={onBackspace} wide muted>
                       <Delete />
                     </KeyButton>
                   </div>
