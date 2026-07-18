@@ -288,8 +288,7 @@ export function CrossWordGame({
     if (!vv) return;
 
     const syncKeyboardLayout = () => {
-      const bridgeFocused =
-        document.activeElement?.getAttribute(CROSSWORD_KB_ATTR) === 'true';
+      const bridgeFocused = document.activeElement?.getAttribute(CROSSWORD_KB_ATTR) === 'true';
       if (!bridgeFocused) {
         setKeyboardInset(0);
         return;

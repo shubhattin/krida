@@ -13,7 +13,13 @@ import {
 } from './grid';
 import { analyzeWordPlacements, findAllRuns, findPlacementsForWord } from './placement';
 import { toCrossWordGamePuzzle, gridCellToGameCell } from './adapter';
-import { numberEntries, createEmptyPlayerGrid, isFixedCell, isBlockedCell, nextPlayableCell } from './game_model';
+import {
+  numberEntries,
+  createEmptyPlayerGrid,
+  isFixedCell,
+  isBlockedCell,
+  nextPlayableCell
+} from './game_model';
 import type { CrossordPuzzle } from '~/db/schema_zod';
 
 describe('grid helpers', () => {

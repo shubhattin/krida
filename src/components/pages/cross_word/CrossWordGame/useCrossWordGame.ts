@@ -522,7 +522,18 @@ export function useCrossWordGame(timerRef: RefObject<ReturnType<typeof setInterv
         typeLetter(event.key);
       }
     },
-    [backspace, completed, entries, focus, focusCell, moveWithArrow, puzzle, setFocus, started, typeLetter]
+    [
+      backspace,
+      completed,
+      entries,
+      focus,
+      focusCell,
+      moveWithArrow,
+      puzzle,
+      setFocus,
+      started,
+      typeLetter
+    ]
   );
 
   const isCellInActiveWord = useCallback(
