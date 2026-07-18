@@ -11,6 +11,7 @@ import {
   mapListedPuzzlesForDisplay,
   NORMAL_TITLE_SCRIPT
 } from '~/components/pages/padavali/listed_puzzle_display';
+import { GameCrossPromo } from '~/components/GameCrossPromo';
 
 export const dynamic = 'force-dynamic';
 
@@ -49,11 +50,16 @@ export default async function Home() {
       await buildListedPuzzlesInit(script);
 
     return (
-      <NoScheduledPadavali
-        next_schedule={next_schedule}
-        listed_puzzles={listed_puzzles}
-        listed_puzzles_init_transliterated={listed_puzzles_init_transliterated}
-      />
+      <>
+        <NoScheduledPadavali
+          next_schedule={next_schedule}
+          listed_puzzles={listed_puzzles}
+          listed_puzzles_init_transliterated={listed_puzzles_init_transliterated}
+        />
+        <div className="mx-auto max-w-4xl px-4 pb-12">
+          <GameCrossPromo promote="padajala" />
+        </div>
+      </>
     );
   }
 
@@ -70,12 +76,17 @@ export default async function Home() {
   let cell_i = 0;
   const grid_data = word_puzzle.grid_data.map((row) => row.map(() => grid_cells[cell_i++]!));
   return (
-    <MainPagePadavali
-      script={script}
-      word_puzzle={word_puzzle}
-      initial_script_data={{ word_msgs: word_game_msgs, title, grid_data }}
-      next_schedule={next_schedule}
-    />
+    <>
+      <MainPagePadavali
+        script={script}
+        word_puzzle={word_puzzle}
+        initial_script_data={{ word_msgs: word_game_msgs, title, grid_data }}
+        next_schedule={next_schedule}
+      />
+      <div className="mx-auto max-w-4xl px-4 pb-12">
+        <GameCrossPromo promote="padajala" />
+      </div>
+    </>
   );
 }
 

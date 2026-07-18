@@ -15,30 +15,51 @@ import {
   Trophy,
   Award,
   ChevronRight,
-  Code2
+  Code2,
+  Grid3X3
 } from 'lucide-react';
 import { SiGithub } from 'react-icons/si';
 import { FaYoutube, FaInstagram } from 'react-icons/fa';
 import Link from 'next/link';
 import { motion, AnimatePresence, type Variants } from 'framer-motion';
 
-// Mock puzzle board letters and state constants
+// ─── Padavali Mini Demo Constants ─────────────────────────
 const MOCK_GRID = [
-  ['र', 'मा', 'प', 'ह'],
-  ['सं', 'स्कृ', 'त', 'दा'],
-  ['दे', 'व', 'व', 'लो'],
-  ['ज्ञा', 'न', 'ली', 'क']
+  ['ज्ञा', 'नं', 'म', 'ङ्ग', 'ल'],
+  ['सं', 'स्कृ', 'प', 'त', 'म'],
+  ['दे', 'व', 'लो', 'दा', 'क'],
+  ['भा', 'षा', 'व', 'रा', 'म'],
+  ['ह', 'रिः', 'ली', 'ला', 'क']
 ];
 
 // Tracing path for "पदावली" (P-da-va-li)
-// प: (0, 2), दा: (1, 3), व: (2, 2), ली: (3, 2)
 const MOCK_PATH = [
-  [0, 2],
-  [1, 3],
-  [2, 2],
-  [3, 2]
+  [1, 2],
+  [2, 3],
+  [3, 2],
+  [4, 2]
 ];
 
+// ─── Padajala Mini Demo Constants ─────────────────────────
+// A simplified crossword shape for visual preview
+// 1 = filled cell, 0 = empty
+const CROSSWORD_GRID = [
+  [0, 0, 0, 0, 0], // Row 0
+  [0, 1, 1, 1, 1], // Row 1: . Y O G A
+  [0, 0, 0, 1, 0], // Row 2: . . . I .
+  [0, 0, 0, 1, 0], // Row 3: . . . T .
+  [1, 1, 1, 1, 0] // Row 4: V E D A .
+];
+
+const CROSSWORD_LETTERS = [
+  ['', '', '', '', ''],
+  ['', 'Y', 'O', 'G', 'A'],
+  ['', '', '', 'I', ''],
+  ['', '', '', 'T', ''],
+  ['V', 'E', 'D', 'A', '']
+];
+
+// ─── Script Samples ───────────────────────────────────────
 const SCRIPT_SAMPLES = [
   { script: 'Devanagari', text: 'पदावली' },
   { script: 'Telugu', text: 'పదావళి' },
@@ -46,58 +67,425 @@ const SCRIPT_SAMPLES = [
   { script: 'Gujarati', text: 'પદાવલી' },
   { script: 'Bengali', text: 'পদাবলী' },
   { script: 'Odia', text: 'ପଦାବଳୀ' },
-  { script: 'Tamil', text: 'பதாவலி' }
+  { script: 'Tamil', text: 'பதாவли' }
 ];
 
-export default function LandingPage() {
+// ─── Game Card Config ─────────────────────────────────────
+export const GAMES = [
+  {
+    id: 'padavali' as const,
+    name: 'Padāvalī',
+    subtitle: 'Word Search',
+    description: 'Find hidden Sanskrit words by dragging across a grid of letters.',
+    playHref: '/padavali',
+    puzzlesHref: '/padavali/puzzles',
+    gradient: {
+      from: 'from-blue-500',
+      to: 'to-indigo-600',
+      text: 'from-blue-600 via-blue-500 to-indigo-600',
+      textDark: 'dark:from-blue-400 dark:via-blue-300 dark:to-indigo-400',
+      glow: 'blue',
+      border:
+        'border-blue-200/40 hover:border-blue-400/60 dark:border-blue-800/40 dark:hover:border-blue-600/60',
+      bg: 'bg-blue-50/30 dark:bg-blue-950/20',
+      iconBg: 'from-blue-500 to-indigo-600',
+      shadowColor: 'shadow-blue-500/20'
+    }
+  },
+  {
+    id: 'padajala' as const,
+    name: 'Padajāla',
+    subtitle: 'Crossword',
+    description: 'Solve Sanskrit crossword puzzles and expand your vocabulary.',
+    playHref: '/padajala',
+    puzzlesHref: '/padajala/puzzles',
+    gradient: {
+      from: 'from-amber-500',
+      to: 'to-orange-600',
+      text: 'from-amber-600 via-orange-500 to-orange-600',
+      textDark: 'dark:from-amber-400 dark:via-orange-300 dark:to-orange-400',
+      glow: 'amber',
+      border:
+        'border-amber-200/40 hover:border-amber-400/60 dark:border-amber-800/40 dark:hover:border-amber-600/60',
+      bg: 'bg-amber-50/30 dark:bg-amber-950/20',
+      iconBg: 'from-amber-500 to-orange-600',
+      shadowColor: 'shadow-amber-500/20'
+    }
+  }
+] as const;
+
+// ─── Demo Words for Padavali Animation ─────────────────────
+const DEMO_WORDS = [
+  {
+    text: 'पदावली',
+    path: [
+      [1, 2],
+      [2, 3],
+      [3, 2],
+      [4, 2]
+    ]
+  },
+  {
+    text: 'ज्ञानं',
+    path: [
+      [0, 0],
+      [0, 1]
+    ]
+  },
+  {
+    text: 'भाषा',
+    path: [
+      [3, 0],
+      [3, 1]
+    ]
+  },
+  {
+    text: 'हरिः',
+    path: [
+      [4, 0],
+      [4, 1]
+    ]
+  }
+];
+
+// ─── Padavali Mini Grid Preview ───────────────────────────
+export function PadavaliMiniPreview() {
+  const [wordIndex, setWordIndex] = useState(0);
   const [activeStep, setActiveStep] = useState(0);
   const [animState, setAnimState] = useState<'idle' | 'selecting' | 'success'>('idle');
-  const [scriptIndex, setScriptIndex] = useState(0);
 
-  // Puzzle board auto-animation loop
+  useEffect(() => {
+    let timer: NodeJS.Timeout;
+    let isMounted = true;
+
+    const runWordCycle = async (wIdx: number) => {
+      if (!isMounted) return;
+      setWordIndex(wIdx);
+      setAnimState('idle');
+      setActiveStep(0);
+
+      // Idle
+      await new Promise((r) => {
+        timer = setTimeout(r, 1200);
+      });
+      if (!isMounted) return;
+
+      // Selecting
+      const currentWord = DEMO_WORDS[wIdx];
+      setAnimState('selecting');
+      for (let i = 0; i < currentWord.path.length; i++) {
+        setActiveStep(i + 1);
+        await new Promise((r) => {
+          timer = setTimeout(r, 500);
+        });
+        if (!isMounted) return;
+      }
+
+      // Success
+      setAnimState('success');
+      await new Promise((r) => {
+        timer = setTimeout(r, 2000);
+      });
+      if (!isMounted) return;
+
+      // Next Word
+      const nextIdx = (wIdx + 1) % DEMO_WORDS.length;
+      runWordCycle(nextIdx);
+    };
+
+    runWordCycle(0);
+    return () => {
+      isMounted = false;
+      clearTimeout(timer);
+    };
+  }, []);
+
+  const currentWord = DEMO_WORDS[wordIndex];
+
+  return (
+    <div className="relative rounded-2xl border border-slate-200/40 bg-slate-100/40 p-4.5 dark:border-slate-800/40 dark:bg-slate-950/20">
+      {/* Header */}
+      <div className="mb-3 flex items-center justify-between">
+        <div className="flex items-center gap-1.5">
+          <div className="size-1.5 animate-pulse rounded-full bg-emerald-500" />
+          <span className="text-[10px] font-bold tracking-wider text-slate-500 uppercase dark:text-slate-400">
+            Live Demo
+          </span>
+        </div>
+      </div>
+
+      {/* 5x5 Grid */}
+      <div className="grid grid-cols-5 gap-1.5">
+        {MOCK_GRID.map((rowArr, rIdx) =>
+          rowArr.map((letter, cIdx) => {
+            const pathStep = currentWord.path.findIndex(([pr, pc]) => pr === rIdx && pc === cIdx);
+            const isCurrentlyHighlighted = pathStep !== -1 && pathStep < activeStep;
+
+            // Retain green color for previously found words in the current cycle
+            const isPartofCompletedWord = DEMO_WORDS.some((word, wIdx) => {
+              if (wIdx >= wordIndex) return false;
+              return word.path.some(([pr, pc]) => pr === rIdx && pc === cIdx);
+            });
+
+            let cellClass =
+              'border-slate-200/80 bg-slate-50/50 dark:border-slate-800 dark:bg-slate-950/40 text-slate-800 dark:text-slate-200 shadow-xs';
+
+            if (isCurrentlyHighlighted) {
+              if (animState === 'success') {
+                cellClass =
+                  'border-emerald-400 bg-gradient-to-br from-emerald-100/70 to-green-100/50 dark:border-emerald-500/60 dark:from-emerald-950/45 dark:to-green-950/20 text-emerald-700 dark:text-emerald-300 shadow-sm shadow-emerald-500/10 scale-105';
+              } else if (animState === 'selecting') {
+                cellClass =
+                  'border-blue-400 bg-gradient-to-br from-blue-100/70 to-indigo-50/50 dark:border-blue-500/60 dark:from-blue-950/45 dark:to-indigo-950/20 text-blue-700 dark:text-blue-300 shadow-sm shadow-blue-500/10 scale-105';
+              }
+            } else if (isPartofCompletedWord) {
+              cellClass =
+                'border-emerald-400 bg-gradient-to-br from-emerald-100/70 to-green-100/50 dark:border-emerald-500/60 dark:from-emerald-950/45 dark:to-green-950/20 text-emerald-700 dark:text-emerald-300 shadow-sm shadow-emerald-500/10 scale-105';
+            }
+
+            return (
+              <div
+                key={`${rIdx}-${cIdx}`}
+                className={`flex aspect-square items-center justify-center rounded-xl border text-base font-extrabold transition-all duration-300 ${cellClass}`}
+              >
+                {letter}
+              </div>
+            );
+          })
+        )}
+      </div>
+    </div>
+  );
+}
+
+// ─── Padajala Mini Crossword Preview ──────────────────────
+export function PadajalaMiniPreview() {
+  const [filledCount, setFilledCount] = useState(0);
+  const totalCells = CROSSWORD_GRID.flat().filter(Boolean).length;
+
   useEffect(() => {
     let timer: NodeJS.Timeout;
     let isMounted = true;
 
     const runCycle = async () => {
       if (!isMounted) return;
-
-      // Step 1: Idle state
-      setAnimState('idle');
-      setActiveStep(0);
-      await new Promise((resolve) => {
-        timer = setTimeout(resolve, 1500);
+      setFilledCount(0);
+      await new Promise((r) => {
+        timer = setTimeout(r, 1200);
       });
       if (!isMounted) return;
 
-      // Step 2: Selecting letters one-by-one
-      setAnimState('selecting');
-      for (let i = 0; i < MOCK_PATH.length; i++) {
-        setActiveStep(i + 1);
-        await new Promise((resolve) => {
-          timer = setTimeout(resolve, 600);
+      for (let i = 1; i <= totalCells; i++) {
+        setFilledCount(i);
+        await new Promise((r) => {
+          timer = setTimeout(r, 300);
         });
         if (!isMounted) return;
       }
 
-      // Step 3: Success state
-      setAnimState('success');
-      await new Promise((resolve) => {
-        timer = setTimeout(resolve, 3000);
+      await new Promise((r) => {
+        timer = setTimeout(r, 3000);
       });
       if (!isMounted) return;
-
-      // Restart cycle
       runCycle();
     };
 
     runCycle();
-
     return () => {
       isMounted = false;
       clearTimeout(timer);
     };
-  }, []);
+  }, [totalCells]);
+
+  let cellIndex = 0;
+
+  // Track words found
+  // - 4 cells: YOGA completed
+  // - 10 cells: GITA and VEDA completed
+  let wordsFound = 0;
+  if (filledCount >= 4) wordsFound += 1;
+  if (filledCount >= 10) wordsFound += 2;
+
+  const isComplete = wordsFound === 3;
+
+  return (
+    <div className="relative rounded-2xl border border-slate-200/40 bg-slate-100/40 p-4.5 dark:border-slate-800/40 dark:bg-slate-950/20">
+      {/* Header */}
+      <div className="mb-3 flex items-center justify-between">
+        <div className="flex items-center gap-1.5">
+          <div
+            className={`size-1.5 rounded-full ${isComplete ? 'bg-emerald-500' : 'bg-amber-500'}`}
+          />
+          <span className="text-[10px] font-bold tracking-wider text-slate-500 uppercase dark:text-slate-400">
+            Preview
+          </span>
+        </div>
+        <div
+          className={`rounded-full px-2 py-0.5 text-[10px] font-semibold shadow-xs ${
+            isComplete
+              ? 'border border-emerald-500/20 bg-emerald-500/10 text-emerald-600 dark:text-emerald-400'
+              : 'bg-white text-slate-500 dark:bg-slate-900 dark:text-slate-400'
+          }`}
+        >
+          {wordsFound}/3 words found
+        </div>
+      </div>
+
+      {/* Crossword Grid */}
+      <div className="grid grid-cols-5 gap-1.5">
+        {CROSSWORD_GRID.map((row, rIdx) =>
+          row.map((cell, cIdx) => {
+            if (!cell) {
+              return (
+                <div
+                  key={`${rIdx}-${cIdx}`}
+                  className="aspect-square rounded-xl border border-slate-200/60 bg-slate-200/40 dark:border-slate-800/50 dark:bg-slate-950/90"
+                />
+              );
+            }
+
+            const currentIndex = cellIndex++;
+            const isFilled = currentIndex < filledCount;
+            const letter = CROSSWORD_LETTERS[rIdx]?.[cIdx] || '';
+
+            // Color green as soon as the word containing the cell is completed
+            let isWordComplete = false;
+            if (currentIndex >= 0 && currentIndex <= 3) {
+              // YOGA is complete at filledCount >= 4
+              isWordComplete = filledCount >= 4;
+            } else if (currentIndex === 4 || currentIndex === 5) {
+              // GITA is complete at filledCount >= 10
+              isWordComplete = filledCount >= 10;
+            } else if (currentIndex >= 6 && currentIndex <= 9) {
+              // VEDA (and GITA) are complete at filledCount >= 10
+              isWordComplete = filledCount >= 10;
+            }
+
+            let tileClass =
+              'border-slate-200 bg-white/70 text-transparent dark:border-slate-800/80 dark:bg-slate-900/40';
+
+            if (isFilled) {
+              if (isWordComplete) {
+                tileClass =
+                  'border-emerald-400 bg-gradient-to-br from-emerald-100/70 to-green-100/50 dark:border-emerald-500 dark:from-emerald-950/45 dark:to-green-950/20 text-emerald-700 dark:text-emerald-300 shadow-sm shadow-emerald-500/10 scale-105';
+              } else {
+                tileClass =
+                  'border-amber-400 bg-gradient-to-br from-amber-100/70 to-orange-50/50 dark:border-amber-500/60 dark:from-amber-950/45 dark:to-orange-950/20 text-amber-700 dark:text-amber-300 shadow-sm shadow-amber-500/10 scale-105';
+              }
+            }
+
+            return (
+              <div
+                key={`${rIdx}-${cIdx}`}
+                className={`flex aspect-square items-center justify-center rounded-xl border text-sm font-extrabold transition-all duration-300 ${tileClass}`}
+              >
+                {isFilled ? letter : '·'}
+              </div>
+            );
+          })
+        )}
+      </div>
+    </div>
+  );
+}
+
+// ─── Game Showcase Card ───────────────────────────────────
+export function GameShowcaseCard({ game, index }: { game: (typeof GAMES)[number]; index: number }) {
+  return (
+    <motion.div
+      initial={{ opacity: 0, y: 30 }}
+      animate={{ opacity: 1, y: 0 }}
+      transition={{ duration: 0.6, delay: 0.15 + index * 0.15, ease: 'easeOut' }}
+      className="group relative"
+    >
+      {/* Glow effect behind card */}
+      <div
+        className={`absolute -inset-1 rounded-3xl bg-linear-to-br ${game.gradient.from} ${game.gradient.to} opacity-0 blur-xl transition-opacity duration-500 group-hover:opacity-15`}
+      />
+
+      <div
+        className={`relative flex h-full flex-col overflow-hidden rounded-2xl border ${game.gradient.border} bg-white/60 shadow-lg backdrop-blur-md transition-all duration-300 group-hover:-translate-y-1 group-hover:shadow-xl dark:bg-slate-900/50`}
+      >
+        {/* Card header with icon + title */}
+        <div className="flex items-start gap-3.5 p-5 pb-3">
+          {/* App icon */}
+          <div
+            className={`flex size-12 shrink-0 items-center justify-center rounded-xl bg-linear-to-br ${game.gradient.iconBg} shadow-lg ${game.gradient.shadowColor}`}
+          >
+            <img
+              src="/img/icon_128_no_pad.png"
+              alt={`${game.name} icon`}
+              className="size-8 drop-shadow-sm"
+            />
+          </div>
+
+          <div className="min-w-0 flex-1">
+            <h3
+              className={`bg-linear-to-r ${game.gradient.text} ${game.gradient.textDark} bg-clip-text text-xl font-black tracking-tight text-transparent`}
+            >
+              {game.name}
+            </h3>
+            <span className="text-xs font-semibold tracking-wide text-slate-500 uppercase dark:text-slate-400">
+              {game.subtitle}
+            </span>
+          </div>
+        </div>
+
+        {/* Description */}
+        <p className="px-5 pb-4 text-sm leading-relaxed text-slate-600 dark:text-slate-300">
+          {game.description}
+        </p>
+
+        {/* CTAs */}
+        <div className="flex items-center gap-2 px-5 pb-4">
+          <Button
+            render={
+              <Link
+                href={game.playHref}
+                className="flex items-center justify-center gap-1.5 font-bold"
+              />
+            }
+            nativeButton={false}
+            size="sm"
+            className={`flex-1 bg-linear-to-r ${game.gradient.from} ${game.gradient.to} px-4 py-2.5 text-xs text-white shadow-md ${game.gradient.shadowColor} transition-all duration-200 hover:-translate-y-0.5 hover:shadow-lg`}
+          >
+            <Play className="size-3.5 fill-white" />
+            Play Now
+            <ArrowRight className="size-3.5" />
+          </Button>
+
+          <Button
+            render={
+              <Link
+                href={game.puzzlesHref}
+                className="flex items-center justify-center gap-1.5 font-semibold"
+              />
+            }
+            nativeButton={false}
+            size="sm"
+            variant="outline"
+            className="flex-1 border-slate-200/80 bg-white/50 px-4 py-2.5 text-xs transition-all duration-200 hover:-translate-y-0.5 hover:bg-white/80 dark:border-slate-700/80 dark:bg-slate-800/50 dark:hover:bg-slate-800/80"
+          >
+            <BookOpen className="size-3.5" />
+            Puzzles
+          </Button>
+        </div>
+
+        {/* Divider */}
+        <div className="mx-5 border-t border-slate-200/50 dark:border-slate-700/50" />
+
+        {/* Mini preview */}
+        <div className="p-4 pt-3">
+          {game.id === 'padavali' ? <PadavaliMiniPreview /> : <PadajalaMiniPreview />}
+        </div>
+      </div>
+    </motion.div>
+  );
+}
+
+// ─── Main Landing Page ────────────────────────────────────
+export default function LandingPage() {
+  const [scriptIndex, setScriptIndex] = useState(0);
 
   // Script carousel auto-play
   useEffect(() => {
@@ -127,185 +515,66 @@ export default function LandingPage() {
         <div className="absolute -top-40 left-1/4 h-[500px] w-[500px] rounded-full bg-blue-400/10 blur-3xl dark:bg-blue-500/10" />
         <div className="absolute top-1/3 right-1/4 h-[600px] w-[600px] rounded-full bg-purple-400/10 blur-3xl dark:bg-purple-500/10" />
         <div className="absolute -bottom-20 left-1/3 h-[500px] w-[500px] rounded-full bg-indigo-400/10 blur-3xl dark:bg-indigo-500/10" />
+        <div className="absolute top-1/2 right-1/3 h-[400px] w-[400px] rounded-full bg-amber-400/8 blur-3xl dark:bg-amber-500/8" />
       </div>
 
       {/* Hero Section */}
-      <section className="relative px-4 pt-16 pb-20 md:pt-24 md:pb-28">
+      <section className="relative px-4 pt-16 pb-10 md:pt-24 md:pb-16">
         <div className="mx-auto max-w-6xl">
-          <div className="grid grid-cols-1 gap-12 lg:grid-cols-12 lg:items-center">
-            {/* Column 1: Value Proposition */}
-            <motion.div
-              className="space-y-6 text-left lg:col-span-7"
-              initial="hidden"
-              animate="visible"
-              variants={containerVariants}
-            >
-              <motion.div variants={itemVariants}>
-                <span className="inline-flex items-center gap-2 rounded-full border border-blue-200/50 bg-blue-50/50 px-4 py-1.5 text-xs font-semibold text-blue-600 backdrop-blur-sm dark:border-blue-900/30 dark:bg-blue-950/30 dark:text-blue-400">
-                  <Sparkles className="h-3.5 w-3.5 animate-pulse text-amber-500 dark:text-amber-400" />
-                  Sanskrit Learning Refined
-                </span>
-              </motion.div>
-
-              <motion.h1
-                className="bg-linear-to-r from-slate-900 via-blue-700 to-indigo-600 bg-clip-text text-5xl font-black tracking-tight text-transparent sm:text-6xl md:text-7xl dark:from-white dark:via-blue-300 dark:to-indigo-400"
-                variants={itemVariants}
-              >
-                Learn Sanskrit <br />
-                <span className="bg-linear-to-r from-indigo-500 to-purple-600 bg-clip-text text-transparent dark:from-indigo-400 dark:to-purple-500">
-                  Through Games
-                </span>
-              </motion.h1>
-
-              <motion.p
-                className="max-w-xl text-lg leading-relaxed text-slate-600 md:text-xl dark:text-slate-300"
-                variants={itemVariants}
-              >
-                Discover the elegance and depth of Sanskrit with interactive word puzzles. Switch
-                instantly across 6+ Indian scripts and build your vocabulary dynamically.
-              </motion.p>
-
-              <motion.div
-                className="flex flex-row items-center gap-2.5 pt-2 sm:gap-4"
-                variants={itemVariants}
-              >
-                <Button
-                  render={
-                    <Link
-                      href="/padavali"
-                      className="flex items-center justify-center gap-1.5 font-bold sm:gap-2.5"
-                    />
-                  }
-                  nativeButton={false}
-                  size="lg"
-                  className="h-auto flex-1 bg-linear-to-r from-blue-600 to-indigo-600 px-3 py-3.5 text-sm text-white shadow-lg shadow-blue-500/20 transition-all duration-200 hover:-translate-y-0.5 hover:from-blue-700 hover:to-indigo-700 hover:shadow-xl hover:shadow-blue-500/30 sm:flex-initial sm:px-8 sm:py-5 sm:text-lg dark:from-blue-500 dark:to-indigo-500 dark:shadow-blue-500/10 dark:hover:from-blue-600 dark:hover:to-indigo-600"
-                >
-                  <Play className="h-4 w-4 fill-white sm:h-5 sm:w-5" />
-                  <span className="truncate">Play Padavali</span>
-                  <ArrowRight className="h-4 w-4 sm:h-5 sm:w-5" />
-                </Button>
-
-                <Button
-                  render={
-                    <Link
-                      href="/padavali/puzzles"
-                      className="flex items-center justify-center gap-2 font-semibold"
-                    />
-                  }
-                  nativeButton={false}
-                  size="lg"
-                  variant="outline"
-                  className="h-auto flex-1 border-slate-300/80 bg-white/40 px-3 py-3.5 text-sm transition-all duration-200 hover:-translate-y-0.5 hover:bg-white/80 sm:flex-initial sm:px-8 sm:py-5 sm:text-lg dark:border-slate-800 dark:bg-slate-900/40 dark:hover:bg-slate-900/80"
-                >
-                  <span className="truncate">Browse Puzzles</span>
-                </Button>
-              </motion.div>
-
-              {/* Connected scripts indicator */}
-              <motion.div
-                className="flex max-w-md items-center gap-3 border-t border-slate-200/60 pt-6 dark:border-slate-800/60"
-                variants={itemVariants}
-              >
-                <Languages className="h-5 w-5 shrink-0 text-indigo-500 dark:text-indigo-400" />
-                <p className="text-xs text-slate-500 dark:text-slate-400">
-                  Fully supports{' '}
-                  <strong>Devanagari, Telugu, Kannada, Gujarati, Bengali, and Odia</strong> with
-                  real-time transliteration.
-                </p>
-              </motion.div>
+          <motion.div
+            className="space-y-6 text-center"
+            initial="hidden"
+            animate="visible"
+            variants={containerVariants}
+          >
+            {/* Badge */}
+            <motion.div variants={itemVariants}>
+              <span className="inline-flex items-center gap-2 rounded-full border border-blue-200/50 bg-blue-50/50 px-4 py-1.5 text-xs font-semibold text-blue-600 backdrop-blur-sm dark:border-blue-900/30 dark:bg-blue-950/30 dark:text-blue-400">
+                <Sparkles className="h-3.5 w-3.5 animate-pulse text-amber-500 dark:text-amber-400" />
+                Sanskrit Learning Refined
+              </span>
             </motion.div>
 
-            {/* Column 2: Interactive Puzzle Showcase */}
-            <div className="relative flex flex-col items-center justify-center lg:col-span-5">
-              {/* Outer decorative halo glow */}
-              <div className="absolute inset-0 rounded-3xl bg-gradient-to-tr from-blue-500/10 to-purple-500/10 blur-2xl" />
+            {/* Headline */}
+            <motion.h1
+              className="mx-auto max-w-3xl bg-linear-to-r from-slate-900 via-blue-700 to-indigo-600 bg-clip-text text-5xl font-black tracking-tight text-transparent sm:text-6xl md:text-7xl dark:from-white dark:via-blue-300 dark:to-indigo-400"
+              variants={itemVariants}
+            >
+              Learn Sanskrit{' '}
+              <span className="bg-linear-to-r from-indigo-500 to-purple-600 bg-clip-text text-transparent dark:from-indigo-400 dark:to-purple-500">
+                Through Games
+              </span>
+            </motion.h1>
 
-              <motion.div
-                className="relative w-full max-w-[380px] rounded-3xl border border-slate-200/80 bg-white/70 p-5 shadow-2xl backdrop-blur-md dark:border-slate-800/80 dark:bg-slate-900/60"
-                initial={{ opacity: 0, scale: 0.92, y: 15 }}
-                animate={{ opacity: 1, scale: 1, y: 0 }}
-                transition={{ duration: 0.6, ease: 'easeOut', delay: 0.2 }}
-              >
-                {/* Mock Board Header */}
-                <div className="mb-4 flex items-center justify-between border-b border-slate-200/50 pb-3 dark:border-slate-800/50">
-                  <div className="flex items-center gap-2">
-                    <div className="size-2.5 rounded-full bg-emerald-500" />
-                    <span className="text-xs font-bold tracking-wider text-slate-500 uppercase dark:text-slate-400">
-                      Live Demo
-                    </span>
-                  </div>
-                  <div className="rounded-full bg-slate-100 px-2 py-0.5 text-[10px] font-medium text-slate-600 dark:bg-slate-800 dark:text-slate-300">
-                    Find the word: <strong>पदावली</strong>
-                  </div>
-                </div>
+            {/* Subtitle */}
+            <motion.p
+              className="mx-auto max-w-2xl text-lg leading-relaxed text-slate-600 md:text-xl dark:text-slate-300"
+              variants={itemVariants}
+            >
+              Discover the elegance and depth of Sanskrit with interactive word puzzles and
+              crosswords. Switch instantly across 6+ Indian scripts and build your vocabulary
+              dynamically.
+            </motion.p>
 
-                {/* 4x4 Grid representation */}
-                <div className="grid aspect-square w-full grid-cols-4 gap-2.5">
-                  {MOCK_GRID.map((rowArr, rIdx) =>
-                    rowArr.map((letter, cIdx) => {
-                      // Check if cell is in the path
-                      const pathStep = MOCK_PATH.findIndex(
-                        ([pr, pc]) => pr === rIdx && pc === cIdx
-                      );
-                      const isHighlighted = pathStep !== -1 && pathStep < activeStep;
+            {/* Scripts badge */}
+            <motion.div className="flex items-center justify-center gap-3" variants={itemVariants}>
+              <Languages className="h-4 w-4 shrink-0 text-indigo-500 dark:text-indigo-400" />
+              <p className="text-xs text-slate-500 dark:text-slate-400">
+                Supports <strong>Devanagari, Telugu, Kannada, Gujarati, Bengali, and Odia</strong>{' '}
+                with real-time transliteration.
+              </p>
+            </motion.div>
+          </motion.div>
+        </div>
+      </section>
 
-                      let cellClass =
-                        'border-slate-200/80 bg-slate-50/50 dark:border-slate-800 dark:bg-slate-950/40 text-slate-800 dark:text-slate-200';
-
-                      if (isHighlighted) {
-                        if (animState === 'success') {
-                          cellClass =
-                            'border-emerald-400 bg-gradient-to-br from-emerald-100 to-green-100 dark:border-emerald-500 dark:from-emerald-900/40 dark:to-green-950/25 text-emerald-700 dark:text-emerald-300 shadow-md shadow-emerald-500/10 scale-105';
-                        } else if (animState === 'selecting') {
-                          cellClass =
-                            'border-blue-400 bg-gradient-to-br from-blue-100 to-indigo-50 dark:border-blue-500 dark:from-blue-900/40 dark:to-indigo-950/25 text-blue-700 dark:text-blue-300 shadow-md shadow-blue-500/10 scale-105';
-                        }
-                      }
-
-                      return (
-                        <div
-                          key={`${rIdx}-${cIdx}`}
-                          className={`flex aspect-square items-center justify-center rounded-2xl border-2 text-lg font-bold transition-all duration-300 ${cellClass}`}
-                        >
-                          {letter}
-                        </div>
-                      );
-                    })
-                  )}
-                </div>
-
-                {/* Word Found Success Pop-up Card */}
-                <AnimatePresence>
-                  {animState === 'success' && (
-                    <motion.div
-                      className="absolute -bottom-6 left-1/2 w-[90%] -translate-x-1/2 rounded-2xl border border-emerald-200/80 bg-emerald-50/95 p-3.5 shadow-xl backdrop-blur-xs dark:border-emerald-800/80 dark:bg-emerald-950/95"
-                      initial={{ opacity: 0, y: 10, scale: 0.95, x: '-50%' }}
-                      animate={{ opacity: 1, y: 0, scale: 1, x: '-50%' }}
-                      exit={{ opacity: 0, y: 5, scale: 0.95, x: '-50%' }}
-                      transition={{ type: 'spring', damping: 15 }}
-                    >
-                      <div className="flex items-center gap-3">
-                        <div className="flex size-7 shrink-0 items-center justify-center rounded-full bg-emerald-500 text-white shadow-sm">
-                          <Award className="h-4 w-4" />
-                        </div>
-                        <div className="space-y-0.5">
-                          <h4 className="text-xs font-extrabold tracking-wide text-emerald-800 uppercase dark:text-emerald-300">
-                            Word Found! (पदावली)
-                          </h4>
-                        </div>
-                      </div>
-                    </motion.div>
-                  )}
-                </AnimatePresence>
-              </motion.div>
-
-              {/* Bottom tag */}
-              <div className="mt-8 text-center">
-                <span className="text-xs text-slate-400 italic dark:text-slate-500">
-                  Drag or swipe to connect letters and form words
-                </span>
-              </div>
-            </div>
+      {/* Game Cards Section */}
+      <section className="relative px-4 pb-16 md:pb-24">
+        <div className="mx-auto max-w-3xl">
+          <div className="grid grid-cols-1 gap-6 md:grid-cols-2">
+            {GAMES.map((game, index) => (
+              <GameShowcaseCard key={game.id} game={game} index={index} />
+            ))}
           </div>
         </div>
       </section>
@@ -319,9 +588,11 @@ export default function LandingPage() {
           </div>
           <h2 className="text-2xl font-bold md:text-3xl">Play in your native Indian Script</h2>
           <p className="mx-auto max-w-xl text-sm text-slate-500 dark:text-slate-400">
-            Padavali uses real-time transliteration. See the word{' '}
-            <span className="font-semibold text-slate-900 dark:text-white">"Padavali"</span> change
-            instantly:
+            Both games use real-time transliteration. See the word{' '}
+            <span className="font-semibold text-slate-900 dark:text-white">
+              &quot;Padavali&quot;
+            </span>{' '}
+            change instantly:
           </p>
 
           <div className="relative flex justify-center py-4">
@@ -370,51 +641,64 @@ export default function LandingPage() {
               Features Crafted For Learning
             </h2>
             <p className="mx-auto max-w-xl text-slate-500 dark:text-slate-400">
-              Interactive puzzles combined with language tools designed to build deep vocabulary
-              retention.
+              Two unique game modes combined with powerful language tools — designed to build deep
+              vocabulary retention.
             </p>
           </div>
 
-          <div className="grid grid-cols-1 gap-6 md:grid-cols-3">
+          <div className="grid grid-cols-1 gap-6 md:grid-cols-2 lg:grid-cols-4">
             {/* Feature 1 */}
-            <div className="group relative rounded-2xl border border-slate-200/60 bg-white/40 p-6 text-left shadow-sm transition-all duration-200 hover:shadow-md dark:border-slate-800/60 dark:bg-slate-900/40">
+            <div className="group relative rounded-2xl border border-slate-200/60 bg-white/40 p-6 text-left shadow-sm transition-all duration-200 hover:-translate-y-0.5 hover:shadow-md dark:border-slate-800/60 dark:bg-slate-900/40">
               <div className="mb-4 flex size-10 items-center justify-center rounded-xl bg-blue-100 text-blue-600 dark:bg-blue-950/60 dark:text-blue-400">
                 <Languages className="h-5 w-5" />
               </div>
               <h3 className="mb-2 text-lg font-bold transition-colors group-hover:text-blue-600 dark:group-hover:text-blue-400">
-                Multiple Indian Scripts
+                Multiple Scripts
               </h3>
               <p className="text-sm text-slate-500 dark:text-slate-400">
-                Adapt the letters to the script you read best. Switch between Devanagari, Telugu,
-                Kannada, Gujarati, Bengali, and Odia.
+                Play in the script you read best — Devanagari, Telugu, Kannada, Gujarati, Bengali,
+                or Odia.
               </p>
             </div>
 
             {/* Feature 2 */}
-            <div className="group relative rounded-2xl border border-slate-200/60 bg-white/40 p-6 text-left shadow-sm transition-all duration-200 hover:shadow-md dark:border-slate-800/60 dark:bg-slate-900/40">
+            <div className="group relative rounded-2xl border border-slate-200/60 bg-white/40 p-6 text-left shadow-sm transition-all duration-200 hover:-translate-y-0.5 hover:shadow-md dark:border-slate-800/60 dark:bg-slate-900/40">
               <div className="mb-4 flex size-10 items-center justify-center rounded-xl bg-purple-100 text-purple-600 dark:bg-purple-950/60 dark:text-purple-400">
                 <BookOpen className="h-5 w-5" />
               </div>
               <h3 className="mb-2 text-lg font-bold transition-colors group-hover:text-purple-600 dark:group-hover:text-purple-400">
-                Listed Puzzles
+                Puzzles
               </h3>
               <p className="text-sm text-slate-500 dark:text-slate-400">
-                Browse and play from our full collection of listed Sanskrit word puzzles at your own
-                convenience.
+                Browse and play from our full collection of word search and crossword puzzles.
               </p>
             </div>
 
             {/* Feature 3 */}
-            <div className="group relative rounded-2xl border border-slate-200/60 bg-white/40 p-6 text-left shadow-sm transition-all duration-200 hover:shadow-md dark:border-slate-800/60 dark:bg-slate-900/40">
+            <div className="group relative rounded-2xl border border-slate-200/60 bg-white/40 p-6 text-left shadow-sm transition-all duration-200 hover:-translate-y-0.5 hover:shadow-md dark:border-slate-800/60 dark:bg-slate-900/40">
               <div className="mb-4 flex size-10 items-center justify-center rounded-xl bg-emerald-100 text-emerald-600 dark:bg-emerald-950/60 dark:text-emerald-400">
                 <Trophy className="h-5 w-5" />
               </div>
               <h3 className="mb-2 text-lg font-bold transition-colors group-hover:text-emerald-600 dark:group-hover:text-emerald-400">
-                Daily Puzzles & Challenges
+                Daily Challenges
               </h3>
               <p className="text-sm text-slate-500 dark:text-slate-400">
-                Come back daily for fresh hand-curated schedules. Beat your personal time scores and
-                learn Sanskrit consistently.
+                Fresh puzzles every day — beat your personal time scores and learn Sanskrit
+                consistently.
+              </p>
+            </div>
+
+            {/* Feature 4 — New for Crossword */}
+            <div className="group relative rounded-2xl border border-slate-200/60 bg-white/40 p-6 text-left shadow-sm transition-all duration-200 hover:-translate-y-0.5 hover:shadow-md dark:border-slate-800/60 dark:bg-slate-900/40">
+              <div className="mb-4 flex size-10 items-center justify-center rounded-xl bg-amber-100 text-amber-600 dark:bg-amber-950/60 dark:text-amber-400">
+                <Grid3X3 className="h-5 w-5" />
+              </div>
+              <h3 className="mb-2 text-lg font-bold transition-colors group-hover:text-amber-600 dark:group-hover:text-amber-400">
+                Two Game Modes
+              </h3>
+              <p className="text-sm text-slate-500 dark:text-slate-400">
+                Word search for pattern recognition, crossword for deep vocabulary — two ways to
+                master Sanskrit.
               </p>
             </div>
           </div>
@@ -424,10 +708,11 @@ export default function LandingPage() {
       {/* Stats Section */}
       <section className="relative px-4 pb-20">
         <div className="mx-auto max-w-4xl rounded-3xl border border-slate-200/50 bg-white/40 p-8 shadow-xl dark:border-slate-800/50 dark:bg-slate-900/40">
-          <div className="grid grid-cols-2 gap-8 md:grid-cols-4">
+          <div className="grid grid-cols-2 gap-8 sm:grid-cols-3 md:grid-cols-5">
             {[
+              { number: '20k+', label: 'Games Played', icon: Trophy },
               { number: '8+', label: 'Indian Scripts', icon: Globe },
-              { number: '100+', label: 'Sanskrit Words', icon: BookOpen },
+              { number: '2', label: 'Game Modes', icon: Grid3X3 },
               { number: '∞', label: 'Learning Fun', icon: Sparkles },
               { number: '100%', label: 'Free & Open', icon: Code2 }
             ].map((stat, index) => (

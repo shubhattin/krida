@@ -6,12 +6,12 @@ export const preferredRegion = 'bom1';
 
 export const metadata: Metadata = {
   ...getMetadata({
-    title: 'Sanskrit Games - Learn Sanskrit Through Interactive Games',
+    title: 'Sanskrit Games - Padavali & Padajala',
     description:
-      'Learn Sanskrit through fun, interactive games. Play Padavali word puzzles and learn across 6 Indian scripts including Devanagari, Telugu, Kannada, Gujarati, Bengali, and Odia.'
+      'Learn Sanskrit through interactive games. Play Padavali word search and Padajala crossword puzzles across 6+ Indian scripts including Devanagari, Telugu, Kannada, Gujarati, Bengali, and Odia.'
   }),
   keywords:
-    'Sanskrit, learning, games, Padavali, word puzzle, Devanagari, Telugu, Kannada, Gujarati, Bengali, Odia, Indian scripts'
+    'Sanskrit, learning, games, Padavali, Padajala, word puzzle, crossword, Devanagari, Telugu, Kannada, Gujarati, Bengali, Odia, Indian scripts'
 };
 export default function Home() {
   return <LandingPage />;

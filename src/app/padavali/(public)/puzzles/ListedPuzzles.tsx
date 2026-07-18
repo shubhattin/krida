@@ -1,6 +1,7 @@
 'use client';
 
 import { useQuery } from '@tanstack/react-query';
+import { GameCrossPromo } from '~/components/GameCrossPromo';
 import { useContext, useEffect, useMemo, useState } from 'react';
 import { transliterate } from 'lipilekhika';
 import { DEFAULT_DATA_SCRIPT, type ScriptType } from '~/state/script_list';
@@ -245,8 +246,11 @@ const PuzzleListView = ({ puzzles }: { puzzles: DisplayPuzzle[] }) => {
           </motion.div>
         </div>
       </div>
-
       <div className="container mx-auto max-w-6xl px-4 py-6">
+        {/* Cross-promote Padajala */}
+        <div className="mb-6">
+          <GameCrossPromo promote="padajala" toPuzzles />
+        </div>
         <div className="mb-6 flex flex-col items-stretch justify-center gap-3 sm:flex-row sm:items-center">
           <InputGroup className="w-full sm:flex-1">
             <InputGroupAddon>

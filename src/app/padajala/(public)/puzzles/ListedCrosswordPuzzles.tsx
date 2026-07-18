@@ -8,6 +8,7 @@ import { ArrowLeftIcon, SearchIcon } from 'lucide-react';
 import { InputGroup, InputGroupAddon, InputGroupInput } from '~/components/ui/input-group';
 import type { CrosswordListedPuzzlesType } from '~/util/cache.server/crossword_cache';
 import { CrosswordPreviewCard } from '~/components/pages/cross_word/CrosswordPreviewCard';
+import { GameCrossPromo } from '~/components/GameCrossPromo';
 
 type Props = {
   listed_puzzles: CrosswordListedPuzzlesType;
@@ -49,6 +50,9 @@ export function ListedCrosswordPuzzles({ listed_puzzles }: Props) {
           </p>
         </div>
       </div>
+
+      {/* Cross-promote Padavali */}
+      <GameCrossPromo promote="padavali" toPuzzles />
 
       <InputGroup>
         <InputGroupAddon>

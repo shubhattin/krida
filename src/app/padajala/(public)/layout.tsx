@@ -10,7 +10,6 @@ export default function CrosswordPublicLayout({ children }: { children: ReactNod
   return (
     <>
       {children}
-
       <footer
         className={cn(
           'py-6 sm:py-8',
