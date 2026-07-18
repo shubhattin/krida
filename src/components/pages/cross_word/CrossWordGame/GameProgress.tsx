@@ -62,9 +62,7 @@ export function GameProgress({ onReset }: GameProgressProps) {
       </div>
 
       {/* Trailing action — same status row, never overlaps the grid */}
-      {!completed && onReset ? (
-        <ResetPuzzleButton onReset={onReset} className="shrink-0" />
-      ) : null}
+      {!completed && onReset ? <ResetPuzzleButton onReset={onReset} className="shrink-0" /> : null}
     </motion.div>
   );
 }

@@ -10,7 +10,8 @@ import {
   Wand2,
   SearchIcon,
   MoreVertical,
-  ArrowUpDownIcon
+  ArrowUpDownIcon,
+  CircleHelp
 } from 'lucide-react';
 import { MdDeleteOutline } from 'react-icons/md';
 import { Button } from '~/components/ui/button';
@@ -621,7 +622,13 @@ const CreateNewImageTab = ({
   auto_approved,
   onAutoApprovedChange,
   onGenerateInBackground,
-  isBatchQueuing
+  isBatchQueuing,
+  include_word_meanings,
+  onIncludeWordMeaningsChange,
+  include_custom_instructions,
+  onIncludeCustomInstructionsChange,
+  custom_instructions,
+  onCustomInstructionsChange
 }: {
   phase: GenerationPhase;
   custom_prompt: string;
@@ -636,6 +643,12 @@ const CreateNewImageTab = ({
   onAutoApprovedChange: (checked: boolean) => void;
   onGenerateInBackground: () => void;
   isBatchQueuing: boolean;
+  include_word_meanings: boolean;
+  onIncludeWordMeaningsChange: (checked: boolean) => void;
+  include_custom_instructions: boolean;
+  onIncludeCustomInstructionsChange: (checked: boolean) => void;
+  custom_instructions: string;
+  onCustomInstructionsChange: (value: string) => void;
 }) => {
   const batch_disabled = isWorking || isBatchQueuing;
 
@@ -651,6 +664,54 @@ const CreateNewImageTab = ({
               <ImageIcon className="size-10 opacity-40" />
               <span className="text-sm">No image yet</span>
             </div>
+          </div>
+          <div className="w-full max-w-sm space-y-2.5">
+            <div className="flex flex-wrap items-center gap-x-4 gap-y-2">
+              <div className="flex items-center gap-1.5">
+                <label className="flex items-center gap-2 text-sm">
+                  <Checkbox
+                    checked={include_word_meanings}
+                    onCheckedChange={(checked) => onIncludeWordMeaningsChange(checked === true)}
+                    disabled={isWorking}
+                  />
+                  Include word meanings
+                </label>
+                <Popover>
+                  <PopoverTrigger
+                    render={
+                      <button
+                        type="button"
+                        className="inline-flex size-4 shrink-0 items-center justify-center text-muted-foreground hover:text-foreground"
+                        aria-label="About include word meanings"
+                      />
+                    }
+                  >
+                    <CircleHelp className="size-3.5" />
+                  </PopoverTrigger>
+                  <PopoverContent className="w-56 p-2.5 text-xs leading-snug" align="start">
+                    May make the image give away too much of the puzzle theme.
+                  </PopoverContent>
+                </Popover>
+              </div>
+              <label className="flex items-center gap-2 text-sm">
+                <Checkbox
+                  checked={include_custom_instructions}
+                  onCheckedChange={(checked) => onIncludeCustomInstructionsChange(checked === true)}
+                  disabled={isWorking}
+                />
+                Custom instructions
+              </label>
+            </div>
+            {include_custom_instructions ? (
+              <Textarea
+                rows={2}
+                className="min-h-0 w-full resize-none text-xs"
+                value={custom_instructions}
+                onChange={(e) => onCustomInstructionsChange(e.currentTarget.value)}
+                placeholder="Optional guidance for the image prompt…"
+                disabled={isWorking}
+              />
+            ) : null}
           </div>
           <Button onClick={onStartGeneration} disabled={isWorking} className="gap-2">
             <Wand2 className="size-4" />
@@ -772,8 +833,21 @@ function AIImageDialogContent({
   );
   const [custom_prompt, setCustomPrompt] = useState('');
   const [selected_image, setSelectedImage] = useState<ImageInfo | null>(existing_image);
+  const [include_word_meanings, setIncludeWordMeanings] = useState(false);
+  const [include_custom_instructions, setIncludeCustomInstructions] = useState(false);
+  const [custom_instructions, setCustomInstructions] = useState('');
 
   const progress = useGenerationProgress(phase.state === 'generating');
+
+  const buildOptionalPromptContext = () => {
+    const trimmed_extra = custom_instructions.trim();
+    return {
+      ...(include_word_meanings && words.length > 0 ? { words } : {}),
+      ...(include_custom_instructions && trimmed_extra.length > 0
+        ? { extra_instructions: trimmed_extra }
+        : {})
+    };
+  };
 
   const invalidateImageAssetsList = () => {
     void queryClient.invalidateQueries({ queryKey: [IMAGE_ASSETS_LIST_QUERY_KEY] });
@@ -836,8 +910,8 @@ function AIImageDialogContent({
     generate_mut.mutate({
       title,
       description,
-      words,
       game,
+      ...buildOptionalPromptContext(),
       existing_image_prompt: existing_image_prompt || undefined
     });
   };
@@ -850,7 +924,12 @@ function AIImageDialogContent({
         { id: current_image_id },
         {
           onSuccess: () => {
-            generate_mut.mutate({ title, description, words, game });
+            generate_mut.mutate({
+              title,
+              description,
+              game,
+              ...buildOptionalPromptContext()
+            });
           },
           onError: () => {
             setPhase({ state: 'idle' });
@@ -873,8 +952,8 @@ function AIImageDialogContent({
             generate_mut.mutate({
               title,
               description,
-              words,
               game,
+              ...buildOptionalPromptContext(),
               existing_image_prompt: promptToUse || undefined
             });
           },
@@ -926,7 +1005,7 @@ function AIImageDialogContent({
           puzzle_id,
           title,
           description,
-          words
+          ...buildOptionalPromptContext()
         }
       ]
     });
@@ -972,6 +1051,12 @@ function AIImageDialogContent({
             onAutoApprovedChange={setAutoApproved}
             onGenerateInBackground={handleGenerateInBackground}
             isBatchQueuing={batch_trigger_mut.isPending}
+            include_word_meanings={include_word_meanings}
+            onIncludeWordMeaningsChange={setIncludeWordMeanings}
+            include_custom_instructions={include_custom_instructions}
+            onIncludeCustomInstructionsChange={setIncludeCustomInstructions}
+            custom_instructions={custom_instructions}
+            onCustomInstructionsChange={setCustomInstructions}
           />
         </TabsContent>
 

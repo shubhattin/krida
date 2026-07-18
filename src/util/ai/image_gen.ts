@@ -69,6 +69,16 @@ Title: "{title}"
 Description: "{description}"
 `.trim();
 
+const IMAGE_PROMPT_USER_WORDS = `
+Word meanings (use as thematic context; do not render as text in the image):
+{words}
+`.trim();
+
+const IMAGE_PROMPT_USER_EXTRA = `
+Extra instructions for image generation:
+{extra_instructions}
+`.trim();
+
 export const generate_puzzle_image_input_schema = z.object({
   /** Puzzle title in Sanskrit (shown to the LLM for prompt context) */
   title: z.string().min(1),
@@ -76,6 +86,8 @@ export const generate_puzzle_image_input_schema = z.object({
   description: z.string().optional(),
   /** Sanskrit words in the puzzle to provide richer context for prompt generation */
   words: z.array(z.string()).optional(),
+  /** Extra instructions to the LLM for the image generation */
+  extra_instructions: z.string().optional(),
   /** Supply a pre-written image prompt to skip the prompt-generation step */
   existing_image_prompt: z.string().optional(),
   /** Which game the image belongs to — controls the S3 subdirectory. Defaults to padavali for back-compat. */
@@ -117,11 +129,29 @@ async function generatePuzzleCardImage(image_prompt: string): Promise<string> {
   return result.image.base64;
 }
 
-export const generateImagePrompt = async (title: string, description?: string): Promise<string> => {
-  const user_prompt = IMAGE_PROMPT_USER.replace('{title}', title).replace(
+export const generateImagePrompt = async (
+  title: string,
+  description?: string,
+  words?: string[],
+  extra_instructions?: string
+): Promise<string> => {
+  let user_prompt = IMAGE_PROMPT_USER.replace('{title}', title).replace(
     '{description}',
     description ?? ''
   );
+
+  const trimmed_words = words?.map((w) => w.trim()).filter((w) => w.length > 0);
+  if (trimmed_words && trimmed_words.length > 0) {
+    user_prompt +=
+      '\n\n' +
+      IMAGE_PROMPT_USER_WORDS.replace('{words}', trimmed_words.map((w) => `- ${w}`).join('\n'));
+  }
+
+  const trimmed_extra = extra_instructions?.trim();
+  if (trimmed_extra) {
+    user_prompt += '\n\n' + IMAGE_PROMPT_USER_EXTRA.replace('{extra_instructions}', trimmed_extra);
+  }
+
   const response = await generateText({
     model: openrouter(OPENROUTER_MODELS.image_prompt),
     output: Output.object({
@@ -169,7 +199,7 @@ export const generateSavePuzzleImage = async (
   existing_file_name_description?: { file_name: string; description: string }
 ): Promise<GeneratePuzzleImageOutput> => {
   const start_time = Date.now();
-  const { title, description, existing_image_prompt, game } = input;
+  const { title, description, words, extra_instructions, existing_image_prompt, game } = input;
 
   // ------------------------------------------------------------------
   // Step 1 — Generate image prompt (or use supplied one)
@@ -190,7 +220,12 @@ export const generateSavePuzzleImage = async (
       file_name = res.file_name;
       image_description = res.description;
     } else {
-      const image_prompt_resp = await generateImagePrompt(title, description);
+      const image_prompt_resp = await generateImagePrompt(
+        title,
+        description,
+        words,
+        extra_instructions
+      );
       image_prompt = image_prompt_resp;
       const filename_resp = await generateFileNameAndDescription(image_prompt);
       file_name = filename_resp.file_name;

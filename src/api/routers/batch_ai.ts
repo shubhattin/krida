@@ -51,8 +51,10 @@ const trigger_puzzle_input_schema = z.object({
   puzzle_id: z.number().int(),
   title: z.string().optional(),
   description: z.string().optional(),
-  /** Padavali-only; ignored for crossword (prompts use title + description). */
-  words: z.array(z.string()).optional()
+  /** Optional Sanskrit words for richer prompt context (both games). */
+  words: z.array(z.string()).optional(),
+  /** Optional extra instructions for the image-prompt LLM. */
+  extra_instructions: z.string().optional()
 });
 
 function parseBatchMetadata(metadata: unknown): BatchMetadata {
@@ -256,13 +258,22 @@ const trigger_batch_puzzle_image_gen_route = protectedAdminProcedure
       return {
         id: input.puzzle_id,
         title: input.title ?? db_puzzle.title,
-        description: input.description ?? db_puzzle.description ?? ''
+        description: input.description ?? db_puzzle.description ?? '',
+        words: input.words,
+        extra_instructions: input.extra_instructions
       };
     });
 
-    // Both games: prompt from title + description only (no word list / clues).
+    // Prompt from title + description; optionally include words / extra instructions when supplied.
     const image_prompts = await Promise.all(
-      resolved_puzzles.map(async (puzzle) => generateImagePrompt(puzzle.title, puzzle.description))
+      resolved_puzzles.map(async (puzzle) =>
+        generateImagePrompt(
+          puzzle.title,
+          puzzle.description,
+          puzzle.words,
+          puzzle.extra_instructions
+        )
+      )
     );
     const file_name_descriptions = await Promise.all(
       image_prompts.map(generateFileNameAndDescription)
