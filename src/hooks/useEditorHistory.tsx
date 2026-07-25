@@ -25,8 +25,14 @@ type HistoryActions = {
   commit(): void;
   beginTyping(): void;
   endTyping(): void;
-  markSaved(): void;
-  /** Copy current values of the given keys into the saved baseline (e.g. auto-approved image). */
+  /** Freeze the current snapshot as the in-flight save baseline. */
+  beginSave(): void;
+  /**
+   * Mark the beginSave() snapshot (or current, if none) as saved.
+   * Optional patch overlays fields reconciled after the server response (e.g. attachment ids).
+   */
+  markSaved(patch?: Record<string, unknown>): void;
+  /** Copy current values of the given keys into the saved baseline (e.g. after persisted image save). */
   acceptKeysAsSaved(...keys: string[]): void;
 };
 
@@ -87,6 +93,7 @@ export function EditorHistoryProvider<M extends AtomMap>({
   const savedStackDepthRef = useRef(0);
   const commitScheduledRef = useRef(false);
   const didInitRef = useRef(false);
+  const pendingSaveRef = useRef<SnapshotOf<M> | null>(null);
   const listenersRef = useRef(new Set<() => void>());
   // Cached state so useSyncExternalStore can bail out on referential equality.
   const stateCacheRef = useRef<HistoryState>(EMPTY_STATE);
@@ -156,6 +163,9 @@ export function EditorHistoryProvider<M extends AtomMap>({
     }
 
     if (serialize(current) === serialize(last)) {
+      // Comparable-equal but raw snapshot may still differ (e.g. client-only word ids).
+      // Refresh lastCommitted so later commits don't push a no-op undo entry.
+      lastCommittedRef.current = cloneSnapshot(current);
       notify();
       return;
     }
@@ -252,10 +262,20 @@ export function EditorHistoryProvider<M extends AtomMap>({
           commitNow();
         }
       },
-      markSaved() {
-        const current = takeSnapshot();
-        savedBaselineRef.current = cloneSnapshot(current);
-        lastCommittedRef.current = cloneSnapshot(current);
+      beginSave() {
+        pendingSaveRef.current = cloneSnapshot(takeSnapshot());
+      },
+      markSaved(patch?: Record<string, unknown>) {
+        const base = pendingSaveRef.current ?? takeSnapshot();
+        pendingSaveRef.current = null;
+        const next = cloneSnapshot(base);
+        if (patch) {
+          for (const [key, value] of Object.entries(patch)) {
+            (next as Record<string, unknown>)[key] = cloneSnapshot(value);
+          }
+        }
+        savedBaselineRef.current = next;
+        lastCommittedRef.current = cloneSnapshot(next);
         savedStackDepthRef.current = undoStackRef.current.length;
         notify();
       },

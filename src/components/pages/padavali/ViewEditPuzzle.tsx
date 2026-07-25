@@ -1,7 +1,7 @@
 'use client';
 
 import { z } from 'zod';
-import { useEffect, useState } from 'react';
+import { useEffect, useRef, useState } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { Card, CardContent } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
@@ -1155,7 +1155,11 @@ const SaveButton = ({ word_puzzle }: { word_puzzle: Puzzle }) => {
   const [, setImageBaseline] = useAtom(image_baseline_atom);
   const [listed] = useAtom(listed_atom);
   const [description] = useAtom(description_atom);
-  const { markSaved } = useEditorHistoryActions();
+  const { beginSave, markSaved } = useEditorHistoryActions();
+  const saveSnapRef = useRef<{
+    attachments: Puzzle['attachments'];
+    image_id: number | null;
+  } | null>(null);
 
   const router = useRouter();
 
@@ -1164,14 +1168,18 @@ const SaveButton = ({ word_puzzle }: { word_puzzle: Puzzle }) => {
       if (data.success) {
         toast.success('Puzzle updated successfully');
 
+        const submitted = saveSnapRef.current;
+        const baseAttachments = submitted?.attachments ?? attachments;
+        const savedImageId = submitted?.image_id ?? image_id;
+
         const { newly_added_index_ids } = data;
         const updatedAttachments =
           newly_added_index_ids.length > 0
-            ? attachments.map((val, i) => {
+            ? baseAttachments.map((val, i) => {
                 const elm = newly_added_index_ids.find(({ index }) => index === i);
                 return elm ? { ...val, id: elm.id } : val;
               })
-            : attachments;
+            : baseAttachments;
 
         if (newly_added_index_ids.length > 0) {
           // after update for the newly added attachemnts filling
@@ -1179,8 +1187,11 @@ const SaveButton = ({ word_puzzle }: { word_puzzle: Puzzle }) => {
           setAttachments(updatedAttachments);
         }
 
-        setImageBaseline(image_id);
-        markSaved();
+        setImageBaseline(savedImageId);
+        markSaved(
+          newly_added_index_ids.length > 0 ? { attachments: updatedAttachments } : undefined
+        );
+        saveSnapRef.current = null;
 
         // Clear React Query cache for the puzzle carousel
         void queryClient.invalidateQueries({ queryKey: ['listed_puzzles_carousel'] });
@@ -1192,6 +1203,7 @@ const SaveButton = ({ word_puzzle }: { word_puzzle: Puzzle }) => {
       }
     },
     onError() {
+      saveSnapRef.current = null;
       toast.error('Failed to update puzzle, check the entered data');
     }
   });
@@ -1236,6 +1248,8 @@ const SaveButton = ({ word_puzzle }: { word_puzzle: Puzzle }) => {
     } satisfies z.infer<typeof puzzle_update_input_schema>;
     const parse = puzzle_update_input_schema.safeParse(data);
     if (parse.success) {
+      beginSave();
+      saveSnapRef.current = { attachments, image_id };
       update_word_puzzle_mut.mutate(parse.data);
     } else {
       console.log(parse.error);
@@ -1289,7 +1303,6 @@ const PuzzleImageSection = ({ word_puzzle }: { word_puzzle: Puzzle }) => {
   const [title] = useAtom(title_atom);
   const [description] = useAtom(description_atom);
   const [wordList] = useAtom(word_list_atom);
-  const { acceptKeysAsSaved } = useEditorHistoryActions();
 
   return (
     <PuzzleCardImageSection
@@ -1302,10 +1315,7 @@ const PuzzleImageSection = ({ word_puzzle }: { word_puzzle: Puzzle }) => {
       imageInfo={image_info}
       onImageIdChange={setImageId}
       onImageInfoChange={setImageInfo}
-      onImageBaselineChange={(id) => {
-        setImageBaseline(id);
-        acceptKeysAsSaved('image_id', 'image_info');
-      }}
+      onImageBaselineChange={setImageBaseline}
     />
   );
 };

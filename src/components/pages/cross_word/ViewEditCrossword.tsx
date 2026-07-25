@@ -237,7 +237,6 @@ const CrosswordPuzzleImageSection = ({ puzzleId }: { puzzleId: number }) => {
   const [title] = useAtom(title_atom);
   const [description] = useAtom(description_atom);
   const [wordList] = useAtom(word_list_atom);
-  const { acceptKeysAsSaved } = useEditorHistoryActions();
 
   return (
     <PuzzleCardImageSection
@@ -250,10 +249,7 @@ const CrosswordPuzzleImageSection = ({ puzzleId }: { puzzleId: number }) => {
       imageInfo={image_info}
       onImageIdChange={setImageId}
       onImageInfoChange={setImageInfo}
-      onImageBaselineChange={(id) => {
-        setImageBaseline(id);
-        acceptKeysAsSaved('image_id', 'image_info');
-      }}
+      onImageBaselineChange={setImageBaseline}
     />
   );
 };
@@ -1138,27 +1134,38 @@ const SaveControls = ({ puzzle }: { puzzle: ViewEditCrosswordProps['puzzle'] }) 
   const [attachments, setAttachments] = useAtom(attachments_atom);
   const [image_id, setImageId] = useAtom(image_id_atom);
   const [, setImageBaseline] = useAtom(image_baseline_atom);
-  const { markSaved } = useEditorHistoryActions();
+  const { beginSave, markSaved } = useEditorHistoryActions();
+  const saveSnapRef = useRef<{
+    attachments: EditableAttachment[];
+    image_id: number | null;
+  } | null>(null);
 
   const update_mut = client_q.crossword.update_puzzle.useMutation({
     onSuccess: (data) => {
       toast.success('Puzzle updated successfully');
 
+      const submitted = saveSnapRef.current;
+      const baseAttachments = submitted?.attachments ?? attachments;
+      const savedImageId = submitted?.image_id ?? image_id;
+
       const updatedAttachments =
         data.newly_added_index_ids.length > 0
-          ? attachments.map((val, i) => {
+          ? baseAttachments.map((val, i) => {
               const elm = data.newly_added_index_ids.find(({ index }) => index === i);
               return elm ? { ...val, id: elm.id } : val;
             })
-          : attachments;
+          : baseAttachments;
 
       if (data.newly_added_index_ids.length > 0) {
         setAttachments(updatedAttachments);
       }
 
-      setImageBaseline(image_id);
-      setImageId(image_id);
-      markSaved();
+      setImageBaseline(savedImageId);
+      setImageId(savedImageId);
+      markSaved(
+        data.newly_added_index_ids.length > 0 ? { attachments: updatedAttachments } : undefined
+      );
+      saveSnapRef.current = null;
 
       void queryClient.invalidateQueries({ queryKey: ['crossword_list'] });
       void invalidatePage('/padajala');
@@ -1168,6 +1175,7 @@ const SaveControls = ({ puzzle }: { puzzle: ViewEditCrosswordProps['puzzle'] }) 
       void invalidatePage(`/padajala/${puzzle.slug}`);
     },
     onError(err) {
+      saveSnapRef.current = null;
       toast.error(err.message || 'Failed to update puzzle');
     }
   });
@@ -1230,6 +1238,8 @@ const SaveControls = ({ puzzle }: { puzzle: ViewEditCrosswordProps['puzzle'] }) 
 
     const parse = crossword_update_input_schema.safeParse(data);
     if (parse.success) {
+      beginSave();
+      saveSnapRef.current = { attachments, image_id };
       update_mut.mutate(parse.data);
     } else {
       console.error(parse.error);
