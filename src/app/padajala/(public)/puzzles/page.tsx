@@ -23,6 +23,7 @@ export default async function CrosswordPuzzlesPage() {
 export const metadata: Metadata = {
   ...getMetadata({
     title: 'Crossword Puzzles',
-    description: 'Browse and play all available crossword puzzles'
+    description: 'Browse and play all available crossword puzzles',
+    project: 'padajala'
   })
 };

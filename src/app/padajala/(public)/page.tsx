@@ -38,6 +38,7 @@ export default async function CrosswordHomePage() {
 export const metadata: Metadata = {
   ...getMetadata({
     title: 'Padajāla',
+    project: 'padajala',
     description:
       'Best Sanskrit Crossword Puzzle Online. Tests your vocabulary and creativity. Expand your vocabulary and challenge your friends to try and beat your score.'
   }),

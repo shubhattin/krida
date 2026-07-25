@@ -56,7 +56,8 @@ export async function generateMetadata({ params }: Props): Promise<Metadata> {
   return {
     ...getMetadata({
       title: word_puzzle ? `${word_puzzle.title} - Crossword` : 'Not Found',
-      description: word_puzzle ? word_puzzle.description : null
+      description: word_puzzle ? word_puzzle.description : null,
+      project: 'padajala'
     })
   };
 }

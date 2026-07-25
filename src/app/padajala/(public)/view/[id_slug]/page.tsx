@@ -24,7 +24,7 @@ const parseParams = async (params: Promise<{ id_slug: string }>) => {
 export async function generateMetadata({ params }: Props): Promise<Metadata> {
   const routeParams = await parseParams(params);
   if (!routeParams) {
-    return getMetadata({ title: 'Not Found', description: null });
+    return getMetadata({ title: 'Not Found', description: null, project: 'padajala' });
   }
 
   const word_puzzle = await word_puzzle_get_cached_func({ slug: routeParams.slug });
@@ -33,7 +33,8 @@ export async function generateMetadata({ params }: Props): Promise<Metadata> {
   return {
     ...getMetadata({
       title: isValid ? `${word_puzzle.title} | Crossword` : 'Not Found',
-      description: isValid ? word_puzzle.description : null
+      description: isValid ? word_puzzle.description : null,
+      project: 'padajala'
     }),
     robots: 'noindex'
   };
