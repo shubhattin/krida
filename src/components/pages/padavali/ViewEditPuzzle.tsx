@@ -1,7 +1,7 @@
 'use client';
 
 import { z } from 'zod';
-import { useEffect, useRef, useState } from 'react';
+import { useEffect, useRef, useState, type KeyboardEvent } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { Card, CardContent } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
@@ -995,9 +995,10 @@ const GridData = ({
 }) => {
   const [gridData, setGridData] = useAtom(grid_data_atom);
   const [wordList] = useAtom(word_list_atom);
-  const cols = grid_dimensions[1];
+  const [rows, cols] = grid_dimensions;
   const [lipi_lekhika_active] = useAtom(lipi_lekhika_active_atom);
   const historyField = useHistoryTextField();
+  const gridRef = useRef<HTMLDivElement>(null);
 
   const occupiedCellsStrList = (() => {
     if (gridData.length === 0 || wordList.length === 0) {
@@ -1023,6 +1024,40 @@ const GridData = ({
 
   const ctx = createTypingContext(BASE_SCRIPT);
 
+  const focusCellInput = (r: number, c: number) => {
+    const el = gridRef.current?.querySelector<HTMLInputElement>(
+      `input[data-grid-r="${r}"][data-grid-c="${c}"]`
+    );
+    if (!el) return false;
+    el.focus();
+    el.select();
+    return true;
+  };
+
+  const moveFocus = (r: number, c: number, dRow: number, dCol: number) => {
+    const nextR = r + dRow;
+    const nextC = c + dCol;
+    if (nextR < 0 || nextC < 0 || nextR >= rows || nextC >= cols) return;
+    focusCellInput(nextR, nextC);
+  };
+
+  const handleCellKeyDown = (r: number, c: number, e: KeyboardEvent<HTMLInputElement>) => {
+    clearTypingContextOnKeyDown(e, ctx);
+    if (e.key === 'ArrowLeft') {
+      e.preventDefault();
+      moveFocus(r, c, 0, -1);
+    } else if (e.key === 'ArrowRight') {
+      e.preventDefault();
+      moveFocus(r, c, 0, 1);
+    } else if (e.key === 'ArrowUp') {
+      e.preventDefault();
+      moveFocus(r, c, -1, 0);
+    } else if (e.key === 'ArrowDown') {
+      e.preventDefault();
+      moveFocus(r, c, 1, 0);
+    }
+  };
+
   const getCellClassName = (r: number, c: number) => {
     const isOccupied = occupiedCellsStrList.has(`${r},${c}`);
     return `rounded text-center transition-all duration-200 ${
@@ -1035,7 +1070,11 @@ const GridData = ({
   return (
     <div>
       <Label className="mb-2 block text-lg font-semibold">Grid</Label>
+      <p className="mb-2 hidden text-xs text-muted-foreground/80 sm:block">
+        Navigate the grid with the arrow keys (↑ ↓ ← →)
+      </p>
       <div
+        ref={gridRef}
         className="md:3/5 grid w-full gap-1 sm:w-4/5 md:w-3/5 lg:w-2/5"
         style={{ gridTemplateColumns: `repeat(${cols}, minmax(0, 1fr))` }}
       >
@@ -1044,6 +1083,8 @@ const GridData = ({
             <Input
               key={`${r}-${c}`}
               type="text"
+              data-grid-r={r}
+              data-grid-c={c}
               className={getCellClassName(r, c)}
               minLength={1}
               value={cell}
@@ -1061,7 +1102,7 @@ const GridData = ({
                 ctx.clearContext();
                 historyField.onBlur();
               }}
-              onKeyDown={(e) => clearTypingContextOnKeyDown(e, ctx)}
+              onKeyDown={(e) => handleCellKeyDown(r, c, e)}
             />
           ))
         )}
