@@ -738,7 +738,7 @@ export function GameShowcaseCard({ game, index }: { game: (typeof GAMES)[number]
       >
         {/* Card header with icon + title */}
         <div className="flex items-start gap-3.5 p-5 pb-3">
-          <GameAppIcon name={game.name} size="md" />
+          <GameAppIcon game={game.id} name={game.name} size="lg" />
 
           <div className="min-w-0 flex-1">
             <h3

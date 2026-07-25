@@ -3,7 +3,7 @@ import type { ReactNode } from 'react';
 import { MenuButton } from '~/components/app-bar/AppBarMenu';
 import { robotoSans } from '../fonts';
 import SupportOptions from '~/components/app-bar/SupportOptions';
-import { GameAppIcon } from '~/components/GameAppIcon';
+import { GAME_APP_ICON_SRC, type GameAppIconId } from '~/components/GameAppIcon';
 
 export type AppGame = 'padavali' | 'crossword';
 
@@ -13,6 +13,7 @@ const GAME_DEFAULTS: Record<
     title: string;
     description: string;
     href: string;
+    iconGame: GameAppIconId;
     showPwaControls: boolean;
   }
 > = {
@@ -20,12 +21,14 @@ const GAME_DEFAULTS: Record<
     title: 'Padāvalī',
     description: 'Sanskrit Word Puzzle',
     href: '/padavali',
+    iconGame: 'padavali',
     showPwaControls: true
   },
   crossword: {
     title: 'Padajāla',
     description: 'Crossword Puzzles',
     href: '/padajala',
+    iconGame: 'padajala',
     showPwaControls: false
   }
 };
@@ -34,7 +37,7 @@ export type AppBarProps = {
   game: AppGame;
   title?: string;
   description?: string;
-  /** @deprecated Ignored — brand mark uses the shared GameAppIcon. */
+  /** @deprecated Ignored — brand mark uses GAME_APP_ICON_SRC. */
   imageUrl?: string;
   gameMenuItems?: ReactNode;
 };
@@ -49,10 +52,11 @@ export default function AppBar({ game, title, description, gameMenuItems }: AppB
       <div className="mx-auto flex h-16 max-w-4xl items-center justify-between px-4 lg:px-6">
         {/* Logo/Title Section */}
         <Link href={defaults.href} className="group flex items-center space-x-3 no-underline">
-          <GameAppIcon
-            name={resolvedTitle}
-            size="md"
-            className="transition-transform duration-200 group-hover:scale-105"
+          {/* Plain mark only — no gray plate (plate is for cards / cross-promo) */}
+          <img
+            src={GAME_APP_ICON_SRC[defaults.iconGame]}
+            alt={`${resolvedTitle} icon`}
+            className="size-12 shrink-0 drop-shadow-sm transition-transform duration-200 group-hover:scale-105"
           />
           <div>
             <h1

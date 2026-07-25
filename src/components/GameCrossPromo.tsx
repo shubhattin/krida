@@ -58,7 +58,7 @@ export function GameCrossPromo({ promote, toPuzzles }: GameCrossPromoProps) {
         href={href}
         className={`group flex items-center gap-3.5 rounded-xl border bg-white/60 px-4 py-3 backdrop-blur-sm transition-all duration-200 hover:-translate-y-0.5 hover:shadow-md sm:gap-4 sm:px-5 sm:py-3.5 dark:bg-slate-900/40 ${info.borderColor} ${info.bgHover}`}
       >
-        <GameAppIcon name={info.name} size="sm" />
+        <GameAppIcon game={promote} name={info.name} size="md" />
 
         {/* Text */}
         <div className="min-w-0 flex-1">
