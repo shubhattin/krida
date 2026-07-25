@@ -1,7 +1,7 @@
 'use client';
 
 import { z } from 'zod';
-import { useEffect, useMemo, useRef, useState } from 'react';
+import { useEffect, useState } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { Card, CardContent } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
@@ -28,7 +28,6 @@ import { client_q } from '~/api/client';
 import { toast } from 'sonner';
 import { IoMdAdd, IoMdClose } from 'react-icons/io';
 import { atom, useAtom } from 'jotai';
-import { FiSave } from 'react-icons/fi';
 import { MdDeleteOutline, MdDragIndicator } from 'react-icons/md';
 import { useRouter } from 'next/navigation';
 import { Info, ArrowRight, ExternalLink } from 'lucide-react';
@@ -42,6 +41,7 @@ import {
 import { Textarea } from '@/components/ui/textarea';
 import { Checkbox } from '@/components/ui/checkbox';
 import { PuzzleCardImageSection } from '~/components/pages/puzzle/PuzzleCardImageSection';
+import { EditorActionDock } from '~/components/pages/puzzle/EditorActionDock';
 import {
   DndContext,
   closestCenter,
@@ -94,6 +94,11 @@ import {
 } from '~/components/ui/select';
 import { useQueryClient } from '@tanstack/react-query';
 import { invalidatePage } from '~/tools/invalidate_nextjs_server_route';
+import {
+  EditorHistoryProvider,
+  useEditorHistoryActions,
+  useHistoryTextField
+} from '~/hooks/useEditorHistory';
 
 const ATTACHMENT_TYPE_ITEMS = [
   { label: 'Select attachment type', value: null },
@@ -141,6 +146,17 @@ const image_info_atom = atom<{ id: number; s3_key: string; width: number; height
   null
 );
 
+const PADAVALI_HISTORY_ATOMS = {
+  title: title_atom,
+  description: description_atom,
+  listed: listed_atom,
+  word_list: word_list_atom,
+  grid_data: grid_data_atom,
+  attachments: attachments_atom,
+  image_id: image_id_atom,
+  image_info: image_info_atom
+};
+
 export type ViewEditProps = {
   word_puzzle: Puzzle;
 };
@@ -162,26 +178,28 @@ const ViewEditPuzzle = ({ word_puzzle: initialWordPuzzle }: ViewEditProps) => {
   ]);
 
   return (
-    <Card className="space-y-1.5">
-      <CardContent>
-        <div className="space-y-4">
-          <LipiLekhikaSwitch />
-          <SlugField
-            slug={word_puzzle.slug}
-            puzzleId={word_puzzle.id}
-            onSlugUpdated={(slug) => setWordPuzzle((prev) => ({ ...prev, slug }))}
-          />
-          <Title />
-          <ListedSwitch slug={word_puzzle.slug} />
-          <Description />
-          <Attachments />
-          <WordList />
-          <TraversalAndGridData grid_dimensions={word_puzzle.grid_dimensions} />
-          <PuzzleImageSection word_puzzle={word_puzzle} />
-          <SaveButton word_puzzle={word_puzzle} />
-        </div>
-      </CardContent>
-    </Card>
+    <EditorHistoryProvider atoms={PADAVALI_HISTORY_ATOMS}>
+      <Card className="space-y-1.5 pb-28">
+        <CardContent>
+          <div className="space-y-4">
+            <LipiLekhikaSwitch />
+            <SlugField
+              slug={word_puzzle.slug}
+              puzzleId={word_puzzle.id}
+              onSlugUpdated={(slug) => setWordPuzzle((prev) => ({ ...prev, slug }))}
+            />
+            <Title />
+            <ListedSwitch slug={word_puzzle.slug} />
+            <Description />
+            <Attachments />
+            <WordList />
+            <TraversalAndGridData grid_dimensions={word_puzzle.grid_dimensions} />
+            <PuzzleImageSection word_puzzle={word_puzzle} />
+            <SaveButton word_puzzle={word_puzzle} />
+          </div>
+        </CardContent>
+      </Card>
+    </EditorHistoryProvider>
   );
 };
 
@@ -189,6 +207,7 @@ const Title = () => {
   const ctx = createTypingContext(BASE_SCRIPT);
   const [title, setTitle] = useAtom(title_atom);
   const [lipi_lekhika_active] = useAtom(lipi_lekhika_active_atom);
+  const historyField = useHistoryTextField();
 
   useEffect(() => {
     ctx.ready;
@@ -211,7 +230,11 @@ const Title = () => {
               lipi_lekhika_active
             )
           }
-          onBlur={() => ctx.clearContext()}
+          onFocus={historyField.onFocus}
+          onBlur={() => {
+            ctx.clearContext();
+            historyField.onBlur();
+          }}
           onKeyDown={(e) => clearTypingContextOnKeyDown(e, ctx)}
         />
       </Label>
@@ -243,6 +266,7 @@ const SortableAttachmentItem = ({
 
   const ctx = createTypingContext(BASE_SCRIPT);
   const [lipi_lekhika_active] = useAtom(lipi_lekhika_active_atom);
+  const historyField = useHistoryTextField();
 
   return (
     <div
@@ -304,6 +328,8 @@ const SortableAttachmentItem = ({
             className="w-64 text-sm"
             value={attachment.url}
             onInput={(e) => onUpdate('url', e.currentTarget.value, null)}
+            onFocus={historyField.onFocus}
+            onBlur={historyField.onBlur}
           />
         </div>
       </div>
@@ -324,7 +350,11 @@ const SortableAttachmentItem = ({
               lipi_lekhika_active
             )
           }
-          onBlur={() => ctx.clearContext()}
+          onFocus={historyField.onFocus}
+          onBlur={() => {
+            ctx.clearContext();
+            historyField.onBlur();
+          }}
           onKeyDown={(e) => clearTypingContextOnKeyDown(e, ctx)}
         />
       </div>
@@ -882,6 +912,7 @@ const TraversalAnalysis = ({
 const WordList = () => {
   const [wordList, setWordList] = useAtom(word_list_atom);
   const [lipi_lekhika_active] = useAtom(lipi_lekhika_active_atom);
+  const historyField = useHistoryTextField();
 
   const addWord = () => setWordList((prev) => [...prev, '']);
   const removeWord = (index: number) => setWordList((prev) => prev.filter((_, i) => i !== index));
@@ -921,7 +952,11 @@ const WordList = () => {
                       lipi_lekhika_active
                     )
                   }
-                  onBlur={() => ctx.clearContext()}
+                  onFocus={historyField.onFocus}
+                  onBlur={() => {
+                    ctx.clearContext();
+                    historyField.onBlur();
+                  }}
                   onKeyDown={(e) => clearTypingContextOnKeyDown(e, ctx)}
                 />
               </motion.div>
@@ -962,6 +997,7 @@ const GridData = ({
   const [wordList] = useAtom(word_list_atom);
   const cols = grid_dimensions[1];
   const [lipi_lekhika_active] = useAtom(lipi_lekhika_active_atom);
+  const historyField = useHistoryTextField();
 
   const occupiedCellsStrList = (() => {
     if (gridData.length === 0 || wordList.length === 0) {
@@ -1020,7 +1056,11 @@ const GridData = ({
                   lipi_lekhika_active
                 )
               }
-              onBlur={() => ctx.clearContext()}
+              onFocus={historyField.onFocus}
+              onBlur={() => {
+                ctx.clearContext();
+                historyField.onBlur();
+              }}
               onKeyDown={(e) => clearTypingContextOnKeyDown(e, ctx)}
             />
           ))
@@ -1071,6 +1111,7 @@ const ListedSwitch = ({ slug }: { slug: string }) => {
 const Description = () => {
   const [description, setDescription] = useAtom(description_atom);
   const [lipi_lekhika_active] = useAtom(lipi_lekhika_active_atom);
+  const historyField = useHistoryTextField();
 
   const ctx = createTypingContext(BASE_SCRIPT);
 
@@ -1090,7 +1131,11 @@ const Description = () => {
               lipi_lekhika_active
             )
           }
-          onBlur={() => ctx.clearContext()}
+          onFocus={historyField.onFocus}
+          onBlur={() => {
+            ctx.clearContext();
+            historyField.onBlur();
+          }}
           onKeyDown={(e) => clearTypingContextOnKeyDown(e, ctx)}
           placeholder="Enter a description for the puzzle..."
           required
@@ -1107,17 +1152,10 @@ const SaveButton = ({ word_puzzle }: { word_puzzle: Puzzle }) => {
   const [gridData] = useAtom(grid_data_atom);
   const [attachments, setAttachments] = useAtom(attachments_atom);
   const [image_id] = useAtom(image_id_atom);
-  const [image_baseline, setImageBaseline] = useAtom(image_baseline_atom);
-  const initialRef = useRef({
-    title: word_puzzle.title,
-    wordList: word_puzzle.word_list,
-    gridData: word_puzzle.grid_data,
-    listed: word_puzzle.listed,
-    description: word_puzzle.description,
-    attachments: word_puzzle.attachments
-  });
+  const [, setImageBaseline] = useAtom(image_baseline_atom);
   const [listed] = useAtom(listed_atom);
   const [description] = useAtom(description_atom);
+  const { markSaved } = useEditorHistoryActions();
 
   const router = useRouter();
 
@@ -1141,15 +1179,8 @@ const SaveButton = ({ word_puzzle }: { word_puzzle: Puzzle }) => {
           setAttachments(updatedAttachments);
         }
 
-        initialRef.current = {
-          title,
-          wordList,
-          gridData,
-          listed,
-          description,
-          attachments: updatedAttachments
-        };
         setImageBaseline(image_id);
+        markSaved();
 
         // Clear React Query cache for the puzzle carousel
         void queryClient.invalidateQueries({ queryKey: ['listed_puzzles_carousel'] });
@@ -1183,18 +1214,6 @@ const SaveButton = ({ word_puzzle }: { word_puzzle: Puzzle }) => {
       toast.error('Failed to delete puzzle');
     }
   });
-
-  const isEdited = useMemo(() => {
-    return (
-      title !== initialRef.current.title ||
-      JSON.stringify(wordList) !== JSON.stringify(initialRef.current.wordList) ||
-      JSON.stringify(gridData) !== JSON.stringify(initialRef.current.gridData) ||
-      listed !== initialRef.current.listed ||
-      description !== initialRef.current.description ||
-      JSON.stringify(attachments) !== JSON.stringify(initialRef.current.attachments) ||
-      image_id !== image_baseline
-    );
-  }, [title, wordList, gridData, listed, description, attachments, image_id, image_baseline]);
 
   const handleSave = () => {
     if (!description.trim()) {
@@ -1232,56 +1251,34 @@ const SaveButton = ({ word_puzzle }: { word_puzzle: Puzzle }) => {
   };
 
   return (
-    <div className="mx-2 mt-2 flex items-center justify-between sm:mx-4">
-      <AlertDialog>
-        <AlertDialogTrigger
-          render={
-            <Button
-              disabled={!isEdited || update_word_puzzle_mut.isPending}
-              className="flex text-lg"
-              variant={'outline'}
-            />
-          }
-        >
-          <FiSave className="text-lg" /> {!update_word_puzzle_mut.isPending ? 'Save' : 'Saving...'}
-        </AlertDialogTrigger>
-        <AlertDialogContent>
-          <AlertDialogHeader>
-            <AlertDialogTitle>Confirm Save</AlertDialogTitle>
-            <AlertDialogDescription>
-              Are you sure you want to save your changes?
-            </AlertDialogDescription>
-          </AlertDialogHeader>
-          <AlertDialogFooter>
-            <AlertDialogCancel>Cancel</AlertDialogCancel>
-            <AlertDialogAction onClick={handleSave}>Confirm</AlertDialogAction>
-          </AlertDialogFooter>
-        </AlertDialogContent>
-      </AlertDialog>
+    <>
+      <EditorActionDock onSave={handleSave} isSaving={update_word_puzzle_mut.isPending} />
 
-      <AlertDialog>
-        <AlertDialogTrigger
-          render={<Button className="flex gap-1 px-1 py-0 text-sm" variant="destructive" />}
-        >
-          <MdDeleteOutline className="text-base" />
-          Delete
-        </AlertDialogTrigger>
-        <AlertDialogContent>
-          <AlertDialogHeader>
-            <AlertDialogTitle>Confirm Delete</AlertDialogTitle>
-            <AlertDialogDescription>
-              Are you sure you want to delete this puzzle? This action cannot be undone.
-            </AlertDialogDescription>
-          </AlertDialogHeader>
-          <AlertDialogFooter>
-            <AlertDialogCancel>Cancel</AlertDialogCancel>
-            <AlertDialogAction onClick={handleDelete} className="bg-red-500 hover:bg-red-400">
-              Delete
-            </AlertDialogAction>
-          </AlertDialogFooter>
-        </AlertDialogContent>
-      </AlertDialog>
-    </div>
+      <div className="mx-2 mt-2 flex items-center justify-end sm:mx-4">
+        <AlertDialog>
+          <AlertDialogTrigger
+            render={<Button className="flex gap-1 px-1 py-0 text-sm" variant="destructive" />}
+          >
+            <MdDeleteOutline className="text-base" />
+            Delete
+          </AlertDialogTrigger>
+          <AlertDialogContent>
+            <AlertDialogHeader>
+              <AlertDialogTitle>Confirm Delete</AlertDialogTitle>
+              <AlertDialogDescription>
+                Are you sure you want to delete this puzzle? This action cannot be undone.
+              </AlertDialogDescription>
+            </AlertDialogHeader>
+            <AlertDialogFooter>
+              <AlertDialogCancel>Cancel</AlertDialogCancel>
+              <AlertDialogAction onClick={handleDelete} className="bg-red-500 hover:bg-red-400">
+                Delete
+              </AlertDialogAction>
+            </AlertDialogFooter>
+          </AlertDialogContent>
+        </AlertDialog>
+      </div>
+    </>
   );
 };
 
@@ -1292,6 +1289,7 @@ const PuzzleImageSection = ({ word_puzzle }: { word_puzzle: Puzzle }) => {
   const [title] = useAtom(title_atom);
   const [description] = useAtom(description_atom);
   const [wordList] = useAtom(word_list_atom);
+  const { acceptKeysAsSaved } = useEditorHistoryActions();
 
   return (
     <PuzzleCardImageSection
@@ -1304,7 +1302,10 @@ const PuzzleImageSection = ({ word_puzzle }: { word_puzzle: Puzzle }) => {
       imageInfo={image_info}
       onImageIdChange={setImageId}
       onImageInfoChange={setImageInfo}
-      onImageBaselineChange={setImageBaseline}
+      onImageBaselineChange={(id) => {
+        setImageBaseline(id);
+        acceptKeysAsSaved('image_id', 'image_info');
+      }}
     />
   );
 };

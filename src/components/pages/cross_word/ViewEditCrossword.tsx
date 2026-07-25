@@ -7,7 +7,6 @@ import { useRouter } from 'next/navigation';
 import { useQueryClient } from '@tanstack/react-query';
 import { AnimatePresence, motion } from 'framer-motion';
 import { ArrowRight, Info, Pencil } from 'lucide-react';
-import { FiSave } from 'react-icons/fi';
 import { IoMdAdd, IoMdClose } from 'react-icons/io';
 import { MdDeleteOutline, MdDragIndicator } from 'react-icons/md';
 import { toast } from 'sonner';
@@ -92,6 +91,12 @@ import {
 import { invalidatePage } from '~/tools/invalidate_nextjs_server_route';
 import { CrosswordSlugField } from '~/components/pages/cross_word/EditCrosswordSlugDialog';
 import { PuzzleCardImageSection } from '~/components/pages/puzzle/PuzzleCardImageSection';
+import { EditorActionDock } from '~/components/pages/puzzle/EditorActionDock';
+import {
+  EditorHistoryProvider,
+  useEditorHistoryActions,
+  useHistoryTextField
+} from '~/hooks/useEditorHistory';
 
 type EditableWord = {
   id: string;
@@ -126,6 +131,18 @@ const image_info_atom = atom<{ id: number; s3_key: string; width: number; height
   null
 );
 
+const CROSSWORD_HISTORY_ATOMS = {
+  title: title_atom,
+  description: description_atom,
+  listed: listed_atom,
+  grid_dimensions: grid_dimensions_atom,
+  grid_data: grid_data_atom,
+  word_list: word_list_atom,
+  attachments: attachments_atom,
+  image_id: image_id_atom,
+  image_info: image_info_atom
+};
+
 export type ViewEditCrosswordProps = {
   puzzle: CrossordPuzzle & {
     attachments: z.infer<typeof attachment_schema>[];
@@ -156,6 +173,23 @@ function editableWordsComparable(words: EditableWord[]) {
   }));
 }
 
+function crosswordHistoryComparable(snapshot: {
+  title: string;
+  description: string;
+  listed: boolean;
+  grid_dimensions: [number, number];
+  grid_data: CrossordPuzzleGridCell[][];
+  word_list: EditableWord[];
+  attachments: EditableAttachment[];
+  image_id: number | null;
+  image_info: { id: number; s3_key: string; width: number; height: number } | null;
+}) {
+  return {
+    ...snapshot,
+    word_list: editableWordsComparable(snapshot.word_list)
+  };
+}
+
 export default function ViewEditCrossword({ puzzle: initialPuzzle }: ViewEditCrosswordProps) {
   const [puzzle, setPuzzle] = useState(initialPuzzle);
 
@@ -173,24 +207,26 @@ export default function ViewEditCrossword({ puzzle: initialPuzzle }: ViewEditCro
   ]);
 
   return (
-    <div className="mx-auto flex w-full max-w-6xl flex-col gap-6 px-2 py-4 sm:px-4">
-      <CrosswordSlugField
-        slug={puzzle.slug}
-        puzzleId={puzzle.id}
-        onSlugUpdated={(slug) => setPuzzle((prev) => ({ ...prev, slug }))}
-      />
-      <TitleField />
-      <DescriptionField />
-      <div className="flex flex-wrap items-center gap-6">
-        <ListedSwitch />
-        <DimensionsField />
+    <EditorHistoryProvider atoms={CROSSWORD_HISTORY_ATOMS} comparable={crosswordHistoryComparable}>
+      <div className="mx-auto flex w-full max-w-6xl flex-col gap-6 px-2 py-4 pb-28 sm:px-4">
+        <CrosswordSlugField
+          slug={puzzle.slug}
+          puzzleId={puzzle.id}
+          onSlugUpdated={(slug) => setPuzzle((prev) => ({ ...prev, slug }))}
+        />
+        <TitleField />
+        <DescriptionField />
+        <div className="flex flex-wrap items-center gap-6">
+          <ListedSwitch />
+          <DimensionsField />
+        </div>
+        <WordListEditor />
+        <PlacementAndGrid />
+        <AttachmentsEditor />
+        <CrosswordPuzzleImageSection puzzleId={puzzle.id} />
+        <SaveControls puzzle={puzzle} />
       </div>
-      <WordListEditor />
-      <PlacementAndGrid />
-      <AttachmentsEditor />
-      <CrosswordPuzzleImageSection puzzleId={puzzle.id} />
-      <SaveControls puzzle={puzzle} />
-    </div>
+    </EditorHistoryProvider>
   );
 }
 
@@ -201,6 +237,7 @@ const CrosswordPuzzleImageSection = ({ puzzleId }: { puzzleId: number }) => {
   const [title] = useAtom(title_atom);
   const [description] = useAtom(description_atom);
   const [wordList] = useAtom(word_list_atom);
+  const { acceptKeysAsSaved } = useEditorHistoryActions();
 
   return (
     <PuzzleCardImageSection
@@ -213,13 +250,17 @@ const CrosswordPuzzleImageSection = ({ puzzleId }: { puzzleId: number }) => {
       imageInfo={image_info}
       onImageIdChange={setImageId}
       onImageInfoChange={setImageInfo}
-      onImageBaselineChange={setImageBaseline}
+      onImageBaselineChange={(id) => {
+        setImageBaseline(id);
+        acceptKeysAsSaved('image_id', 'image_info');
+      }}
     />
   );
 };
 
 const TitleField = () => {
   const [title, setTitle] = useAtom(title_atom);
+  const historyField = useHistoryTextField();
   return (
     <div className="flex flex-col gap-2">
       <Label htmlFor="crossword-title" className="text-lg font-semibold">
@@ -229,6 +270,8 @@ const TitleField = () => {
         id="crossword-title"
         value={title}
         onChange={(e) => setTitle(e.currentTarget.value)}
+        onFocus={historyField.onFocus}
+        onBlur={historyField.onBlur}
         className="max-w-xl text-base"
       />
     </div>
@@ -237,6 +280,7 @@ const TitleField = () => {
 
 const DescriptionField = () => {
   const [description, setDescription] = useAtom(description_atom);
+  const historyField = useHistoryTextField();
   return (
     <div className="flex flex-col gap-2">
       <Label htmlFor="crossword-description" className="text-lg font-semibold">
@@ -246,6 +290,8 @@ const DescriptionField = () => {
         id="crossword-description"
         value={description}
         onChange={(e) => setDescription(e.currentTarget.value)}
+        onFocus={historyField.onFocus}
+        onBlur={historyField.onBlur}
         rows={3}
         className="max-w-2xl"
         placeholder="Enter a description for the puzzle..."
@@ -272,6 +318,7 @@ const SortableAttachmentItem = ({
   const { attributes, listeners, setNodeRef, transform, transition, isDragging } = useSortable({
     id: `attachment-${index}`
   });
+  const historyField = useHistoryTextField();
 
   const style = {
     transform: CSS.Transform.toString(transform),
@@ -347,6 +394,8 @@ const SortableAttachmentItem = ({
             value={attachment.url}
             aria-label={`Attachment ${index + 1} URL`}
             onInput={(e) => onUpdate('url', e.currentTarget.value)}
+            onFocus={historyField.onFocus}
+            onBlur={historyField.onBlur}
           />
         </div>
       </div>
@@ -360,6 +409,8 @@ const SortableAttachmentItem = ({
           value={attachment.title ?? ''}
           aria-label={`Attachment ${index + 1} title`}
           onChange={(e) => onUpdate('title', e.currentTarget.value || null)}
+          onFocus={historyField.onFocus}
+          onBlur={historyField.onBlur}
         />
       </div>
     </div>
@@ -598,6 +649,7 @@ const DimensionsField = () => {
 const WordListEditor = () => {
   const [wordList, setWordList] = useAtom(word_list_atom);
   const [gridData] = useAtom(grid_data_atom);
+  const historyField = useHistoryTextField();
 
   const analysis = useMemo(() => analyzeWordPlacements(gridData, wordList), [gridData, wordList]);
 
@@ -647,12 +699,16 @@ const WordListEditor = () => {
                       word: e.currentTarget.value.toUpperCase().replace(/[^A-Z]/g, '')
                     })
                   }
+                  onFocus={historyField.onFocus}
+                  onBlur={historyField.onBlur}
                   placeholder="WORD"
                   className="w-36 font-mono uppercase sm:w-44"
                 />
                 <Input
                   value={item.description}
                   onChange={(e) => updateWord(idx, { description: e.currentTarget.value })}
+                  onFocus={historyField.onFocus}
+                  onBlur={historyField.onBlur}
                   placeholder="Clue / description"
                   className="min-w-0 flex-1"
                 />
@@ -881,6 +937,7 @@ const GridEditor = ({
   const [gridData, setGridData] = useAtom(grid_data_atom);
   const gridRef = useRef<HTMLDivElement>(null);
   const [rows, cols] = dimensions;
+  const historyField = useHistoryTextField();
 
   const updateCell = (r: number, c: number, next: CrossordPuzzleGridCell) => {
     setGridData((prev) => {
@@ -1034,6 +1091,8 @@ const GridEditor = ({
                   value={cell.text}
                   onChange={(e) => setLetter(r, c, e.currentTarget.value)}
                   onKeyDown={(e) => handleCellKeyDown(r, c, e)}
+                  onFocus={historyField.onFocus}
+                  onBlur={historyField.onBlur}
                   className={getCellClassName(r, c)}
                   maxLength={2}
                   aria-label={
@@ -1078,25 +1137,8 @@ const SaveControls = ({ puzzle }: { puzzle: ViewEditCrosswordProps['puzzle'] }) 
   const [wordList] = useAtom(word_list_atom);
   const [attachments, setAttachments] = useAtom(attachments_atom);
   const [image_id, setImageId] = useAtom(image_id_atom);
-  const [image_baseline, setImageBaseline] = useAtom(image_baseline_atom);
-
-  const initialRef = useRef<{
-    title: string;
-    description: string;
-    listed: boolean;
-    gridDimensions: [number, number];
-    gridData: CrossordPuzzleGridCell[][];
-    wordList: EditableWord[];
-    attachments: EditableAttachment[];
-  }>({
-    title: puzzle.title,
-    description: puzzle.description,
-    listed: puzzle.listed,
-    gridDimensions: puzzle.grid_dimensions,
-    gridData: puzzle.grid_data,
-    wordList: toEditableWords(puzzle.word_list),
-    attachments: puzzle.attachments
-  });
+  const [, setImageBaseline] = useAtom(image_baseline_atom);
+  const { markSaved } = useEditorHistoryActions();
 
   const update_mut = client_q.crossword.update_puzzle.useMutation({
     onSuccess: (data) => {
@@ -1116,16 +1158,8 @@ const SaveControls = ({ puzzle }: { puzzle: ViewEditCrosswordProps['puzzle'] }) 
 
       setImageBaseline(image_id);
       setImageId(image_id);
+      markSaved();
 
-      initialRef.current = {
-        title,
-        description,
-        listed,
-        gridDimensions,
-        gridData,
-        wordList,
-        attachments: updatedAttachments
-      };
       void queryClient.invalidateQueries({ queryKey: ['crossword_list'] });
       void invalidatePage('/padajala');
       void invalidatePage('/padajala/list');
@@ -1151,30 +1185,6 @@ const SaveControls = ({ puzzle }: { puzzle: ViewEditCrosswordProps['puzzle'] }) 
       toast.error('Failed to delete puzzle');
     }
   });
-
-  const isEdited = useMemo(() => {
-    return (
-      title !== initialRef.current.title ||
-      description !== initialRef.current.description ||
-      listed !== initialRef.current.listed ||
-      JSON.stringify(gridDimensions) !== JSON.stringify(initialRef.current.gridDimensions) ||
-      JSON.stringify(gridData) !== JSON.stringify(initialRef.current.gridData) ||
-      JSON.stringify(editableWordsComparable(wordList)) !==
-        JSON.stringify(editableWordsComparable(initialRef.current.wordList)) ||
-      JSON.stringify(attachments) !== JSON.stringify(initialRef.current.attachments) ||
-      image_id !== image_baseline
-    );
-  }, [
-    title,
-    description,
-    listed,
-    gridDimensions,
-    gridData,
-    wordList,
-    attachments,
-    image_id,
-    image_baseline
-  ]);
 
   const handleSave = () => {
     if (!description.trim()) {
@@ -1228,57 +1238,35 @@ const SaveControls = ({ puzzle }: { puzzle: ViewEditCrosswordProps['puzzle'] }) 
   };
 
   return (
-    <div className="mx-2 mt-2 flex items-center justify-between sm:mx-4">
-      <AlertDialog>
-        <AlertDialogTrigger
-          render={
-            <Button
-              disabled={!isEdited || update_mut.isPending}
-              className="flex text-lg"
-              variant="outline"
-            />
-          }
-        >
-          <FiSave className="text-lg" /> {!update_mut.isPending ? 'Save' : 'Saving...'}
-        </AlertDialogTrigger>
-        <AlertDialogContent>
-          <AlertDialogHeader>
-            <AlertDialogTitle>Confirm Save</AlertDialogTitle>
-            <AlertDialogDescription>
-              Are you sure you want to save your changes?
-            </AlertDialogDescription>
-          </AlertDialogHeader>
-          <AlertDialogFooter>
-            <AlertDialogCancel>Cancel</AlertDialogCancel>
-            <AlertDialogAction onClick={handleSave}>Confirm</AlertDialogAction>
-          </AlertDialogFooter>
-        </AlertDialogContent>
-      </AlertDialog>
+    <>
+      <EditorActionDock onSave={handleSave} isSaving={update_mut.isPending} />
 
-      <AlertDialog>
-        <AlertDialogTrigger
-          render={<Button className="flex gap-1 px-1 py-0 text-sm" variant="destructive" />}
-        >
-          <MdDeleteOutline className="text-base" />
-          Delete
-        </AlertDialogTrigger>
-        <AlertDialogContent>
-          <AlertDialogHeader>
-            <AlertDialogTitle>Confirm Delete</AlertDialogTitle>
-            <AlertDialogDescription>
-              Are you sure you want to delete this puzzle? This action cannot be undone.
-            </AlertDialogDescription>
-          </AlertDialogHeader>
-          <AlertDialogFooter>
-            <AlertDialogCancel>Cancel</AlertDialogCancel>
-            <AlertDialogAction
-              onClick={() => delete_mut.mutate({ id: puzzle.id, slug: puzzle.slug })}
-            >
-              Delete
-            </AlertDialogAction>
-          </AlertDialogFooter>
-        </AlertDialogContent>
-      </AlertDialog>
-    </div>
+      <div className="mx-2 mt-2 flex items-center justify-end sm:mx-4">
+        <AlertDialog>
+          <AlertDialogTrigger
+            render={<Button className="flex gap-1 px-1 py-0 text-sm" variant="destructive" />}
+          >
+            <MdDeleteOutline className="text-base" />
+            Delete
+          </AlertDialogTrigger>
+          <AlertDialogContent>
+            <AlertDialogHeader>
+              <AlertDialogTitle>Confirm Delete</AlertDialogTitle>
+              <AlertDialogDescription>
+                Are you sure you want to delete this puzzle? This action cannot be undone.
+              </AlertDialogDescription>
+            </AlertDialogHeader>
+            <AlertDialogFooter>
+              <AlertDialogCancel>Cancel</AlertDialogCancel>
+              <AlertDialogAction
+                onClick={() => delete_mut.mutate({ id: puzzle.id, slug: puzzle.slug })}
+              >
+                Delete
+              </AlertDialogAction>
+            </AlertDialogFooter>
+          </AlertDialogContent>
+        </AlertDialog>
+      </div>
+    </>
   );
 };
