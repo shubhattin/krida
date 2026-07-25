@@ -1,6 +1,6 @@
 'use client';
 
-import { useEffect, useState } from 'react';
+import { useEffect, useRef, useState } from 'react';
 import { Button } from '@/components/ui/button';
 import {
   Sparkles,
@@ -13,7 +13,6 @@ import {
   Globe,
   Languages,
   Trophy,
-  Award,
   ChevronRight,
   Code2,
   Grid3X3
@@ -22,8 +21,12 @@ import { SiGithub } from 'react-icons/si';
 import { FaYoutube, FaInstagram } from 'react-icons/fa';
 import Link from 'next/link';
 import { motion, AnimatePresence, type Variants } from 'framer-motion';
+import { cn } from '@/lib/utils';
+import { GameAppIcon } from '@/components/GameAppIcon';
 
 // ─── Padavali Mini Demo Constants ─────────────────────────
+type CellPos = { row: number; col: number };
+
 const MOCK_GRID = [
   ['ज्ञा', 'नं', 'म', 'ङ्ग', 'ल'],
   ['सं', 'स्कृ', 'प', 'त', 'म'],
@@ -32,13 +35,8 @@ const MOCK_GRID = [
   ['ह', 'रिः', 'ली', 'ला', 'क']
 ];
 
-// Tracing path for "पदावली" (P-da-va-li)
-const MOCK_PATH = [
-  [1, 2],
-  [2, 3],
-  [3, 2],
-  [4, 2]
-];
+const GRID_ROWS = MOCK_GRID.length;
+const GRID_COLS = MOCK_GRID[0]!.length;
 
 // ─── Padajala Mini Demo Constants ─────────────────────────
 // A simplified crossword shape for visual preview
@@ -67,7 +65,7 @@ const SCRIPT_SAMPLES = [
   { script: 'Gujarati', text: 'પદાવલી' },
   { script: 'Bengali', text: 'পদাবলী' },
   { script: 'Odia', text: 'ପଦାବଳୀ' },
-  { script: 'Tamil', text: 'பதாவли' }
+  { script: 'Tamil', text: 'பதாவலி' }
 ];
 
 // ─── Game Card Config ─────────────────────────────────────
@@ -88,7 +86,6 @@ export const GAMES = [
       border:
         'border-blue-200/40 hover:border-blue-400/60 dark:border-blue-800/40 dark:hover:border-blue-600/60',
       bg: 'bg-blue-50/30 dark:bg-blue-950/20',
-      iconBg: 'from-blue-500 to-indigo-600',
       shadowColor: 'shadow-blue-500/20'
     }
   },
@@ -108,152 +105,451 @@ export const GAMES = [
       border:
         'border-amber-200/40 hover:border-amber-400/60 dark:border-amber-800/40 dark:hover:border-amber-600/60',
       bg: 'bg-amber-50/30 dark:bg-amber-950/20',
-      iconBg: 'from-amber-500 to-orange-600',
       shadowColor: 'shadow-amber-500/20'
     }
   }
 ] as const;
 
 // ─── Demo Words for Padavali Animation ─────────────────────
-const DEMO_WORDS = [
+const DEMO_WORDS: { text: string; path: CellPos[] }[] = [
   {
     text: 'पदावली',
     path: [
-      [1, 2],
-      [2, 3],
-      [3, 2],
-      [4, 2]
+      { row: 1, col: 2 },
+      { row: 2, col: 3 },
+      { row: 3, col: 2 },
+      { row: 4, col: 2 }
     ]
   },
   {
     text: 'ज्ञानं',
     path: [
-      [0, 0],
-      [0, 1]
+      { row: 0, col: 0 },
+      { row: 0, col: 1 }
     ]
   },
   {
     text: 'भाषा',
     path: [
-      [3, 0],
-      [3, 1]
+      { row: 3, col: 0 },
+      { row: 3, col: 1 }
     ]
   },
   {
     text: 'हरिः',
     path: [
-      [4, 0],
-      [4, 1]
+      { row: 4, col: 0 },
+      { row: 4, col: 1 }
+    ]
+  },
+  {
+    text: 'देव',
+    path: [
+      { row: 2, col: 0 },
+      { row: 2, col: 1 }
     ]
   }
 ];
 
+/** Random adjacent path used for occasional "miss" demos (mirrors GameGrid). */
+function generateRandomPath(rows: number, cols: number): CellPos[] {
+  for (let attempt = 0; attempt < 20; attempt++) {
+    const startRow = Math.floor(Math.random() * rows);
+    const startCol = Math.floor(Math.random() * cols);
+    const path: CellPos[] = [{ row: startRow, col: startCol }];
+    const targetLength = Math.floor(Math.random() * 3) + 2;
+    let current = { row: startRow, col: startCol };
+    let success = true;
+
+    for (let step = 1; step < targetLength; step++) {
+      const neighbors: CellPos[] = [];
+      for (let dr = -1; dr <= 1; dr++) {
+        for (let dc = -1; dc <= 1; dc++) {
+          if (dr === 0 && dc === 0) continue;
+          const nr = current.row + dr;
+          const nc = current.col + dc;
+          if (nr < 0 || nr >= rows || nc < 0 || nc >= cols) continue;
+          if (path.some((p) => p.row === nr && p.col === nc)) continue;
+          neighbors.push({ row: nr, col: nc });
+        }
+      }
+      if (neighbors.length === 0) {
+        success = false;
+        break;
+      }
+      const next = neighbors[Math.floor(Math.random() * neighbors.length)]!;
+      path.push(next);
+      current = next;
+    }
+    if (success && path.length >= 2) return path;
+  }
+  return [
+    { row: 0, col: 0 },
+    { row: 0, col: 1 }
+  ];
+}
+
+function cellsEqual(a: CellPos, b: CellPos) {
+  return a.row === b.row && a.col === b.col;
+}
+
+function isCellInPath(path: CellPos[], row: number, col: number) {
+  return path.some((c) => c.row === row && c.col === col);
+}
+
 // ─── Padavali Mini Grid Preview ───────────────────────────
+// Mirrors GameGrid idle-demo: hand emoji traces a path, blue selection →
+// green success / red miss, SVG trail, found words persist.
 export function PadavaliMiniPreview() {
-  const [wordIndex, setWordIndex] = useState(0);
-  const [activeStep, setActiveStep] = useState(0);
-  const [animState, setAnimState] = useState<'idle' | 'selecting' | 'success'>('idle');
+  const gridRef = useRef<HTMLDivElement>(null);
+  const [demoPath, setDemoPath] = useState<CellPos[]>([]);
+  const [demoState, setDemoState] = useState<'idle' | 'selecting' | 'success' | 'fail'>('idle');
+  const [handPos, setHandPos] = useState<CellPos | null>(null);
+  const [lastHandPos, setLastHandPos] = useState<CellPos | null>(null);
+  const [foundWords, setFoundWords] = useState<{ text: string; path: CellPos[] }[]>([]);
+  const [activeLabel, setActiveLabel] = useState<string | null>(null);
+  const [layoutTick, setLayoutTick] = useState(0);
 
   useEffect(() => {
-    let timer: NodeJS.Timeout;
+    if (handPos) setLastHandPos(handPos);
+  }, [handPos]);
+
+  // Keep SVG trails accurate when the card resizes
+  useEffect(() => {
+    const el = gridRef.current;
+    if (!el) return;
+    const sync = () => setLayoutTick((t) => t + 1);
+    sync();
+    const observer = new ResizeObserver(sync);
+    observer.observe(el);
+    return () => observer.disconnect();
+  }, []);
+
+  useEffect(() => {
     let isMounted = true;
+    let timeoutId: NodeJS.Timeout;
+    let wordCursor = 0;
+    let completedFinds = 0;
 
-    const runWordCycle = async (wIdx: number) => {
-      if (!isMounted) return;
-      setWordIndex(wIdx);
-      setAnimState('idle');
-      setActiveStep(0);
-
-      // Idle
-      await new Promise((r) => {
-        timer = setTimeout(r, 1200);
+    const wait = (ms: number) =>
+      new Promise<void>((resolve) => {
+        timeoutId = setTimeout(resolve, ms);
       });
-      if (!isMounted) return;
 
-      // Selecting
-      const currentWord = DEMO_WORDS[wIdx];
-      setAnimState('selecting');
-      for (let i = 0; i < currentWord.path.length; i++) {
-        setActiveStep(i + 1);
-        await new Promise((r) => {
-          timer = setTimeout(r, 500);
-        });
+    const tracePath = async (path: CellPos[]) => {
+      setDemoState('selecting');
+      for (let i = 0; i < path.length; i++) {
         if (!isMounted) return;
+        setDemoPath(path.slice(0, i + 1));
+        setHandPos(path[i]!);
+        await wait(560);
       }
-
-      // Success
-      setAnimState('success');
-      await new Promise((r) => {
-        timer = setTimeout(r, 2000);
-      });
-      if (!isMounted) return;
-
-      // Next Word
-      const nextIdx = (wIdx + 1) % DEMO_WORDS.length;
-      runWordCycle(nextIdx);
     };
 
-    runWordCycle(0);
+    const startCycle = async () => {
+      if (!isMounted) return;
+
+      // Idle beat — keep hand visible so it springs to the next start
+      setDemoPath([]);
+      setDemoState('idle');
+      setActiveLabel(null);
+      await wait(1100);
+      if (!isMounted) return;
+
+      // ~30% of cycles after the first find: a short miss (like GameGrid)
+      const isMiss = Math.random() < 0.3 && completedFinds > 0;
+      if (isMiss) {
+        const missPath = generateRandomPath(GRID_ROWS, GRID_COLS);
+        setActiveLabel(null);
+        await tracePath(missPath);
+        if (!isMounted) return;
+        setDemoState('fail');
+        await wait(1200);
+        if (!isMounted) return;
+        startCycle();
+        return;
+      }
+
+      const idx = wordCursor % DEMO_WORDS.length;
+      // Fresh lap — clear persisted greens so the loop can replay
+      if (idx === 0 && wordCursor > 0) {
+        completedFinds = 0;
+        setFoundWords([]);
+      }
+      const word = DEMO_WORDS[idx]!;
+      wordCursor += 1;
+
+      setActiveLabel(word.text);
+      await tracePath(word.path);
+      if (!isMounted) return;
+
+      setDemoState('success');
+      completedFinds += 1;
+      setFoundWords((prev) => {
+        if (prev.some((w) => w.text === word.text)) return prev;
+        return [...prev, word];
+      });
+      await wait(1600);
+      if (!isMounted) return;
+      startCycle();
+    };
+
+    startCycle();
     return () => {
       isMounted = false;
-      clearTimeout(timer);
+      clearTimeout(timeoutId);
     };
   }, []);
 
-  const currentWord = DEMO_WORDS[wordIndex];
+  const getCenter = ({ row, col }: CellPos) => {
+    const grid = gridRef.current;
+    if (!grid) return { x: 0, y: 0 };
+    const cell = grid.querySelector<HTMLElement>(
+      `[data-mini-row="${row}"][data-mini-col="${col}"]`
+    );
+    if (!cell) return { x: 0, y: 0 };
+    const parentRect = grid.getBoundingClientRect();
+    const cellRect = cell.getBoundingClientRect();
+    return {
+      x: cellRect.left + cellRect.width / 2 - parentRect.left,
+      y: cellRect.top + cellRect.height / 2 - parentRect.top
+    };
+  };
+
+  const buildPoints = (cells: CellPos[]) => {
+    void layoutTick;
+    return cells
+      .map((c) => {
+        const { x, y } = getCenter(c);
+        return `${x},${y}`;
+      })
+      .join(' ');
+  };
+
+  const displayPos = handPos ?? lastHandPos;
+  const isHandVisible = !!handPos;
+  const wordsFound = foundWords.length;
+  const trailStroke =
+    demoState === 'success'
+      ? {
+          glow: 'stroke-emerald-300 dark:stroke-emerald-400',
+          main: 'stroke-emerald-500 dark:stroke-emerald-400'
+        }
+      : demoState === 'fail'
+        ? {
+            glow: 'stroke-red-300 dark:stroke-red-400',
+            main: 'stroke-red-500 dark:stroke-red-400'
+          }
+        : {
+            glow: 'stroke-blue-300 dark:stroke-blue-400',
+            main: 'stroke-blue-500 dark:stroke-blue-400'
+          };
 
   return (
     <div className="relative rounded-2xl border border-slate-200/40 bg-slate-100/40 p-4.5 dark:border-slate-800/40 dark:bg-slate-950/20">
       {/* Header */}
-      <div className="mb-3 flex items-center justify-between">
+      <div className="mb-3 flex items-center justify-between gap-2">
         <div className="flex items-center gap-1.5">
           <div className="size-1.5 animate-pulse rounded-full bg-emerald-500" />
           <span className="text-[10px] font-bold tracking-wider text-slate-500 uppercase dark:text-slate-400">
             Live Demo
           </span>
         </div>
-      </div>
-
-      {/* 5x5 Grid */}
-      <div className="grid grid-cols-5 gap-1.5">
-        {MOCK_GRID.map((rowArr, rIdx) =>
-          rowArr.map((letter, cIdx) => {
-            const pathStep = currentWord.path.findIndex(([pr, pc]) => pr === rIdx && pc === cIdx);
-            const isCurrentlyHighlighted = pathStep !== -1 && pathStep < activeStep;
-
-            // Retain green color for previously found words in the current cycle
-            const isPartofCompletedWord = DEMO_WORDS.some((word, wIdx) => {
-              if (wIdx >= wordIndex) return false;
-              return word.path.some(([pr, pc]) => pr === rIdx && pc === cIdx);
-            });
-
-            let cellClass =
-              'border-slate-200/80 bg-slate-50/50 dark:border-slate-800 dark:bg-slate-950/40 text-slate-800 dark:text-slate-200 shadow-xs';
-
-            if (isCurrentlyHighlighted) {
-              if (animState === 'success') {
-                cellClass =
-                  'border-emerald-400 bg-gradient-to-br from-emerald-100/70 to-green-100/50 dark:border-emerald-500/60 dark:from-emerald-950/45 dark:to-green-950/20 text-emerald-700 dark:text-emerald-300 shadow-sm shadow-emerald-500/10 scale-105';
-              } else if (animState === 'selecting') {
-                cellClass =
-                  'border-blue-400 bg-gradient-to-br from-blue-100/70 to-indigo-50/50 dark:border-blue-500/60 dark:from-blue-950/45 dark:to-indigo-950/20 text-blue-700 dark:text-blue-300 shadow-sm shadow-blue-500/10 scale-105';
-              }
-            } else if (isPartofCompletedWord) {
-              cellClass =
-                'border-emerald-400 bg-gradient-to-br from-emerald-100/70 to-green-100/50 dark:border-emerald-500/60 dark:from-emerald-950/45 dark:to-green-950/20 text-emerald-700 dark:text-emerald-300 shadow-sm shadow-emerald-500/10 scale-105';
-            }
-
-            return (
-              <div
-                key={`${rIdx}-${cIdx}`}
-                className={`flex aspect-square items-center justify-center rounded-xl border text-base font-extrabold transition-all duration-300 ${cellClass}`}
+        <div className="flex items-center gap-1.5">
+          <AnimatePresence mode="wait">
+            {activeLabel && demoState !== 'idle' ? (
+              <motion.span
+                key={activeLabel}
+                initial={{ opacity: 0, y: 4 }}
+                animate={{ opacity: 1, y: 0 }}
+                exit={{ opacity: 0, y: -4 }}
+                className={cn(
+                  'rounded-full px-2 py-0.5 text-[10px] font-bold shadow-xs',
+                  demoState === 'fail'
+                    ? 'border border-red-500/20 bg-red-500/10 text-red-600 dark:text-red-400'
+                    : demoState === 'success'
+                      ? 'border border-emerald-500/20 bg-emerald-500/10 text-emerald-600 dark:text-emerald-400'
+                      : 'border border-blue-500/20 bg-blue-500/10 text-blue-600 dark:text-blue-400'
+                )}
               >
-                {letter}
-              </div>
-            );
-          })
-        )}
+                {activeLabel}
+              </motion.span>
+            ) : null}
+          </AnimatePresence>
+          <span
+            className={cn(
+              'rounded-full px-2 py-0.5 text-[10px] font-semibold shadow-xs',
+              wordsFound > 0
+                ? 'border border-emerald-500/20 bg-emerald-500/10 text-emerald-600 dark:text-emerald-400'
+                : 'bg-white text-slate-500 dark:bg-slate-900 dark:text-slate-400'
+            )}
+          >
+            {wordsFound}/{DEMO_WORDS.length}
+          </span>
+        </div>
       </div>
+
+      {/* Grid + hand + trails — SVG under opaque cells (like GameGrid) */}
+      <div className="relative">
+        {/* Trails sit under the grid so letters stay readable */}
+        <svg
+          className="pointer-events-none absolute inset-0 z-0 h-full w-full"
+          xmlns="http://www.w3.org/2000/svg"
+          aria-hidden
+        >
+          {foundWords.map((word) => {
+            // Skip the active word while its live demo trail is drawn
+            if (word.path.length < 2) return null;
+            if (demoPath.length > 1 && word.text === activeLabel) return null;
+            return (
+              <g key={word.text}>
+                <polyline
+                  points={buildPoints(word.path)}
+                  fill="none"
+                  className="stroke-emerald-300 dark:stroke-emerald-400"
+                  strokeWidth={14}
+                  strokeLinecap="round"
+                  strokeLinejoin="round"
+                  opacity={0.4}
+                />
+                <polyline
+                  points={buildPoints(word.path)}
+                  fill="none"
+                  className="stroke-emerald-500 dark:stroke-emerald-400"
+                  strokeWidth={6}
+                  strokeLinecap="round"
+                  strokeLinejoin="round"
+                />
+              </g>
+            );
+          })}
+
+          {demoPath.length > 1 && (
+            <g>
+              <polyline
+                points={buildPoints(demoPath)}
+                fill="none"
+                className={trailStroke.glow}
+                strokeWidth={14}
+                strokeLinecap="round"
+                strokeLinejoin="round"
+                opacity={0.42}
+              />
+              <polyline
+                points={buildPoints(demoPath)}
+                fill="none"
+                className={trailStroke.main}
+                strokeWidth={6}
+                strokeLinecap="round"
+                strokeLinejoin="round"
+              />
+            </g>
+          )}
+        </svg>
+
+        <div
+          ref={gridRef}
+          className="relative z-10 grid grid-cols-5 gap-2.5"
+          style={{ gridTemplateRows: `repeat(${GRID_ROWS}, 1fr)` }}
+        >
+          {MOCK_GRID.map((rowArr, rIdx) =>
+            rowArr.map((letter, cIdx) => {
+              const inDemo = isCellInPath(demoPath, rIdx, cIdx);
+              const inFound = foundWords.some((w) => isCellInPath(w.path, rIdx, cIdx));
+              const isLast =
+                inDemo &&
+                demoPath.length > 0 &&
+                cellsEqual(demoPath[demoPath.length - 1]!, { row: rIdx, col: cIdx });
+
+              return (
+                <div
+                  key={`${rIdx}-${cIdx}`}
+                  data-mini-row={rIdx}
+                  data-mini-col={cIdx}
+                  className={cn(
+                    'relative z-10 flex aspect-square items-center justify-center rounded-xl border text-base font-extrabold transition-all duration-300',
+                    // Solid base (keeps trails under glyphs) + neon rim/glow on active states
+                    'border-slate-200 bg-linear-to-br from-white to-slate-50 text-slate-800 shadow-xs',
+                    'dark:border-slate-700 dark:from-slate-800 dark:to-slate-950 dark:text-slate-200',
+                    inFound &&
+                      !(inDemo && demoState === 'selecting') && [
+                        // No scale — keeps H/V gap open so trails stay visible
+                        'border-emerald-400 bg-linear-to-br from-emerald-50 to-green-100 text-emerald-700',
+                        'shadow-[0_0_14px_rgba(52,211,153,0.45)] ring-1 ring-emerald-300/70',
+                        'dark:border-emerald-400/90 dark:from-emerald-950 dark:to-emerald-900 dark:text-emerald-200',
+                        'dark:shadow-[0_0_18px_rgba(52,211,153,0.5)] dark:ring-emerald-400/50'
+                      ],
+                    inDemo &&
+                      demoState === 'selecting' && [
+                        'border-blue-400 bg-linear-to-br from-sky-50 to-blue-100 text-blue-700',
+                        'shadow-[0_0_14px_rgba(96,165,250,0.5)] ring-1 ring-blue-300/70',
+                        'dark:border-blue-400/90 dark:from-blue-950 dark:to-indigo-950 dark:text-blue-200',
+                        'dark:shadow-[0_0_18px_rgba(96,165,250,0.55)] dark:ring-blue-400/50'
+                      ],
+                    inDemo &&
+                      demoState === 'success' && [
+                        'border-emerald-400 bg-linear-to-br from-emerald-50 to-green-100 text-emerald-700',
+                        'shadow-[0_0_16px_rgba(52,211,153,0.55)] ring-1 ring-emerald-300/80',
+                        'dark:border-emerald-400 dark:from-emerald-950 dark:to-emerald-900 dark:text-emerald-100',
+                        'dark:shadow-[0_0_20px_rgba(52,211,153,0.6)] dark:ring-emerald-400/60'
+                      ],
+                    inDemo &&
+                      demoState === 'fail' && [
+                        'border-red-400 bg-linear-to-br from-red-50 to-rose-100 text-red-700',
+                        'shadow-[0_0_14px_rgba(248,113,113,0.45)] ring-1 ring-red-300/70',
+                        'dark:border-red-400/90 dark:from-red-950 dark:to-rose-950 dark:text-red-200',
+                        'dark:shadow-[0_0_18px_rgba(248,113,113,0.5)] dark:ring-red-400/50'
+                      ],
+                    isLast &&
+                      demoState === 'selecting' &&
+                      'ring-2 ring-blue-300/80 dark:ring-blue-400/70'
+                  )}
+                >
+                  <span
+                    className={cn(
+                      'relative z-10',
+                      (inDemo || inFound) && 'drop-shadow-[0_0_6px_rgba(255,255,255,0.35)]'
+                    )}
+                  >
+                    {letter}
+                  </span>
+                </div>
+              );
+            })
+          )}
+
+          {/* Hand pointer — above cells + trails */}
+          <motion.div
+            aria-hidden
+            style={{
+              position: 'absolute',
+              zIndex: 35,
+              pointerEvents: 'none'
+            }}
+            initial={false}
+            animate={{
+              left: displayPos ? `${((displayPos.col + 0.5) / GRID_COLS) * 100}%` : '50%',
+              top: displayPos ? `${((displayPos.row + 0.5) / GRID_ROWS) * 100}%` : '50%',
+              opacity: isHandVisible ? 1 : 0,
+              scale: isHandVisible ? 1 : 0.8
+            }}
+            transition={{
+              left: { type: 'spring', stiffness: 100, damping: 15 },
+              top: { type: 'spring', stiffness: 100, damping: 15 },
+              opacity: { duration: 0.3 },
+              scale: { duration: 0.3 }
+            }}
+            className="pointer-events-none -translate-x-1/2 translate-y-[-18%] text-lg drop-shadow-md select-none sm:text-2xl"
+          >
+            👆
+          </motion.div>
+        </div>
+      </div>
+
+      {/* Hint under the grid */}
+      <p className="mt-2.5 text-center text-[10px] font-medium tracking-wide text-slate-400 dark:text-slate-500">
+        Drag across letters to find words
+      </p>
     </div>
   );
 }
@@ -278,7 +574,7 @@ export function PadajalaMiniPreview() {
       for (let i = 1; i <= totalCells; i++) {
         setFilledCount(i);
         await new Promise((r) => {
-          timer = setTimeout(r, 300);
+          timer = setTimeout(r, 320);
         });
         if (!isMounted) return;
       }
@@ -332,7 +628,7 @@ export function PadajalaMiniPreview() {
       </div>
 
       {/* Crossword Grid */}
-      <div className="grid grid-cols-5 gap-1.5">
+      <div className="grid grid-cols-5 gap-2">
         {CROSSWORD_GRID.map((row, rIdx) =>
           row.map((cell, cIdx) => {
             if (!cell) {
@@ -361,25 +657,59 @@ export function PadajalaMiniPreview() {
               isWordComplete = filledCount >= 10;
             }
 
-            let tileClass =
-              'border-slate-200 bg-white/70 text-transparent dark:border-slate-800/80 dark:bg-slate-900/40';
-
-            if (isFilled) {
-              if (isWordComplete) {
-                tileClass =
-                  'border-emerald-400 bg-gradient-to-br from-emerald-100/70 to-green-100/50 dark:border-emerald-500 dark:from-emerald-950/45 dark:to-green-950/20 text-emerald-700 dark:text-emerald-300 shadow-sm shadow-emerald-500/10 scale-105';
-              } else {
-                tileClass =
-                  'border-amber-400 bg-gradient-to-br from-amber-100/70 to-orange-50/50 dark:border-amber-500/60 dark:from-amber-950/45 dark:to-orange-950/20 text-amber-700 dark:text-amber-300 shadow-sm shadow-amber-500/10 scale-105';
-              }
-            }
-
             return (
               <div
                 key={`${rIdx}-${cIdx}`}
-                className={`flex aspect-square items-center justify-center rounded-xl border text-sm font-extrabold transition-all duration-300 ${tileClass}`}
+                className={cn(
+                  'flex aspect-square items-center justify-center rounded-xl border text-sm font-extrabold transition-colors duration-300',
+                  !isFilled &&
+                    'border-slate-200 bg-white/70 text-slate-300 dark:border-slate-800/80 dark:bg-slate-900/40 dark:text-slate-600',
+                  isFilled &&
+                    !isWordComplete && [
+                      'border-amber-400 bg-linear-to-br from-amber-50 to-orange-100 text-amber-700',
+                      'shadow-[0_0_12px_rgba(251,191,36,0.4)] ring-1 ring-amber-300/60',
+                      'dark:border-amber-400/90 dark:from-amber-950 dark:to-orange-950 dark:text-amber-200',
+                      'dark:shadow-[0_0_16px_rgba(251,191,36,0.45)] dark:ring-amber-400/45'
+                    ],
+                  isFilled &&
+                    isWordComplete && [
+                      'border-emerald-400 bg-linear-to-br from-emerald-50 to-green-100 text-emerald-700',
+                      'shadow-[0_0_14px_rgba(52,211,153,0.45)] ring-1 ring-emerald-300/70',
+                      'dark:border-emerald-400 dark:from-emerald-950 dark:to-emerald-900 dark:text-emerald-200',
+                      'dark:shadow-[0_0_18px_rgba(52,211,153,0.5)] dark:ring-emerald-400/50'
+                    ]
+                )}
               >
-                {isFilled ? letter : '·'}
+                <AnimatePresence mode="wait" initial={false}>
+                  {isFilled ? (
+                    <motion.span
+                      key={`letter-${rIdx}-${cIdx}`}
+                      initial={{ scale: 0.12, opacity: 0, y: 10 }}
+                      animate={{ scale: 1, opacity: 1, y: 0 }}
+                      exit={{ scale: 0.35, opacity: 0 }}
+                      transition={{
+                        type: 'spring',
+                        stiffness: 560,
+                        damping: 16,
+                        mass: 0.65
+                      }}
+                      className="inline-block origin-center drop-shadow-[0_0_6px_rgba(255,255,255,0.3)]"
+                    >
+                      {letter}
+                    </motion.span>
+                  ) : (
+                    <motion.span
+                      key={`dot-${rIdx}-${cIdx}`}
+                      initial={{ opacity: 0 }}
+                      animate={{ opacity: 0.5 }}
+                      exit={{ opacity: 0, scale: 0.5 }}
+                      transition={{ duration: 0.12 }}
+                      className="inline-block"
+                    >
+                      ·
+                    </motion.span>
+                  )}
+                </AnimatePresence>
               </div>
             );
           })
@@ -408,16 +738,7 @@ export function GameShowcaseCard({ game, index }: { game: (typeof GAMES)[number]
       >
         {/* Card header with icon + title */}
         <div className="flex items-start gap-3.5 p-5 pb-3">
-          {/* App icon */}
-          <div
-            className={`flex size-12 shrink-0 items-center justify-center rounded-xl bg-linear-to-br ${game.gradient.iconBg} shadow-lg ${game.gradient.shadowColor}`}
-          >
-            <img
-              src="/img/icon_128_no_pad.png"
-              alt={`${game.name} icon`}
-              className="size-8 drop-shadow-sm"
-            />
-          </div>
+          <GameAppIcon name={game.name} size="md" />
 
           <div className="min-w-0 flex-1">
             <h3
@@ -512,10 +833,10 @@ export default function LandingPage() {
     <div className="relative left-1/2 min-h-screen w-screen max-w-[100vw] -translate-x-1/2 overflow-x-hidden bg-slate-50 text-slate-900 transition-colors duration-300 dark:bg-slate-950 dark:text-slate-100">
       {/* Decorative Radial Background Blobs */}
       <div className="pointer-events-none absolute inset-0 overflow-hidden">
-        <div className="absolute -top-40 left-1/4 h-[500px] w-[500px] rounded-full bg-blue-400/10 blur-3xl dark:bg-blue-500/10" />
-        <div className="absolute top-1/3 right-1/4 h-[600px] w-[600px] rounded-full bg-purple-400/10 blur-3xl dark:bg-purple-500/10" />
-        <div className="absolute -bottom-20 left-1/3 h-[500px] w-[500px] rounded-full bg-indigo-400/10 blur-3xl dark:bg-indigo-500/10" />
-        <div className="absolute top-1/2 right-1/3 h-[400px] w-[400px] rounded-full bg-amber-400/8 blur-3xl dark:bg-amber-500/8" />
+        <div className="absolute -top-40 left-1/4 h-125 w-125 rounded-full bg-blue-400/10 blur-3xl dark:bg-blue-500/10" />
+        <div className="absolute top-1/3 right-1/4 h-150 w-150 rounded-full bg-purple-400/10 blur-3xl dark:bg-purple-500/10" />
+        <div className="absolute -bottom-20 left-1/3 h-125 w-125 rounded-full bg-indigo-400/10 blur-3xl dark:bg-indigo-500/10" />
+        <div className="absolute top-1/2 right-1/3 h-100 w-100 rounded-full bg-amber-400/8 blur-3xl dark:bg-amber-500/8" />
       </div>
 
       {/* Hero Section */}
@@ -599,7 +920,7 @@ export default function LandingPage() {
             <AnimatePresence mode="wait">
               <motion.div
                 key={scriptIndex}
-                className="flex min-w-[200px] flex-col items-center gap-1 rounded-2xl border border-slate-200/60 bg-white px-8 py-5 shadow-lg dark:border-slate-800/60 dark:bg-slate-900/80"
+                className="flex min-w-50 flex-col items-center gap-1 rounded-2xl border border-slate-200/60 bg-white px-8 py-5 shadow-lg dark:border-slate-800/60 dark:bg-slate-900/80"
                 initial={{ opacity: 0, scale: 0.95, y: 5 }}
                 animate={{ opacity: 1, scale: 1, y: 0 }}
                 exit={{ opacity: 0, scale: 0.95, y: -5 }}
@@ -680,10 +1001,10 @@ export default function LandingPage() {
                 <Trophy className="h-5 w-5" />
               </div>
               <h3 className="mb-2 text-lg font-bold transition-colors group-hover:text-emerald-600 dark:group-hover:text-emerald-400">
-                Daily Challenges
+                New Challenges
               </h3>
               <p className="text-sm text-slate-500 dark:text-slate-400">
-                Fresh puzzles every day — beat your personal time scores and learn Sanskrit
+                Fresh puzzles every week — beat your personal time scores and learn Sanskrit
                 consistently.
               </p>
             </div>

@@ -10,8 +10,8 @@ export default function NotFoundClient() {
     <main className="relative min-h-screen overflow-x-clip bg-linear-to-br from-slate-50 via-blue-50 to-indigo-50 px-4 py-16 dark:from-slate-950 dark:via-slate-900 dark:to-slate-950">
       {/* Background blobs */}
       <div className="pointer-events-none absolute inset-0 overflow-hidden">
-        <div className="absolute -top-40 -right-40 h-[600px] w-[600px] rounded-full bg-blue-500/10 blur-3xl dark:bg-blue-500/5" />
-        <div className="absolute -bottom-45 -left-40 h-[600px] w-[600px] rounded-full bg-indigo-500/10 blur-3xl dark:bg-indigo-500/5" />
+        <div className="absolute -top-40 -right-40 h-150 w-150 rounded-full bg-blue-500/10 blur-3xl dark:bg-blue-500/5" />
+        <div className="absolute -bottom-45 -left-40 h-150 w-150 rounded-full bg-indigo-500/10 blur-3xl dark:bg-indigo-500/5" />
       </div>
 
       <div className="relative mx-auto flex max-w-5xl flex-col items-center gap-12 text-center">

@@ -3,6 +3,7 @@
 import Link from 'next/link';
 import { ArrowRight } from 'lucide-react';
 import { motion } from 'framer-motion';
+import { GameAppIcon } from '@/components/GameAppIcon';
 
 const GAME_INFO = {
   padavali: {
@@ -11,12 +12,10 @@ const GAME_INFO = {
     description: 'Find hidden Sanskrit words by dragging across a grid of letters.',
     href: '/padavali',
     puzzlesHref: '/padavali/puzzles',
-    gradient: 'from-blue-500 to-indigo-600',
     borderColor:
       'border-blue-200/50 hover:border-blue-400/60 dark:border-blue-800/40 dark:hover:border-blue-500/50',
     textColor: 'text-blue-600 dark:text-blue-400',
-    bgHover: 'hover:bg-blue-50/50 dark:hover:bg-blue-950/20',
-    iconShadow: 'shadow-blue-500/25'
+    bgHover: 'hover:bg-blue-50/50 dark:hover:bg-blue-950/20'
   },
   padajala: {
     name: 'Padajāla',
@@ -24,12 +23,10 @@ const GAME_INFO = {
     description: 'Solve Sanskrit crossword puzzles and expand your vocabulary.',
     href: '/padajala',
     puzzlesHref: '/padajala/puzzles',
-    gradient: 'from-amber-500 to-orange-600',
     borderColor:
       'border-amber-200/50 hover:border-amber-400/60 dark:border-amber-800/40 dark:hover:border-amber-500/50',
     textColor: 'text-amber-600 dark:text-amber-400',
-    bgHover: 'hover:bg-amber-50/50 dark:hover:bg-amber-950/20',
-    iconShadow: 'shadow-amber-500/25'
+    bgHover: 'hover:bg-amber-50/50 dark:hover:bg-amber-950/20'
   }
 } as const;
 
@@ -61,16 +58,7 @@ export function GameCrossPromo({ promote, toPuzzles }: GameCrossPromoProps) {
         href={href}
         className={`group flex items-center gap-3.5 rounded-xl border bg-white/60 px-4 py-3 backdrop-blur-sm transition-all duration-200 hover:-translate-y-0.5 hover:shadow-md sm:gap-4 sm:px-5 sm:py-3.5 dark:bg-slate-900/40 ${info.borderColor} ${info.bgHover}`}
       >
-        {/* App icon */}
-        <div
-          className={`flex size-10 shrink-0 items-center justify-center rounded-xl bg-gradient-to-br ${info.gradient} shadow-lg ${info.iconShadow}`}
-        >
-          <img
-            src="/img/icon_128_no_pad.png"
-            alt={`${info.name} icon`}
-            className="size-6 drop-shadow-sm"
-          />
-        </div>
+        <GameAppIcon name={info.name} size="sm" />
 
         {/* Text */}
         <div className="min-w-0 flex-1">
