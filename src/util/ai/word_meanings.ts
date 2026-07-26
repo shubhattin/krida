@@ -7,6 +7,9 @@ type PuzzleType = z.infer<typeof puzzle_schema>;
 
 const text_model = openrouter('openai/gpt-5.6-luna');
 
+/** Extra attempts after the first failure (total attempts = 1 + MAX_RETRIES). */
+const MAX_RETRIES = 2;
+
 const SYSTEM_PROMPT = `
 You are an expert at providing meanings of Sanskrit words based on the puzzle context.
 
@@ -41,7 +44,7 @@ export const word_meanings_schema = z.object({
 
 export type WordMeaningsType = z.infer<typeof word_meanings_schema>;
 
-export const get_puzzle_word_meanings = async (puzzle: PuzzleType) => {
+const generate_word_meanings_once = async (puzzle: PuzzleType): Promise<WordMeaningsType> => {
   const words_list = puzzle.word_list.join(', ');
   const response = await generateText({
     model: text_model,
@@ -54,5 +57,38 @@ export const get_puzzle_word_meanings = async (puzzle: PuzzleType) => {
       }
     }
   });
-  return response.output;
+
+  const output = response.output;
+  if (!output) {
+    throw new Error(`Word meanings generation returned empty output for slug: ${puzzle.slug}`);
+  }
+  if (output.words.length !== puzzle.word_list.length) {
+    throw new Error(
+      `Word meanings count mismatch for slug: ${puzzle.slug} (expected ${puzzle.word_list.length}, got ${output.words.length})`
+    );
+  }
+
+  return output;
+};
+
+export const get_puzzle_word_meanings = async (puzzle: PuzzleType) => {
+  let last_error: unknown;
+
+  for (let attempt = 0; attempt <= MAX_RETRIES; attempt++) {
+    try {
+      return await generate_word_meanings_once(puzzle);
+    } catch (error) {
+      last_error = error;
+      if (attempt < MAX_RETRIES) {
+        console.warn(
+          `Word meanings generation failed for slug: ${puzzle.slug} (attempt ${attempt + 1}/${MAX_RETRIES + 1}); retrying…`,
+          error
+        );
+      }
+    }
+  }
+
+  throw last_error instanceof Error
+    ? last_error
+    : new Error(`Word meanings generation failed for slug: ${puzzle.slug}`);
 };

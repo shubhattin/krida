@@ -3,16 +3,19 @@
 import { useEffect, useEffectEvent, useRef, useState } from 'react';
 import { useAtomValue } from 'jotai';
 import { AnimatePresence, LayoutGroup, motion } from 'framer-motion';
-import { CheckCircle2 } from 'lucide-react';
+import { AlertCircle, CheckCircle2, Sparkles } from 'lucide-react';
 import { cn } from '~/lib/utils';
+import { Popover, PopoverContent, PopoverTrigger } from '~/components/ui/popover';
 import { active_focus_atom, numbered_entries_atom, solved_entry_ids_atom } from './game_state';
 import type { useCrossWordGame } from './useCrossWordGame';
+import type { MoreHintsQuery } from './useMoreHints';
 import type { NumberedEntry } from '~/util/cross_word/game_model';
 
 type ClueFilter = 'all' | 'across' | 'down';
 
 type CluePanelProps = {
   game: ReturnType<typeof useCrossWordGame>;
+  moreHints: MoreHintsQuery;
   className?: string;
 };
 
@@ -34,7 +37,93 @@ function sortClues(entries: NumberedEntry[], solvedIds: string[]) {
   });
 }
 
-export function CluePanel({ game, className }: CluePanelProps) {
+function MoreHintPopover({ entryId, moreHints }: { entryId: string; moreHints: MoreHintsQuery }) {
+  const hint = moreHints.hintByEntryId[entryId];
+  const { isLoading, isFetching, error, refetch } = moreHints;
+  const pending = isLoading || (isFetching && !hint);
+
+  return (
+    <Popover>
+      <PopoverTrigger
+        type="button"
+        aria-label="Show AI more hint"
+        onClick={(e) => e.stopPropagation()}
+        onPointerDown={(e) => e.stopPropagation()}
+        className={cn(
+          'mt-0.5 inline-flex shrink-0 items-center gap-1 rounded-full border px-2 py-0.5',
+          'border-violet-300/70 bg-linear-to-r from-violet-100 to-fuchsia-100',
+          'text-[0.6rem] font-bold tracking-wide text-violet-700 uppercase',
+          'shadow-sm transition-colors outline-none',
+          'hover:from-violet-200/90 hover:to-fuchsia-200/80',
+          'focus-visible:ring-2 focus-visible:ring-violet-400/50',
+          'dark:border-violet-500/40 dark:from-violet-900/50 dark:to-fuchsia-900/40 dark:text-violet-200',
+          'dark:hover:from-violet-800/60 dark:hover:to-fuchsia-800/50'
+        )}
+      >
+        <Sparkles className="-mt-0.5 size-2.5" />
+        More
+      </PopoverTrigger>
+      <PopoverContent
+        align="end"
+        side="bottom"
+        sideOffset={6}
+        className="w-64 gap-2 p-3"
+        onPointerDown={(e) => e.stopPropagation()}
+        onMouseDown={(e) => e.stopPropagation()}
+      >
+        <div className="flex flex-wrap items-center gap-1.5">
+          <p className="text-sm font-semibold text-foreground">More hint</p>
+          <span
+            className={cn(
+              'inline-flex items-center gap-1 rounded-full px-2 py-0.5',
+              'bg-linear-to-r from-violet-100 to-fuchsia-100',
+              'dark:from-violet-900/50 dark:to-fuchsia-900/40',
+              'text-[9px] font-bold tracking-wide text-violet-600 uppercase',
+              'dark:text-violet-300'
+            )}
+          >
+            <Sparkles className="size-2.5" />
+            AI
+          </span>
+        </div>
+
+        {pending ? (
+          <div className="space-y-2">
+            <div className="h-3 w-full animate-pulse rounded-md bg-violet-200/50 dark:bg-violet-800/40" />
+            <div className="h-3 w-4/5 animate-pulse rounded-md bg-violet-100/60 dark:bg-violet-900/30" />
+          </div>
+        ) : error ? (
+          <div className="flex flex-col items-start gap-2">
+            <div className="flex items-start gap-2 text-xs text-muted-foreground">
+              <AlertCircle className="mt-0.5 size-3.5 shrink-0 text-rose-500" />
+              <span>Could not load this hint.</span>
+            </div>
+            <button
+              type="button"
+              onClick={(e) => {
+                e.stopPropagation();
+                void refetch();
+              }}
+              className={cn(
+                'rounded-md px-2.5 py-1 text-[11px] font-semibold text-white',
+                'bg-linear-to-r from-violet-600 to-fuchsia-600',
+                'shadow-sm transition-all hover:brightness-110 active:scale-[0.97]'
+              )}
+            >
+              Retry
+            </button>
+          </div>
+        ) : hint ? (
+          <p className="text-sm leading-snug text-muted-foreground">{hint}</p>
+        ) : (
+          <p className="text-xs text-muted-foreground">No extra hint available for this clue.</p>
+        )}
+      </PopoverContent>
+    </Popover>
+  );
+}
+
+export function CluePanel({ game, moreHints, className }: CluePanelProps) {
   const entries = useAtomValue(numbered_entries_atom);
   const focus = useAtomValue(active_focus_atom);
   const solvedIds = useAtomValue(solved_entry_ids_atom);
@@ -165,6 +254,11 @@ export function CluePanel({ game, className }: CluePanelProps) {
                     layout: { type: 'spring', stiffness: 380, damping: 32, mass: 0.8 },
                     opacity: { duration: 0.25 }
                   }}
+                  className={cn(
+                    'flex items-start gap-1 rounded-xl',
+                    active &&
+                      'border-l-[3px] border-blue-400 bg-linear-to-r from-blue-500/15 to-indigo-500/10 dark:from-blue-500/20 dark:to-indigo-500/10'
+                  )}
                 >
                   <motion.button
                     type="button"
@@ -180,10 +274,9 @@ export function CluePanel({ game, className }: CluePanelProps) {
                     }
                     transition={{ duration: 0.35 }}
                     className={cn(
-                      'w-full rounded-xl px-2.5 py-2 text-left text-sm leading-snug transition-colors duration-200 outline-none focus:outline-none focus-visible:outline-none',
+                      'min-w-0 flex-1 rounded-xl px-2.5 py-2 text-left text-sm leading-snug transition-colors duration-200 outline-none focus:outline-none focus-visible:outline-none',
                       'disabled:cursor-default disabled:opacity-60',
-                      active &&
-                        'border-l-[3px] border-blue-400 bg-linear-to-r from-blue-500/15 to-indigo-500/10 text-foreground dark:from-blue-500/20 dark:to-indigo-500/10 dark:text-slate-50',
+                      active && 'text-foreground dark:text-slate-50',
                       !active &&
                         !solved &&
                         'text-slate-700 hover:bg-slate-100/70 hover:text-slate-900 dark:text-slate-200 dark:hover:bg-slate-700/40 dark:hover:text-white',
@@ -222,6 +315,12 @@ export function CluePanel({ game, className }: CluePanelProps) {
                       </span>
                     </span>
                   </motion.button>
+
+                  {active ? (
+                    <div className="shrink-0 pt-1.5 pr-1.5">
+                      <MoreHintPopover entryId={entry.id} moreHints={moreHints} />
+                    </div>
+                  ) : null}
                 </motion.li>
               );
             })

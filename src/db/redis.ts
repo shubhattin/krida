@@ -14,7 +14,8 @@ export const REDIS_CACHE_KEYS = {
   crossword_current_schedule: () => 'crossword:current_schedule',
   crossword_next_schedule: () => 'crossword:next_schedule',
   crossword_word_puzzle: (slug: string) => `crossword:word_puzzle:${slug}`,
-  crossword_listed_puzzle_list: () => 'crossword:listed_puzzle_list'
+  crossword_listed_puzzle_list: () => 'crossword:listed_puzzle_list',
+  crossword_puzzle_more_hints: (slug: string) => `crossword:puzzle_more_hints:${slug}`
 };
 
 /** Companion key for generation-guarded cache writes (`INCR` on invalidate). */
