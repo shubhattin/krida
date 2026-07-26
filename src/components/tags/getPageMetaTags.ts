@@ -6,7 +6,7 @@ interface ShareImageInfo {
   height: number;
 }
 
-export type MetadataProject = 'padavali' | 'padajala';
+export type MetadataProject = 'padavali' | 'padajala' | 'landing_page';
 
 interface Props {
   title: string;
@@ -25,6 +25,11 @@ export const SHARE_IMAGE_INFO: Record<MetadataProject, ShareImageInfo> = {
   padavali: DEFAULT_SHARE_IMAGE_INFO,
   padajala: {
     url: 'https://cdn.jsdelivr.net/gh/shubhattin/padavali@latest/src/images/banner/padajala_project_banner.jpg',
+    width: 1200,
+    height: 630
+  },
+  landing_page: {
+    url: 'https://cdn.jsdelivr.net/gh/shubhattin/padavali@latest/src/images/banner/landing_page_banner.jpg',
     width: 1200,
     height: 630
   }

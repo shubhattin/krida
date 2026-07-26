@@ -6,9 +6,10 @@ export const preferredRegion = 'bom1';
 
 export const metadata: Metadata = {
   ...getMetadata({
-    title: 'Sanskrit Games - Padavali & Padajala',
+    title: 'Sanskrit Games | Play, Learn, Grow',
+    project: 'landing_page',
     description:
-      'Learn Sanskrit through interactive games. Play Padavali word search and Padajala crossword puzzles across 6+ Indian scripts including Devanagari, Telugu, Kannada, Gujarati, Bengali, and Odia.'
+      'Play Sanskrit word-search and crossword games, learn across Indian scripts, and grow your vocabulary through joyful daily challenges. Padavali and Padajala are two Sanskrit learning apps that help you learn Sanskrit through games and puzzles.'
   }),
   keywords:
     'Sanskrit, learning, games, Padavali, Padajala, word puzzle, crossword, Devanagari, Telugu, Kannada, Gujarati, Bengali, Odia, Indian scripts'
