@@ -35,6 +35,7 @@ export type CreateCachedLoaderConfig<TParams, TCached, TData = TCached> = {
   schema?: ZodType<TCached>;
   /** Applied after read from cache or DB (e.g. array → Map). */
   transform?: (data: TCached) => TData;
+  /** Seconds until expiry. Use `Infinity` for a permanent key (SET with no TTL). */
   ttlSeconds?: number;
   /** Dynamic TTL per fetched value (overrides ttlSeconds when returned). */
   getSetOptions?: (data: TCached) => SetCommandOptions | undefined;
@@ -57,6 +58,8 @@ const resolve_set_options = <TCached>(
   getSetOptions?: (data: TCached) => SetCommandOptions | undefined
 ): SetCommandOptions | undefined => {
   if (getSetOptions) return getSetOptions(data);
+  // Non-finite (e.g. Infinity) → omit EX so Redis keeps the key indefinitely.
+  if (!Number.isFinite(ttlSeconds)) return undefined;
   return { ex: ttlSeconds };
 };
 
