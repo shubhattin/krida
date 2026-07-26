@@ -50,6 +50,11 @@ export type CreateCachedLoaderConfig<TParams, TCached, TData = TCached> = {
    * the generation is unchanged — drops stale writes from overlapping refreshes.
    */
   useGenerationGuard?: boolean;
+  /**
+   * Coordinate cache misses across instances so only one request fetches and
+   * writes a value. Lock failures and bounded waits fall back to a direct fetch.
+   */
+  useSingleFlight?: boolean;
 };
 
 /** Snapshot of generation for a guarded write; `unavailable` skips caching. */
@@ -119,6 +124,18 @@ end
 return 1
 `;
 
+/** Release a lock only when it is still owned by this caller. */
+const RELEASE_LOCK_IF_OWNED = `
+if redis.call('GET', KEYS[1]) == ARGV[1] then
+  return redis.call('DEL', KEYS[1])
+end
+return 0
+`;
+
+const SINGLE_FLIGHT_LOCK_TTL_MS = ms('5m');
+const SINGLE_FLIGHT_POLL_MS = 250;
+const SINGLE_FLIGHT_MAX_POLLS = 120;
+
 const set_cache_value = (cache_key: string, value: unknown, setOptions?: SetCommandOptions) =>
   setOptions ? redis.set(cache_key, value, setOptions) : redis.set(cache_key, value);
 
@@ -177,6 +194,8 @@ export function createCachedLoader<TParams, TCached, TData = TCached>(
   const shouldCache = config.shouldCache ?? (() => true);
   const toCacheValue = config.toCacheValue ?? ((data: TCached) => data);
   const useGenerationGuard = config.useGenerationGuard ?? false;
+  const useSingleFlight = config.useSingleFlight ?? false;
+  const inFlight = new Map<string, Promise<TData>>();
 
   const resolve_key = (params: TParams) => Promise.resolve(config.getKey(params));
 
@@ -205,20 +224,107 @@ export function createCachedLoader<TParams, TCached, TData = TCached>(
       await delay(DEV_DELAY_MS);
     }
 
-    const genSnapshot =
-      IS_PROD && useGenerationGuard
-        ? await snapshot_generation(cache_key, true)
-        : ({ kind: 'unguarded' } satisfies GenerationSnapshot);
-    const fetched = await config.fetch(params);
+    const fetchAndCache = async (writeSynchronously: boolean): Promise<TData> => {
+      const genSnapshot =
+        IS_PROD && useGenerationGuard
+          ? await snapshot_generation(cache_key, true)
+          : ({ kind: 'unguarded' } satisfies GenerationSnapshot);
+      const fetched = await config.fetch(params);
 
-    if (IS_PROD && shouldCache(fetched) && genSnapshot.kind !== 'unavailable') {
-      const setOptions = resolve_set_options(fetched, ttlSeconds, config.getSetOptions);
-      defer_promise(
-        write_with_generation_snapshot(cache_key, toCacheValue(fetched), setOptions, genSnapshot)
-      );
+      if (IS_PROD && shouldCache(fetched) && genSnapshot.kind !== 'unavailable') {
+        const setOptions = resolve_set_options(fetched, ttlSeconds, config.getSetOptions);
+        const write = write_with_generation_snapshot(
+          cache_key,
+          toCacheValue(fetched),
+          setOptions,
+          genSnapshot
+        );
+        if (writeSynchronously) {
+          await write;
+        } else {
+          defer_promise(write);
+        }
+      }
+
+      return to_return_value(fetched, config.transform);
+    };
+
+    if (!IS_PROD || !useSingleFlight) {
+      return fetchAndCache(false);
     }
 
-    return to_return_value(fetched, config.transform);
+    const localFlight = inFlight.get(cache_key);
+    if (localFlight) return localFlight;
+
+    const singleFlight = (async () => {
+      const lockKey = `${cache_key}:lock`;
+      const lockToken = crypto.randomUUID();
+      let ownsLock: boolean;
+
+      try {
+        ownsLock = Boolean(
+          await redis.set(lockKey, lockToken, { nx: true, px: SINGLE_FLIGHT_LOCK_TTL_MS })
+        );
+      } catch {
+        // Redis lock coordination is unavailable; retain ordinary loader behavior.
+        return fetchAndCache(false);
+      }
+
+      if (ownsLock) {
+        try {
+          // Write before releasing so waiters can read the completed cached value.
+          return await fetchAndCache(true);
+        } finally {
+          try {
+            await redis.eval(RELEASE_LOCK_IF_OWNED, [lockKey], [lockToken]);
+          } catch {
+            // The TTL bounds an unavailable release; cache generation already completed.
+          }
+        }
+      }
+
+      for (let poll = 0; poll < SINGLE_FLIGHT_MAX_POLLS; poll++) {
+        await delay(SINGLE_FLIGHT_POLL_MS);
+        try {
+          const cached = await redis.get<unknown>(cache_key);
+          const parsed = parse_cached(cached);
+          if (parsed !== null) return to_return_value(parsed, config.transform);
+        } catch {
+          // Lock/cache became unavailable; preserve ordinary loader behavior.
+          return fetchAndCache(false);
+        }
+
+        try {
+          ownsLock = Boolean(
+            await redis.set(lockKey, lockToken, { nx: true, px: SINGLE_FLIGHT_LOCK_TTL_MS })
+          );
+        } catch {
+          return fetchAndCache(false);
+        }
+
+        if (ownsLock) {
+          try {
+            return await fetchAndCache(true);
+          } finally {
+            try {
+              await redis.eval(RELEASE_LOCK_IF_OWNED, [lockKey], [lockToken]);
+            } catch {
+              // The TTL bounds an unavailable release; cache generation already completed.
+            }
+          }
+        }
+      }
+
+      // Bound waiting for a slow or abandoned lock rather than holding the request forever.
+      return fetchAndCache(false);
+    })();
+
+    inFlight.set(cache_key, singleFlight);
+    try {
+      return await singleFlight;
+    } finally {
+      inFlight.delete(cache_key);
+    }
   };
 
   const delete_cache = async (params: TParams) => {

@@ -65,7 +65,10 @@ export const more_hints_inputs_equal = (
   );
 };
 
-export const get_crossword_more_hints = async (puzzle: MoreHintsPuzzleInput) => {
+/** Extra attempts after the first failure (total attempts = 1 + MAX_RETRIES). */
+const MAX_RETRIES = 2;
+
+const generate_more_hints_once = async (puzzle: MoreHintsPuzzleInput): Promise<MoreHintsType> => {
   const entries = puzzle.word_list
     .map((entry, i) => `${i + 1}. Answer: ${entry.word}\n   Short clue: ${entry.description}`)
     .join('\n');
@@ -91,5 +94,28 @@ export const get_crossword_more_hints = async (puzzle: MoreHintsPuzzleInput) => 
       `More hints count mismatch for slug: ${puzzle.slug} (expected ${puzzle.word_list.length}, got ${output.hints.length})`
     );
   }
+
   return output;
+};
+
+export const get_crossword_more_hints = async (puzzle: MoreHintsPuzzleInput) => {
+  let last_error: unknown;
+
+  for (let attempt = 0; attempt <= MAX_RETRIES; attempt++) {
+    try {
+      return await generate_more_hints_once(puzzle);
+    } catch (error) {
+      last_error = error;
+      if (attempt < MAX_RETRIES) {
+        console.warn(
+          `More hints generation failed for slug: ${puzzle.slug} (attempt ${attempt + 1}/${MAX_RETRIES + 1}); retrying…`,
+          error
+        );
+      }
+    }
+  }
+
+  throw last_error instanceof Error
+    ? last_error
+    : new Error(`More hints generation failed for slug: ${puzzle.slug}`);
 };

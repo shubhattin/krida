@@ -212,6 +212,7 @@ const load_word_meanings = createCachedLoader<PadavaliPuzzleParams, WordMeanings
   getKey: ({ slug }) => REDIS_CACHE_KEYS.padavali_word_meanings(slug),
   ttlSeconds: Infinity, // no expiration
   useGenerationGuard: true,
+  useSingleFlight: true,
   schema: word_meanings_schema,
   fetch: async ({ slug }) => {
     const puzzle = await load_word_puzzle.get({ slug });

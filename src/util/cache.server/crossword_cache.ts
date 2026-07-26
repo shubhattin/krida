@@ -224,6 +224,7 @@ const load_more_hints = createCachedLoader<CrosswordPuzzleParams, MoreHintsType>
   getKey: ({ slug }) => REDIS_CACHE_KEYS.crossword_puzzle_more_hints(slug),
   ttlSeconds: Infinity, // no expiration
   useGenerationGuard: true,
+  useSingleFlight: true,
   schema: more_hints_schema,
   fetch: async ({ slug }) => {
     const puzzle = await load_word_puzzle.get({ slug });
