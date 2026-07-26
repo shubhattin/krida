@@ -9,6 +9,7 @@ import {
   incorrect_entry_ids_atom,
   numbered_entries_atom,
   puzzle_atom,
+  revealing_cells_atom,
   solved_entry_ids_atom
 } from './game_state';
 import { cellKey, getEntryCells, isBlockedCell, isFixedCell } from '~/util/cross_word/game_model';
@@ -30,6 +31,7 @@ export function CrossWordGrid({ game, onRequestKeyboard }: CrossWordGridProps) {
   const focus = useAtomValue(active_focus_atom);
   const solvedIds = useAtomValue(solved_entry_ids_atom);
   const incorrectIds = useAtomValue(incorrect_entry_ids_atom);
+  const revealingCells = useAtomValue(revealing_cells_atom);
   const boardRef = useRef<HTMLDivElement>(null);
 
   // Track which cells were "just solved" so we can fire the pulse animation once
@@ -68,6 +70,8 @@ export function CrossWordGrid({ game, onRequestKeyboard }: CrossWordGridProps) {
     }
     return map;
   }, [entries]);
+
+  const revealedSet = useMemo(() => new Set(revealingCells), [revealingCells]);
 
   const incorrectOnlyCells = useMemo(() => {
     const solvedCellKeys = new Set<string>();
@@ -121,6 +125,7 @@ export function CrossWordGrid({ game, onRequestKeyboard }: CrossWordGridProps) {
             const solved = game.isCellSolved(r, c);
             const incorrect = incorrectOnlyCells.has(cellKey(r, c));
             const justSolved = justSolvedCells.has(cellKey(r, c));
+            const revealed = revealedSet.has(cellKey(r, c));
 
             return (
               <div
@@ -141,6 +146,7 @@ export function CrossWordGrid({ game, onRequestKeyboard }: CrossWordGridProps) {
                   inActiveWord={inActiveWord}
                   solved={solved}
                   justSolved={justSolved}
+                  revealed={revealed}
                   incorrect={incorrect}
                   disabled={!game.started || game.completed}
                   onSelect={() => {

@@ -18,7 +18,10 @@ import {
   solved_entry_ids_atom,
   started_atom,
   active_focus_atom,
-  pending_navigation_url_atom
+  pending_navigation_url_atom,
+  reveals_used_atom,
+  revealing_entry_id_atom,
+  revealing_cells_atom
 } from './game_state';
 import {
   createEmptyPlayerGrid,
@@ -81,6 +84,9 @@ export default function CrossWordGameRoot({
     store.set(letter_inputs_atom, 0);
     store.set(incorrect_entry_attempts_atom, 0);
     store.set(pending_navigation_url_atom, null);
+    store.set(reveals_used_atom, 0);
+    store.set(revealing_entry_id_atom, null);
+    store.set(revealing_cells_atom, []);
     return store;
   }, [puzzle.id, puzzle]);
 
