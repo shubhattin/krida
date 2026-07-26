@@ -5,7 +5,7 @@ import { generateText, Output } from 'ai';
 
 type PuzzleType = z.infer<typeof puzzle_schema>;
 
-const text_model = openrouter('openai/gpt-5.4-mini');
+const text_model = openrouter('openai/gpt-5.6-luna');
 
 const SYSTEM_PROMPT = `
 You are an expert at providing meanings of Sanskrit words based on the puzzle context.
