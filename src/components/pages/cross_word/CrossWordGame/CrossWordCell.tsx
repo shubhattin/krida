@@ -15,6 +15,7 @@ type CrossWordCellProps = {
   inActiveWord: boolean;
   solved: boolean;
   justSolved: boolean;
+  revealed?: boolean;
   incorrect: boolean;
   disabled: boolean;
   onSelect: () => void;
@@ -31,6 +32,7 @@ export function CrossWordCell({
   inActiveWord,
   solved,
   justSolved,
+  revealed = false,
   incorrect,
   disabled,
   onSelect
@@ -53,6 +55,7 @@ export function CrossWordCell({
         selected && styles.cellSelected,
         incorrect && !solved && styles.cellIncorrectState,
         justSolved && styles.cellJustSolved,
+        revealed && !justSolved && styles.cellRevealed,
         incorrect && !solved && styles.cellIncorrect,
         disabled && 'cursor-default'
       )}

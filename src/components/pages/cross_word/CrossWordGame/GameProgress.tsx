@@ -4,21 +4,47 @@ import { useAtomValue } from 'jotai';
 import { motion } from 'framer-motion';
 import { Timer, Trophy } from 'lucide-react';
 import { formatElapsed } from '~/util/cross_word/game_model';
-import { completed_atom, progress_atom, seconds_atom, started_atom } from './game_state';
+import {
+  active_focus_atom,
+  completed_atom,
+  progress_atom,
+  seconds_atom,
+  solved_entry_ids_atom,
+  started_atom
+} from './game_state';
 import { ResetPuzzleButton } from './ResetPuzzleButton';
+import { RevealWordButton } from './RevealWordButton';
 import styles from './crossword-game.module.css';
 
 type GameProgressProps = {
   onReset?: () => void;
+  revealsLeft?: number;
+  revealingEntryId?: string | null;
+  onReveal?: (entryId: string) => void;
 };
 
-export function GameProgress({ onReset }: GameProgressProps) {
+export function GameProgress({
+  onReset,
+  revealsLeft = 0,
+  revealingEntryId = null,
+  onReveal
+}: GameProgressProps) {
   const started = useAtomValue(started_atom);
   const completed = useAtomValue(completed_atom);
   const seconds = useAtomValue(seconds_atom);
   const progress = useAtomValue(progress_atom);
+  const focus = useAtomValue(active_focus_atom);
+  const solvedIds = useAtomValue(solved_entry_ids_atom);
 
   if (!started) return null;
+
+  const focusedEntryId = focus?.entryId ?? null;
+  const canReveal = !!(
+    focusedEntryId &&
+    !solvedIds.includes(focusedEntryId) &&
+    !completed &&
+    onReveal
+  );
 
   return (
     <motion.div
@@ -61,7 +87,16 @@ export function GameProgress({ onReset }: GameProgressProps) {
         </span>
       </div>
 
-      {/* Trailing action — same status row, never overlaps the grid */}
+      {/* Trailing actions — same status row, never overlaps the grid */}
+      {!completed && onReveal ? (
+        <RevealWordButton
+          revealsLeft={revealsLeft}
+          busy={revealingEntryId !== null}
+          entryId={canReveal ? focusedEntryId : null}
+          onReveal={onReveal}
+          className="shrink-0"
+        />
+      ) : null}
       {!completed && onReset ? <ResetPuzzleButton onReset={onReset} className="shrink-0" /> : null}
     </motion.div>
   );

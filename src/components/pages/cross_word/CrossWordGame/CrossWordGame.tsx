@@ -293,6 +293,8 @@ export function CrossWordGame({
       if (target.closest('[role="grid"]')) return;
       if (target.closest('button')) return;
       if (target.closest('[data-slot="popover-content"]')) return;
+      if (target.closest('[data-slot="alert-dialog-content"]')) return;
+      if (target.closest('[data-slot="alert-dialog-overlay"]')) return;
       if (target.closest('[data-crossword-onscreen-kb="true"]')) return;
       if (target.closest(`[${CROSSWORD_KB_ATTR}="true"]`)) return;
 
@@ -418,7 +420,12 @@ export function CrossWordGame({
       ) : null}
 
       <div className="mb-3 flex flex-col items-center gap-3 sm:mb-4">
-        <GameProgress onReset={game.resetGame} />
+        <GameProgress
+          onReset={game.resetGame}
+          revealsLeft={game.revealsLeft}
+          revealingEntryId={game.revealingEntryId}
+          onReveal={game.revealEntry}
+        />
         <CompletionCelebration listed={listed} puzzleSlug={puzzleSlug} />
       </div>
 
