@@ -248,13 +248,19 @@ const check_slug_availability_route = protectedAdminProcedure
     resolve_slug_availability(slug, { exclude_puzzle_id })
   );
 
+const word_lists_equal = (a: string[], b: string[]) =>
+  a.length === b.length && a.every((word, i) => word === b[i]);
+
 const update_puzzle_route = protectedAdminProcedure
   .input(puzzle_update_input_schema)
   .mutation(async ({ input: { puzzle_id, puzzle_data, puzzle_slug, image_id } }) => {
     revalidatePath('/padavali/list');
     const existing = await db.query.padavali_puzzles.findFirst({
       columns: {
-        listed: true
+        listed: true,
+        title: true,
+        description: true,
+        word_list: true
       },
       where: (tbl, { and, eq }) => and(eq(tbl.id, puzzle_id), eq(tbl.slug, puzzle_slug))
     });
@@ -263,6 +269,10 @@ const update_puzzle_route = protectedAdminProcedure
     }
     const prev_listed = existing.listed;
     const { attachments, ...puzzle_data_rest } = puzzle_data;
+    const meanings_input_changed =
+      existing.title !== puzzle_data.title ||
+      existing.description !== puzzle_data.description ||
+      !word_lists_equal(existing.word_list, puzzle_data.word_list);
 
     const { newly_added_index_ids } = await db.transaction(async (tx) => {
       const updated = await tx
@@ -291,9 +301,10 @@ const update_puzzle_route = protectedAdminProcedure
       invalidate_and_refresh_cached(CACHE.padavali.word_puzzle, {
         slug: puzzle_slug
       }),
-      invalidate_and_refresh_cached(CACHE.padavali.word_meanings, {
-        slug: puzzle_slug
-      }),
+      meanings_input_changed &&
+        invalidate_and_refresh_cached(CACHE.padavali.word_meanings, {
+          slug: puzzle_slug
+        }),
       (await puzzle_in_current_schedule(puzzle_id)) &&
         invalidate_and_refresh_cached(CACHE.padavali.current_schedule, NO_CACHE_PARAMS),
       puzzle_data.listed &&
