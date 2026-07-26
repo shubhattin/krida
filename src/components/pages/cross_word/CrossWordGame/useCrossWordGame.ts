@@ -39,9 +39,9 @@ import {
   type NumberedEntry
 } from '~/util/cross_word/game_model';
 
-const REVEAL_START_DELAY_MS = 200;
-const REVEAL_STEP_MS = 130;
-const REVEAL_FLASH_CLEAR_MS = 500;
+const REVEAL_START_DELAY_MS = 320;
+const REVEAL_STEP_MS = 220;
+const REVEAL_FLASH_CLEAR_MS = 600;
 
 function pickPreferredEntry(
   covering: CrossWordEntry[],
