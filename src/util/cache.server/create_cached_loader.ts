@@ -54,9 +54,7 @@ export type CreateCachedLoaderConfig<TParams, TCached, TData = TCached> = {
 
 /** Snapshot of generation for a guarded write; `unavailable` skips caching. */
 type GenerationSnapshot =
-  | { kind: 'unguarded' }
-  | { kind: 'guarded'; gen: number }
-  | { kind: 'unavailable' };
+  { kind: 'unguarded' } | { kind: 'guarded'; gen: number } | { kind: 'unavailable' };
 
 const to_return_value = <TCached, TData>(
   data: TCached,

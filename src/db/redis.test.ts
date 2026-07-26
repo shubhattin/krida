@@ -7,13 +7,17 @@ describe('REDIS_CACHE_KEYS crossword isolation', () => {
     expect(REDIS_CACHE_KEYS.crossword_next_schedule()).toBe('crossword:next_schedule');
     expect(REDIS_CACHE_KEYS.crossword_word_puzzle('abc')).toBe('crossword:word_puzzle:abc');
     expect(REDIS_CACHE_KEYS.crossword_listed_puzzle_list()).toBe('crossword:listed_puzzle_list');
+    expect(REDIS_CACHE_KEYS.crossword_puzzle_more_hints('abc')).toBe(
+      'crossword:puzzle_more_hints:abc'
+    );
 
     expect(REDIS_CACHE_KEYS).not.toHaveProperty('crossword_word_meanings');
     expect(Object.keys(REDIS_CACHE_KEYS).filter((k) => k.startsWith('crossword_'))).toEqual([
       'crossword_current_schedule',
       'crossword_next_schedule',
       'crossword_word_puzzle',
-      'crossword_listed_puzzle_list'
+      'crossword_listed_puzzle_list',
+      'crossword_puzzle_more_hints'
     ]);
   });
 
@@ -25,6 +29,9 @@ describe('REDIS_CACHE_KEYS crossword isolation', () => {
   it('derives generation keys with :gen suffix', () => {
     expect(redis_generation_key(REDIS_CACHE_KEYS.padavali_word_meanings('abc'))).toBe(
       'padavali:word_meanings:abc:gen'
+    );
+    expect(redis_generation_key(REDIS_CACHE_KEYS.crossword_puzzle_more_hints('abc'))).toBe(
+      'crossword:puzzle_more_hints:abc:gen'
     );
   });
 });

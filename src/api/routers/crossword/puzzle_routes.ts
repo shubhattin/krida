@@ -35,6 +35,7 @@ import {
 } from './slug_helpers';
 import { crossword_stats_router } from './crossword_stats';
 import { crossword_schedules_router } from './crossword_schedules';
+import { more_hints_inputs_equal } from '~/util/ai/more_hints';
 
 type AttachmentInput = z.infer<typeof CrosswordUpdateInputSchema>['puzzle_data']['attachments'];
 
@@ -316,7 +317,13 @@ const update_puzzle_route = protectedAdminProcedure
     revalidateCrosswordPaths(puzzle_slug);
 
     const existing = await db.query.crossword_puzzles.findFirst({
-      columns: { id: true, listed: true },
+      columns: {
+        id: true,
+        listed: true,
+        title: true,
+        description: true,
+        word_list: true
+      },
       where: (tbl, { and: andFn, eq: eqFn }) =>
         andFn(eqFn(tbl.id, puzzle_id), eqFn(tbl.slug, puzzle_slug))
     });
@@ -336,6 +343,18 @@ const update_puzzle_route = protectedAdminProcedure
     const prev_listed = existing.listed;
     const { attachments, ...puzzle_data_rest } = puzzle_data;
     const becomingListed = puzzle_data.listed && !prev_listed;
+    const more_hints_input_changed = !more_hints_inputs_equal(
+      {
+        title: existing.title,
+        description: existing.description,
+        word_list: existing.word_list
+      },
+      {
+        title: puzzle_data.title,
+        description: puzzle_data.description,
+        word_list: resolvedWordList
+      }
+    );
 
     const { newly_added_index_ids } = await db.transaction(async (tx) => {
       const updated = await tx
@@ -360,6 +379,8 @@ const update_puzzle_route = protectedAdminProcedure
       (puzzle_data.listed || prev_listed !== puzzle_data.listed) &&
         invalidate_and_refresh_cached(CACHE.crossword.listed_puzzle_list, NO_CACHE_PARAMS),
       invalidate_and_refresh_cached(CACHE.crossword.word_puzzle, { slug: puzzle_slug }),
+      more_hints_input_changed &&
+        invalidate_and_refresh_cached(CACHE.crossword.more_hints, { slug: puzzle_slug }),
       (await puzzle_in_current_schedule(puzzle_id)) &&
         invalidate_and_refresh_cached(CACHE.crossword.current_schedule, NO_CACHE_PARAMS),
       (await puzzle_in_next_schedule(puzzle_id)) &&
@@ -412,7 +433,9 @@ const update_puzzle_slug_route = protectedAdminProcedure
 
     await Promise.all([
       invalidate_and_refresh_cached(CACHE.crossword.word_puzzle, { slug: new_slug }),
-      CACHE.crossword.word_puzzle.delete({ slug: current_slug })
+      CACHE.crossword.word_puzzle.delete({ slug: current_slug }),
+      invalidate_and_refresh_cached(CACHE.crossword.more_hints, { slug: new_slug }),
+      CACHE.crossword.more_hints.delete({ slug: current_slug })
     ]);
 
     await Promise.allSettled([
@@ -494,6 +517,7 @@ const delete_puzzle_route = protectedAdminProcedure
       puzzle.listed &&
         invalidate_and_refresh_cached(CACHE.crossword.listed_puzzle_list, NO_CACHE_PARAMS),
       invalidate_and_refresh_cached(CACHE.crossword.word_puzzle, { slug: normalizedSlug }),
+      CACHE.crossword.more_hints.delete({ slug: normalizedSlug }),
       (await puzzle_in_current_schedule(id)) &&
         invalidate_and_refresh_cached(CACHE.crossword.current_schedule, NO_CACHE_PARAMS),
       (await puzzle_in_next_schedule(id)) &&
@@ -568,7 +592,10 @@ const delete_redirect_slug_route = protectedAdminProcedure
         and(eq(crossword_redirects.id, redirect.id), eq(crossword_redirects.puzzle_id, puzzle_id))
       );
 
-    await CACHE.crossword.word_puzzle.delete({ slug: redirect_slug });
+    await Promise.allSettled([
+      CACHE.crossword.word_puzzle.delete({ slug: redirect_slug }),
+      CACHE.crossword.more_hints.delete({ slug: redirect_slug })
+    ]);
     revalidatePath(`/padajala/${redirect_slug}`);
 
     return { success: true as const };

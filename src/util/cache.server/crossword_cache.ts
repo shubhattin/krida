@@ -5,6 +5,11 @@ import { z } from 'zod';
 import { sql } from 'drizzle-orm';
 import { createCachedLoader, type CachedLoader, type NoCacheParams } from './create_cached_loader';
 import { CrossWordPuzzleWordSchema, CrossordPuzzleGridCellSchema } from '~/db/schema_zod';
+import {
+  get_crossword_more_hints,
+  more_hints_schema,
+  type MoreHintsType
+} from '~/util/ai/more_hints';
 
 export { NO_CACHE_PARAMS } from './create_cached_loader';
 
@@ -215,16 +220,32 @@ const load_word_puzzle = createCachedLoader<CrosswordPuzzleParams, CrosswordPuzz
   }
 );
 
+const load_more_hints = createCachedLoader<CrosswordPuzzleParams, MoreHintsType>({
+  getKey: ({ slug }) => REDIS_CACHE_KEYS.crossword_puzzle_more_hints(slug),
+  ttlSeconds: Infinity, // no expiration
+  useGenerationGuard: true,
+  schema: more_hints_schema,
+  fetch: async ({ slug }) => {
+    const puzzle = await load_word_puzzle.get({ slug });
+    if (!puzzle) {
+      throw new Error(`Crossword puzzle not found for slug: ${slug}`);
+    }
+    return get_crossword_more_hints(puzzle);
+  }
+});
+
 export type CrosswordCacheLoaders = {
   current_schedule: CachedLoader<NoCacheParams, CrosswordCurrentScheduleType>;
   next_schedule: CachedLoader<NoCacheParams, CrosswordNextScheduleType>;
   listed_puzzle_list: CachedLoader<NoCacheParams, CrosswordListedPuzzlesType>;
   word_puzzle: CachedLoader<CrosswordPuzzleParams, CrosswordPuzzleType | undefined>;
+  more_hints: CachedLoader<CrosswordPuzzleParams, MoreHintsType>;
 };
 
 export const crossword_cache_loaders: CrosswordCacheLoaders = {
   current_schedule: load_current_schedule,
   next_schedule: load_next_schedule,
   listed_puzzle_list: load_listed_puzzle_list,
-  word_puzzle: load_word_puzzle
+  word_puzzle: load_word_puzzle,
+  more_hints: load_more_hints
 };
