@@ -3,15 +3,10 @@
 import { useEffect, useEffectEvent, useRef, useState } from 'react';
 import { useAtomValue } from 'jotai';
 import { AnimatePresence, LayoutGroup, motion } from 'framer-motion';
-import { AlertCircle, CheckCircle2, Eye, Sparkles } from 'lucide-react';
+import { AlertCircle, CheckCircle2, Sparkles } from 'lucide-react';
 import { cn } from '~/lib/utils';
 import { Popover, PopoverContent, PopoverTrigger } from '~/components/ui/popover';
-import {
-  active_focus_atom,
-  MAX_WORD_REVEALS,
-  numbered_entries_atom,
-  solved_entry_ids_atom
-} from './game_state';
+import { active_focus_atom, numbered_entries_atom, solved_entry_ids_atom } from './game_state';
 import type { useCrossWordGame } from './useCrossWordGame';
 import type { MoreHintsQuery } from './useMoreHints';
 import type { NumberedEntry } from '~/util/cross_word/game_model';
@@ -42,176 +37,13 @@ function sortClues(entries: NumberedEntry[], solvedIds: string[]) {
   });
 }
 
-function RevealPips({ left, total }: { left: number; total: number }) {
-  return (
-    <div className="flex items-center gap-1" aria-hidden>
-      {Array.from({ length: total }, (_, i) => {
-        const available = i < left;
-        return (
-          <span
-            key={i}
-            className={cn(
-              'size-1.5 rounded-full transition-colors',
-              available
-                ? 'bg-amber-500 shadow-[0_0_4px_oklch(0.75_0.16_70/0.55)] dark:bg-amber-400'
-                : 'bg-transparent ring-1 ring-amber-400/40 dark:ring-amber-500/35'
-            )}
-          />
-        );
-      })}
-    </div>
-  );
-}
-
-function RevealWordSection({
-  entryId,
-  game,
-  onConfirmReveal
-}: {
-  entryId: string;
-  game: ReturnType<typeof useCrossWordGame>;
-  onConfirmReveal: () => void;
-}) {
-  const [confirming, setConfirming] = useState(false);
-  const revealsLeft = game.revealsLeft;
-  const busy = game.revealingEntryId !== null;
-  const spent = revealsLeft <= 0;
-
-  return (
-    <div className="flex flex-col gap-2 border-t border-border/50 pt-2.5">
-      <div className="flex items-center justify-between gap-2">
-        <div className="flex items-center gap-1.5 text-sm font-semibold text-foreground">
-          <Eye className="size-3.5 text-amber-600 dark:text-amber-400" />
-          Reveal word
-        </div>
-        <div className="flex items-center justify-center gap-1.5 space-x-1">
-          <RevealPips left={revealsLeft} total={MAX_WORD_REVEALS} />
-          <span className="text-[9px] font-bold tracking-wide text-amber-700/80 uppercase dark:text-amber-300/80">
-            {spent ? 'None left' : `${revealsLeft} of ${MAX_WORD_REVEALS}`}
-          </span>
-        </div>
-      </div>
-
-      <AnimatePresence mode="wait" initial={false}>
-        {spent ? (
-          <motion.p
-            key="spent"
-            initial={{ opacity: 0, y: 4 }}
-            animate={{ opacity: 1, y: 0 }}
-            exit={{ opacity: 0, y: -4 }}
-            transition={{ duration: 0.15 }}
-            className="text-[11px] leading-snug text-muted-foreground"
-          >
-            No reveals left this session.
-          </motion.p>
-        ) : confirming ? (
-          <motion.div
-            key="confirm"
-            initial={{ opacity: 0, y: 4 }}
-            animate={{ opacity: 1, y: 0 }}
-            exit={{ opacity: 0, y: -4 }}
-            transition={{ duration: 0.18 }}
-            className="flex flex-col gap-2"
-          >
-            <p className="text-[11px] leading-snug text-muted-foreground">
-              Use 1 of your {MAX_WORD_REVEALS} reveals on this word?
-            </p>
-            <div className="flex items-center justify-end gap-1.5">
-              <button
-                type="button"
-                disabled={busy}
-                onClick={(e) => {
-                  e.stopPropagation();
-                  setConfirming(false);
-                }}
-                onPointerDown={(e) => e.stopPropagation()}
-                className={cn(
-                  'rounded-md px-2.5 py-1 text-[11px] font-semibold',
-                  'text-muted-foreground transition-colors',
-                  'hover:bg-muted/70 hover:text-foreground',
-                  'disabled:pointer-events-none disabled:opacity-40'
-                )}
-              >
-                Cancel
-              </button>
-              <button
-                type="button"
-                disabled={busy}
-                onClick={(e) => {
-                  e.stopPropagation();
-                  onConfirmReveal();
-                  game.revealEntry(entryId);
-                }}
-                onPointerDown={(e) => e.stopPropagation()}
-                className={cn(
-                  'rounded-md px-2.5 py-1 text-[11px] font-semibold text-white',
-                  'bg-linear-to-r from-orange-600 to-amber-700',
-                  'shadow-sm shadow-orange-600/30 transition-all',
-                  'hover:from-orange-500 hover:to-amber-600 hover:brightness-110',
-                  'active:scale-[0.97]',
-                  'dark:from-orange-700 dark:to-amber-800 dark:shadow-orange-900/40',
-                  'dark:hover:from-orange-600 dark:hover:to-amber-700',
-                  'disabled:pointer-events-none disabled:opacity-40'
-                )}
-              >
-                Reveal
-              </button>
-            </div>
-          </motion.div>
-        ) : (
-          <motion.div
-            key="idle"
-            initial={{ opacity: 0, y: 4 }}
-            animate={{ opacity: 1, y: 0 }}
-            exit={{ opacity: 0, y: -4 }}
-            transition={{ duration: 0.18 }}
-          >
-            <button
-              type="button"
-              disabled={busy || !game.started || game.completed}
-              onClick={(e) => {
-                e.stopPropagation();
-                setConfirming(true);
-              }}
-              onPointerDown={(e) => e.stopPropagation()}
-              className={cn(
-                'flex w-full items-center justify-center gap-1.5 rounded-lg px-3 py-1.5',
-                'text-[11px] font-semibold text-white shadow-md',
-                'bg-linear-to-r from-orange-600 to-amber-700',
-                'shadow-orange-600/30 transition-all',
-                'hover:from-orange-500 hover:to-amber-600 hover:shadow-lg',
-                'active:scale-[0.98]',
-                'dark:from-orange-700 dark:to-amber-800 dark:shadow-orange-900/40',
-                'dark:hover:from-orange-600 dark:hover:to-amber-700',
-                'disabled:pointer-events-none disabled:opacity-40'
-              )}
-            >
-              <Eye className="size-3.5" />
-              Reveal this word
-            </button>
-          </motion.div>
-        )}
-      </AnimatePresence>
-    </div>
-  );
-}
-
-function MoreHintPopover({
-  entryId,
-  moreHints,
-  game
-}: {
-  entryId: string;
-  moreHints: MoreHintsQuery;
-  game: ReturnType<typeof useCrossWordGame>;
-}) {
+function MoreHintPopover({ entryId, moreHints }: { entryId: string; moreHints: MoreHintsQuery }) {
   const hint = moreHints.hintByEntryId[entryId];
   const { isLoading, isFetching, error, refetch } = moreHints;
   const pending = isLoading || (isFetching && !hint);
-  const [open, setOpen] = useState(false);
 
   return (
-    <Popover open={open} onOpenChange={setOpen}>
+    <Popover>
       <PopoverTrigger
         type="button"
         aria-label="Show AI more hint"
@@ -286,15 +118,6 @@ function MoreHintPopover({
         ) : (
           <p className="text-xs text-muted-foreground">No extra hint available for this clue.</p>
         )}
-
-        {game.started && !game.completed ? (
-          <RevealWordSection
-            key={open ? 'open' : 'closed'}
-            entryId={entryId}
-            game={game}
-            onConfirmReveal={() => setOpen(false)}
-          />
-        ) : null}
       </PopoverContent>
     </Popover>
   );
@@ -495,7 +318,7 @@ export function CluePanel({ game, moreHints, className }: CluePanelProps) {
 
                   {active ? (
                     <div className="shrink-0 pt-1.5 pr-1.5">
-                      <MoreHintPopover entryId={entry.id} moreHints={moreHints} game={game} />
+                      <MoreHintPopover entryId={entry.id} moreHints={moreHints} />
                     </div>
                   ) : null}
                 </motion.li>
