@@ -42,6 +42,59 @@ const carouselNavButtonClass =
 
 const carouselItemClass = 'basis-1/2 pl-3 sm:basis-1/3 lg:basis-1/4';
 
+/** Mirrors loaded carousel chrome + card anatomy (image 3:2 + title + description). */
+function MorePuzzlesCarouselSkeleton({
+  hideHeader,
+  compact,
+  className
+}: {
+  hideHeader: boolean;
+  compact: boolean;
+  className?: string;
+}) {
+  return (
+    <div className={cn(compact ? 'px-3 py-2 sm:py-3' : 'px-4 py-3 sm:py-4', className)}>
+      <div className="mx-auto max-w-6xl">
+        <div className="mb-2.5 flex items-center gap-2 lg:justify-center">
+          <div className="min-w-0 flex-1 lg:hidden">
+            {!hideHeader ? (
+              <div className="h-5 w-28 animate-pulse rounded-md bg-slate-200 dark:bg-slate-700" />
+            ) : (
+              <div className="h-3.5 w-24 animate-pulse rounded-md bg-slate-200 dark:bg-slate-700" />
+            )}
+          </div>
+          <div className="flex shrink-0 items-center gap-2">
+            <div className="h-6 w-18 animate-pulse rounded-full bg-slate-200 dark:bg-slate-700" />
+            <div className="size-7 animate-pulse rounded-full bg-slate-200 dark:bg-slate-700" />
+            <div className="size-7 animate-pulse rounded-full bg-slate-200 dark:bg-slate-700" />
+          </div>
+        </div>
+
+        <div className="overflow-hidden">
+          <div className="-ml-3 flex">
+            {Array.from({ length: 4 }).map((_, i) => (
+              <div key={i} className={cn('min-w-0 shrink-0 grow-0', carouselItemClass)}>
+                <div className="flex flex-col overflow-hidden rounded-xl border border-slate-200 bg-white shadow-lg dark:border-slate-700 dark:bg-slate-800">
+                  <div
+                    className="w-full animate-pulse bg-slate-200 dark:bg-slate-700"
+                    style={{
+                      aspectRatio: `${PUZZLE_CARD_IMAGE_ASPECT_RATIO[0]} / ${PUZZLE_CARD_IMAGE_ASPECT_RATIO[1]}`
+                    }}
+                  />
+                  <div className={cn('flex flex-col gap-1.5', compact ? 'p-2' : 'p-3')}>
+                    <div className="h-4 w-[85%] animate-pulse rounded-md bg-slate-200 dark:bg-slate-700" />
+                    <div className="h-3 w-[60%] animate-pulse rounded-md bg-slate-200/80 dark:bg-slate-600" />
+                  </div>
+                </div>
+              </div>
+            ))}
+          </div>
+        </div>
+      </div>
+    </div>
+  );
+}
+
 const ExploreMoreCarouselCard = () => {
   const [w, h] = PUZZLE_CARD_IMAGE_ASPECT_RATIO;
   const [started] = useAtom(started_atom);
@@ -145,21 +198,11 @@ export const MorePuzzlesCarousel = ({
 
   if (puzzles_q.isLoading) {
     return (
-      <div className={cn(compact ? 'px-3 py-3' : 'px-4 py-4', className)}>
-        <div className="mx-auto max-w-6xl">
-          {!hideHeader && (
-            <div className="mb-3 h-5 w-32 animate-pulse rounded bg-slate-200 dark:bg-slate-700" />
-          )}
-          <div className="grid grid-cols-2 gap-3 sm:grid-cols-3 lg:grid-cols-4">
-            {Array.from({ length: 4 }).map((_, i) => (
-              <div
-                key={i}
-                className="aspect-3/2 animate-pulse rounded-xl bg-slate-200 dark:bg-slate-700"
-              />
-            ))}
-          </div>
-        </div>
-      </div>
+      <MorePuzzlesCarouselSkeleton
+        hideHeader={hideHeader}
+        compact={compact}
+        className={className}
+      />
     );
   }
 
