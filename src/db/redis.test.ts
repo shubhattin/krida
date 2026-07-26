@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import { REDIS_CACHE_KEYS } from './redis';
+import { REDIS_CACHE_KEYS, redis_generation_key } from './redis';
 
 describe('REDIS_CACHE_KEYS crossword isolation', () => {
   it('uses crossword: prefix and no word_meanings key', () => {
@@ -20,5 +20,11 @@ describe('REDIS_CACHE_KEYS crossword isolation', () => {
   it('keeps padavali keys on a separate prefix', () => {
     expect(REDIS_CACHE_KEYS.padavali_current_schedule()).toBe('padavali:current_schedule');
     expect(REDIS_CACHE_KEYS.padavali_word_meanings('abc')).toBe('padavali:word_meanings:abc');
+  });
+
+  it('derives generation keys with :gen suffix', () => {
+    expect(redis_generation_key(REDIS_CACHE_KEYS.padavali_word_meanings('abc'))).toBe(
+      'padavali:word_meanings:abc:gen'
+    );
   });
 });

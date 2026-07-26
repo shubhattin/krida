@@ -2,7 +2,7 @@ import ms from 'ms';
 import type { ZodType } from 'zod';
 import type { SetCommandOptions } from '@upstash/redis';
 import { waitUntil } from '@vercel/functions';
-import { redis } from '~/db/redis';
+import { redis, redis_generation_key } from '~/db/redis';
 import { delay } from '~/tools/delay';
 
 const DEFAULT_TTL_S = ms('60days') / 1000;
@@ -45,7 +45,18 @@ export type CreateCachedLoaderConfig<TParams, TCached, TData = TCached> = {
   toCacheValue?: (data: TCached) => unknown;
   /** Deserialize from redis; return null to treat as cache miss. */
   fromCacheValue?: (raw: unknown) => TCached | null;
+  /**
+   * When true, bump a per-key generation on delete and only SET after fetch if
+   * the generation is unchanged — drops stale writes from overlapping refreshes.
+   */
+  useGenerationGuard?: boolean;
 };
+
+/** Snapshot of generation for a guarded write; `unavailable` skips caching. */
+type GenerationSnapshot =
+  | { kind: 'unguarded' }
+  | { kind: 'guarded'; gen: number }
+  | { kind: 'unavailable' };
 
 const to_return_value = <TCached, TData>(
   data: TCached,
@@ -63,8 +74,103 @@ const resolve_set_options = <TCached>(
   return { ex: ttlSeconds };
 };
 
+const serialize_cache_value = (value: unknown): string =>
+  typeof value === 'string' ? value : JSON.stringify(value);
+
+/** Encode SET options for the generation-guard Lua script. */
+const encode_set_options_for_script = (
+  setOptions?: SetCommandOptions
+): { mode: string; arg: string } => {
+  if (!setOptions) return { mode: '', arg: '' };
+  if ('ex' in setOptions && typeof setOptions.ex === 'number') {
+    return { mode: 'EX', arg: String(setOptions.ex) };
+  }
+  if ('px' in setOptions && typeof setOptions.px === 'number') {
+    return { mode: 'PX', arg: String(setOptions.px) };
+  }
+  if ('exat' in setOptions && typeof setOptions.exat === 'number') {
+    return { mode: 'EXAT', arg: String(setOptions.exat) };
+  }
+  if ('pxat' in setOptions && typeof setOptions.pxat === 'number') {
+    return { mode: 'PXAT', arg: String(setOptions.pxat) };
+  }
+  if ('keepTtl' in setOptions && setOptions.keepTtl) {
+    return { mode: 'KEEPTTL', arg: '' };
+  }
+  return { mode: '', arg: '' };
+};
+
+/**
+ * Atomically SET value_key only when gen_key still equals expectedGen.
+ * Returns 1 if written, 0 if generation mismatched.
+ */
+const SET_IF_GENERATION_MATCHES = `
+local current = redis.call('GET', KEYS[2])
+if not current then current = '0' end
+if tostring(current) ~= tostring(ARGV[1]) then
+  return 0
+end
+local mode = ARGV[3]
+if mode == '' then
+  redis.call('SET', KEYS[1], ARGV[2])
+elseif mode == 'KEEPTTL' then
+  redis.call('SET', KEYS[1], ARGV[2], 'KEEPTTL')
+else
+  redis.call('SET', KEYS[1], ARGV[2], mode, ARGV[4])
+end
+return 1
+`;
+
 const set_cache_value = (cache_key: string, value: unknown, setOptions?: SetCommandOptions) =>
   setOptions ? redis.set(cache_key, value, setOptions) : redis.set(cache_key, value);
+
+const set_cache_value_if_generation_matches = async (
+  cache_key: string,
+  value: unknown,
+  expectedGen: number,
+  setOptions?: SetCommandOptions
+) => {
+  const { mode, arg } = encode_set_options_for_script(setOptions);
+  await redis.eval(
+    SET_IF_GENERATION_MATCHES,
+    [cache_key, redis_generation_key(cache_key)],
+    [String(expectedGen), serialize_cache_value(value), mode, arg]
+  );
+};
+
+const read_generation = async (cache_key: string): Promise<number> => {
+  const raw = await redis.get<number | string | null>(redis_generation_key(cache_key));
+  if (raw === null || raw === undefined) return 0;
+  const n = typeof raw === 'number' ? raw : Number(raw);
+  return Number.isFinite(n) ? n : 0;
+};
+
+const snapshot_generation = async (
+  cache_key: string,
+  useGenerationGuard: boolean
+): Promise<GenerationSnapshot> => {
+  if (!useGenerationGuard) return { kind: 'unguarded' };
+  try {
+    return { kind: 'guarded', gen: await read_generation(cache_key) };
+  } catch {
+    // Redis gen unavailable — still serve fetched data, but do not cache it.
+    return { kind: 'unavailable' };
+  }
+};
+
+const write_with_generation_snapshot = async (
+  cache_key: string,
+  value: unknown,
+  setOptions: SetCommandOptions | undefined,
+  snapshot: GenerationSnapshot
+) => {
+  if (snapshot.kind === 'unavailable') return;
+  if (snapshot.kind === 'unguarded') {
+    await set_cache_value(cache_key, value, setOptions);
+    return;
+  }
+  await set_cache_value_if_generation_matches(cache_key, value, snapshot.gen, setOptions);
+};
 
 export function createCachedLoader<TParams, TCached, TData = TCached>(
   config: CreateCachedLoaderConfig<TParams, TCached, TData>
@@ -72,6 +178,7 @@ export function createCachedLoader<TParams, TCached, TData = TCached>(
   const ttlSeconds = config.ttlSeconds ?? DEFAULT_TTL_S;
   const shouldCache = config.shouldCache ?? (() => true);
   const toCacheValue = config.toCacheValue ?? ((data: TCached) => data);
+  const useGenerationGuard = config.useGenerationGuard ?? false;
 
   const resolve_key = (params: TParams) => Promise.resolve(config.getKey(params));
 
@@ -100,11 +207,17 @@ export function createCachedLoader<TParams, TCached, TData = TCached>(
       await delay(DEV_DELAY_MS);
     }
 
+    const genSnapshot =
+      IS_PROD && useGenerationGuard
+        ? await snapshot_generation(cache_key, true)
+        : ({ kind: 'unguarded' } satisfies GenerationSnapshot);
     const fetched = await config.fetch(params);
 
-    if (IS_PROD && shouldCache(fetched)) {
+    if (IS_PROD && shouldCache(fetched) && genSnapshot.kind !== 'unavailable') {
       const setOptions = resolve_set_options(fetched, ttlSeconds, config.getSetOptions);
-      defer_promise(set_cache_value(cache_key, toCacheValue(fetched), setOptions));
+      defer_promise(
+        write_with_generation_snapshot(cache_key, toCacheValue(fetched), setOptions, genSnapshot)
+      );
     }
 
     return to_return_value(fetched, config.transform);
@@ -117,6 +230,9 @@ export function createCachedLoader<TParams, TCached, TData = TCached>(
     }
 
     const cache_key = await resolve_key(params);
+    if (useGenerationGuard) {
+      await redis.incr(redis_generation_key(cache_key));
+    }
     await redis.del(cache_key);
   };
 
@@ -133,12 +249,21 @@ export function createCachedLoader<TParams, TCached, TData = TCached>(
       await delete_cache(params);
     }
 
+    // Capture gen before deferring so a later invalidate cannot adopt this refresh's token.
+    const cache_key = await resolve_key(params);
+    const genSnapshot = await snapshot_generation(cache_key, useGenerationGuard);
+
     const repopulate = async () => {
-      const cache_key = await resolve_key(params);
+      if (genSnapshot.kind === 'unavailable') return;
       const fetched = await config.fetch(params);
       if (shouldCache(fetched)) {
         const setOptions = resolve_set_options(fetched, ttlSeconds, config.getSetOptions);
-        await set_cache_value(cache_key, toCacheValue(fetched), setOptions);
+        await write_with_generation_snapshot(
+          cache_key,
+          toCacheValue(fetched),
+          setOptions,
+          genSnapshot
+        );
       }
     };
 

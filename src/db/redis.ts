@@ -16,3 +16,6 @@ export const REDIS_CACHE_KEYS = {
   crossword_word_puzzle: (slug: string) => `crossword:word_puzzle:${slug}`,
   crossword_listed_puzzle_list: () => 'crossword:listed_puzzle_list'
 };
+
+/** Companion key for generation-guarded cache writes (`INCR` on invalidate). */
+export const redis_generation_key = (cacheKey: string) => `${cacheKey}:gen`;
