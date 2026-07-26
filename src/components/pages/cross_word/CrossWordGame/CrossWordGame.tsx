@@ -29,6 +29,7 @@ import {
   MoreCrosswordPuzzlesAccordion
 } from './MorePuzzlesCarousel';
 import { useCrossWordGame } from './useCrossWordGame';
+import { useMoreHints } from './useMoreHints';
 import { shouldAutoOpenOnScreenKeyboard } from './touch_device';
 import {
   puzzle_atom,
@@ -41,6 +42,7 @@ import { copy_text_to_clipboard } from '~/tools/kry';
 import type { Attachment } from '~/util/puzzle/attachments';
 import type { location_list_type } from '~/db/types';
 import { MediaAttachments } from '~/components/pages/puzzle/MediaAttachments';
+import { client_q } from '~/api/client';
 import {
   AlertDialog,
   AlertDialogAction,
@@ -108,9 +110,11 @@ export function CrossWordGame({
   const [pendingUrl, setPendingUrl] = useAtom(pending_navigation_url_atom);
   const router = useRouter();
   const queryClient = useQueryClient();
+  const utils = client_q.useUtils();
   const [keyboardOpen, setKeyboardOpen] = useState(false);
   const hasMedia = !!(attachments && attachments.length > 0);
   const [useVirtualKeyboard, setUseVirtualKeyboard] = useState(INPUT_VIRTUAL_KEYBOARD_ENABLED);
+  const moreHints = useMoreHints(puzzle?.id, puzzleSlug, puzzle?.entries);
 
   const showAccordion = !completed && (location === 'main_page' || location === 'view_page');
   const showCompletionCarousel = completed;
@@ -121,7 +125,13 @@ export function CrossWordGame({
       queryKey: ['crossword_listed_puzzles_carousel', puzzleSlug ?? undefined, puzzle.id],
       queryFn: getCrosswordCarouselPuzzlesQueryFn(puzzleSlug ?? undefined, puzzle.id)
     });
-  }, [puzzle, puzzleSlug, queryClient]);
+    if (puzzleSlug) {
+      void utils.public_ai.get_crossword_more_hints.prefetch({
+        puzzle_id: puzzle.id,
+        puzzle_slug: puzzleSlug
+      });
+    }
+  }, [puzzle, puzzleSlug, queryClient, utils]);
 
   useEffect(() => {
     if (!(started && !completed)) return;
@@ -282,6 +292,7 @@ export function CrossWordGame({
 
       if (target.closest('[role="grid"]')) return;
       if (target.closest('button')) return;
+      if (target.closest('[data-slot="popover-content"]')) return;
       if (target.closest('[data-crossword-onscreen-kb="true"]')) return;
       if (target.closest(`[${CROSSWORD_KB_ATTR}="true"]`)) return;
 
@@ -491,6 +502,7 @@ export function CrossWordGame({
           {/* Mobile: full clue list directly under the active clue / grid */}
           <CluePanel
             game={game}
+            moreHints={moreHints}
             className="mt-2 max-h-72 w-full max-w-[min(100%,24rem)] sm:max-h-80 lg:hidden"
           />
 
@@ -511,7 +523,7 @@ export function CrossWordGame({
           <div
             className={cn('lg:sticky lg:top-4', started && !completed ? 'lg:-mt-16' : 'lg:-mt-10')}
           >
-            <CluePanel game={game} className="max-h-[min(70vh,36rem)]" />
+            <CluePanel game={game} moreHints={moreHints} className="max-h-[min(70vh,36rem)]" />
           </div>
         </div>
       </div>

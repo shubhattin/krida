@@ -29,7 +29,8 @@ Rules:
 - Do NOT include the answer word itself, any close spelling of it, or a direct transliteration of it.
 - Do NOT give letter counts, first/last letters, anagrams, or other spelling-based reveals.
 - Do NOT restate the answer as a dictionary definition that makes the word obvious.
-- The hint should still feel like a clue: helpful and contextual, but not a giveaway.
+- The hint should still feel like a clue: more helpful and contextual, but not a giveaway.
+- It should extend the context provided the built-in short clue, and add more information which might be helpful.
 - Prefer English; when referring to Indian names/concepts use IAST romanization (e.g. gaṇeśa), not Devanagari.
 
 Give your response in the required JSON SCHEMA.
