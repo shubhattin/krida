@@ -3,7 +3,7 @@ import { crossword_schedule_listing_publish_schema } from '~/lib/qstash';
 import { db } from '~/db/db';
 import {
   CACHE,
-  invalidate_and_refresh_cached,
+  invalidate_and_refresh_cache,
   NO_CACHE_PARAMS
 } from '~/util/cache.server/cache_loaders';
 import { crossword_schedules, crossword_puzzles } from '~/db/schema';
@@ -60,11 +60,11 @@ export const POST = verifySignatureAppRouter(async (req: Request) => {
   });
 
   await Promise.allSettled([
-    invalidate_and_refresh_cached(CACHE.crossword.listed_puzzle_list, NO_CACHE_PARAMS),
-    invalidate_and_refresh_cached(CACHE.crossword.word_puzzle, {
+    invalidate_and_refresh_cache(CACHE.crossword.listed_puzzle_list, NO_CACHE_PARAMS),
+    invalidate_and_refresh_cache(CACHE.crossword.word_puzzle, {
       slug: schedule.puzzle.slug
     }),
-    invalidate_and_refresh_cached(CACHE.crossword.current_schedule, NO_CACHE_PARAMS)
+    invalidate_and_refresh_cache(CACHE.crossword.current_schedule, NO_CACHE_PARAMS)
   ]);
 
   console.log(`Crossword puzzle ${puzzle_id} listed successfully for schedule ${schedule_id}.`);

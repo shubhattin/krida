@@ -22,7 +22,7 @@ import { crossword_slug_schema } from '~/util/puzzle/slug';
 import { CrossordPuzzleSchemaZod } from '~/db/schema_zod';
 import {
   CACHE,
-  invalidate_and_refresh_cached,
+  invalidate_and_refresh_cache,
   NO_CACHE_PARAMS
 } from '~/util/cache.server/cache_loaders';
 import { normalizeSlug } from '~/util/puzzle/slug';
@@ -306,7 +306,7 @@ const add_puzzle_route = protectedAdminProcedure
         .returning();
     });
 
-    await invalidate_and_refresh_cached(CACHE.crossword.listed_puzzle_list, NO_CACHE_PARAMS);
+    await invalidate_and_refresh_cache(CACHE.crossword.listed_puzzle_list, NO_CACHE_PARAMS);
     revalidatePath(`/padajala/edit/${inserted!.id}`);
     return { id: inserted!.id };
   });
@@ -377,14 +377,14 @@ const update_puzzle_route = protectedAdminProcedure
 
     await Promise.allSettled([
       (puzzle_data.listed || prev_listed !== puzzle_data.listed) &&
-        invalidate_and_refresh_cached(CACHE.crossword.listed_puzzle_list, NO_CACHE_PARAMS),
-      invalidate_and_refresh_cached(CACHE.crossword.word_puzzle, { slug: puzzle_slug }),
+        invalidate_and_refresh_cache(CACHE.crossword.listed_puzzle_list, NO_CACHE_PARAMS),
+      invalidate_and_refresh_cache(CACHE.crossword.word_puzzle, { slug: puzzle_slug }),
       more_hints_input_changed &&
-        invalidate_and_refresh_cached(CACHE.crossword.more_hints, { slug: puzzle_slug }),
+        invalidate_and_refresh_cache(CACHE.crossword.more_hints, { slug: puzzle_slug }),
       (await puzzle_in_current_schedule(puzzle_id)) &&
-        invalidate_and_refresh_cached(CACHE.crossword.current_schedule, NO_CACHE_PARAMS),
+        invalidate_and_refresh_cache(CACHE.crossword.current_schedule, NO_CACHE_PARAMS),
       (await puzzle_in_next_schedule(puzzle_id)) &&
-        invalidate_and_refresh_cached(CACHE.crossword.next_schedule, NO_CACHE_PARAMS)
+        invalidate_and_refresh_cache(CACHE.crossword.next_schedule, NO_CACHE_PARAMS)
     ]);
 
     revalidatePath(`/padajala/edit/${puzzle_id}`);
@@ -432,19 +432,19 @@ const update_puzzle_slug_route = protectedAdminProcedure
     revalidateCrosswordPaths(current_slug);
 
     await Promise.all([
-      invalidate_and_refresh_cached(CACHE.crossword.word_puzzle, { slug: new_slug }),
+      invalidate_and_refresh_cache(CACHE.crossword.word_puzzle, { slug: new_slug }),
       CACHE.crossword.word_puzzle.delete({ slug: current_slug }),
-      invalidate_and_refresh_cached(CACHE.crossword.more_hints, { slug: new_slug }),
+      invalidate_and_refresh_cache(CACHE.crossword.more_hints, { slug: new_slug }),
       CACHE.crossword.more_hints.delete({ slug: current_slug })
     ]);
 
     await Promise.allSettled([
       puzzle.listed &&
-        invalidate_and_refresh_cached(CACHE.crossword.listed_puzzle_list, NO_CACHE_PARAMS),
+        invalidate_and_refresh_cache(CACHE.crossword.listed_puzzle_list, NO_CACHE_PARAMS),
       (await puzzle_in_current_schedule(puzzle_id)) &&
-        invalidate_and_refresh_cached(CACHE.crossword.current_schedule, NO_CACHE_PARAMS),
+        invalidate_and_refresh_cache(CACHE.crossword.current_schedule, NO_CACHE_PARAMS),
       (await puzzle_in_next_schedule(puzzle_id)) &&
-        invalidate_and_refresh_cached(CACHE.crossword.next_schedule, NO_CACHE_PARAMS)
+        invalidate_and_refresh_cache(CACHE.crossword.next_schedule, NO_CACHE_PARAMS)
     ]);
 
     revalidatePath(`/padajala/edit/${puzzle_id}`);
@@ -486,8 +486,8 @@ const set_listed_route = protectedAdminProcedure
       .where(eq(crossword_puzzles.id, puzzle_id));
 
     revalidateCrosswordPaths(existing.slug);
-    await invalidate_and_refresh_cached(CACHE.crossword.listed_puzzle_list, NO_CACHE_PARAMS);
-    await invalidate_and_refresh_cached(CACHE.crossword.word_puzzle, { slug: existing.slug });
+    await invalidate_and_refresh_cache(CACHE.crossword.listed_puzzle_list, NO_CACHE_PARAMS);
+    await invalidate_and_refresh_cache(CACHE.crossword.word_puzzle, { slug: existing.slug });
     return { success: true as const };
   });
 
@@ -515,13 +515,13 @@ const delete_puzzle_route = protectedAdminProcedure
 
     await Promise.allSettled([
       puzzle.listed &&
-        invalidate_and_refresh_cached(CACHE.crossword.listed_puzzle_list, NO_CACHE_PARAMS),
-      invalidate_and_refresh_cached(CACHE.crossword.word_puzzle, { slug: normalizedSlug }),
+        invalidate_and_refresh_cache(CACHE.crossword.listed_puzzle_list, NO_CACHE_PARAMS),
+      invalidate_and_refresh_cache(CACHE.crossword.word_puzzle, { slug: normalizedSlug }),
       CACHE.crossword.more_hints.delete({ slug: normalizedSlug }),
       (await puzzle_in_current_schedule(id)) &&
-        invalidate_and_refresh_cached(CACHE.crossword.current_schedule, NO_CACHE_PARAMS),
+        invalidate_and_refresh_cache(CACHE.crossword.current_schedule, NO_CACHE_PARAMS),
       (await puzzle_in_next_schedule(id)) &&
-        invalidate_and_refresh_cached(CACHE.crossword.next_schedule, NO_CACHE_PARAMS)
+        invalidate_and_refresh_cache(CACHE.crossword.next_schedule, NO_CACHE_PARAMS)
     ]);
 
     return { success: true };
@@ -603,8 +603,8 @@ const delete_redirect_slug_route = protectedAdminProcedure
 
 const refresh_current_schedule_route = publicProcedure.mutation(async () => {
   await Promise.all([
-    invalidate_and_refresh_cached(CACHE.crossword.current_schedule, NO_CACHE_PARAMS),
-    invalidate_and_refresh_cached(CACHE.crossword.next_schedule, NO_CACHE_PARAMS)
+    invalidate_and_refresh_cache(CACHE.crossword.current_schedule, NO_CACHE_PARAMS),
+    invalidate_and_refresh_cache(CACHE.crossword.next_schedule, NO_CACHE_PARAMS)
   ]);
   const current = await CACHE.crossword.current_schedule.get(NO_CACHE_PARAMS);
   return { has_current: current !== undefined };

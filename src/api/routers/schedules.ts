@@ -7,7 +7,7 @@ import { and, eq } from 'drizzle-orm';
 import { delay } from '~/tools/delay';
 import {
   CACHE,
-  invalidate_and_refresh_cached,
+  invalidate_and_refresh_cache,
   NO_CACHE_PARAMS
 } from '~/util/cache.server/cache_loaders';
 import { publishScheduleListingQueue, publishScheduledPuzzleNotificationQueue } from '~/lib/qstash';
@@ -138,8 +138,8 @@ const add_puzzle_schedule_route = protectedAdminProcedure
     });
 
     await Promise.allSettled([
-      invalidate_and_refresh_cached(CACHE.padavali.current_schedule, NO_CACHE_PARAMS),
-      invalidate_and_refresh_cached(CACHE.padavali.next_schedule, NO_CACHE_PARAMS),
+      invalidate_and_refresh_cache(CACHE.padavali.current_schedule, NO_CACHE_PARAMS),
+      invalidate_and_refresh_cache(CACHE.padavali.next_schedule, NO_CACHE_PARAMS),
       notify_new_puzzle(puzzle_id, schedule.id, start_time),
       publishScheduleListingQueue(
         {
@@ -167,8 +167,8 @@ const delete_puzzle_schedule_route = protectedAdminProcedure
     });
 
     await Promise.allSettled([
-      invalidate_and_refresh_cached(CACHE.padavali.current_schedule, NO_CACHE_PARAMS),
-      invalidate_and_refresh_cached(CACHE.padavali.next_schedule, NO_CACHE_PARAMS)
+      invalidate_and_refresh_cache(CACHE.padavali.current_schedule, NO_CACHE_PARAMS),
+      invalidate_and_refresh_cache(CACHE.padavali.next_schedule, NO_CACHE_PARAMS)
     ]);
 
     return { success: true };
@@ -206,8 +206,8 @@ const update_puzzle_schedule_route = protectedAdminProcedure
         },
         (start_time.getTime() - new Date().getTime()) / 1000 - 4 // 4 seconds prior listing start
       ),
-      invalidate_and_refresh_cached(CACHE.padavali.current_schedule, NO_CACHE_PARAMS),
-      invalidate_and_refresh_cached(CACHE.padavali.next_schedule, NO_CACHE_PARAMS)
+      invalidate_and_refresh_cache(CACHE.padavali.current_schedule, NO_CACHE_PARAMS),
+      invalidate_and_refresh_cache(CACHE.padavali.next_schedule, NO_CACHE_PARAMS)
     ]);
 
     return { success: true };

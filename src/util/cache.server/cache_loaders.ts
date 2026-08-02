@@ -5,7 +5,7 @@ import { CrosswordCacheLoaders, crossword_cache_loaders } from './crossword_cach
 export { NO_CACHE_PARAMS } from './create_cached_loader';
 
 /** Await cache delete, then warm cache in background (prod only, via waitUntil). */
-export const invalidate_and_refresh_cached = async <TParams, TData>(
+export const invalidate_and_refresh_cache = async <TParams, TData>(
   loader: CachedLoader<TParams, TData>,
   params: TParams
 ) => {

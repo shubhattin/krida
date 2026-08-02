@@ -12,7 +12,7 @@ import { revalidatePath } from 'next/cache';
 import { padavali_stats_router } from './padavali_stats';
 import {
   CACHE,
-  invalidate_and_refresh_cached,
+  invalidate_and_refresh_cache,
   NO_CACHE_PARAMS
 } from '~/util/cache.server/cache_loaders';
 import {
@@ -297,16 +297,16 @@ const update_puzzle_route = protectedAdminProcedure
 
     await Promise.allSettled([
       (puzzle_data.listed || prev_listed !== puzzle_data.listed) &&
-        invalidate_and_refresh_cached(CACHE.padavali.listed_puzzle_list, NO_CACHE_PARAMS),
-      invalidate_and_refresh_cached(CACHE.padavali.word_puzzle, {
+        invalidate_and_refresh_cache(CACHE.padavali.listed_puzzle_list, NO_CACHE_PARAMS),
+      invalidate_and_refresh_cache(CACHE.padavali.word_puzzle, {
         slug: puzzle_slug
       }),
       meanings_input_changed &&
-        invalidate_and_refresh_cached(CACHE.padavali.word_meanings, {
+        invalidate_and_refresh_cache(CACHE.padavali.word_meanings, {
           slug: puzzle_slug
         }),
       (await puzzle_in_current_schedule(puzzle_id)) &&
-        invalidate_and_refresh_cached(CACHE.padavali.current_schedule, NO_CACHE_PARAMS),
+        invalidate_and_refresh_cache(CACHE.padavali.current_schedule, NO_CACHE_PARAMS),
       puzzle_data.listed &&
         !prev_listed &&
         notify_for_listed_puzzle(puzzle_data_rest.title, puzzle_slug)
@@ -356,17 +356,17 @@ const update_puzzle_slug_route = protectedAdminProcedure
     revalidatePath('/padavali/list');
 
     await Promise.all([
-      invalidate_and_refresh_cached(CACHE.padavali.word_puzzle, { slug: new_slug }),
-      invalidate_and_refresh_cached(CACHE.padavali.word_meanings, { slug: current_slug })
+      invalidate_and_refresh_cache(CACHE.padavali.word_puzzle, { slug: new_slug }),
+      invalidate_and_refresh_cache(CACHE.padavali.word_meanings, { slug: current_slug })
     ]);
 
     await Promise.allSettled([
       puzzle.listed &&
-        invalidate_and_refresh_cached(CACHE.padavali.listed_puzzle_list, NO_CACHE_PARAMS),
+        invalidate_and_refresh_cache(CACHE.padavali.listed_puzzle_list, NO_CACHE_PARAMS),
       (await puzzle_in_current_schedule(puzzle_id)) &&
-        invalidate_and_refresh_cached(CACHE.padavali.current_schedule, NO_CACHE_PARAMS),
+        invalidate_and_refresh_cache(CACHE.padavali.current_schedule, NO_CACHE_PARAMS),
       (await puzzle_in_next_schedule(puzzle_id)) &&
-        invalidate_and_refresh_cached(CACHE.padavali.next_schedule, NO_CACHE_PARAMS)
+        invalidate_and_refresh_cache(CACHE.padavali.next_schedule, NO_CACHE_PARAMS)
     ]);
 
     return { success: true as const, slug: new_slug };
@@ -426,15 +426,15 @@ const delete_puzzle_route = protectedAdminProcedure
     });
 
     await Promise.allSettled([
-      listed && invalidate_and_refresh_cached(CACHE.padavali.listed_puzzle_list, NO_CACHE_PARAMS),
-      invalidate_and_refresh_cached(CACHE.padavali.word_puzzle, {
+      listed && invalidate_and_refresh_cache(CACHE.padavali.listed_puzzle_list, NO_CACHE_PARAMS),
+      invalidate_and_refresh_cache(CACHE.padavali.word_puzzle, {
         slug: normalizedSlug
       }),
       CACHE.padavali.word_meanings.delete({ slug: normalizedSlug }),
       (await puzzle_in_current_schedule(id)) &&
-        invalidate_and_refresh_cached(CACHE.padavali.current_schedule, NO_CACHE_PARAMS),
+        invalidate_and_refresh_cache(CACHE.padavali.current_schedule, NO_CACHE_PARAMS),
       (await puzzle_in_next_schedule(id)) &&
-        invalidate_and_refresh_cached(CACHE.padavali.next_schedule, NO_CACHE_PARAMS)
+        invalidate_and_refresh_cache(CACHE.padavali.next_schedule, NO_CACHE_PARAMS)
     ]);
     return {
       success: true
@@ -546,8 +546,8 @@ const get_listed_puzzles_preview_route = publicProcedure
 
 const refresh_current_schedule_route = publicProcedure.mutation(async () => {
   await Promise.all([
-    invalidate_and_refresh_cached(CACHE.padavali.current_schedule, NO_CACHE_PARAMS),
-    invalidate_and_refresh_cached(CACHE.padavali.next_schedule, NO_CACHE_PARAMS)
+    invalidate_and_refresh_cache(CACHE.padavali.current_schedule, NO_CACHE_PARAMS),
+    invalidate_and_refresh_cache(CACHE.padavali.next_schedule, NO_CACHE_PARAMS)
   ]);
   const current = await CACHE.padavali.current_schedule.get(NO_CACHE_PARAMS);
   return { has_current: current !== undefined };

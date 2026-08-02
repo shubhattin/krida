@@ -3,7 +3,7 @@ import { schedule_archival_publish_schema } from '~/lib/qstash';
 import { db } from '~/db/db';
 import {
   CACHE,
-  invalidate_and_refresh_cached,
+  invalidate_and_refresh_cache,
   NO_CACHE_PARAMS
 } from '~/util/cache.server/cache_loaders';
 import { padavali_schedules, padavali_puzzles } from '~/db/schema';
@@ -59,8 +59,8 @@ export const POST = verifySignatureAppRouter(async (req: Request) => {
       );
   });
   await Promise.allSettled([
-    invalidate_and_refresh_cached(CACHE.padavali.listed_puzzle_list, NO_CACHE_PARAMS),
-    invalidate_and_refresh_cached(CACHE.padavali.word_puzzle, {
+    invalidate_and_refresh_cache(CACHE.padavali.listed_puzzle_list, NO_CACHE_PARAMS),
+    invalidate_and_refresh_cache(CACHE.padavali.word_puzzle, {
       slug: schedule.puzzle.slug
     }),
     notify_for_listed_puzzle(schedule.puzzle.title, schedule.puzzle.slug)

@@ -8,7 +8,7 @@ import { and, eq } from 'drizzle-orm';
 import { delay } from '~/tools/delay';
 import {
   CACHE,
-  invalidate_and_refresh_cached,
+  invalidate_and_refresh_cache,
   NO_CACHE_PARAMS
 } from '~/util/cache.server/cache_loaders';
 import { publishCrosswordScheduleListingQueue } from '~/lib/qstash';
@@ -70,8 +70,8 @@ const add_puzzle_schedule_route = protectedAdminProcedure
     });
 
     await Promise.allSettled([
-      invalidate_and_refresh_cached(CACHE.crossword.current_schedule, NO_CACHE_PARAMS),
-      invalidate_and_refresh_cached(CACHE.crossword.next_schedule, NO_CACHE_PARAMS)
+      invalidate_and_refresh_cache(CACHE.crossword.current_schedule, NO_CACHE_PARAMS),
+      invalidate_and_refresh_cache(CACHE.crossword.next_schedule, NO_CACHE_PARAMS)
     ]);
     await publishCrosswordScheduleListingQueue(
       {
@@ -95,8 +95,8 @@ const delete_puzzle_schedule_route = protectedAdminProcedure
     });
 
     await Promise.allSettled([
-      invalidate_and_refresh_cached(CACHE.crossword.current_schedule, NO_CACHE_PARAMS),
-      invalidate_and_refresh_cached(CACHE.crossword.next_schedule, NO_CACHE_PARAMS)
+      invalidate_and_refresh_cache(CACHE.crossword.current_schedule, NO_CACHE_PARAMS),
+      invalidate_and_refresh_cache(CACHE.crossword.next_schedule, NO_CACHE_PARAMS)
     ]);
 
     return { success: true };
@@ -132,8 +132,8 @@ const update_puzzle_schedule_route = protectedAdminProcedure
     }
 
     await Promise.allSettled([
-      invalidate_and_refresh_cached(CACHE.crossword.current_schedule, NO_CACHE_PARAMS),
-      invalidate_and_refresh_cached(CACHE.crossword.next_schedule, NO_CACHE_PARAMS)
+      invalidate_and_refresh_cache(CACHE.crossword.current_schedule, NO_CACHE_PARAMS),
+      invalidate_and_refresh_cache(CACHE.crossword.next_schedule, NO_CACHE_PARAMS)
     ]);
     await publishCrosswordScheduleListingQueue(
       {

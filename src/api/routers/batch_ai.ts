@@ -36,7 +36,7 @@ import {
 import { derivePuzzleImageBatchUiStatus } from '~/util/ai_batch/batch_image_status';
 import {
   CACHE,
-  invalidate_and_refresh_cached,
+  invalidate_and_refresh_cache,
   NO_CACHE_PARAMS
 } from '~/util/cache.server/cache_loaders';
 import ms from 'ms';
@@ -520,20 +520,20 @@ export const approve_connect_puzzle_image_id_func = async (batch_id: string, cus
     await Promise.all([
       current_schedule &&
         current_schedule.puzzle.id === result.puzzle_id &&
-        invalidate_and_refresh_cached(CACHE.crossword.current_schedule, NO_CACHE_PARAMS),
-      invalidate_and_refresh_cached(CACHE.crossword.word_puzzle, { slug: result.slug }),
+        invalidate_and_refresh_cache(CACHE.crossword.current_schedule, NO_CACHE_PARAMS),
+      invalidate_and_refresh_cache(CACHE.crossword.word_puzzle, { slug: result.slug }),
       result.listed &&
-        invalidate_and_refresh_cached(CACHE.crossword.listed_puzzle_list, NO_CACHE_PARAMS)
+        invalidate_and_refresh_cache(CACHE.crossword.listed_puzzle_list, NO_CACHE_PARAMS)
     ]);
   } else {
     const current_schedule = await CACHE.padavali.current_schedule.get(NO_CACHE_PARAMS);
     await Promise.all([
       current_schedule &&
         current_schedule.puzzle.id === result.puzzle_id &&
-        invalidate_and_refresh_cached(CACHE.padavali.current_schedule, NO_CACHE_PARAMS),
-      invalidate_and_refresh_cached(CACHE.padavali.word_puzzle, { slug: result.slug }),
+        invalidate_and_refresh_cache(CACHE.padavali.current_schedule, NO_CACHE_PARAMS),
+      invalidate_and_refresh_cache(CACHE.padavali.word_puzzle, { slug: result.slug }),
       result.listed &&
-        invalidate_and_refresh_cached(CACHE.padavali.listed_puzzle_list, NO_CACHE_PARAMS)
+        invalidate_and_refresh_cache(CACHE.padavali.listed_puzzle_list, NO_CACHE_PARAMS)
     ]);
   }
 
