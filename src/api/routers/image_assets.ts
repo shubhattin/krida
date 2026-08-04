@@ -80,17 +80,24 @@ const delete_image_asset_route = protectedAdminProcedure
   .mutation(({ input }): Promise<{ deleted: boolean }> =>
     runTrpcEffect(
       Effect.gen(function* () {
-        const deleted_rows = yield* dbRun('image_assets.delete_row', (client) =>
-          client.delete(image_assets).where(eq(image_assets.id, input.id)).returning()
+        const rows = yield* dbRun('image_assets.select_for_delete', (client) =>
+          client
+            .select({ id: image_assets.id, s3_key: image_assets.s3_key })
+            .from(image_assets)
+            .where(eq(image_assets.id, input.id))
+            .limit(1)
         );
-        const deleted = deleted_rows[0];
-
-        if (!deleted) {
+        const asset = rows[0];
+        if (!asset) {
           return { deleted: false };
         }
 
         const storage = yield* ObjectStorage;
-        yield* storage.deleteAssetFile(deleted.s3_key).pipe(Effect.retry(Schedule.recurs(2)));
+        yield* storage.deleteAssetFile(asset.s3_key).pipe(Effect.retry(Schedule.recurs(2)));
+
+        yield* dbRun('image_assets.delete_row', (client) =>
+          client.delete(image_assets).where(eq(image_assets.id, input.id)).returning()
+        );
 
         return { deleted: true };
       })

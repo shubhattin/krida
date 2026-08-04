@@ -13,8 +13,9 @@ const tryAi = <A>(operation: string, provider: string, run: () => Promise<A>) =>
     catch: (cause) => AiProviderError.make({ operation, provider, cause })
   }).pipe(Effect.annotateLogs({ category: 'ai', operation, provider }));
 
-/** Retry transient AI failures (network/rate-limit). Fixed attempts; no schema-invalid retries at this layer. */
-const aiRetryPolicy = Schedule.recurs(2);
+/** Retry transient AI failures (network/rate-limit). Fixed attempts; no schema-invalid retries at this layer.
+ *  `Schedule.recurs(2)` → 1 initial attempt + 2 retries = 3 total tries. */
+export const aiRetryPolicy = Schedule.recurs(2);
 
 export class AiProvider extends Context.Service<
   AiProvider,

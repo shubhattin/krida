@@ -50,6 +50,7 @@ export const verify_cloudflare_turnstile_token = Effect.fn('verify_cloudflare_tu
   function* (token: string) {
     const config = yield* AppConfig;
     if (!config.turnstileSecretKey) {
+      console.warn('[turnstile] secret key missing; failing closed');
       return false;
     }
 
@@ -60,7 +61,8 @@ export const verify_cloudflare_turnstile_token = Effect.fn('verify_cloudflare_tu
         const response = await fetch('https://challenges.cloudflare.com/turnstile/v0/siteverify', {
           method: 'POST',
           body: JSON.stringify({ secret, response: token }),
-          headers: { 'Content-Type': 'application/json' }
+          headers: { 'Content-Type': 'application/json' },
+          signal: AbortSignal.timeout(10_000)
         });
         return response.json();
       },

@@ -49,6 +49,9 @@ export class ObjectStorage extends Context.Service<
       return {
         uploadAssetFile: (key, fileBuffer) =>
           tryStorage('uploadAssetFile', key, async () => {
+            if (!ASSET_KEY_PATTERN.test(key)) {
+              throw new Error(`Invalid asset key: ${key}`);
+            }
             const uploadParams: PutObjectCommandInput = {
               Bucket: bucket,
               Key: key,

@@ -5,9 +5,10 @@ import { and, eq } from 'drizzle-orm';
 import { scheduledPuzzleNotificationPayloadSchema, decodeQstashPayload } from '~/effect/qstash';
 import { dbRun, dbTransaction } from '~/effect/database';
 import { runQstashEffect } from '~/effect/run';
-import { BadRequestError } from '~/effect/errors';
+import { BadRequestError, ConfigError } from '~/effect/errors';
 import { NotificationService } from '~/effect/notifications';
 import { DEFAULT_SHARE_IMAGE_INFO } from '~/components/tags/getPageMetaTags';
+import { AppConfig } from '~/effect/config';
 
 export const POST = verifySignatureAppRouter(async (req: Request) => {
   console.log('QStash request received', new Date());
@@ -48,14 +49,21 @@ export const POST = verifySignatureAppRouter(async (req: Request) => {
         );
       }
 
+      const config = yield* AppConfig;
+      if (!config.siteUrl) {
+        return yield* Effect.fail(
+          ConfigError.make({
+            message: 'NEXT_PUBLIC_SITE_URL is required for puzzle notifications'
+          })
+        );
+      }
+
       const notifications = yield* NotificationService;
       yield* notifications.send({
         headings: { en: '🧩 New Puzzle Added ! 🎉' },
         contents: { en: `"${schedule.puzzle.title}" - Puzzle Added, Play Now! 🚀` },
         name: 'new_scheduled_puzzle',
-        url: process.env.NEXT_PUBLIC_SITE_URL
-          ? `${process.env.NEXT_PUBLIC_SITE_URL}/padavali`
-          : null,
+        url: `${config.siteUrl}/padavali`,
         chrome_web_image: DEFAULT_SHARE_IMAGE_INFO.url
       });
 

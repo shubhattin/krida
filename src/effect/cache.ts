@@ -154,7 +154,12 @@ export function createCache<TParams, TCached, TData = TCached>(
       return config.fromCacheValue(raw);
     }
     if (raw === null || raw === undefined) return null;
-    return config.schema ? config.schema.parse(raw) : (raw as TCached);
+    if (!config.schema) return raw as TCached;
+    try {
+      return config.schema.parse(raw);
+    } catch {
+      return null;
+    }
   };
 
   const readGeneration = (cacheKey: string) =>
@@ -279,65 +284,64 @@ export function createCache<TParams, TCached, TData = TCached>(
     const localFlight = inFlight.get(cacheKey);
     if (localFlight) return yield* localFlight;
 
-    const singleFlight = Effect.gen(function* () {
-      const redis = yield* RedisClient;
-      const lockKey = `${cacheKey}:lock`;
-      const lockToken = crypto.randomUUID();
+    const memoized = yield* Effect.cached(
+      Effect.gen(function* () {
+        const redis = yield* RedisClient;
+        const lockKey = `${cacheKey}:lock`;
+        const lockToken = crypto.randomUUID();
 
-      let ownsLock = yield* redis
-        .set(lockKey, lockToken, { nx: true, px: SINGLE_FLIGHT_LOCK_TTL_MS })
-        .pipe(
-          Effect.map((result) => Boolean(result)),
-          Effect.catch(() => Effect.succeed(false))
-        );
-
-      if (
-        !ownsLock &&
-        !(yield* redis.get(lockKey).pipe(Effect.catch(() => Effect.succeed(null))))
-      ) {
-        // Redis lock coordination unavailable
-        return yield* fetchAndCache(params, cacheKey, false);
-      }
-
-      const releaseLock = redis
-        .eval(RELEASE_LOCK_IF_OWNED, [lockKey], [lockToken])
-        .pipe(Effect.catch(() => Effect.void));
-
-      if (ownsLock) {
-        return yield* fetchAndCache(params, cacheKey, true).pipe(Effect.ensuring(releaseLock));
-      }
-
-      for (let poll = 0; poll < SINGLE_FLIGHT_MAX_POLLS; poll++) {
-        yield* Effect.sleep(SINGLE_FLIGHT_POLL);
-        const cached = yield* redis
-          .get<unknown>(cacheKey)
-          .pipe(Effect.catch(() => Effect.succeed(null as unknown)));
-        const parsed = parseCached(cached);
-        if (parsed !== null) return toReturnValue(parsed, config.transform);
-
-        ownsLock = yield* redis
+        let ownsLock = yield* redis
           .set(lockKey, lockToken, { nx: true, px: SINGLE_FLIGHT_LOCK_TTL_MS })
           .pipe(
             Effect.map((result) => Boolean(result)),
             Effect.catch(() => Effect.succeed(false))
           );
 
+        if (
+          !ownsLock &&
+          !(yield* redis.get(lockKey).pipe(Effect.catch(() => Effect.succeed(null))))
+        ) {
+          // Redis lock coordination unavailable
+          return yield* fetchAndCache(params, cacheKey, false);
+        }
+
+        const releaseLock = redis
+          .eval(RELEASE_LOCK_IF_OWNED, [lockKey], [lockToken])
+          .pipe(Effect.catch(() => Effect.void));
+
         if (ownsLock) {
           return yield* fetchAndCache(params, cacheKey, true).pipe(Effect.ensuring(releaseLock));
         }
-      }
 
-      return yield* fetchAndCache(params, cacheKey, false);
-    }).pipe(
-      Effect.annotateLogs({ category: 'cache', operation: 'getSingleFlight', key: cacheKey })
+        for (let poll = 0; poll < SINGLE_FLIGHT_MAX_POLLS; poll++) {
+          yield* Effect.sleep(SINGLE_FLIGHT_POLL);
+          const cached = yield* redis
+            .get<unknown>(cacheKey)
+            .pipe(Effect.catch(() => Effect.succeed(null as unknown)));
+          const parsed = parseCached(cached);
+          if (parsed !== null) return toReturnValue(parsed, config.transform);
+
+          ownsLock = yield* redis
+            .set(lockKey, lockToken, { nx: true, px: SINGLE_FLIGHT_LOCK_TTL_MS })
+            .pipe(
+              Effect.map((result) => Boolean(result)),
+              Effect.catch(() => Effect.succeed(false))
+            );
+
+          if (ownsLock) {
+            return yield* fetchAndCache(params, cacheKey, true).pipe(Effect.ensuring(releaseLock));
+          }
+        }
+
+        return yield* fetchAndCache(params, cacheKey, false);
+      }).pipe(
+        Effect.annotateLogs({ category: 'cache', operation: 'getSingleFlight', key: cacheKey }),
+        Effect.ensuring(Effect.sync(() => inFlight.delete(cacheKey)))
+      )
     );
 
-    inFlight.set(cacheKey, singleFlight);
-    try {
-      return yield* singleFlight;
-    } finally {
-      inFlight.delete(cacheKey);
-    }
+    inFlight.set(cacheKey, memoized);
+    return yield* memoized;
   });
 
   const deleteCache = Effect.fn('cache.delete')(function* (params: TParams) {

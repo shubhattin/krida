@@ -781,6 +781,7 @@ const delete_redirect_slug_route = protectedAdminProcedure
     )
   );
 
+/** Public: waiting-room UI refreshes schedule cache when countdown ends. */
 const refresh_current_schedule_route = publicProcedure.mutation(() =>
   runTrpcEffect(
     Effect.gen(function* () {

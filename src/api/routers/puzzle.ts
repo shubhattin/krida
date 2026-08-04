@@ -30,7 +30,7 @@ import {
   normalizeSlug
 } from '~/util/puzzle/slug';
 import { escapeIlikeToken, tokenizeSearchQuery } from '~/util/puzzle/search';
-import { BadRequestError, ConflictError, NotFoundError } from '~/effect/errors';
+import { BadRequestError, ConfigError, ConflictError, NotFoundError } from '~/effect/errors';
 import { AppConfig } from '~/effect/config';
 import { runTrpcEffect } from '~/effect/run';
 
@@ -56,6 +56,13 @@ export const notify_for_listed_puzzle = Effect.fn('padavali.notify_for_listed_pu
   slug: string
 ) {
   const config = yield* AppConfig;
+  if (!config.siteUrl) {
+    return yield* Effect.fail(
+      ConfigError.make({
+        message: 'NEXT_PUBLIC_SITE_URL is required for puzzle notifications'
+      })
+    );
+  }
   const notifications = yield* NotificationService;
   return yield* notifications.send({
     headings: { en: '🧩 New Listed Puzzle Added! 🎉' },
@@ -439,9 +446,11 @@ const update_puzzle_slug_route = protectedAdminProcedure
 
         yield* Effect.sync(() => revalidatePath('/padavali/list'));
         yield* settle(invalidate_and_refresh_cache(CACHE.padavali.word_puzzle, { slug: new_slug }));
+        yield* settle(CACHE.padavali.word_puzzle.delete({ slug: current_slug }));
         yield* settle(
-          invalidate_and_refresh_cache(CACHE.padavali.word_meanings, { slug: current_slug })
+          invalidate_and_refresh_cache(CACHE.padavali.word_meanings, { slug: new_slug })
         );
+        yield* settle(CACHE.padavali.word_meanings.delete({ slug: current_slug }));
 
         if (puzzle.listed) {
           yield* settle(
@@ -675,7 +684,8 @@ const get_listed_puzzles_preview_route = publicProcedure
     )
   );
 
-const refresh_current_schedule_route = protectedAdminProcedure.mutation(() =>
+/** Public: waiting-room UI refreshes schedule cache when countdown ends. */
+const refresh_current_schedule_route = publicProcedure.mutation(() =>
   runTrpcEffect(
     Effect.gen(function* () {
       yield* invalidate_and_refresh_cache(CACHE.padavali.current_schedule, NO_CACHE_PARAMS);

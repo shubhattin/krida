@@ -15,16 +15,26 @@ import { generateRandomAlphanumeric } from '~/tools/kry';
 import { NotificationService } from '~/effect/notifications';
 import { DEFAULT_SHARE_IMAGE_INFO } from '~/components/tags/getPageMetaTags';
 import { runTrpcEffect } from '~/effect/run';
+import { AppConfig } from '~/effect/config';
+import { ConfigError, DatabaseError } from '~/effect/errors';
 
 export const notify_for_new_scheduled_puzzle = Effect.fn(
   'padavaliSchedules.notify_for_new_scheduled_puzzle'
 )(function* (title: string) {
+  const config = yield* AppConfig;
+  if (!config.siteUrl) {
+    return yield* Effect.fail(
+      ConfigError.make({
+        message: 'NEXT_PUBLIC_SITE_URL is required for puzzle notifications'
+      })
+    );
+  }
   const notifications = yield* NotificationService;
   return yield* notifications.send({
     headings: { en: '🧩 New Puzzle Added ! 🎉' },
     contents: { en: `"${title}" - Puzzle Added, Play Now! 🚀` },
     name: 'new_scheduled_puzzle',
-    url: `${process.env.NEXT_PUBLIC_SITE_URL}/padavali`,
+    url: `${config.siteUrl}/padavali`,
     chrome_web_image: DEFAULT_SHARE_IMAGE_INFO.url
   });
 });
@@ -138,7 +148,6 @@ const add_puzzle_schedule_route = protectedAdminProcedure
           return { success: false as const, error_code: 'already_exists_in_time_range' as const };
         }
 
-        yield* Effect.sync(() => revalidatePath('/padavali/schedules'));
         const listing_verify_key = generateRandomAlphanumeric(32);
         const inserted_schedules = yield* dbTransaction(
           'padavali_schedules.insert_schedule',
@@ -155,9 +164,15 @@ const add_puzzle_schedule_route = protectedAdminProcedure
         );
         const schedule = inserted_schedules[0];
         if (!schedule) {
-          throw new Error('Failed to create schedule');
+          return yield* Effect.fail(
+            DatabaseError.make({
+              operation: 'padavali_schedules.insert_schedule',
+              cause: new Error('Failed to create schedule')
+            })
+          );
         }
 
+        yield* Effect.sync(() => revalidatePath('/padavali/schedules'));
         yield* refreshScheduleCaches();
         yield* notify_new_puzzle(puzzle_id, schedule.id, start_time);
         const qstash = yield* QStashPublisher;

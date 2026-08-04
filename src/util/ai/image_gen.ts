@@ -210,11 +210,20 @@ export const generateFileNameAndDescription = Effect.fn('generateFileNameAndDesc
   }
 );
 
+const sanitizeAssetFileName = (file_name: string): string => {
+  const sanitized = file_name
+    .replace(/[^\w.-]/g, '_')
+    .replace(/_+/g, '_')
+    .replace(/^_|_$/g, '');
+  return sanitized.length > 0 ? sanitized : 'asset';
+};
+
 const createAssetLocation = (
   game: GeneratePuzzleImageInput['game'],
   file_name: string,
   suffix: string
-): AssetLocation => `${PROJECT_S3_ALIAS}/${game}/image_assets/${file_name}_${suffix}.webp`;
+): AssetLocation =>
+  `${PROJECT_S3_ALIAS}/${game}/image_assets/${sanitizeAssetFileName(file_name)}_${suffix}.webp`;
 
 const insertImageAssetRecord = Effect.fn('insertImageAssetRecord')(function* (
   db_instance: DbTransaction,

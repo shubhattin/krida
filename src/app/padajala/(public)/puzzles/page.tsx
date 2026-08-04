@@ -13,7 +13,7 @@ export default async function CrosswordPuzzlesPage() {
     <main className="relative min-h-dvh overflow-x-clip">
       <div
         aria-hidden
-        className="pointer-events-none absolute top-0 left-1/2 h-[600px] w-[800px] -translate-x-1/2 rounded-full opacity-[0.07]"
+        className="pointer-events-none absolute top-0 left-1/2 h-150 w-200 -translate-x-1/2 rounded-full opacity-[0.07]"
         style={{
           background: 'radial-gradient(ellipse at center, hsl(var(--primary)), transparent 70%)'
         }}

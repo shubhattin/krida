@@ -63,7 +63,8 @@ export class NotificationService extends Context.Service<
                   contents: body.contents,
                   ...(body.chrome_web_image ? { chrome_web_image: body.chrome_web_image } : {}),
                   ...(body.url !== undefined ? { url: body.url } : {})
-                })
+                }),
+                signal: AbortSignal.timeout(10_000)
               });
 
               if (!response.ok) {

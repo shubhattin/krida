@@ -1,4 +1,4 @@
-import { Context, Effect, Layer, Schema } from 'effect';
+import { Context, Effect, Layer, Redacted, Schema } from 'effect';
 import { Client } from '@upstash/qstash';
 import { AppConfig } from './config';
 import { QueueError, ValidationError } from './errors';
@@ -63,9 +63,11 @@ export class QStashPublisher extends Context.Service<
   static readonly Live = Layer.effect(QStashPublisher)(
     Effect.gen(function* () {
       const config = yield* AppConfig;
-      const client = new Client();
+      const client = new Client(
+        config.qstashToken ? { token: Redacted.value(config.qstashToken) } : undefined
+      );
       const baseUrl = config.siteUrl ? `${config.siteUrl}/api/qstash` : undefined;
-      const enabled = config.isQstashEnabled && Boolean(baseUrl);
+      const enabled = config.isQstashEnabled && Boolean(baseUrl) && Boolean(config.qstashToken);
 
       const publish = <A>(
         operation: string,
@@ -80,7 +82,7 @@ export class QStashPublisher extends Context.Service<
             delay: delay_s,
             body
           });
-          console.log(`[qstash] published ${operation} (delay: ${delay_s}s)`, body);
+          console.log(`[qstash] published ${operation} (delay: ${delay_s}s)`);
         });
       };
 

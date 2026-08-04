@@ -1,8 +1,19 @@
 import type { authClient } from '@/lib/auth-client';
+import { Effect } from 'effect';
+import { AppConfig } from '~/effect/config';
+import { runServerEffect } from '~/effect/run';
 
 const get_seesion_from_cookie = async (cookie: string) => {
   try {
-    const res = await fetch(`${process.env.NEXT_PUBLIC_BETTER_AUTH_URL}/api/auth/get-session`, {
+    const betterAuthUrl = await runServerEffect(
+      Effect.gen(function* () {
+        const config = yield* AppConfig;
+        return config.betterAuthUrl;
+      })
+    );
+    if (!betterAuthUrl) return null;
+
+    const res = await fetch(`${betterAuthUrl}/api/auth/get-session`, {
       method: 'GET',
       headers: {
         Cookie: cookie
@@ -13,7 +24,7 @@ const get_seesion_from_cookie = async (cookie: string) => {
     }
     const session = (await res.json()) as typeof authClient.$Infer.Session;
     return session;
-  } catch (e) {
+  } catch {
     return null;
   }
 };

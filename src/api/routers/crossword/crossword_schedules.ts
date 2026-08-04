@@ -12,7 +12,7 @@ import {
 } from '~/util/cache.server/cache_loaders';
 import { QStashPublisher } from '~/effect/qstash';
 import { generateRandomAlphanumeric } from '~/tools/kry';
-import { NotFoundError } from '~/effect/errors';
+import { DatabaseError, NotFoundError } from '~/effect/errors';
 import { runTrpcEffect } from '~/effect/run';
 
 const crossword_schedule_time_order = <T extends { start_time: Date; end_time: Date }>(
@@ -67,7 +67,6 @@ const add_puzzle_schedule_route = protectedAdminProcedure
           return { success: false as const, error_code: 'already_exists_in_time_range' as const };
         }
 
-        yield* Effect.sync(() => revalidatePath('/padajala/schedules'));
         const listing_verify_key = generateRandomAlphanumeric(32);
         const inserted_schedules = yield* dbTransaction(
           'crossword_schedules.insert_schedule',
@@ -84,9 +83,15 @@ const add_puzzle_schedule_route = protectedAdminProcedure
         );
         const schedule = inserted_schedules[0];
         if (!schedule) {
-          throw new Error('Failed to create schedule');
+          return yield* Effect.fail(
+            DatabaseError.make({
+              operation: 'crossword_schedules.insert_schedule',
+              cause: new Error('Failed to create schedule')
+            })
+          );
         }
 
+        yield* Effect.sync(() => revalidatePath('/padajala/schedules'));
         yield* refreshScheduleCaches();
         const qstash = yield* QStashPublisher;
         yield* qstash.publishCrosswordScheduleListing(
@@ -108,12 +113,11 @@ const delete_puzzle_schedule_route = protectedAdminProcedure
   .mutation(({ input: { schedule_id } }) =>
     runTrpcEffect(
       Effect.gen(function* () {
-        yield* Effect.sync(() => revalidatePath('/padajala/schedules'));
-
         yield* dbTransaction('crossword_schedules.delete_schedule', async (tx) => {
           await tx.delete(crossword_schedules).where(eq(crossword_schedules.id, schedule_id));
         });
 
+        yield* Effect.sync(() => revalidatePath('/padajala/schedules'));
         yield* refreshScheduleCaches();
 
         return { success: true };
@@ -135,8 +139,6 @@ const update_puzzle_schedule_route = protectedAdminProcedure
   .mutation(({ input: { schedule_id, puzzle_id, start_time, end_time } }) =>
     runTrpcEffect(
       Effect.gen(function* () {
-        yield* Effect.sync(() => revalidatePath('/padajala/schedules'));
-
         const listing_verify_key = generateRandomAlphanumeric(32);
         const updated_schedules = yield* dbTransaction(
           'crossword_schedules.update_schedule',
@@ -163,6 +165,7 @@ const update_puzzle_schedule_route = protectedAdminProcedure
           );
         }
 
+        yield* Effect.sync(() => revalidatePath('/padajala/schedules'));
         yield* refreshScheduleCaches();
         const qstash = yield* QStashPublisher;
         yield* qstash.publishCrosswordScheduleListing(

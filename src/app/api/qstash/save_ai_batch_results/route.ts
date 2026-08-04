@@ -1,6 +1,6 @@
 import { verifySignatureAppRouter } from '@upstash/qstash/nextjs';
 import { Effect } from 'effect';
-import { poll_batch_puzzle_image_gen } from '~/api/routers/batch_ai';
+import { poll_batch_puzzle_image_gen } from '~/util/ai_batch/puzzle_image_ops';
 import { BATCH_POLLING_INTERVAL_S, MAX_BATCH_POLL_ATTEMPTS } from '~/util/types/ai_batch_metadata';
 import { aiBatchResultsPayloadSchema, decodeQstashPayload, QStashPublisher } from '~/effect/qstash';
 import { runQstashEffect } from '~/effect/run';
