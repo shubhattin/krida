@@ -45,6 +45,7 @@
     "dayjs": "^1.11.21",
     "drizzle-orm": "^0.43.1",
     "drizzle-zod": "^0.8.3",
+    "effect": "^3.22.1",
     "embla-carousel-react": "^8.6.0",
     "framer-motion": "^12.42.0",
     "fuse.js": "^7.5.0",
