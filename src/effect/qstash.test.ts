@@ -13,7 +13,6 @@ describe('decodeQstashPayload', () => {
   it('decodes a valid schedule listing payload', async () => {
     const value = await Effect.runPromise(
       decodeQstashPayload(scheduleListingPayloadSchema, {
-        version: 2,
         puzzle_id: 10,
         schedule_id: 3,
         listing_verify_key: KEY32
@@ -21,7 +20,6 @@ describe('decodeQstashPayload', () => {
     );
 
     expect(value).toEqual({
-      version: 2,
       puzzle_id: 10,
       schedule_id: 3,
       listing_verify_key: KEY32
@@ -31,7 +29,6 @@ describe('decodeQstashPayload', () => {
   it('decodes notification and ai-batch payloads', async () => {
     const notification = await Effect.runPromise(
       decodeQstashPayload(scheduledPuzzleNotificationPayloadSchema, {
-        version: 2,
         puzzle_id: 1,
         schedule_id: 2,
         notification_key: KEY32
@@ -41,18 +38,16 @@ describe('decodeQstashPayload', () => {
 
     const batch = await Effect.runPromise(
       decodeQstashPayload(aiBatchResultsPayloadSchema, {
-        version: 2,
         batch_id: 'batch_abc',
         poll_attempt: 0
       })
     );
-    expect(batch).toEqual({ version: 2, batch_id: 'batch_abc', poll_attempt: 0 });
+    expect(batch).toEqual({ batch_id: 'batch_abc', poll_attempt: 0 });
   });
 
   it('fails with ValidationError for invalid payloads', async () => {
     const result = await Effect.runPromise(
       decodeQstashPayload(scheduleListingPayloadSchema, {
-        version: 2,
         puzzle_id: -1,
         schedule_id: 3,
         listing_verify_key: 'short'

@@ -45,12 +45,12 @@ export type PadavaliListedPuzzlesType = z.infer<typeof listed_puzzle_schema>[];
 
 export type PadavaliPuzzleParams = { slug: string };
 
-const CURRENT_SCHEDULE_KEY = 'padavali:v2:current_schedule';
-const NEXT_SCHEDULE_KEY = 'padavali:v2:next_schedule';
-const LISTED_PUZZLE_LIST_KEY = 'padavali:v2:listed_puzzle_list';
+const CURRENT_SCHEDULE_KEY = 'padavali:current_schedule';
+const NEXT_SCHEDULE_KEY = 'padavali:next_schedule';
+const LISTED_PUZZLE_LIST_KEY = 'padavali:listed_puzzle_list';
 
-const wordPuzzleKey = (slug: string) => `padavali:v2:word_puzzle:${slug}`;
-const wordMeaningsKey = (slug: string) => `padavali:v2:word_meanings:${slug}`;
+const wordPuzzleKey = (slug: string) => `padavali:word_puzzle:${slug}`;
+const wordMeaningsKey = (slug: string) => `padavali:word_meanings:${slug}`;
 
 const toCacheError = (operation: string, key: string) => (cause: unknown) =>
   CacheError.make({ operation, key, cause });

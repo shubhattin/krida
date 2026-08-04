@@ -9,21 +9,18 @@ const Key32 = Schema.String.check(Schema.isLengthBetween(32, 32));
 const NonEmptyString = Schema.String.check(Schema.isMinLength(1));
 
 export const scheduleListingPayloadSchema = Schema.Struct({
-  version: Schema.Literal(2),
   puzzle_id: PositiveInt,
   schedule_id: PositiveInt,
   listing_verify_key: Key32
 });
 
 export const scheduledPuzzleNotificationPayloadSchema = Schema.Struct({
-  version: Schema.Literal(2),
   puzzle_id: PositiveInt,
   schedule_id: PositiveInt,
   notification_key: Key32
 });
 
 export const aiBatchResultsPayloadSchema = Schema.Struct({
-  version: Schema.Literal(2),
   batch_id: NonEmptyString,
   poll_attempt: NonNegInt
 });
@@ -43,19 +40,19 @@ export class QStashPublisher extends Context.Service<
   QStashPublisher,
   {
     readonly publishScheduleListing: (
-      data: Omit<ScheduleListingPayload, 'version'>,
+      data: ScheduleListingPayload,
       delay_s: number
     ) => Effect.Effect<void, QueueError>;
     readonly publishCrosswordScheduleListing: (
-      data: Omit<ScheduleListingPayload, 'version'>,
+      data: ScheduleListingPayload,
       delay_s: number
     ) => Effect.Effect<void, QueueError>;
     readonly publishScheduledPuzzleNotification: (
-      data: Omit<ScheduledPuzzleNotificationPayload, 'version'>,
+      data: ScheduledPuzzleNotificationPayload,
       delay_s: number
     ) => Effect.Effect<void, QueueError>;
     readonly publishAiBatchResults: (
-      data: Omit<AiBatchResultsPayload, 'version'>,
+      data: AiBatchResultsPayload,
       delay_s: number
     ) => Effect.Effect<void, QueueError>;
   }
@@ -88,33 +85,13 @@ export class QStashPublisher extends Context.Service<
 
       return {
         publishScheduleListing: (data, delay_s) =>
-          publish(
-            'schedule_listing',
-            '/schedule_listing',
-            { version: 2 as const, ...data },
-            delay_s
-          ),
+          publish('schedule_listing', '/schedule_listing', data, delay_s),
         publishCrosswordScheduleListing: (data, delay_s) =>
-          publish(
-            'crossword_schedule_listing',
-            '/crossword/schedule_listing',
-            { version: 2 as const, ...data },
-            delay_s
-          ),
+          publish('crossword_schedule_listing', '/crossword/schedule_listing', data, delay_s),
         publishScheduledPuzzleNotification: (data, delay_s) =>
-          publish(
-            'new_puzzle_notification',
-            '/new_puzzle_notification',
-            { version: 2 as const, ...data },
-            delay_s
-          ),
+          publish('new_puzzle_notification', '/new_puzzle_notification', data, delay_s),
         publishAiBatchResults: (data, delay_s) =>
-          publish(
-            'save_ai_batch_results',
-            '/save_ai_batch_results',
-            { version: 2 as const, ...data },
-            delay_s
-          )
+          publish('save_ai_batch_results', '/save_ai_batch_results', data, delay_s)
       };
     })
   );

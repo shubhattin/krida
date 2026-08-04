@@ -60,12 +60,12 @@ export type CrosswordListedPuzzlesType = z.infer<typeof listed_puzzle_schema>[];
 
 export type CrosswordPuzzleParams = { slug: string };
 
-const CURRENT_SCHEDULE_KEY = 'crossword:v2:current_schedule';
-const NEXT_SCHEDULE_KEY = 'crossword:v2:next_schedule';
-const LISTED_PUZZLE_LIST_KEY = 'crossword:v2:listed_puzzle_list';
+const CURRENT_SCHEDULE_KEY = 'crossword:current_schedule';
+const NEXT_SCHEDULE_KEY = 'crossword:next_schedule';
+const LISTED_PUZZLE_LIST_KEY = 'crossword:listed_puzzle_list';
 
-const wordPuzzleKey = (slug: string) => `crossword:v2:word_puzzle:${slug}`;
-const moreHintsKey = (slug: string) => `crossword:v2:more_hints:${slug}`;
+const wordPuzzleKey = (slug: string) => `crossword:word_puzzle:${slug}`;
+const moreHintsKey = (slug: string) => `crossword:puzzle_more_hints:${slug}`;
 
 const toCacheError = (operation: string, key: string) => (cause: unknown) =>
   CacheError.make({ operation, key, cause });
