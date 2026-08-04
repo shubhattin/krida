@@ -2,9 +2,12 @@ import { type Metadata } from 'next';
 import { CACHE, NO_CACHE_PARAMS } from '~/util/cache.server/cache_loaders';
 import { getMetadata } from '~/components/tags/getPageMetaTags';
 import { ListedCrosswordPuzzles } from './ListedCrosswordPuzzles';
+import { runServerEffect } from '~/effect/run';
 
 export default async function CrosswordPuzzlesPage() {
-  const listed_puzzles = await CACHE.crossword.listed_puzzle_list.get(NO_CACHE_PARAMS);
+  const listed_puzzles = await runServerEffect(
+    CACHE.crossword.listed_puzzle_list.get(NO_CACHE_PARAMS)
+  );
 
   return (
     <main className="relative min-h-dvh overflow-x-clip">

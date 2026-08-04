@@ -12,11 +12,14 @@ import {
   NORMAL_TITLE_SCRIPT
 } from '~/components/pages/padavali/listed_puzzle_display';
 import { GameCrossPromo } from '~/components/GameCrossPromo';
+import { runServerEffect } from '~/effect/run';
 
 export const dynamic = 'force-dynamic';
 
 async function buildListedPuzzlesInit(script: Awaited<ReturnType<typeof getCachedScript>>) {
-  const listed_puzzles = await CACHE.padavali.listed_puzzle_list.get(NO_CACHE_PARAMS);
+  const listed_puzzles = await runServerEffect(
+    CACHE.padavali.listed_puzzle_list.get(NO_CACHE_PARAMS)
+  );
 
   const puzzle_texts = listed_puzzles.flatMap((p) =>
     p.description ? [p.title, p.description] : [p.title]
@@ -40,8 +43,8 @@ async function buildListedPuzzlesInit(script: Awaited<ReturnType<typeof getCache
 
 export default async function Home() {
   const [current_schedule, next_schedule] = await Promise.all([
-    CACHE.padavali.current_schedule.get(NO_CACHE_PARAMS),
-    CACHE.padavali.next_schedule.get(NO_CACHE_PARAMS)
+    runServerEffect(CACHE.padavali.current_schedule.get(NO_CACHE_PARAMS)),
+    runServerEffect(CACHE.padavali.next_schedule.get(NO_CACHE_PARAMS))
   ]);
 
   if (!current_schedule) {

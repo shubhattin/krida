@@ -1,7 +1,6 @@
 import { redirect } from 'next/navigation';
 import AddSchedule from './AddSchedule';
 import { Metadata } from 'next';
-import { db } from '~/db/db';
 import Link from 'next/link';
 import { IoMdArrowRoundBack } from 'react-icons/io';
 import { getCachedSession } from '~/lib/cache_server_route_data';

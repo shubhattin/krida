@@ -1,9 +1,8 @@
-import { openrouter } from './providers';
+import { Effect } from 'effect';
 import { z } from 'zod';
-import { generateText, Output } from 'ai';
 import type { CrossWordPuzzleWord } from '~/db/schema_zod';
-
-const text_model = openrouter('openai/gpt-5.6-luna');
+import { AiProvider } from '~/effect/ai';
+import { AiProviderError, BadRequestError } from '~/effect/errors';
 
 /** Minimal puzzle shape needed to generate more hints. */
 type MoreHintsPuzzleInput = {
@@ -65,57 +64,33 @@ export const more_hints_inputs_equal = (
   );
 };
 
-/** Extra attempts after the first failure (total attempts = 1 + MAX_RETRIES). */
-const MAX_RETRIES = 2;
-
-const generate_more_hints_once = async (puzzle: MoreHintsPuzzleInput): Promise<MoreHintsType> => {
+export const get_crossword_more_hints = Effect.fn('get_crossword_more_hints')(function* (
+  puzzle: MoreHintsPuzzleInput
+) {
+  const ai = yield* AiProvider;
   const entries = puzzle.word_list
     .map((entry, i) => `${i + 1}. Answer: ${entry.word}\n   Short clue: ${entry.description}`)
     .join('\n');
 
-  const response = await generateText({
-    model: text_model,
+  const output = yield* ai.generateObject({
+    operation: 'more_hints',
+    provider: 'openrouter',
+    model: ai.openrouterModel('openai/gpt-5.6-luna'),
     system: SYSTEM_PROMPT,
     prompt: `Title: ${puzzle.title}\nDescription: ${puzzle.description}\n\nEntries:\n${entries}`,
-    output: Output.object({ schema: more_hints_schema }),
-    providerOptions: {
-      openrouter: {
-        reasoning: { effort: 'medium' }
-      }
-    }
+    schema: more_hints_schema,
+    openrouterReasoningEffort: 'medium'
   });
 
-  const output = response.output;
-  if (!output) {
-    throw new Error(`More hints generation returned empty output for slug: ${puzzle.slug}`);
-  }
   if (output.hints.length !== puzzle.word_list.length) {
-    throw new Error(
-      `More hints count mismatch for slug: ${puzzle.slug} (expected ${puzzle.word_list.length}, got ${output.hints.length})`
+    return yield* Effect.fail(
+      BadRequestError.make({
+        message: `More hints count mismatch for slug: ${puzzle.slug} (expected ${puzzle.word_list.length}, got ${output.hints.length})`
+      })
     );
   }
 
   return output;
-};
+});
 
-export const get_crossword_more_hints = async (puzzle: MoreHintsPuzzleInput) => {
-  let last_error: unknown;
-
-  for (let attempt = 0; attempt <= MAX_RETRIES; attempt++) {
-    try {
-      return await generate_more_hints_once(puzzle);
-    } catch (error) {
-      last_error = error;
-      if (attempt < MAX_RETRIES) {
-        console.warn(
-          `More hints generation failed for slug: ${puzzle.slug} (attempt ${attempt + 1}/${MAX_RETRIES + 1}); retrying…`,
-          error
-        );
-      }
-    }
-  }
-
-  throw last_error instanceof Error
-    ? last_error
-    : new Error(`More hints generation failed for slug: ${puzzle.slug}`);
-};
+export type GetCrosswordMoreHintsError = AiProviderError | BadRequestError;

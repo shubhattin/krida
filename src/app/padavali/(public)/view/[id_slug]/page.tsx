@@ -11,11 +11,12 @@ import { cache } from 'react';
 import { getMetadata } from '~/components/tags/getPageMetaTags';
 import { parseIdSlugParam } from '~/util/puzzle/slug';
 import { PreviewWarningBanner } from './PreviewWarningBanner';
+import { runServerEffect } from '~/effect/run';
 
 type Props = { params: Promise<{ id_slug: string }> };
 
 const word_puzzle_get_cached_func = cache((params: { slug: string }) =>
-  CACHE.padavali.word_puzzle.get(params)
+  runServerEffect(CACHE.padavali.word_puzzle.get(params))
 );
 
 const parseParams = async (params: Promise<{ id_slug: string }>) => {
@@ -52,7 +53,7 @@ const MainEdit = async ({ params }: Props) => {
 
   const [word_puzzle, next_schedule] = await Promise.all([
     word_puzzle_get_cached_func({ slug }),
-    CACHE.padavali.next_schedule.get(NO_CACHE_PARAMS)
+    runServerEffect(CACHE.padavali.next_schedule.get(NO_CACHE_PARAMS))
   ]);
 
   const isValid = word_puzzle && word_puzzle.id === id;

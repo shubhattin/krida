@@ -4,14 +4,15 @@ import { getMetadata } from '~/components/tags/getPageMetaTags';
 import { NoScheduledCrossword } from '~/components/pages/cross_word/NoScheduledCrossword';
 import MainPageCrossword from '~/components/pages/cross_word/MainPageCrossword';
 import { GameCrossPromo } from '~/components/GameCrossPromo';
+import { runServerEffect } from '~/effect/run';
 
 export const dynamic = 'force-dynamic';
 
 export default async function CrosswordHomePage() {
   const [current_schedule, next_schedule, listed_puzzles] = await Promise.all([
-    CACHE.crossword.current_schedule.get(NO_CACHE_PARAMS),
-    CACHE.crossword.next_schedule.get(NO_CACHE_PARAMS),
-    CACHE.crossword.listed_puzzle_list.get(NO_CACHE_PARAMS)
+    runServerEffect(CACHE.crossword.current_schedule.get(NO_CACHE_PARAMS)),
+    runServerEffect(CACHE.crossword.next_schedule.get(NO_CACHE_PARAMS)),
+    runServerEffect(CACHE.crossword.listed_puzzle_list.get(NO_CACHE_PARAMS))
   ]);
 
   if (!current_schedule) {

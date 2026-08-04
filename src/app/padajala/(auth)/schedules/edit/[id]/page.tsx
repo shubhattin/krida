@@ -1,11 +1,12 @@
 import { redirect } from 'next/navigation';
 import AddSchedule from '../../add/AddSchedule';
-import { db } from '~/db/db';
 import Link from 'next/link';
 import { IoMdArrowRoundBack } from 'react-icons/io';
 import { getCachedSession } from '~/lib/cache_server_route_data';
 import { z } from 'zod';
 import { Metadata } from 'next';
+import { runServerEffect } from '~/effect/run';
+import { dbRun } from '~/effect/database';
 
 type Props = { params: Promise<{ id: string }> };
 
@@ -17,17 +18,21 @@ const Main = async ({ params }: Props) => {
   if (!schedule_id_parsed.success) redirect('/padajala/schedules');
   const schedule_id = schedule_id_parsed.data.id;
 
-  const schedule = await db.query.crossword_schedules.findFirst({
-    where: (tbl, { eq }) => eq(tbl.id, schedule_id),
-    with: {
-      puzzle: {
-        columns: {
-          title: true,
-          id: true
+  const schedule = await runServerEffect(
+    dbRun('crossword.admin.get_schedule_for_edit', (client) =>
+      client.query.crossword_schedules.findFirst({
+        where: (tbl, { eq }) => eq(tbl.id, schedule_id),
+        with: {
+          puzzle: {
+            columns: {
+              title: true,
+              id: true
+            }
+          }
         }
-      }
-    }
-  });
+      })
+    )
+  );
 
   if (!schedule) redirect('/padajala/schedules');
 

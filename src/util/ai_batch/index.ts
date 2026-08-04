@@ -1,6 +1,8 @@
-import type OpenAI from 'openai';
 import { toFile } from 'openai';
+import { Effect } from 'effect';
 import { z } from 'zod';
+import { OpenAiBatchClient } from '~/effect/ai';
+import { BatchError, ValidationError } from '~/effect/errors';
 import {
   ai_batch_api_error_schema,
   ai_batch_completed_result_schema,
@@ -18,13 +20,10 @@ import {
   type AiBatchLine,
   type AiBatchObjectOutput,
   type AiBatchOutput,
-  type AiBatchOutputExpectation,
-  type AiBatchResult
+  type AiBatchOutputExpectation
 } from './types';
 
 export type { AiBatchInput, AiBatchOutput, AiBatchCreated } from './types';
-
-type OpenAIBatchClient = Pick<OpenAI, 'batches' | 'files'>;
 
 export type GetAiBatchResultOptions = {
   /**
@@ -38,6 +37,22 @@ export type GetAiBatchResultOptions = {
    */
   outputs?: AiBatchOutputExpectation[];
 };
+
+const tryBatch = <A>(operation: string, batchId: string | undefined, run: () => Promise<A>) =>
+  Effect.tryPromise({
+    try: run,
+    catch: (cause) => BatchError.make({ operation, batchId, cause })
+  }).pipe(Effect.annotateLogs({ category: 'ai_batch', operation }));
+
+const tryBatchSync = <A>(operation: string, run: () => A) =>
+  Effect.try({
+    try: run,
+    catch: (cause) =>
+      ValidationError.make({
+        message: cause instanceof Error ? cause.message : `Batch ${operation} failed`,
+        cause
+      })
+  });
 
 function toOutputExpectation(input: AiBatchInput): AiBatchOutputExpectation {
   if (input.type === 'object') {
@@ -166,31 +181,43 @@ export function toAiBatchJsonl(inputs: AiBatchInput[]): string {
   return parsed.map((input) => JSON.stringify(toAiBatchLine(input))).join('\n');
 }
 
-export async function createAiBatch(openai: OpenAIBatchClient, inputs: AiBatchInput[]) {
-  const parsed = ai_batch_inputs_schema.parse(inputs);
-  assertUniqueCustomIds(parsed);
-  const endpoint = getSingleEndpoint(parsed);
-  assertSingleModel(parsed);
+export const createAiBatch = Effect.fn('createAiBatch')(function* (inputs: AiBatchInput[]) {
+  const { client: openai } = yield* OpenAiBatchClient;
+
+  const { parsed, endpoint } = yield* tryBatchSync('validate_inputs', () => {
+    const parsedInputs = ai_batch_inputs_schema.parse(inputs);
+    assertUniqueCustomIds(parsedInputs);
+    const endpointValue = getSingleEndpoint(parsedInputs);
+    assertSingleModel(parsedInputs);
+    return { parsed: parsedInputs, endpoint: endpointValue };
+  });
+
   const requests_jsonl = parsed.map((input) => JSON.stringify(toAiBatchLine(input))).join('\n');
 
-  const file = await openai.files.create({
-    file: await toFile(Buffer.from(requests_jsonl), 'batch-input.jsonl', {
-      type: 'application/jsonl'
-    }),
-    purpose: 'batch'
-  });
+  const file = yield* tryBatch('upload_input_file', undefined, async () =>
+    openai.files.create({
+      file: await toFile(Buffer.from(requests_jsonl), 'batch-input.jsonl', {
+        type: 'application/jsonl'
+      }),
+      purpose: 'batch'
+    })
+  );
 
-  const batch = await openai.batches.create({
-    input_file_id: file.id,
-    endpoint,
-    completion_window: '24h'
-  });
+  const batch = yield* tryBatch('create_batch', undefined, () =>
+    openai.batches.create({
+      input_file_id: file.id,
+      endpoint,
+      completion_window: '24h'
+    })
+  );
 
-  return ai_batch_created_schema.parse({
-    batch_id: batch.id,
-    input_file_id: file.id
-  });
-}
+  return yield* tryBatchSync('parse_created_batch', () =>
+    ai_batch_created_schema.parse({
+      batch_id: batch.id,
+      input_file_id: file.id
+    })
+  );
+});
 
 function createExpectationMap(options?: GetAiBatchResultOptions) {
   const expectations = [
@@ -396,45 +423,74 @@ function toBatchFileIds(batch: {
   };
 }
 
-export async function getAiBatchResult(
-  openai: OpenAIBatchClient,
+export const getAiBatchResult = Effect.fn('getAiBatchResult')(function* (
   batch_id: string,
   options?: GetAiBatchResultOptions
-): Promise<AiBatchResult> {
-  const batch = await openai.batches.retrieve(batch_id);
+) {
+  const { client: openai } = yield* OpenAiBatchClient;
+
+  const batch = yield* tryBatch('retrieve_batch', batch_id, () =>
+    openai.batches.retrieve(batch_id)
+  );
 
   if (batch.status !== 'completed') {
-    return {
+    return yield* tryBatchSync('parse_pending_batch', () => ({
       status: ai_batch_polling_status_schema.parse(batch.status),
       batch_id: batch.id,
       ...toBatchFileIds(batch)
-    };
+    }));
   }
 
   const expectations = createExpectationMap(options);
-  const responses = batch.output_file_id
-    ? parseOutputFile(await (await openai.files.content(batch.output_file_id)).text(), expectations)
+  const output_file_id = batch.output_file_id ?? undefined;
+  const error_file_id = batch.error_file_id ?? undefined;
+
+  const responses = output_file_id
+    ? yield* tryBatch('read_output_file', batch_id, async () => {
+        const text = await (await openai.files.content(output_file_id)).text();
+        return parseOutputFile(text, expectations);
+      })
     : [];
 
-  const error_text = batch.error_file_id
-    ? await (await openai.files.content(batch.error_file_id)).text()
+  const error_text = error_file_id
+    ? yield* tryBatch('read_error_file', batch_id, async () =>
+        (await openai.files.content(error_file_id)).text()
+      )
     : '';
 
   if (error_text && expectations.size === 0) {
-    throw new Error(formatBatchErrorFileMessage(batch.id, error_text));
+    return yield* Effect.fail(
+      BatchError.make({
+        operation: 'parse_error_file',
+        batchId: batch.id,
+        cause: new Error(formatBatchErrorFileMessage(batch.id, error_text))
+      })
+    );
   }
 
-  const errors = error_text ? parseOutputFile(error_text, expectations) : [];
+  const errors = error_text
+    ? yield* tryBatchSync('parse_error_file', () => parseOutputFile(error_text, expectations))
+    : [];
 
-  if (!batch.output_file_id && !batch.error_file_id) {
-    throw new Error(`Completed batch ${batch.id} does not have output_file_id or error_file_id.`);
+  if (!output_file_id && !error_file_id) {
+    return yield* Effect.fail(
+      BatchError.make({
+        operation: 'missing_output_files',
+        batchId: batch.id,
+        cause: new Error(
+          `Completed batch ${batch.id} does not have output_file_id or error_file_id.`
+        )
+      })
+    );
   }
 
-  return ai_batch_completed_result_schema.parse({
-    status: 'completed',
-    batch_id: batch.id,
-    ...toBatchFileIds(batch),
-    responses,
-    errors
-  });
-}
+  return yield* tryBatchSync('parse_completed_batch', () =>
+    ai_batch_completed_result_schema.parse({
+      status: 'completed',
+      batch_id: batch.id,
+      ...toBatchFileIds(batch),
+      responses,
+      errors
+    })
+  );
+});

@@ -8,7 +8,7 @@ import { motion } from 'framer-motion';
 import { ArrowRightIcon, LayoutGridIcon, ExternalLinkIcon } from 'lucide-react';
 import { client } from '~/api/client';
 import { AppContext } from '~/components/AppDataContext';
-import { DEFAULT_DATA_SCRIPT } from '~/state/script_list';
+import { DEFAULT_DATA_SCRIPT, type ScriptType } from '~/state/script_list';
 import { PuzzlePreviewCard } from '~/components/pages/padavali/PuzzlePreviewCard';
 import {
   mapListedPuzzlesForDisplay,
@@ -141,9 +141,14 @@ type Props = {
   compact?: boolean;
 };
 
+type ListedPuzzlePreviewRows = Awaited<
+  ReturnType<typeof client.puzzle.get_listed_puzzles_preview.query>
+>;
+type ListedPuzzlePreviewRow = ListedPuzzlePreviewRows[number];
+
 export const getCarouselPuzzlesQueryFn =
-  (script: any, excludeSlug?: string, excludeId?: number) => async () => {
-    const org = await client.puzzle.get_listed_puzzles_preview.query({
+  (script: ScriptType, excludeSlug?: string, excludeId?: number) => async () => {
+    const org: ListedPuzzlePreviewRows = await client.puzzle.get_listed_puzzles_preview.query({
       exclude_slug: excludeSlug,
       exclude_id: excludeId
     });
@@ -151,12 +156,14 @@ export const getCarouselPuzzlesQueryFn =
 
     const [transliterated_texts, normal_titles] = await Promise.all([
       transliterate(
-        org.flatMap((p) => (p.description ? [p.title, p.description] : [p.title])),
+        org.flatMap((p: ListedPuzzlePreviewRow) =>
+          p.description ? [p.title, p.description] : [p.title]
+        ),
         DEFAULT_DATA_SCRIPT,
         script
       ),
       transliterate(
-        org.map((p) => p.title),
+        org.map((p: ListedPuzzlePreviewRow) => p.title),
         DEFAULT_DATA_SCRIPT,
         NORMAL_TITLE_SCRIPT,
         {

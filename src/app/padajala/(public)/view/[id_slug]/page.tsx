@@ -8,11 +8,12 @@ import { CACHE } from '~/util/cache.server/cache_loaders';
 import { getMetadata } from '~/components/tags/getPageMetaTags';
 import { parseIdSlugParam } from '~/util/puzzle/slug';
 import { PreviewWarningBanner } from './PreviewWarningBanner';
+import { runServerEffect } from '~/effect/run';
 
 type Props = { params: Promise<{ id_slug: string }> };
 
 const word_puzzle_get_cached_func = cache((params: { slug: string }) =>
-  CACHE.crossword.word_puzzle.get(params)
+  runServerEffect(CACHE.crossword.word_puzzle.get(params))
 );
 
 const parseParams = async (params: Promise<{ id_slug: string }>) => {
