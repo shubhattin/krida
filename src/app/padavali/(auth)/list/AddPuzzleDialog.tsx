@@ -82,8 +82,7 @@ const AddPuzzleDialog = () => {
     enabled: open
   });
 
-  const effectiveOverrideRedirectSlug =
-    overrideRedirectSlug && overrideForSlug === normalizedSlug;
+  const effectiveOverrideRedirectSlug = overrideRedirectSlug && overrideForSlug === normalizedSlug;
 
   const add_puzzle_mut = client_q.puzzle.add_puzzle.useMutation({
     onSuccess(data) {

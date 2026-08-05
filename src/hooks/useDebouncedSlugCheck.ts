@@ -57,11 +57,7 @@ export const useDebouncedSlugCheck = (slugInput: string, options: Options = {}) 
   const normalizedSlug = enabled ? normalizeSlug(slugInput) : '';
 
   const syncStatus: SlugCheckStatus | null =
-    !enabled || !normalizedSlug
-      ? 'idle'
-      : !isValidSlugFn(normalizedSlug)
-        ? 'invalid'
-        : null;
+    !enabled || !normalizedSlug ? 'idle' : !isValidSlugFn(normalizedSlug) ? 'invalid' : null;
 
   const [checkResult, setCheckResult] = useState<AsyncCheckResult>({
     slug: '',

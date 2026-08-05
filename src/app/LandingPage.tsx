@@ -246,9 +246,7 @@ export function PadavaliMiniPreview() {
 
     const sync = () => {
       setTrailPoints({
-        found: Object.fromEntries(
-          foundWords.map((word) => [word.text, buildPoints(word.path)])
-        ),
+        found: Object.fromEntries(foundWords.map((word) => [word.text, buildPoints(word.path)])),
         demo: buildPoints(demoPath)
       });
     };

@@ -8,7 +8,11 @@ type Props = {
 const subscribe = () => () => {};
 
 export default function TurnstileWidget({ setToken }: Props) {
-  const mounted = useSyncExternalStore(subscribe, () => true, () => false);
+  const mounted = useSyncExternalStore(
+    subscribe,
+    () => true,
+    () => false
+  );
   const SITE_KEY = process.env.NEXT_PUBLIC_TURNSTILE_SITE_KEY!;
   const PROD = process.env.NODE_ENV === 'production';
 

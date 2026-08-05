@@ -709,8 +709,8 @@ const TraversalAnalysis = ({
                     ) : warning.type === 'duplicate' ? (
                       <div className="flex items-center justify-center gap-2">
                         <span>
-                          &quot;<span className="font-semibold">{warning.word}</span>&quot;
-                          appears multiple times ({warning.traversalCount}) in the word list.
+                          &quot;<span className="font-semibold">{warning.word}</span>&quot; appears
+                          multiple times ({warning.traversalCount}) in the word list.
                         </span>
                         <Popover>
                           <PopoverTrigger

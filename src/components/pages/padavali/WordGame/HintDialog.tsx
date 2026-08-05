@@ -161,7 +161,7 @@ export function HintDialog({ puzzle_id, puzzle_slug, timerRef }: Props) {
             ) : (
               <>
                 <p className="rounded-lg bg-amber-50/80 px-3 py-2 text-center text-xs leading-relaxed text-amber-900 dark:bg-amber-950/30 dark:text-amber-100">
-              Explore Word Meanings — Continue when you&apos;re ready.
+                  Explore Word Meanings — Continue when you&apos;re ready.
                 </p>
                 <WordMeaningsPanel
                   meanings={meanings}
