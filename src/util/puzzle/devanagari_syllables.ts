@@ -6,7 +6,7 @@
  * consonant-with-virāma remains its own terminal unit.
  */
 
-const DEVANAGARI_INDEPENDENT_VOWEL = /[\u0904-\u0914\u0960-\u0961\u0972]/u;
+const DEVANAGARI_INDEPENDENT_VOWEL = /[\u0904-\u0914\u0960-\u0961\u0972-\u0977]/u;
 const DEVANAGARI_CONSONANT = /[\u0915-\u0939\u0958-\u095f\u0978-\u097f]/u;
 const DEVANAGARI_VOWEL_SIGN = /[\u093e-\u094c\u0962-\u0963]/u;
 const DEVANAGARI_NUKTA = '\u093c';

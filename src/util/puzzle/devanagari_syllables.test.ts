@@ -28,7 +28,12 @@ describe('countDevanagariAksharas', () => {
     ['क़', 1],
     ['क्‍ष', 1],
     ['क्', 1],
-    ['ाः', 0]
+    ['ाः', 0],
+    ['ॳ', 1],
+    ['ॴ', 1],
+    ['ॵ', 1],
+    ['ॶ', 1],
+    ['ॷ', 1]
   ])('counts %s as %i akṣaras', (word, expected) => {
     expect(countDevanagariAksharas(word)).toBe(expected);
   });

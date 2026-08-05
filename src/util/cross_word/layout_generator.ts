@@ -220,13 +220,24 @@ function potentialPlacements(
   return candidates;
 }
 
-function toGridData(grid: GridCell[][], dimensions: [number, number]): CrossordPuzzleGridCell[][] {
+function toGridData(
+  grid: GridCell[][],
+  dimensions: [number, number],
+  placements: readonly InternalPlacement[]
+): CrossordPuzzleGridCell[][] {
   const result = createEmptyGridData(dimensions);
   for (let row = 0; row < grid.length; row += 1) {
     for (let col = 0; col < grid[row]!.length; col += 1) {
       const cell = grid[row]![col];
-      if (cell) result[row]![col] = createLetterCell(cell.letter);
+      if (cell) result[row]![col] = createLetterCell(cell.letter, false);
     }
+  }
+  // One visible hint letter per placed word (start cell); shared crossings stay visible once.
+  for (const placement of placements) {
+    const [row, col] = placement.location;
+    const cell = result[row]?.[col];
+    if (!cell || cell.text.length === 0) continue;
+    result[row]![col] = createLetterCell(cell.text, true);
   }
   return result;
 }
@@ -400,7 +411,7 @@ function toCandidate(
   dimensions: [number, number]
 ): GeneratedCrosswordLayout | null {
   if (!hasConnectedCells(grid)) return null;
-  const gridData = toGridData(grid, dimensions);
+  const gridData = toGridData(grid, dimensions, placements);
   const placedIdSet = new Set(placements.map((placement) => placement.id));
   const placementsForAnalysis = allWords.map((word) => ({
     word: word.word,
@@ -465,7 +476,13 @@ export function generateCrosswordLayouts({
       (left, right) => right.normalized.length - left.normalized.length
     );
     let searchNodes = 0;
-    const best: { current: { grid: GridCell[][]; placements: InternalPlacement[] } | null } = {
+    const best: {
+      current: {
+        grid: GridCell[][];
+        placements: InternalPlacement[];
+        score: GeneratedLayoutScore;
+      } | null;
+    } = {
       current: null
     };
 
@@ -497,11 +514,11 @@ export function generateCrosswordLayouts({
       if (searchNodes >= DEFAULT_SEARCH_NODES) return;
       searchNodes += 1;
       const currentScore = layoutScore(grid, placements);
-      const bestScore = best.current
-        ? layoutScore(best.current.grid, best.current.placements)
-        : null;
-      if (!bestScore || isBetterScore(currentScore, grid, bestScore, best.current!.grid)) {
-        best.current = { grid, placements };
+      if (
+        !best.current ||
+        isBetterScore(currentScore, grid, best.current.score, best.current.grid)
+      ) {
+        best.current = { grid, placements, score: currentScore };
       }
       if (index >= orderedWords.length) return;
 
@@ -509,18 +526,20 @@ export function generateCrosswordLayouts({
       const possible = shuffled(
         potentialPlacements(grid, word, dimensions, placements.length > 0),
         random
-      )
-        .toSorted(
-          (left, right) =>
-            right.intersections - left.intersections ||
-            placementRegionAffinity(right.placement, dimensions, density) -
-              placementRegionAffinity(left.placement, dimensions, density) ||
-            projectedGapCount(grid, left.placement, left.intersections) -
-              projectedGapCount(grid, right.placement, right.intersections)
-        )
-        .slice(0, 10);
+      ).map((candidate) => ({
+        ...candidate,
+        projectedGaps: projectedGapCount(grid, candidate.placement, candidate.intersections),
+        regionScore: placementRegionAffinity(candidate.placement, dimensions, density)
+      }));
+      possible.sort(
+        (left, right) =>
+          right.intersections - left.intersections ||
+          right.regionScore - left.regionScore ||
+          left.projectedGaps - right.projectedGaps
+      );
+      const shortlist = possible.slice(0, 10);
 
-      for (const { placement } of possible) {
+      for (const { placement } of shortlist) {
         const nextGrid = cloneInternalGrid(grid);
         addPlacement(nextGrid, placement);
         search(index + 1, nextGrid, [...placements, placement]);

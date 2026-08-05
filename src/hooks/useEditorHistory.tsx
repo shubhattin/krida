@@ -92,6 +92,7 @@ export function EditorHistoryProvider<M extends AtomMap>({
   const savedStackDepthRef = useRef(0);
   const commitScheduledRef = useRef(false);
   const didInitRef = useRef(false);
+  const atomsKeyRef = useRef('');
   const pendingSaveRef = useRef<SnapshotOf<M> | null>(null);
   const listenersRef = useRef(new Set<() => void>());
   // Cached state so useSyncExternalStore can bail out on referential equality.
@@ -208,9 +209,14 @@ export function EditorHistoryProvider<M extends AtomMap>({
     commitNowRef.current = commitNow;
   }, [atoms, comparable, scheduleCommit, notify, takeSnapshot, commitNow]);
 
-  // Seed baselines once; resubscribe whenever the atom map identity changes (e.g. HMR).
+  // Seed baselines once; reset history when the atom map's keys change.
+  // Equivalent map object replacements with the same keys keep existing stacks.
   useEffect(() => {
     atomEntriesRef.current = Object.entries(atoms) as [keyof M & string, M[keyof M]][];
+    const atomsKey = atomEntriesRef.current
+      .map(([key]) => key)
+      .toSorted()
+      .join('\0');
 
     if (!didInitRef.current) {
       const initial = takeSnapshotRef.current();
@@ -219,7 +225,17 @@ export function EditorHistoryProvider<M extends AtomMap>({
       undoStackRef.current = [];
       redoStackRef.current = [];
       savedStackDepthRef.current = 0;
+      atomsKeyRef.current = atomsKey;
       didInitRef.current = true;
+      notifyRef.current();
+    } else if (atomsKeyRef.current !== atomsKey) {
+      const initial = takeSnapshotRef.current();
+      lastCommittedRef.current = cloneSnapshot(initial);
+      savedBaselineRef.current = cloneSnapshot(initial);
+      undoStackRef.current = [];
+      redoStackRef.current = [];
+      savedStackDepthRef.current = 0;
+      atomsKeyRef.current = atomsKey;
       notifyRef.current();
     }
 

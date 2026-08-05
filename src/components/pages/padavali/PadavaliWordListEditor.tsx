@@ -195,14 +195,8 @@ export function PadavaliWordListEditor({
   onToggleAdded
 }: PadavaliWordListEditorProps) {
   const typingContext = useMemo(() => createTypingContext(BASE_SCRIPT), []);
-  const fullCandidates = useMemo(
-    () => wordList.map((entry, originalIndex) => ({ entry, originalIndex })),
-    [wordList]
-  );
-  const addedCandidates = useMemo(
-    () => fullCandidates.filter(({ entry }) => isWordAdded(entry)),
-    [fullCandidates]
-  );
+  const fullCandidates = wordList.map((entry, originalIndex) => ({ entry, originalIndex }));
+  const addedCandidates = fullCandidates.filter(({ entry }) => isWordAdded(entry));
 
   useEffect(() => {
     void typingContext.ready;

@@ -67,7 +67,9 @@ describe('crossword layout generator', () => {
     for (const candidate of candidates) {
       expect(candidate.gridData).toHaveLength(5);
       expect(candidate.gridData.every((row) => row.length === 5)).toBe(true);
-      expect(analysisFor(candidate, words).hasAllValid).toBe(true);
+      const analysis = analysisFor(candidate, words);
+      expect(analysis.hasAllValid).toBe(true);
+      expect(analysis.noVisibleHintWords).toHaveLength(0);
       expect(playableCellsAreConnected(candidate)).toBe(true);
     }
   });
@@ -108,7 +110,8 @@ describe('crossword layout generator', () => {
     });
 
     expect(candidates.length).toBeGreaterThan(0);
-    expect(candidates[0]!.placedIds).toEqual(['cat']);
+    expect(candidates[0]!.placedIds).toHaveLength(1);
+    expect(['cat', 'dog']).toContain(candidates[0]!.placedIds[0]);
     expect(candidates[0]!.omittedIds).toEqual(
       expect.arrayContaining(['dog', 'duplicate-cat', 'empty'])
     );

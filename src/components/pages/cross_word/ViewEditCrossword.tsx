@@ -757,18 +757,13 @@ function parseLayoutDensity(value: string | null | undefined): LayoutDensity | n
   return LAYOUT_DENSITIES.includes(value as LayoutDensity) ? (value as LayoutDensity) : null;
 }
 
-const LAYOUT_CANDIDATE_LIMIT_ITEMS = [
-  { value: '4', label: '4 layouts' },
-  { value: '8', label: '8 layouts' },
-  { value: '12', label: '12 layouts' },
-  { value: '16', label: '16 layouts' },
-  { value: '24', label: '24 layouts' },
-  { value: '32', label: '32 layouts' },
-  { value: '40', label: '40 layouts' }
-] as const;
-
-const LAYOUT_CANDIDATE_LIMITS = [4, 8, 12, 16, 24] as const;
+const LAYOUT_CANDIDATE_LIMITS = [4, 8, 12, 16, 24, 32, 40] as const;
 type LayoutCandidateLimit = (typeof LAYOUT_CANDIDATE_LIMITS)[number];
+
+const LAYOUT_CANDIDATE_LIMIT_ITEMS = LAYOUT_CANDIDATE_LIMITS.map((limit) => ({
+  value: String(limit),
+  label: `${limit} layouts`
+}));
 
 function parseLayoutCandidateLimit(value: string | null | undefined): LayoutCandidateLimit | null {
   const parsed = Number(value);
@@ -1057,6 +1052,7 @@ function CrosswordLayoutGenerator() {
   const [ranking, setRanking] = useState<LayoutRanking>('intersections');
   const [density, setDensity] = useState<LayoutDensity>('balanced');
   const [maxCandidates, setMaxCandidates] = useState<LayoutCandidateLimit>(16);
+  const [generationSeed, setGenerationSeed] = useState(1);
   const [candidates, setCandidates] = useState<GeneratedCrosswordLayout[]>([]);
   const [selectedKey, setSelectedKey] = useState('');
   const [candidateToApply, setCandidateToApply] = useState<GeneratedCrosswordLayout | null>(null);
@@ -1088,6 +1084,7 @@ function CrosswordLayoutGenerator() {
       toast.error('Add at least one word with two or more letters before generating a layout');
       return false;
     }
+    const nextSeed = generationSeed + 1;
     const nextCandidates = generateCrosswordLayouts({
       words: wordList
         .filter((word) => word.added)
@@ -1096,7 +1093,8 @@ function CrosswordLayoutGenerator() {
       maxCandidates: limit,
       // More layout slots need more randomized search attempts.
       attempts: Math.max(48, limit * 6),
-      density: densityOverride
+      density: densityOverride,
+      seed: nextSeed
     });
     if (nextCandidates.length === 0) {
       toast.error('No valid layouts could be generated for these words and dimensions');
@@ -1106,6 +1104,7 @@ function CrosswordLayoutGenerator() {
     setCandidates(nextCandidates);
     setMaxCandidates(limit);
     setDensity(densityOverride);
+    setGenerationSeed(nextSeed);
     setSelectedKey(ranked[0] ? layoutCandidateKey(ranked[0]) : '');
     setCandidateToApply(null);
     return true;
