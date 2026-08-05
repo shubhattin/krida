@@ -1,5 +1,5 @@
 import { Effect, Schedule } from 'effect';
-import { dbRun, dbTransaction, type DbClient, type DbTransaction } from '~/effect/database';
+import { dbRun, dbTransaction, type DbTransaction } from '~/effect/database';
 import {
   generateImagePrompt,
   generateFileNameAndDescription,
@@ -41,6 +41,13 @@ import { ObjectStorage } from '~/effect/storage';
 import { enqueueBackground } from '~/effect/background';
 import { BadRequestError, BatchError, NotFoundError, isKnownError } from '~/effect/errors';
 
+/** Cap concurrent Effect fan-outs for prompt/upload/approve work. */
+const BATCH_EFFECT_CONCURRENCY = 4;
+
+const s3DeleteRetrySchedule = Schedule.recurs(2).pipe(
+  Schedule.addDelay(() => Effect.succeed('1 second'))
+);
+
 export type TriggerPuzzleImageInput = {
   puzzle_id: number;
   title?: string;
@@ -59,6 +66,11 @@ export type TriggerBatchPuzzleImageGenInput = {
 
 export function parseBatchMetadata(metadata: unknown): BatchMetadata {
   return batch_metadata_schema.parse(metadata);
+}
+
+export function tryParseBatchMetadata(metadata: unknown): BatchMetadata | null {
+  const parsed = batch_metadata_schema.safeParse(metadata);
+  return parsed.success ? parsed.data : null;
 }
 
 export function resolveBatchGame(metadata: BatchMetadata, custom_id: string): PuzzleImageGame {
@@ -121,13 +133,27 @@ export const deleteImageAssetById = Effect.fn('batch_ai.deleteImageAssetById')(f
     return { deleted: false };
   }
 
-  const storage = yield* ObjectStorage;
-  yield* storage.deleteAssetFile(asset.s3_key).pipe(Effect.retry(Schedule.recurs(2)));
-
   const deleted = yield* dbRun('batch_ai.delete_image_asset_row', (client) =>
     client.delete(image_assets).where(eq(image_assets.id, image_id)).returning()
   );
-  return { deleted: deleted[0] !== undefined };
+  if (deleted[0] === undefined) {
+    return { deleted: false };
+  }
+
+  const storage = yield* ObjectStorage;
+  yield* storage.deleteAssetFile(asset.s3_key).pipe(
+    Effect.retry(s3DeleteRetrySchedule),
+    Effect.catchTag('StorageError', (error) =>
+      Effect.logWarning('Failed to delete image asset from storage after DB delete').pipe(
+        Effect.annotateLogs({
+          s3_key: asset.s3_key,
+          operation: error.operation
+        })
+      )
+    )
+  );
+
+  return { deleted: true };
 });
 
 /** Delete OpenAI Files API objects (batch input/output). Ignores already-deleted files. */
@@ -316,11 +342,11 @@ export const trigger_batch_puzzle_image_gen = Effect.fn('batch_ai.trigger_batch_
           puzzle.extra_instructions
         )
       ),
-      { concurrency: 'unbounded' }
+      { concurrency: BATCH_EFFECT_CONCURRENCY }
     );
     const file_name_descriptions = yield* Effect.all(
       image_prompts.map((image_prompt) => generateFileNameAndDescription(image_prompt)),
-      { concurrency: 'unbounded' }
+      { concurrency: BATCH_EFFECT_CONCURRENCY }
     );
 
     const batch_requests: AiBatchInput[] = [];
@@ -459,22 +485,23 @@ async function markBatchOutputResolvedIfComplete(
   batch_id: string,
   output_file_id?: string | null
 ) {
-  const responses = await tx.query.ai_batch_responses.findMany({
-    where: eq(ai_batch_responses.batch_id, batch_id),
-    columns: { metadata: true }
-  });
-  const all_processed = responses.every((row) =>
-    isResponseItemProcessed(parseBatchMetadata(row.metadata))
-  );
-  if (!all_processed) return;
-
   await tx
     .update(ai_batches)
     .set({
       output_resolved: true,
       ...(output_file_id != null ? { output_file_id } : {})
     })
-    .where(and(eq(ai_batches.batch_id, batch_id), eq(ai_batches.output_resolved, false)));
+    .where(
+      and(
+        eq(ai_batches.batch_id, batch_id),
+        eq(ai_batches.output_resolved, false),
+        sql`NOT EXISTS (
+          SELECT 1 FROM ${ai_batch_responses}
+          WHERE ${ai_batch_responses.batch_id} = ${batch_id}
+            AND ${ai_batch_responses.metadata}->>'success' IS NULL
+        )`
+      )
+    );
 }
 
 type ApproveConnectTxResult =
@@ -699,7 +726,7 @@ const autoApproveEligibleRows = Effect.fn('batch_ai.autoApproveEligibleRows')(fu
           )
         );
       }),
-    { concurrency: 'unbounded' }
+    { concurrency: BATCH_EFFECT_CONCURRENCY }
   );
 });
 
@@ -890,17 +917,13 @@ export const poll_batch_puzzle_image_gen = Effect.fn('poll_batch_puzzle_image_ge
       continue;
     }
 
-    const db_client: DbClient = yield* dbRun(
-      'batch_ai.get_client_for_image_upload',
-      async (client) => client
-    );
     const upload_result = yield* generateSavePuzzleImage(
       {
         title: '<batch>',
         existing_image_prompt: metadata.image_prompt,
         game: resolveBatchGame(metadata, row.custom_id)
       },
-      db_client,
+      undefined,
       output.image_b64,
       { file_name: metadata.file_name, description: metadata.image_description }
     );
@@ -1126,15 +1149,20 @@ export const get_batch_manager_groups = Effect.fn('batch_ai.get_batch_manager_gr
   );
 
   const rows = batches.flatMap((batch) =>
-    batch.responses
-      .map((response) => ({
-        batch_id: batch.batch_id,
-        custom_id: response.custom_id,
-        output_resolved: batch.output_resolved,
-        auto_approved: response.auto_approved,
-        metadata: parseBatchMetadata(response.metadata)
-      }))
-      .filter((row) => resolveBatchGame(row.metadata, row.custom_id) === game)
+    batch.responses.flatMap((response) => {
+      const metadata = tryParseBatchMetadata(response.metadata);
+      if (!metadata) return [];
+      if (resolveBatchGame(metadata, response.custom_id) !== game) return [];
+      return [
+        {
+          batch_id: batch.batch_id,
+          custom_id: response.custom_id,
+          output_resolved: batch.output_resolved,
+          auto_approved: response.auto_approved,
+          metadata
+        }
+      ];
+    })
   );
 
   const puzzle_ids = new Set<number>();

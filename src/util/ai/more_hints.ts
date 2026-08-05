@@ -1,8 +1,9 @@
 import { Effect } from 'effect';
 import { z } from 'zod';
 import type { CrossWordPuzzleWord } from '~/db/schema_zod';
-import { AiProvider } from '~/effect/ai';
-import { AiProviderError, BadRequestError } from '~/effect/errors';
+import { AiProvider, aiRetryPolicy } from '~/effect/ai';
+import { AiProviderError } from '~/effect/errors';
+import { OPENROUTER_MODELS } from '~/util/ai/image_gen';
 
 /** Minimal puzzle shape needed to generate more hints. */
 type MoreHintsPuzzleInput = {
@@ -72,25 +73,33 @@ export const get_crossword_more_hints = Effect.fn('get_crossword_more_hints')(fu
     .map((entry, i) => `${i + 1}. Answer: ${entry.word}\n   Short clue: ${entry.description}`)
     .join('\n');
 
-  const output = yield* ai.generateObject({
-    operation: 'more_hints',
-    provider: 'openrouter',
-    model: ai.openrouterModel('openai/gpt-5.6-luna'),
-    system: SYSTEM_PROMPT,
-    prompt: `Title: ${puzzle.title}\nDescription: ${puzzle.description}\n\nEntries:\n${entries}`,
-    schema: more_hints_schema,
-    openrouterReasoningEffort: 'medium'
-  });
+  const output = yield* Effect.gen(function* () {
+    const result = yield* ai.generateObject({
+      operation: 'more_hints',
+      provider: 'openrouter',
+      model: ai.openrouterModel(OPENROUTER_MODELS.more_hints),
+      system: SYSTEM_PROMPT,
+      prompt: `Title: ${puzzle.title}\nDescription: ${puzzle.description}\n\nEntries:\n${entries}`,
+      schema: more_hints_schema,
+      openrouterReasoningEffort: 'medium'
+    });
 
-  if (output.hints.length !== puzzle.word_list.length) {
-    return yield* Effect.fail(
-      BadRequestError.make({
-        message: `More hints count mismatch for slug: ${puzzle.slug} (expected ${puzzle.word_list.length}, got ${output.hints.length})`
-      })
-    );
-  }
+    if (result.hints.length !== puzzle.word_list.length) {
+      return yield* Effect.fail(
+        AiProviderError.make({
+          operation: 'more_hints',
+          provider: 'openrouter',
+          cause: new Error(
+            `More hints count mismatch for slug: ${puzzle.slug} (expected ${puzzle.word_list.length}, got ${result.hints.length})`
+          )
+        })
+      );
+    }
+
+    return result;
+  }).pipe(Effect.retry(aiRetryPolicy));
 
   return output;
 });
 
-export type GetCrosswordMoreHintsError = AiProviderError | BadRequestError;
+export type GetCrosswordMoreHintsError = AiProviderError;

@@ -1,23 +1,25 @@
 import { Context, Effect, Layer, Redacted, Schema } from 'effect';
 import { ConfigError } from './errors';
 
+const NonEmptyString = Schema.String.check(Schema.isMinLength(1));
+
 const AppConfigSchema = Schema.Struct({
-  dbUrl: Schema.String,
-  upstashRedisUrl: Schema.String,
-  upstashRedisToken: Schema.String,
-  awsRegion: Schema.String,
-  awsAccessKeyId: Schema.String,
-  awsSecretAccessKey: Schema.String,
-  awsS3BucketName: Schema.String,
-  openaiApiKey: Schema.String,
-  openrouterApiKey: Schema.String,
-  qstashToken: Schema.optional(Schema.String),
-  onesignalApiKey: Schema.optional(Schema.String),
-  onesignalAppId: Schema.optional(Schema.String),
-  turnstileSecretKey: Schema.optional(Schema.String),
-  betterAuthUrl: Schema.optional(Schema.String),
-  siteUrl: Schema.optional(Schema.String),
-  cloudfrontUrl: Schema.optional(Schema.String),
+  dbUrl: NonEmptyString,
+  upstashRedisUrl: NonEmptyString,
+  upstashRedisToken: NonEmptyString,
+  awsRegion: NonEmptyString,
+  awsAccessKeyId: NonEmptyString,
+  awsSecretAccessKey: NonEmptyString,
+  awsS3BucketName: NonEmptyString,
+  openaiApiKey: NonEmptyString,
+  openrouterApiKey: NonEmptyString,
+  qstashToken: Schema.optional(NonEmptyString),
+  onesignalApiKey: Schema.optional(NonEmptyString),
+  onesignalAppId: Schema.optional(NonEmptyString),
+  turnstileSecretKey: Schema.optional(NonEmptyString),
+  betterAuthUrl: Schema.optional(NonEmptyString),
+  siteUrl: Schema.optional(NonEmptyString),
+  cloudfrontUrl: Schema.optional(NonEmptyString),
   isDev: Schema.Boolean,
   isProd: Schema.Boolean,
   isQstashEnabled: Schema.Boolean
@@ -47,8 +49,9 @@ export type AppConfigShape = {
 
 /** Resolve Postgres URL from DB_MODE for app runtime and Drizzle Kit scripts. */
 export const resolveDbUrl = (env: NodeJS.ProcessEnv): string | undefined => {
-  if (env.DB_MODE === 'PROD') return env.PG_DATABASE_URL1 ?? env.PG_DATABASE_URL;
-  if (env.DB_MODE === 'PREVIEW') return env.PG_DATABASE_URL2 ?? env.PG_DATABASE_URL;
+  if (env.DB_MODE === 'PROD') return env.PG_DATABASE_URL1;
+  if (env.DB_MODE === 'PREVIEW') return env.PG_DATABASE_URL2;
+  if (env.DB_MODE !== undefined && env.DB_MODE !== '') return undefined;
   return env.PG_DATABASE_URL;
 };
 

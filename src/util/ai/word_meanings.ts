@@ -1,8 +1,9 @@
 import { Effect } from 'effect';
 import { z } from 'zod';
 import { puzzle_schema } from '~/db/db_shared_vals';
-import { AiProvider } from '~/effect/ai';
-import { AiProviderError, BadRequestError } from '~/effect/errors';
+import { AiProvider, aiRetryPolicy } from '~/effect/ai';
+import { AiProviderError } from '~/effect/errors';
+import { OPENROUTER_MODELS } from '~/util/ai/image_gen';
 
 type PuzzleType = z.infer<typeof puzzle_schema>;
 
@@ -46,25 +47,33 @@ export const get_puzzle_word_meanings = Effect.fn('get_puzzle_word_meanings')(fu
   const ai = yield* AiProvider;
   const words_list = puzzle.word_list.join(', ');
 
-  const output = yield* ai.generateObject({
-    operation: 'word_meanings',
-    provider: 'openrouter',
-    model: ai.openrouterModel('openai/gpt-5.6-luna'),
-    system: SYSTEM_PROMPT,
-    prompt: `Title: ${puzzle.title}\nDescription: ${puzzle.description}\nWords: ${words_list}`,
-    schema: word_meanings_schema,
-    openrouterReasoningEffort: 'medium'
-  });
+  const output = yield* Effect.gen(function* () {
+    const result = yield* ai.generateObject({
+      operation: 'word_meanings',
+      provider: 'openrouter',
+      model: ai.openrouterModel(OPENROUTER_MODELS.word_meanings),
+      system: SYSTEM_PROMPT,
+      prompt: `Title: ${puzzle.title}\nDescription: ${puzzle.description}\nWords: ${words_list}`,
+      schema: word_meanings_schema,
+      openrouterReasoningEffort: 'medium'
+    });
 
-  if (output.words.length !== puzzle.word_list.length) {
-    return yield* Effect.fail(
-      BadRequestError.make({
-        message: `Word meanings count mismatch for slug: ${puzzle.slug} (expected ${puzzle.word_list.length}, got ${output.words.length})`
-      })
-    );
-  }
+    if (result.words.length !== puzzle.word_list.length) {
+      return yield* Effect.fail(
+        AiProviderError.make({
+          operation: 'word_meanings',
+          provider: 'openrouter',
+          cause: new Error(
+            `Word meanings count mismatch for slug: ${puzzle.slug} (expected ${puzzle.word_list.length}, got ${result.words.length})`
+          )
+        })
+      );
+    }
+
+    return result;
+  }).pipe(Effect.retry(aiRetryPolicy));
 
   return output;
 });
 
-export type GetPuzzleWordMeaningsError = AiProviderError | BadRequestError;
+export type GetPuzzleWordMeaningsError = AiProviderError;

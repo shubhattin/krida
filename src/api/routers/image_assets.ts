@@ -15,6 +15,10 @@ const get_image_assets_page_input_schema = z.object({
   order_by: z.enum(['asc', 'desc']).optional().default('desc')
 });
 
+const s3DeleteRetrySchedule = Schedule.recurs(2).pipe(
+  Schedule.addDelay(() => Effect.succeed('1 second'))
+);
+
 export const get_image_assets_page = Effect.fn('image_assets.get_page')(function* (
   input: z.input<typeof get_image_assets_page_input_schema>
 ) {
@@ -92,11 +96,26 @@ const delete_image_asset_route = protectedAdminProcedure
           return { deleted: false };
         }
 
-        const storage = yield* ObjectStorage;
-        yield* storage.deleteAssetFile(asset.s3_key).pipe(Effect.retry(Schedule.recurs(2)));
-
-        yield* dbRun('image_assets.delete_row', (client) =>
+        const deleted = yield* dbRun('image_assets.delete_row', (client) =>
           client.delete(image_assets).where(eq(image_assets.id, input.id)).returning()
+        );
+        if (deleted[0] === undefined) {
+          return { deleted: false };
+        }
+
+        const storage = yield* ObjectStorage;
+        yield* storage.deleteAssetFile(asset.s3_key).pipe(
+          Effect.retry(s3DeleteRetrySchedule),
+          Effect.catchTag('StorageError', (error) =>
+            Effect.logWarning(
+              'Failed to delete image asset from storage after DB delete'
+            ).pipe(
+              Effect.annotateLogs({
+                s3_key: asset.s3_key,
+                operation: error.operation
+              })
+            )
+          )
         );
 
         return { deleted: true };

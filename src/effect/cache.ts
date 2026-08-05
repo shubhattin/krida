@@ -82,8 +82,8 @@ const resolveSetOptions = <TCached>(
   return { ex: ttlSeconds };
 };
 
-const serializeCacheValue = (value: unknown): string =>
-  typeof value === 'string' ? value : JSON.stringify(value);
+/** Match Upstash REST `set` JSON encoding so guarded Lua writes store the same wire shape. */
+const serializeCacheValue = (value: unknown): string => JSON.stringify(value);
 
 const encodeSetOptionsForScript = (
   setOptions?: SetCommandOptions
@@ -150,12 +150,12 @@ export function createCache<TParams, TCached, TData = TCached>(
   const inFlight = new Map<string, Effect.Effect<TData, CacheError, CacheServices>>();
 
   const parseCached = (raw: unknown): TCached | null => {
-    if (config.fromCacheValue) {
-      return config.fromCacheValue(raw);
-    }
-    if (raw === null || raw === undefined) return null;
-    if (!config.schema) return raw as TCached;
     try {
+      if (config.fromCacheValue) {
+        return config.fromCacheValue(raw);
+      }
+      if (raw === null || raw === undefined) return null;
+      if (!config.schema) return raw as TCached;
       return config.schema.parse(raw);
     } catch {
       return null;

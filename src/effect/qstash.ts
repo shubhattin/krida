@@ -30,6 +30,9 @@ export type ScheduledPuzzleNotificationPayload =
   typeof scheduledPuzzleNotificationPayloadSchema.Type;
 export type AiBatchResultsPayload = typeof aiBatchResultsPayloadSchema.Type;
 
+/** QStash rejects negative/fractional delays; clamp after computing start_time − now − skew. */
+export const qstashDelaySeconds = (seconds: number): number => Math.max(0, Math.floor(seconds));
+
 const tryQueue = <A>(operation: string, run: () => Promise<A>) =>
   Effect.tryPromise({
     try: run,

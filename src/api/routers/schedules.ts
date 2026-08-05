@@ -10,13 +10,23 @@ import {
   invalidate_and_refresh_cache,
   NO_CACHE_PARAMS
 } from '~/util/cache.server/cache_loaders';
-import { QStashPublisher } from '~/effect/qstash';
+import { QStashPublisher, qstashDelaySeconds } from '~/effect/qstash';
 import { generateRandomAlphanumeric } from '~/tools/kry';
 import { NotificationService } from '~/effect/notifications';
 import { DEFAULT_SHARE_IMAGE_INFO } from '~/components/tags/getPageMetaTags';
 import { runTrpcEffect } from '~/effect/run';
 import { AppConfig } from '~/effect/config';
 import { ConfigError, DatabaseError } from '~/effect/errors';
+
+const settle = <A, E, R>(effect: Effect.Effect<A, E, R>) =>
+  effect.pipe(
+    Effect.catch((error) =>
+      Effect.logWarning('Schedule post-commit side effect failed').pipe(
+        Effect.annotateLogs({ error }),
+        Effect.asVoid
+      )
+    )
+  );
 
 export const notify_for_new_scheduled_puzzle = Effect.fn(
   'padavaliSchedules.notify_for_new_scheduled_puzzle'
@@ -60,7 +70,9 @@ const notify_new_puzzle = Effect.fn('padavaliSchedules.notify_new_puzzle')(funct
 ) {
   const current_time = new Date();
   if (current_time < start_time) {
-    const delay_s = (start_time.getTime() - current_time.getTime()) / 1000 - 2; // 2 seconds prior notification;
+    const delay_s = qstashDelaySeconds(
+      (start_time.getTime() - current_time.getTime()) / 1000 - 2
+    ); // 2 seconds prior notification
     const notification_key = generateRandomAlphanumeric(32);
     yield* dbTransaction('padavali_schedules.set_notification_key', async (tx) => {
       await set_schedule_notification_key(tx, puzzle_id, schedule_id, notification_key);
@@ -173,16 +185,18 @@ const add_puzzle_schedule_route = protectedAdminProcedure
         }
 
         yield* Effect.sync(() => revalidatePath('/padavali/schedules'));
-        yield* refreshScheduleCaches();
-        yield* notify_new_puzzle(puzzle_id, schedule.id, start_time);
+        yield* settle(refreshScheduleCaches());
+        yield* settle(notify_new_puzzle(puzzle_id, schedule.id, start_time));
         const qstash = yield* QStashPublisher;
-        yield* qstash.publishScheduleListing(
-          {
-            puzzle_id,
-            schedule_id: schedule.id,
-            listing_verify_key
-          },
-          (schedule.start_time.getTime() - new Date().getTime()) / 1000 - 4
+        yield* settle(
+          qstash.publishScheduleListing(
+            {
+              puzzle_id,
+              schedule_id: schedule.id,
+              listing_verify_key
+            },
+            qstashDelaySeconds((schedule.start_time.getTime() - new Date().getTime()) / 1000 - 4)
+          )
         );
 
         return {
@@ -238,17 +252,19 @@ const update_puzzle_schedule_route = protectedAdminProcedure
             );
         });
 
-        yield* notify_new_puzzle(puzzle_id, schedule_id, start_time);
+        yield* settle(notify_new_puzzle(puzzle_id, schedule_id, start_time));
         const qstash = yield* QStashPublisher;
-        yield* qstash.publishScheduleListing(
-          {
-            puzzle_id,
-            schedule_id,
-            listing_verify_key
-          },
-          (start_time.getTime() - new Date().getTime()) / 1000 - 4
+        yield* settle(
+          qstash.publishScheduleListing(
+            {
+              puzzle_id,
+              schedule_id,
+              listing_verify_key
+            },
+            qstashDelaySeconds((start_time.getTime() - new Date().getTime()) / 1000 - 4)
+          )
         );
-        yield* refreshScheduleCaches();
+        yield* settle(refreshScheduleCaches());
 
         return { success: true };
       })

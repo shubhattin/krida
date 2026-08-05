@@ -34,7 +34,7 @@ describe('resolveDbUrl', () => {
     ).toBe('postgresql://prod/db');
   });
 
-  it('falls back to PG_DATABASE_URL when PROD url missing', () => {
+  it('does not fall back when PROD url is missing', () => {
     expect(
       resolveDbUrl(
         env({
@@ -42,7 +42,7 @@ describe('resolveDbUrl', () => {
           PG_DATABASE_URL: 'postgresql://local/db'
         })
       )
-    ).toBe('postgresql://local/db');
+    ).toBeUndefined();
   });
 
   it('prefers PREVIEW url when DB_MODE=PREVIEW', () => {
@@ -55,6 +55,17 @@ describe('resolveDbUrl', () => {
         })
       )
     ).toBe('postgresql://preview/db');
+  });
+
+  it('rejects unsupported DB_MODE values', () => {
+    expect(
+      resolveDbUrl(
+        env({
+          DB_MODE: 'STAGING',
+          PG_DATABASE_URL: 'postgresql://local/db'
+        })
+      )
+    ).toBeUndefined();
   });
 
   it('returns undefined when no url is set', () => {

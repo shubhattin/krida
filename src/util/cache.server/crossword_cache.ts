@@ -74,7 +74,10 @@ const parseScheduleSentinel =
   <T>(schema: z.ZodType<T>) =>
   (raw: unknown): T | undefined | null => {
     if (raw === 'undefined') return undefined;
-    if (typeof raw === 'object' && raw !== null) return schema.parse(raw);
+    if (typeof raw === 'object' && raw !== null) {
+      const parsed = schema.safeParse(raw);
+      return parsed.success ? parsed.data : null;
+    }
     return null;
   };
 

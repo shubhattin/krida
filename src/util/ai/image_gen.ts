@@ -2,7 +2,7 @@ import { Effect } from 'effect';
 import { z } from 'zod';
 import { image_assets } from '~/db/schema';
 import { ImageAssetSchemaZod } from '~/db/schema_zod';
-import type { DbTransaction, TxOrDb } from '~/effect/database';
+import { dbRun, type TxOrDb } from '~/effect/database';
 import { PROJECT_S3_ALIAS, KRIDAS } from '~/constants';
 import { AiProvider } from '~/effect/ai';
 import { ImageProcessor } from '~/effect/image';
@@ -25,7 +25,9 @@ export const IMAGE_CONFIG = {
 export const OPENROUTER_MODELS = {
   image_prompt: 'openai/gpt-5.4',
   file_name: 'openai/gpt-5.4-nano',
-  image_generation: 'openai/gpt-5.4-image-2'
+  image_generation: 'openai/gpt-5.4-image-2',
+  more_hints: 'openai/gpt-5.6-luna',
+  word_meanings: 'openai/gpt-5.6-luna'
 } as const;
 
 export const OPENAI_MODELS = {
@@ -122,7 +124,10 @@ const file_name_description_schema = z.object({
     .describe(
       'A short file_name (2–4 words, underscores, lowercase) for the image prompt provided.'
     ),
-  description: z.string().describe('A short word description for the image prompt provided.')
+  description: z
+    .string()
+    .max(150)
+    .describe('A short word description for the image prompt provided.')
 });
 
 type FileNameDescription = z.infer<typeof file_name_description_schema>;
@@ -226,25 +231,27 @@ const createAssetLocation = (
   `${PROJECT_S3_ALIAS}/${game}/image_assets/${sanitizeAssetFileName(file_name)}_${suffix}.webp`;
 
 const insertImageAssetRecord = Effect.fn('insertImageAssetRecord')(function* (
-  db_instance: DbTransaction,
+  db_instance: TxOrDb | undefined,
   input: {
     readonly s3_key: AssetLocation;
     readonly description: string;
   }
 ) {
-  const records = yield* Effect.tryPromise({
-    try: () =>
-      db_instance
-        .insert(image_assets)
-        .values({
-          width: IMAGE_CONFIG.WIDTH,
-          height: IMAGE_CONFIG.HEIGHT,
-          s3_key: input.s3_key,
-          description: input.description
-        })
-        .returning(),
-    catch: (cause) => DatabaseError.make({ operation: 'insertImageAssetRecord', cause })
-  });
+  const values = {
+    width: IMAGE_CONFIG.WIDTH,
+    height: IMAGE_CONFIG.HEIGHT,
+    s3_key: input.s3_key,
+    description: input.description
+  };
+
+  const records = db_instance
+    ? yield* Effect.tryPromise({
+        try: () => db_instance.insert(image_assets).values(values).returning(),
+        catch: (cause) => DatabaseError.make({ operation: 'insertImageAssetRecord', cause })
+      })
+    : yield* dbRun('insertImageAssetRecord', (client) =>
+        client.insert(image_assets).values(values).returning()
+      );
 
   const db_record = records[0];
   if (!db_record) {
@@ -293,7 +300,7 @@ const resolveGeneratedImageState = Effect.fn('resolveGeneratedImageState')(funct
 /** If image is already provided then this would only upload the image to S3 */
 export const generateSavePuzzleImage = Effect.fn('generateSavePuzzleImage')(function* (
   input: GeneratePuzzleImageInput,
-  db_instance: TxOrDb,
+  db_instance?: TxOrDb,
   existing_image_b64?: string,
   existing_file_name_description?: FileNameDescription
 ) {
@@ -322,24 +329,44 @@ export const generateSavePuzzleImage = Effect.fn('generateSavePuzzleImage')(func
     return generated_image.value;
   }
 
-  const compressed_buffer = yield* image_processor.resizeImage(
-    Buffer.from(generated_image.value.image_b64, 'base64'),
-    IMAGE_CONFIG.WIDTH,
-    IMAGE_CONFIG.HEIGHT,
-    {
+  const compressed_result = yield* image_processor
+    .resizeImage(Buffer.from(generated_image.value.image_b64, 'base64'), IMAGE_CONFIG.WIDTH, IMAGE_CONFIG.HEIGHT, {
       quality: 82,
       effort: 3
-    }
-  );
+    })
+    .pipe(
+      Effect.map((buffer) => ({ ok: true as const, buffer })),
+      Effect.catchTag('ImageProcessingError', () =>
+        Effect.succeed({
+          ok: false as const,
+          value: {
+            success: false,
+            err_code: 'image_generation_failed'
+          } satisfies FailedGeneratePuzzleImageOutput
+        })
+      )
+    );
+
+  if (!compressed_result.ok) {
+    return compressed_result.value;
+  }
 
   const s3_key = createAssetLocation(
     input.game,
     generated_image.value.file_name,
     crypto.randomUUID()
   );
-  const uploaded = yield* storage.uploadAssetFile(s3_key, compressed_buffer).pipe(
+  const uploaded = yield* storage.uploadAssetFile(s3_key, compressed_result.buffer).pipe(
     Effect.as(true as const),
-    Effect.catchTag('StorageError', () => Effect.succeed(false as const))
+    Effect.catchTag('StorageError', (error) =>
+      Effect.logWarning('Failed to upload puzzle image to storage').pipe(
+        Effect.annotateLogs({
+          s3_key,
+          operation: error.operation
+        }),
+        Effect.as(false as const)
+      )
+    )
   );
 
   if (!uploaded) {
@@ -355,17 +382,14 @@ export const generateSavePuzzleImage = Effect.fn('generateSavePuzzleImage')(func
   }).pipe(
     Effect.catchTag('DatabaseError', (db_error) =>
       storage.deleteAssetFile(s3_key).pipe(
-        Effect.catchTag(
-          'StorageError',
-          (cleanup_error) =>
-            Effect.logWarning('Failed to cleanup uploaded image after DB insert failure').pipe(
-              Effect.annotateLogs({
-                s3_key,
-                dbOperation: db_error.operation,
-                cleanupOperation: cleanup_error.operation
-              })
-            ),
-          Effect.asVoid
+        Effect.catchTag('StorageError', (cleanup_error) =>
+          Effect.logWarning('Failed to cleanup uploaded image after DB insert failure').pipe(
+            Effect.annotateLogs({
+              s3_key,
+              dbOperation: db_error.operation,
+              cleanupOperation: cleanup_error.operation
+            })
+          )
         ),
         Effect.flatMap(() => Effect.fail(db_error))
       )

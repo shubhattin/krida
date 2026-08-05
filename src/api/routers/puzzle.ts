@@ -610,8 +610,6 @@ export const get_puzzle_list_page = Effect.fn('padavali.get_puzzle_list_page')(f
     order_by === 'desc' ? desc(padavali_puzzles.id) : asc(padavali_puzzles.id);
   const offset = (page - 1) * size;
 
-  yield* Effect.sleep('400 millis');
-
   const { countResult, rows } = yield* Effect.all({
     countResult: dbRun('padavali.count_puzzle_list_page', (client) =>
       client.select({ count: count() }).from(padavali_puzzles).where(whereClause)

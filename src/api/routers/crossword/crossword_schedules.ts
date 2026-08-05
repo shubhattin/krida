@@ -10,10 +10,20 @@ import {
   invalidate_and_refresh_cache,
   NO_CACHE_PARAMS
 } from '~/util/cache.server/cache_loaders';
-import { QStashPublisher } from '~/effect/qstash';
+import { QStashPublisher, qstashDelaySeconds } from '~/effect/qstash';
 import { generateRandomAlphanumeric } from '~/tools/kry';
 import { DatabaseError, NotFoundError } from '~/effect/errors';
 import { runTrpcEffect } from '~/effect/run';
+
+const settle = <A, E, R>(effect: Effect.Effect<A, E, R>) =>
+  effect.pipe(
+    Effect.catch((error) =>
+      Effect.logWarning('Crossword schedule post-commit side effect failed').pipe(
+        Effect.annotateLogs({ error }),
+        Effect.asVoid
+      )
+    )
+  );
 
 const crossword_schedule_time_order = <T extends { start_time: Date; end_time: Date }>(
   schema: z.ZodType<T>
@@ -92,15 +102,17 @@ const add_puzzle_schedule_route = protectedAdminProcedure
         }
 
         yield* Effect.sync(() => revalidatePath('/padajala/schedules'));
-        yield* refreshScheduleCaches();
+        yield* settle(refreshScheduleCaches());
         const qstash = yield* QStashPublisher;
-        yield* qstash.publishCrosswordScheduleListing(
-          {
-            puzzle_id,
-            schedule_id: schedule.id,
-            listing_verify_key
-          },
-          (schedule.start_time.getTime() - new Date().getTime()) / 1000 - 4
+        yield* settle(
+          qstash.publishCrosswordScheduleListing(
+            {
+              puzzle_id,
+              schedule_id: schedule.id,
+              listing_verify_key
+            },
+            qstashDelaySeconds((schedule.start_time.getTime() - new Date().getTime()) / 1000 - 4)
+          )
         );
 
         return { success: true as const, schedule_id: schedule.id };
@@ -166,15 +178,17 @@ const update_puzzle_schedule_route = protectedAdminProcedure
         }
 
         yield* Effect.sync(() => revalidatePath('/padajala/schedules'));
-        yield* refreshScheduleCaches();
+        yield* settle(refreshScheduleCaches());
         const qstash = yield* QStashPublisher;
-        yield* qstash.publishCrosswordScheduleListing(
-          {
-            puzzle_id,
-            schedule_id,
-            listing_verify_key
-          },
-          (start_time.getTime() - new Date().getTime()) / 1000 - 4
+        yield* settle(
+          qstash.publishCrosswordScheduleListing(
+            {
+              puzzle_id,
+              schedule_id,
+              listing_verify_key
+            },
+            qstashDelaySeconds((start_time.getTime() - new Date().getTime()) / 1000 - 4)
+          )
         );
 
         return { success: true };
