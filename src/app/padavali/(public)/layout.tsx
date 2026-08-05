@@ -6,13 +6,10 @@ import { PWAInstallButton } from '~/components/PWA/PWAInit';
 import { cn } from '~/lib/utils';
 
 /**
- * Redis is both in sin1 and bom1 regions. But DB is only in sin1.
- * So backend and admin stuff runs closer to the DB (default sin1)
- *
- * bom1 only for public facing frontend which would directy interact with cache mostly
+ * Region placement (Vercel): public routes run in bom1 via vercel.json
+ * `functions` overrides. Project default remains sin1 (DB). Redis is in both.
+ * preferredRegion was removed in Next.js 16.3 — use vercel.json instead.
  */
-export const preferredRegion = 'bom1';
-
 export default async function PadavaliLayout({ children }: { children: ReactNode }) {
   return (
     <>

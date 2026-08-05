@@ -1,4 +1,15 @@
 {
   "$schema": "https://openapi.vercel.sh/vercel.json",
-  "regions": ["sin1"]
+  "regions": ["sin1"],
+  "functions": {
+    "src/app/page.tsx": {
+      "regions": ["bom1"]
+    },
+    "src/app/padavali/(public)/**/*": {
+      "regions": ["bom1"]
+    },
+    "src/app/padajala/(public)/**/*": {
+      "regions": ["bom1"]
+    }
+  }
 }

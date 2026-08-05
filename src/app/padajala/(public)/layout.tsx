@@ -4,8 +4,11 @@ import { SiGithub } from 'react-icons/si';
 import { FaYoutube, FaInstagram } from 'react-icons/fa';
 import { cn } from '~/lib/utils';
 
-export const preferredRegion = 'bom1';
-
+/**
+ * Region placement (Vercel): public routes run in bom1 via vercel.json
+ * `functions` overrides. Project default remains sin1 (DB).
+ * preferredRegion was removed in Next.js 16.3 — use vercel.json instead.
+ */
 export default function CrosswordPublicLayout({ children }: { children: ReactNode }) {
   return (
     <>

@@ -2,8 +2,6 @@ import type { Metadata } from 'next';
 import LandingPage from './LandingPage';
 import { getMetadata } from '@/components/tags/getPageMetaTags';
 
-export const preferredRegion = 'bom1';
-
 export const metadata: Metadata = {
   ...getMetadata({
     title: 'Sanskrit Games | Play, Learn, Grow',

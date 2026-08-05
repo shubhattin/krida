@@ -2,7 +2,8 @@ import type { NextConfig } from 'next';
 
 const nextConfig: NextConfig = {
   experimental: {
-    optimizePackageImports: ['react-icons']
+    optimizePackageImports: ['react-icons'],
+    turbopackRustReactCompiler: true
   },
   reactCompiler: true,
   typedRoutes: true,
