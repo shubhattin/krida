@@ -22,13 +22,12 @@ import { script_list_enum } from '~/state/script_list';
 import { batch_metadata_schema } from '~/util/types/ai_batch_metadata';
 
 export const PadavaliPuzzleSchemaZod = createSelectSchema(padavali_puzzles, {
-  word_candidates: z
+  word_list: z
     .object({
       word: z.string(),
       added: z.boolean()
     })
     .array(),
-  word_list: z.string().array(),
   grid_data: z.string().array().array(),
   grid_dimensions: z.tuple([z.number().int().min(3), z.number().int().min(3)]),
   created_at: z.coerce.date(),

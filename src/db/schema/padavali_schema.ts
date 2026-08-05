@@ -24,15 +24,12 @@ export const padavali_puzzles = pgTable(
     description: text().notNull().default(''),
     created_at: timestamp({ withTimezone: true }).notNull().defaultNow(),
     updated_at: timestamp({ withTimezone: true }).$onUpdate(() => new Date()), // NULL for not updated
-    word_candidates: jsonb().$type<
+    word_list: jsonb().notNull().$type<
       {
         word: string;
-        /** Added to `word_list` */
         added: boolean;
       }[]
     >(),
-    /** final word list */
-    word_list: jsonb().notNull().$type<string[]>(),
     grid_data: jsonb().notNull().$type<string[][]>(),
     grid_dimensions: jsonb().notNull().$type<[number, number]>(),
     /** Whether the puzzle is listed publicly on the website */

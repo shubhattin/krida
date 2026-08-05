@@ -1,5 +1,5 @@
 {
-  "id": "41e550c1-38f7-4fd5-a107-134a531f8323",
+  "id": "8ee27103-4acd-4be4-b5f7-089b96dd2093",
   "prevId": "2389eb0d-5b50-44c6-9928-6840590fb1f9",
   "version": "7",
   "dialect": "postgresql",
@@ -417,12 +417,6 @@
         "updated_at": {
           "name": "updated_at",
           "type": "timestamp with time zone",
-          "primaryKey": false,
-          "notNull": false
-        },
-        "word_candidates": {
-          "name": "word_candidates",
-          "type": "jsonb",
           "primaryKey": false,
           "notNull": false
         },
@@ -1139,12 +1133,6 @@
           "type": "jsonb",
           "primaryKey": false,
           "notNull": true
-        },
-        "word_candidates": {
-          "name": "word_candidates",
-          "type": "jsonb",
-          "primaryKey": false,
-          "notNull": false
         },
         "word_list": {
           "name": "word_list",

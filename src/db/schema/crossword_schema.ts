@@ -28,13 +28,6 @@ export const crossword_puzzles = pgTable(
     grid_dimensions: jsonb().notNull().$type<[number, number]>(),
     /** Blank text = blocked box; letter cells are playable (is_visible = prefilled hint). */
     grid_data: jsonb().notNull().$type<CrossordPuzzleGridCell[][]>(),
-    word_candidates: jsonb().$type<
-      {
-        word: string;
-        /** Added to `word_list` */
-        added: boolean;
-      }[]
-    >(),
     word_list: jsonb().notNull().$type<CrossWordPuzzleWord[]>(),
     /** Whether the puzzle is listed publicly on the website */
     listed: boolean().notNull().default(false),
