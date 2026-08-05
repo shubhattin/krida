@@ -59,6 +59,12 @@ export type CreateCacheConfig<TParams, TCached, TData = TCached> = {
    * writes a value. Lock failures and bounded waits fall back to a direct fetch.
    */
   useSingleFlight?: boolean;
+  /**
+   * When true, use Redis get/set/delete/refresh even outside production.
+   * Default caches are prod-only; set for expensive AI results that should
+   * not re-hit the model on every local request.
+   */
+  cacheOutsideProd?: boolean;
 };
 
 /** Snapshot of generation for a guarded write; `unavailable` skips caching. */
@@ -147,7 +153,10 @@ export function createCache<TParams, TCached, TData = TCached>(
   const toCacheValue = config.toCacheValue ?? ((data: TCached) => data);
   const useGenerationGuard = config.useGenerationGuard ?? false;
   const useSingleFlight = config.useSingleFlight ?? false;
+  const cacheOutsideProd = config.cacheOutsideProd ?? false;
   const inFlight = new Map<string, Effect.Effect<TData, CacheError, CacheServices>>();
+
+  const redisActive = (isProd: boolean) => isProd || cacheOutsideProd;
 
   const parseCached = (raw: unknown): TCached | null => {
     try {
@@ -210,7 +219,7 @@ export function createCache<TParams, TCached, TData = TCached>(
       const appConfig = yield* AppConfig;
       const background = yield* BackgroundWork;
       const genSnapshot =
-        appConfig.isProd && useGenerationGuard
+        redisActive(appConfig.isProd) && useGenerationGuard
           ? yield* snapshotGeneration(cacheKey)
           : ({ kind: 'unguarded' } as const satisfies GenerationSnapshot);
 
@@ -224,7 +233,11 @@ export function createCache<TParams, TCached, TData = TCached>(
           )
         );
 
-      if (appConfig.isProd && shouldCache(fetched) && genSnapshot.kind !== 'unavailable') {
+      if (
+        redisActive(appConfig.isProd) &&
+        shouldCache(fetched) &&
+        genSnapshot.kind !== 'unavailable'
+      ) {
         const setOptions = resolveSetOptions(fetched, ttlSeconds, config.getSetOptions);
         const write = writeWithGenerationSnapshot(
           cacheKey,
@@ -262,8 +275,9 @@ export function createCache<TParams, TCached, TData = TCached>(
   const get = Effect.fn('cache.get')(function* (params: TParams) {
     const appConfig = yield* AppConfig;
     const cacheKey = config.getKey(params);
+    const useRedis = redisActive(appConfig.isProd);
 
-    if (appConfig.isProd) {
+    if (useRedis) {
       const redis = yield* RedisClient;
       const cached = yield* redis.get<unknown>(cacheKey).pipe(
         Effect.catch(() => Effect.succeed(null as unknown)),
@@ -277,7 +291,7 @@ export function createCache<TParams, TCached, TData = TCached>(
       yield* Effect.sleep(DEV_DELAY);
     }
 
-    if (!appConfig.isProd || !useSingleFlight) {
+    if (!useRedis || !useSingleFlight) {
       return yield* fetchAndCache(params, cacheKey, false);
     }
 
@@ -346,7 +360,7 @@ export function createCache<TParams, TCached, TData = TCached>(
 
   const deleteCache = Effect.fn('cache.delete')(function* (params: TParams) {
     const appConfig = yield* AppConfig;
-    if (!appConfig.isProd) {
+    if (!redisActive(appConfig.isProd)) {
       yield* Effect.sleep(DEV_DELAY);
       return;
     }
@@ -366,7 +380,7 @@ export function createCache<TParams, TCached, TData = TCached>(
     { deleteFirst = true }: CacheRefreshOptions = {}
   ) {
     const appConfig = yield* AppConfig;
-    if (!appConfig.isProd) {
+    if (!redisActive(appConfig.isProd)) {
       yield* Effect.sleep(DEV_DELAY);
       return;
     }

@@ -11,6 +11,7 @@ import {
   type WordMeaningsType
 } from '../ai/word_meanings';
 import { padavaliActiveWords, type PadavaliWordCandidate } from '~/util/puzzle/word_list';
+import { CACHE_AI_OUTSIDE_PROD } from './ai_cache_options';
 
 type PadavaliPuzzleType = z.infer<typeof puzzle_schema>;
 export type { PadavaliPuzzleType };
@@ -249,6 +250,7 @@ const load_word_meanings: CacheItem<PadavaliPuzzleParams, WordMeaningsType> = cr
   ttlSeconds: Infinity,
   useGenerationGuard: true,
   useSingleFlight: true,
+  cacheOutsideProd: CACHE_AI_OUTSIDE_PROD,
   schema: word_meanings_schema,
   fetch: ({ slug }) =>
     Effect.gen(function* () {

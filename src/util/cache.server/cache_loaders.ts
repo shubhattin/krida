@@ -8,6 +8,9 @@ export {
   invalidateAndRefreshCache as invalidate_and_refresh_cache
 } from '~/effect/cache';
 
+/** Toggle Redis caching for AI word meanings / more hints outside production. */
+export { CACHE_AI_OUTSIDE_PROD } from './ai_cache_options';
+
 export type CacheLoaderRegistry = {
   padavali: PadavaliCacheLoaders;
   crossword: CrosswordCacheLoaders;

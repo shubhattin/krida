@@ -16,6 +16,7 @@ import {
   type MoreHintsType
 } from '~/util/ai/more_hints';
 import { crosswordActiveWordList } from '~/util/puzzle/word_list';
+import { CACHE_AI_OUTSIDE_PROD } from './ai_cache_options';
 
 const crossword_puzzle_schema = z.object({
   id: z.number().int(),
@@ -262,6 +263,7 @@ const load_more_hints: CacheItem<CrosswordPuzzleParams, MoreHintsType> = createC
   ttlSeconds: Infinity,
   useGenerationGuard: true,
   useSingleFlight: true,
+  cacheOutsideProd: CACHE_AI_OUTSIDE_PROD,
   schema: more_hints_schema,
   fetch: ({ slug }) =>
     Effect.gen(function* () {
