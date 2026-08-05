@@ -12,22 +12,27 @@ export type PadavaliWordCandidate = z.infer<typeof padavali_word_candidate_schem
 
 export const padavali_word_candidate_list_schema = padavali_word_candidate_schema.array();
 
+/** Missing `added` is treated as enabled (safe default for any stale payloads). */
+export function isWordAdded(entry: { added?: boolean }): boolean {
+  return entry.added !== false;
+}
+
 /** Active (enabled) Padavali words as the public `string[]` contract */
 export function padavaliActiveWords(
-  wordList: readonly Pick<PadavaliWordCandidate, 'word' | 'added'>[]
+  wordList: readonly (Pick<PadavaliWordCandidate, 'word'> & { added?: boolean })[]
 ): string[] {
-  return wordList.filter((entry) => entry.added).map((entry) => entry.word);
+  return wordList.filter(isWordAdded).map((entry) => entry.word);
 }
 
 /** Active crossword entries for public play / listing validation */
-export function crosswordActiveWords<T extends { added: boolean }>(wordList: readonly T[]): T[] {
-  return wordList.filter((entry) => entry.added);
+export function crosswordActiveWords<T extends { added?: boolean }>(wordList: readonly T[]): T[] {
+  return wordList.filter(isWordAdded);
 }
 
 /** Compare enabled Padavali word sequences (order-sensitive) */
 export function padavaliActiveWordsEqual(
-  a: readonly Pick<PadavaliWordCandidate, 'word' | 'added'>[],
-  b: readonly Pick<PadavaliWordCandidate, 'word' | 'added'>[]
+  a: readonly (Pick<PadavaliWordCandidate, 'word'> & { added?: boolean })[],
+  b: readonly (Pick<PadavaliWordCandidate, 'word'> & { added?: boolean })[]
 ): boolean {
   const left = padavaliActiveWords(a);
   const right = padavaliActiveWords(b);

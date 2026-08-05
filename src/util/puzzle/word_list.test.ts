@@ -11,6 +11,12 @@ describe('padavaliActiveWords', () => {
       ])
     ).toEqual(['राम', 'लक्ष्मण']);
   });
+
+  it('treats missing added as enabled', () => {
+    expect(padavaliActiveWords([{ word: 'राम' }, { word: 'सीता', added: false }])).toEqual([
+      'राम'
+    ]);
+  });
 });
 
 describe('padavaliActiveWordsEqual', () => {
@@ -44,5 +50,11 @@ describe('crosswordActiveWords', () => {
         { word: 'DOG', added: false }
       ])
     ).toEqual([{ word: 'CAT', added: true }]);
+  });
+
+  it('keeps entries when added is missing', () => {
+    expect(crosswordActiveWords([{ word: 'CAT' }, { word: 'DOG', added: false }])).toEqual([
+      { word: 'CAT' }
+    ]);
   });
 });
