@@ -34,13 +34,16 @@ export type GeneratedCrosswordLayout = {
 
 export type LayoutRanking = 'intersections' | 'words' | 'letters';
 
+/** Prefer where the crossword blob sits on the fixed grid. */
+export type LayoutDensity = 'balanced' | 'center' | 'left' | 'right' | 'top' | 'bottom';
+
 type NormalizedWord = LayoutGeneratorWord & { normalized: string };
 
 type InternalPlacement = GeneratedLayoutPlacement & { word: NormalizedWord };
 
 type GridCell = { letter: string; directions: Set<CrossWordPuzzleWord['direction']> } | null;
 
-const DEFAULT_MAX_CANDIDATES = 8;
+const DEFAULT_MAX_CANDIDATES = 12;
 const DEFAULT_ATTEMPTS = 48;
 const DEFAULT_SEARCH_NODES = 700;
 
@@ -270,6 +273,74 @@ function projectedGapCount(
   return area - (currentBounds.occupiedCells + cells.length - intersections);
 }
 
+/**
+ * Higher = better match for the requested word-density region.
+ * `balanced` returns 0 so other ranking signals decide.
+ */
+function regionAffinity(
+  avgRow: number,
+  avgCol: number,
+  dimensions: [number, number],
+  density: LayoutDensity
+): number {
+  if (density === 'balanced') return 0;
+  const rowSpan = Math.max(dimensions[0] - 1, 1);
+  const colSpan = Math.max(dimensions[1] - 1, 1);
+  const rowNorm = avgRow / rowSpan;
+  const colNorm = avgCol / colSpan;
+  switch (density) {
+    case 'left':
+      return 1 - colNorm;
+    case 'right':
+      return colNorm;
+    case 'top':
+      return 1 - rowNorm;
+    case 'bottom':
+      return rowNorm;
+    case 'center': {
+      const distance = Math.hypot(rowNorm - 0.5, colNorm - 0.5);
+      return 1 - distance / Math.SQRT1_2;
+    }
+  }
+}
+
+function placementRegionAffinity(
+  placement: InternalPlacement,
+  dimensions: [number, number],
+  density: LayoutDensity
+): number {
+  if (density === 'balanced') return 0;
+  const cells = placementCells(placement);
+  let sumRow = 0;
+  let sumCol = 0;
+  for (const [row, col] of cells) {
+    sumRow += row;
+    sumCol += col;
+  }
+  return regionAffinity(sumRow / cells.length, sumCol / cells.length, dimensions, density);
+}
+
+function layoutRegionAffinity(
+  grid: GridCell[][],
+  dimensions: [number, number],
+  density: LayoutDensity
+): number {
+  if (density === 'balanced') return 0;
+  let sumRow = 0;
+  let sumCol = 0;
+  let count = 0;
+  for (let row = 0; row < grid.length; row += 1) {
+    for (let col = 0; col < grid[row]!.length; col += 1) {
+      if (!grid[row]![col]) continue;
+      sumRow += row;
+      sumCol += col;
+      count += 1;
+    }
+  }
+  if (count === 0) return 0;
+  return regionAffinity(sumRow / count, sumCol / count, dimensions, density);
+}
+
 /** Every playable cell must be reachable by moving along crossword cells. */
 function hasConnectedCells(grid: GridCell[][]): boolean {
   const firstRow = grid.findIndex((row) => row.some((cell) => cell));
@@ -365,13 +436,15 @@ export function generateCrosswordLayouts({
   dimensions,
   maxCandidates = DEFAULT_MAX_CANDIDATES,
   attempts = DEFAULT_ATTEMPTS,
-  seed = 1
+  seed = 1,
+  density = 'balanced'
 }: {
   words: readonly LayoutGeneratorWord[];
   dimensions: [number, number];
   maxCandidates?: number;
   attempts?: number;
   seed?: number;
+  density?: LayoutDensity;
 }): GeneratedCrosswordLayout[] {
   const seenWords = new Set<string>();
   const normalizedWords: NormalizedWord[] = [];
@@ -396,6 +469,30 @@ export function generateCrosswordLayouts({
       current: null
     };
 
+    const isBetterScore = (
+      currentScore: GeneratedLayoutScore,
+      currentGrid: GridCell[][],
+      bestScore: GeneratedLayoutScore,
+      bestGrid: GridCell[][]
+    ) => {
+      if (currentScore.placedWordCount !== bestScore.placedWordCount) {
+        return currentScore.placedWordCount > bestScore.placedWordCount;
+      }
+      if (currentScore.intersectionCount !== bestScore.intersectionCount) {
+        return currentScore.intersectionCount > bestScore.intersectionCount;
+      }
+      if (currentScore.gapCount !== bestScore.gapCount) {
+        return currentScore.gapCount < bestScore.gapCount;
+      }
+      if (currentScore.compactness !== bestScore.compactness) {
+        return currentScore.compactness < bestScore.compactness;
+      }
+      return (
+        layoutRegionAffinity(currentGrid, dimensions, density) >
+        layoutRegionAffinity(bestGrid, dimensions, density)
+      );
+    };
+
     const search = (index: number, grid: GridCell[][], placements: InternalPlacement[]) => {
       if (searchNodes >= DEFAULT_SEARCH_NODES) return;
       searchNodes += 1;
@@ -403,16 +500,7 @@ export function generateCrosswordLayouts({
       const bestScore = best.current
         ? layoutScore(best.current.grid, best.current.placements)
         : null;
-      if (
-        !bestScore ||
-        currentScore.placedWordCount > bestScore.placedWordCount ||
-        (currentScore.placedWordCount === bestScore.placedWordCount &&
-          (currentScore.intersectionCount > bestScore.intersectionCount ||
-            (currentScore.intersectionCount === bestScore.intersectionCount &&
-              (currentScore.gapCount < bestScore.gapCount ||
-                (currentScore.gapCount === bestScore.gapCount &&
-                  currentScore.compactness < bestScore.compactness)))))
-      ) {
+      if (!bestScore || isBetterScore(currentScore, grid, bestScore, best.current!.grid)) {
         best.current = { grid, placements };
       }
       if (index >= orderedWords.length) return;
@@ -425,6 +513,8 @@ export function generateCrosswordLayouts({
         .toSorted(
           (left, right) =>
             right.intersections - left.intersections ||
+            placementRegionAffinity(right.placement, dimensions, density) -
+              placementRegionAffinity(left.placement, dimensions, density) ||
             projectedGapCount(grid, left.placement, left.intersections) -
               projectedGapCount(grid, right.placement, right.intersections)
         )

@@ -80,6 +80,7 @@ import {
   generateCrosswordLayouts,
   rankGeneratedLayouts,
   type GeneratedCrosswordLayout,
+  type LayoutDensity,
   type LayoutRanking
 } from '~/util/cross_word/layout_generator';
 import {
@@ -736,17 +737,34 @@ function CrosswordWordRow({
 }
 
 const LAYOUT_RANKING_ITEMS = [
-  { value: 'intersections', label: 'Most intersections' },
-  { value: 'words', label: 'Most words placed' },
-  { value: 'letters', label: 'Most letters placed' }
+  { value: 'intersections', label: 'Most crossings' },
+  { value: 'words', label: 'Most words' },
+  { value: 'letters', label: 'Most letters' }
 ];
+
+const LAYOUT_DENSITY_ITEMS = [
+  { value: 'balanced', label: 'Balanced' },
+  { value: 'center', label: 'Center' },
+  { value: 'left', label: 'Left' },
+  { value: 'right', label: 'Right' },
+  { value: 'top', label: 'Top' },
+  { value: 'bottom', label: 'Bottom' }
+] as const;
+
+const LAYOUT_DENSITIES = ['balanced', 'center', 'left', 'right', 'top', 'bottom'] as const;
+
+function parseLayoutDensity(value: string | null | undefined): LayoutDensity | null {
+  return LAYOUT_DENSITIES.includes(value as LayoutDensity) ? (value as LayoutDensity) : null;
+}
 
 const LAYOUT_CANDIDATE_LIMIT_ITEMS = [
   { value: '4', label: '4 layouts' },
   { value: '8', label: '8 layouts' },
   { value: '12', label: '12 layouts' },
   { value: '16', label: '16 layouts' },
-  { value: '24', label: '24 layouts' }
+  { value: '24', label: '24 layouts' },
+  { value: '32', label: '32 layouts' },
+  { value: '40', label: '40 layouts' }
 ] as const;
 
 const LAYOUT_CANDIDATE_LIMITS = [4, 8, 12, 16, 24] as const;
@@ -1022,7 +1040,7 @@ function LayoutTabsCarousel({
           <ChevronRight />
         </Button>
       </div>
-      <p className="px-0.5 text-[11px] text-muted-foreground/70">
+      <p className="px-0.5 text-[11px] text-muted-foreground/70 select-none">
         N× on each tab = shared letter crossings in that layout
       </p>
     </div>
@@ -1037,7 +1055,8 @@ function CrosswordLayoutGenerator() {
   const [open, setOpen] = useState(false);
   const [confirmOpen, setConfirmOpen] = useState(false);
   const [ranking, setRanking] = useState<LayoutRanking>('intersections');
-  const [maxCandidates, setMaxCandidates] = useState<LayoutCandidateLimit>(8);
+  const [density, setDensity] = useState<LayoutDensity>('balanced');
+  const [maxCandidates, setMaxCandidates] = useState<LayoutCandidateLimit>(16);
   const [candidates, setCandidates] = useState<GeneratedCrosswordLayout[]>([]);
   const [selectedKey, setSelectedKey] = useState('');
   const [candidateToApply, setCandidateToApply] = useState<GeneratedCrosswordLayout | null>(null);
@@ -1055,7 +1074,15 @@ function CrosswordLayoutGenerator() {
   const activeCandidate =
     rankedCandidates.find((candidate) => layoutCandidateKey(candidate) === activeKey) ?? null;
 
-  const runGeneration = (limit: LayoutCandidateLimit, rankingOverride: LayoutRanking = ranking) => {
+  const runGeneration = ({
+    limit = maxCandidates,
+    rankingOverride = ranking,
+    densityOverride = density
+  }: {
+    limit?: LayoutCandidateLimit;
+    rankingOverride?: LayoutRanking;
+    densityOverride?: LayoutDensity;
+  } = {}) => {
     const usableWords = wordList.filter((word) => word.added && word.word.trim().length >= 2);
     if (usableWords.length === 0) {
       toast.error('Add at least one word with two or more letters before generating a layout');
@@ -1068,7 +1095,8 @@ function CrosswordLayoutGenerator() {
       dimensions,
       maxCandidates: limit,
       // More layout slots need more randomized search attempts.
-      attempts: Math.max(48, limit * 6)
+      attempts: Math.max(48, limit * 6),
+      density: densityOverride
     });
     if (nextCandidates.length === 0) {
       toast.error('No valid layouts could be generated for these words and dimensions');
@@ -1077,13 +1105,14 @@ function CrosswordLayoutGenerator() {
     const ranked = rankGeneratedLayouts(nextCandidates, rankingOverride);
     setCandidates(nextCandidates);
     setMaxCandidates(limit);
+    setDensity(densityOverride);
     setSelectedKey(ranked[0] ? layoutCandidateKey(ranked[0]) : '');
     setCandidateToApply(null);
     return true;
   };
 
   const openGenerator = () => {
-    if (!runGeneration(maxCandidates, 'intersections')) return;
+    if (!runGeneration({ rankingOverride: 'intersections' })) return;
     setRanking('intersections');
     setOpen(true);
   };
@@ -1145,56 +1174,103 @@ function CrosswordLayoutGenerator() {
             </DialogDescription>
           </DialogHeader>
 
-          <div className="flex shrink-0 flex-wrap items-end justify-between gap-3 border-b border-border px-4 pb-3">
-            <div className="flex flex-col gap-1.5">
-              <Label htmlFor="layout-ranking" className="text-sm font-medium">
-                Rank by
-              </Label>
-              <Select
-                items={LAYOUT_RANKING_ITEMS}
-                value={ranking}
-                onValueChange={(value) => {
-                  if (value === 'intersections' || value === 'words' || value === 'letters') {
-                    setRanking(value);
-                  }
-                }}
-              >
-                <SelectTrigger id="layout-ranking" className="w-52">
-                  <SelectValue />
-                </SelectTrigger>
-                <SelectContent>
-                  {LAYOUT_RANKING_ITEMS.map((item) => (
-                    <SelectItem key={item.value} value={item.value}>
-                      {item.label}
-                    </SelectItem>
-                  ))}
-                </SelectContent>
-              </Select>
-            </div>
-            <div className="flex flex-col gap-1.5">
-              <Label htmlFor="layout-candidate-limit" className="text-sm font-medium">
-                Generate up to
-              </Label>
-              <Select
-                items={[...LAYOUT_CANDIDATE_LIMIT_ITEMS]}
-                value={String(maxCandidates)}
-                onValueChange={(value) => {
-                  const nextLimit = parseLayoutCandidateLimit(value);
-                  if (!nextLimit || nextLimit === maxCandidates) return;
-                  runGeneration(nextLimit);
-                }}
-              >
-                <SelectTrigger id="layout-candidate-limit" className="w-36">
-                  <SelectValue />
-                </SelectTrigger>
-                <SelectContent>
-                  {LAYOUT_CANDIDATE_LIMIT_ITEMS.map((item) => (
-                    <SelectItem key={item.value} value={item.value}>
-                      {item.label}
-                    </SelectItem>
-                  ))}
-                </SelectContent>
-              </Select>
+          <div className="shrink-0 border-b border-border bg-muted/20 px-4 py-3">
+            <div className="grid grid-cols-1 gap-3 sm:grid-cols-3">
+              <div className="flex min-w-0 flex-col gap-1.5">
+                <Label
+                  htmlFor="layout-density"
+                  className="text-xs font-medium tracking-wide text-muted-foreground uppercase"
+                >
+                  Word density
+                </Label>
+                <Select
+                  items={[...LAYOUT_DENSITY_ITEMS]}
+                  value={density}
+                  onValueChange={(value) => {
+                    const nextDensity = parseLayoutDensity(value);
+                    if (!nextDensity || nextDensity === density) return;
+                    runGeneration({ densityOverride: nextDensity });
+                  }}
+                >
+                  <SelectTrigger id="layout-density" className="w-full">
+                    <SelectValue />
+                  </SelectTrigger>
+                  <SelectContent>
+                    {LAYOUT_DENSITY_ITEMS.map((item) => (
+                      <SelectItem key={item.value} value={item.value}>
+                        {item.label}
+                      </SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+                <p className="text-[11px] leading-snug text-muted-foreground/80">
+                  Prefer where words gather on the grid
+                </p>
+              </div>
+
+              <div className="flex min-w-0 flex-col gap-1.5">
+                <Label
+                  htmlFor="layout-ranking"
+                  className="text-xs font-medium tracking-wide text-muted-foreground uppercase"
+                >
+                  Rank by
+                </Label>
+                <Select
+                  items={LAYOUT_RANKING_ITEMS}
+                  value={ranking}
+                  onValueChange={(value) => {
+                    if (value === 'intersections' || value === 'words' || value === 'letters') {
+                      setRanking(value);
+                    }
+                  }}
+                >
+                  <SelectTrigger id="layout-ranking" className="w-full">
+                    <SelectValue />
+                  </SelectTrigger>
+                  <SelectContent>
+                    {LAYOUT_RANKING_ITEMS.map((item) => (
+                      <SelectItem key={item.value} value={item.value}>
+                        {item.label}
+                      </SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+                <p className="text-[11px] leading-snug text-muted-foreground/80">
+                  Reorders tabs without regenerating
+                </p>
+              </div>
+
+              <div className="flex min-w-0 flex-col gap-1.5">
+                <Label
+                  htmlFor="layout-candidate-limit"
+                  className="text-xs font-medium tracking-wide text-muted-foreground uppercase"
+                >
+                  Candidates
+                </Label>
+                <Select
+                  items={[...LAYOUT_CANDIDATE_LIMIT_ITEMS]}
+                  value={String(maxCandidates)}
+                  onValueChange={(value) => {
+                    const nextLimit = parseLayoutCandidateLimit(value);
+                    if (!nextLimit || nextLimit === maxCandidates) return;
+                    runGeneration({ limit: nextLimit });
+                  }}
+                >
+                  <SelectTrigger id="layout-candidate-limit" className="w-full">
+                    <SelectValue />
+                  </SelectTrigger>
+                  <SelectContent>
+                    {LAYOUT_CANDIDATE_LIMIT_ITEMS.map((item) => (
+                      <SelectItem key={item.value} value={item.value}>
+                        {item.label}
+                      </SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+                <p className="text-[11px] leading-snug text-muted-foreground/80">
+                  Max distinct layouts to keep
+                </p>
+              </div>
             </div>
           </div>
 

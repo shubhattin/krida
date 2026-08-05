@@ -160,4 +160,40 @@ describe('crossword layout generator', () => {
       rankGeneratedLayouts(candidates, 'letters').map((candidate) => candidate.placedIds[0])
     ).toEqual(['letters', 'few', 'crossed']);
   });
+
+  it('biases letter concentration toward left vs right density', () => {
+    const averageColumn = (candidate: GeneratedCrosswordLayout) => {
+      let sum = 0;
+      let count = 0;
+      for (const row of candidate.gridData) {
+        for (let col = 0; col < row.length; col += 1) {
+          if (row[col]!.text.length !== 1) continue;
+          sum += col;
+          count += 1;
+        }
+      }
+      return count === 0 ? 0 : sum / count;
+    };
+
+    const left = generateCrosswordLayouts({
+      words,
+      dimensions: [8, 8],
+      seed: 21,
+      attempts: 48,
+      maxCandidates: 4,
+      density: 'left'
+    });
+    const right = generateCrosswordLayouts({
+      words,
+      dimensions: [8, 8],
+      seed: 21,
+      attempts: 48,
+      maxCandidates: 4,
+      density: 'right'
+    });
+
+    expect(left.length).toBeGreaterThan(0);
+    expect(right.length).toBeGreaterThan(0);
+    expect(averageColumn(left[0]!)).toBeLessThan(averageColumn(right[0]!));
+  });
 });
