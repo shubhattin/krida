@@ -22,6 +22,12 @@ import { script_list_enum } from '~/state/script_list';
 import { batch_metadata_schema } from '~/util/types/ai_batch_metadata';
 
 export const PadavaliPuzzleSchemaZod = createSelectSchema(padavali_puzzles, {
+  word_candidates: z
+    .object({
+      word: z.string(),
+      added: z.boolean()
+    })
+    .array(),
   word_list: z.string().array(),
   grid_data: z.string().array().array(),
   grid_dimensions: z.tuple([z.number().int().min(3), z.number().int().min(3)]),
@@ -33,6 +39,8 @@ export const PadavaliPuzzleSchemaZod = createSelectSchema(padavali_puzzles, {
 export const CrossWordPuzzleWordSchema = z.object({
   /** Only word is filled in manually, location and direction are calculated auto */
   word: z.string(),
+  /** approved to be displayed in word list to the user */
+  added: z.boolean(),
   /** starting index in the nxn grid array */
   location: z.tuple([z.number().int().min(0), z.number().int().min(0)]),
   direction: z.enum(['horizontal', 'vertical']),
