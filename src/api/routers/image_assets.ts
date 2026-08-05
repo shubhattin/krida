@@ -107,9 +107,7 @@ const delete_image_asset_route = protectedAdminProcedure
         yield* storage.deleteAssetFile(asset.s3_key).pipe(
           Effect.retry(s3DeleteRetrySchedule),
           Effect.catchTag('StorageError', (error) =>
-            Effect.logWarning(
-              'Failed to delete image asset from storage after DB delete'
-            ).pipe(
+            Effect.logWarning('Failed to delete image asset from storage after DB delete').pipe(
               Effect.annotateLogs({
                 s3_key: asset.s3_key,
                 operation: error.operation

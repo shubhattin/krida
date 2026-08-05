@@ -11,7 +11,6 @@ const get_seesion_from_cookie = async (cookie: string) => {
         return config.betterAuthUrl;
       })
     );
-    if (!betterAuthUrl) return null;
 
     const res = await fetch(`${betterAuthUrl}/api/auth/get-session`, {
       method: 'GET',

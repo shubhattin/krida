@@ -30,7 +30,7 @@ import {
   normalizeSlug
 } from '~/util/puzzle/slug';
 import { escapeIlikeToken, tokenizeSearchQuery } from '~/util/puzzle/search';
-import { BadRequestError, ConfigError, ConflictError, NotFoundError } from '~/effect/errors';
+import { BadRequestError, ConflictError, NotFoundError } from '~/effect/errors';
 import { AppConfig } from '~/effect/config';
 import { runTrpcEffect } from '~/effect/run';
 
@@ -56,13 +56,6 @@ export const notify_for_listed_puzzle = Effect.fn('padavali.notify_for_listed_pu
   slug: string
 ) {
   const config = yield* AppConfig;
-  if (!config.siteUrl) {
-    return yield* Effect.fail(
-      ConfigError.make({
-        message: 'NEXT_PUBLIC_SITE_URL is required for puzzle notifications'
-      })
-    );
-  }
   const notifications = yield* NotificationService;
   return yield* notifications.send({
     headings: { en: '🧩 New Listed Puzzle Added! 🎉' },

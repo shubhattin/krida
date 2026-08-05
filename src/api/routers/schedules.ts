@@ -16,7 +16,7 @@ import { NotificationService } from '~/effect/notifications';
 import { DEFAULT_SHARE_IMAGE_INFO } from '~/components/tags/getPageMetaTags';
 import { runTrpcEffect } from '~/effect/run';
 import { AppConfig } from '~/effect/config';
-import { ConfigError, DatabaseError } from '~/effect/errors';
+import { DatabaseError } from '~/effect/errors';
 
 const settle = <A, E, R>(effect: Effect.Effect<A, E, R>) =>
   effect.pipe(
@@ -32,13 +32,6 @@ export const notify_for_new_scheduled_puzzle = Effect.fn(
   'padavaliSchedules.notify_for_new_scheduled_puzzle'
 )(function* (title: string) {
   const config = yield* AppConfig;
-  if (!config.siteUrl) {
-    return yield* Effect.fail(
-      ConfigError.make({
-        message: 'NEXT_PUBLIC_SITE_URL is required for puzzle notifications'
-      })
-    );
-  }
   const notifications = yield* NotificationService;
   return yield* notifications.send({
     headings: { en: '🧩 New Puzzle Added ! 🎉' },
@@ -70,9 +63,7 @@ const notify_new_puzzle = Effect.fn('padavaliSchedules.notify_new_puzzle')(funct
 ) {
   const current_time = new Date();
   if (current_time < start_time) {
-    const delay_s = qstashDelaySeconds(
-      (start_time.getTime() - current_time.getTime()) / 1000 - 2
-    ); // 2 seconds prior notification
+    const delay_s = qstashDelaySeconds((start_time.getTime() - current_time.getTime()) / 1000 - 2); // 2 seconds prior notification
     const notification_key = generateRandomAlphanumeric(32);
     yield* dbTransaction('padavali_schedules.set_notification_key', async (tx) => {
       await set_schedule_notification_key(tx, puzzle_id, schedule_id, notification_key);

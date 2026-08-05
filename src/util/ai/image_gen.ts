@@ -330,10 +330,15 @@ export const generateSavePuzzleImage = Effect.fn('generateSavePuzzleImage')(func
   }
 
   const compressed_result = yield* image_processor
-    .resizeImage(Buffer.from(generated_image.value.image_b64, 'base64'), IMAGE_CONFIG.WIDTH, IMAGE_CONFIG.HEIGHT, {
-      quality: 82,
-      effort: 3
-    })
+    .resizeImage(
+      Buffer.from(generated_image.value.image_b64, 'base64'),
+      IMAGE_CONFIG.WIDTH,
+      IMAGE_CONFIG.HEIGHT,
+      {
+        quality: 82,
+        effort: 3
+      }
+    )
     .pipe(
       Effect.map((buffer) => ({ ok: true as const, buffer })),
       Effect.catchTag('ImageProcessingError', () =>

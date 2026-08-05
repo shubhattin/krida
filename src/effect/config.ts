@@ -13,10 +13,10 @@ const AppConfigSchema = Schema.Struct({
   awsS3BucketName: NonEmptyString,
   openaiApiKey: NonEmptyString,
   openrouterApiKey: NonEmptyString,
-  qstashToken: Schema.optional(NonEmptyString),
-  betterAuthUrl: Schema.optional(NonEmptyString),
-  siteUrl: Schema.optional(NonEmptyString),
-  cloudfrontUrl: Schema.optional(NonEmptyString),
+  qstashToken: NonEmptyString,
+  betterAuthUrl: NonEmptyString,
+  siteUrl: NonEmptyString,
+  cloudfrontUrl: NonEmptyString,
   isDev: Schema.Boolean,
   isProd: Schema.Boolean,
   isQstashEnabled: Schema.Boolean,
@@ -26,26 +26,28 @@ const AppConfigSchema = Schema.Struct({
   onesignalAppId: Schema.optional(NonEmptyString)
 });
 
-export type AppConfigShape = {
+type AppConfigDecoded = typeof AppConfigSchema.Type;
+
+/** Secrets that are stored as `Redacted` at runtime (override decoded plain strings). */
+type RedactedConfigKeys =
+  | 'dbUrl'
+  | 'upstashRedisToken'
+  | 'awsSecretAccessKey'
+  | 'openaiApiKey'
+  | 'openrouterApiKey'
+  | 'qstashToken'
+  | 'onesignalApiKey'
+  | 'turnstileSecretKey';
+
+export type AppConfigShape = Omit<AppConfigDecoded, RedactedConfigKeys> & {
   readonly dbUrl: Redacted.Redacted<string>;
-  readonly upstashRedisUrl: string;
   readonly upstashRedisToken: Redacted.Redacted<string>;
-  readonly awsRegion: string;
-  readonly awsAccessKeyId: string;
   readonly awsSecretAccessKey: Redacted.Redacted<string>;
-  readonly awsS3BucketName: string;
   readonly openaiApiKey: Redacted.Redacted<string>;
   readonly openrouterApiKey: Redacted.Redacted<string>;
-  readonly qstashToken: Redacted.Redacted<string> | undefined;
+  readonly qstashToken: Redacted.Redacted<string>;
   readonly onesignalApiKey: Redacted.Redacted<string> | undefined;
-  readonly onesignalAppId: string | undefined;
   readonly turnstileSecretKey: Redacted.Redacted<string> | undefined;
-  readonly betterAuthUrl: string | undefined;
-  readonly siteUrl: string | undefined;
-  readonly cloudfrontUrl: string | undefined;
-  readonly isDev: boolean;
-  readonly isProd: boolean;
-  readonly isQstashEnabled: boolean;
 };
 
 /** Resolve Postgres URL from DB_MODE for app runtime and Drizzle Kit scripts. */
@@ -81,7 +83,7 @@ const loadConfig = Effect.fn('loadConfig')(function* () {
     cloudfrontUrl: env.NEXT_PUBLIC_AWS_CLOUDFRONT_URL,
     isDev: env.NODE_ENV === 'development',
     isProd: env.NODE_ENV === 'production',
-    isQstashEnabled: Boolean(env.NEXT_PUBLIC_SITE_URL) && isProductionMode(env)
+    isQstashEnabled: isProductionMode(env)
   });
 
   if (parsed._tag === 'Failure') {
@@ -104,7 +106,7 @@ const loadConfig = Effect.fn('loadConfig')(function* () {
     awsS3BucketName: data.awsS3BucketName,
     openaiApiKey: Redacted.make(data.openaiApiKey),
     openrouterApiKey: Redacted.make(data.openrouterApiKey),
-    qstashToken: data.qstashToken ? Redacted.make(data.qstashToken) : undefined,
+    qstashToken: Redacted.make(data.qstashToken),
     onesignalApiKey: data.onesignalApiKey ? Redacted.make(data.onesignalApiKey) : undefined,
     onesignalAppId: data.onesignalAppId,
     turnstileSecretKey: data.turnstileSecretKey

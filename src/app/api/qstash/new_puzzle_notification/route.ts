@@ -5,7 +5,6 @@ import { and, eq, isNull } from 'drizzle-orm';
 import { scheduledPuzzleNotificationPayloadSchema, decodeQstashPayload } from '~/effect/qstash';
 import { dbTransaction } from '~/effect/database';
 import { runQstashEffect } from '~/effect/run';
-import { ConfigError } from '~/effect/errors';
 import { NotificationService } from '~/effect/notifications';
 import { DEFAULT_SHARE_IMAGE_INFO } from '~/components/tags/getPageMetaTags';
 import { AppConfig } from '~/effect/config';
@@ -21,13 +20,6 @@ export const POST = verifySignatureAppRouter(async (req: Request) => {
       );
 
       const config = yield* AppConfig;
-      if (!config.siteUrl) {
-        return yield* Effect.fail(
-          ConfigError.make({
-            message: 'NEXT_PUBLIC_SITE_URL is required for puzzle notifications'
-          })
-        );
-      }
 
       // Claim first (clear key) so concurrent deliveries cannot double-send.
       const claimed = yield* dbTransaction(

@@ -63,11 +63,9 @@ export class QStashPublisher extends Context.Service<
   static readonly Live = Layer.effect(QStashPublisher)(
     Effect.gen(function* () {
       const config = yield* AppConfig;
-      const client = new Client(
-        config.qstashToken ? { token: Redacted.value(config.qstashToken) } : undefined
-      );
-      const baseUrl = config.siteUrl ? `${config.siteUrl}/api/qstash` : undefined;
-      const enabled = config.isQstashEnabled && Boolean(baseUrl) && Boolean(config.qstashToken);
+      const client = new Client({ token: Redacted.value(config.qstashToken) });
+      const baseUrl = `${config.siteUrl}/api/qstash`;
+      const enabled = config.isQstashEnabled;
 
       const publish = <A>(
         operation: string,
@@ -75,7 +73,7 @@ export class QStashPublisher extends Context.Service<
         body: A,
         delay_s: number
       ): Effect.Effect<void, QueueError> => {
-        if (!enabled || !baseUrl) return Effect.void;
+        if (!enabled) return Effect.void;
         return tryQueue(operation, async () => {
           await client.publishJSON({
             url: `${baseUrl}${path}`,
