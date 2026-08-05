@@ -23,7 +23,7 @@ export const IMAGE_CONFIG = {
 } as const;
 
 export const OPENROUTER_MODELS = {
-  image_prompt: 'openai/gpt-5.4',
+  image_prompt: 'openai/gpt-5.6-luna',
   file_name: 'openai/gpt-5.4-nano',
   image_generation: 'openai/gpt-5.4-image-2',
   more_hints: 'openai/gpt-5.6-luna',
