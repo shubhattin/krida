@@ -1,22 +1,7 @@
 import { describe, expect, it } from 'vitest';
 import { z } from 'zod';
-
-/** Mirrors padavali/crossword key builders used by Effect createCache loaders. */
-const padavaliKeys = {
-  current_schedule: () => 'padavali:current_schedule',
-  next_schedule: () => 'padavali:next_schedule',
-  listed_puzzle_list: () => 'padavali:listed_puzzle_list',
-  word_puzzle: (slug: string) => `padavali:word_puzzle:${slug}`,
-  word_meanings: (slug: string) => `padavali:word_meanings:${slug}`
-};
-
-const crosswordKeys = {
-  current_schedule: () => 'crossword:current_schedule',
-  next_schedule: () => 'crossword:next_schedule',
-  listed_puzzle_list: () => 'crossword:listed_puzzle_list',
-  word_puzzle: (slug: string) => `crossword:word_puzzle:${slug}`,
-  more_hints: (slug: string) => `crossword:puzzle_more_hints:${slug}`
-};
+import { crosswordCacheKeys } from '~/util/cache.server/crossword_cache';
+import { padavaliCacheKeys } from '~/util/cache.server/padavali_cache';
 
 const redisGenerationKey = (cacheKey: string) => `${cacheKey}:gen`;
 
@@ -33,18 +18,18 @@ const parseScheduleSentinel =
 
 describe('cache keys', () => {
   it('uses padavali and crossword prefixes without version segments', () => {
-    expect(padavaliKeys.current_schedule()).toBe('padavali:current_schedule');
-    expect(padavaliKeys.word_meanings('abc')).toBe('padavali:word_meanings:abc');
-    expect(crosswordKeys.word_puzzle('xyz')).toBe('crossword:word_puzzle:xyz');
-    expect(crosswordKeys.more_hints('xyz')).toBe('crossword:puzzle_more_hints:xyz');
-    expect(crosswordKeys).not.toHaveProperty('word_meanings');
+    expect(padavaliCacheKeys.current_schedule()).toBe('padavali:current_schedule');
+    expect(padavaliCacheKeys.word_meanings('abc')).toBe('padavali:word_meanings:abc');
+    expect(crosswordCacheKeys.word_puzzle('xyz')).toBe('crossword:word_puzzle:xyz');
+    expect(crosswordCacheKeys.more_hints('xyz')).toBe('crossword:puzzle_more_hints:xyz');
+    expect(crosswordCacheKeys).not.toHaveProperty('word_meanings');
   });
 
   it('derives generation keys with :gen suffix', () => {
-    expect(redisGenerationKey(padavaliKeys.word_meanings('abc'))).toBe(
+    expect(redisGenerationKey(padavaliCacheKeys.word_meanings('abc'))).toBe(
       'padavali:word_meanings:abc:gen'
     );
-    expect(redisGenerationKey(crosswordKeys.more_hints('abc'))).toBe(
+    expect(redisGenerationKey(crosswordCacheKeys.more_hints('abc'))).toBe(
       'crossword:puzzle_more_hints:abc:gen'
     );
   });

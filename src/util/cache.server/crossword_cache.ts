@@ -67,6 +67,15 @@ const LISTED_PUZZLE_LIST_KEY = 'crossword:listed_puzzle_list';
 const wordPuzzleKey = (slug: string) => `crossword:word_puzzle:${slug}`;
 const moreHintsKey = (slug: string) => `crossword:puzzle_more_hints:${slug}`;
 
+/** Exported for tests — must stay aligned with createCache getKey builders below. */
+export const crosswordCacheKeys = {
+  current_schedule: () => CURRENT_SCHEDULE_KEY,
+  next_schedule: () => NEXT_SCHEDULE_KEY,
+  listed_puzzle_list: () => LISTED_PUZZLE_LIST_KEY,
+  word_puzzle: wordPuzzleKey,
+  more_hints: moreHintsKey
+} as const;
+
 const toCacheError = (operation: string, key: string) => (cause: unknown) =>
   CacheError.make({ operation, key, cause });
 

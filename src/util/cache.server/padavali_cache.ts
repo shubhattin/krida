@@ -52,6 +52,15 @@ const LISTED_PUZZLE_LIST_KEY = 'padavali:listed_puzzle_list';
 const wordPuzzleKey = (slug: string) => `padavali:word_puzzle:${slug}`;
 const wordMeaningsKey = (slug: string) => `padavali:word_meanings:${slug}`;
 
+/** Exported for tests — must stay aligned with createCache getKey builders below. */
+export const padavaliCacheKeys = {
+  current_schedule: () => CURRENT_SCHEDULE_KEY,
+  next_schedule: () => NEXT_SCHEDULE_KEY,
+  listed_puzzle_list: () => LISTED_PUZZLE_LIST_KEY,
+  word_puzzle: wordPuzzleKey,
+  word_meanings: wordMeaningsKey
+} as const;
+
 const toCacheError = (operation: string, key: string) => (cause: unknown) =>
   CacheError.make({ operation, key, cause });
 

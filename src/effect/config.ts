@@ -14,15 +14,16 @@ const AppConfigSchema = Schema.Struct({
   openaiApiKey: NonEmptyString,
   openrouterApiKey: NonEmptyString,
   qstashToken: Schema.optional(NonEmptyString),
-  onesignalApiKey: Schema.optional(NonEmptyString),
-  onesignalAppId: Schema.optional(NonEmptyString),
-  turnstileSecretKey: Schema.optional(NonEmptyString),
   betterAuthUrl: Schema.optional(NonEmptyString),
   siteUrl: Schema.optional(NonEmptyString),
   cloudfrontUrl: Schema.optional(NonEmptyString),
   isDev: Schema.Boolean,
   isProd: Schema.Boolean,
-  isQstashEnabled: Schema.Boolean
+  isQstashEnabled: Schema.Boolean,
+  // optionals
+  turnstileSecretKey: Schema.optional(NonEmptyString),
+  onesignalApiKey: Schema.optional(NonEmptyString),
+  onesignalAppId: Schema.optional(NonEmptyString)
 });
 
 export type AppConfigShape = {
