@@ -71,7 +71,7 @@ export function countDevanagariAksharas(text: string): number {
   const characters = Array.from(text.normalize('NFC'));
   let count = 0;
 
-  for (let index = 0; index < characters.length; ) {
+  for (let index = 0; index < characters.length;) {
     const character = characters[index]!;
     if (!isBase(character)) {
       index += 1;

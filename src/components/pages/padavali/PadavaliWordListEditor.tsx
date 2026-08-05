@@ -30,6 +30,7 @@ type WordCandidateRowProps = {
   typingContext: ReturnType<typeof createTypingContext>;
   lipiLekhikaActive: boolean;
   showSelection: boolean;
+  showRemove: boolean;
   showSyllableCount: boolean;
   onRemove: (index: number) => void;
   onUpdateWord: (index: number, value: string) => void;
@@ -41,6 +42,7 @@ function WordCandidateRow({
   typingContext,
   lipiLekhikaActive,
   showSelection,
+  showRemove,
   showSyllableCount,
   onRemove,
   onUpdateWord,
@@ -85,15 +87,17 @@ function WordCandidateRow({
           {syllableCount}
         </Badge>
       ) : null}
-      <Button
-        type="button"
-        variant="ghost"
-        size="icon-sm"
-        onClick={() => onRemove(originalIndex)}
-        aria-label={`Remove word ${originalIndex + 1}`}
-      >
-        <IoMdClose data-icon="inline-start" />
-      </Button>
+      {showRemove ? (
+        <Button
+          type="button"
+          variant="ghost"
+          size="icon-sm"
+          onClick={() => onRemove(originalIndex)}
+          aria-label={`Remove word ${originalIndex + 1}`}
+        >
+          <IoMdClose data-icon="inline-start" />
+        </Button>
+      ) : null}
     </div>
   );
 }
@@ -109,6 +113,7 @@ function WordCandidateList({
   typingContext,
   lipiLekhikaActive,
   showSelection,
+  showRemove,
   showSyllableCount,
   onRemove,
   onUpdateWord,
@@ -130,6 +135,7 @@ function WordCandidateList({
           typingContext={typingContext}
           lipiLekhikaActive={lipiLekhikaActive}
           showSelection={showSelection}
+          showRemove={showRemove}
           showSyllableCount={showSyllableCount}
           onRemove={onRemove}
           onUpdateWord={onUpdateWord}
@@ -210,8 +216,8 @@ export function PadavaliWordListEditor({
           <TabsTrigger value="added" className="flex-1">
             Added Words
           </TabsTrigger>
-          <TabsTrigger value="full" className="flex-1">
-            Full List
+          <TabsTrigger value="edit" className="flex-1">
+            Edit List
           </TabsTrigger>
         </TabsList>
         <TabsContent value="added">
@@ -222,6 +228,7 @@ export function PadavaliWordListEditor({
               typingContext={typingContext}
               lipiLekhikaActive={lipiLekhikaActive}
               showSelection={false}
+              showRemove={false}
               showSyllableCount={false}
               onRemove={onRemoveWord}
               onUpdateWord={onUpdateWord}
@@ -233,7 +240,7 @@ export function PadavaliWordListEditor({
             </Button>
           </div>
         </TabsContent>
-        <TabsContent value="full">
+        <TabsContent value="edit">
           <div className="flex flex-col gap-3">
             <SyllableSummary wordList={wordList} gridDimensions={gridDimensions} />
             <WordCandidateList
@@ -242,6 +249,7 @@ export function PadavaliWordListEditor({
               typingContext={typingContext}
               lipiLekhikaActive={lipiLekhikaActive}
               showSelection
+              showRemove
               showSyllableCount
               onRemove={onRemoveWord}
               onUpdateWord={onUpdateWord}

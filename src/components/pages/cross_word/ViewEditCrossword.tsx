@@ -98,6 +98,8 @@ import {
   useHistoryTextField
 } from '~/hooks/useEditorHistory';
 import { Checkbox } from '~/components/ui/checkbox';
+import { Tabs, TabsContent, TabsList, TabsTrigger } from '~/components/ui/tabs';
+import { isWordAdded } from '~/util/puzzle/word_list';
 
 type EditableWord = {
   id: string;
@@ -163,7 +165,7 @@ function toEditableWords(words: CrossWordPuzzleWord[]): EditableWord[] {
     description: w.description,
     location: w.location,
     direction: w.direction,
-    added: w.added
+    added: w.added !== false
   }));
 }
 
@@ -649,14 +651,100 @@ const DimensionsField = () => {
   );
 };
 
+type CrosswordWordRowProps = {
+  item: EditableWord;
+  originalIndex: number;
+  showSelection: boolean;
+  showRemove: boolean;
+  startLabel: string;
+  statusTitle: string;
+  onUpdate: (index: number, patch: Partial<EditableWord>) => void;
+  onToggleAdded: (index: number, added: boolean) => void;
+  onRemove: (index: number) => void;
+};
+
+function CrosswordWordRow({
+  item,
+  originalIndex,
+  showSelection,
+  showRemove,
+  startLabel,
+  statusTitle,
+  onUpdate,
+  onToggleAdded,
+  onRemove
+}: CrosswordWordRowProps) {
+  const wordHistoryField = useHistoryTextField();
+  const clueHistoryField = useHistoryTextField();
+  const isAdded = isWordAdded(item);
+
+  return (
+    <div className="flex flex-wrap items-start gap-2 sm:flex-nowrap">
+      {showSelection ? (
+        <Checkbox
+          checked={isAdded}
+          onCheckedChange={(checked) => onToggleAdded(originalIndex, checked === true)}
+          aria-label={isAdded ? 'Exclude word from puzzle' : 'Include word in puzzle'}
+          className="mt-2.5"
+        />
+      ) : null}
+      <Input
+        value={item.word}
+        onChange={(e) =>
+          onUpdate(originalIndex, {
+            word: e.currentTarget.value.toUpperCase().replace(/[^A-Z]/g, '')
+          })
+        }
+        onFocus={wordHistoryField.onFocus}
+        onBlur={wordHistoryField.onBlur}
+        placeholder="WORD"
+        className={cn('w-36 font-mono uppercase sm:w-44', !isAdded && 'opacity-60')}
+      />
+      <Input
+        value={item.description}
+        onChange={(e) => onUpdate(originalIndex, { description: e.currentTarget.value })}
+        onFocus={clueHistoryField.onFocus}
+        onBlur={clueHistoryField.onBlur}
+        placeholder="Clue / description"
+        className={cn('min-w-0 flex-1', !isAdded && 'opacity-60')}
+      />
+      <span
+        className="inline-flex h-9 min-w-14 shrink-0 items-center justify-center rounded-md border border-border bg-muted/40 px-2 font-mono text-xs text-muted-foreground"
+        title={statusTitle}
+      >
+        {startLabel}
+      </span>
+      {showRemove ? (
+        <Button
+          variant="ghost"
+          className="p-0 text-red-500 has-[>svg]:p-0 dark:text-red-400"
+          onClick={() => onRemove(originalIndex)}
+          aria-label={`Remove word ${originalIndex + 1}`}
+        >
+          <IoMdClose className="inline-block" />
+        </Button>
+      ) : null}
+    </div>
+  );
+}
+
 const WordListEditor = () => {
   const [wordList, setWordList] = useAtom(word_list_atom);
   const [gridData] = useAtom(grid_data_atom);
-  const historyField = useHistoryTextField();
+  const { commit } = useEditorHistoryActions();
 
   const analysis = useMemo(() => analyzeWordPlacements(gridData, wordList), [gridData, wordList]);
 
-  const addWord = () =>
+  const indexedWords = useMemo(
+    () => wordList.map((item, originalIndex) => ({ item, originalIndex })),
+    [wordList]
+  );
+  const addedWords = useMemo(
+    () => indexedWords.filter(({ item }) => isWordAdded(item)),
+    [indexedWords]
+  );
+
+  const addWord = () => {
     setWordList((prev) => [
       ...prev,
       {
@@ -668,86 +756,90 @@ const WordListEditor = () => {
         added: true
       }
     ]);
+    commit();
+  };
 
-  const removeWord = (index: number) => setWordList((prev) => prev.filter((_, i) => i !== index));
+  const removeWord = (index: number) => {
+    setWordList((prev) => prev.filter((_, i) => i !== index));
+    commit();
+  };
 
-  const updateWord = (index: number, patch: Partial<EditableWord>) =>
+  const updateWord = (index: number, patch: Partial<EditableWord>) => {
     setWordList((prev) => prev.map((w, i) => (i === index ? { ...w, ...patch } : w)));
+  };
+
+  const toggleAdded = (index: number, added: boolean) => {
+    setWordList((prev) => prev.map((w, i) => (i === index ? { ...w, added } : w)));
+    commit();
+  };
+
+  const renderWordRows = (
+    rows: readonly { item: EditableWord; originalIndex: number }[],
+    { showSelection, showRemove }: { showSelection: boolean; showRemove: boolean }
+  ) => (
+    <div className="max-h-80 overflow-y-auto overscroll-contain pr-1">
+      <div className="flex flex-col gap-2">
+        {rows.map(({ item, originalIndex }) => {
+          const status = analysis.statuses[originalIndex];
+          const startLabel =
+            status?.status === 'ok'
+              ? `${formatGridCellRef(status.placement.location[0], status.placement.location[1])} ${
+                  status.placement.direction === 'horizontal' ? '→' : '↓'
+                }`
+              : '—';
+          const statusTitle =
+            status?.status === 'ok'
+              ? `Starts at ${formatGridCellRef(status.placement.location[0], status.placement.location[1])} (${status.placement.direction})`
+              : 'Start cell resolved when the word has a unique placement';
+
+          return (
+            <CrosswordWordRow
+              key={item.id}
+              item={item}
+              originalIndex={originalIndex}
+              showSelection={showSelection}
+              showRemove={showRemove}
+              startLabel={startLabel}
+              statusTitle={statusTitle}
+              onUpdate={updateWord}
+              onToggleAdded={toggleAdded}
+              onRemove={removeWord}
+            />
+          );
+        })}
+      </div>
+    </div>
+  );
 
   return (
     <div className="flex flex-col gap-3">
       <Label className="text-lg font-semibold">Words & clues</Label>
-      <div className="flex flex-col gap-2">
-        <AnimatePresence mode="popLayout">
-          {wordList.map((item, idx) => {
-            const status = analysis.statuses[idx];
-            const startLabel =
-              status?.status === 'ok'
-                ? `${formatGridCellRef(status.placement.location[0], status.placement.location[1])} ${
-                    status.placement.direction === 'horizontal' ? '→' : '↓'
-                  }`
-                : '—';
-
-            return (
-              <motion.div
-                key={item.id}
-                initial={{ opacity: 0, height: 0 }}
-                animate={{ opacity: 1, height: 'auto' }}
-                exit={{ opacity: 0, height: 0 }}
-                className="flex flex-wrap items-start gap-2 overflow-hidden sm:flex-nowrap"
-              >
-                <Checkbox
-                  checked={item.added}
-                  onCheckedChange={(checked) => updateWord(idx, { added: checked === true })}
-                  aria-label={item.added ? 'Disable word' : 'Enable word'}
-                  title={item.added ? 'Included in puzzle' : 'Excluded from puzzle'}
-                  className="mt-2.5"
-                />
-                <Input
-                  value={item.word}
-                  onChange={(e) =>
-                    updateWord(idx, {
-                      word: e.currentTarget.value.toUpperCase().replace(/[^A-Z]/g, '')
-                    })
-                  }
-                  onFocus={historyField.onFocus}
-                  onBlur={historyField.onBlur}
-                  placeholder="WORD"
-                  className={cn('w-36 font-mono uppercase sm:w-44', !item.added && 'opacity-60')}
-                />
-                <Input
-                  value={item.description}
-                  onChange={(e) => updateWord(idx, { description: e.currentTarget.value })}
-                  onFocus={historyField.onFocus}
-                  onBlur={historyField.onBlur}
-                  placeholder="Clue / description"
-                  className={cn('min-w-0 flex-1', !item.added && 'opacity-60')}
-                />
-                <span
-                  className="inline-flex h-9 min-w-14 shrink-0 items-center justify-center rounded-md border border-border bg-muted/40 px-2 font-mono text-xs text-muted-foreground"
-                  title={
-                    status?.status === 'ok'
-                      ? `Starts at ${formatGridCellRef(status.placement.location[0], status.placement.location[1])} (${status.placement.direction})`
-                      : 'Start cell resolved when the word has a unique placement'
-                  }
-                >
-                  {startLabel}
-                </span>
-                <Button
-                  variant="ghost"
-                  className="p-0 text-red-500 has-[>svg]:p-0 dark:text-red-400"
-                  onClick={() => removeWord(idx)}
-                >
-                  <IoMdClose className="inline-block" />
-                </Button>
-              </motion.div>
-            );
-          })}
-        </AnimatePresence>
-        <Button variant="outline" size="sm" className="w-fit gap-1" onClick={addWord}>
-          <IoMdAdd className="text-lg" /> Add Word
-        </Button>
-      </div>
+      <Tabs defaultValue="added" className="gap-3">
+        <TabsList className="w-full">
+          <TabsTrigger value="added" className="flex-1">
+            Added Words
+          </TabsTrigger>
+          <TabsTrigger value="edit" className="flex-1">
+            Edit List
+          </TabsTrigger>
+        </TabsList>
+        <TabsContent value="added">
+          <div className="flex flex-col gap-3">
+            {renderWordRows(addedWords, { showSelection: false, showRemove: false })}
+            <Button variant="outline" size="sm" className="w-fit gap-1" onClick={addWord}>
+              <IoMdAdd className="text-lg" /> Add Word
+            </Button>
+          </div>
+        </TabsContent>
+        <TabsContent value="edit">
+          <div className="flex flex-col gap-3">
+            {renderWordRows(indexedWords, { showSelection: true, showRemove: true })}
+            <Button variant="outline" size="sm" className="w-fit gap-1" onClick={addWord}>
+              <IoMdAdd className="text-lg" /> Add Word
+            </Button>
+          </div>
+        </TabsContent>
+      </Tabs>
     </div>
   );
 };

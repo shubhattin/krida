@@ -162,7 +162,13 @@ const ViewEditPuzzle = ({ word_puzzle: initialWordPuzzle }: ViewEditProps) => {
 
   useHydrateAtoms([
     [title_atom, word_puzzle.title],
-    [word_list_atom, word_puzzle.word_list.map((entry) => ({ ...entry }))],
+    [
+      word_list_atom,
+      word_puzzle.word_list.map((entry) => ({
+        word: entry.word,
+        added: entry.added !== false
+      }))
+    ],
     [grid_data_atom, word_puzzle.grid_data.map((row) => [...row])],
     [listed_atom, word_puzzle.listed],
     [description_atom, word_puzzle.description],
@@ -907,14 +913,22 @@ const TraversalAnalysis = ({
 const WordList = ({ gridDimensions }: { gridDimensions: [number, number] }) => {
   const [wordList, setWordList] = useAtom(word_list_atom);
   const [lipi_lekhika_active] = useAtom(lipi_lekhika_active_atom);
+  const { commit } = useEditorHistoryActions();
 
-  const addWord = () => setWordList((prev) => [...prev, { word: '', added: true }]);
-  const removeWord = (index: number) => setWordList((prev) => prev.filter((_, i) => i !== index));
+  const addWord = () => {
+    setWordList((prev) => [...prev, { word: '', added: true }]);
+    commit();
+  };
+  const removeWord = (index: number) => {
+    setWordList((prev) => prev.filter((_, i) => i !== index));
+    commit();
+  };
   const updateWord = (index: number, value: string) => {
     setWordList((prev) => prev.map((w, i) => (i === index ? { ...w, word: value } : w)));
   };
   const toggleAdded = (index: number, added: boolean) => {
     setWordList((prev) => prev.map((w, i) => (i === index ? { ...w, added } : w)));
+    commit();
   };
 
   return (
