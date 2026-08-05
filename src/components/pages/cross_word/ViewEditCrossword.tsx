@@ -1,12 +1,12 @@
 'use client';
 
-import { useMemo, useRef, useState, type KeyboardEvent } from 'react';
+import { useEffect, useMemo, useRef, useState, type KeyboardEvent } from 'react';
 import { atom, useAtom } from 'jotai';
 import { useHydrateAtoms } from 'jotai/utils';
 import { useRouter } from 'next/navigation';
 import { useQueryClient } from '@tanstack/react-query';
 import { AnimatePresence, motion } from 'framer-motion';
-import { ArrowRight, Info, Pencil } from 'lucide-react';
+import { ArrowRight, ChevronLeft, ChevronRight, Info, Pencil, WandSparkles } from 'lucide-react';
 import { IoMdAdd, IoMdClose } from 'react-icons/io';
 import { MdDeleteOutline, MdDragIndicator } from 'react-icons/md';
 import { toast } from 'sonner';
@@ -77,6 +77,13 @@ import { Popover, PopoverContent, PopoverTrigger } from '~/components/ui/popover
 import { cn } from '~/lib/utils';
 import { analyzeWordPlacements } from '~/util/cross_word/placement';
 import {
+  generateCrosswordLayouts,
+  rankGeneratedLayouts,
+  type GeneratedCrosswordLayout,
+  type LayoutDensity,
+  type LayoutRanking
+} from '~/util/cross_word/layout_generator';
+import {
   CROSSWORD_MAX_DIM,
   CROSSWORD_MIN_DIM,
   cellHasLetter,
@@ -97,7 +104,10 @@ import {
   useEditorHistoryActions,
   useHistoryTextField
 } from '~/hooks/useEditorHistory';
+import { Badge } from '~/components/ui/badge';
 import { Checkbox } from '~/components/ui/checkbox';
+import { Tabs, TabsContent, TabsList, TabsTrigger } from '~/components/ui/tabs';
+import { isWordAdded } from '~/util/puzzle/word_list';
 
 type EditableWord = {
   id: string;
@@ -163,7 +173,7 @@ function toEditableWords(words: CrossWordPuzzleWord[]): EditableWord[] {
     description: w.description,
     location: w.location,
     direction: w.direction,
-    added: w.added
+    added: w.added !== false
   }));
 }
 
@@ -649,14 +659,702 @@ const DimensionsField = () => {
   );
 };
 
+type CrosswordWordRowProps = {
+  item: EditableWord;
+  originalIndex: number;
+  showSelection: boolean;
+  showRemove: boolean;
+  startLabel: string;
+  statusTitle: string;
+  onUpdate: (index: number, patch: Partial<EditableWord>) => void;
+  onToggleAdded: (index: number, added: boolean) => void;
+  onRemove: (index: number) => void;
+};
+
+function CrosswordWordRow({
+  item,
+  originalIndex,
+  showSelection,
+  showRemove,
+  startLabel,
+  statusTitle,
+  onUpdate,
+  onToggleAdded,
+  onRemove
+}: CrosswordWordRowProps) {
+  const wordHistoryField = useHistoryTextField();
+  const clueHistoryField = useHistoryTextField();
+  const isAdded = isWordAdded(item);
+
+  return (
+    <div className="flex flex-wrap items-start gap-2 sm:flex-nowrap">
+      {showSelection ? (
+        <Checkbox
+          checked={isAdded}
+          onCheckedChange={(checked) => onToggleAdded(originalIndex, checked === true)}
+          aria-label={isAdded ? 'Exclude word from puzzle' : 'Include word in puzzle'}
+          className="mt-2.5"
+        />
+      ) : null}
+      <Input
+        value={item.word}
+        onChange={(e) =>
+          onUpdate(originalIndex, {
+            word: e.currentTarget.value.toUpperCase().replace(/[^A-Z]/g, '')
+          })
+        }
+        onFocus={wordHistoryField.onFocus}
+        onBlur={wordHistoryField.onBlur}
+        placeholder="WORD"
+        className={cn('w-36 font-mono uppercase sm:w-44', !isAdded && 'opacity-60')}
+      />
+      <Input
+        value={item.description}
+        onChange={(e) => onUpdate(originalIndex, { description: e.currentTarget.value })}
+        onFocus={clueHistoryField.onFocus}
+        onBlur={clueHistoryField.onBlur}
+        placeholder="Clue / description"
+        className={cn('min-w-0 flex-1', !isAdded && 'opacity-60')}
+      />
+      <span
+        className="inline-flex h-9 min-w-14 shrink-0 items-center justify-center rounded-md border border-border bg-muted/40 px-2 font-mono text-xs text-muted-foreground"
+        title={statusTitle}
+      >
+        {startLabel}
+      </span>
+      {showRemove ? (
+        <Button
+          variant="ghost"
+          className="p-0 text-red-500 has-[>svg]:p-0 dark:text-red-400"
+          onClick={() => onRemove(originalIndex)}
+          aria-label={`Remove word ${originalIndex + 1}`}
+        >
+          <IoMdClose className="inline-block" />
+        </Button>
+      ) : null}
+    </div>
+  );
+}
+
+const LAYOUT_RANKING_ITEMS = [
+  { value: 'intersections', label: 'Most crossings' },
+  { value: 'words', label: 'Most words' },
+  { value: 'letters', label: 'Most letters' }
+];
+
+const LAYOUT_DENSITY_ITEMS = [
+  { value: 'balanced', label: 'Balanced' },
+  { value: 'center', label: 'Center' },
+  { value: 'left', label: 'Left' },
+  { value: 'right', label: 'Right' },
+  { value: 'top', label: 'Top' },
+  { value: 'bottom', label: 'Bottom' }
+] as const;
+
+const LAYOUT_DENSITIES = ['balanced', 'center', 'left', 'right', 'top', 'bottom'] as const;
+
+function parseLayoutDensity(value: string | null | undefined): LayoutDensity | null {
+  return LAYOUT_DENSITIES.includes(value as LayoutDensity) ? (value as LayoutDensity) : null;
+}
+
+const LAYOUT_CANDIDATE_LIMITS = [4, 8, 12, 16, 24, 32, 40] as const;
+type LayoutCandidateLimit = (typeof LAYOUT_CANDIDATE_LIMITS)[number];
+
+const LAYOUT_CANDIDATE_LIMIT_ITEMS = LAYOUT_CANDIDATE_LIMITS.map((limit) => ({
+  value: String(limit),
+  label: `${limit} layouts`
+}));
+
+function parseLayoutCandidateLimit(value: string | null | undefined): LayoutCandidateLimit | null {
+  const parsed = Number(value);
+  return LAYOUT_CANDIDATE_LIMITS.includes(parsed as LayoutCandidateLimit)
+    ? (parsed as LayoutCandidateLimit)
+    : null;
+}
+
+function layoutCandidateKey(candidate: GeneratedCrosswordLayout) {
+  return candidate.placements
+    .map((placement) => `${placement.id}-${placement.location.join(',')}-${placement.direction}`)
+    .join('|');
+}
+
+const LAYOUT_PREVIEW_FRAME_PX = 256;
+const LAYOUT_PREVIEW_GAP_PX = 1;
+
+function GeneratedLayoutPreview({ candidate }: { candidate: GeneratedCrosswordLayout }) {
+  const populatedRows = candidate.gridData
+    .map((row, index) => (row.some(cellHasLetter) ? index : -1))
+    .filter((index) => index >= 0);
+  const populatedColumns = (candidate.gridData[0] ?? [])
+    .map((_, columnIndex) =>
+      candidate.gridData.some((row) => cellHasLetter(row[columnIndex]!)) ? columnIndex : -1
+    )
+    .filter((index) => index >= 0);
+  if (populatedRows.length === 0 || populatedColumns.length === 0) return null;
+
+  const firstRow = populatedRows[0]!;
+  const lastRow = populatedRows[populatedRows.length - 1]!;
+  const firstColumn = populatedColumns[0]!;
+  const lastColumn = populatedColumns[populatedColumns.length - 1]!;
+  const previewRows = candidate.gridData
+    .slice(firstRow, lastRow + 1)
+    .map((row) => row.slice(firstColumn, lastColumn + 1));
+  const rowCount = previewRows.length;
+  const columnCount = previewRows[0]!.length;
+  const majorSpan = Math.max(rowCount, columnCount, 1);
+  const cellPx = Math.max(
+    1,
+    Math.floor((LAYOUT_PREVIEW_FRAME_PX - (majorSpan - 1) * LAYOUT_PREVIEW_GAP_PX) / majorSpan)
+  );
+  const gridWidth = cellPx * columnCount + LAYOUT_PREVIEW_GAP_PX * Math.max(0, columnCount - 1);
+  const gridHeight = cellPx * rowCount + LAYOUT_PREVIEW_GAP_PX * Math.max(0, rowCount - 1);
+  const fontSizePx = Math.max(8, Math.min(12, cellPx - 4));
+  const rangeLabel = `${formatGridCellRef(firstRow, firstColumn)}–${formatGridCellRef(lastRow, lastColumn)}`;
+
+  return (
+    <div
+      className="flex shrink-0 items-center justify-center rounded-md border border-border/60 bg-muted/20 p-1"
+      style={{ width: LAYOUT_PREVIEW_FRAME_PX + 10, height: LAYOUT_PREVIEW_FRAME_PX + 10 }}
+    >
+      <div
+        aria-label={`Letter-cell preview from ${rangeLabel}`}
+        className="grid bg-border/60"
+        style={{
+          width: gridWidth,
+          height: gridHeight,
+          gap: LAYOUT_PREVIEW_GAP_PX,
+          gridTemplateColumns: `repeat(${columnCount}, ${cellPx}px)`,
+          gridTemplateRows: `repeat(${rowCount}, ${cellPx}px)`
+        }}
+      >
+        {previewRows.flatMap((row, rowIndex) =>
+          row.map((cell, columnIndex) => (
+            <span
+              key={`${rowIndex}-${columnIndex}`}
+              className={cn(
+                'flex items-center justify-center overflow-hidden font-mono leading-none font-semibold',
+                cellHasLetter(cell)
+                  ? 'bg-blue-50 text-foreground dark:bg-blue-950/50'
+                  : 'bg-popover text-transparent'
+              )}
+              style={{
+                width: cellPx,
+                height: cellPx,
+                fontSize: fontSizePx,
+                lineHeight: 1
+              }}
+            >
+              {cell.text}
+            </span>
+          ))
+        )}
+      </div>
+    </div>
+  );
+}
+
+function LayoutMetric({ label, value }: { label: string; value: number }) {
+  return (
+    <div className="flex flex-col gap-0.5 rounded-md border border-border/80 bg-muted/30 px-2.5 py-2">
+      <span className="text-[10px] tracking-wide text-muted-foreground uppercase">{label}</span>
+      <span className="font-mono text-sm font-semibold tabular-nums">{value}</span>
+    </div>
+  );
+}
+
+function WordChipList({
+  ids,
+  wordNames,
+  emptyLabel,
+  tone = 'default'
+}: {
+  ids: readonly string[];
+  wordNames: ReadonlyMap<string, string>;
+  emptyLabel: string;
+  tone?: 'default' | 'warning';
+}) {
+  if (ids.length === 0) {
+    return <p className="text-xs text-muted-foreground">{emptyLabel}</p>;
+  }
+
+  return (
+    <div className="flex flex-wrap gap-1.5">
+      {ids.map((id) => (
+        <Badge
+          key={id}
+          variant="outline"
+          className={cn(
+            'max-w-full font-mono normal-case',
+            tone === 'warning' &&
+              'border-amber-500/40 bg-amber-500/10 text-amber-800 dark:text-amber-200'
+          )}
+        >
+          <span className="truncate">
+            {wordNames.get(id)?.trim().toUpperCase() || 'Untitled word'}
+          </span>
+        </Badge>
+      ))}
+    </div>
+  );
+}
+
+function LayoutCandidateDetail({
+  candidate,
+  wordNames
+}: {
+  candidate: GeneratedCrosswordLayout;
+  wordNames: ReadonlyMap<string, string>;
+}) {
+  const { score } = candidate;
+
+  return (
+    <div className="flex flex-col gap-4 sm:flex-row sm:items-start">
+      <GeneratedLayoutPreview candidate={candidate} />
+      <div className="flex min-w-0 flex-1 flex-col gap-4">
+        <div className="grid grid-cols-2 gap-2 sm:grid-cols-4">
+          <LayoutMetric label="Words" value={score.placedWordCount} />
+          <LayoutMetric label="Letters" value={score.placedLetterCount} />
+          <LayoutMetric label="Crosses" value={score.intersectionCount} />
+          <LayoutMetric label="Area" value={score.compactness} />
+        </div>
+        <div className="flex flex-col gap-2">
+          <div className="flex items-center gap-2">
+            <h4 className="text-sm font-medium">Placed</h4>
+            <Badge variant="secondary" className="tabular-nums">
+              {candidate.placedIds.length}
+            </Badge>
+          </div>
+          <WordChipList
+            ids={candidate.placedIds}
+            wordNames={wordNames}
+            emptyLabel="No words placed in this layout."
+          />
+        </div>
+        {candidate.omittedIds.length > 0 ? (
+          <div className="flex flex-col gap-2">
+            <div className="flex items-center gap-2">
+              <h4 className="text-sm font-medium text-amber-700 dark:text-amber-300">Excluded</h4>
+              <Badge
+                variant="outline"
+                className="border-amber-500/40 text-amber-700 tabular-nums dark:text-amber-300"
+              >
+                {candidate.omittedIds.length}
+              </Badge>
+            </div>
+            <WordChipList
+              ids={candidate.omittedIds}
+              wordNames={wordNames}
+              emptyLabel="No excluded words."
+              tone="warning"
+            />
+          </div>
+        ) : null}
+      </div>
+    </div>
+  );
+}
+
+function LayoutTabsCarousel({
+  candidates,
+  activeKey,
+  onSelect
+}: {
+  candidates: GeneratedCrosswordLayout[];
+  activeKey: string;
+  onSelect: (key: string) => void;
+}) {
+  const tabsScrollRef = useRef<HTMLDivElement>(null);
+  const activeIndex = candidates.findIndex(
+    (candidate) => layoutCandidateKey(candidate) === activeKey
+  );
+  const canGoPrev = activeIndex > 0;
+  const canGoNext = activeIndex >= 0 && activeIndex < candidates.length - 1;
+
+  useEffect(() => {
+    const root = tabsScrollRef.current;
+    if (!root || activeIndex < 0) return;
+    const activeTrigger = root.querySelector<HTMLElement>(
+      '[data-slot="tabs-trigger"][data-active]'
+    );
+    if (!activeTrigger) return;
+    const rootRect = root.getBoundingClientRect();
+    const tabRect = activeTrigger.getBoundingClientRect();
+    const delta = tabRect.left - rootRect.left - (rootRect.width - tabRect.width) / 2;
+    root.scrollBy({ left: delta, behavior: 'smooth' });
+  }, [activeKey, activeIndex]);
+
+  const goToIndex = (index: number) => {
+    const next = candidates[index];
+    if (!next) return;
+    onSelect(layoutCandidateKey(next));
+  };
+
+  return (
+    <div className="flex shrink-0 flex-col gap-1.5 border-b border-border bg-popover px-3 py-2 sm:px-4">
+      <div className="flex items-center gap-1.5">
+        <Button
+          type="button"
+          variant="outline"
+          size="icon-sm"
+          className="shrink-0"
+          disabled={!canGoPrev}
+          aria-label="Previous layout"
+          onClick={() => goToIndex(activeIndex - 1)}
+        >
+          <ChevronLeft />
+        </Button>
+
+        <div ref={tabsScrollRef} className="scrollbar-hide min-w-0 flex-1 overflow-x-auto">
+          <TabsList
+            variant="line"
+            className="h-auto w-max min-w-full justify-start gap-1 select-none"
+          >
+            {candidates.map((candidate, index) => {
+              const key = layoutCandidateKey(candidate);
+              return (
+                <TabsTrigger key={key} value={key} className="shrink-0 px-3 select-none">
+                  Layout {index + 1}
+                  <Badge variant="secondary" className="tabular-nums">
+                    {candidate.score.intersectionCount}×
+                  </Badge>
+                </TabsTrigger>
+              );
+            })}
+          </TabsList>
+        </div>
+
+        <Button
+          type="button"
+          variant="outline"
+          size="icon-sm"
+          className="shrink-0"
+          disabled={!canGoNext}
+          aria-label="Next layout"
+          onClick={() => goToIndex(activeIndex + 1)}
+        >
+          <ChevronRight />
+        </Button>
+      </div>
+      <p className="px-0.5 text-[11px] text-muted-foreground/70 select-none">
+        N× on each tab = shared letter crossings in that layout
+      </p>
+    </div>
+  );
+}
+
+function CrosswordLayoutGenerator() {
+  const [wordList, setWordList] = useAtom(word_list_atom);
+  const [dimensions] = useAtom(grid_dimensions_atom);
+  const [, setGridData] = useAtom(grid_data_atom);
+  const { commit } = useEditorHistoryActions();
+  const [open, setOpen] = useState(false);
+  const [confirmOpen, setConfirmOpen] = useState(false);
+  const [ranking, setRanking] = useState<LayoutRanking>('intersections');
+  const [density, setDensity] = useState<LayoutDensity>('balanced');
+  const [maxCandidates, setMaxCandidates] = useState<LayoutCandidateLimit>(16);
+  const [generationSeed, setGenerationSeed] = useState(1);
+  const [candidates, setCandidates] = useState<GeneratedCrosswordLayout[]>([]);
+  const [selectedKey, setSelectedKey] = useState('');
+  const [candidateToApply, setCandidateToApply] = useState<GeneratedCrosswordLayout | null>(null);
+
+  const wordNames = useMemo(
+    () => new Map(wordList.map((word) => [word.id, word.word])),
+    [wordList]
+  );
+  const rankedCandidates = useMemo(
+    () => rankGeneratedLayouts(candidates, ranking),
+    [candidates, ranking]
+  );
+  const rankedKeys = useMemo(() => rankedCandidates.map(layoutCandidateKey), [rankedCandidates]);
+  const activeKey = rankedKeys.includes(selectedKey) ? selectedKey : (rankedKeys[0] ?? '');
+  const activeCandidate =
+    rankedCandidates.find((candidate) => layoutCandidateKey(candidate) === activeKey) ?? null;
+
+  const runGeneration = ({
+    limit = maxCandidates,
+    rankingOverride = ranking,
+    densityOverride = density
+  }: {
+    limit?: LayoutCandidateLimit;
+    rankingOverride?: LayoutRanking;
+    densityOverride?: LayoutDensity;
+  } = {}) => {
+    const usableWords = wordList.filter((word) => word.added && word.word.trim().length >= 2);
+    if (usableWords.length === 0) {
+      toast.error('Add at least one word with two or more letters before generating a layout');
+      return false;
+    }
+    const nextSeed = generationSeed + 1;
+    const nextCandidates = generateCrosswordLayouts({
+      words: wordList
+        .filter((word) => word.added)
+        .map(({ id, word, description }) => ({ id, word, description })),
+      dimensions,
+      maxCandidates: limit,
+      // More layout slots need more randomized search attempts.
+      attempts: Math.max(48, limit * 6),
+      density: densityOverride,
+      seed: nextSeed
+    });
+    if (nextCandidates.length === 0) {
+      toast.error('No valid layouts could be generated for these words and dimensions');
+      return false;
+    }
+    const ranked = rankGeneratedLayouts(nextCandidates, rankingOverride);
+    setCandidates(nextCandidates);
+    setMaxCandidates(limit);
+    setDensity(densityOverride);
+    setGenerationSeed(nextSeed);
+    setSelectedKey(ranked[0] ? layoutCandidateKey(ranked[0]) : '');
+    setCandidateToApply(null);
+    return true;
+  };
+
+  const openGenerator = () => {
+    if (!runGeneration({ rankingOverride: 'intersections' })) return;
+    setRanking('intersections');
+    setOpen(true);
+  };
+
+  const applyCandidate = () => {
+    if (!candidateToApply) return;
+    const placementById = new Map(
+      candidateToApply.placements.map((placement) => [placement.id, placement])
+    );
+    const omittedIdSet = new Set(candidateToApply.omittedIds);
+    setGridData(candidateToApply.gridData);
+    setWordList((previous) =>
+      previous.map((word) => {
+        const placement = placementById.get(word.id);
+        if (!placement) {
+          if (!omittedIdSet.has(word.id)) return word;
+          return {
+            ...word,
+            added: false
+          };
+        }
+        return {
+          ...word,
+          added: true,
+          location: placement.location,
+          direction: placement.direction
+        };
+      })
+    );
+    commit();
+    setConfirmOpen(false);
+    setOpen(false);
+    toast.success('Generated layout applied');
+  };
+
+  return (
+    <>
+      <Button variant="outline" size="sm" className="w-fit gap-1.5" onClick={openGenerator}>
+        <WandSparkles className="size-3.5" />
+        Generate layouts
+      </Button>
+
+      <Dialog
+        open={open}
+        onOpenChange={(nextOpen) => {
+          setOpen(nextOpen);
+          if (!nextOpen) {
+            setCandidateToApply(null);
+            setSelectedKey('');
+          }
+        }}
+      >
+        <DialogContent className="flex max-h-[min(90vh,52rem)] flex-col gap-0 overflow-hidden p-0 sm:max-w-3xl">
+          <DialogHeader className="shrink-0 gap-1.5 px-4 pt-4 pr-12 pb-3">
+            <DialogTitle>Generate crossword layouts</DialogTitle>
+            <DialogDescription>
+              Browse candidates for the current grid size. Choosing one replaces the grid; words
+              that do not fit stay in your list with their clues.
+            </DialogDescription>
+          </DialogHeader>
+
+          <div className="shrink-0 border-b border-border bg-muted/20 px-4 py-3">
+            <div className="grid grid-cols-1 gap-3 sm:grid-cols-3">
+              <div className="flex min-w-0 flex-col gap-1.5">
+                <Label
+                  htmlFor="layout-density"
+                  className="text-xs font-medium tracking-wide text-muted-foreground uppercase"
+                >
+                  Word density
+                </Label>
+                <Select
+                  items={[...LAYOUT_DENSITY_ITEMS]}
+                  value={density}
+                  onValueChange={(value) => {
+                    const nextDensity = parseLayoutDensity(value);
+                    if (!nextDensity || nextDensity === density) return;
+                    runGeneration({ densityOverride: nextDensity });
+                  }}
+                >
+                  <SelectTrigger id="layout-density" className="w-full">
+                    <SelectValue />
+                  </SelectTrigger>
+                  <SelectContent>
+                    {LAYOUT_DENSITY_ITEMS.map((item) => (
+                      <SelectItem key={item.value} value={item.value}>
+                        {item.label}
+                      </SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+                <p className="text-[11px] leading-snug text-muted-foreground/80">
+                  Prefer where words gather on the grid
+                </p>
+              </div>
+
+              <div className="flex min-w-0 flex-col gap-1.5">
+                <Label
+                  htmlFor="layout-ranking"
+                  className="text-xs font-medium tracking-wide text-muted-foreground uppercase"
+                >
+                  Rank by
+                </Label>
+                <Select
+                  items={LAYOUT_RANKING_ITEMS}
+                  value={ranking}
+                  onValueChange={(value) => {
+                    if (value === 'intersections' || value === 'words' || value === 'letters') {
+                      setRanking(value);
+                    }
+                  }}
+                >
+                  <SelectTrigger id="layout-ranking" className="w-full">
+                    <SelectValue />
+                  </SelectTrigger>
+                  <SelectContent>
+                    {LAYOUT_RANKING_ITEMS.map((item) => (
+                      <SelectItem key={item.value} value={item.value}>
+                        {item.label}
+                      </SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+                <p className="text-[11px] leading-snug text-muted-foreground/80">
+                  Reorders tabs without regenerating
+                </p>
+              </div>
+
+              <div className="flex min-w-0 flex-col gap-1.5">
+                <Label
+                  htmlFor="layout-candidate-limit"
+                  className="text-xs font-medium tracking-wide text-muted-foreground uppercase"
+                >
+                  Candidates
+                </Label>
+                <Select
+                  items={[...LAYOUT_CANDIDATE_LIMIT_ITEMS]}
+                  value={String(maxCandidates)}
+                  onValueChange={(value) => {
+                    const nextLimit = parseLayoutCandidateLimit(value);
+                    if (!nextLimit || nextLimit === maxCandidates) return;
+                    runGeneration({ limit: nextLimit });
+                  }}
+                >
+                  <SelectTrigger id="layout-candidate-limit" className="w-full">
+                    <SelectValue />
+                  </SelectTrigger>
+                  <SelectContent>
+                    {LAYOUT_CANDIDATE_LIMIT_ITEMS.map((item) => (
+                      <SelectItem key={item.value} value={item.value}>
+                        {item.label}
+                      </SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+                <p className="text-[11px] leading-snug text-muted-foreground/80">
+                  Max distinct layouts to keep
+                </p>
+              </div>
+            </div>
+          </div>
+
+          {rankedCandidates.length > 0 && activeKey ? (
+            <Tabs
+              value={activeKey}
+              onValueChange={setSelectedKey}
+              className="flex min-h-0 flex-1 flex-col gap-0 overflow-hidden"
+            >
+              <LayoutTabsCarousel
+                candidates={rankedCandidates}
+                activeKey={activeKey}
+                onSelect={setSelectedKey}
+              />
+
+              <div className="min-h-0 flex-1 overflow-x-hidden overflow-y-auto px-4 pt-4 pb-6">
+                {rankedCandidates.map((candidate) => {
+                  const key = layoutCandidateKey(candidate);
+                  return (
+                    <TabsContent key={key} value={key} className="mt-0 outline-none">
+                      <LayoutCandidateDetail candidate={candidate} wordNames={wordNames} />
+                    </TabsContent>
+                  );
+                })}
+              </div>
+            </Tabs>
+          ) : null}
+
+          <DialogFooter className="shrink-0 border-t border-border px-4 py-3">
+            <div className="flex w-full flex-wrap justify-end gap-2">
+              <Button variant="outline" onClick={() => setOpen(false)}>
+                Cancel
+              </Button>
+              <Button
+                disabled={!activeCandidate}
+                onClick={() => {
+                  if (!activeCandidate) return;
+                  setCandidateToApply(activeCandidate);
+                  setConfirmOpen(true);
+                }}
+              >
+                Use this layout
+              </Button>
+            </div>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
+
+      <AlertDialog open={confirmOpen} onOpenChange={setConfirmOpen}>
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle>Replace the current grid?</AlertDialogTitle>
+            <AlertDialogDescription>
+              This replaces the current grid and updates each placed word&apos;s start and
+              direction. Omitted words will be excluded, while their clues remain in the editor. You
+              can undo this as one change.
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel>Keep current grid</AlertDialogCancel>
+            <AlertDialogAction onClick={applyCandidate}>Use generated layout</AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
+    </>
+  );
+}
+
 const WordListEditor = () => {
   const [wordList, setWordList] = useAtom(word_list_atom);
   const [gridData] = useAtom(grid_data_atom);
-  const historyField = useHistoryTextField();
+  const { commit } = useEditorHistoryActions();
 
   const analysis = useMemo(() => analyzeWordPlacements(gridData, wordList), [gridData, wordList]);
 
-  const addWord = () =>
+  const indexedWords = useMemo(
+    () => wordList.map((item, originalIndex) => ({ item, originalIndex })),
+    [wordList]
+  );
+  const addedWords = useMemo(
+    () => indexedWords.filter(({ item }) => isWordAdded(item)),
+    [indexedWords]
+  );
+
+  const addWord = () => {
     setWordList((prev) => [
       ...prev,
       {
@@ -668,86 +1366,93 @@ const WordListEditor = () => {
         added: true
       }
     ]);
+    commit();
+  };
 
-  const removeWord = (index: number) => setWordList((prev) => prev.filter((_, i) => i !== index));
+  const removeWord = (index: number) => {
+    setWordList((prev) => prev.filter((_, i) => i !== index));
+    commit();
+  };
 
-  const updateWord = (index: number, patch: Partial<EditableWord>) =>
+  const updateWord = (index: number, patch: Partial<EditableWord>) => {
     setWordList((prev) => prev.map((w, i) => (i === index ? { ...w, ...patch } : w)));
+  };
+
+  const toggleAdded = (index: number, added: boolean) => {
+    setWordList((prev) => prev.map((w, i) => (i === index ? { ...w, added } : w)));
+    commit();
+  };
+
+  const renderWordRows = (
+    rows: readonly { item: EditableWord; originalIndex: number }[],
+    { showSelection, showRemove }: { showSelection: boolean; showRemove: boolean }
+  ) => (
+    <div className="max-h-80 overflow-y-auto overscroll-contain pr-1">
+      <div className="flex flex-col gap-2">
+        {rows.map(({ item, originalIndex }) => {
+          const status = analysis.statuses[originalIndex];
+          const startLabel =
+            status?.status === 'ok'
+              ? `${formatGridCellRef(status.placement.location[0], status.placement.location[1])} ${
+                  status.placement.direction === 'horizontal' ? '→' : '↓'
+                }`
+              : '—';
+          const statusTitle =
+            status?.status === 'ok'
+              ? `Starts at ${formatGridCellRef(status.placement.location[0], status.placement.location[1])} (${status.placement.direction})`
+              : 'Start cell resolved when the word has a unique placement';
+
+          return (
+            <CrosswordWordRow
+              key={item.id}
+              item={item}
+              originalIndex={originalIndex}
+              showSelection={showSelection}
+              showRemove={showRemove}
+              startLabel={startLabel}
+              statusTitle={statusTitle}
+              onUpdate={updateWord}
+              onToggleAdded={toggleAdded}
+              onRemove={removeWord}
+            />
+          );
+        })}
+      </div>
+    </div>
+  );
 
   return (
     <div className="flex flex-col gap-3">
       <Label className="text-lg font-semibold">Words & clues</Label>
-      <div className="flex flex-col gap-2">
-        <AnimatePresence mode="popLayout">
-          {wordList.map((item, idx) => {
-            const status = analysis.statuses[idx];
-            const startLabel =
-              status?.status === 'ok'
-                ? `${formatGridCellRef(status.placement.location[0], status.placement.location[1])} ${
-                    status.placement.direction === 'horizontal' ? '→' : '↓'
-                  }`
-                : '—';
-
-            return (
-              <motion.div
-                key={item.id}
-                initial={{ opacity: 0, height: 0 }}
-                animate={{ opacity: 1, height: 'auto' }}
-                exit={{ opacity: 0, height: 0 }}
-                className="flex flex-wrap items-start gap-2 overflow-hidden sm:flex-nowrap"
-              >
-                <Checkbox
-                  checked={item.added}
-                  onCheckedChange={(checked) => updateWord(idx, { added: checked === true })}
-                  aria-label={item.added ? 'Disable word' : 'Enable word'}
-                  title={item.added ? 'Included in puzzle' : 'Excluded from puzzle'}
-                  className="mt-2.5"
-                />
-                <Input
-                  value={item.word}
-                  onChange={(e) =>
-                    updateWord(idx, {
-                      word: e.currentTarget.value.toUpperCase().replace(/[^A-Z]/g, '')
-                    })
-                  }
-                  onFocus={historyField.onFocus}
-                  onBlur={historyField.onBlur}
-                  placeholder="WORD"
-                  className={cn('w-36 font-mono uppercase sm:w-44', !item.added && 'opacity-60')}
-                />
-                <Input
-                  value={item.description}
-                  onChange={(e) => updateWord(idx, { description: e.currentTarget.value })}
-                  onFocus={historyField.onFocus}
-                  onBlur={historyField.onBlur}
-                  placeholder="Clue / description"
-                  className={cn('min-w-0 flex-1', !item.added && 'opacity-60')}
-                />
-                <span
-                  className="inline-flex h-9 min-w-14 shrink-0 items-center justify-center rounded-md border border-border bg-muted/40 px-2 font-mono text-xs text-muted-foreground"
-                  title={
-                    status?.status === 'ok'
-                      ? `Starts at ${formatGridCellRef(status.placement.location[0], status.placement.location[1])} (${status.placement.direction})`
-                      : 'Start cell resolved when the word has a unique placement'
-                  }
-                >
-                  {startLabel}
-                </span>
-                <Button
-                  variant="ghost"
-                  className="p-0 text-red-500 has-[>svg]:p-0 dark:text-red-400"
-                  onClick={() => removeWord(idx)}
-                >
-                  <IoMdClose className="inline-block" />
-                </Button>
-              </motion.div>
-            );
-          })}
-        </AnimatePresence>
-        <Button variant="outline" size="sm" className="w-fit gap-1" onClick={addWord}>
-          <IoMdAdd className="text-lg" /> Add Word
-        </Button>
-      </div>
+      <Tabs defaultValue="added" className="gap-3">
+        <TabsList className="w-full">
+          <TabsTrigger value="added" className="flex-1">
+            Added Words
+          </TabsTrigger>
+          <TabsTrigger value="edit" className="flex-1">
+            Edit List
+          </TabsTrigger>
+        </TabsList>
+        <TabsContent value="added">
+          <div className="flex flex-col gap-3">
+            {renderWordRows(addedWords, { showSelection: false, showRemove: false })}
+            <div className="flex flex-wrap gap-2">
+              <Button variant="outline" size="sm" className="w-fit gap-1" onClick={addWord}>
+                <IoMdAdd className="text-lg" /> Add Word
+              </Button>
+              <CrosswordLayoutGenerator />
+            </div>
+          </div>
+        </TabsContent>
+        <TabsContent value="edit">
+          <div className="flex flex-col gap-3">
+            {renderWordRows(indexedWords, { showSelection: true, showRemove: true })}
+            <Button variant="outline" size="sm" className="w-fit gap-1" onClick={addWord}>
+              <IoMdAdd className="text-lg" /> Add Word
+            </Button>
+          </div>
+        </TabsContent>
+      </Tabs>
     </div>
   );
 };

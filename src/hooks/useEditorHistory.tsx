@@ -92,6 +92,7 @@ export function EditorHistoryProvider<M extends AtomMap>({
   const savedStackDepthRef = useRef(0);
   const commitScheduledRef = useRef(false);
   const didInitRef = useRef(false);
+  const atomsKeyRef = useRef('');
   const pendingSaveRef = useRef<SnapshotOf<M> | null>(null);
   const listenersRef = useRef(new Set<() => void>());
   // Cached state so useSyncExternalStore can bail out on referential equality.
@@ -146,38 +147,42 @@ export function EditorHistoryProvider<M extends AtomMap>({
     };
   }, []);
 
-  const commitNow = useCallback(() => {
-    if (isRestoringRef.current) return;
-    if (typingDepthRef.current > 0) return;
+  const commitNow = useCallback(
+    (options?: { force?: boolean }) => {
+      if (isRestoringRef.current) return;
+      // Typing batches keystrokes; discrete actions (checkbox, add/remove) pass force.
+      if (!options?.force && typingDepthRef.current > 0) return;
 
-    const current = takeSnapshot();
-    const last = lastCommittedRef.current;
-    if (!last) {
-      lastCommittedRef.current = cloneSnapshot(current);
-      if (!savedBaselineRef.current) {
-        savedBaselineRef.current = cloneSnapshot(current);
+      const current = takeSnapshot();
+      const last = lastCommittedRef.current;
+      if (!last) {
+        lastCommittedRef.current = cloneSnapshot(current);
+        if (!savedBaselineRef.current) {
+          savedBaselineRef.current = cloneSnapshot(current);
+        }
+        notify();
+        return;
       }
-      notify();
-      return;
-    }
 
-    if (serialize(current) === serialize(last)) {
-      // Comparable-equal but raw snapshot may still differ (e.g. client-only word ids).
-      // Refresh lastCommitted so later commits don't push a no-op undo entry.
+      if (serialize(current) === serialize(last)) {
+        // Comparable-equal but raw snapshot may still differ (e.g. client-only word ids).
+        // Refresh lastCommitted so later commits don't push a no-op undo entry.
+        lastCommittedRef.current = cloneSnapshot(current);
+        notify();
+        return;
+      }
+
+      undoStackRef.current.push(cloneSnapshot(last));
+      if (undoStackRef.current.length > MAX_STACK) {
+        undoStackRef.current.shift();
+        savedStackDepthRef.current = Math.max(0, savedStackDepthRef.current - 1);
+      }
       lastCommittedRef.current = cloneSnapshot(current);
+      redoStackRef.current = [];
       notify();
-      return;
-    }
-
-    undoStackRef.current.push(cloneSnapshot(last));
-    if (undoStackRef.current.length > MAX_STACK) {
-      undoStackRef.current.shift();
-      savedStackDepthRef.current = Math.max(0, savedStackDepthRef.current - 1);
-    }
-    lastCommittedRef.current = cloneSnapshot(current);
-    redoStackRef.current = [];
-    notify();
-  }, [notify, serialize, takeSnapshot]);
+    },
+    [notify, serialize, takeSnapshot]
+  );
 
   const scheduleCommit = useCallback(() => {
     if (isRestoringRef.current || typingDepthRef.current > 0) return;
@@ -189,10 +194,11 @@ export function EditorHistoryProvider<M extends AtomMap>({
     });
   }, [commitNow]);
 
-  // Keep latest commit helpers in refs so the atom-subscription effect stays mounted once.
+  // Keep latest commit helpers in refs so subscriptions and stable typing helpers stay fresh.
   const scheduleCommitRef = useRef(scheduleCommit);
   const notifyRef = useRef(notify);
   const takeSnapshotRef = useRef(takeSnapshot);
+  const commitNowRef = useRef(commitNow);
 
   useEffect(() => {
     atomEntriesRef.current = Object.entries(atoms) as [keyof M & string, M[keyof M]][];
@@ -200,10 +206,18 @@ export function EditorHistoryProvider<M extends AtomMap>({
     scheduleCommitRef.current = scheduleCommit;
     notifyRef.current = notify;
     takeSnapshotRef.current = takeSnapshot;
-  }, [atoms, comparable, scheduleCommit, notify, takeSnapshot]);
+    commitNowRef.current = commitNow;
+  }, [atoms, comparable, scheduleCommit, notify, takeSnapshot, commitNow]);
 
-  // Seed baselines once, then subscribe for the lifetime of this provider instance.
+  // Seed baselines once; reset history when the atom map's keys change.
+  // Equivalent map object replacements with the same keys keep existing stacks.
   useEffect(() => {
+    atomEntriesRef.current = Object.entries(atoms) as [keyof M & string, M[keyof M]][];
+    const atomsKey = atomEntriesRef.current
+      .map(([key]) => key)
+      .toSorted()
+      .join('\0');
+
     if (!didInitRef.current) {
       const initial = takeSnapshotRef.current();
       lastCommittedRef.current = cloneSnapshot(initial);
@@ -211,7 +225,17 @@ export function EditorHistoryProvider<M extends AtomMap>({
       undoStackRef.current = [];
       redoStackRef.current = [];
       savedStackDepthRef.current = 0;
+      atomsKeyRef.current = atomsKey;
       didInitRef.current = true;
+      notifyRef.current();
+    } else if (atomsKeyRef.current !== atomsKey) {
+      const initial = takeSnapshotRef.current();
+      lastCommittedRef.current = cloneSnapshot(initial);
+      savedBaselineRef.current = cloneSnapshot(initial);
+      undoStackRef.current = [];
+      redoStackRef.current = [];
+      savedStackDepthRef.current = 0;
+      atomsKeyRef.current = atomsKey;
       notifyRef.current();
     }
 
@@ -228,7 +252,19 @@ export function EditorHistoryProvider<M extends AtomMap>({
     return () => {
       for (const unsub of unsubscribers) unsub();
     };
-  }, [store]);
+  }, [store, atoms]);
+
+  // Stable typing helpers — identity must not churn or field unmount cleanups double-end typing.
+  const beginTyping = useCallback(() => {
+    typingDepthRef.current += 1;
+  }, []);
+
+  const endTyping = useCallback(() => {
+    typingDepthRef.current = Math.max(0, typingDepthRef.current - 1);
+    if (typingDepthRef.current === 0) {
+      commitNowRef.current();
+    }
+  }, []);
 
   const actions = useMemo<HistoryActions>(
     () => ({
@@ -255,17 +291,11 @@ export function EditorHistoryProvider<M extends AtomMap>({
         notify();
       },
       commit() {
-        commitNow();
+        // Discrete UI actions must land even while a text field is focused / mid-typing.
+        commitNow({ force: true });
       },
-      beginTyping() {
-        typingDepthRef.current += 1;
-      },
-      endTyping() {
-        typingDepthRef.current = Math.max(0, typingDepthRef.current - 1);
-        if (typingDepthRef.current === 0) {
-          commitNow();
-        }
-      },
+      beginTyping,
+      endTyping,
       beginSave() {
         pendingSaveRef.current = cloneSnapshot(takeSnapshot());
       },
@@ -307,7 +337,7 @@ export function EditorHistoryProvider<M extends AtomMap>({
         notify();
       }
     }),
-    [commitNow, notify, restoreSnapshot, takeSnapshot]
+    [beginTyping, commitNow, endTyping, notify, restoreSnapshot, takeSnapshot]
   );
 
   const value = useMemo<HistoryContextValue>(
