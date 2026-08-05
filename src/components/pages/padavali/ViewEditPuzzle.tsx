@@ -90,8 +90,8 @@ import {
   useEditorHistoryActions,
   useHistoryTextField
 } from '~/hooks/useEditorHistory';
-import { Checkbox } from '~/components/ui/checkbox';
 import { padavaliActiveWords } from '~/util/puzzle/word_list';
+import { PadavaliWordListEditor } from '~/components/pages/padavali/PadavaliWordListEditor';
 
 const ATTACHMENT_TYPE_ITEMS = [
   { label: 'Select attachment type', value: null },
@@ -188,7 +188,7 @@ const ViewEditPuzzle = ({ word_puzzle: initialWordPuzzle }: ViewEditProps) => {
             <ListedSwitch slug={word_puzzle.slug} />
             <Description />
             <Attachments />
-            <WordList />
+            <WordList gridDimensions={word_puzzle.grid_dimensions} />
             <TraversalAndGridData grid_dimensions={word_puzzle.grid_dimensions} />
             <PuzzleImageSection word_puzzle={word_puzzle} />
             <SaveButton word_puzzle={word_puzzle} />
@@ -904,10 +904,9 @@ const TraversalAnalysis = ({
   );
 };
 
-const WordList = () => {
+const WordList = ({ gridDimensions }: { gridDimensions: [number, number] }) => {
   const [wordList, setWordList] = useAtom(word_list_atom);
   const [lipi_lekhika_active] = useAtom(lipi_lekhika_active_atom);
-  const historyField = useHistoryTextField();
 
   const addWord = () => setWordList((prev) => [...prev, { word: '', added: true }]);
   const removeWord = (index: number) => setWordList((prev) => prev.filter((_, i) => i !== index));
@@ -918,75 +917,16 @@ const WordList = () => {
     setWordList((prev) => prev.map((w, i) => (i === index ? { ...w, added } : w)));
   };
 
-  const ctx = createTypingContext(BASE_SCRIPT);
-
   return (
-    <div>
-      <Label className="mb-2 block text-lg font-semibold">Word List</Label>
-      <div className="grid max-w-7xl grid-cols-2 gap-2 space-y-2 sm:grid-cols-4 md:grid-cols-5 lg:grid-cols-6">
-        <AnimatePresence mode="popLayout">
-          {wordList.map((entry, idx) => (
-            <motion.div
-              key={idx}
-              initial={{ opacity: 0, height: 0, x: -20 }}
-              animate={{ opacity: 1, height: 'auto', x: 0 }}
-              exit={{ opacity: 0, height: 0, x: 20 }}
-              transition={{
-                duration: 0.2
-              }}
-              className="flex items-center space-x-2 overflow-hidden"
-            >
-              <Checkbox
-                checked={entry.added}
-                onCheckedChange={(checked) => toggleAdded(idx, checked === true)}
-                aria-label={entry.added ? 'Disable word' : 'Enable word'}
-                title={entry.added ? 'Included in puzzle' : 'Excluded from puzzle'}
-              />
-              <motion.div className="flex-1">
-                <Input
-                  type="text"
-                  className={cn('px- py-1 text-base', !entry.added && 'opacity-60')}
-                  value={entry.word}
-                  onChange={(e) => updateWord(idx, e.currentTarget.value)}
-                  onBeforeInput={(e) =>
-                    handleTypingBeforeInputEvent(
-                      ctx,
-                      e,
-                      (newValue) => updateWord(idx, newValue),
-                      lipi_lekhika_active
-                    )
-                  }
-                  onFocus={historyField.onFocus}
-                  onBlur={() => {
-                    ctx.clearContext();
-                    historyField.onBlur();
-                  }}
-                  onKeyDown={(e) => clearTypingContextOnKeyDown(e, ctx)}
-                />
-              </motion.div>
-              <motion.div whileHover={{ scale: 1.05 }} whileTap={{ scale: 0.95 }}>
-                <Button
-                  variant={'ghost'}
-                  className="p-0 text-red-500 has-[>svg]:p-0 dark:text-red-400"
-                  onClick={() => removeWord(idx)}
-                >
-                  <IoMdClose className="inline-block" />
-                </Button>
-              </motion.div>
-            </motion.div>
-          ))}
-        </AnimatePresence>
-        <motion.div
-          whileHover={{ scale: 1.02 }}
-          whileTap={{ scale: 0.98 }}
-          className="inline-block"
-        >
-          <Button variant="outline" size="sm" onClick={addWord}>
-            <IoMdAdd className="text-lg" /> Add Word Slot
-          </Button>
-        </motion.div>
-      </div>
-    </div>
+    <PadavaliWordListEditor
+      wordList={wordList}
+      gridDimensions={gridDimensions}
+      lipiLekhikaActive={lipi_lekhika_active}
+      onAddWord={addWord}
+      onRemoveWord={removeWord}
+      onUpdateWord={updateWord}
+      onToggleAdded={toggleAdded}
+    />
   );
 };
 
