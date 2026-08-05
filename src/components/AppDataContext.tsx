@@ -1,7 +1,6 @@
 'use client';
 
 import { createContext, useState } from 'react';
-import { authClient } from '~/lib/auth-client';
 import { type ScriptType, DEFAULT_DATA_SCRIPT } from '~/state/script_list';
 
 export const AppContext = createContext<{

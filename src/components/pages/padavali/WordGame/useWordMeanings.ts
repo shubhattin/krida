@@ -38,7 +38,7 @@ export function useWordMeanings(puzzle_id: number, puzzle_slug: string) {
     return () => {
       active = false;
     };
-  }, [query.data?.words, script]);
+  }, [query.data, script]);
 
   return { ...query, transliteratedWords, script };
 }

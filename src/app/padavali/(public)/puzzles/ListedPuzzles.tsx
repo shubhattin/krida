@@ -144,16 +144,8 @@ const PuzzleListView = ({ puzzles }: { puzzles: DisplayPuzzle[] }) => {
     [puzzles, searchQuery]
   );
 
-  useEffect(() => {
-    setPage(1);
-  }, [searchQuery]);
-
   const pageCount = Math.max(1, Math.ceil(filteredPuzzles.length / PAGE_LIMIT));
   const safePage = Math.min(page, pageCount);
-
-  useEffect(() => {
-    if (page > pageCount) setPage(pageCount);
-  }, [page, pageCount]);
 
   const paginatedPuzzles = filteredPuzzles.slice(
     (safePage - 1) * PAGE_LIMIT,
@@ -258,12 +250,18 @@ const PuzzleListView = ({ puzzles }: { puzzles: DisplayPuzzle[] }) => {
             </InputGroupAddon>
             <InputGroupInput
               value={searchQuery}
-              onChange={(e) => setSearchQuery(e.currentTarget.value)}
+              onChange={(e) => {
+                setSearchQuery(e.currentTarget.value);
+                setPage(1);
+              }}
               onBeforeInput={(e) =>
                 handleTypingBeforeInputEvent(
                   typing_ctx,
                   e,
-                  (newValue) => setSearchQuery(newValue),
+                  (newValue) => {
+                    setSearchQuery(newValue);
+                    setPage(1);
+                  },
                   lipi_lekhika_typing
                 )
               }

@@ -3,7 +3,7 @@ type str_dict = {
 };
 
 type options = Parameters<typeof fetch>[1] & {
-  json?: any;
+  json?: unknown;
   form?: str_dict;
   params?: str_dict;
   headers?: str_dict;
@@ -19,8 +19,8 @@ type options = Parameters<typeof fetch>[1] & {
 const AharaNam = (url: string, op: options = {}) => {
   if (!op.headers) op.headers = {};
   if ('params' in op) {
-    let params = [] as string[];
-    for (let prm in op.params) params.push(`${prm}=${encodeURIComponent(op.params[prm])}`);
+    const params = [] as string[];
+    for (const prm in op.params) params.push(`${prm}=${encodeURIComponent(op.params[prm])}`);
     url += `?${params.join('&')}`;
     delete op.params;
   } else if ('json' in op) {
@@ -29,7 +29,7 @@ const AharaNam = (url: string, op: options = {}) => {
     op.headers['content-type'] = 'application/json';
   } else if ('form' in op) {
     const data = new FormData();
-    for (let pair in op.form) {
+    for (const pair in op.form) {
       data.append(pair, op.form[pair]);
     }
     delete op.form;

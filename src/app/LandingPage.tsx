@@ -208,22 +208,56 @@ export function PadavaliMiniPreview() {
   const [lastHandPos, setLastHandPos] = useState<CellPos | null>(null);
   const [foundWords, setFoundWords] = useState<{ text: string; path: CellPos[] }[]>([]);
   const [activeLabel, setActiveLabel] = useState<string | null>(null);
-  const [layoutTick, setLayoutTick] = useState(0);
+  const [trailPoints, setTrailPoints] = useState<{
+    found: Record<string, string>;
+    demo: string;
+  }>({ found: {}, demo: '' });
 
-  useEffect(() => {
-    if (handPos) setLastHandPos(handPos);
-  }, [handPos]);
+  const updateHandPos = (pos: CellPos | null) => {
+    setHandPos(pos);
+    if (pos) setLastHandPos(pos);
+  };
 
-  // Keep SVG trails accurate when the card resizes
+  // Keep SVG trails accurate when the card resizes or paths change
   useEffect(() => {
     const el = gridRef.current;
     if (!el) return;
-    const sync = () => setLayoutTick((t) => t + 1);
+
+    const getCenter = ({ row, col }: CellPos) => {
+      const cell = el.querySelector<HTMLElement>(
+        `[data-mini-row="${row}"][data-mini-col="${col}"]`
+      );
+      if (!cell) return { x: 0, y: 0 };
+      const parentRect = el.getBoundingClientRect();
+      const cellRect = cell.getBoundingClientRect();
+      return {
+        x: cellRect.left + cellRect.width / 2 - parentRect.left,
+        y: cellRect.top + cellRect.height / 2 - parentRect.top
+      };
+    };
+
+    const buildPoints = (cells: CellPos[]) =>
+      cells
+        .map((c) => {
+          const { x, y } = getCenter(c);
+          return `${x},${y}`;
+        })
+        .join(' ');
+
+    const sync = () => {
+      setTrailPoints({
+        found: Object.fromEntries(
+          foundWords.map((word) => [word.text, buildPoints(word.path)])
+        ),
+        demo: buildPoints(demoPath)
+      });
+    };
+
     sync();
     const observer = new ResizeObserver(sync);
     observer.observe(el);
     return () => observer.disconnect();
-  }, []);
+  }, [demoPath, foundWords]);
 
   useEffect(() => {
     let isMounted = true;
@@ -241,7 +275,7 @@ export function PadavaliMiniPreview() {
       for (let i = 0; i < path.length; i++) {
         if (!isMounted) return;
         setDemoPath(path.slice(0, i + 1));
-        setHandPos(path[i]!);
+        updateHandPos(path[i]!);
         await wait(560);
       }
     };
@@ -300,31 +334,6 @@ export function PadavaliMiniPreview() {
       clearTimeout(timeoutId);
     };
   }, []);
-
-  const getCenter = ({ row, col }: CellPos) => {
-    const grid = gridRef.current;
-    if (!grid) return { x: 0, y: 0 };
-    const cell = grid.querySelector<HTMLElement>(
-      `[data-mini-row="${row}"][data-mini-col="${col}"]`
-    );
-    if (!cell) return { x: 0, y: 0 };
-    const parentRect = grid.getBoundingClientRect();
-    const cellRect = cell.getBoundingClientRect();
-    return {
-      x: cellRect.left + cellRect.width / 2 - parentRect.left,
-      y: cellRect.top + cellRect.height / 2 - parentRect.top
-    };
-  };
-
-  const buildPoints = (cells: CellPos[]) => {
-    void layoutTick;
-    return cells
-      .map((c) => {
-        const { x, y } = getCenter(c);
-        return `${x},${y}`;
-      })
-      .join(' ');
-  };
 
   const displayPos = handPos ?? lastHandPos;
   const isHandVisible = !!handPos;
@@ -404,7 +413,7 @@ export function PadavaliMiniPreview() {
             return (
               <g key={word.text}>
                 <polyline
-                  points={buildPoints(word.path)}
+                  points={trailPoints.found[word.text] ?? ''}
                   fill="none"
                   className="stroke-emerald-300 dark:stroke-emerald-400"
                   strokeWidth={14}
@@ -413,7 +422,7 @@ export function PadavaliMiniPreview() {
                   opacity={0.4}
                 />
                 <polyline
-                  points={buildPoints(word.path)}
+                  points={trailPoints.found[word.text] ?? ''}
                   fill="none"
                   className="stroke-emerald-500 dark:stroke-emerald-400"
                   strokeWidth={6}
@@ -427,7 +436,7 @@ export function PadavaliMiniPreview() {
           {demoPath.length > 1 && (
             <g>
               <polyline
-                points={buildPoints(demoPath)}
+                points={trailPoints.demo}
                 fill="none"
                 className={trailStroke.glow}
                 strokeWidth={14}
@@ -436,7 +445,7 @@ export function PadavaliMiniPreview() {
                 opacity={0.42}
               />
               <polyline
-                points={buildPoints(demoPath)}
+                points={trailPoints.demo}
                 fill="none"
                 className={trailStroke.main}
                 strokeWidth={6}

@@ -1,6 +1,7 @@
 'use client';
 
 import { useMemo, useState } from 'react';
+import Image from 'next/image';
 import Link from 'next/link';
 import { RefreshCw, ExternalLink } from 'lucide-react';
 import { toast } from 'sonner';
@@ -81,7 +82,7 @@ const BatchManagerPage = ({ game = 'padavali' }: BatchManagerPageProps) => {
     onError: (err) => toast.error(err.message || 'Failed to discard batch item')
   });
 
-  const groups = groups_q.data ?? [];
+  const groups = useMemo(() => groups_q.data ?? [], [groups_q.data]);
   const default_open = useMemo(() => groups.slice(0, 1).map((group) => group.batch_id), [groups]);
 
   const can_discard = (item: BatchManagerItem) =>
@@ -210,13 +211,16 @@ const BatchManagerPage = ({ game = 'padavali' }: BatchManagerPageProps) => {
                         >
                           <div className="flex min-w-0 flex-1 items-start gap-3">
                             {item.image_asset ? (
-                              <img
+                              <Image
                                 src={getCDNUrl(item.image_asset.s3_key)}
                                 alt={
                                   item.puzzle_title
                                     ? `Generated preview for ${item.puzzle_title}`
                                     : 'Generated puzzle card preview'
                                 }
+                                width={64}
+                                height={64}
+                                unoptimized
                                 className="size-16 shrink-0 rounded-md border border-border object-cover"
                               />
                             ) : (

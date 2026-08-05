@@ -1,5 +1,6 @@
 'use client';
 
+import Image from 'next/image';
 import { useState } from 'react';
 import { toast } from 'sonner';
 import { client_q } from '~/api/client';
@@ -110,10 +111,13 @@ export function BatchPuzzleImageReviewDialog({
         </DialogHeader>
 
         {image_asset ? (
-          <div className="overflow-hidden rounded-lg border border-border shadow-sm">
-            <img
+          <div className="relative overflow-hidden rounded-lg border border-border shadow-sm">
+            <Image
               src={getCDNUrl(image_asset.s3_key)}
               alt="Generated puzzle card preview"
+              width={768}
+              height={512}
+              unoptimized
               className="block w-full object-cover"
               style={{ aspectRatio: IMAGE_ASPECT }}
             />

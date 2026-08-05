@@ -143,22 +143,6 @@ const CHART_TYPE_ITEMS = [
   { label: 'Location', value: 'location' as const }
 ];
 
-type StatsSession = {
-  id: number;
-  created_at: Date | string;
-  location: string | null;
-};
-
-type StatsCompletion = {
-  id: number;
-  created_at: Date | string;
-  session_id: number;
-  time_taken: number;
-  accuracy: number;
-  letter_inputs: number;
-  incorrect_entry_attempts: number;
-};
-
 const DEFAULT_CHART_CONFIG = {
   sessions: {
     label: 'Started',

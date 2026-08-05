@@ -1,7 +1,7 @@
 'use client';
 
 import { useEffect, useState } from 'react';
-import { is_ios_atom, is_ios_safari_atom, pwa_state_atom } from './pwa_state';
+import { is_ios_atom, pwa_state_atom, type BeforeInstallPromptEvent } from './pwa_state';
 import { useAtom } from 'jotai';
 import { LogIn, Share, Smartphone } from 'lucide-react';
 import {
@@ -36,10 +36,13 @@ export default function PWAInit() {
     // Check if the app is installed (running in standalone mode)
     const checkInstallStatus = () => {
       const isStandalone = window.matchMedia('(display-mode: standalone)').matches;
-      const isWebAppCapable = (window.navigator as any).standalone; // iOS Safari
+      const isWebAppCapable =
+        'standalone' in window.navigator
+          ? (window.navigator as Navigator & { standalone?: boolean }).standalone
+          : false; // iOS Safari
       const isInstalled = isStandalone || isWebAppCapable;
 
-      setPwaState((prev) => ({ ...prev, is_installed: isInstalled }));
+      setPwaState((prev) => ({ ...prev, is_installed: isInstalled ?? false }));
     };
 
     // Check initial install status
@@ -58,7 +61,7 @@ export default function PWAInit() {
       event.preventDefault();
       setPwaState((prev) => ({
         ...prev,
-        event_triggerer: event,
+        event_triggerer: event as BeforeInstallPromptEvent,
         install_event_fired: true
       }));
     };
@@ -77,21 +80,20 @@ export default function PWAInit() {
 export const PWAInstallButton = ({ setOpen }: { setOpen?: (v: boolean) => void }) => {
   const [pwa_state] = useAtom(pwa_state_atom);
   const [isIos] = useAtom(is_ios_atom);
-  const [isIosSafari] = useAtom(is_ios_safari_atom);
   const [isIosOpen, setIsIosOpen] = useState(false);
 
   const handleInstall = async () => {
     if (isIos) {
       setIsIosOpen(true);
     } else {
-      setOpen && setOpen(false);
+      setOpen?.(false);
       if (pwa_state.event_triggerer) pwa_state.event_triggerer.prompt();
     }
   };
 
   const handleIosInstall = async () => {
     setIsIosOpen(false);
-    setOpen && setOpen(false);
+    setOpen?.(false);
 
     // IMPORTANT: navigator.share() does NOT include "Add to Home Screen"
     //
@@ -114,10 +116,10 @@ export const PWAInstallButton = ({ setOpen }: { setOpen?: (v: boolean) => void }
     >
       <button
         onClick={handleInstall}
-        className="flex w-full items-center gap-3 rounded-lg border-2 border-green-200 bg-gradient-to-r from-green-50 to-emerald-50 p-3 text-left text-sm font-medium text-green-700 transition-all duration-200 hover:scale-[1.02] hover:border-green-300 hover:from-green-100 hover:to-emerald-100 hover:shadow-md active:scale-[0.98] dark:border-green-800 dark:from-green-950/30 dark:to-emerald-950/30 dark:text-green-300 dark:hover:border-green-700 dark:hover:from-green-900/40 dark:hover:to-emerald-900/40"
+        className="flex w-full items-center gap-3 rounded-lg border-2 border-green-200 bg-linear-to-r from-green-50 to-emerald-50 p-3 text-left text-sm font-medium text-green-700 transition-all duration-200 hover:scale-[1.02] hover:border-green-300 hover:from-green-100 hover:to-emerald-100 hover:shadow-md active:scale-[0.98] dark:border-green-800 dark:from-green-950/30 dark:to-emerald-950/30 dark:text-green-300 dark:hover:border-green-700 dark:hover:from-green-900/40 dark:hover:to-emerald-900/40"
         title="Install PWA App for offline access"
       >
-        <div className="flex h-8 w-8 items-center justify-center rounded-lg bg-gradient-to-br from-green-500 to-emerald-600 shadow-sm">
+        <div className="flex h-8 w-8 items-center justify-center rounded-lg bg-linear-to-br from-green-500 to-emerald-600 shadow-sm">
           <LogIn className="h-4 w-4 text-white" />
         </div>
         <div className="flex-1">
@@ -153,7 +155,7 @@ export const PWAInstallButton = ({ setOpen }: { setOpen?: (v: boolean) => void }
                         2
                       </span>
                       <span>
-                        Scroll down and select <strong>"Add to Home Screen"</strong>
+                        Scroll down and select <strong>&quot;Add to Home Screen&quot;</strong>
                       </span>
                     </div>
                     <div className="flex items-start gap-2">
@@ -161,7 +163,7 @@ export const PWAInstallButton = ({ setOpen }: { setOpen?: (v: boolean) => void }
                         3
                       </span>
                       <span>
-                        Tap <strong>"Add"</strong> to confirm
+                        Tap <strong>&quot;Add&quot;</strong> to confirm
                       </span>
                     </div>
                   </div>

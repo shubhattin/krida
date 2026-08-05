@@ -15,7 +15,7 @@ export default function Page() {
       OneSignal.init({
         appId: process.env.NEXT_PUBLIC_ONESIGNAL_APP_ID,
         safari_web_id: process.env.NEXT_PUBLIC_ONESIGNAL_SAFARI_WEB_ID,
-        // @ts-ignore
+        // @ts-expect-error OneSignal typings omit this option
         notifyButton: {
           enable: false
         },
@@ -24,7 +24,7 @@ export default function Page() {
         },
         serviceWorkerPath: 'onesignal/OneSignalSDKWorker.js',
         promptOptions: {
-          // @ts-ignore
+          // @ts-expect-error OneSignal typings omit this nested option
           customlink: {
             enabled: true,
             style: 'button',

@@ -307,7 +307,7 @@ main().then(() => {
 });
 
 async function confirm_environemnt() {
-  let confirmation: string = await take_input(`Are you sure INSERT in ${dbMode} ? `);
+  const confirmation: string = await take_input(`Are you sure INSERT in ${dbMode} ? `);
   if (['yes', 'y'].includes(confirmation)) return true;
   return false;
 }

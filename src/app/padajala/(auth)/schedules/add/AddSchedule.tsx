@@ -100,6 +100,7 @@ const AddSchedule = (props: Props) => {
 
   const router = useRouter();
   const [search_title, setSearchTitle] = useState('');
+  const [page, setPage] = useState(1);
 
   // Debounce search input to avoid redundant requests
   const [debouncedSearchTitle, setDebouncedSearchTitle] = useState(search_title);
@@ -107,6 +108,8 @@ const AddSchedule = (props: Props) => {
   useEffect(() => {
     const timeoutId = setTimeout(() => {
       setDebouncedSearchTitle(search_title);
+      setPage(1);
+      setSelectedPuzzle(undefined);
     }, DEBOUNCE_TIME);
     return () => clearTimeout(timeoutId);
   }, [search_title]);
@@ -128,7 +131,7 @@ const AddSchedule = (props: Props) => {
         toast.error('A schedule already exists in the time range');
       }
     },
-    onError(error) {
+    onError() {
       toast.error('Failed to add schedule');
     }
   });
@@ -148,7 +151,7 @@ const AddSchedule = (props: Props) => {
         router.push(`/padajala/schedules`);
       }
     },
-    onError(error) {
+    onError() {
       toast.error('Failed to update schedule');
     }
   });
@@ -186,13 +189,6 @@ const AddSchedule = (props: Props) => {
       end_time: endDate
     });
   };
-
-  const [page, setPage] = useState(1);
-
-  useEffect(() => {
-    setPage(1);
-    setSelectedPuzzle(undefined);
-  }, [debouncedSearchTitle]);
 
   const puzzle_list_q = useQuery({
     queryKey: ['crossword_list_schedule', page, debouncedSearchTitle],
@@ -521,7 +517,7 @@ const ISTDateTimePicker: React.FC<DatePickerProps> = ({
 
     const dateInIST = new Date(istDateString);
     onChangeDate(dateInIST);
-  }, [internalDate, start_end_time]);
+  }, [internalDate, start_end_time, onChangeDate, type]);
 
   return (
     <div className="flex flex-col gap-3">
@@ -556,7 +552,7 @@ const ISTDateTimePicker: React.FC<DatePickerProps> = ({
             }}
             disabled={(date) => {
               if (disable_before) {
-                let disable_before_date = new Date(disable_before);
+                const disable_before_date = new Date(disable_before);
                 disable_before_date.setHours(0, 0, 0, 0);
                 if (date < disable_before_date) return true;
               }

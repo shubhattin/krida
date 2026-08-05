@@ -19,7 +19,7 @@ import {
   clearTypingContextOnKeyDown,
   handleTypingBeforeInputEvent
 } from 'lipilekhika/typing';
-import { DEFAULT_DATA_SCRIPT, type ScriptType } from '~/state/script_list';
+import { DEFAULT_DATA_SCRIPT } from '~/state/script_list';
 import { motion } from 'framer-motion';
 import { PuzzlePreviewCard } from '~/components/pages/padavali/PuzzlePreviewCard';
 import {
@@ -201,12 +201,12 @@ const BrowseEmbedView = ({ puzzles }: { puzzles: DisplayPuzzle[] }) => {
       {filteredPuzzles.length > EMBED_PAGE_LIMIT && (
         <p className="mt-4 text-center text-sm text-slate-500 dark:text-slate-400">
           Showing {EMBED_PAGE_LIMIT} of {filteredPuzzles.length} matches.{' '}
-          <a
-            href="/padavali/puzzles"
+          <Link
+            href="/padavali/puzzles/"
             className="font-medium text-blue-600 hover:underline dark:text-blue-400"
           >
             View all
-          </a>
+          </Link>
         </p>
       )}
     </div>

@@ -1,8 +1,12 @@
 import { atom } from 'jotai';
 
+export type BeforeInstallPromptEvent = Event & {
+  prompt: () => Promise<void> | void;
+};
+
 export const pwa_state_atom = atom<{
   install_event_fired: boolean;
-  event_triggerer: any;
+  event_triggerer: BeforeInstallPromptEvent | null;
   is_installed: boolean;
 }>({
   install_event_fired: false,

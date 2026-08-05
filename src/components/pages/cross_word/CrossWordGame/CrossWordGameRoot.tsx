@@ -88,7 +88,7 @@ export default function CrossWordGameRoot({
     store.set(revealing_entry_id_atom, null);
     store.set(revealing_cells_atom, []);
     return store;
-  }, [puzzle.id, puzzle]);
+  }, [puzzle]);
 
   return (
     <>
