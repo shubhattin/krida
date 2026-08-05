@@ -39,6 +39,7 @@ import { crossword_schedules_router } from './crossword_schedules';
 import { more_hints_inputs_equal } from '~/util/ai/more_hints';
 import { BadRequestError, NotFoundError } from '~/effect/errors';
 import { runTrpcEffect } from '~/effect/run';
+import { crosswordActiveWordList } from '~/util/puzzle/word_list';
 
 type AttachmentInput = z.infer<typeof CrosswordUpdateInputSchema>['puzzle_data']['attachments'];
 
@@ -182,7 +183,16 @@ const get_listed_puzzles_route = publicProcedure.query(() =>
         .from(crossword_puzzles)
         .where(eq(crossword_puzzles.listed, true))
         .orderBy(desc(crossword_puzzles.last_listed_at), desc(crossword_puzzles.created_at))
-    ).pipe(Effect.map((rows) => rows.map((row) => CrossordPuzzleSchemaZod.parse(row))))
+    ).pipe(
+      Effect.map((rows) =>
+        rows.map((row) =>
+          CrossordPuzzleSchemaZod.parse({
+            ...row,
+            word_list: crosswordActiveWordList(row.word_list)
+          })
+        )
+      )
+    )
   )
 );
 

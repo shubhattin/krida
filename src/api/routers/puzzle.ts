@@ -33,6 +33,7 @@ import { escapeIlikeToken, tokenizeSearchQuery } from '~/util/puzzle/search';
 import { BadRequestError, ConflictError, NotFoundError } from '~/effect/errors';
 import { AppConfig } from '~/effect/config';
 import { runTrpcEffect } from '~/effect/run';
+import { padavaliActiveWordsEqual } from '~/util/puzzle/word_list';
 
 const settle = <A, E, R>(effect: Effect.Effect<A, E, R>) =>
   effect.pipe(Effect.catch(() => Effect.void));
@@ -281,9 +282,6 @@ const check_slug_availability_route = protectedAdminProcedure
     runTrpcEffect(resolve_slug_availability(slug, { exclude_puzzle_id }))
   );
 
-const word_lists_equal = (a: string[], b: string[]) =>
-  a.length === b.length && a.every((word, i) => word === b[i]);
-
 const update_puzzle_route = protectedAdminProcedure
   .input(puzzle_update_input_schema)
   .mutation(({ input: { puzzle_id, puzzle_data, puzzle_slug, image_id } }) =>
@@ -314,7 +312,7 @@ const update_puzzle_route = protectedAdminProcedure
         const meanings_input_changed =
           existing.title !== puzzle_data.title ||
           existing.description !== puzzle_data.description ||
-          !word_lists_equal(existing.word_list, puzzle_data.word_list);
+          !padavaliActiveWordsEqual(existing.word_list, puzzle_data.word_list);
 
         const { updated_count, newly_added_index_ids } = yield* dbTransaction(
           'padavali.update_puzzle',

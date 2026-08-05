@@ -79,8 +79,7 @@ const AddCrosswordDialog = () => {
     isValidSlugFn: isValidCrosswordSlug
   });
 
-  const effectiveOverrideRedirectSlug =
-    overrideRedirectSlug && overrideForSlug === normalizedSlug;
+  const effectiveOverrideRedirectSlug = overrideRedirectSlug && overrideForSlug === normalizedSlug;
 
   const add_mut = client_q.crossword.add_puzzle.useMutation({
     onSuccess(data) {

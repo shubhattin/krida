@@ -15,6 +15,7 @@ import {
 } from '~/db/crossword_shared';
 import { BadRequestError } from '~/effect/errors';
 import { runTrpcEffect } from '~/effect/run';
+import { crosswordActiveWords } from '~/util/puzzle/word_list';
 
 const verifyTurnstile = Effect.fn('crosswordStats.verifyTurnstile')(function* (token: string) {
   const is_valid = yield* verify_cloudflare_turnstile_token(token);
@@ -202,7 +203,10 @@ const get_stats_data_route = protectedAdminProcedure
           )
         });
 
-        const total_words = puzzles.reduce((sum, puzzle) => sum + puzzle.word_list.length, 0);
+        const total_words = puzzles.reduce(
+          (sum, puzzle) => sum + crosswordActiveWords(puzzle.word_list).length,
+          0
+        );
 
         return { sessions, stats, total_words };
       })

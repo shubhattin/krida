@@ -4,6 +4,7 @@ import type { CrossWordPuzzleWord } from '~/db/schema_zod';
 import { AiProvider, aiRetryPolicy } from '~/effect/ai';
 import { AiProviderError } from '~/effect/errors';
 import { OPENROUTER_MODELS } from '~/util/ai/image_gen';
+import { crosswordActiveWords } from '~/util/puzzle/word_list';
 
 /** Minimal puzzle shape needed to generate more hints. */
 type MoreHintsPuzzleInput = {
@@ -51,17 +52,19 @@ export const more_hints_schema = z.object({
 export type MoreHintsType = z.infer<typeof more_hints_schema>;
 
 /** Fields that affect AI more-hints generation (placement is ignored). */
-export type MoreHintsInputWord = Pick<CrossWordPuzzleWord, 'word' | 'description'>;
+export type MoreHintsInputWord = Pick<CrossWordPuzzleWord, 'word' | 'description'> &
+  Partial<Pick<CrossWordPuzzleWord, 'added'>>;
 
 export const more_hints_inputs_equal = (
   a: { title: string; description: string; word_list: MoreHintsInputWord[] },
   b: { title: string; description: string; word_list: MoreHintsInputWord[] }
 ) => {
   if (a.title !== b.title || a.description !== b.description) return false;
-  if (a.word_list.length !== b.word_list.length) return false;
-  return a.word_list.every(
-    (entry, i) =>
-      entry.word === b.word_list[i]?.word && entry.description === b.word_list[i]?.description
+  const aWords = a.word_list.filter((entry) => entry.added !== false);
+  const bWords = b.word_list.filter((entry) => entry.added !== false);
+  if (aWords.length !== bWords.length) return false;
+  return aWords.every(
+    (entry, i) => entry.word === bWords[i]?.word && entry.description === bWords[i]?.description
   );
 };
 
@@ -69,7 +72,8 @@ export const get_crossword_more_hints = Effect.fn('get_crossword_more_hints')(fu
   puzzle: MoreHintsPuzzleInput
 ) {
   const ai = yield* AiProvider;
-  const entries = puzzle.word_list
+  const activeWords = crosswordActiveWords(puzzle.word_list);
+  const entries = activeWords
     .map((entry, i) => `${i + 1}. Answer: ${entry.word}\n   Short clue: ${entry.description}`)
     .join('\n');
 
@@ -84,13 +88,13 @@ export const get_crossword_more_hints = Effect.fn('get_crossword_more_hints')(fu
       openrouterReasoningEffort: 'medium'
     });
 
-    if (result.hints.length !== puzzle.word_list.length) {
+    if (result.hints.length !== activeWords.length) {
       return yield* Effect.fail(
         AiProviderError.make({
           operation: 'more_hints',
           provider: 'openrouter',
           cause: new Error(
-            `More hints count mismatch for slug: ${puzzle.slug} (expected ${puzzle.word_list.length}, got ${result.hints.length})`
+            `More hints count mismatch for slug: ${puzzle.slug} (expected ${activeWords.length}, got ${result.hints.length})`
           )
         })
       );

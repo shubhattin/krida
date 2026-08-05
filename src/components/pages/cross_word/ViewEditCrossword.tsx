@@ -97,6 +97,7 @@ import {
   useEditorHistoryActions,
   useHistoryTextField
 } from '~/hooks/useEditorHistory';
+import { Checkbox } from '~/components/ui/checkbox';
 
 type EditableWord = {
   id: string;
@@ -104,6 +105,7 @@ type EditableWord = {
   description: string;
   location: [number, number];
   direction: CrossWordPuzzleWord['direction'];
+  added: boolean;
 };
 
 type EditableAttachment = Omit<z.infer<typeof attachment_schema>, 'id'> & {
@@ -160,16 +162,18 @@ function toEditableWords(words: CrossWordPuzzleWord[]): EditableWord[] {
     word: w.word,
     description: w.description,
     location: w.location,
-    direction: w.direction
+    direction: w.direction,
+    added: w.added
   }));
 }
 
 function editableWordsComparable(words: EditableWord[]) {
-  return words.map(({ word, description, location, direction }) => ({
+  return words.map(({ word, description, location, direction, added }) => ({
     word,
     description,
     location,
-    direction
+    direction,
+    added
   }));
 }
 
@@ -244,7 +248,10 @@ const CrosswordPuzzleImageSection = ({ puzzleId }: { puzzleId: number }) => {
       game="crossword"
       title={title}
       description={description}
-      words={wordList.map((w) => w.word).filter((w) => w.trim().length > 0)}
+      words={wordList
+        .filter((w) => w.added)
+        .map((w) => w.word)
+        .filter((w) => w.trim().length > 0)}
       imageId={image_id}
       imageInfo={image_info}
       onImageIdChange={setImageId}
@@ -657,7 +664,8 @@ const WordListEditor = () => {
         word: '',
         description: '',
         location: [0, 0],
-        direction: 'horizontal'
+        direction: 'horizontal',
+        added: true
       }
     ]);
 
@@ -688,6 +696,13 @@ const WordListEditor = () => {
                 exit={{ opacity: 0, height: 0 }}
                 className="flex flex-wrap items-start gap-2 overflow-hidden sm:flex-nowrap"
               >
+                <Checkbox
+                  checked={item.added}
+                  onCheckedChange={(checked) => updateWord(idx, { added: checked === true })}
+                  aria-label={item.added ? 'Disable word' : 'Enable word'}
+                  title={item.added ? 'Included in puzzle' : 'Excluded from puzzle'}
+                  className="mt-2.5"
+                />
                 <Input
                   value={item.word}
                   onChange={(e) =>
@@ -698,7 +713,7 @@ const WordListEditor = () => {
                   onFocus={historyField.onFocus}
                   onBlur={historyField.onBlur}
                   placeholder="WORD"
-                  className="w-36 font-mono uppercase sm:w-44"
+                  className={cn('w-36 font-mono uppercase sm:w-44', !item.added && 'opacity-60')}
                 />
                 <Input
                   value={item.description}
@@ -706,7 +721,7 @@ const WordListEditor = () => {
                   onFocus={historyField.onFocus}
                   onBlur={historyField.onBlur}
                   placeholder="Clue / description"
-                  className="min-w-0 flex-1"
+                  className={cn('min-w-0 flex-1', !item.added && 'opacity-60')}
                 />
                 <span
                   className="inline-flex h-9 min-w-14 shrink-0 items-center justify-center rounded-md border border-border bg-muted/40 px-2 font-mono text-xs text-muted-foreground"
@@ -1207,7 +1222,7 @@ const SaveControls = ({ puzzle }: { puzzle: ViewEditCrosswordProps['puzzle'] }) 
     }
 
     const missingClue = wordList.find(
-      (w) => w.word.trim().length > 0 && w.description.trim().length === 0
+      (w) => w.added && w.word.trim().length > 0 && w.description.trim().length === 0
     );
     if (missingClue) {
       toast.error(`Add a clue for "${missingClue.word.trim().toUpperCase()}"`);
@@ -1230,7 +1245,8 @@ const SaveControls = ({ puzzle }: { puzzle: ViewEditCrosswordProps['puzzle'] }) 
             word: w.word,
             location: w.location,
             direction: w.direction,
-            description: w.description.trim()
+            description: w.description.trim(),
+            added: w.added
           })),
         attachments
       }

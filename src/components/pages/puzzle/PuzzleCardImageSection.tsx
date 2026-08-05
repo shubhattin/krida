@@ -797,7 +797,7 @@ const CreateNewImageTab = ({
             <div className="space-y-1">
               <span className="text-xs text-muted-foreground">Image Prompt</span>
               <Textarea
-                className="min-h-[100px] w-full resize-y text-sm"
+                className="min-h-25 w-full resize-y text-sm"
                 value={custom_prompt}
                 onChange={(e) => setCustomPrompt(e.currentTarget.value)}
                 placeholder="Edit the image prompt…"

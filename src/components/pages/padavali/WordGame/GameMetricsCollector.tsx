@@ -105,7 +105,16 @@ const GameMetricsCollector = ({
         });
       });
     }
-  }, [started, turnstileToken, completed, practiceMode, puzzle_id, location, script, update_games_started_mut]);
+  }, [
+    started,
+    turnstileToken,
+    completed,
+    practiceMode,
+    puzzle_id,
+    location,
+    script,
+    update_games_started_mut
+  ]);
 
   const sessionId = update_games_started_mut.data?.session_id;
 

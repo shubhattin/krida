@@ -63,10 +63,11 @@ import { useHydrateAtoms } from 'jotai/utils';
 import Icon from '~/tools/Icon';
 import { LanguageIcon } from '~/components/icons';
 import {
-  puzzle_schema as _puzzle_schema,
+  puzzle_editor_schema as _puzzle_schema,
   attachment_schema,
   ATTACHMENT_TYPE_NAMES,
-  puzzle_update_input_schema
+  puzzle_update_input_schema,
+  type PadavaliWordCandidate
 } from '~/db/db_shared_vals';
 import { SlugField } from '~/components/pages/padavali/EditSlugDialog';
 import {
@@ -89,6 +90,8 @@ import {
   useEditorHistoryActions,
   useHistoryTextField
 } from '~/hooks/useEditorHistory';
+import { Checkbox } from '~/components/ui/checkbox';
+import { padavaliActiveWords } from '~/util/puzzle/word_list';
 
 const ATTACHMENT_TYPE_ITEMS = [
   { label: 'Select attachment type', value: null },
@@ -124,7 +127,7 @@ export type Puzzle = z.infer<typeof puzzleSchema>;
 const BASE_SCRIPT = 'Devanagari';
 
 const title_atom = atom<string>('');
-const word_list_atom = atom<string[]>([]);
+const word_list_atom = atom<PadavaliWordCandidate[]>([]);
 const grid_data_atom = atom<string[][]>([]);
 const listed_atom = atom<boolean>(false);
 const description_atom = atom<string>('');
@@ -159,7 +162,7 @@ const ViewEditPuzzle = ({ word_puzzle: initialWordPuzzle }: ViewEditProps) => {
 
   useHydrateAtoms([
     [title_atom, word_puzzle.title],
-    [word_list_atom, [...word_puzzle.word_list]],
+    [word_list_atom, word_puzzle.word_list.map((entry) => ({ ...entry }))],
     [grid_data_atom, word_puzzle.grid_data.map((row) => [...row])],
     [listed_atom, word_puzzle.listed],
     [description_atom, word_puzzle.description],
@@ -480,10 +483,10 @@ const LipiLekhikaSwitch = () => {
 
 const getTraversalsInfo = (
   gridData: string[][],
-  wordList: string[],
+  wordList: PadavaliWordCandidate[],
   gridDimensions: [number, number]
 ) => {
-  const validWords = wordList.filter((word) => word.trim() !== '');
+  const validWords = padavaliActiveWords(wordList).filter((word) => word.trim() !== '');
   const traversalsMap = findAllTraversals(gridData, gridDimensions, validWords);
   return {
     validWords,
@@ -709,8 +712,8 @@ const TraversalAnalysis = ({
                     ) : warning.type === 'duplicate' ? (
                       <div className="flex items-center justify-center gap-2">
                         <span>
-                          &quot;<span className="font-semibold">{warning.word}</span>&quot;
-                          appears multiple times ({warning.traversalCount}) in the word list.
+                          &quot;<span className="font-semibold">{warning.word}</span>&quot; appears
+                          multiple times ({warning.traversalCount}) in the word list.
                         </span>
                         <Popover>
                           <PopoverTrigger
@@ -906,10 +909,13 @@ const WordList = () => {
   const [lipi_lekhika_active] = useAtom(lipi_lekhika_active_atom);
   const historyField = useHistoryTextField();
 
-  const addWord = () => setWordList((prev) => [...prev, '']);
+  const addWord = () => setWordList((prev) => [...prev, { word: '', added: true }]);
   const removeWord = (index: number) => setWordList((prev) => prev.filter((_, i) => i !== index));
   const updateWord = (index: number, value: string) => {
-    setWordList((prev) => prev.map((w, i) => (i === index ? value : w)));
+    setWordList((prev) => prev.map((w, i) => (i === index ? { ...w, word: value } : w)));
+  };
+  const toggleAdded = (index: number, added: boolean) => {
+    setWordList((prev) => prev.map((w, i) => (i === index ? { ...w, added } : w)));
   };
 
   const ctx = createTypingContext(BASE_SCRIPT);
@@ -919,7 +925,7 @@ const WordList = () => {
       <Label className="mb-2 block text-lg font-semibold">Word List</Label>
       <div className="grid max-w-7xl grid-cols-2 gap-2 space-y-2 sm:grid-cols-4 md:grid-cols-5 lg:grid-cols-6">
         <AnimatePresence mode="popLayout">
-          {wordList.map((word, idx) => (
+          {wordList.map((entry, idx) => (
             <motion.div
               key={idx}
               initial={{ opacity: 0, height: 0, x: -20 }}
@@ -930,11 +936,17 @@ const WordList = () => {
               }}
               className="flex items-center space-x-2 overflow-hidden"
             >
+              <Checkbox
+                checked={entry.added}
+                onCheckedChange={(checked) => toggleAdded(idx, checked === true)}
+                aria-label={entry.added ? 'Disable word' : 'Enable word'}
+                title={entry.added ? 'Included in puzzle' : 'Excluded from puzzle'}
+              />
               <motion.div className="flex-1">
                 <Input
                   type="text"
-                  className="px- py-1 text-base"
-                  value={word}
+                  className={cn('px- py-1 text-base', !entry.added && 'opacity-60')}
+                  value={entry.word}
                   onChange={(e) => updateWord(idx, e.currentTarget.value)}
                   onBeforeInput={(e) =>
                     handleTypingBeforeInputEvent(
@@ -1343,7 +1355,7 @@ const PuzzleImageSection = ({ word_puzzle }: { word_puzzle: Puzzle }) => {
       game="padavali"
       title={title}
       description={description}
-      words={wordList}
+      words={padavaliActiveWords(wordList).filter((word) => word.trim().length > 0)}
       imageId={image_id}
       imageInfo={image_info}
       onImageIdChange={setImageId}

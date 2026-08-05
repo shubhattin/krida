@@ -10,9 +10,19 @@ import {
   word_meanings_schema,
   type WordMeaningsType
 } from '../ai/word_meanings';
+import { padavaliActiveWords, type PadavaliWordCandidate } from '~/util/puzzle/word_list';
 
 type PadavaliPuzzleType = z.infer<typeof puzzle_schema>;
 export type { PadavaliPuzzleType };
+
+type PadavaliDbPuzzle = Omit<PadavaliPuzzleType, 'word_list'> & {
+  word_list: PadavaliWordCandidate[];
+};
+
+const toPublicPadavaliPuzzle = (puzzle: PadavaliDbPuzzle): PadavaliPuzzleType => ({
+  ...puzzle,
+  word_list: padavaliActiveWords(puzzle.word_list)
+});
 
 const current_schedule_schema = z.object({
   id: z.number().int(),
@@ -122,7 +132,17 @@ const load_current_schedule: CacheItem<NoCacheParams, PadavaliCurrentScheduleTyp
           }
         }
       })
-    ).pipe(Effect.mapError(toCacheError('fetchCurrentSchedule', CURRENT_SCHEDULE_KEY)));
+    ).pipe(
+      Effect.map((schedule) =>
+        schedule
+          ? {
+              ...schedule,
+              puzzle: toPublicPadavaliPuzzle(schedule.puzzle as PadavaliDbPuzzle)
+            }
+          : undefined
+      ),
+      Effect.mapError(toCacheError('fetchCurrentSchedule', CURRENT_SCHEDULE_KEY))
+    );
   }
 });
 
@@ -216,7 +236,12 @@ const load_word_puzzle: CacheItem<PadavaliPuzzleParams, PadavaliPuzzleType | und
             }
           }
         })
-      ).pipe(Effect.mapError(toCacheError('fetchWordPuzzle', wordPuzzleKey(slug))))
+      ).pipe(
+        Effect.map((puzzle) =>
+          puzzle ? toPublicPadavaliPuzzle(puzzle as PadavaliDbPuzzle) : undefined
+        ),
+        Effect.mapError(toCacheError('fetchWordPuzzle', wordPuzzleKey(slug)))
+      )
   });
 
 const load_word_meanings: CacheItem<PadavaliPuzzleParams, WordMeaningsType> = createCache({
