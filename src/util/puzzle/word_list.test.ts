@@ -13,9 +13,7 @@ describe('padavaliActiveWords', () => {
   });
 
   it('treats missing added as enabled', () => {
-    expect(padavaliActiveWords([{ word: 'राम' }, { word: 'सीता', added: false }])).toEqual([
-      'राम'
-    ]);
+    expect(padavaliActiveWords([{ word: 'राम' }, { word: 'सीता', added: false }])).toEqual(['राम']);
   });
 });
 
