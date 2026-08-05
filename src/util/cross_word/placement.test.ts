@@ -11,7 +11,12 @@ import {
   CROSSWORD_MIN_DIM,
   CROSSWORD_MAX_DIM
 } from './grid';
-import { analyzeWordPlacements, findAllRuns, findPlacementsForWord } from './placement';
+import {
+  analyzeWordPlacements,
+  findAllRuns,
+  findPlacementsForWord,
+  resolveWordListForSave
+} from './placement';
 import { toCrossWordGamePuzzle, gridCellToGameCell } from './adapter';
 import {
   numberEntries,
@@ -78,16 +83,68 @@ describe('placement analysis', () => {
       [box(), box(), box()],
       [box(), box(), box()]
     ];
-    const analysis = analyzeWordPlacements(grid, [{ word: 'CAT', description: 'feline' }]);
+    const analysis = analyzeWordPlacements(grid, [
+      { word: 'CAT', description: 'feline', added: true }
+    ]);
     expect(analysis.hasAllValid).toBe(true);
     expect(analysis.canList).toBe(true);
     expect(analysis.noVisibleHintWords).toHaveLength(0);
     expect(analysis.resolvedWordList[0]).toMatchObject({
       word: 'CAT',
       location: [0, 0],
-      direction: 'horizontal'
+      direction: 'horizontal',
+      added: true
     });
     expect(analysis.occupiedCells.has('0,0')).toBe(true);
+  });
+
+  it('skips disabled words for validation and listing', () => {
+    const grid = [
+      [letter('C', true), letter('A'), letter('T')],
+      [box(), box(), box()],
+      [box(), box(), box()]
+    ];
+    const analysis = analyzeWordPlacements(grid, [
+      { word: 'CAT', description: 'feline', added: true },
+      { word: 'DOG', description: 'canine', added: false }
+    ]);
+    expect(analysis.statuses[0]?.status).toBe('ok');
+    expect(analysis.statuses[1]?.status).toBe('empty');
+    expect(analysis.canList).toBe(true);
+    expect(analysis.resolvedWordList).toHaveLength(1);
+  });
+
+  it('preserves added=false when resolving for save', () => {
+    const grid = [
+      [letter('C', true), letter('A'), letter('T')],
+      [box(), box(), box()],
+      [box(), box(), box()]
+    ];
+    const resolved = resolveWordListForSave(grid, [
+      {
+        word: 'CAT',
+        description: 'feline',
+        location: [0, 0],
+        direction: 'horizontal',
+        added: true
+      },
+      {
+        word: 'XYZ',
+        description: '',
+        location: [0, 0],
+        direction: 'horizontal',
+        added: false
+      }
+    ]);
+    expect(resolved[0]).toMatchObject({
+      word: 'CAT',
+      added: true,
+      location: [0, 0]
+    });
+    expect(resolved[1]).toMatchObject({
+      word: 'XYZ',
+      added: false
+    });
   });
 
   it('warns when found word has no visible letter', () => {
@@ -219,7 +276,8 @@ describe('adapter and game model', () => {
           word: 'CAT',
           location: [0, 0],
           direction: 'horizontal',
-          description: 'feline'
+          description: 'feline',
+          added: true
         }
       ],
       listed: true,

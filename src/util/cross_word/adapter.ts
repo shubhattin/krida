@@ -6,6 +6,7 @@ import {
   type CrossWordGamePuzzle
 } from './game_model';
 import { cellHasLetter } from './grid';
+import { crosswordActiveWords } from '~/util/puzzle/word_list';
 
 export function dbDirectionToGame(direction: CrossWordPuzzleWord['direction']): CrossWordDirection {
   return direction === 'horizontal' ? 'across' : 'down';
@@ -49,6 +50,6 @@ export function toCrossWordGamePuzzle(puzzle: CrossordPuzzle): CrossWordGamePuzz
     description: puzzle.description,
     dimensions: puzzle.grid_dimensions,
     grid: puzzle.grid_data.map((row) => row.map(gridCellToGameCell)),
-    entries: puzzle.word_list.map(wordToEntry)
+    entries: crosswordActiveWords(puzzle.word_list).map(wordToEntry)
   };
 }

@@ -1,7 +1,13 @@
 import { z } from 'zod';
 import { crossword_slug_schema, slug_schema } from '~/util/puzzle/slug';
+import { padavali_word_candidate_list_schema } from '~/util/puzzle/word_list';
 
 export { crossword_slug_schema, slug_schema };
+export {
+  padavali_word_candidate_schema,
+  padavali_word_candidate_list_schema,
+  type PadavaliWordCandidate
+} from '~/util/puzzle/word_list';
 
 export const ATTACHMENT_TYPE_LIST = [
   'link',
@@ -37,6 +43,7 @@ export const image_schema = z.object({
   height: z.number().int()
 });
 
+/** Public/cache Padavali puzzle — `word_list` is only enabled words as strings */
 export const puzzle_schema = z.object({
   id: z.number().int(),
   slug: z.string(),
@@ -52,30 +59,28 @@ export const puzzle_schema = z.object({
   image: image_schema.nullable()
 });
 
+/** Editor/DB Padavali puzzle — full candidate list with `added` flags */
+export const puzzle_editor_schema = puzzle_schema.extend({
+  word_list: padavali_word_candidate_list_schema
+});
+
 export const puzzle_update_input_schema = z.object({
   puzzle_id: z.number().int(),
   puzzle_slug: slug_schema,
   image_id: z.number().int().nullable(),
-  puzzle_data: puzzle_schema
-    .pick({
-      title: true,
-      listed: true,
-      word_list: true,
-      grid_data: true
-    })
-    .extend({
-      description: z.string().trim().min(1, 'Description is required')
-    })
-    .and(
-      z.object({
-        attachments: attachment_schema
-          .omit({ id: true })
-          .extend({
-            id: z.number().int().nullable()
-          })
-          .array()
+  puzzle_data: z.object({
+    title: z.string(),
+    listed: z.boolean(),
+    word_list: padavali_word_candidate_list_schema,
+    grid_data: z.string().array().array(),
+    description: z.string().trim().min(1, 'Description is required'),
+    attachments: attachment_schema
+      .omit({ id: true })
+      .extend({
+        id: z.number().int().nullable()
       })
-    )
+      .array()
+  })
 });
 
 export const puzzle_add_input_schema = z.object({

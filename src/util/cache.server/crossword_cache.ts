@@ -2,7 +2,11 @@ import { Effect } from 'effect';
 import { sql } from 'drizzle-orm';
 import { z } from 'zod';
 import { attachment_schema, image_schema } from '~/db/db_shared_vals';
-import { CrossWordPuzzleWordSchema, CrossordPuzzleGridCellSchema } from '~/db/schema_zod';
+import {
+  CrossWordPuzzleWordSchema,
+  CrossordPuzzleGridCellSchema,
+  type CrossWordPuzzleWord
+} from '~/db/schema_zod';
 import { createCache, type CacheItem, type NoCacheParams } from '~/effect/cache';
 import { dbRun } from '~/effect/database';
 import { BadRequestError, CacheError } from '~/effect/errors';
@@ -11,6 +15,7 @@ import {
   more_hints_schema,
   type MoreHintsType
 } from '~/util/ai/more_hints';
+import { crosswordActiveWordList } from '~/util/puzzle/word_list';
 
 const crossword_puzzle_schema = z.object({
   id: z.number().int(),
@@ -28,6 +33,11 @@ const crossword_puzzle_schema = z.object({
 });
 
 export type CrosswordPuzzleType = z.infer<typeof crossword_puzzle_schema>;
+
+const toPublicCrosswordPuzzle = <T extends { word_list: CrossWordPuzzleWord[] }>(puzzle: T): T => ({
+  ...puzzle,
+  word_list: crosswordActiveWordList(puzzle.word_list)
+});
 
 const current_schedule_schema = z.object({
   id: z.number().int(),
@@ -137,7 +147,17 @@ const load_current_schedule: CacheItem<NoCacheParams, CrosswordCurrentScheduleTy
           }
         }
       })
-    ).pipe(Effect.mapError(toCacheError('fetchCurrentSchedule', CURRENT_SCHEDULE_KEY)));
+    ).pipe(
+      Effect.map((schedule) =>
+        schedule
+          ? {
+              ...schedule,
+              puzzle: toPublicCrosswordPuzzle(schedule.puzzle)
+            }
+          : undefined
+      ),
+      Effect.mapError(toCacheError('fetchCurrentSchedule', CURRENT_SCHEDULE_KEY))
+    );
   }
 });
 
@@ -231,7 +251,10 @@ const load_word_puzzle: CacheItem<CrosswordPuzzleParams, CrosswordPuzzleType | u
             }
           }
         })
-      ).pipe(Effect.mapError(toCacheError('fetchWordPuzzle', wordPuzzleKey(slug))))
+      ).pipe(
+        Effect.map((puzzle) => (puzzle ? toPublicCrosswordPuzzle(puzzle) : undefined)),
+        Effect.mapError(toCacheError('fetchWordPuzzle', wordPuzzleKey(slug)))
+      )
   });
 
 const load_more_hints: CacheItem<CrosswordPuzzleParams, MoreHintsType> = createCache({

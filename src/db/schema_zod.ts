@@ -21,13 +21,10 @@ import { location_list_enum } from './types';
 import { script_list_enum } from '~/state/script_list';
 import { batch_metadata_schema } from '~/util/types/ai_batch_metadata';
 
+import { padavali_word_candidate_list_schema } from '~/util/puzzle/word_list';
+
 export const PadavaliPuzzleSchemaZod = createSelectSchema(padavali_puzzles, {
-  word_list: z
-    .object({
-      word: z.string(),
-      added: z.boolean()
-    })
-    .array(),
+  word_list: padavali_word_candidate_list_schema,
   grid_data: z.string().array().array(),
   grid_dimensions: z.tuple([z.number().int().min(3), z.number().int().min(3)]),
   created_at: z.coerce.date(),
@@ -35,17 +32,27 @@ export const PadavaliPuzzleSchemaZod = createSelectSchema(padavali_puzzles, {
   last_listed_at: z.coerce.date().optional().nullable()
 });
 
-export const CrossWordPuzzleWordSchema = z.object({
-  /** Only word is filled in manually, location and direction are calculated auto */
-  word: z.string(),
-  /** approved to be displayed in word list to the user */
-  added: z.boolean(),
-  /** starting index in the nxn grid array */
-  location: z.tuple([z.number().int().min(0), z.number().int().min(0)]),
-  direction: z.enum(['horizontal', 'vertical']),
-  /** Clue shown to the player — required and non-empty */
-  description: z.string().trim().min(1, 'Clue is required')
-});
+export const CrossWordPuzzleWordSchema = z
+  .object({
+    /** Only word is filled in manually, location and direction are calculated auto */
+    word: z.string(),
+    /** approved to be displayed in word list to the user */
+    added: z.boolean().default(true),
+    /** starting index in the nxn grid array */
+    location: z.tuple([z.number().int().min(0), z.number().int().min(0)]),
+    direction: z.enum(['horizontal', 'vertical']),
+    /** Clue shown to the player — required when the word is enabled */
+    description: z.string().trim()
+  })
+  .superRefine((entry, ctx) => {
+    if (entry.added && entry.word.trim().length > 0 && entry.description.length === 0) {
+      ctx.addIssue({
+        code: 'custom',
+        message: 'Clue is required',
+        path: ['description']
+      });
+    }
+  });
 export const CrossordPuzzleGridCellSchema = z.object({
   /** Blank text = blocked box; any letter = playable cell */
   text: z.string().max(1).min(0).default(''),

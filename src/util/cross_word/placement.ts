@@ -133,19 +133,22 @@ function isContainedWithin(placement: WordPlacement, containingPlacement: WordPl
 /**
  * Analyze word_list against grid. Only words with exactly one matching
  * horizontal/vertical path get a resolved location/direction.
+ * Entries with `added === false` are skipped (treated as empty for validation).
  */
 export function analyzeWordPlacements(
   grid: CrossordPuzzleGridCell[][],
-  wordList: Pick<CrossWordPuzzleWord, 'word' | 'description'>[]
+  wordList: (Pick<CrossWordPuzzleWord, 'word' | 'description'> &
+    Partial<Pick<CrossWordPuzzleWord, 'added'>>)[]
 ): PlacementAnalysis {
   const statuses: (WordPlacementStatus | undefined)[] = [];
   const occupiedCells = new Set<string>();
   const noVisibleHintWords: { wordIndex: number; word: string }[] = [];
   const resolvedLongerPlacements: WordPlacement[] = [];
 
-  // Duplicate detection across word list (case-insensitive)
+  // Duplicate detection across enabled word list (case-insensitive)
   const wordCountMap = new Map<string, number[]>();
   wordList.forEach((item, index) => {
+    if (item.added === false) return;
     const key = item.word.trim().toUpperCase();
     if (!key) return;
     if (!wordCountMap.has(key)) wordCountMap.set(key, []);
@@ -160,7 +163,8 @@ export function analyzeWordPlacements(
   }
 
   const placementOrder = wordList
-    .map((item, index) => ({ index, length: item.word.trim().length }))
+    .map((item, index) => ({ index, length: item.word.trim().length, added: item.added !== false }))
+    .filter((entry) => entry.added)
     .toSorted((a, b) => b.length - a.length || a.index - b.index);
 
   // Resolve long words first, then their potential subwords. This permits
@@ -197,6 +201,12 @@ export function analyzeWordPlacements(
     }
   }
 
+  // Mark disabled / unset entries as empty so they do not affect listing checks
+  for (let i = 0; i < wordList.length; i++) {
+    if (statuses[i] !== undefined) continue;
+    statuses[i] = { status: 'empty' };
+  }
+
   const resolvedStatuses = statuses.map((status) => status ?? { status: 'empty' as const });
   const resolvedWordList: CrossWordPuzzleWord[] = [];
 
@@ -213,7 +223,8 @@ export function analyzeWordPlacements(
       word,
       location: status.placement.location,
       direction: status.placement.direction,
-      description: item.description.trim()
+      description: item.description.trim(),
+      added: true
     });
   }
 
@@ -252,24 +263,28 @@ export function analyzeWordPlacements(
 /** Resolve word_list placements for persistence; keeps unresolved words with placeholder location. */
 export function resolveWordListForSave(
   grid: CrossordPuzzleGridCell[][],
-  wordList: Pick<CrossWordPuzzleWord, 'word' | 'description' | 'location' | 'direction'>[]
+  wordList: (Pick<CrossWordPuzzleWord, 'word' | 'description' | 'location' | 'direction'> &
+    Partial<Pick<CrossWordPuzzleWord, 'added'>>)[]
 ): CrossWordPuzzleWord[] {
   const analysis = analyzeWordPlacements(grid, wordList);
   return wordList.map((item, i) => {
+    const added = item.added ?? true;
     const status = analysis.statuses[i];
     if (status?.status === 'ok') {
       return {
         word: item.word.trim().toUpperCase(),
         location: status.placement.location,
         direction: status.placement.direction,
-        description: item.description.trim()
+        description: item.description.trim(),
+        added
       };
     }
     return {
       word: item.word.trim().toUpperCase(),
       location: item.location ?? [0, 0],
       direction: item.direction ?? 'horizontal',
-      description: item.description.trim()
+      description: item.description.trim(),
+      added
     };
   });
 }

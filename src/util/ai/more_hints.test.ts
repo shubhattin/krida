@@ -66,24 +66,23 @@ describe('more_hints_inputs_equal', () => {
     ).toBe(false);
   });
 
-  it('ignores placement-only fields when comparing', () => {
-    // more_hints_inputs_equal only accepts word + description; callers strip placement.
+  it('ignores disabled words when comparing more-hints inputs', () => {
     expect(
       more_hints_inputs_equal(
         {
           title: base.title,
           description: base.description,
           word_list: [
-            { word: 'शिव', description: 'Destroyer' },
-            { word: 'विष्णु', description: 'Preserver' }
+            { word: 'शिव', description: 'Destroyer', added: true },
+            { word: 'ब्रह्मा', description: 'Creator', added: false }
           ]
         },
         {
           title: base.title,
           description: base.description,
           word_list: [
-            { word: 'शिव', description: 'Destroyer' },
-            { word: 'विष्णु', description: 'Preserver' }
+            { word: 'शिव', description: 'Destroyer', added: true },
+            { word: 'इंद्र', description: 'King of gods', added: false }
           ]
         }
       )
