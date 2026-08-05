@@ -27,7 +27,6 @@ import { client_q } from '~/api/client';
 import { toast } from 'sonner';
 import { useState, useTransition } from 'react';
 import { invalidatePage } from '~/tools/invalidate_nextjs_server_route';
-import { Button } from '~/components/ui/button';
 import Link from 'next/link';
 
 dayjs.extend(relativeTime);
@@ -94,7 +93,7 @@ const ScheduleCardMeta = ({
 );
 
 const ListSchedules = ({ upcomming_schedules }: Props) => {
-  const [isPending, startTransition] = useTransition();
+  const [, startTransition] = useTransition();
 
   const del_schedule_mutation = client_q.schedules.delete_puzzle_schedule.useMutation({
     onSuccess() {

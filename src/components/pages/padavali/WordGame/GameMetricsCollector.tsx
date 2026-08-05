@@ -39,7 +39,9 @@ const GameMetricsCollector = ({
   const previousGameSessionNonceRef = useRef(gameSessionNonce);
   const turnstile = useTurnstile();
   const turnstileRef = useRef(turnstile);
-  turnstileRef.current = turnstile;
+  useEffect(() => {
+    turnstileRef.current = turnstile;
+  }, [turnstile]);
   const resetTurnstile = () => turnstileRef.current?.reset();
   const submit_stats_mut = client_q.puzzle.stats.submit_stats.useMutation({
     onSuccess() {
@@ -103,7 +105,7 @@ const GameMetricsCollector = ({
         });
       });
     }
-  }, [started, turnstileToken, completed, practiceMode, puzzle_id, location, script]);
+  }, [started, turnstileToken, completed, practiceMode, puzzle_id, location, script, update_games_started_mut]);
 
   const sessionId = update_games_started_mut.data?.session_id;
 
@@ -169,6 +171,7 @@ const GameMetricsCollector = ({
   }, [
     turnstileToken,
     update_games_started_mut,
+    submit_stats_mut,
     completed,
     practiceMode,
     puzzle_id,

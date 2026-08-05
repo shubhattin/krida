@@ -1,5 +1,6 @@
 'use client';
 
+import Image from 'next/image';
 import { useEffect, useState } from 'react';
 import { toast } from 'sonner';
 import {
@@ -192,9 +193,12 @@ export function PuzzleCardImageSection({
       {image_info ? (
         <div className="flex flex-col items-start gap-3">
           <div className="relative w-full max-w-sm overflow-hidden rounded-lg border border-border shadow-sm">
-            <img
+            <Image
               src={getCDNUrl(image_info.s3_key)}
               alt="Puzzle card image"
+              width={768}
+              height={512}
+              unoptimized
               className="block w-full object-cover"
               style={{ aspectRatio: IMAGE_ASPECT }}
             />
@@ -313,23 +317,24 @@ const useGenerationProgress = (active: boolean) => {
   const [progress, setProgress] = useState(0);
 
   useEffect(() => {
-    if (!active) {
-      setProgress(0);
-      return;
-    }
+    if (!active) return;
     const TARGET = 90;
     const INTERVAL = 150;
     const step = (TARGET / IMAGE_GENERATION_TIMEOUT_MS) * INTERVAL;
     let current = 0;
+    const resetFrame = requestAnimationFrame(() => setProgress(0));
     const id = setInterval(() => {
       current = Math.min(current + step, TARGET);
       setProgress(current);
       if (current >= TARGET) clearInterval(id);
     }, INTERVAL);
-    return () => clearInterval(id);
+    return () => {
+      cancelAnimationFrame(resetFrame);
+      clearInterval(id);
+    };
   }, [active]);
 
-  return progress;
+  return active ? progress : 0;
 };
 
 const ExistingImageCard = ({
@@ -368,13 +373,16 @@ const ExistingImageCard = ({
         type="button"
         onClick={() => onSelect(selected ? null : toImageInfo(image))}
         className={cn(
-          'w-full overflow-hidden rounded-lg border bg-card text-left shadow-sm transition-colors',
+          'relative w-full overflow-hidden rounded-lg border bg-card text-left shadow-sm transition-colors',
           selected ? 'border-primary ring-2 ring-primary' : 'border-border hover:border-primary/50'
         )}
       >
-        <img
+        <Image
           src={getCDNUrl(image.s3_key)}
           alt={image.description ?? 'Image asset'}
+          width={768}
+          height={512}
+          unoptimized
           className="block w-full object-cover"
           style={{ aspectRatio: IMAGE_ASPECT }}
         />
@@ -461,10 +469,6 @@ const ExistingImageTab = ({
     return () => clearTimeout(timeoutId);
   }, [search_description]);
 
-  useEffect(() => {
-    setPage(1);
-  }, [debounced_search, order_by]);
-
   const image_assets_q = useQuery({
     queryKey: [IMAGE_ASSETS_LIST_QUERY_KEY, page, debounced_search, order_by],
     queryFn: async () =>
@@ -500,7 +504,10 @@ const ExistingImageTab = ({
           <InputGroupInput
             className="text-sm"
             value={search_description}
-            onChange={(e) => setSearchDescription(e.currentTarget.value)}
+            onChange={(e) => {
+              setSearchDescription(e.currentTarget.value);
+              setPage(1);
+            }}
             placeholder="Search by description…"
           />
         </InputGroup>
@@ -508,7 +515,10 @@ const ExistingImageTab = ({
           items={IMAGE_ORDER_ITEMS}
           value={order_by}
           onValueChange={(value) => {
-            if (value) setOrderBy(value);
+            if (value) {
+              setOrderBy(value);
+              setPage(1);
+            }
           }}
         >
           <SelectTrigger size="sm" className="w-full sm:w-32" aria-label="Sort order">
@@ -754,10 +764,13 @@ const CreateNewImageTab = ({
 
       {phase.state === 'done' && (
         <div className="flex w-full flex-col items-center gap-4">
-          <div className="w-full max-w-sm overflow-hidden rounded-lg border border-border shadow">
-            <img
+          <div className="relative w-full max-w-sm overflow-hidden rounded-lg border border-border shadow">
+            <Image
               src={getCDNUrl(phase.image_info.s3_key)}
               alt="Generated puzzle card"
+              width={768}
+              height={512}
+              unoptimized
               className="block w-full object-cover"
               style={{ aspectRatio: IMAGE_ASPECT }}
             />

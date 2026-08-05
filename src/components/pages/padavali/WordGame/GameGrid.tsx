@@ -1,5 +1,5 @@
 import { useDrag } from '@use-gesture/react';
-import { useEffect, useRef, type RefObject, useContext, useState } from 'react';
+import { useCallback, useEffect, useRef, type RefObject, useContext, useState } from 'react';
 import { motion } from 'framer-motion';
 import { FONT_INFO } from '~/state/script_font_data';
 import { cn } from '~/lib/utils';
@@ -28,6 +28,13 @@ type Props = {
   timerRef: RefObject<NodeJS.Timeout | null>;
   original_grid_data: string[][];
   location: location_list_type;
+};
+
+type DragEventLike = {
+  clientX?: number;
+  clientY?: number;
+  touches?: Array<{ clientX: number; clientY: number }>;
+  changedTouches?: Array<{ clientX: number; clientY: number }>;
 };
 
 export const GameGrid = ({ timerRef, original_grid_data }: Props) => {
@@ -62,75 +69,26 @@ export const GameGrid = ({ timerRef, original_grid_data }: Props) => {
   const [lastHandPos, setLastHandPos] = useState<CellPosition | null>(null);
   const [revealHandPos, setRevealHandPos] = useState<CellPosition | null>(null);
   const [revealPath, setRevealPath] = useState<CellPosition[]>([]);
-  /** Bumped when the grid layout size changes so SVG trail points are recomputed. */
-  const [layoutTick, setLayoutTick] = useState(0);
+  const [cellCenters, setCellCenters] = useState<Record<string, { x: number; y: number }>>({});
+
+  const demoActive = !started && !completed;
+  const displayDemoPath = demoActive ? demoPath : [];
+  const displayDemoState = demoActive ? demoState : 'idle';
+  const displayHandPos = demoActive ? handPos : null;
+  const displayLastHandPos = demoActive ? lastHandPos : null;
+  const displayRevealPath = revealedWord ? revealPath : [];
+  const displayRevealHandPos = revealedWord ? revealHandPos : null;
+
+  const handleRevealUpdate = useCallback(
+    (state: { path: CellPosition[]; handPos: CellPosition | null }) => {
+      setRevealPath(state.path);
+      setRevealHandPos(state.handPos);
+    },
+    []
+  );
 
   useEffect(() => {
-    if (handPos) {
-      setLastHandPos(handPos);
-    }
-  }, [handPos]);
-
-  // Clear reveal highlight once the player finds that word
-  useEffect(() => {
-    if (!revealedWord) {
-      setRevealPath([]);
-      setRevealHandPos(null);
-      return;
-    }
-    if (foundWords.some((fw) => fw.word === revealedWord.word)) {
-      setRevealedWord(null);
-    }
-  }, [foundWords, revealedWord, setRevealedWord]);
-
-  // Trace orange highlight with the hand, then keep the path and hide the hand
-  useEffect(() => {
-    if (!started || completed || !revealedWord?.cells.length) {
-      if (!revealedWord) {
-        setRevealPath([]);
-        setRevealHandPos(null);
-      }
-      return;
-    }
-
-    let isMounted = true;
-    let timeoutId: NodeJS.Timeout;
-    const path = revealedWord.cells;
-    const stepMs = 480;
-
-    setRevealPath([]);
-    setRevealHandPos(null);
-
-    const animate = async () => {
-      for (let i = 0; i < path.length; i++) {
-        if (!isMounted) return;
-        const next = path.slice(0, i + 1);
-        setRevealPath(next);
-        setRevealHandPos(path[i]!);
-        await new Promise((resolve) => {
-          timeoutId = setTimeout(resolve, stepMs);
-        });
-      }
-      if (!isMounted) return;
-      await new Promise((resolve) => {
-        timeoutId = setTimeout(resolve, 350);
-      });
-      if (isMounted) setRevealHandPos(null);
-    };
-
-    animate();
-
-    return () => {
-      isMounted = false;
-      clearTimeout(timeoutId);
-    };
-  }, [revealedWord, started, completed]);
-
-  useEffect(() => {
-    if (started || completed) {
-      setDemoPath([]);
-      setDemoState('idle');
-      setHandPos(null);
+    if (!demoActive) {
       return;
     }
 
@@ -164,6 +122,7 @@ export const GameGrid = ({ timerRef, original_grid_data }: Props) => {
         const currentPath = path.slice(0, i + 1);
         setDemoPath(currentPath);
         setHandPos(path[i]);
+        setLastHandPos(path[i]!);
         await new Promise((resolve) => {
           timeoutId = setTimeout(resolve, 600);
         });
@@ -192,7 +151,7 @@ export const GameGrid = ({ timerRef, original_grid_data }: Props) => {
       isMounted = false;
       clearTimeout(timeoutId);
     };
-  }, [started, completed, rows, cols]);
+  }, [demoActive, rows, cols]);
 
   const font_info = FONT_INFO[script!];
 
@@ -203,7 +162,6 @@ export const GameGrid = ({ timerRef, original_grid_data }: Props) => {
     const preventNavigation = (e: TouchEvent) => {
       // Prevent pull-to-refresh and navigation gestures
       if (e.touches.length === 1) {
-        const touch = e.touches[0];
         const target = e.target as Element;
 
         // Check if touch started on the game grid
@@ -274,7 +232,21 @@ export const GameGrid = ({ timerRef, original_grid_data }: Props) => {
       if (rounded.width === 0 || rounded.height === 0) return;
 
       lastGridSizeRef.current = rounded;
-      setLayoutTick((t) => t + 1);
+
+      const parentRect = el.getBoundingClientRect();
+      const centers: Record<string, { x: number; y: number }> = {};
+      const cells = el.querySelectorAll<HTMLElement>('[data-row][data-col]');
+      for (const cell of cells) {
+        const row = cell.dataset.row;
+        const col = cell.dataset.col;
+        if (!row || !col) continue;
+        const cellRect = cell.getBoundingClientRect();
+        centers[`${row}-${col}`] = {
+          x: cellRect.left + cellRect.width / 2 - parentRect.left,
+          y: cellRect.top + cellRect.height / 2 - parentRect.top
+        };
+      }
+      setCellCenters(centers);
     };
 
     const scheduleSync = () => {
@@ -303,27 +275,19 @@ export const GameGrid = ({ timerRef, original_grid_data }: Props) => {
     };
   }, [rows, cols, script]);
 
-  // helper to go from a cell index to its pixel center
+  // helper to go from a cell index to its pixel center (uses measured layout, not refs during render)
   const getCenter = ({ row, col }: CellPosition) => {
-    if (!gridRef.current) return { x: 0, y: 0 };
-
-    // Always use fresh getBoundingClientRect for most accurate positioning,
-    // especially important on mobile devices where viewport can change dynamically
-    const parentRect = gridRef.current.getBoundingClientRect();
-    const cell = gridRef.current.querySelector<HTMLElement>(
-      `[data-row="${row}"][data-col="${col}"]`
-    );
-    if (!cell) return { x: 0, y: 0 };
-
-    const cellRect = cell.getBoundingClientRect();
-    return {
-      x: cellRect.left + cellRect.width / 2 - parentRect.left,
-      y: cellRect.top + cellRect.height / 2 - parentRect.top
-    };
+    const center = cellCenters[`${row}-${col}`];
+    return center ?? { x: 0, y: 0 };
   };
 
+  const isCellInFoundWords = (r: number, c: number) =>
+    foundWords.some((sel) => sel.cells.some((cell) => cell.row === r && cell.col === c));
+  const getWordFromSelection = (sel: CellPosition[]) =>
+    sel.map((cell) => original_grid_data[cell.row][cell.col]).join('');
+
   // hit-test using elementFromPoint (as before)
-  const getCellFromEvent = (e: any): CellPosition | null => {
+  const getCellFromEvent = (e: DragEventLike): CellPosition | null => {
     const clientX = e.clientX ?? e.touches?.[0]?.clientX ?? e.changedTouches?.[0]?.clientX;
     const clientY = e.clientY ?? e.touches?.[0]?.clientY ?? e.changedTouches?.[0]?.clientY;
     if (clientX == null || clientY == null) return null;
@@ -374,7 +338,7 @@ export const GameGrid = ({ timerRef, original_grid_data }: Props) => {
 
   // Enhanced drag logic with better mobile support
   const bind = useDrag(
-    ({ event, first, down, last, cancel }) => {
+    ({ event, first, down, last }) => {
       if (!started || completed) {
         // Allow native scroll behavior on mobile when game is off
         return;
@@ -428,6 +392,9 @@ export const GameGrid = ({ timerRef, original_grid_data }: Props) => {
 
           if (wordList.includes(word)) {
             setFoundWords((prev) => [...prev, { cells: [...finalSelection], word }]);
+            if (revealedWord?.word === word) {
+              setRevealedWord(null);
+            }
           }
         }
         selectionRef.current = [];
@@ -450,24 +417,13 @@ export const GameGrid = ({ timerRef, original_grid_data }: Props) => {
   );
 
   // build the SVG <polyline> points strings
-  // layoutTick is read so trails recompute after resize without stale coordinates
-  const buildPoints = (cells: CellPosition[]) => {
-    void layoutTick;
-    return cells
+  const buildPoints = (cells: CellPosition[]) =>
+    cells
       .map((c) => {
         const { x, y } = getCenter(c);
         return `${x},${y}`;
       })
       .join(' ');
-  };
-
-  // helpers for hit-testing and coloring
-  const isCellInCurrentSelection = (r: number, c: number) =>
-    currentSelection.some((cell) => cell.row === r && cell.col === c);
-  const isCellInFoundWords = (r: number, c: number) =>
-    foundWords.some((sel) => sel.cells.some((cell) => cell.row === r && cell.col === c));
-  const getWordFromSelection = (sel: CellPosition[]) =>
-    sel.map((cell) => original_grid_data[cell.row][cell.col]).join('');
 
   // Check for puzzle completion
   useEffect(() => {
@@ -477,16 +433,27 @@ export const GameGrid = ({ timerRef, original_grid_data }: Props) => {
         clearInterval(timerRef.current);
       }
     }
-  }, [foundWords.length, wordList.length, started]);
+  }, [foundWords.length, wordList.length, started, setCompleted, timerRef]);
 
-  const demoDisplayPos = handPos ?? lastHandPos;
-  const isDemoHandVisible = !!handPos && !started && !completed;
-  const isRevealHandVisible = started && !completed && !!revealHandPos;
+  const demoDisplayPos = displayHandPos ?? displayLastHandPos;
+  const isDemoHandVisible = !!displayHandPos;
+  const isRevealHandVisible = started && !completed && !!displayRevealHandPos;
   const isHandVisible = isDemoHandVisible || isRevealHandVisible;
-  const displayPos = isDemoHandVisible ? demoDisplayPos : revealHandPos;
+  const displayPos = isDemoHandVisible ? demoDisplayPos : displayRevealHandPos;
+
+  const revealAnimatorKey = revealedWord
+    ? `${revealedWord.word}:${revealedWord.cells.map((c) => `${c.row},${c.col}`).join('|')}`
+    : null;
 
   return (
     <>
+      {revealAnimatorKey && started && !completed ? (
+        <RevealPathAnimator
+          key={revealAnimatorKey}
+          cells={revealedWord!.cells}
+          onUpdate={handleRevealUpdate}
+        />
+      ) : null}
       <div className="w-full">
         {/* Game Grid Card */}
         <div className="overflow-hidden rounded-3xl border border-slate-200 bg-white p-2.5 shadow-2xl sm:p-4 md:p-6 dark:border-slate-700 dark:bg-slate-800">
@@ -527,9 +494,9 @@ export const GameGrid = ({ timerRef, original_grid_data }: Props) => {
                     started={started}
                     currentSelection={currentSelection}
                     foundWords={foundWords}
-                    demoPath={demoPath}
-                    demoState={demoState}
-                    revealedCells={revealPath}
+                    demoPath={displayDemoPath}
+                    demoState={displayDemoState}
+                    revealedCells={displayRevealPath}
                   />
                 ))
               )}
@@ -590,10 +557,10 @@ export const GameGrid = ({ timerRef, original_grid_data }: Props) => {
               ))}
 
               {/* Revealed word trail — grows with the hand */}
-              {started && !completed && revealPath.length > 1 && (
+              {started && !completed && displayRevealPath.length > 1 && (
                 <g>
                   <polyline
-                    points={buildPoints(revealPath)}
+                    points={buildPoints(displayRevealPath)}
                     fill="none"
                     className="stroke-orange-300 dark:stroke-orange-400"
                     strokeWidth={12}
@@ -602,7 +569,7 @@ export const GameGrid = ({ timerRef, original_grid_data }: Props) => {
                     opacity={0.35}
                   />
                   <polyline
-                    points={buildPoints(revealPath)}
+                    points={buildPoints(displayRevealPath)}
                     fill="none"
                     className="stroke-orange-500 dark:stroke-orange-400"
                     strokeWidth={6}
@@ -637,16 +604,16 @@ export const GameGrid = ({ timerRef, original_grid_data }: Props) => {
                 </g>
               )}
               {/* Demo path trail */}
-              {!started && demoPath.length > 1 && (
+              {!started && displayDemoPath.length > 1 && (
                 <g>
                   {/* Glow effect */}
                   <polyline
-                    points={buildPoints(demoPath)}
+                    points={buildPoints(displayDemoPath)}
                     fill="none"
                     className={cn(
-                      demoState === 'success' && 'stroke-emerald-300 dark:stroke-emerald-400',
-                      demoState === 'fail' && 'stroke-red-300 dark:stroke-red-400',
-                      demoState === 'selecting' && 'stroke-blue-300 dark:stroke-blue-400'
+                      displayDemoState === 'success' && 'stroke-emerald-300 dark:stroke-emerald-400',
+                      displayDemoState === 'fail' && 'stroke-red-300 dark:stroke-red-400',
+                      displayDemoState === 'selecting' && 'stroke-blue-300 dark:stroke-blue-400'
                     )}
                     strokeWidth={12}
                     strokeLinecap="round"
@@ -655,12 +622,12 @@ export const GameGrid = ({ timerRef, original_grid_data }: Props) => {
                   />
                   {/* Main line */}
                   <polyline
-                    points={buildPoints(demoPath)}
+                    points={buildPoints(displayDemoPath)}
                     fill="none"
                     className={cn(
-                      demoState === 'success' && 'stroke-emerald-500 dark:stroke-emerald-400',
-                      demoState === 'fail' && 'stroke-red-500 dark:stroke-red-400',
-                      demoState === 'selecting' && 'stroke-blue-500 dark:stroke-blue-400'
+                      displayDemoState === 'success' && 'stroke-emerald-500 dark:stroke-emerald-400',
+                      displayDemoState === 'fail' && 'stroke-red-500 dark:stroke-red-400',
+                      displayDemoState === 'selecting' && 'stroke-blue-500 dark:stroke-blue-400'
                     )}
                     strokeWidth={6}
                     strokeLinecap="round"
@@ -854,4 +821,43 @@ const generateRandomPath = (rows: number, cols: number): CellPosition[] => {
     }
   }
   return [];
+};
+
+const RevealPathAnimator = ({
+  cells,
+  onUpdate
+}: {
+  cells: CellPosition[];
+  onUpdate: (state: { path: CellPosition[]; handPos: CellPosition | null }) => void;
+}) => {
+  useEffect(() => {
+    let isMounted = true;
+    let timeoutId: NodeJS.Timeout;
+    const stepMs = 480;
+
+    const animate = async () => {
+      for (let i = 0; i < cells.length; i++) {
+        if (!isMounted) return;
+        const next = cells.slice(0, i + 1);
+        onUpdate({ path: next, handPos: cells[i]! });
+        await new Promise((resolve) => {
+          timeoutId = setTimeout(resolve, stepMs);
+        });
+      }
+      if (!isMounted) return;
+      await new Promise((resolve) => {
+        timeoutId = setTimeout(resolve, 350);
+      });
+      if (isMounted) onUpdate({ path: cells, handPos: null });
+    };
+
+    animate();
+
+    return () => {
+      isMounted = false;
+      clearTimeout(timeoutId);
+    };
+  }, [cells, onUpdate]);
+
+  return null;
 };

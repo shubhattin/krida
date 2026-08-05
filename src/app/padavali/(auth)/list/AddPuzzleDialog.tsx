@@ -67,10 +67,11 @@ const AddPuzzleDialog = () => {
   const [slug, setSlug] = useState('');
   const [lipi_lekhika_typing, setLipiLekhikaTyping] = useState(true);
   const [overrideRedirectSlug, setOverrideRedirectSlug] = useState(false);
+  const [overrideForSlug, setOverrideForSlug] = useState('');
 
   const ctx = createTypingContext('Devanagari');
   useEffect(() => {
-    ctx.ready;
+    void ctx.ready;
   }, [ctx]);
 
   const {
@@ -81,9 +82,8 @@ const AddPuzzleDialog = () => {
     enabled: open
   });
 
-  useEffect(() => {
-    setOverrideRedirectSlug(false);
-  }, [normalizedSlug]);
+  const effectiveOverrideRedirectSlug =
+    overrideRedirectSlug && overrideForSlug === normalizedSlug;
 
   const add_puzzle_mut = client_q.puzzle.add_puzzle.useMutation({
     onSuccess(data) {
@@ -94,6 +94,7 @@ const AddPuzzleDialog = () => {
       setDescription('');
       setSlug('');
       setOverrideRedirectSlug(false);
+      setOverrideForSlug('');
       router.push(`/padavali/edit/${data.id}`);
     },
     onError() {
@@ -103,7 +104,8 @@ const AddPuzzleDialog = () => {
   });
 
   const slugReady =
-    slugStatus === 'available' || (slugStatus === 'redirect_conflict' && overrideRedirectSlug);
+    slugStatus === 'available' ||
+    (slugStatus === 'redirect_conflict' && effectiveOverrideRedirectSlug);
 
   const canSubmit = title.trim().length > 0 && slugReady && normalizedSlug.length > 0;
 
@@ -112,7 +114,7 @@ const AddPuzzleDialog = () => {
       title: title.trim(),
       slug: normalizedSlug,
       description: description.trim() ? description.trim() : '',
-      override_redirect_slug: slugStatus === 'redirect_conflict' && overrideRedirectSlug
+      override_redirect_slug: slugStatus === 'redirect_conflict' && effectiveOverrideRedirectSlug
     });
   };
 
@@ -128,6 +130,7 @@ const AddPuzzleDialog = () => {
             setDescription('');
             setSlug('');
             setOverrideRedirectSlug(false);
+            setOverrideForSlug('');
           }
         }}
       >
@@ -209,8 +212,11 @@ const AddPuzzleDialog = () => {
               {slugStatus === 'redirect_conflict' && redirectConflict ? (
                 <SlugRedirectConflictPrompt
                   conflict={redirectConflict}
-                  overrideConfirmed={overrideRedirectSlug}
-                  onOverrideChange={setOverrideRedirectSlug}
+                  overrideConfirmed={effectiveOverrideRedirectSlug}
+                  onOverrideChange={(confirmed) => {
+                    setOverrideRedirectSlug(confirmed);
+                    setOverrideForSlug(normalizedSlug);
+                  }}
                 />
               ) : null}
             </div>

@@ -1,6 +1,6 @@
 'use client';
 
-import { useRef, useEffect, useMemo, useContext, useState } from 'react';
+import { useRef, useEffect, useMemo, useContext } from 'react';
 import { motion } from 'framer-motion';
 import { transliterate } from 'lipilekhika';
 import { DEFAULT_DATA_SCRIPT, type ScriptType } from '~/state/script_list';
@@ -22,7 +22,6 @@ import { copy_text_to_clipboard } from '~/tools/kry';
 import { toast } from 'sonner';
 import { get_puzzle_share_url } from './GameInfo';
 import { client_q } from '~/api/client';
-import Link from 'next/link';
 import { useRouter } from 'next/navigation';
 import {
   AlertDialog,
@@ -136,7 +135,15 @@ export default function WordGameRoot(
     store.set(puzzle_slug_atom, props.puzzle_slug);
     store.set(description_current_atom, props.description);
     return store;
-  }, []);
+  }, [
+    props.description,
+    props.dims,
+    props.initial_script_data.grid_data,
+    props.initial_script_data.title,
+    props.initial_script_data.word_msgs,
+    props.puzzle_slug,
+    props.word_list
+  ]);
 
   return (
     <>
@@ -306,7 +313,7 @@ function WordGame({
       puzzle_id,
       puzzle_slug
     });
-  }, [puzzle_id, puzzle_slug, utils, script]);
+  }, [puzzle_id, puzzle_slug, utils, script, queryClient]);
 
   const font_info = FONT_INFO[script as ScriptType];
   const gameInProgress = started && !completed;
@@ -322,7 +329,7 @@ function WordGame({
     if (onChangeCompleted) {
       onChangeCompleted(completed);
     }
-  }, [completed]);
+  }, [completed, onChangeCompleted]);
 
   // transliteration
   useEffect(() => {
@@ -343,7 +350,16 @@ function WordGame({
         setDescriptionTransliterated(description);
       });
     }
-  }, [script]);
+  }, [
+    script,
+    org_grid_data,
+    org_title,
+    description,
+    setGridData,
+    setTitle,
+    setWordMsgs,
+    setDescriptionTransliterated
+  ]);
 
   // Prevent page refresh/navigation during active game
   useEffect(() => {
@@ -357,7 +373,7 @@ function WordGame({
       return ''; // Some browsers require a return value
     };
 
-    const handlePopState = (e: PopStateEvent) => {
+    const handlePopState = () => {
       // Prevent back/forward navigation during active game
       if (started && !completed) {
         const confirmLeave = window.confirm(

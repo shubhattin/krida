@@ -37,8 +37,8 @@ export default function NotFoundClient() {
           </h1>
 
           <p className="mx-auto max-w-xl text-base text-slate-500 dark:text-slate-400">
-            We couldn't find the page you're looking for, but you can play these interactive preview
-            puzzles or return to safety.
+            We couldn&apos;t find the page you&apos;re looking for, but you can play these
+            interactive preview puzzles or return to safety.
           </p>
 
           <div className="flex flex-wrap items-center justify-center gap-3">

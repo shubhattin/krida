@@ -1,6 +1,6 @@
 'use client';
 
-import { useEffect, useState } from 'react';
+import { useState } from 'react';
 import { useRouter } from 'next/navigation';
 import { CheckIcon, Loader2Icon, PencilIcon, Trash2Icon, XIcon } from 'lucide-react';
 import { client_q } from '~/api/client';
@@ -68,7 +68,7 @@ export const EditSlugDialog = ({ puzzleId, currentSlug, onSlugUpdated }: Props) 
   const [open, setOpen] = useState(false);
   const [confirmOpen, setConfirmOpen] = useState(false);
   const [newSlug, setNewSlug] = useState(currentSlug);
-  const [overrideRedirectSlug, setOverrideRedirectSlug] = useState(false);
+  const [overrideForSlug, setOverrideForSlug] = useState<string | null>(null);
 
   const {
     status: slugStatus,
@@ -78,10 +78,7 @@ export const EditSlugDialog = ({ puzzleId, currentSlug, onSlugUpdated }: Props) 
     excludePuzzleId: puzzleId,
     enabled: open
   });
-
-  useEffect(() => {
-    setOverrideRedirectSlug(false);
-  }, [normalizedSlug]);
+  const overrideRedirectSlug = overrideForSlug === normalizedSlug;
 
   const update_slug_mut = client_q.puzzle.update_puzzle_slug.useMutation({
     onSuccess(data) {
@@ -98,7 +95,7 @@ export const EditSlugDialog = ({ puzzleId, currentSlug, onSlugUpdated }: Props) 
       onSlugUpdated(data.slug);
       setOpen(false);
       setConfirmOpen(false);
-      setOverrideRedirectSlug(false);
+      setOverrideForSlug(null);
       router.refresh();
     },
     onError() {
@@ -130,7 +127,7 @@ export const EditSlugDialog = ({ puzzleId, currentSlug, onSlugUpdated }: Props) 
           if (!nextOpen) {
             setConfirmOpen(false);
             setNewSlug(currentSlug);
-            setOverrideRedirectSlug(false);
+            setOverrideForSlug(null);
           } else {
             setNewSlug(currentSlug);
           }
@@ -157,7 +154,10 @@ export const EditSlugDialog = ({ puzzleId, currentSlug, onSlugUpdated }: Props) 
               <Input
                 id="edit-puzzle-slug"
                 value={newSlug}
-                onChange={(e) => setNewSlug(e.currentTarget.value)}
+                onChange={(e) => {
+                  setNewSlug(e.currentTarget.value);
+                  setOverrideForSlug(null);
+                }}
                 className="pr-9"
                 aria-describedby={
                   slugChanged ? 'edit-slug-redirect-note edit-slug-status' : 'edit-slug-status'
@@ -204,7 +204,9 @@ export const EditSlugDialog = ({ puzzleId, currentSlug, onSlugUpdated }: Props) 
               <SlugRedirectConflictPrompt
                 conflict={redirectConflict}
                 overrideConfirmed={overrideRedirectSlug}
-                onOverrideChange={setOverrideRedirectSlug}
+                onOverrideChange={(confirmed) =>
+                  setOverrideForSlug(confirmed ? normalizedSlug : null)
+                }
               />
             ) : null}
           </div>

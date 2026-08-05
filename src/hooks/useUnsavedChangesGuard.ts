@@ -22,7 +22,10 @@ function isGuardState(state: unknown): boolean {
  */
 export function useUnsavedChangesGuard(enabled: boolean, message: string = DEFAULT_MESSAGE) {
   const messageRef = useRef(message);
-  messageRef.current = message;
+
+  useEffect(() => {
+    messageRef.current = message;
+  }, [message]);
 
   useEffect(() => {
     if (!enabled) return;

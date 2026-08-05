@@ -1,6 +1,6 @@
 'use client';
 
-import { useEffect, useEffectEvent, useRef, useState } from 'react';
+import { useEffect, useEffectEvent, useMemo, useRef, useState } from 'react';
 import { useAtomValue } from 'jotai';
 import { AnimatePresence, LayoutGroup, motion } from 'framer-motion';
 import { AlertCircle, CheckCircle2, Sparkles } from 'lucide-react';
@@ -132,8 +132,19 @@ export function CluePanel({ game, moreHints, className }: CluePanelProps) {
   const suppressScrollRef = useRef(false);
   const prevSolvedIdsRef = useRef<string[]>(solvedIds);
 
+  const displayFilter = useMemo((): ClueFilter => {
+    if (!focus || filter === 'all') return filter;
+    const entry = entries.find((e) => e.id === focus.entryId);
+    if (!entry || solvedIds.includes(entry.id)) return filter;
+    if (filter === 'across' && entry.direction === 'down') return 'down';
+    if (filter === 'down' && entry.direction === 'across') return 'across';
+    return filter;
+  }, [filter, focus, entries, solvedIds]);
+
   const filtered =
-    filter === 'all' ? entries : entries.filter((entry) => entry.direction === filter);
+    displayFilter === 'all'
+      ? entries
+      : entries.filter((entry) => entry.direction === displayFilter);
   const sorted = sortClues(filtered, solvedIds);
 
   const onFocusedEntrySolved = useEffectEvent(() => {
@@ -158,20 +169,6 @@ export function CluePanel({ game, moreHints, className }: CluePanelProps) {
     onFocusedEntrySolved();
   }, [solvedIds, focus?.entryId]);
 
-  // Sync Across/Down filter to the focused entry's direction (on focus change only).
-  useEffect(() => {
-    if (!focus) return;
-    const entry = entries.find((e) => e.id === focus.entryId);
-    if (!entry) return;
-    if (solvedIds.includes(entry.id)) return;
-
-    setFilter((current) => {
-      if (current === 'across' && entry.direction === 'down') return 'down';
-      if (current === 'down' && entry.direction === 'across') return 'across';
-      return current;
-    });
-  }, [focus?.entryId, focus?.direction, entries, solvedIds]);
-
   // Scroll the focused (unsolved) clue into view within the list scroller.
   useEffect(() => {
     if (!focus) return;
@@ -192,7 +189,7 @@ export function CluePanel({ game, moreHints, className }: CluePanelProps) {
     });
 
     return () => cancelAnimationFrame(frame);
-  }, [focus?.entryId, filter, entries, solvedIds]);
+  }, [focus, displayFilter, entries, solvedIds]);
 
   return (
     <div

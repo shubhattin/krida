@@ -1,6 +1,7 @@
 'use client';
 
 import { useContext } from 'react';
+import Image from 'next/image';
 import Link from 'next/link';
 import { motion } from 'framer-motion';
 import { IoExtensionPuzzleSharp } from 'react-icons/io5';
@@ -57,7 +58,13 @@ export const PuzzlePreviewCard = ({ puzzle, compact = false }: Props) => {
           style={{ aspectRatio: `${w} / ${h}` }}
         >
           {imageUrl ? (
-            <img src={imageUrl} alt="" className="size-full object-cover object-center" />
+            <Image
+              src={imageUrl}
+              alt=""
+              fill
+              unoptimized
+              className="object-cover object-center"
+            />
           ) : (
             <div className="flex size-full items-center justify-center bg-linear-to-br from-slate-600 via-slate-700 to-slate-800 dark:from-slate-700 dark:via-slate-800 dark:to-slate-900">
               <IoExtensionPuzzleSharp

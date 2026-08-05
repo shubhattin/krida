@@ -1,6 +1,6 @@
 'use client';
 
-import { useContext, useEffect, useState, type RefObject } from 'react';
+import { useContext, useState, type RefObject } from 'react';
 import { motion } from 'framer-motion';
 import { useAtom } from 'jotai';
 import { BookOpen, Lightbulb } from 'lucide-react';
@@ -50,25 +50,28 @@ type Props = {
 
 export function HintDialog({ puzzle_id, puzzle_slug, timerRef }: Props) {
   const { script } = useContext(AppContext);
+  const [gameSessionNonce] = useAtom(game_session_nonce_atom);
   const [open, setOpen] = useState(false);
   const [confirmRevealOpen, setConfirmRevealOpen] = useState(false);
-  const [revealed, setRevealed] = useState(false);
+  const [revealedForSession, setRevealedForSession] = useState<{
+    nonce: number;
+    revealed: boolean;
+  }>({ nonce: gameSessionNonce, revealed: false });
+  const revealed =
+    revealedForSession.nonce === gameSessionNonce ? revealedForSession.revealed : false;
+  const setRevealed = (value: boolean) =>
+    setRevealedForSession({ nonce: gameSessionNonce, revealed: value });
   const [title] = useAtom(title_current_atom);
   const [description] = useAtom(description_current_atom);
   const [wordMsgs] = useAtom(word_msgs_atom);
   const [started] = useAtom(started_atom);
   const [completed] = useAtom(completed_atom);
-  const [gameSessionNonce] = useAtom(game_session_nonce_atom);
   const [practiceMode, setPracticeMode] = useAtom(practice_mode_atom);
   const startGame = useStartPuzzleGame(timerRef);
   const meanings = useWordMeanings(puzzle_id, puzzle_slug);
   const font_info = FONT_INFO[script!];
 
   const showMeanings = practiceMode || revealed;
-
-  useEffect(() => {
-    setRevealed(false);
-  }, [gameSessionNonce]);
 
   const revealMeanings = () => {
     if (completed || started) {
@@ -158,7 +161,7 @@ export function HintDialog({ puzzle_id, puzzle_slug, timerRef }: Props) {
             ) : (
               <>
                 <p className="rounded-lg bg-amber-50/80 px-3 py-2 text-center text-xs leading-relaxed text-amber-900 dark:bg-amber-950/30 dark:text-amber-100">
-                  Explore Word Meanings — Continue when you're ready.
+              Explore Word Meanings — Continue when you&apos;re ready.
                 </p>
                 <WordMeaningsPanel
                   meanings={meanings}

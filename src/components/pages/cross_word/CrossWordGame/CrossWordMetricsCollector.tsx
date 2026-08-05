@@ -56,7 +56,11 @@ export default function CrossWordMetricsCollector({
   const previousGameSessionNonceRef = useRef(gameSessionNonce);
   const turnstile = useTurnstile();
   const turnstileRef = useRef(turnstile);
-  turnstileRef.current = turnstile;
+
+  useEffect(() => {
+    turnstileRef.current = turnstile;
+  }, [turnstile]);
+
   const resetTurnstile = () => turnstileRef.current?.reset();
 
   const submit_stats_mut = client_q.crossword.stats.submit_stats.useMutation({
@@ -99,7 +103,7 @@ export default function CrossWordMetricsCollector({
         });
       });
     }
-  }, [started, turnstileToken, completed, puzzle_id, location]);
+  }, [started, turnstileToken, completed, puzzle_id, location, update_games_started_mut]);
 
   useEffect(() => {
     if (
@@ -165,6 +169,7 @@ export default function CrossWordMetricsCollector({
   }, [
     turnstileToken,
     update_games_started_mut,
+    submit_stats_mut,
     completed,
     puzzle_id,
     location,

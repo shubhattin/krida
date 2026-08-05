@@ -112,6 +112,7 @@ export function CrossWordGame({
   const queryClient = useQueryClient();
   const utils = client_q.useUtils();
   const [keyboardOpen, setKeyboardOpen] = useState(false);
+  const keyboardPanelOpen = keyboardOpen && started && !completed;
   const hasMedia = !!(attachments && attachments.length > 0);
   const [useVirtualKeyboard, setUseVirtualKeyboard] = useState(INPUT_VIRTUAL_KEYBOARD_ENABLED);
   const moreHints = useMoreHints(puzzle?.id, puzzleSlug, puzzle?.entries);
@@ -161,17 +162,12 @@ export function CrossWordGame({
   }, [started, completed]);
 
   useEffect(() => {
+    const timer = timerRef;
     return () => {
-      if (timerRef.current) clearInterval(timerRef.current);
+      const timerId = timer.current;
+      if (timerId) clearInterval(timerId);
     };
   }, []);
-
-  // Close the panel when the session ends or resets; never leave it open idle.
-  useEffect(() => {
-    if (!started || completed) {
-      setKeyboardOpen(false);
-    }
-  }, [started, completed]);
 
   /**
    * Focus the hidden bridge input (native-keyboard experiment path only).
@@ -225,7 +221,7 @@ export function CrossWordGame({
     };
     window.addEventListener('keydown', onKeyDown);
     return () => window.removeEventListener('keydown', onKeyDown);
-  }, [game.handleKeyDown, started]);
+  }, [game, started]);
 
   /**
    * Native soft-keyboard path: grow bottom padding by the keyboard inset so the
@@ -236,12 +232,11 @@ export function CrossWordGame({
    * the clues (the previous bug).
    */
   const [keyboardInset, setKeyboardInset] = useState(0);
+  const keyboardInsetEnabled = !useVirtualKeyboard && started && !completed;
+  const effectiveKeyboardInset = keyboardInsetEnabled ? keyboardInset : 0;
 
   useEffect(() => {
-    if (useVirtualKeyboard || !started || completed) {
-      setKeyboardInset(0);
-      return;
-    }
+    if (!keyboardInsetEnabled) return;
     const vv = window.visualViewport;
     if (!vv) return;
 
@@ -279,7 +274,7 @@ export function CrossWordGame({
       document.removeEventListener('focusout', onFocusChange);
       setKeyboardInset(0);
     };
-  }, [started, completed, useVirtualKeyboard]);
+  }, [keyboardInsetEnabled]);
 
   // Click outside to deselect grid focus — keyboard panel buttons are excluded
   // via the generic `button` check so typing never clears selection.
@@ -319,7 +314,9 @@ export function CrossWordGame({
         WebkitOverflowScrolling: 'touch',
         overscrollBehavior: started && !completed ? 'contain' : 'auto',
         // Extra scroll room while the OS keyboard is open (native-input path only).
-        ...(keyboardInset > 0 ? { paddingBottom: `calc(${keyboardInset}px + 1.5rem)` } : {})
+        ...(effectiveKeyboardInset > 0
+          ? { paddingBottom: `calc(${effectiveKeyboardInset}px + 1.5rem)` }
+          : {})
       }}
     >
       <AlertDialog
@@ -456,7 +453,7 @@ export function CrossWordGame({
             className={cn(
               'relative w-full max-w-[min(100%,24rem)] lg:max-w-100 xl:max-w-104 2xl:max-w-108',
               // Reserve seam space for the floating toggle when the panel is closed.
-              useVirtualKeyboard && started && !completed && !keyboardOpen && 'pb-4'
+              useVirtualKeyboard && started && !completed && !keyboardPanelOpen && 'pb-4'
             )}
           >
             {!useVirtualKeyboard ? (
@@ -481,7 +478,7 @@ export function CrossWordGame({
               <div className="absolute right-1 bottom-0 z-20 translate-y-1/2 sm:right-0">
                 <CrossWordOnScreenKeyboard
                   enabled={useVirtualKeyboard}
-                  open={keyboardOpen}
+                  open={keyboardPanelOpen}
                   onOpenChange={setKeyboardOpen}
                   onTypeLetter={game.typeLetter}
                   onBackspace={game.backspace}
@@ -496,7 +493,7 @@ export function CrossWordGame({
           {started && !completed ? (
             <CrossWordOnScreenKeyboard
               enabled={useVirtualKeyboard}
-              open={keyboardOpen}
+              open={keyboardPanelOpen}
               onOpenChange={setKeyboardOpen}
               onTypeLetter={game.typeLetter}
               onBackspace={game.backspace}

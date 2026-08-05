@@ -40,6 +40,12 @@ type Options = {
 const defaultCheckSlug: SlugCheckFn = (params) =>
   client.puzzle.check_slug_availability.query(params);
 
+type AsyncCheckResult = {
+  slug: string;
+  status: SlugCheckStatus;
+  redirectConflict: RedirectConflict | null;
+};
+
 export const useDebouncedSlugCheck = (slugInput: string, options: Options = {}) => {
   const {
     excludePuzzleId,
@@ -47,66 +53,64 @@ export const useDebouncedSlugCheck = (slugInput: string, options: Options = {}) 
     checkSlug = defaultCheckSlug,
     isValidSlugFn = isValidSlug
   } = options;
-  const [status, setStatus] = useState<SlugCheckStatus>('idle');
-  const [normalizedSlug, setNormalizedSlug] = useState('');
-  const [redirectConflict, setRedirectConflict] = useState<RedirectConflict | null>(null);
+
+  const normalizedSlug = enabled ? normalizeSlug(slugInput) : '';
+
+  const syncStatus: SlugCheckStatus | null =
+    !enabled || !normalizedSlug
+      ? 'idle'
+      : !isValidSlugFn(normalizedSlug)
+        ? 'invalid'
+        : null;
+
+  const [checkResult, setCheckResult] = useState<AsyncCheckResult>({
+    slug: '',
+    status: 'idle',
+    redirectConflict: null
+  });
+
+  const status: SlugCheckStatus =
+    syncStatus ?? (checkResult.slug === normalizedSlug ? checkResult.status : 'checking');
+
+  const redirectConflict: RedirectConflict | null =
+    syncStatus !== null
+      ? null
+      : checkResult.slug === normalizedSlug
+        ? checkResult.redirectConflict
+        : null;
 
   useEffect(() => {
-    if (!enabled) {
-      setStatus('idle');
-      setNormalizedSlug('');
-      setRedirectConflict(null);
-      return;
-    }
+    if (syncStatus !== null) return;
 
-    const normalized = normalizeSlug(slugInput);
-    setNormalizedSlug(normalized);
-
-    if (!normalized) {
-      setStatus('idle');
-      setRedirectConflict(null);
-      return;
-    }
-
-    if (!isValidSlugFn(normalized)) {
-      setStatus('invalid');
-      setRedirectConflict(null);
-      return;
-    }
-
-    setStatus('checking');
-    setRedirectConflict(null);
     let cancelled = false;
     const timeoutId = setTimeout(() => {
       void checkSlug({
-        slug: normalized,
+        slug: normalizedSlug,
         exclude_puzzle_id: excludePuzzleId
       })
         .then((result) => {
           if (cancelled) return;
           if (!result.available) {
-            if (result.reason === 'invalid_format') {
-              setStatus('invalid');
-            } else {
-              setStatus('taken');
-            }
-            setRedirectConflict(null);
+            const nextStatus: SlugCheckStatus =
+              result.reason === 'invalid_format' ? 'invalid' : 'taken';
+            setCheckResult({ slug: normalizedSlug, status: nextStatus, redirectConflict: null });
             return;
           }
 
           if ('redirect_conflict' in result && result.redirect_conflict) {
-            setStatus('redirect_conflict');
-            setRedirectConflict(result.redirect_conflict);
+            setCheckResult({
+              slug: normalizedSlug,
+              status: 'redirect_conflict',
+              redirectConflict: result.redirect_conflict
+            });
             return;
           }
 
-          setStatus('available');
-          setRedirectConflict(null);
+          setCheckResult({ slug: normalizedSlug, status: 'available', redirectConflict: null });
         })
         .catch(() => {
           if (!cancelled) {
-            setStatus('idle');
-            setRedirectConflict(null);
+            setCheckResult({ slug: normalizedSlug, status: 'idle', redirectConflict: null });
           }
         });
     }, DEBOUNCE_MS);
@@ -115,7 +119,7 @@ export const useDebouncedSlugCheck = (slugInput: string, options: Options = {}) 
       cancelled = true;
       clearTimeout(timeoutId);
     };
-  }, [slugInput, excludePuzzleId, enabled, checkSlug, isValidSlugFn]);
+  }, [normalizedSlug, excludePuzzleId, syncStatus, checkSlug]);
 
   return { status, normalizedSlug, redirectConflict };
 };

@@ -31,15 +31,6 @@ import { atom, useAtom } from 'jotai';
 import { MdDeleteOutline, MdDragIndicator } from 'react-icons/md';
 import { useRouter } from 'next/navigation';
 import { Info, ArrowRight, ExternalLink } from 'lucide-react';
-import {
-  Dialog,
-  DialogContent,
-  DialogHeader,
-  DialogTitle,
-  DialogTrigger
-} from '@/components/ui/dialog';
-import { Textarea } from '@/components/ui/textarea';
-import { Checkbox } from '@/components/ui/checkbox';
 import { PuzzleCardImageSection } from '~/components/pages/puzzle/PuzzleCardImageSection';
 import { EditorActionDock } from '~/components/pages/puzzle/EditorActionDock';
 import {
@@ -74,7 +65,6 @@ import { LanguageIcon } from '~/components/icons';
 import {
   puzzle_schema as _puzzle_schema,
   attachment_schema,
-  ATTACHMENT_TYPE_LIST,
   ATTACHMENT_TYPE_NAMES,
   puzzle_update_input_schema
 } from '~/db/db_shared_vals';
@@ -108,25 +98,28 @@ const ATTACHMENT_TYPE_ITEMS = [
   }))
 ];
 
-const puzzle_schema = _puzzle_schema
-  .extend({
-    id: z.number().int()
-  })
-  .omit({
-    attachments: true
-  })
-  .and(
-    z.object({
-      attachments: attachment_schema
-        .omit({ id: true })
-        .extend({
-          id: z.number().int().nullable()
-        })
-        .array()
+function createPuzzleSchema() {
+  return _puzzle_schema
+    .extend({
+      id: z.number().int()
     })
-  );
+    .omit({
+      attachments: true
+    })
+    .and(
+      z.object({
+        attachments: attachment_schema
+          .omit({ id: true })
+          .extend({
+            id: z.number().int().nullable()
+          })
+          .array()
+      })
+    );
+}
 
-export type Puzzle = z.infer<typeof puzzle_schema>;
+export const puzzleSchema = createPuzzleSchema();
+export type Puzzle = z.infer<typeof puzzleSchema>;
 
 const BASE_SCRIPT = 'Devanagari';
 
@@ -210,7 +203,7 @@ const Title = () => {
   const historyField = useHistoryTextField();
 
   useEffect(() => {
-    ctx.ready;
+    void ctx.ready;
   }, [ctx]);
 
   return (
@@ -251,7 +244,7 @@ const SortableAttachmentItem = ({
 }: {
   attachment: Puzzle['attachments'][0];
   index: number;
-  onUpdate: (field: string, value: any, event: any) => void;
+  onUpdate: (field: string, value: unknown, event: unknown) => void;
   onRemove: () => void;
 }) => {
   const { attributes, listeners, setNodeRef, transform, transition, isDragging } = useSortable({
@@ -364,7 +357,6 @@ const SortableAttachmentItem = ({
 
 const Attachments = () => {
   const [attachments, setAttachments] = useAtom(attachments_atom);
-  const [lipi_lekhika_active] = useAtom(lipi_lekhika_active_atom);
 
   const sensors = useSensors(
     useSensor(PointerSensor),
@@ -397,7 +389,7 @@ const Attachments = () => {
     });
   };
 
-  const updateAttachment = (index: number, field: string, value: any, e: any) => {
+  const updateAttachment = (index: number, field: string, value: unknown) => {
     setAttachments((prev) => prev.map((a, i) => (i === index ? { ...a, [field]: value } : a)));
   };
 
@@ -446,7 +438,7 @@ const Attachments = () => {
                     key={`attachment-${index}`}
                     attachment={attachment}
                     index={index}
-                    onUpdate={(field, value, event) => updateAttachment(index, field, value, event)}
+                    onUpdate={(field, value) => updateAttachment(index, field, value)}
                     onRemove={() => removeAttachment(index)}
                   />
                 ))}
@@ -711,14 +703,14 @@ const TraversalAnalysis = ({
                   >
                     {warning.type === 'none' ? (
                       <>
-                        "<span className="font-semibold">{warning.word}</span>" was not found on the
-                        grid.
+                        &quot;<span className="font-semibold">{warning.word}</span>&quot; was not
+                        found on the grid.
                       </>
                     ) : warning.type === 'duplicate' ? (
                       <div className="flex items-center justify-center gap-2">
                         <span>
-                          "<span className="font-semibold">{warning.word}</span>" appears multiple
-                          times ({warning.traversalCount}) in the word list.
+                          &quot;<span className="font-semibold">{warning.word}</span>&quot;
+                          appears multiple times ({warning.traversalCount}) in the word list.
                         </span>
                         <Popover>
                           <PopoverTrigger
@@ -747,8 +739,8 @@ const TraversalAnalysis = ({
                     ) : (
                       <div className="flex items-center justify-center gap-2">
                         <span>
-                          "<span className="font-semibold">{warning.word}</span>" has multiple paths
-                          ({warning.traversalCount}).
+                          &quot;<span className="font-semibold">{warning.word}</span>&quot; has
+                          multiple paths ({warning.traversalCount}).
                         </span>
                         <Popover>
                           <PopoverTrigger
@@ -916,7 +908,7 @@ const WordList = () => {
 
   const addWord = () => setWordList((prev) => [...prev, '']);
   const removeWord = (index: number) => setWordList((prev) => prev.filter((_, i) => i !== index));
-  const updateWord = (index: number, value: string, e: any) => {
+  const updateWord = (index: number, value: string) => {
     setWordList((prev) => prev.map((w, i) => (i === index ? value : w)));
   };
 
@@ -943,12 +935,12 @@ const WordList = () => {
                   type="text"
                   className="px- py-1 text-base"
                   value={word}
-                  onChange={(e) => updateWord(idx, e.currentTarget.value, e)}
+                  onChange={(e) => updateWord(idx, e.currentTarget.value)}
                   onBeforeInput={(e) =>
                     handleTypingBeforeInputEvent(
                       ctx,
                       e,
-                      (newValue) => updateWord(idx, newValue, e),
+                      (newValue) => updateWord(idx, newValue),
                       lipi_lekhika_active
                     )
                   }
@@ -1014,7 +1006,7 @@ const GridData = ({
     return occupiedCellsSet;
   })();
 
-  const updateCell = (r: number, c: number, value: string, e: any) => {
+  const updateCell = (r: number, c: number, value: string) => {
     setGridData((prev) => {
       const newGrid = prev.map((row) => [...row]);
       newGrid[r][c] = value;
@@ -1088,12 +1080,12 @@ const GridData = ({
               className={getCellClassName(r, c)}
               minLength={1}
               value={cell}
-              onChange={(e) => updateCell(r, c, e.currentTarget.value, e)}
+              onChange={(e) => updateCell(r, c, e.currentTarget.value)}
               onBeforeInput={(e) =>
                 handleTypingBeforeInputEvent(
                   ctx,
                   e,
-                  (newValue) => updateCell(r, c, newValue, e),
+                  (newValue) => updateCell(r, c, newValue),
                   lipi_lekhika_active
                 )
               }

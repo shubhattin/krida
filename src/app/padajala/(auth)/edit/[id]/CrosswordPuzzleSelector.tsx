@@ -41,13 +41,12 @@ const CrosswordPuzzleSelector = ({
   const [debouncedSearchTitle, setDebouncedSearchTitle] = useState('');
 
   useEffect(() => {
-    const timeoutId = setTimeout(() => setDebouncedSearchTitle(searchTitle), 400);
+    const timeoutId = setTimeout(() => {
+      setDebouncedSearchTitle(searchTitle);
+      setPage(1);
+    }, 400);
     return () => clearTimeout(timeoutId);
   }, [searchTitle]);
-
-  useEffect(() => {
-    setPage(1);
-  }, [debouncedSearchTitle]);
 
   const puzzleListQ = useQuery({
     queryKey: ['crossword_selector_list', page, debouncedSearchTitle],

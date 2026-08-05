@@ -57,7 +57,7 @@ if (require.main === module) {
 }
 
 async function confirm_environemnt() {
-  let confirmation: string = await take_input(`Are you sure SELECT from ${dbMode} ? `);
+  const confirmation: string = await take_input(`Are you sure SELECT from ${dbMode} ? `);
   if (['yes', 'y'].includes(confirmation)) return true;
   return false;
 }

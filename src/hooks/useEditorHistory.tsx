@@ -12,7 +12,7 @@ import {
 } from 'react';
 import { useStore, type PrimitiveAtom } from 'jotai';
 
-type AtomMap = Record<string, PrimitiveAtom<any>>;
+type AtomMap = Record<string, PrimitiveAtom<unknown>>;
 type SnapshotOf<M extends AtomMap> = {
   [K in keyof M]: M[K] extends PrimitiveAtom<infer V> ? V : never;
 };
@@ -79,10 +79,7 @@ export function EditorHistoryProvider<M extends AtomMap>({
   const store = useStore();
   // Stable list of [key, atom] for the lifetime of this atoms object.
   const atomEntriesRef = useRef(Object.entries(atoms) as [keyof M & string, M[keyof M]][]);
-  atomEntriesRef.current = Object.entries(atoms) as [keyof M & string, M[keyof M]][];
-
   const comparableRef = useRef(comparable);
-  comparableRef.current = comparable;
 
   const lastCommittedRef = useRef<SnapshotOf<M> | null>(null);
   const savedBaselineRef = useRef<SnapshotOf<M> | null>(null);
@@ -192,11 +189,16 @@ export function EditorHistoryProvider<M extends AtomMap>({
 
   // Keep latest commit helpers in refs so the atom-subscription effect stays mounted once.
   const scheduleCommitRef = useRef(scheduleCommit);
-  scheduleCommitRef.current = scheduleCommit;
   const notifyRef = useRef(notify);
-  notifyRef.current = notify;
   const takeSnapshotRef = useRef(takeSnapshot);
-  takeSnapshotRef.current = takeSnapshot;
+
+  useEffect(() => {
+    atomEntriesRef.current = Object.entries(atoms) as [keyof M & string, M[keyof M]][];
+    comparableRef.current = comparable;
+    scheduleCommitRef.current = scheduleCommit;
+    notifyRef.current = notify;
+    takeSnapshotRef.current = takeSnapshot;
+  }, [atoms, comparable, scheduleCommit, notify, takeSnapshot]);
 
   // Seed baselines once, then subscribe for the lifetime of this provider instance.
   useEffect(() => {

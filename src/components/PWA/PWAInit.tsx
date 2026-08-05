@@ -1,7 +1,11 @@
 'use client';
 
 import { useEffect, useState } from 'react';
-import { is_ios_atom, is_ios_safari_atom, pwa_state_atom } from './pwa_state';
+import {
+  is_ios_atom,
+  pwa_state_atom,
+  type BeforeInstallPromptEvent
+} from './pwa_state';
 import { useAtom } from 'jotai';
 import { LogIn, Share, Smartphone } from 'lucide-react';
 import {
@@ -36,10 +40,13 @@ export default function PWAInit() {
     // Check if the app is installed (running in standalone mode)
     const checkInstallStatus = () => {
       const isStandalone = window.matchMedia('(display-mode: standalone)').matches;
-      const isWebAppCapable = (window.navigator as any).standalone; // iOS Safari
+      const isWebAppCapable =
+        'standalone' in window.navigator
+          ? (window.navigator as Navigator & { standalone?: boolean }).standalone
+          : false; // iOS Safari
       const isInstalled = isStandalone || isWebAppCapable;
 
-      setPwaState((prev) => ({ ...prev, is_installed: isInstalled }));
+      setPwaState((prev) => ({ ...prev, is_installed: isInstalled ?? false }));
     };
 
     // Check initial install status
@@ -58,7 +65,7 @@ export default function PWAInit() {
       event.preventDefault();
       setPwaState((prev) => ({
         ...prev,
-        event_triggerer: event,
+        event_triggerer: event as BeforeInstallPromptEvent,
         install_event_fired: true
       }));
     };
@@ -77,21 +84,20 @@ export default function PWAInit() {
 export const PWAInstallButton = ({ setOpen }: { setOpen?: (v: boolean) => void }) => {
   const [pwa_state] = useAtom(pwa_state_atom);
   const [isIos] = useAtom(is_ios_atom);
-  const [isIosSafari] = useAtom(is_ios_safari_atom);
   const [isIosOpen, setIsIosOpen] = useState(false);
 
   const handleInstall = async () => {
     if (isIos) {
       setIsIosOpen(true);
     } else {
-      setOpen && setOpen(false);
+      setOpen?.(false);
       if (pwa_state.event_triggerer) pwa_state.event_triggerer.prompt();
     }
   };
 
   const handleIosInstall = async () => {
     setIsIosOpen(false);
-    setOpen && setOpen(false);
+    setOpen?.(false);
 
     // IMPORTANT: navigator.share() does NOT include "Add to Home Screen"
     //
@@ -153,7 +159,7 @@ export const PWAInstallButton = ({ setOpen }: { setOpen?: (v: boolean) => void }
                         2
                       </span>
                       <span>
-                        Scroll down and select <strong>"Add to Home Screen"</strong>
+                        Scroll down and select <strong>&quot;Add to Home Screen&quot;</strong>
                       </span>
                     </div>
                     <div className="flex items-start gap-2">
@@ -161,7 +167,7 @@ export const PWAInstallButton = ({ setOpen }: { setOpen?: (v: boolean) => void }
                         3
                       </span>
                       <span>
-                        Tap <strong>"Add"</strong> to confirm
+                        Tap <strong>&quot;Add&quot;</strong> to confirm
                       </span>
                     </div>
                   </div>

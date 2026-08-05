@@ -10,10 +10,11 @@ import {
   LayoutGridIcon,
   TableIcon
 } from 'lucide-react';
+import Image from 'next/image';
 import Link from 'next/link';
 import dayjs from 'dayjs';
 import relativeTime from 'dayjs/plugin/relativeTime';
-import { useEffect, useMemo, useState } from 'react';
+import { useEffect, useMemo, useSyncExternalStore, useState } from 'react';
 import { client, client_q } from '~/api/client';
 import { Skeleton } from '~/components/ui/skeleton';
 import { Label } from '~/components/ui/label';
@@ -97,8 +98,37 @@ function getVisiblePages(current: number, total: number): (number | 'ellipsis')[
   return result;
 }
 
+type ListLoadingSkeletonProps = {
+  show: boolean;
+  layout: ListLayout;
+};
+
+const ListLoadingSkeleton = ({ show, layout }: ListLoadingSkeletonProps) => (
+  <>
+    {show ? (
+      layout === 'cards' ? (
+        <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4">
+          {Array.from({ length: PUZZLE_FETCH_LIMIT }).map((_, index) => (
+            <Skeleton key={index} className="h-20 w-full" />
+          ))}
+        </div>
+      ) : (
+        <div className="space-y-2 rounded-xl border border-slate-200/60 p-2 dark:border-slate-700/40">
+          {Array.from({ length: PUZZLE_FETCH_LIMIT }).map((_, index) => (
+            <Skeleton key={index} className="h-10 w-full" />
+          ))}
+        </div>
+      )
+    ) : null}
+  </>
+);
+
 const ListPage = () => {
-  const [mounted, setMounted] = useState(false);
+  const mounted = useSyncExternalStore(
+    () => () => {},
+    () => false,
+    () => true
+  );
   const [page, setPage] = useState(1);
   const [search_title, setSearchTitle] = useState('');
   const [lipi_lekhika_typing, setLipiLekhikaTyping] = useState(true);
@@ -150,25 +180,18 @@ const ListPage = () => {
   const ctx = useMemo(() => createTypingContext('Devanagari'), []);
 
   useEffect(() => {
-    ctx.ready;
+    void ctx.ready;
   }, [ctx]);
-
-  useEffect(() => {
-    setMounted(true);
-  }, []);
 
   const [debouncedSearchTitle, setDebouncedSearchTitle] = useState(search_title);
   const DEBOUNCE_TIME = 400;
   useEffect(() => {
     const timeoutId = setTimeout(() => {
       setDebouncedSearchTitle(search_title);
+      setPage(1);
     }, DEBOUNCE_TIME);
     return () => clearTimeout(timeoutId);
   }, [search_title]);
-
-  useEffect(() => {
-    setPage(1);
-  }, [debouncedSearchTitle, listed_filter_type, sort_by, order_by]);
 
   const puzzle_list_q = useQuery({
     queryKey: ['puzzle_list', page, debouncedSearchTitle, listed_filter_type, sort_by, order_by],
@@ -190,7 +213,7 @@ const ListPage = () => {
     refetchOnWindowFocus: false
   });
 
-  const puzzle_list = puzzle_list_q.data?.list ?? [];
+  const puzzle_list = useMemo(() => puzzle_list_q.data?.list ?? [], [puzzle_list_q.data?.list]);
   const page_ids = useMemo(() => puzzle_list.map((item) => item.id), [puzzle_list]);
   const table_columns = useMemo(
     () =>
@@ -208,27 +231,8 @@ const ListPage = () => {
   const hasNext = puzzle_list_q.data?.hasNext ?? false;
   const isInitialLoading = puzzle_list_q.isLoading && !puzzle_list_q.data;
 
-  const LoadingSkeletonJSX = () => (
-    <>
-      {(isInitialLoading || !mounted) &&
-        (layout === 'cards' ? (
-          <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4">
-            {Array.from({ length: PUZZLE_FETCH_LIMIT }).map((_, index) => (
-              <Skeleton key={index} className="h-20 w-full" />
-            ))}
-          </div>
-        ) : (
-          <div className="space-y-2 rounded-xl border border-slate-200/60 p-2 dark:border-slate-700/40">
-            {Array.from({ length: PUZZLE_FETCH_LIMIT }).map((_, index) => (
-              <Skeleton key={index} className="h-10 w-full" />
-            ))}
-          </div>
-        ))}
-    </>
-  );
-
   if (!mounted) {
-    return <LoadingSkeletonJSX />;
+    return <ListLoadingSkeleton show layout="cards" />;
   }
 
   return (
@@ -324,7 +328,10 @@ const ListPage = () => {
                 items={LISTED_FILTER_ITEMS}
                 value={listed_filter_type}
                 onValueChange={(value) => {
-                  if (value) setListedFilterType(value);
+                  if (value) {
+                    setListedFilterType(value);
+                    setPage(1);
+                  }
                 }}
               >
                 <SelectTrigger
@@ -351,7 +358,10 @@ const ListPage = () => {
                 items={SORT_BY_ITEMS}
                 value={sort_by}
                 onValueChange={(value) => {
-                  if (value) setSortBy(value);
+                  if (value) {
+                    setSortBy(value);
+                    setPage(1);
+                  }
                 }}
               >
                 <SelectTrigger
@@ -378,7 +388,10 @@ const ListPage = () => {
                 items={ORDER_BY_ITEMS}
                 value={order_by}
                 onValueChange={(value) => {
-                  if (value) setOrderBy(value);
+                  if (value) {
+                    setOrderBy(value);
+                    setPage(1);
+                  }
                 }}
               >
                 <SelectTrigger size="sm" className="w-28 text-xs sm:text-sm" aria-label="Order">
@@ -418,7 +431,7 @@ const ListPage = () => {
           </div>
         </div>
       </div>
-      <LoadingSkeletonJSX />
+      <ListLoadingSkeleton show={isInitialLoading} layout={layout} />
       {puzzle_list_q.isSuccess &&
         !isInitialLoading &&
         puzzle_list.length > 0 &&
@@ -436,9 +449,12 @@ const ListPage = () => {
                 </div>
                 {item.image?.s3_key ? (
                   <div className="pointer-events-none absolute top-3 right-3 z-10 size-14 overflow-hidden rounded-md border border-border/80 bg-muted shadow-sm">
-                    <img
+                    <Image
                       src={getCDNUrl(item.image.s3_key)}
                       alt=""
+                      width={56}
+                      height={56}
+                      unoptimized
                       className="size-full object-cover"
                     />
                   </div>

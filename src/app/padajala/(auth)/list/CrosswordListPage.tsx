@@ -5,7 +5,7 @@ import { CalendarIcon, SearchIcon, List, FilterIcon, ArrowUpDownIcon } from 'luc
 import Link from 'next/link';
 import dayjs from 'dayjs';
 import relativeTime from 'dayjs/plugin/relativeTime';
-import { useEffect, useState } from 'react';
+import { useEffect, useSyncExternalStore, useState } from 'react';
 import { client, client_q } from '~/api/client';
 import { Skeleton } from '~/components/ui/skeleton';
 import { Label } from '~/components/ui/label';
@@ -77,9 +77,31 @@ function getVisiblePages(current: number, total: number): (number | 'ellipsis')[
   return result;
 }
 
+const PUZZLE_LIST_SKELETON_COUNT = PUZZLE_FETCH_LIMIT;
+
+type ListLoadingSkeletonProps = {
+  show: boolean;
+};
+
+const ListLoadingSkeleton = ({ show }: ListLoadingSkeletonProps) => (
+  <>
+    {show ? (
+      <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4">
+        {Array.from({ length: PUZZLE_LIST_SKELETON_COUNT }).map((_, index) => (
+          <Skeleton key={index} className="h-24 w-full" />
+        ))}
+      </div>
+    ) : null}
+  </>
+);
+
 const CrosswordListPage = () => {
   const queryClient = useQueryClient();
-  const [mounted, setMounted] = useState(false);
+  const mounted = useSyncExternalStore(
+    () => () => {},
+    () => false,
+    () => true
+  );
   const [page, setPage] = useState(1);
   const [search_title, setSearchTitle] = useState('');
   const [listed_filter_type, setListedFilterType] = useState<'all' | 'listed' | 'unlisted'>('all');
@@ -115,22 +137,15 @@ const CrosswordListPage = () => {
     });
   };
 
-  useEffect(() => {
-    setMounted(true);
-  }, []);
-
   const [debouncedSearchTitle, setDebouncedSearchTitle] = useState(search_title);
   const DEBOUNCE_TIME = 400;
   useEffect(() => {
     const timeoutId = setTimeout(() => {
       setDebouncedSearchTitle(search_title);
+      setPage(1);
     }, DEBOUNCE_TIME);
     return () => clearTimeout(timeoutId);
   }, [search_title]);
-
-  useEffect(() => {
-    setPage(1);
-  }, [debouncedSearchTitle, listed_filter_type, sort_by, order_by]);
 
   const puzzle_list_q = useQuery({
     queryKey: ['crossword_list', page, debouncedSearchTitle, listed_filter_type, sort_by, order_by],
@@ -168,20 +183,8 @@ const CrosswordListPage = () => {
   const hasNext = puzzle_list_q.data?.hasNext ?? false;
   const isInitialLoading = puzzle_list_q.isLoading && !puzzle_list_q.data;
 
-  const LoadingSkeletonJSX = () => (
-    <>
-      {(isInitialLoading || !mounted) && (
-        <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4">
-          {Array.from({ length: PUZZLE_FETCH_LIMIT }).map((_, index) => (
-            <Skeleton key={index} className="h-24 w-full" />
-          ))}
-        </div>
-      )}
-    </>
-  );
-
   if (!mounted) {
-    return <LoadingSkeletonJSX />;
+    return <ListLoadingSkeleton show />;
   }
 
   return (
@@ -255,7 +258,10 @@ const CrosswordListPage = () => {
                 items={LISTED_FILTER_ITEMS}
                 value={listed_filter_type}
                 onValueChange={(value) => {
-                  if (value) setListedFilterType(value);
+                  if (value) {
+                    setListedFilterType(value);
+                    setPage(1);
+                  }
                 }}
               >
                 <SelectTrigger
@@ -282,7 +288,10 @@ const CrosswordListPage = () => {
                 items={SORT_BY_ITEMS}
                 value={sort_by}
                 onValueChange={(value) => {
-                  if (value) setSortBy(value);
+                  if (value) {
+                    setSortBy(value);
+                    setPage(1);
+                  }
                 }}
               >
                 <SelectTrigger
@@ -309,7 +318,10 @@ const CrosswordListPage = () => {
                 items={ORDER_BY_ITEMS}
                 value={order_by}
                 onValueChange={(value) => {
-                  if (value) setOrderBy(value);
+                  if (value) {
+                    setOrderBy(value);
+                    setPage(1);
+                  }
                 }}
               >
                 <SelectTrigger size="sm" className="w-28 text-xs sm:text-sm" aria-label="Order">
@@ -327,7 +339,7 @@ const CrosswordListPage = () => {
           </div>
         </div>
       </div>
-      <LoadingSkeletonJSX />
+      <ListLoadingSkeleton show={isInitialLoading} />
       {puzzle_list_q.isSuccess && !isInitialLoading && puzzle_list.length > 0 && (
         <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4">
           {puzzle_list.map((item) => (

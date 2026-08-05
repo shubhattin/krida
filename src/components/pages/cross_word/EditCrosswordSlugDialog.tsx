@@ -1,6 +1,6 @@
 'use client';
 
-import { useEffect, useState } from 'react';
+import { useState } from 'react';
 import { useRouter } from 'next/navigation';
 import { CheckIcon, Loader2Icon, PencilIcon, Trash2Icon, XIcon } from 'lucide-react';
 import { client, client_q } from '~/api/client';
@@ -82,10 +82,6 @@ export const EditCrosswordSlugDialog = ({ puzzleId, currentSlug, onSlugUpdated }
     isValidSlugFn: isValidCrosswordSlug
   });
 
-  useEffect(() => {
-    setOverrideRedirectSlug(false);
-  }, [normalizedSlug]);
-
   const update_slug_mut = client_q.crossword.update_puzzle_slug.useMutation({
     onSuccess(data) {
       toast.success('Slug updated successfully');
@@ -160,7 +156,10 @@ export const EditCrosswordSlugDialog = ({ puzzleId, currentSlug, onSlugUpdated }
               <Input
                 id="edit-crossword-slug"
                 value={newSlug}
-                onChange={(e) => setNewSlug(e.currentTarget.value)}
+                onChange={(e) => {
+                  setNewSlug(e.currentTarget.value);
+                  setOverrideRedirectSlug(false);
+                }}
                 className="pr-9"
                 aria-describedby={
                   slugChanged ? 'edit-slug-redirect-note edit-slug-status' : 'edit-slug-status'

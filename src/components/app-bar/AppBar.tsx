@@ -1,3 +1,4 @@
+import Image from 'next/image';
 import Link from 'next/link';
 import type { ReactNode } from 'react';
 import { MenuButton } from '~/components/app-bar/AppBarMenu';
@@ -53,9 +54,11 @@ export default function AppBar({ game, title, description, gameMenuItems }: AppB
         {/* Logo/Title Section */}
         <Link href={defaults.href} className="group flex items-center space-x-3 no-underline">
           {/* Plain mark only — no gray plate (plate is for cards / cross-promo) */}
-          <img
+          <Image
             src={GAME_APP_ICON_SRC[defaults.iconGame]}
             alt={`${resolvedTitle} icon`}
+            width={48}
+            height={48}
             className="size-12 shrink-0 drop-shadow-sm transition-transform duration-200 group-hover:scale-105"
           />
           <div>

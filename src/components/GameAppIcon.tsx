@@ -1,3 +1,5 @@
+import Image from 'next/image';
+
 import { cn } from '@/lib/utils';
 
 export type GameAppIconId = 'padavali' | 'padajala';
@@ -26,9 +28,9 @@ const GAME_APP_ICON_SHELL: Record<GameAppIconId, string> = {
 };
 
 const SIZE = {
-  sm: { shell: 'size-11', img: 'size-7' },
-  md: { shell: 'size-14', img: 'size-9' },
-  lg: { shell: 'size-16', img: 'size-11' }
+  sm: { shell: 'size-11', img: 'size-7', px: 28 },
+  md: { shell: 'size-14', img: 'size-9', px: 36 },
+  lg: { shell: 'size-16', img: 'size-11', px: 44 }
 } as const;
 
 type GameAppIconProps = {
@@ -46,9 +48,11 @@ export function GameAppIcon({ game, name, size = 'md', className }: GameAppIconP
   const dims = SIZE[size];
   return (
     <div className={cn(GAME_APP_ICON_SHELL[game], dims.shell, className)}>
-      <img
+      <Image
         src={GAME_APP_ICON_SRC[game]}
         alt={`${name} icon`}
+        width={dims.px}
+        height={dims.px}
         className={cn(dims.img, 'drop-shadow-md')}
       />
     </div>

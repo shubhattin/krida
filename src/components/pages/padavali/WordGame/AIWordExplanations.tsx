@@ -14,27 +14,98 @@ type Props = {
   puzzle_slug: string;
 };
 
+type CompletedMeaningsProps = {
+  puzzle_id: number;
+  puzzle_slug: string;
+  practiceMode: boolean;
+};
+
+const CompletedMeanings = ({ puzzle_id, puzzle_slug, practiceMode }: CompletedMeaningsProps) => {
+  const [openSections, setOpenSections] = useState<string[]>([]);
+  const [celebrate, setCelebrate] = useState(true);
+  const meanings = useWordMeanings(puzzle_id, puzzle_slug);
+
+  useEffect(() => {
+    const timeoutId = setTimeout(() => setCelebrate(false), 15_000);
+    return () => clearTimeout(timeoutId);
+  }, []);
+
+  return (
+    <motion.div
+      initial={{ opacity: 0, y: 8 }}
+      animate={{ opacity: 1, y: 0 }}
+      exit={{ opacity: 0, y: -8 }}
+      transition={{ duration: 0.45, ease: 'easeOut' }}
+      className="relative mt-4 w-full sm:mt-5"
+    >
+      <motion.div
+        animate={
+          celebrate
+            ? {
+                boxShadow: [
+                  '0 0 0 0 rgba(139, 92, 246, 0)',
+                  '0 0 0 5px rgba(139, 92, 246, 0.25)',
+                  '0 0 0 0 rgba(139, 92, 246, 0)',
+                  '0 0 0 5px rgba(139, 92, 246, 0.2)',
+                  '0 0 0 0 rgba(139, 92, 246, 0)'
+                ]
+              }
+            : { boxShadow: '0 0 0 0 rgba(139, 92, 246, 0)' }
+        }
+        transition={
+          celebrate ? { duration: 2.4, repeat: Infinity, ease: 'easeInOut' } : { duration: 0.4 }
+        }
+        className="relative overflow-hidden rounded-2xl"
+      >
+        {celebrate ? (
+          <motion.div
+            key="shine"
+            aria-hidden
+            initial={{ x: '-120%', opacity: 0 }}
+            animate={{ x: ['-120%', '140%'], opacity: [0, 0.85, 0] }}
+            transition={{
+              duration: 2.8,
+              ease: 'easeInOut',
+              repeat: Infinity,
+              repeatDelay: 0.9
+            }}
+            className="pointer-events-none absolute inset-y-0 z-20 w-2/5 skew-x-[-18deg] bg-linear-to-r from-transparent via-white/50 to-transparent dark:via-violet-200/20"
+          />
+        ) : null}
+
+        {celebrate ? (
+          <motion.div
+            key="wash"
+            aria-hidden
+            initial={{ opacity: 0.45 }}
+            animate={{ opacity: [0.45, 0, 0.45] }}
+            transition={{ duration: 2.4, ease: 'easeInOut', repeat: Infinity }}
+            className="pointer-events-none absolute inset-0 z-10 rounded-2xl ring-2 ring-violet-400/45 dark:ring-violet-400/30"
+          />
+        ) : null}
+
+        <div className="relative z-0">
+          <WordMeaningsPanel
+            meanings={meanings}
+            openSections={openSections}
+            onOpenSectionsChange={(sections) => {
+              setOpenSections(sections);
+              if (sections.length > 0) setCelebrate(false);
+            }}
+            practiceMode={practiceMode}
+          />
+        </div>
+      </motion.div>
+    </motion.div>
+  );
+};
+
 export const AIWordExplanations = ({ puzzle_id, puzzle_slug }: Props) => {
   const [completed] = useAtom(completed_atom);
   const [practiceMode] = useAtom(practice_mode_atom);
   const [gameSessionNonce] = useAtom(game_session_nonce_atom);
-  const [openSections, setOpenSections] = useState<string[]>([]);
-  const [celebrate, setCelebrate] = useState(false);
-  const meanings = useWordMeanings(puzzle_id, puzzle_slug);
 
   const unlocked = completed;
-
-  useEffect(() => {
-    if (!completed) {
-      setCelebrate(false);
-      setOpenSections([]);
-      return;
-    }
-
-    setCelebrate(true);
-    const timeoutId = setTimeout(() => setCelebrate(false), 15_000);
-    return () => clearTimeout(timeoutId);
-  }, [completed, gameSessionNonce]);
 
   return (
     <AnimatePresence mode="wait">
@@ -104,73 +175,12 @@ export const AIWordExplanations = ({ puzzle_id, puzzle_slug }: Props) => {
           </div>
         </motion.div>
       ) : (
-        <motion.div
-          key={`meanings-${gameSessionNonce}`}
-          initial={{ opacity: 0, y: 8 }}
-          animate={{ opacity: 1, y: 0 }}
-          exit={{ opacity: 0, y: -8 }}
-          transition={{ duration: 0.45, ease: 'easeOut' }}
-          className="relative mt-4 w-full sm:mt-5"
-        >
-          <motion.div
-            animate={
-              celebrate
-                ? {
-                    boxShadow: [
-                      '0 0 0 0 rgba(139, 92, 246, 0)',
-                      '0 0 0 5px rgba(139, 92, 246, 0.25)',
-                      '0 0 0 0 rgba(139, 92, 246, 0)',
-                      '0 0 0 5px rgba(139, 92, 246, 0.2)',
-                      '0 0 0 0 rgba(139, 92, 246, 0)'
-                    ]
-                  }
-                : { boxShadow: '0 0 0 0 rgba(139, 92, 246, 0)' }
-            }
-            transition={
-              celebrate ? { duration: 2.4, repeat: Infinity, ease: 'easeInOut' } : { duration: 0.4 }
-            }
-            className="relative overflow-hidden rounded-2xl"
-          >
-            {celebrate ? (
-              <motion.div
-                key="shine"
-                aria-hidden
-                initial={{ x: '-120%', opacity: 0 }}
-                animate={{ x: ['-120%', '140%'], opacity: [0, 0.85, 0] }}
-                transition={{
-                  duration: 2.8,
-                  ease: 'easeInOut',
-                  repeat: Infinity,
-                  repeatDelay: 0.9
-                }}
-                className="pointer-events-none absolute inset-y-0 z-20 w-2/5 skew-x-[-18deg] bg-linear-to-r from-transparent via-white/50 to-transparent dark:via-violet-200/20"
-              />
-            ) : null}
-
-            {celebrate ? (
-              <motion.div
-                key="wash"
-                aria-hidden
-                initial={{ opacity: 0.45 }}
-                animate={{ opacity: [0.45, 0, 0.45] }}
-                transition={{ duration: 2.4, ease: 'easeInOut', repeat: Infinity }}
-                className="pointer-events-none absolute inset-0 z-10 rounded-2xl ring-2 ring-violet-400/45 dark:ring-violet-400/30"
-              />
-            ) : null}
-
-            <div className="relative z-0">
-              <WordMeaningsPanel
-                meanings={meanings}
-                openSections={openSections}
-                onOpenSectionsChange={(sections) => {
-                  setOpenSections(sections);
-                  if (sections.length > 0) setCelebrate(false);
-                }}
-                practiceMode={practiceMode}
-              />
-            </div>
-          </motion.div>
-        </motion.div>
+        <CompletedMeanings
+          key={gameSessionNonce}
+          puzzle_id={puzzle_id}
+          puzzle_slug={puzzle_slug}
+          practiceMode={practiceMode}
+        />
       )}
     </AnimatePresence>
   );

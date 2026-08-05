@@ -95,8 +95,11 @@ export function get_permutations(range: [number, number], count: number = 1): nu
 /**
  * This replaces `{key}` with the corresponding value in `options`
  */
-export function format_string_text(text: string, options: Record<string, any>) {
-  return text.replace(/{(\w+)}/g, (match, key) => options[key] ?? `{${key}}`);
+export function format_string_text(text: string, options: Record<string, unknown>) {
+  return text.replace(/{(\w+)}/g, (match, key) => {
+    const value = options[key];
+    return value == null ? `{${key}}` : String(value);
+  });
 }
 
 export function cleanUpWhitespace(input: string, replace_multiple_white_spaces = true): string {
@@ -149,7 +152,7 @@ export function deepCopy<T>(value: T): T {
   }
   // Date
   if (value instanceof Date) {
-    return new Date(value.getTime()) as any;
+    return new Date(value.getTime()) as T;
   }
   // Array
   if (Array.isArray(value)) {
@@ -157,7 +160,7 @@ export function deepCopy<T>(value: T): T {
     for (const item of value) {
       arrCopy.push(deepCopy(item));
     }
-    return arrCopy as any;
+    return arrCopy as T;
   }
   // Map
   if (value instanceof Map) {
@@ -165,7 +168,7 @@ export function deepCopy<T>(value: T): T {
     for (const [k, v] of value.entries()) {
       mapCopy.set(deepCopy(k), deepCopy(v));
     }
-    return mapCopy as any;
+    return mapCopy as T;
   }
   // Set
   if (value instanceof Set) {
@@ -173,7 +176,7 @@ export function deepCopy<T>(value: T): T {
     for (const v of value.values()) {
       setCopy.add(deepCopy(v));
     }
-    return setCopy as any;
+    return setCopy as T;
   }
   // Plain Object
   if (Object.getPrototypeOf(value) === Object.prototype) {

@@ -1,6 +1,6 @@
 'use client';
 
-import { useEffect, useState } from 'react';
+import { useState } from 'react';
 import { useRouter } from 'next/navigation';
 import { IoMdAdd } from 'react-icons/io';
 import { CheckIcon, Loader2Icon, XIcon } from 'lucide-react';
@@ -65,6 +65,7 @@ const AddCrosswordDialog = () => {
   const [description, setDescription] = useState('');
   const [slug, setSlug] = useState('');
   const [overrideRedirectSlug, setOverrideRedirectSlug] = useState(false);
+  const [overrideForSlug, setOverrideForSlug] = useState('');
   const [rows, setRows] = useState(CROSSWORD_DEFAULT_DIM[0]);
   const [cols, setCols] = useState(CROSSWORD_DEFAULT_DIM[1]);
 
@@ -78,9 +79,8 @@ const AddCrosswordDialog = () => {
     isValidSlugFn: isValidCrosswordSlug
   });
 
-  useEffect(() => {
-    setOverrideRedirectSlug(false);
-  }, [normalizedSlug]);
+  const effectiveOverrideRedirectSlug =
+    overrideRedirectSlug && overrideForSlug === normalizedSlug;
 
   const add_mut = client_q.crossword.add_puzzle.useMutation({
     onSuccess(data) {
@@ -97,7 +97,8 @@ const AddCrosswordDialog = () => {
   });
 
   const slugReady =
-    slugStatus === 'available' || (slugStatus === 'redirect_conflict' && overrideRedirectSlug);
+    slugStatus === 'available' ||
+    (slugStatus === 'redirect_conflict' && effectiveOverrideRedirectSlug);
 
   const canSubmit = title.trim().length > 0 && slugReady && normalizedSlug.length > 0;
 
@@ -107,7 +108,7 @@ const AddCrosswordDialog = () => {
       slug: normalizedSlug,
       description: description.trim() ? description.trim() : '',
       grid_dimensions: [clampDimension(rows), clampDimension(cols)],
-      override_redirect_slug: slugStatus === 'redirect_conflict' && overrideRedirectSlug
+      override_redirect_slug: slugStatus === 'redirect_conflict' && effectiveOverrideRedirectSlug
     });
   };
 
@@ -117,6 +118,7 @@ const AddCrosswordDialog = () => {
     setDescription('');
     setSlug('');
     setOverrideRedirectSlug(false);
+    setOverrideForSlug('');
     setRows(CROSSWORD_DEFAULT_DIM[0]);
     setCols(CROSSWORD_DEFAULT_DIM[1]);
   };
@@ -187,8 +189,11 @@ const AddCrosswordDialog = () => {
               {slugStatus === 'redirect_conflict' && redirectConflict ? (
                 <SlugRedirectConflictPrompt
                   conflict={redirectConflict}
-                  overrideConfirmed={overrideRedirectSlug}
-                  onOverrideChange={setOverrideRedirectSlug}
+                  overrideConfirmed={effectiveOverrideRedirectSlug}
+                  onOverrideChange={(confirmed) => {
+                    setOverrideRedirectSlug(confirmed);
+                    setOverrideForSlug(normalizedSlug);
+                  }}
                 />
               ) : null}
             </div>
