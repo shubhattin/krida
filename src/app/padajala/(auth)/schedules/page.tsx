@@ -3,35 +3,40 @@ import Link from 'next/link';
 import { redirect } from 'next/navigation';
 import { IoMdArrowRoundBack } from 'react-icons/io';
 import { FiPlus } from 'react-icons/fi';
-import { db } from '~/db/db';
 import { Button } from '@/components/ui/button';
 import ListSchedules, { PastSchedules } from './ListSchedules';
 import { Card, CardContent } from '~/components/ui/card';
 import { getCachedSession } from '~/lib/cache_server_route_data';
+import { runServerEffect } from '~/effect/run';
+import { dbRun } from '~/effect/database';
 
 const Main = async () => {
   const session = await getCachedSession();
   if (!session || session.user.role !== 'admin') redirect('/padajala');
 
   const current_time = new Date();
-  const upcoming_schedules = await db.query.crossword_schedules.findMany({
-    columns: {
-      id: true,
-      start_time: true,
-      end_time: true,
-      created_at: true,
-      puzzle_id: true
-    },
-    with: {
-      puzzle: {
+  const upcoming_schedules = await runServerEffect(
+    dbRun('crossword.admin.list_upcoming_schedules', (client) =>
+      client.query.crossword_schedules.findMany({
         columns: {
-          title: true
-        }
-      }
-    },
-    orderBy: (schedules, { desc }) => [desc(schedules.created_at)],
-    where: (schedules, { gte }) => gte(schedules.end_time, current_time)
-  });
+          id: true,
+          start_time: true,
+          end_time: true,
+          created_at: true,
+          puzzle_id: true
+        },
+        with: {
+          puzzle: {
+            columns: {
+              title: true
+            }
+          }
+        },
+        orderBy: (schedules, { desc }) => [desc(schedules.created_at)],
+        where: (schedules, { gte }) => gte(schedules.end_time, current_time)
+      })
+    )
+  );
 
   return (
     <div className="container mx-auto p-4">

@@ -137,12 +137,19 @@ type Props = {
   compact?: boolean;
 };
 
+type CrosswordPuzzlePreviewRows = Awaited<
+  ReturnType<typeof client.crossword.get_listed_puzzles_preview.query>
+>;
+type CrosswordPuzzlePreviewRow = CrosswordPuzzlePreviewRows[number];
+
 export const getCrosswordCarouselPuzzlesQueryFn =
   (excludeSlug?: string, excludeId?: number) => async () => {
-    return client.crossword.get_listed_puzzles_preview.query({
-      exclude_slug: excludeSlug,
-      exclude_id: excludeId
-    });
+    const puzzles: CrosswordPuzzlePreviewRows =
+      await client.crossword.get_listed_puzzles_preview.query({
+        exclude_slug: excludeSlug,
+        exclude_id: excludeId
+      });
+    return puzzles;
   };
 
 export const MoreCrosswordPuzzlesCarousel = ({
@@ -213,7 +220,7 @@ export const MoreCrosswordPuzzlesCarousel = ({
           </div>
 
           <CarouselContent className="-ml-3">
-            {puzzles.map((puzzle) => (
+            {puzzles.map((puzzle: CrosswordPuzzlePreviewRow) => (
               <CarouselItem key={puzzle.id} className={carouselItemClass}>
                 <CrosswordPreviewCard puzzle={puzzle} compact onNavigate={guardNavigate} />
               </CarouselItem>

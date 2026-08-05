@@ -9,9 +9,12 @@ import {
   mapListedPuzzlesForDisplay,
   NORMAL_TITLE_SCRIPT
 } from '~/components/pages/padavali/listed_puzzle_display';
+import { runServerEffect } from '~/effect/run';
 
 const ListedPage = async () => {
-  const listed_puzzles = await CACHE.padavali.listed_puzzle_list.get(NO_CACHE_PARAMS);
+  const listed_puzzles = await runServerEffect(
+    CACHE.padavali.listed_puzzle_list.get(NO_CACHE_PARAMS)
+  );
 
   const script = await getCachedScript();
 

@@ -47,3 +47,6 @@ src/db/scripts/backup/
 tmp
 
 **/a.ts
+
+# Local Effect source checkout for agent/docs research
+.repos/effect

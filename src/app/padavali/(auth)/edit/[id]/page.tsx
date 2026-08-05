@@ -1,6 +1,5 @@
 import { redirect } from 'next/navigation';
 import { z } from 'zod';
-import { db } from '~/db/db';
 import { type Metadata } from 'next';
 import Link from 'next/link';
 import { IoMdArrowRoundBack } from 'react-icons/io';
@@ -9,33 +8,39 @@ import { Provider as JotaiProvider } from 'jotai';
 import { getCachedSession } from '~/lib/cache_server_route_data';
 import MainEditPage from './MainEditPage';
 import { cache } from 'react';
+import { runServerEffect } from '~/effect/run';
+import { dbRun } from '~/effect/database';
 
 type Props = { params: Promise<{ id: string }> };
 
 const get_word_puzzle_cached_func = cache(async (id: number) => {
-  return await db.query.padavali_puzzles.findFirst({
-    where: (tbl, { eq }) => eq(tbl.id, id),
-    with: {
-      attachments: {
-        columns: {
-          id: true,
-          type: true,
-          url: true,
-          title: true,
-          order_index: true
-        },
-        orderBy: (tbl, { asc }) => asc(tbl.order_index)
-      },
-      image: {
-        columns: {
-          id: true,
-          s3_key: true,
-          width: true,
-          height: true
+  return runServerEffect(
+    dbRun('padavali.admin.get_edit_puzzle', (client) =>
+      client.query.padavali_puzzles.findFirst({
+        where: (tbl, { eq }) => eq(tbl.id, id),
+        with: {
+          attachments: {
+            columns: {
+              id: true,
+              type: true,
+              url: true,
+              title: true,
+              order_index: true
+            },
+            orderBy: (tbl, { asc }) => asc(tbl.order_index)
+          },
+          image: {
+            columns: {
+              id: true,
+              s3_key: true,
+              width: true,
+              height: true
+            }
+          }
         }
-      }
-    }
-  });
+      })
+    )
+  );
 });
 
 export async function generateMetadata({ params }: Props): Promise<Metadata> {

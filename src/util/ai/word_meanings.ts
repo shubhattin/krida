@@ -1,14 +1,11 @@
-import { openrouter } from './providers';
+import { Effect } from 'effect';
 import { z } from 'zod';
 import { puzzle_schema } from '~/db/db_shared_vals';
-import { generateText, Output } from 'ai';
+import { AiProvider, aiRetryPolicy } from '~/effect/ai';
+import { AiProviderError } from '~/effect/errors';
+import { OPENROUTER_MODELS } from '~/util/ai/image_gen';
 
 type PuzzleType = z.infer<typeof puzzle_schema>;
-
-const text_model = openrouter('openai/gpt-5.6-luna');
-
-/** Extra attempts after the first failure (total attempts = 1 + MAX_RETRIES). */
-const MAX_RETRIES = 2;
 
 const SYSTEM_PROMPT = `
 You are an expert at providing meanings of Sanskrit words based on the puzzle context.
@@ -44,51 +41,39 @@ export const word_meanings_schema = z.object({
 
 export type WordMeaningsType = z.infer<typeof word_meanings_schema>;
 
-const generate_word_meanings_once = async (puzzle: PuzzleType): Promise<WordMeaningsType> => {
+export const get_puzzle_word_meanings = Effect.fn('get_puzzle_word_meanings')(function* (
+  puzzle: PuzzleType
+) {
+  const ai = yield* AiProvider;
   const words_list = puzzle.word_list.join(', ');
-  const response = await generateText({
-    model: text_model,
-    system: SYSTEM_PROMPT,
-    prompt: `Title: ${puzzle.title}\nDescription: ${puzzle.description}\nWords: ${words_list}`,
-    output: Output.object({ schema: word_meanings_schema }),
-    providerOptions: {
-      openrouter: {
-        reasoning: { effort: 'medium' }
-      }
-    }
-  });
 
-  const output = response.output;
-  if (!output) {
-    throw new Error(`Word meanings generation returned empty output for slug: ${puzzle.slug}`);
-  }
-  if (output.words.length !== puzzle.word_list.length) {
-    throw new Error(
-      `Word meanings count mismatch for slug: ${puzzle.slug} (expected ${puzzle.word_list.length}, got ${output.words.length})`
-    );
-  }
+  const output = yield* Effect.gen(function* () {
+    const result = yield* ai.generateObject({
+      operation: 'word_meanings',
+      provider: 'openrouter',
+      model: ai.openrouterModel(OPENROUTER_MODELS.word_meanings),
+      system: SYSTEM_PROMPT,
+      prompt: `Title: ${puzzle.title}\nDescription: ${puzzle.description}\nWords: ${words_list}`,
+      schema: word_meanings_schema,
+      openrouterReasoningEffort: 'medium'
+    });
+
+    if (result.words.length !== puzzle.word_list.length) {
+      return yield* Effect.fail(
+        AiProviderError.make({
+          operation: 'word_meanings',
+          provider: 'openrouter',
+          cause: new Error(
+            `Word meanings count mismatch for slug: ${puzzle.slug} (expected ${puzzle.word_list.length}, got ${result.words.length})`
+          )
+        })
+      );
+    }
+
+    return result;
+  }).pipe(Effect.retry(aiRetryPolicy));
 
   return output;
-};
+});
 
-export const get_puzzle_word_meanings = async (puzzle: PuzzleType) => {
-  let last_error: unknown;
-
-  for (let attempt = 0; attempt <= MAX_RETRIES; attempt++) {
-    try {
-      return await generate_word_meanings_once(puzzle);
-    } catch (error) {
-      last_error = error;
-      if (attempt < MAX_RETRIES) {
-        console.warn(
-          `Word meanings generation failed for slug: ${puzzle.slug} (attempt ${attempt + 1}/${MAX_RETRIES + 1}); retrying…`,
-          error
-        );
-      }
-    }
-  }
-
-  throw last_error instanceof Error
-    ? last_error
-    : new Error(`Word meanings generation failed for slug: ${puzzle.slug}`);
-};
+export type GetPuzzleWordMeaningsError = AiProviderError;

@@ -14,7 +14,8 @@
     "migration:migrate": "drizzle-kit migrate",
     "migration:drop": "drizzle-kit drop",
     "migration:export": "drizzle-kit export",
-    "migration:push": "drizzle-kit push"
+    "migration:push": "drizzle-kit push",
+    "prepare": "./scripts/prepare-effect.sh"
   },
   "dependencies": {
     "@ai-sdk/openai": "^3.0.74",
@@ -45,7 +46,7 @@
     "dayjs": "^1.11.21",
     "drizzle-orm": "^0.43.1",
     "drizzle-zod": "^0.8.3",
-    "effect": "^3.22.1",
+    "effect": "^4.0.0-beta.102",
     "embla-carousel-react": "^8.6.0",
     "framer-motion": "^12.42.0",
     "fuse.js": "^7.5.0",
@@ -80,6 +81,7 @@
   },
   "devDependencies": {
     "@aws-sdk/client-s3": "^3.1075.0",
+    "@effect/vitest": "^4.0.0-beta.102",
     "@tailwindcss/postcss": "^4.3.1",
     "@tanstack/react-query-devtools": "^5.101.2",
     "@types/canvas-confetti": "^1.9.0",

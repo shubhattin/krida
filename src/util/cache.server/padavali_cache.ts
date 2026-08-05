@@ -1,16 +1,15 @@
-import { db } from '~/db/db';
-import { REDIS_CACHE_KEYS } from '~/db/redis';
-import { image_schema, puzzle_schema } from '~/db/db_shared_vals';
-import { z } from 'zod';
+import { Effect } from 'effect';
 import { sql } from 'drizzle-orm';
-import { createCachedLoader, type CachedLoader, type NoCacheParams } from './create_cached_loader';
+import { z } from 'zod';
+import { image_schema, puzzle_schema } from '~/db/db_shared_vals';
+import { createCache, type CacheItem, type NoCacheParams } from '~/effect/cache';
+import { dbRun } from '~/effect/database';
+import { BadRequestError, CacheError } from '~/effect/errors';
 import {
   get_puzzle_word_meanings,
   word_meanings_schema,
-  WordMeaningsType
+  type WordMeaningsType
 } from '../ai/word_meanings';
-
-export { NO_CACHE_PARAMS } from './create_cached_loader';
 
 type PadavaliPuzzleType = z.infer<typeof puzzle_schema>;
 export type { PadavaliPuzzleType };
@@ -39,32 +38,163 @@ const listed_puzzle_schema = z.object({
   slug: z.string(),
   title: z.string(),
   description: z.string(),
-  /** Image of the puzzle, used for the puzzle card thumbnail */
   image: image_schema.nullable()
 });
 
 export type PadavaliListedPuzzlesType = z.infer<typeof listed_puzzle_schema>[];
 
-const schedule_sentinel_from_cache = <T>(raw: unknown): T | null => {
-  if (raw === 'undefined') return undefined as T;
-  if (typeof raw === 'object' && raw) return raw as T;
-  return null;
-};
+export type PadavaliPuzzleParams = { slug: string };
 
-const load_current_schedule = createCachedLoader<NoCacheParams, PadavaliCurrentScheduleType>({
-  getKey: () => REDIS_CACHE_KEYS.padavali_current_schedule(),
-  fetch: async () => {
+const CURRENT_SCHEDULE_KEY = 'padavali:current_schedule';
+const NEXT_SCHEDULE_KEY = 'padavali:next_schedule';
+const LISTED_PUZZLE_LIST_KEY = 'padavali:listed_puzzle_list';
+
+const wordPuzzleKey = (slug: string) => `padavali:word_puzzle:${slug}`;
+const wordMeaningsKey = (slug: string) => `padavali:word_meanings:${slug}`;
+
+/** Exported for tests — must stay aligned with createCache getKey builders below. */
+export const padavaliCacheKeys = {
+  current_schedule: () => CURRENT_SCHEDULE_KEY,
+  next_schedule: () => NEXT_SCHEDULE_KEY,
+  listed_puzzle_list: () => LISTED_PUZZLE_LIST_KEY,
+  word_puzzle: wordPuzzleKey,
+  word_meanings: wordMeaningsKey
+} as const;
+
+const toCacheError = (operation: string, key: string) => (cause: unknown) =>
+  CacheError.make({ operation, key, cause });
+
+const parseScheduleSentinel =
+  <T>(schema: z.ZodType<T>) =>
+  (raw: unknown): T | undefined | null => {
+    if (raw === 'undefined') return undefined;
+    if (typeof raw === 'object' && raw !== null) {
+      const parsed = schema.safeParse(raw);
+      return parsed.success ? parsed.data : null;
+    }
+    return null;
+  };
+
+const load_current_schedule: CacheItem<NoCacheParams, PadavaliCurrentScheduleType> = createCache({
+  getKey: () => CURRENT_SCHEDULE_KEY,
+  schema: current_schedule_schema,
+  toCacheValue: (data) => data ?? 'undefined',
+  fromCacheValue: parseScheduleSentinel(current_schedule_schema),
+  getSetOptions: (data) =>
+    data
+      ? {
+          exat: Math.floor(data.end_time.getTime() / 1000 - 2)
+        }
+      : undefined,
+  fetch: () => {
     const currentTime = new Date();
-    const data = await db.query.padavali_schedules.findFirst({
-      columns: {
-        id: true,
-        start_time: true,
-        end_time: true
-      },
-      where: (tbl, { and, lte, gte }) =>
-        and(lte(tbl.start_time, currentTime), gte(tbl.end_time, currentTime)),
-      with: {
-        puzzle: {
+    return dbRun('padavali.current_schedule', (client) =>
+      client.query.padavali_schedules.findFirst({
+        columns: {
+          id: true,
+          start_time: true,
+          end_time: true
+        },
+        where: (tbl, { and, lte, gte }) =>
+          and(lte(tbl.start_time, currentTime), gte(tbl.end_time, currentTime)),
+        with: {
+          puzzle: {
+            with: {
+              attachments: {
+                columns: {
+                  id: true,
+                  title: true,
+                  type: true,
+                  url: true,
+                  order_index: true
+                },
+                orderBy: (tbl, { asc }) => asc(tbl.order_index)
+              },
+              image: {
+                columns: {
+                  id: true,
+                  s3_key: true,
+                  width: true,
+                  height: true
+                }
+              }
+            }
+          }
+        }
+      })
+    ).pipe(Effect.mapError(toCacheError('fetchCurrentSchedule', CURRENT_SCHEDULE_KEY)));
+  }
+});
+
+const load_next_schedule: CacheItem<NoCacheParams, PadavaliNextScheduleType> = createCache({
+  getKey: () => NEXT_SCHEDULE_KEY,
+  schema: next_schedule_schema,
+  toCacheValue: (data) => data ?? 'undefined',
+  fromCacheValue: parseScheduleSentinel(next_schedule_schema),
+  getSetOptions: (data) =>
+    data ? { exat: Math.floor(data.start_time.getTime() / 1000) } : undefined,
+  fetch: () => {
+    const currentTime = new Date();
+    return dbRun('padavali.next_schedule', (client) =>
+      client.query.padavali_schedules.findFirst({
+        columns: {
+          id: true,
+          start_time: true
+        },
+        where: (tbl, { gt }) => gt(tbl.start_time, currentTime),
+        orderBy: (tbl, { asc }) => asc(tbl.start_time),
+        with: {
+          puzzle: {
+            columns: {
+              id: true
+            }
+          }
+        }
+      })
+    ).pipe(Effect.mapError(toCacheError('fetchNextSchedule', NEXT_SCHEDULE_KEY)));
+  }
+});
+
+const load_listed_puzzle_list: CacheItem<NoCacheParams, PadavaliListedPuzzlesType> = createCache({
+  getKey: () => LISTED_PUZZLE_LIST_KEY,
+  schema: listed_puzzle_schema.array(),
+  fetch: () =>
+    dbRun('padavali.listed_puzzle_list', (client) =>
+      client.query.padavali_puzzles.findMany({
+        columns: {
+          id: true,
+          slug: true,
+          title: true,
+          description: true
+        },
+        with: {
+          image: {
+            columns: {
+              id: true,
+              s3_key: true,
+              width: true,
+              height: true
+            }
+          }
+        },
+        where: ({ listed }, { eq }) => eq(listed, true),
+        orderBy: ({ created_at, last_listed_at }, { desc }) => [
+          desc(sql`COALESCE(${last_listed_at}, '1970-01-01'::timestamp with time zone)`),
+          desc(created_at)
+        ]
+      })
+    ).pipe(Effect.mapError(toCacheError('fetchListedPuzzleList', LISTED_PUZZLE_LIST_KEY)))
+});
+
+const load_word_puzzle: CacheItem<PadavaliPuzzleParams, PadavaliPuzzleType | undefined> =
+  createCache<PadavaliPuzzleParams, PadavaliPuzzleType | undefined>({
+    getKey: ({ slug }) => wordPuzzleKey(slug),
+    schema: puzzle_schema,
+    shouldCache: (data) => data !== undefined,
+    fetch: ({ slug }) =>
+      dbRun('padavali.word_puzzle', (client) =>
+        client.query.padavali_puzzles.findFirst({
+          where: (tbl, { eq }) => eq(tbl.slug, slug),
           with: {
             attachments: {
               columns: {
@@ -85,149 +215,51 @@ const load_current_schedule = createCachedLoader<NoCacheParams, PadavaliCurrentS
               }
             }
           }
-        }
-      }
-    });
-    return data satisfies PadavaliCurrentScheduleType;
-  },
-  schema: current_schedule_schema,
-  toCacheValue: (data) => data ?? 'undefined',
-  fromCacheValue: (raw) => {
-    const parsed = schedule_sentinel_from_cache<PadavaliCurrentScheduleType>(raw);
-    if (parsed === null) return null;
-    if (parsed === undefined) return undefined;
-    return current_schedule_schema.parse(parsed);
-  },
-  getSetOptions: (data) =>
-    data
-      ? {
-          exat: Math.floor(
-            data.end_time.getTime() / 1000 - 2
-            // cache expires 2 seconds before
-          )
-        }
-      : undefined
-});
+        })
+      ).pipe(Effect.mapError(toCacheError('fetchWordPuzzle', wordPuzzleKey(slug))))
+  });
 
-const load_next_schedule = createCachedLoader<NoCacheParams, PadavaliNextScheduleType>({
-  getKey: () => REDIS_CACHE_KEYS.padavali_next_schedule(),
-  fetch: async () => {
-    const currentTime = new Date();
-    const data = await db.query.padavali_schedules.findFirst({
-      columns: {
-        id: true,
-        start_time: true
-      },
-      where: (tbl, { gt }) => gt(tbl.start_time, currentTime),
-      orderBy: (tbl, { asc }) => asc(tbl.start_time),
-      with: {
-        puzzle: {
-          columns: {
-            id: true
-          }
-        }
-      }
-    });
-    return data satisfies PadavaliNextScheduleType;
-  },
-  schema: next_schedule_schema,
-  toCacheValue: (data) => data ?? 'undefined',
-  fromCacheValue: (raw) => {
-    const parsed = schedule_sentinel_from_cache<PadavaliNextScheduleType>(raw);
-    if (parsed === null) return null;
-    if (parsed === undefined) return undefined;
-    return next_schedule_schema.parse(parsed);
-  },
-  getSetOptions: (data) =>
-    data ? { exat: Math.floor(data.start_time.getTime() / 1000) } : undefined
-});
-
-const load_listed_puzzle_list = createCachedLoader<NoCacheParams, PadavaliListedPuzzlesType>({
-  getKey: () => REDIS_CACHE_KEYS.padavali_listed_puzzle_list(),
-  schema: listed_puzzle_schema.array(),
-  fetch: async () => {
-    const data = await db.query.padavali_puzzles.findMany({
-      columns: {
-        id: true,
-        slug: true,
-        title: true,
-        description: true
-      },
-      with: {
-        image: {
-          columns: {
-            id: true,
-            s3_key: true,
-            width: true,
-            height: true
-          }
-        }
-      },
-      where: ({ listed }, { eq }) => eq(listed, true),
-      orderBy: ({ created_at, last_listed_at }, { desc }) => [
-        desc(sql`COALESCE(${last_listed_at}, '1970-01-01'::timestamp with time zone)`),
-        desc(created_at)
-      ]
-    });
-    return data satisfies PadavaliListedPuzzlesType;
-  }
-});
-
-export type PadavaliPuzzleParams = { slug: string };
-
-const load_word_puzzle = createCachedLoader<PadavaliPuzzleParams, PadavaliPuzzleType | undefined>({
-  getKey: ({ slug }) => REDIS_CACHE_KEYS.padavali_word_puzzle(slug),
-  schema: puzzle_schema,
-  shouldCache: (data): data is PadavaliPuzzleType => data !== undefined,
-  fetch: async ({ slug }) => {
-    const data = await db.query.padavali_puzzles.findFirst({
-      where: (tbl, { eq }) => eq(tbl.slug, slug),
-      with: {
-        attachments: {
-          columns: {
-            id: true,
-            title: true,
-            type: true,
-            url: true,
-            order_index: true
-          },
-          orderBy: (tbl, { asc }) => asc(tbl.order_index)
-        },
-        image: {
-          columns: {
-            id: true,
-            s3_key: true,
-            width: true,
-            height: true
-          }
-        }
-      }
-    });
-    return data satisfies PadavaliPuzzleType | undefined;
-  }
-});
-
-const load_word_meanings = createCachedLoader<PadavaliPuzzleParams, WordMeaningsType>({
-  getKey: ({ slug }) => REDIS_CACHE_KEYS.padavali_word_meanings(slug),
-  ttlSeconds: Infinity, // no expiration
+const load_word_meanings: CacheItem<PadavaliPuzzleParams, WordMeaningsType> = createCache({
+  getKey: ({ slug }) => wordMeaningsKey(slug),
+  ttlSeconds: Infinity,
   useGenerationGuard: true,
   useSingleFlight: true,
   schema: word_meanings_schema,
-  fetch: async ({ slug }) => {
-    const puzzle = await load_word_puzzle.get({ slug });
-    if (!puzzle) {
-      throw new Error(`Puzzle not found for slug: ${slug}`);
-    }
-    return get_puzzle_word_meanings(puzzle);
-  }
+  fetch: ({ slug }) =>
+    Effect.gen(function* () {
+      const key = wordMeaningsKey(slug);
+      const puzzle = yield* load_word_puzzle.get({ slug });
+
+      if (!puzzle) {
+        return yield* Effect.fail(
+          CacheError.make({
+            operation: 'fetchWordMeaningsPuzzle',
+            key,
+            cause: BadRequestError.make({
+              message: `Puzzle not found for slug: ${slug}`
+            })
+          })
+        );
+      }
+
+      return yield* get_puzzle_word_meanings(puzzle).pipe(
+        Effect.mapError((cause) =>
+          CacheError.make({
+            operation: 'fetchWordMeaningsAi',
+            key,
+            cause
+          })
+        )
+      );
+    })
 });
 
 export type PadavaliCacheLoaders = {
-  current_schedule: CachedLoader<NoCacheParams, PadavaliCurrentScheduleType>;
-  next_schedule: CachedLoader<NoCacheParams, PadavaliNextScheduleType>;
-  listed_puzzle_list: CachedLoader<NoCacheParams, PadavaliListedPuzzlesType>;
-  word_puzzle: CachedLoader<PadavaliPuzzleParams, PadavaliPuzzleType | undefined>;
-  word_meanings: CachedLoader<PadavaliPuzzleParams, WordMeaningsType>;
+  current_schedule: CacheItem<NoCacheParams, PadavaliCurrentScheduleType>;
+  next_schedule: CacheItem<NoCacheParams, PadavaliNextScheduleType>;
+  listed_puzzle_list: CacheItem<NoCacheParams, PadavaliListedPuzzlesType>;
+  word_puzzle: CacheItem<PadavaliPuzzleParams, PadavaliPuzzleType | undefined>;
+  word_meanings: CacheItem<PadavaliPuzzleParams, WordMeaningsType>;
 };
 
 export const padavali_cache_loaders: PadavaliCacheLoaders = {

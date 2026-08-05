@@ -7,7 +7,8 @@ import CrossWordGameRoot from '~/components/pages/cross_word/CrossWordGame/Cross
 import { CACHE, NO_CACHE_PARAMS } from '~/util/cache.server/cache_loaders';
 import type { CrosswordPuzzleType } from '~/util/cache.server/crossword_cache';
 import { getMetadata } from '~/components/tags/getPageMetaTags';
-import { db } from '~/db/db';
+import { runServerEffect } from '~/effect/run';
+import { dbRun } from '~/effect/database';
 
 type Props = { params: Promise<{ slug: string }> };
 
@@ -17,19 +18,23 @@ type SlugResolution =
   | { type: 'not_found' };
 
 const resolve_puzzle_slug = cache(async (slug: string): Promise<SlugResolution> => {
-  const word_puzzle = await CACHE.crossword.word_puzzle.get({ slug });
+  const word_puzzle = await runServerEffect(CACHE.crossword.word_puzzle.get({ slug }));
   if (word_puzzle) {
     return { type: 'puzzle', puzzle: word_puzzle };
   }
 
-  const redirect_entry = await db.query.crossword_redirects.findFirst({
-    where: (tbl, { eq }) => eq(tbl.slug, slug),
-    with: {
-      puzzle: {
-        columns: { slug: true }
-      }
-    }
-  });
+  const redirect_entry = await runServerEffect(
+    dbRun('crossword.resolve_puzzle_slug_redirect', (client) =>
+      client.query.crossword_redirects.findFirst({
+        where: (tbl, { eq }) => eq(tbl.slug, slug),
+        with: {
+          puzzle: {
+            columns: { slug: true }
+          }
+        }
+      })
+    )
+  );
 
   if (redirect_entry?.puzzle?.slug) {
     return { type: 'redirect', targetSlug: redirect_entry.puzzle.slug };
@@ -44,7 +49,7 @@ const get_puzzle_for_metadata = async (slug: string) => {
     return resolution.puzzle;
   }
   if (resolution.type === 'redirect') {
-    return CACHE.crossword.word_puzzle.get({ slug: resolution.targetSlug });
+    return runServerEffect(CACHE.crossword.word_puzzle.get({ slug: resolution.targetSlug }));
   }
   return undefined;
 };
@@ -96,7 +101,9 @@ const CrosswordPlaySuspense = async ({ slug }: { slug: string }) => {
 
   const word_puzzle = resolution.puzzle;
 
-  const current_schedule = await CACHE.crossword.current_schedule.get(NO_CACHE_PARAMS);
+  const current_schedule = await runServerEffect(
+    CACHE.crossword.current_schedule.get(NO_CACHE_PARAMS)
+  );
 
   if (current_schedule && word_puzzle.id === current_schedule.puzzle.id) {
     redirect('/padajala');

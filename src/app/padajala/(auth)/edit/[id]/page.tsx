@@ -1,6 +1,5 @@
 import { redirect } from 'next/navigation';
 import { z } from 'zod';
-import { db } from '~/db/db';
 import { type Metadata } from 'next';
 import Link from 'next/link';
 import { IoMdArrowRoundBack } from 'react-icons/io';
@@ -10,33 +9,39 @@ import { getCachedSession } from '~/lib/cache_server_route_data';
 import { cache } from 'react';
 import { CrossordPuzzleSchemaZod, CrosswordAttachmentSchemaZod } from '~/db/schema_zod';
 import MainEditPage from './MainEditPage';
+import { runServerEffect } from '~/effect/run';
+import { dbRun } from '~/effect/database';
 
 type Props = { params: Promise<{ id: string }> };
 
 const get_crossword_cached = cache(async (id: number) => {
-  const row = await db.query.crossword_puzzles.findFirst({
-    where: (tbl, { eq }) => eq(tbl.id, id),
-    with: {
-      attachments: {
-        columns: {
-          id: true,
-          type: true,
-          url: true,
-          title: true,
-          order_index: true
-        },
-        orderBy: (tbl, { asc }) => asc(tbl.order_index)
-      },
-      image: {
-        columns: {
-          id: true,
-          s3_key: true,
-          width: true,
-          height: true
+  const row = await runServerEffect(
+    dbRun('crossword.admin.get_edit_puzzle', (client) =>
+      client.query.crossword_puzzles.findFirst({
+        where: (tbl, { eq }) => eq(tbl.id, id),
+        with: {
+          attachments: {
+            columns: {
+              id: true,
+              type: true,
+              url: true,
+              title: true,
+              order_index: true
+            },
+            orderBy: (tbl, { asc }) => asc(tbl.order_index)
+          },
+          image: {
+            columns: {
+              id: true,
+              s3_key: true,
+              width: true,
+              height: true
+            }
+          }
         }
-      }
-    }
-  });
+      })
+    )
+  );
   if (!row) return null;
   const puzzle = CrossordPuzzleSchemaZod.parse(row);
   const attachments = row.attachments.map((a) =>

@@ -1,14 +1,14 @@
-import { generateImage, generateText, Output } from 'ai';
-import type { OpenAIImageModelGenerationOptions } from '@ai-sdk/openai';
+import { Effect } from 'effect';
 import { z } from 'zod';
 import { image_assets } from '~/db/schema';
-import type { TxOrDb } from '~/db/db';
-import { resizeImage } from '~/util/sharp/resize.server';
-import { uploadAssetFile, deleteAssetFile } from '~/util/s3/upload_file.server';
+import { ImageAssetSchemaZod } from '~/db/schema_zod';
+import { dbRun, type TxOrDb } from '~/effect/database';
 import { PROJECT_S3_ALIAS, KRIDAS } from '~/constants';
-import { openai, openrouter } from './providers';
+import { AiProvider } from '~/effect/ai';
+import { ImageProcessor } from '~/effect/image';
+import { DatabaseError } from '~/effect/errors';
+import { ObjectStorage, type AssetLocation } from '~/effect/storage';
 import crypto from 'node:crypto';
-import type { S3Client } from '@aws-sdk/client-s3';
 
 /**
  * Final stored dimensions after sharp resize/compress.
@@ -23,9 +23,11 @@ export const IMAGE_CONFIG = {
 } as const;
 
 export const OPENROUTER_MODELS = {
-  image_prompt: 'openai/gpt-5.4',
+  image_prompt: 'openai/gpt-5.6-luna',
   file_name: 'openai/gpt-5.4-nano',
-  image_generation: 'openai/gpt-5.4-image-2'
+  image_generation: 'openai/gpt-5.4-image-2',
+  more_hints: 'openai/gpt-5.6-luna',
+  word_meanings: 'openai/gpt-5.6-luna'
 } as const;
 
 export const OPENAI_MODELS = {
@@ -110,31 +112,44 @@ export const generate_puzzle_image_output_schema = z.discriminatedUnion('success
 ]);
 export type GeneratePuzzleImageOutput = z.infer<typeof generate_puzzle_image_output_schema>;
 
-async function generatePuzzleCardImage(image_prompt: string): Promise<string> {
-  const image_model = openai.image(OPENAI_MODELS.image_generation);
+const image_prompt_response_schema = z.object({
+  image_prompt: z
+    .string()
+    .describe('A detailed English image prompt (≤150 words) for a puzzle card illustration.')
+});
 
-  const result = await generateImage({
-    model: image_model,
-    prompt: image_prompt,
-    // aspectRatio: IMAGE_CONFIG.ASPECT_RATIO,
-    size: IMAGE_CONFIG.IMAGE_GEN_DIMS,
-    providerOptions: {
-      openai: {
-        quality: 'medium'
-      } satisfies OpenAIImageModelGenerationOptions
-    }
-  });
+const file_name_description_schema = z.object({
+  file_name: z
+    .string()
+    .describe(
+      'A short file_name (2–4 words, underscores, lowercase) for the image prompt provided.'
+    ),
+  description: z
+    .string()
+    .max(150)
+    .describe('A short word description for the image prompt provided.')
+});
 
-  // GeneratedFile.base64 gives the raw base64 string (no data-URL prefix)
-  return result.image.base64;
-}
+type FileNameDescription = z.infer<typeof file_name_description_schema>;
 
-export const generateImagePrompt = async (
+type GeneratedImageState = {
+  readonly image_prompt: string;
+  readonly file_name: string;
+  readonly image_description: string;
+  readonly image_b64: string;
+};
+
+type FailedGeneratePuzzleImageOutput = Extract<GeneratePuzzleImageOutput, { success: false }>;
+type GeneratedImageResolution =
+  | { readonly ok: true; readonly value: GeneratedImageState }
+  | { readonly ok: false; readonly value: FailedGeneratePuzzleImageOutput };
+
+const buildImagePromptUserPrompt = (
   title: string,
   description?: string,
   words?: string[],
   extra_instructions?: string
-): Promise<string> => {
+): string => {
   let user_prompt = IMAGE_PROMPT_USER.replace('{title}', title).replace(
     '{description}',
     description ?? ''
@@ -152,161 +167,246 @@ export const generateImagePrompt = async (
     user_prompt += '\n\n' + IMAGE_PROMPT_USER_EXTRA.replace('{extra_instructions}', trimmed_extra);
   }
 
-  const response = await generateText({
-    model: openrouter(OPENROUTER_MODELS.image_prompt),
-    output: Output.object({
-      schema: z.object({
-        image_prompt: z
-          .string()
-          .describe('A detailed English image prompt (≤150 words) for a puzzle card illustration.')
-      })
-    }),
-    system: IMAGE_PROMPT_SYSTEM,
-    prompt: user_prompt
-  });
-  return response.output.image_prompt;
+  return user_prompt;
 };
 
-export const generateFileNameAndDescription = async (
+const generatePuzzleCardImage = Effect.fn('generatePuzzleCardImage')(function* (
   image_prompt: string
-): Promise<{ file_name: string; description: string }> => {
-  const response = await generateText({
-    model: openrouter(OPENROUTER_MODELS.file_name),
-    output: Output.object({
-      schema: z.object({
-        file_name: z
-          .string()
-          .describe(
-            'A short file_name (2–4 words, underscores, lowercase) for the image prompt provided.'
-          ),
-        description: z.string().describe('A short word description for the image prompt provided.')
-      })
-    }),
-    system:
-      'Generate a short file_name (2–4 words, underscores, lowercase) and a 4-5 word description for the image prompt provided.',
-    prompt: image_prompt
+) {
+  const ai = yield* AiProvider;
+  return yield* ai.generateImageBase64({
+    prompt: image_prompt,
+    modelId: OPENAI_MODELS.image_generation,
+    size: IMAGE_CONFIG.IMAGE_GEN_DIMS,
+    quality: 'medium'
   });
-  return response.output;
+});
+
+export const generateImagePrompt = Effect.fn('generateImagePrompt')(function* (
+  title: string,
+  description?: string,
+  words?: string[],
+  extra_instructions?: string
+) {
+  const ai = yield* AiProvider;
+  const response = yield* ai.generateObject({
+    operation: 'generate_image_prompt',
+    provider: 'openrouter',
+    model: ai.openrouterModel(OPENROUTER_MODELS.image_prompt),
+    system: IMAGE_PROMPT_SYSTEM,
+    prompt: buildImagePromptUserPrompt(title, description, words, extra_instructions),
+    schema: image_prompt_response_schema
+  });
+  return response.image_prompt;
+});
+
+export const generateFileNameAndDescription = Effect.fn('generateFileNameAndDescription')(
+  function* (image_prompt: string) {
+    const ai = yield* AiProvider;
+    return yield* ai.generateObject({
+      operation: 'generate_file_name_and_description',
+      provider: 'openrouter',
+      model: ai.openrouterModel(OPENROUTER_MODELS.file_name),
+      system:
+        'Generate a short file_name (2–4 words, underscores, lowercase) and a 4-5 word description for the image prompt provided.',
+      prompt: image_prompt,
+      schema: file_name_description_schema
+    });
+  }
+);
+
+const sanitizeAssetFileName = (file_name: string): string => {
+  const sanitized = file_name
+    .replace(/[^\w.-]/g, '_')
+    .replace(/_+/g, '_')
+    .replace(/^_|_$/g, '');
+  return sanitized.length > 0 ? sanitized : 'asset';
 };
+
+const createAssetLocation = (
+  game: GeneratePuzzleImageInput['game'],
+  file_name: string,
+  suffix: string
+): AssetLocation =>
+  `${PROJECT_S3_ALIAS}/${game}/image_assets/${sanitizeAssetFileName(file_name)}_${suffix}.webp`;
+
+const insertImageAssetRecord = Effect.fn('insertImageAssetRecord')(function* (
+  db_instance: TxOrDb | undefined,
+  input: {
+    readonly s3_key: AssetLocation;
+    readonly description: string;
+  }
+) {
+  const values = {
+    width: IMAGE_CONFIG.WIDTH,
+    height: IMAGE_CONFIG.HEIGHT,
+    s3_key: input.s3_key,
+    description: input.description
+  };
+
+  const records = db_instance
+    ? yield* Effect.tryPromise({
+        try: () => db_instance.insert(image_assets).values(values).returning(),
+        catch: (cause) => DatabaseError.make({ operation: 'insertImageAssetRecord', cause })
+      })
+    : yield* dbRun('insertImageAssetRecord', (client) =>
+        client.insert(image_assets).values(values).returning()
+      );
+
+  const db_record = records[0];
+  if (!db_record) {
+    return yield* Effect.fail(
+      DatabaseError.make({
+        operation: 'insertImageAssetRecord',
+        cause: new Error('No image asset row returned')
+      })
+    );
+  }
+
+  return ImageAssetSchemaZod.parse(db_record);
+});
+
+const resolveGeneratedImageState = Effect.fn('resolveGeneratedImageState')(function* (
+  input: GeneratePuzzleImageInput,
+  existing_image_b64?: string,
+  existing_file_name_description?: FileNameDescription
+) {
+  const { title, description, words, extra_instructions, existing_image_prompt } = input;
+
+  if (existing_image_b64 && existing_image_b64.length > 0) {
+    return {
+      image_prompt: existing_image_prompt ?? '',
+      file_name: existing_file_name_description?.file_name ?? '',
+      image_description: existing_file_name_description?.description ?? '',
+      image_b64: existing_image_b64
+    } satisfies GeneratedImageState;
+  }
+
+  const image_prompt = existing_image_prompt
+    ? existing_image_prompt
+    : yield* generateImagePrompt(title, description, words, extra_instructions);
+
+  const file_name_description = yield* generateFileNameAndDescription(image_prompt);
+  const image_b64 = yield* generatePuzzleCardImage(image_prompt);
+
+  return {
+    image_prompt,
+    file_name: file_name_description.file_name,
+    image_description: file_name_description.description,
+    image_b64
+  } satisfies GeneratedImageState;
+});
 
 /** If image is already provided then this would only upload the image to S3 */
-export const generateSavePuzzleImage = async (
+export const generateSavePuzzleImage = Effect.fn('generateSavePuzzleImage')(function* (
   input: GeneratePuzzleImageInput,
-  s3Client: S3Client,
-  db_instance: TxOrDb,
-  s3_bucket_name?: string,
+  db_instance?: TxOrDb,
   existing_image_b64?: string,
-  existing_file_name_description?: { file_name: string; description: string }
-): Promise<GeneratePuzzleImageOutput> => {
+  existing_file_name_description?: FileNameDescription
+) {
   const start_time = Date.now();
-  const { title, description, words, extra_instructions, existing_image_prompt, game } = input;
+  const image_processor = yield* ImageProcessor;
+  const storage = yield* ObjectStorage;
 
-  // ------------------------------------------------------------------
-  // Step 1 — Generate image prompt (or use supplied one)
-  // ------------------------------------------------------------------
-  let image_prompt: string;
-  let file_name: string;
-  let image_description: string;
-
-  // ------------------------------------------------------------------
-  // Step 2 — Generate image via OpenRouter imageModel
-  // ------------------------------------------------------------------
-  let image_b64: string;
-  if (!existing_image_b64 || existing_image_b64.length === 0) {
-    if (existing_image_prompt) {
-      // Derive only file_name + description from the supplied prompt
-      const res = await generateFileNameAndDescription(existing_image_prompt);
-      image_prompt = existing_image_prompt;
-      file_name = res.file_name;
-      image_description = res.description;
-    } else {
-      const image_prompt_resp = await generateImagePrompt(
-        title,
-        description,
-        words,
-        extra_instructions
-      );
-      image_prompt = image_prompt_resp;
-      const filename_resp = await generateFileNameAndDescription(image_prompt);
-      file_name = filename_resp.file_name;
-      image_description = filename_resp.description;
-    }
-
-    console.log('[ai_image_assets] image_prompt generated');
-    try {
-      image_b64 = await generatePuzzleCardImage(image_prompt);
-    } catch (err) {
-      console.error('[ai_image_assets] image generation failed:', err);
-      return { success: false, err_code: 'image_generation_failed' as const };
-    }
-    console.log('[ai_image_assets] image generated');
-  } else {
-    image_prompt = existing_image_prompt ?? '';
-    file_name = existing_file_name_description?.file_name ?? '';
-    image_description = existing_file_name_description?.description ?? '';
-    image_b64 = existing_image_b64;
-  }
-
-  /*
-   - This whole section above will be skipped if the AI related tasks have been already done.
-   - This is to prepare for the Batch API usage where we will pregenerate the Image in the queue and then use 
-     this function to attach things and upload things.
-  */
-
-  // ------------------------------------------------------------------
-  // Step 3 — Resize / compress with sharp → WebP
-  // ------------------------------------------------------------------
-  const raw_buffer = Buffer.from(image_b64, 'base64');
-  const compressed_buffer = await resizeImage(raw_buffer, IMAGE_CONFIG.WIDTH, IMAGE_CONFIG.HEIGHT, {
-    quality: 82,
-    effort: 3
-  });
-
-  console.log('[ai_image_assets] image resized/compressed to WebP');
-
-  // ------------------------------------------------------------------
-  // Step 4 — Upload to S3
-  // ------------------------------------------------------------------
-  const s3_key =
-    `${PROJECT_S3_ALIAS}/${game}/image_assets/${file_name}_${crypto.randomUUID()}.webp` as const;
-
-  const assetBucketName = s3_bucket_name ?? process.env.AWS_S3_FILES_BUCKET_NAME ?? '';
-  try {
-    await uploadAssetFile(s3_key, compressed_buffer, { s3Client, assetBucketName });
-    console.log('[ai_image_assets] image uploaded to S3:', s3_key);
-  } catch (err) {
-    console.error('[ai_image_assets] S3 upload failed:', err);
-    // Best-effort cleanup (key may not exist yet, but harmless)
-    await deleteAssetFile(s3_key, { s3Client, assetBucketName }).catch(() => {});
-    return { success: false, err_code: 'image_upload_failed' as const };
-  }
-
-  // ------------------------------------------------------------------
-  // Step 5 — Persist image_assets record in DB
-  // ------------------------------------------------------------------
-  let db_record: typeof image_assets.$inferSelect;
-  try {
-    [db_record] = await db_instance
-      .insert(image_assets)
-      .values({
-        width: IMAGE_CONFIG.WIDTH,
-        height: IMAGE_CONFIG.HEIGHT,
-        s3_key,
-        description: image_description
+  const generated_image = yield* resolveGeneratedImageState(
+    input,
+    existing_image_b64,
+    existing_file_name_description
+  ).pipe(
+    Effect.map((state): GeneratedImageResolution => ({ ok: true, value: state })),
+    Effect.catchTag('AiProviderError', () =>
+      Effect.succeed<GeneratedImageResolution>({
+        ok: false,
+        value: {
+          success: false,
+          err_code: 'image_generation_failed'
+        } satisfies FailedGeneratePuzzleImageOutput
       })
-      .returning();
-  } catch (err) {
-    // DB insert failed after upload → clean up the orphaned S3 object
-    await deleteAssetFile(s3_key, { s3Client, assetBucketName }).catch(() => {});
-    throw err;
+    )
+  );
+
+  if (!generated_image.ok) {
+    return generated_image.value;
   }
+
+  const compressed_result = yield* image_processor
+    .resizeImage(
+      Buffer.from(generated_image.value.image_b64, 'base64'),
+      IMAGE_CONFIG.WIDTH,
+      IMAGE_CONFIG.HEIGHT,
+      {
+        quality: 82,
+        effort: 3
+      }
+    )
+    .pipe(
+      Effect.map((buffer) => ({ ok: true as const, buffer })),
+      Effect.catchTag('ImageProcessingError', () =>
+        Effect.succeed({
+          ok: false as const,
+          value: {
+            success: false,
+            err_code: 'image_generation_failed'
+          } satisfies FailedGeneratePuzzleImageOutput
+        })
+      )
+    );
+
+  if (!compressed_result.ok) {
+    return compressed_result.value;
+  }
+
+  const s3_key = createAssetLocation(
+    input.game,
+    generated_image.value.file_name,
+    crypto.randomUUID()
+  );
+  const uploaded = yield* storage.uploadAssetFile(s3_key, compressed_result.buffer).pipe(
+    Effect.as(true as const),
+    Effect.catchTag('StorageError', (error) =>
+      Effect.logWarning('Failed to upload puzzle image to storage').pipe(
+        Effect.annotateLogs({
+          s3_key,
+          operation: error.operation
+        }),
+        Effect.as(false as const)
+      )
+    )
+  );
+
+  if (!uploaded) {
+    return {
+      success: false,
+      err_code: 'image_upload_failed'
+    } satisfies FailedGeneratePuzzleImageOutput;
+  }
+
+  const db_record = yield* insertImageAssetRecord(db_instance, {
+    s3_key,
+    description: generated_image.value.image_description
+  }).pipe(
+    Effect.catchTag('DatabaseError', (db_error) =>
+      storage.deleteAssetFile(s3_key).pipe(
+        Effect.catchTag('StorageError', (cleanup_error) =>
+          Effect.logWarning('Failed to cleanup uploaded image after DB insert failure').pipe(
+            Effect.annotateLogs({
+              s3_key,
+              dbOperation: db_error.operation,
+              cleanupOperation: cleanup_error.operation
+            })
+          )
+        ),
+        Effect.flatMap(() => Effect.fail(db_error))
+      )
+    )
+  );
 
   return {
     success: true,
     time_ms: Date.now() - start_time,
     id: db_record.id,
     s3_key,
-    image_prompt,
-    description: image_description
-  };
-};
+    image_prompt: generated_image.value.image_prompt,
+    description: generated_image.value.image_description
+  } satisfies Extract<GeneratePuzzleImageOutput, { success: true }>;
+});

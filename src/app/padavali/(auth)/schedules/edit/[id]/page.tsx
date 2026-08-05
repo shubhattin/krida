@@ -1,11 +1,12 @@
 import { redirect } from 'next/navigation';
 import AddSchedule from '../../add/AddSchedule';
-import { db } from '~/db/db';
 import Link from 'next/link';
 import { IoMdArrowRoundBack } from 'react-icons/io';
 import { getCachedSession } from '~/lib/cache_server_route_data';
 import { z } from 'zod';
 import { Metadata } from 'next';
+import { runServerEffect } from '~/effect/run';
+import { dbRun } from '~/effect/database';
 
 type Props = { params: Promise<{ id: string }> };
 
@@ -15,17 +16,22 @@ const Main = async ({ params }: Props) => {
 
   const schedule_id = z.object({ id: z.coerce.number().int() }).parse(await params).id;
 
-  const schedule = (await db.query.padavali_schedules.findFirst({
-    where: (tbl, { eq }) => eq(tbl.id, schedule_id),
-    with: {
-      puzzle: {
-        columns: {
-          title: true,
-          id: true
+  const schedule = await runServerEffect(
+    dbRun('padavali.admin.get_schedule_for_edit', (client) =>
+      client.query.padavali_schedules.findFirst({
+        where: (tbl, { eq }) => eq(tbl.id, schedule_id),
+        with: {
+          puzzle: {
+            columns: {
+              title: true,
+              id: true
+            }
+          }
         }
-      }
-    }
-  }))!;
+      })
+    )
+  );
+  if (!schedule) redirect('/padavali/schedules');
 
   // these dates are already stores in IST
   const start_date = schedule.start_time;
