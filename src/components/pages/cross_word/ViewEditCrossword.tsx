@@ -6,6 +6,7 @@ import { useHydrateAtoms } from 'jotai/utils';
 import { useRouter } from 'next/navigation';
 import { useQueryClient } from '@tanstack/react-query';
 import { AnimatePresence, motion } from 'framer-motion';
+import useEmblaCarousel from 'embla-carousel-react';
 import { ArrowRight, ChevronLeft, ChevronRight, Info, Pencil, WandSparkles } from 'lucide-react';
 import { IoMdAdd, IoMdClose } from 'react-icons/io';
 import { MdDeleteOutline, MdDragIndicator } from 'react-icons/md';
@@ -853,15 +854,6 @@ function GeneratedLayoutPreview({ candidate }: { candidate: GeneratedCrosswordLa
   );
 }
 
-function LayoutMetric({ label, value }: { label: string; value: number }) {
-  return (
-    <div className="flex flex-col gap-0.5 rounded-md border border-border/80 bg-muted/30 px-2.5 py-2">
-      <span className="text-[10px] tracking-wide text-muted-foreground uppercase">{label}</span>
-      <span className="font-mono text-sm font-semibold tabular-nums">{value}</span>
-    </div>
-  );
-}
-
 function WordChipList({
   ids,
   wordNames,
@@ -905,18 +897,10 @@ function LayoutCandidateDetail({
   candidate: GeneratedCrosswordLayout;
   wordNames: ReadonlyMap<string, string>;
 }) {
-  const { score } = candidate;
-
   return (
     <div className="flex flex-col gap-4 sm:flex-row sm:items-start">
       <GeneratedLayoutPreview candidate={candidate} />
       <div className="flex min-w-0 flex-1 flex-col gap-4">
-        <div className="grid grid-cols-2 gap-2 sm:grid-cols-4">
-          <LayoutMetric label="Words" value={score.placedWordCount} />
-          <LayoutMetric label="Letters" value={score.placedLetterCount} />
-          <LayoutMetric label="Crosses" value={score.intersectionCount} />
-          <LayoutMetric label="Area" value={score.compactness} />
-        </div>
         <div className="flex flex-col gap-2">
           <div className="flex items-center gap-2">
             <h4 className="text-sm font-medium">Placed</h4>
@@ -963,7 +947,14 @@ function LayoutTabsCarousel({
   activeKey: string;
   onSelect: (key: string) => void;
 }) {
-  const tabsScrollRef = useRef<HTMLDivElement>(null);
+  const [emblaRef, emblaApi] = useEmblaCarousel({
+    align: 'start',
+    dragFree: true,
+    containScroll: 'trimSnaps',
+    skipSnaps: true,
+    // Tabs are buttons; Embla skips drag on interactive targets unless we opt in.
+    watchDrag: () => true
+  });
   const activeIndex = candidates.findIndex(
     (candidate) => layoutCandidateKey(candidate) === activeKey
   );
@@ -971,22 +962,19 @@ function LayoutTabsCarousel({
   const canGoNext = activeIndex >= 0 && activeIndex < candidates.length - 1;
 
   useEffect(() => {
-    const root = tabsScrollRef.current;
-    if (!root || activeIndex < 0) return;
-    const activeTrigger = root.querySelector<HTMLElement>(
-      '[data-slot="tabs-trigger"][data-active]'
-    );
-    if (!activeTrigger) return;
-    const rootRect = root.getBoundingClientRect();
-    const tabRect = activeTrigger.getBoundingClientRect();
-    const delta = tabRect.left - rootRect.left - (rootRect.width - tabRect.width) / 2;
-    root.scrollBy({ left: delta, behavior: 'smooth' });
-  }, [activeKey, activeIndex]);
+    emblaApi?.reInit();
+  }, [candidates, emblaApi]);
+
+  useEffect(() => {
+    if (!emblaApi || activeIndex < 0) return;
+    emblaApi.scrollTo(activeIndex);
+  }, [activeKey, activeIndex, emblaApi]);
 
   const goToIndex = (index: number) => {
     const next = candidates[index];
     if (!next) return;
     onSelect(layoutCandidateKey(next));
+    emblaApi?.scrollTo(index);
   };
 
   return (
@@ -1004,15 +992,23 @@ function LayoutTabsCarousel({
           <ChevronLeft />
         </Button>
 
-        <div ref={tabsScrollRef} className="scrollbar-hide min-w-0 flex-1 overflow-x-auto">
+        <div
+          ref={emblaRef}
+          className="min-w-0 flex-1 cursor-grab overflow-hidden active:cursor-grabbing"
+          style={{ touchAction: 'pan-y' }}
+        >
           <TabsList
             variant="line"
-            className="h-auto w-max min-w-full justify-start gap-1 select-none"
+            className="flex! h-auto w-max max-w-none touch-pan-y justify-start gap-1 select-none"
           >
             {candidates.map((candidate, index) => {
               const key = layoutCandidateKey(candidate);
               return (
-                <TabsTrigger key={key} value={key} className="shrink-0 px-3 select-none">
+                <TabsTrigger
+                  key={key}
+                  value={key}
+                  className="flex-none shrink-0 grow-0 basis-auto px-3 select-none"
+                >
                   Layout {index + 1}
                   <Badge variant="secondary" className="tabular-nums">
                     {candidate.score.intersectionCount}×
@@ -1036,7 +1032,7 @@ function LayoutTabsCarousel({
         </Button>
       </div>
       <p className="px-0.5 text-[11px] text-muted-foreground/70 select-none">
-        N× on each tab = shared letter crossings in that layout
+        N× = crossings · drag tabs to browse
       </p>
     </div>
   );
