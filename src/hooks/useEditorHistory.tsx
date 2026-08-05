@@ -12,7 +12,9 @@ import {
 } from 'react';
 import { useStore, type PrimitiveAtom } from 'jotai';
 
-type AtomMap = Record<string, PrimitiveAtom<unknown>>;
+// jotai atoms are invariant; callers pass PrimitiveAtom<T> for many T.
+// eslint-disable-next-line @typescript-eslint/no-explicit-any -- AtomMap must accept heterogeneous atom value types
+type AtomMap = Record<string, PrimitiveAtom<any>>;
 type SnapshotOf<M extends AtomMap> = {
   [K in keyof M]: M[K] extends PrimitiveAtom<infer V> ? V : never;
 };

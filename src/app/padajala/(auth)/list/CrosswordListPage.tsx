@@ -99,8 +99,8 @@ const CrosswordListPage = () => {
   const queryClient = useQueryClient();
   const mounted = useSyncExternalStore(
     () => () => {},
-    () => false,
-    () => true
+    () => true,
+    () => false
   );
   const [page, setPage] = useState(1);
   const [search_title, setSearchTitle] = useState('');

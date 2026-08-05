@@ -126,8 +126,8 @@ const ListLoadingSkeleton = ({ show, layout }: ListLoadingSkeletonProps) => (
 const ListPage = () => {
   const mounted = useSyncExternalStore(
     () => () => {},
-    () => false,
-    () => true
+    () => true,
+    () => false
   );
   const [page, setPage] = useState(1);
   const [search_title, setSearchTitle] = useState('');

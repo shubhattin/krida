@@ -33,8 +33,17 @@ type Props = {
 type DragEventLike = {
   clientX?: number;
   clientY?: number;
-  touches?: Array<{ clientX: number; clientY: number }>;
-  changedTouches?: Array<{ clientX: number; clientY: number }>;
+  touches?: ArrayLike<{ clientX: number; clientY: number }>;
+  changedTouches?: ArrayLike<{ clientX: number; clientY: number }>;
+};
+
+const getPointerCoords = (e: unknown): { clientX: number; clientY: number } | null => {
+  if (!e || typeof e !== 'object') return null;
+  const ev = e as DragEventLike;
+  const clientX = ev.clientX ?? ev.touches?.[0]?.clientX ?? ev.changedTouches?.[0]?.clientX;
+  const clientY = ev.clientY ?? ev.touches?.[0]?.clientY ?? ev.changedTouches?.[0]?.clientY;
+  if (clientX == null || clientY == null) return null;
+  return { clientX, clientY };
 };
 
 export const GameGrid = ({ timerRef, original_grid_data }: Props) => {
@@ -287,13 +296,12 @@ export const GameGrid = ({ timerRef, original_grid_data }: Props) => {
     sel.map((cell) => original_grid_data[cell.row][cell.col]).join('');
 
   // hit-test using elementFromPoint (as before)
-  const getCellFromEvent = (e: DragEventLike): CellPosition | null => {
-    const clientX = e.clientX ?? e.touches?.[0]?.clientX ?? e.changedTouches?.[0]?.clientX;
-    const clientY = e.clientY ?? e.touches?.[0]?.clientY ?? e.changedTouches?.[0]?.clientY;
-    if (clientX == null || clientY == null) return null;
+  const getCellFromEvent = (e: unknown): CellPosition | null => {
+    const coords = getPointerCoords(e);
+    if (!coords) return null;
 
     const target = document
-      .elementFromPoint(clientX, clientY)
+      .elementFromPoint(coords.clientX, coords.clientY)
       ?.closest<HTMLElement>('[data-row][data-col]');
     if (!target) return null;
 
@@ -611,7 +619,8 @@ export const GameGrid = ({ timerRef, original_grid_data }: Props) => {
                     points={buildPoints(displayDemoPath)}
                     fill="none"
                     className={cn(
-                      displayDemoState === 'success' && 'stroke-emerald-300 dark:stroke-emerald-400',
+                      displayDemoState === 'success' &&
+                        'stroke-emerald-300 dark:stroke-emerald-400',
                       displayDemoState === 'fail' && 'stroke-red-300 dark:stroke-red-400',
                       displayDemoState === 'selecting' && 'stroke-blue-300 dark:stroke-blue-400'
                     )}
@@ -625,7 +634,8 @@ export const GameGrid = ({ timerRef, original_grid_data }: Props) => {
                     points={buildPoints(displayDemoPath)}
                     fill="none"
                     className={cn(
-                      displayDemoState === 'success' && 'stroke-emerald-500 dark:stroke-emerald-400',
+                      displayDemoState === 'success' &&
+                        'stroke-emerald-500 dark:stroke-emerald-400',
                       displayDemoState === 'fail' && 'stroke-red-500 dark:stroke-red-400',
                       displayDemoState === 'selecting' && 'stroke-blue-500 dark:stroke-blue-400'
                     )}
