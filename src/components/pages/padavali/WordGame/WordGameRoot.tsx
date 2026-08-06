@@ -1,6 +1,6 @@
 'use client';
 
-import { useRef, useEffect, useMemo, useContext } from 'react';
+import { useRef, useEffect, useMemo, useContext, useState } from 'react';
 import { motion } from 'framer-motion';
 import { transliterate } from 'lipilekhika';
 import { DEFAULT_DATA_SCRIPT, type ScriptType } from '~/state/script_list';
@@ -52,6 +52,7 @@ import {
   practice_mode_atom,
   game_session_nonce_atom,
   revealed_word_atom,
+  PADAVLI_REVEAL_COOLDOWN_PERIOD_MS,
   type CellPosition
 } from './game_state';
 import { Popover, PopoverContent, PopoverTrigger } from '~/components/ui/popover';
@@ -176,11 +177,21 @@ const CompactGameActionButtons = ({
   const [wordList] = useAtom(original_word_list_atom);
   const [gridDimensions] = useAtom(grid_dimensions_atom);
   const [revealedWord, setRevealedWord] = useAtom(revealed_word_atom);
+  const [isRevealCooling, setIsRevealCooling] = useState(false);
+  const revealCooldownTimerRef = useRef<number | null>(null);
 
   const font_info = FONT_INFO[script!];
 
   const remainingWords = wordList.filter((w) => !foundWords.some((fw) => fw.word === w));
   const canReveal = remainingWords.length > 0;
+
+  useEffect(() => {
+    return () => {
+      if (revealCooldownTimerRef.current !== null) {
+        window.clearTimeout(revealCooldownTimerRef.current);
+      }
+    };
+  }, []);
 
   const handleStop = () => {
     setStarted(false);
@@ -191,6 +202,11 @@ const CompactGameActionButtons = ({
     setPracticeMode(false);
     setSeconds(0);
     setRevealedWord(null);
+    setIsRevealCooling(false);
+    if (revealCooldownTimerRef.current !== null) {
+      window.clearTimeout(revealCooldownTimerRef.current);
+      revealCooldownTimerRef.current = null;
+    }
 
     if (timerRef.current) {
       clearInterval(timerRef.current);
@@ -199,7 +215,7 @@ const CompactGameActionButtons = ({
   };
 
   const handleReveal = () => {
-    if (!canReveal) return;
+    if (!canReveal || isRevealCooling) return;
 
     // Prefer a different word than the one currently highlighted when possible
     const candidates =
@@ -217,6 +233,15 @@ const CompactGameActionButtons = ({
     const path = traversals[Math.floor(Math.random() * traversals.length)]!;
     const cells: CellPosition[] = path.map(([row, col]) => ({ row, col }));
     setRevealedWord({ cells, word });
+
+    setIsRevealCooling(true);
+    if (revealCooldownTimerRef.current !== null) {
+      window.clearTimeout(revealCooldownTimerRef.current);
+    }
+    revealCooldownTimerRef.current = window.setTimeout(() => {
+      setIsRevealCooling(false);
+      revealCooldownTimerRef.current = null;
+    }, PADAVLI_REVEAL_COOLDOWN_PERIOD_MS);
   };
 
   if (!started || completed) return null;
@@ -245,22 +270,41 @@ const CompactGameActionButtons = ({
         type="button"
         onClick={handleReveal}
         disabled={!canReveal}
+        aria-disabled={!canReveal || isRevealCooling}
+        aria-busy={isRevealCooling}
+        title={isRevealCooling ? 'Cooling down…' : undefined}
         initial={{ opacity: 0, scale: 0.9 }}
         animate={{ opacity: 1, scale: 1 }}
         transition={{ duration: 0.3, ease: 'easeInOut', delay: 0.05 }}
         className={cn(
           'group relative overflow-hidden',
           'rounded-lg px-3 py-1.5 font-medium text-white shadow-md hover:shadow-lg',
-          'transform transition-all duration-200 hover:scale-105 active:scale-95',
+          'transform transition-all duration-200',
           'flex items-center justify-center gap-2 text-base',
-          'bg-linear-to-r from-orange-600 to-amber-700 hover:from-orange-500 hover:to-amber-600',
-          'shadow-orange-600/30 dark:from-orange-700 dark:to-amber-800 dark:shadow-orange-900/40 dark:hover:from-orange-600 dark:hover:to-amber-700',
+          'bg-linear-to-r from-orange-600 to-amber-700',
+          'shadow-orange-600/30 dark:from-orange-700 dark:to-amber-800 dark:shadow-orange-900/40',
+          !isRevealCooling &&
+            'hover:scale-105 hover:from-orange-500 hover:to-amber-600 active:scale-95 dark:hover:from-orange-600 dark:hover:to-amber-700',
+          isRevealCooling && 'cursor-default opacity-80',
           'disabled:pointer-events-none disabled:opacity-40',
           font_info.className
         )}
       >
-        <Eye className="-mt-0.5 size-4.5" />
-        <span>{wordMsgs.reveal}</span>
+        {isRevealCooling ? (
+          <motion.span
+            key="reveal-cooldown-fill"
+            aria-hidden
+            className="pointer-events-none absolute inset-0 origin-left bg-white/30"
+            initial={{ scaleX: 0 }}
+            animate={{ scaleX: 1 }}
+            transition={{
+              duration: PADAVLI_REVEAL_COOLDOWN_PERIOD_MS / 1000,
+              ease: 'linear'
+            }}
+          />
+        ) : null}
+        <Eye className="relative z-10 -mt-0.5 size-4.5" />
+        <span className="relative z-10">{wordMsgs.reveal}</span>
       </motion.button>
     </div>
   );

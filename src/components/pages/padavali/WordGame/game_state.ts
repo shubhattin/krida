@@ -23,6 +23,8 @@ export const current_selection_atom = atom<CellPosition[]>([]);
 export const found_words_atom = atom<Selection[]>([]);
 /** Visual-only highlight of an unfound word; does not count as selected. */
 export const revealed_word_atom = atom<Selection | null>(null);
+/** Cooldown after प्रकाशयतु (reveal) before another reveal can fire. */
+export const PADAVLI_REVEAL_COOLDOWN_PERIOD_MS = 6200;
 export const seconds_atom = atom(0);
 export const total_attempts_atom = atom(0);
 export const word_msgs_atom = atom<typeof word_game_msgs>({} as typeof word_game_msgs);
