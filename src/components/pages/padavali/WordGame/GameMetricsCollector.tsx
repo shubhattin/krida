@@ -60,18 +60,18 @@ const GameMetricsCollector = ({
     isSuccess: submitStatsSuccess,
     isPending: submitStatsPending
   } = client_q.puzzle.stats.submit_stats.useMutation({
-      onSuccess() {
-        setTurnstileToken(null);
-        resetTurnstile();
-        resetGamesStarted();
-        resetSubmitStats();
-      },
-      onError() {
-        statsSubmittedForNonceRef.current = null;
-        setTurnstileToken(null);
-        resetTurnstile();
-      }
-    });
+    onSuccess() {
+      setTurnstileToken(null);
+      resetTurnstile();
+      resetGamesStarted();
+      resetSubmitStats();
+    },
+    onError() {
+      statsSubmittedForNonceRef.current = null;
+      setTurnstileToken(null);
+      resetTurnstile();
+    }
+  });
 
   const {
     mutate: mutateGamesStarted,

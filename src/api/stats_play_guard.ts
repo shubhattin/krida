@@ -24,9 +24,7 @@ const parseSessionId = (raw: unknown): number | null => {
   return null;
 };
 
-export type PlayStartClaim =
-  | { status: 'existing'; sessionId: number }
-  | { status: 'reserved' };
+export type PlayStartClaim = { status: 'existing'; sessionId: number } | { status: 'reserved' };
 
 /**
  * Claim a play id before inserting a session.
@@ -47,12 +45,10 @@ export const claimPlaySession = Effect.fn('stats.claimPlaySession')(function* (
     return { status: 'existing', sessionId: existingId } as const satisfies PlayStartClaim;
   }
 
-  const acquired = yield* redis
-    .set(key, PENDING_VALUE, { nx: true, ex: PLAY_TTL_SECONDS })
-    .pipe(
-      Effect.map((result) => Boolean(result)),
-      Effect.catch(() => Effect.succeed(true)) // Redis down → proceed; frontend still guards spam
-    );
+  const acquired = yield* redis.set(key, PENDING_VALUE, { nx: true, ex: PLAY_TTL_SECONDS }).pipe(
+    Effect.map((result) => Boolean(result)),
+    Effect.catch(() => Effect.succeed(true)) // Redis down → proceed; frontend still guards spam
+  );
 
   if (acquired) {
     return { status: 'reserved' } as const satisfies PlayStartClaim;
