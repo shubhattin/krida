@@ -44,7 +44,7 @@ export const letter_inputs_atom = atom(0);
 export const incorrect_entry_attempts_atom = atom(0);
 
 /** Cooldown after a letter reveal before another reveal can fire. */
-export const PADAJALA_REVEAL_COOLDOWN_PERIOD_MS = 2750;
+export const PADAJALA_REVEAL_COOLDOWN_PERIOD_MS = 2500;
 /** How many letter reveals have been used this session (unlimited). */
 export const reveals_used_atom = atom(0);
 /** Entry id currently animating a reveal; blocks all input while non-null. */
