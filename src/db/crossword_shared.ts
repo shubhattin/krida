@@ -90,7 +90,9 @@ export const crossword_submit_stats_input_schema = z.object({
 export const crossword_update_games_started_input_schema = z.object({
   turnstile_token: z.string(),
   id: z.number().int(),
-  location: location_list_enum
+  location: location_list_enum,
+  /** Stable per browser play attempt — dedupes spammy start calls. */
+  client_play_id: z.string().uuid()
 });
 
 export const crossword_list_input_schema = z.object({

@@ -1,7 +1,7 @@
 'use client';
 
 import { useAtom, useAtomValue, useSetAtom } from 'jotai';
-import { useEffect, useRef, useState } from 'react';
+import { useEffect, useEffectEvent, useRef, useState } from 'react';
 import { useTurnstile } from 'react-turnstile';
 import { client_q } from '~/api/client';
 import type { location_list_type } from '~/db/types';
@@ -34,7 +34,8 @@ export function ActiveCrosswordRegistrar({ puzzleId }: { puzzleId: number }) {
 
 /**
  * Turnstile-backed session start + completion stats.
- * Must render inside the crossword jotai Provider (loop-safe like padavali GameMetricsCollector).
+ * Must render inside the crossword jotai Provider.
+ * One start request per game session (ref-guarded) — mutation status must not re-trigger mutate.
  */
 export default function CrossWordMetricsCollector({
   puzzle_id,
@@ -54,6 +55,11 @@ export default function CrossWordMetricsCollector({
 
   const [turnstileToken, setTurnstileToken] = useState<string | null>(null);
   const previousGameSessionNonceRef = useRef(gameSessionNonce);
+  /** Prevents re-entry while the first start request is in flight / already sent. */
+  const gamesStartedRequestedRef = useRef(false);
+  const gamesStartedAttemptsRef = useRef(0);
+  const clientPlayIdRef = useRef(crypto.randomUUID());
+  const statsSubmittedRef = useRef(false);
   const turnstile = useTurnstile();
   const turnstileRef = useRef(turnstile);
 
@@ -69,32 +75,17 @@ export default function CrossWordMetricsCollector({
       resetTurnstile();
       update_games_started_mut.reset();
       submit_stats_mut.reset();
+    },
+    onError() {
+      statsSubmittedRef.current = false;
+      setTurnstileToken(null);
+      resetTurnstile();
     }
   });
   const update_games_started_mut = client_q.crossword.stats.update_games_started.useMutation({
     onSuccess() {
       setTurnstileToken(null);
       resetTurnstile();
-    }
-  });
-
-  useEffect(() => {
-    if (previousGameSessionNonceRef.current === gameSessionNonce) return;
-    previousGameSessionNonceRef.current = gameSessionNonce;
-
-    setTurnstileToken(null);
-    update_games_started_mut.reset();
-    submit_stats_mut.reset();
-    resetTurnstile();
-  }, [gameSessionNonce, update_games_started_mut, submit_stats_mut]);
-
-  useEffect(() => {
-    if (started && !completed && turnstileToken && !update_games_started_mut.isSuccess) {
-      update_games_started_mut.mutate({
-        turnstile_token: turnstileToken,
-        id: puzzle_id,
-        location
-      });
       load_posthog((posthog) => {
         posthog.capture('gameplay_started', {
           puzzle_id,
@@ -102,83 +93,130 @@ export default function CrossWordMetricsCollector({
           game_type: 'crossword'
         });
       });
+    },
+    onError() {
+      // At most one automatic retry after Turnstile issues a fresh token.
+      if (gamesStartedAttemptsRef.current < 2) {
+        gamesStartedRequestedRef.current = false;
+      }
+      setTurnstileToken(null);
+      resetTurnstile();
     }
-  }, [started, turnstileToken, completed, puzzle_id, location, update_games_started_mut]);
+  });
+
+  const {
+    mutate: mutateGamesStarted,
+    reset: resetGamesStarted,
+    isSuccess: gamesStartedSuccess,
+    isPending: gamesStartedPending,
+    data: gamesStartedData
+  } = update_games_started_mut;
+
+  const {
+    mutateAsync: mutateSubmitStatsAsync,
+    reset: resetSubmitStats,
+    isSuccess: submitStatsSuccess,
+    isPending: submitStatsPending
+  } = submit_stats_mut;
 
   useEffect(() => {
-    if (
-      completed &&
-      turnstileToken &&
-      !update_games_started_mut.isPending &&
-      update_games_started_mut.isSuccess &&
-      !submit_stats_mut.isPending &&
-      !submit_stats_mut.isSuccess &&
-      puzzle
-    ) {
-      const total_entries = entries.length;
-      let total_cells = 0;
-      let prefilled_cells = 0;
-      for (const row of puzzle.grid) {
-        for (const cell of row) {
-          if (cell === null) continue;
-          total_cells += 1;
-          if (isFixedCell(cell)) prefilled_cells += 1;
-        }
-      }
+    if (previousGameSessionNonceRef.current === gameSessionNonce) return;
+    previousGameSessionNonceRef.current = gameSessionNonce;
 
-      const denom = total_entries + incorrectEntryAttempts;
-      const accuracy = denom === 0 ? 0 : Math.trunc((total_entries / denom) * 100);
-      const session_id = update_games_started_mut.data.session_id;
+    gamesStartedRequestedRef.current = false;
+    gamesStartedAttemptsRef.current = 0;
+    clientPlayIdRef.current = crypto.randomUUID();
+    statsSubmittedRef.current = false;
+    setTurnstileToken(null);
+    resetGamesStarted();
+    resetSubmitStats();
+    resetTurnstile();
+  }, [gameSessionNonce, resetGamesStarted, resetSubmitStats]);
 
-      void (async () => {
-        try {
-          await submit_stats_mut.mutateAsync({
-            turnstile_token: turnstileToken,
-            info: {
-              puzzle_id,
-              session_id,
-              time_taken: seconds,
-              accuracy,
-              total_entries,
-              total_cells,
-              prefilled_cells,
-              letter_inputs: letterInputs,
-              incorrect_entry_attempts: incorrectEntryAttempts
-            }
-          });
-          load_posthog((posthog) => {
-            posthog.capture('gameplay_completed', {
-              puzzle_id,
-              location,
-              game_type: 'crossword',
-              time_taken: seconds,
-              accuracy,
-              total_entries,
-              total_cells,
-              prefilled_cells,
-              letter_inputs: letterInputs,
-              incorrect_entry_attempts: incorrectEntryAttempts
-            });
-          });
-        } catch {
-          setTurnstileToken(null);
-          resetTurnstile();
-        }
-      })();
+  const reportGameplayStarted = useEffectEvent(() => {
+    if (gamesStartedRequestedRef.current || gamesStartedSuccess || gamesStartedPending) return;
+    if (!turnstileToken || gamesStartedAttemptsRef.current >= 2) return;
+
+    gamesStartedRequestedRef.current = true;
+    gamesStartedAttemptsRef.current += 1;
+    mutateGamesStarted({
+      turnstile_token: turnstileToken,
+      id: puzzle_id,
+      location,
+      client_play_id: clientPlayIdRef.current
+    });
+  });
+
+  useEffect(() => {
+    if (started && !completed && turnstileToken) {
+      reportGameplayStarted();
     }
-  }, [
-    turnstileToken,
-    update_games_started_mut,
-    submit_stats_mut,
-    completed,
-    puzzle_id,
-    location,
-    seconds,
-    letterInputs,
-    incorrectEntryAttempts,
-    puzzle,
-    entries
-  ]);
+  }, [started, turnstileToken, completed]);
+
+  const reportGameplayCompleted = useEffectEvent(() => {
+    if (statsSubmittedRef.current || submitStatsPending || submitStatsSuccess) return;
+    if (!turnstileToken || !gamesStartedSuccess || gamesStartedPending) return;
+    if (!gamesStartedData?.session_id || !puzzle) return;
+
+    const total_entries = entries.length;
+    let total_cells = 0;
+    let prefilled_cells = 0;
+    for (const row of puzzle.grid) {
+      for (const cell of row) {
+        if (cell === null) continue;
+        total_cells += 1;
+        if (isFixedCell(cell)) prefilled_cells += 1;
+      }
+    }
+
+    const denom = total_entries + incorrectEntryAttempts;
+    const accuracy = denom === 0 ? 0 : Math.trunc((total_entries / denom) * 100);
+    const session_id = gamesStartedData.session_id;
+
+    statsSubmittedRef.current = true;
+    void (async () => {
+      try {
+        await mutateSubmitStatsAsync({
+          turnstile_token: turnstileToken,
+          info: {
+            puzzle_id,
+            session_id,
+            time_taken: seconds,
+            accuracy,
+            total_entries,
+            total_cells,
+            prefilled_cells,
+            letter_inputs: letterInputs,
+            incorrect_entry_attempts: incorrectEntryAttempts
+          }
+        });
+        load_posthog((posthog) => {
+          posthog.capture('gameplay_completed', {
+            puzzle_id,
+            location,
+            game_type: 'crossword',
+            time_taken: seconds,
+            accuracy,
+            total_entries,
+            total_cells,
+            prefilled_cells,
+            letter_inputs: letterInputs,
+            incorrect_entry_attempts: incorrectEntryAttempts
+          });
+        });
+      } catch {
+        statsSubmittedRef.current = false;
+        setTurnstileToken(null);
+        resetTurnstile();
+      }
+    })();
+  });
+
+  useEffect(() => {
+    if (completed && turnstileToken) {
+      reportGameplayCompleted();
+    }
+  }, [completed, turnstileToken]);
 
   return <TurnstileWidget setToken={setTurnstileToken} />;
 }

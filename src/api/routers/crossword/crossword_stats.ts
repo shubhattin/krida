@@ -16,6 +16,11 @@ import {
 import { BadRequestError } from '~/effect/errors';
 import { runTrpcEffect } from '~/effect/run';
 import { crosswordActiveWords } from '~/util/puzzle/word_list';
+import {
+  claimPlaySession,
+  completePlaySession,
+  releasePlaySessionClaim
+} from '~/api/stats_play_guard';
 
 const verifyTurnstile = Effect.fn('crosswordStats.verifyTurnstile')(function* (token: string) {
   const is_valid = yield* verify_cloudflare_turnstile_token(token);
@@ -87,10 +92,17 @@ const submit_stats_route = publicProcedure
 
 const update_games_started_route = publicProcedure
   .input(crossword_update_games_started_input_schema)
-  .mutation(({ input: { turnstile_token, id, location } }) =>
+  .mutation(({ input: { turnstile_token, id, location, client_play_id } }) =>
     runTrpcEffect(
       Effect.gen(function* () {
-        yield* verifyTurnstile(turnstile_token);
+        const claim = yield* claimPlaySession('crossword', client_play_id);
+        if (claim.status === 'existing') {
+          return { success: true, session_id: claim.sessionId };
+        }
+
+        yield* verifyTurnstile(turnstile_token).pipe(
+          Effect.tapError(() => releasePlaySessionClaim('crossword', client_play_id))
+        );
 
         const inserted_sessions = yield* dbRun('crossword_stats.create_session', (client) =>
           client
@@ -100,9 +112,10 @@ const update_games_started_route = publicProcedure
               location
             })
             .returning()
-        );
+        ).pipe(Effect.tapError(() => releasePlaySessionClaim('crossword', client_play_id)));
         const session = inserted_sessions[0];
         if (!session) {
+          yield* releasePlaySessionClaim('crossword', client_play_id);
           return yield* Effect.fail(
             BadRequestError.make({
               message: 'Failed to create session'
@@ -110,6 +123,7 @@ const update_games_started_route = publicProcedure
           );
         }
 
+        yield* completePlaySession('crossword', client_play_id, session.id);
         return { success: true, session_id: session.id };
       })
     )
