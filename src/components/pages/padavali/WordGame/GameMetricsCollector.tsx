@@ -16,6 +16,12 @@ import TurnstileWidget from '~/components/Turnstile';
 import { AppContext } from '~/components/AppDataContext';
 import { load_posthog } from '~/components/tags/PosthogInit';
 
+/**
+ * Pre-eslint (#45) this effect intentionally omitted the mutation object from deps.
+ * Exhaustive-deps added `update_games_started_mut`, which re-fired mutate on every
+ * status change and caused the games_started spam. Keep mutate behind useEffectEvent
+ * + a per-nonce lock so that cannot happen again.
+ */
 const GameMetricsCollector = ({
   puzzle_id,
   location
@@ -37,11 +43,10 @@ const GameMetricsCollector = ({
     null
   );
   const previousGameSessionNonceRef = useRef(gameSessionNonce);
-  /** Prevents re-entry while the first start request is in flight / already sent. */
-  const gamesStartedRequestedRef = useRef(false);
-  const gamesStartedAttemptsRef = useRef(0);
+  /** Nonce for which start was already attempted — never cleared on error. */
+  const startAttemptedForNonceRef = useRef<number | null>(null);
+  const statsSubmittedForNonceRef = useRef<number | null>(null);
   const clientPlayIdRef = useRef(crypto.randomUUID());
-  const statsSubmittedRef = useRef(false);
   const turnstile = useTurnstile();
   const turnstileRef = useRef(turnstile);
   useEffect(() => {
@@ -49,42 +54,51 @@ const GameMetricsCollector = ({
   }, [turnstile]);
   const resetTurnstile = () => turnstileRef.current?.reset();
 
-  const submit_stats_mut = client_q.puzzle.stats.submit_stats.useMutation({
-    onSuccess() {
-      setTurnstileToken(null);
-      resetTurnstile();
-      update_games_started_mut.reset();
-      submit_stats_mut.reset();
-    },
-    onError() {
-      statsSubmittedRef.current = false;
-      setTurnstileToken(null);
-      resetTurnstile();
-    }
-  });
-  const update_games_started_mut = client_q.puzzle.stats.update_games_started.useMutation({
+  const {
+    mutateAsync: mutateSubmitStatsAsync,
+    reset: resetSubmitStats,
+    isSuccess: submitStatsSuccess,
+    isPending: submitStatsPending
+  } = client_q.puzzle.stats.submit_stats.useMutation({
+      onSuccess() {
+        setTurnstileToken(null);
+        resetTurnstile();
+        resetGamesStarted();
+        resetSubmitStats();
+      },
+      onError() {
+        statsSubmittedForNonceRef.current = null;
+        setTurnstileToken(null);
+        resetTurnstile();
+      }
+    });
+
+  const {
+    mutate: mutateGamesStarted,
+    reset: resetGamesStarted,
+    isSuccess: gamesStartedSuccess,
+    isPending: gamesStartedPending,
+    data: gamesStartedData
+  } = client_q.puzzle.stats.update_games_started.useMutation({
     onSuccess(data, variables) {
       setPracticeModeSyncedSessionId(variables.practice_mode ? data.session_id : null);
       setTurnstileToken(null);
       resetTurnstile();
       load_posthog((posthog) => {
         posthog.capture('gameplay_started', {
-          puzzle_id: puzzle_id,
-          location: location,
-          script: script,
+          puzzle_id,
+          location,
+          script,
           practice_mode: variables.practice_mode
         });
       });
     },
     onError() {
-      // At most one automatic retry after Turnstile issues a fresh token.
-      if (gamesStartedAttemptsRef.current < 2) {
-        gamesStartedRequestedRef.current = false;
-      }
+      // Do NOT reset Turnstile here — a fresh token would re-enter the start effect.
       setTurnstileToken(null);
-      resetTurnstile();
     }
   });
+
   const {
     mutate: syncSessionPracticeMode,
     isPending: isSyncingSessionPracticeMode,
@@ -101,29 +115,13 @@ const GameMetricsCollector = ({
     }
   });
 
-  const {
-    mutate: mutateGamesStarted,
-    reset: resetGamesStarted,
-    isSuccess: gamesStartedSuccess,
-    isPending: gamesStartedPending,
-    data: gamesStartedData
-  } = update_games_started_mut;
-
-  const {
-    mutateAsync: mutateSubmitStatsAsync,
-    reset: resetSubmitStats,
-    isSuccess: submitStatsSuccess,
-    isPending: submitStatsPending
-  } = submit_stats_mut;
-
   useEffect(() => {
     if (previousGameSessionNonceRef.current === gameSessionNonce) return;
     previousGameSessionNonceRef.current = gameSessionNonce;
 
-    gamesStartedRequestedRef.current = false;
-    gamesStartedAttemptsRef.current = 0;
+    startAttemptedForNonceRef.current = null;
+    statsSubmittedForNonceRef.current = null;
     clientPlayIdRef.current = crypto.randomUUID();
-    statsSubmittedRef.current = false;
     setTurnstileToken(null);
     setPracticeModeSyncedSessionId(null);
     resetGamesStarted();
@@ -132,17 +130,16 @@ const GameMetricsCollector = ({
     resetTurnstile();
   }, [gameSessionNonce, resetGamesStarted, resetSubmitStats, resetSessionPracticeModeSync]);
 
-  const reportGameplayStarted = useEffectEvent(() => {
-    if (gamesStartedRequestedRef.current || gamesStartedSuccess || gamesStartedPending) return;
-    if (!turnstileToken || gamesStartedAttemptsRef.current >= 2) return;
+  const reportGameplayStarted = useEffectEvent((token: string) => {
+    if (startAttemptedForNonceRef.current === gameSessionNonce) return;
+    if (gamesStartedSuccess || gamesStartedPending) return;
 
-    gamesStartedRequestedRef.current = true;
-    gamesStartedAttemptsRef.current += 1;
+    startAttemptedForNonceRef.current = gameSessionNonce;
     mutateGamesStarted({
-      turnstile_token: turnstileToken,
+      turnstile_token: token,
       id: puzzle_id,
       location,
-      script: script,
+      script,
       practice_mode: practiceMode,
       client_play_id: clientPlayIdRef.current
     });
@@ -150,7 +147,7 @@ const GameMetricsCollector = ({
 
   useEffect(() => {
     if (started && !completed && turnstileToken) {
-      reportGameplayStarted();
+      reportGameplayStarted(turnstileToken);
     }
   }, [started, turnstileToken, completed]);
 
@@ -183,21 +180,22 @@ const GameMetricsCollector = ({
     syncSessionPracticeMode
   ]);
 
-  const reportGameplayCompleted = useEffectEvent(() => {
-    if (statsSubmittedRef.current || submitStatsPending || submitStatsSuccess) return;
-    if (!turnstileToken || !gamesStartedSuccess || gamesStartedPending) return;
+  const reportGameplayCompleted = useEffectEvent((token: string) => {
+    if (statsSubmittedForNonceRef.current === gameSessionNonce) return;
+    if (submitStatsPending || submitStatsSuccess) return;
+    if (!gamesStartedSuccess || gamesStartedPending) return;
     if (!gamesStartedData?.session_id) return;
 
     const accuracy = Math.trunc((wordList.length / totalAttempts) * 100);
     const session_id = gamesStartedData.session_id;
 
-    statsSubmittedRef.current = true;
+    statsSubmittedForNonceRef.current = gameSessionNonce;
     void (async () => {
       try {
         await mutateSubmitStatsAsync({
-          turnstile_token: turnstileToken,
+          turnstile_token: token,
           info: {
-            puzzle_id: puzzle_id,
+            puzzle_id,
             session_id,
             time_taken: seconds,
             accuracy,
@@ -208,7 +206,7 @@ const GameMetricsCollector = ({
         });
         load_posthog((posthog) => {
           posthog.capture('gameplay_completed', {
-            puzzle_id: puzzle_id,
+            puzzle_id,
             time_taken: seconds,
             accuracy,
             correct_attempts: wordList.length,
@@ -217,7 +215,7 @@ const GameMetricsCollector = ({
           });
         });
       } catch {
-        statsSubmittedRef.current = false;
+        statsSubmittedForNonceRef.current = null;
         setTurnstileToken(null);
         resetTurnstile();
       }
@@ -226,7 +224,7 @@ const GameMetricsCollector = ({
 
   useEffect(() => {
     if (completed && turnstileToken) {
-      reportGameplayCompleted();
+      reportGameplayCompleted(turnstileToken);
     }
   }, [completed, turnstileToken]);
 

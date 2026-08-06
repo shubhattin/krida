@@ -35,7 +35,10 @@ export function ActiveCrosswordRegistrar({ puzzleId }: { puzzleId: number }) {
 /**
  * Turnstile-backed session start + completion stats.
  * Must render inside the crossword jotai Provider.
- * One start request per game session (ref-guarded) — mutation status must not re-trigger mutate.
+ *
+ * Pre-eslint (#45) start effect deps omitted the mutation object. Exhaustive-deps
+ * added it and caused games_started spam. Mutate stays behind useEffectEvent +
+ * a per-nonce lock so status changes cannot re-fire start.
  */
 export default function CrossWordMetricsCollector({
   puzzle_id,
@@ -55,11 +58,10 @@ export default function CrossWordMetricsCollector({
 
   const [turnstileToken, setTurnstileToken] = useState<string | null>(null);
   const previousGameSessionNonceRef = useRef(gameSessionNonce);
-  /** Prevents re-entry while the first start request is in flight / already sent. */
-  const gamesStartedRequestedRef = useRef(false);
-  const gamesStartedAttemptsRef = useRef(0);
+  /** Nonce for which start was already attempted — never cleared on error. */
+  const startAttemptedForNonceRef = useRef<number | null>(null);
+  const statsSubmittedForNonceRef = useRef<number | null>(null);
   const clientPlayIdRef = useRef(crypto.randomUUID());
-  const statsSubmittedRef = useRef(false);
   const turnstile = useTurnstile();
   const turnstileRef = useRef(turnstile);
 
@@ -69,20 +71,32 @@ export default function CrossWordMetricsCollector({
 
   const resetTurnstile = () => turnstileRef.current?.reset();
 
-  const submit_stats_mut = client_q.crossword.stats.submit_stats.useMutation({
+  const {
+    mutateAsync: mutateSubmitStatsAsync,
+    reset: resetSubmitStats,
+    isSuccess: submitStatsSuccess,
+    isPending: submitStatsPending
+  } = client_q.crossword.stats.submit_stats.useMutation({
     onSuccess() {
       setTurnstileToken(null);
       resetTurnstile();
-      update_games_started_mut.reset();
-      submit_stats_mut.reset();
+      resetGamesStarted();
+      resetSubmitStats();
     },
     onError() {
-      statsSubmittedRef.current = false;
+      statsSubmittedForNonceRef.current = null;
       setTurnstileToken(null);
       resetTurnstile();
     }
   });
-  const update_games_started_mut = client_q.crossword.stats.update_games_started.useMutation({
+
+  const {
+    mutate: mutateGamesStarted,
+    reset: resetGamesStarted,
+    isSuccess: gamesStartedSuccess,
+    isPending: gamesStartedPending,
+    data: gamesStartedData
+  } = client_q.crossword.stats.update_games_started.useMutation({
     onSuccess() {
       setTurnstileToken(null);
       resetTurnstile();
@@ -95,52 +109,31 @@ export default function CrossWordMetricsCollector({
       });
     },
     onError() {
-      // At most one automatic retry after Turnstile issues a fresh token.
-      if (gamesStartedAttemptsRef.current < 2) {
-        gamesStartedRequestedRef.current = false;
-      }
+      // Do NOT reset Turnstile here — a fresh token would re-enter the start effect.
       setTurnstileToken(null);
-      resetTurnstile();
     }
   });
-
-  const {
-    mutate: mutateGamesStarted,
-    reset: resetGamesStarted,
-    isSuccess: gamesStartedSuccess,
-    isPending: gamesStartedPending,
-    data: gamesStartedData
-  } = update_games_started_mut;
-
-  const {
-    mutateAsync: mutateSubmitStatsAsync,
-    reset: resetSubmitStats,
-    isSuccess: submitStatsSuccess,
-    isPending: submitStatsPending
-  } = submit_stats_mut;
 
   useEffect(() => {
     if (previousGameSessionNonceRef.current === gameSessionNonce) return;
     previousGameSessionNonceRef.current = gameSessionNonce;
 
-    gamesStartedRequestedRef.current = false;
-    gamesStartedAttemptsRef.current = 0;
+    startAttemptedForNonceRef.current = null;
+    statsSubmittedForNonceRef.current = null;
     clientPlayIdRef.current = crypto.randomUUID();
-    statsSubmittedRef.current = false;
     setTurnstileToken(null);
     resetGamesStarted();
     resetSubmitStats();
     resetTurnstile();
   }, [gameSessionNonce, resetGamesStarted, resetSubmitStats]);
 
-  const reportGameplayStarted = useEffectEvent(() => {
-    if (gamesStartedRequestedRef.current || gamesStartedSuccess || gamesStartedPending) return;
-    if (!turnstileToken || gamesStartedAttemptsRef.current >= 2) return;
+  const reportGameplayStarted = useEffectEvent((token: string) => {
+    if (startAttemptedForNonceRef.current === gameSessionNonce) return;
+    if (gamesStartedSuccess || gamesStartedPending) return;
 
-    gamesStartedRequestedRef.current = true;
-    gamesStartedAttemptsRef.current += 1;
+    startAttemptedForNonceRef.current = gameSessionNonce;
     mutateGamesStarted({
-      turnstile_token: turnstileToken,
+      turnstile_token: token,
       id: puzzle_id,
       location,
       client_play_id: clientPlayIdRef.current
@@ -149,13 +142,14 @@ export default function CrossWordMetricsCollector({
 
   useEffect(() => {
     if (started && !completed && turnstileToken) {
-      reportGameplayStarted();
+      reportGameplayStarted(turnstileToken);
     }
   }, [started, turnstileToken, completed]);
 
-  const reportGameplayCompleted = useEffectEvent(() => {
-    if (statsSubmittedRef.current || submitStatsPending || submitStatsSuccess) return;
-    if (!turnstileToken || !gamesStartedSuccess || gamesStartedPending) return;
+  const reportGameplayCompleted = useEffectEvent((token: string) => {
+    if (statsSubmittedForNonceRef.current === gameSessionNonce) return;
+    if (submitStatsPending || submitStatsSuccess) return;
+    if (!gamesStartedSuccess || gamesStartedPending) return;
     if (!gamesStartedData?.session_id || !puzzle) return;
 
     const total_entries = entries.length;
@@ -173,11 +167,11 @@ export default function CrossWordMetricsCollector({
     const accuracy = denom === 0 ? 0 : Math.trunc((total_entries / denom) * 100);
     const session_id = gamesStartedData.session_id;
 
-    statsSubmittedRef.current = true;
+    statsSubmittedForNonceRef.current = gameSessionNonce;
     void (async () => {
       try {
         await mutateSubmitStatsAsync({
-          turnstile_token: turnstileToken,
+          turnstile_token: token,
           info: {
             puzzle_id,
             session_id,
@@ -205,7 +199,7 @@ export default function CrossWordMetricsCollector({
           });
         });
       } catch {
-        statsSubmittedRef.current = false;
+        statsSubmittedForNonceRef.current = null;
         setTurnstileToken(null);
         resetTurnstile();
       }
@@ -214,7 +208,7 @@ export default function CrossWordMetricsCollector({
 
   useEffect(() => {
     if (completed && turnstileToken) {
-      reportGameplayCompleted();
+      reportGameplayCompleted(turnstileToken);
     }
   }, [completed, turnstileToken]);
 
