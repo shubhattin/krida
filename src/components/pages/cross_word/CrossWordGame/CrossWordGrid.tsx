@@ -6,6 +6,7 @@ import { motion } from 'framer-motion';
 import { CrossWordCell } from './CrossWordCell';
 import {
   active_focus_atom,
+  clearing_cells_atom,
   incorrect_entry_ids_atom,
   numbered_entries_atom,
   puzzle_atom,
@@ -32,6 +33,7 @@ export function CrossWordGrid({ game, onRequestKeyboard }: CrossWordGridProps) {
   const solvedIds = useAtomValue(solved_entry_ids_atom);
   const incorrectIds = useAtomValue(incorrect_entry_ids_atom);
   const revealingCells = useAtomValue(revealing_cells_atom);
+  const clearingCells = useAtomValue(clearing_cells_atom);
   const boardRef = useRef<HTMLDivElement>(null);
 
   // Track which cells were "just solved" so we can fire the pulse animation once
@@ -72,6 +74,7 @@ export function CrossWordGrid({ game, onRequestKeyboard }: CrossWordGridProps) {
   }, [entries]);
 
   const revealedSet = useMemo(() => new Set(revealingCells), [revealingCells]);
+  const clearingSet = useMemo(() => new Set(clearingCells), [clearingCells]);
 
   const incorrectOnlyCells = useMemo(() => {
     const solvedCellKeys = new Set<string>();
@@ -126,6 +129,7 @@ export function CrossWordGrid({ game, onRequestKeyboard }: CrossWordGridProps) {
             const incorrect = incorrectOnlyCells.has(cellKey(r, c));
             const justSolved = justSolvedCells.has(cellKey(r, c));
             const revealed = revealedSet.has(cellKey(r, c));
+            const clearing = clearingSet.has(cellKey(r, c));
 
             return (
               <div
@@ -147,6 +151,7 @@ export function CrossWordGrid({ game, onRequestKeyboard }: CrossWordGridProps) {
                   solved={solved}
                   justSolved={justSolved}
                   revealed={revealed}
+                  clearing={clearing}
                   incorrect={incorrect}
                   disabled={!game.started || game.completed}
                   onSelect={() => {

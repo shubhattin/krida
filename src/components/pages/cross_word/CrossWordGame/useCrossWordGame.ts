@@ -5,18 +5,17 @@ import { useAtom, useAtomValue, useSetAtom, useStore } from 'jotai';
 import {
   active_focus_atom,
   celebration_fired_atom,
+  clearing_cells_atom,
   completed_atom,
   game_session_nonce_atom,
   incorrect_entry_attempts_atom,
   incorrect_entry_ids_atom,
   letter_inputs_atom,
-  MAX_WORD_REVEALS,
   numbered_entries_atom,
   player_grid_atom,
   puzzle_atom,
   revealing_cells_atom,
   revealing_entry_id_atom,
-  reveals_left_atom,
   reveals_used_atom,
   seconds_atom,
   solved_entry_ids_atom,
@@ -26,6 +25,7 @@ import {
   cellKey,
   createEmptyPlayerGrid,
   findEntriesAtCell,
+  getCellLetter,
   getEntryCells,
   isEditableCell,
   isEntryCorrect,
@@ -39,8 +39,12 @@ import {
   type NumberedEntry
 } from '~/util/cross_word/game_model';
 
-const REVEAL_START_DELAY_MS = 320;
-const REVEAL_STEP_MS = 220;
+/** Delay before the first clear/reveal step so focus can settle. */
+const REVEAL_START_DELAY_MS = 120;
+/** Gap between clearing each trailing incorrect letter (end → start). */
+const REVEAL_CLEAR_STEP_MS = 130;
+/** Pause after the last clear before writing the revealed letter. */
+const REVEAL_AFTER_CLEAR_MS = 80;
 const REVEAL_FLASH_CLEAR_MS = 600;
 
 function pickPreferredEntry(
@@ -97,7 +101,7 @@ export function useCrossWordGame(timerRef: RefObject<ReturnType<typeof setInterv
   const [revealsUsed, setRevealsUsed] = useAtom(reveals_used_atom);
   const [revealingEntryId, setRevealingEntryId] = useAtom(revealing_entry_id_atom);
   const setRevealingCells = useSetAtom(revealing_cells_atom);
-  const revealsLeft = useAtomValue(reveals_left_atom);
+  const setClearingCells = useSetAtom(clearing_cells_atom);
   const revealTimersRef = useRef<number[]>([]);
 
   const clearTimer = useCallback(() => {
@@ -248,6 +252,7 @@ export function useCrossWordGame(timerRef: RefObject<ReturnType<typeof setInterv
     setRevealsUsed(0);
     setRevealingEntryId(null);
     setRevealingCells([]);
+    setClearingCells([]);
     setNonce((n) => n + 1);
 
     const first = entries[0];
@@ -274,6 +279,7 @@ export function useCrossWordGame(timerRef: RefObject<ReturnType<typeof setInterv
     entries,
     puzzle,
     setCelebrationFired,
+    setClearingCells,
     setCompleted,
     setFocus,
     setIncorrect,
@@ -306,6 +312,7 @@ export function useCrossWordGame(timerRef: RefObject<ReturnType<typeof setInterv
     setRevealsUsed(0);
     setRevealingEntryId(null);
     setRevealingCells([]);
+    setClearingCells([]);
     setFocus(null);
     setNonce((n) => n + 1);
   }, [
@@ -313,6 +320,7 @@ export function useCrossWordGame(timerRef: RefObject<ReturnType<typeof setInterv
     clearTimer,
     puzzle,
     setCelebrationFired,
+    setClearingCells,
     setCompleted,
     setFocus,
     setIncorrect,
@@ -638,15 +646,14 @@ export function useCrossWordGame(timerRef: RefObject<ReturnType<typeof setInterv
   );
 
   /**
-   * Reveal the selected word letter-by-letter (consumes one of MAX_WORD_REVEALS).
-   * Skips prefilled cells and cells that already hold the correct letter.
-   * Evaluation runs only after the last letter lands so crossing words don't flash red mid-animation.
+   * Reveal one letter of the selected word (unlimited).
+   * Finds the longest correct prefix, clears trailing incorrect letters (end→start,
+   * never touching prefilled or green/solved cells), then fills the next letter.
    */
   const revealEntry = useCallback(
     (entryId: string) => {
       if (!puzzle || !started || completed) return;
       if (store.get(revealing_entry_id_atom)) return;
-      if (store.get(reveals_used_atom) >= MAX_WORD_REVEALS) return;
 
       const entry = entries.find((e) => e.id === entryId);
       if (!entry) return;
@@ -654,65 +661,122 @@ export function useCrossWordGame(timerRef: RefObject<ReturnType<typeof setInterv
 
       const currentGrid = store.get(player_grid_atom);
       const cells = getEntryCells(entry);
-      const writes: { row: number; col: number; letter: string }[] = [];
+      const answer = entry.answer.toUpperCase();
+      const solvedIds = store.get(solved_entry_ids_atom);
 
+      const isProtectedCell = (row: number, col: number) => {
+        if (isFixedCell(puzzle.grid[row]?.[col] ?? null)) return true;
+        return findEntriesAtCell(entries, row, col).some((e) => solvedIds.includes(e.id));
+      };
+
+      // Longest contiguous correct prefix from the start of the word.
+      let prefixLen = 0;
       for (let i = 0; i < cells.length; i++) {
         const cell = cells[i]!;
-        const template = puzzle.grid[cell.row]?.[cell.col] ?? null;
-        if (isFixedCell(template)) continue;
-
-        const correct = entry.answer[i]!.toUpperCase();
-        const current = (currentGrid[cell.row]?.[cell.col] ?? '').toUpperCase();
-        if (current === correct) continue;
-
-        writes.push({ row: cell.row, col: cell.col, letter: correct });
+        const letter = getCellLetter(currentGrid, puzzle.grid, cell.row, cell.col).toUpperCase();
+        if (letter === answer[i]) {
+          prefixLen += 1;
+        } else {
+          break;
+        }
       }
 
-      if (writes.length === 0) return;
+      if (prefixLen >= answer.length) return;
+
+      // Trailing incorrect letters to erase (right→left), skipping protected cells.
+      const clears: { row: number; col: number }[] = [];
+      for (let i = cells.length - 1; i >= prefixLen; i--) {
+        const cell = cells[i]!;
+        if (isProtectedCell(cell.row, cell.col)) continue;
+        const current = (currentGrid[cell.row]?.[cell.col] ?? '').toUpperCase();
+        if (current === '' || current === answer[i]) continue;
+        clears.push({ row: cell.row, col: cell.col });
+      }
+
+      const revealCell = cells[prefixLen]!;
+      const revealLetter = answer[prefixLen]!;
+      // Protected empty targets shouldn't happen (fixed/solved always have letters).
+      if (isProtectedCell(revealCell.row, revealCell.col)) return;
 
       clearRevealTimers();
       setRevealsUsed((n) => n + 1);
       setRevealingEntryId(entryId);
       setRevealingCells([]);
+      setClearingCells([]);
 
-      // Keep focus on this entry so the cursor walks along during the animation.
-      const first = writes[0]!;
-      setFocus({
-        row: first.row,
-        col: first.col,
-        direction: entry.direction,
-        entryId: entry.id
-      });
+      const focusOn = (row: number, col: number) => {
+        setFocus({
+          row,
+          col,
+          direction: entry.direction,
+          entryId: entry.id
+        });
+      };
 
-      writes.forEach((write, index) => {
-        const isLast = index === writes.length - 1;
+      const firstAction = clears[0] ?? revealCell;
+      focusOn(firstAction.row, firstAction.col);
+
+      clears.forEach((clear, index) => {
         const timerId = window.setTimeout(
           () => {
+            focusOn(clear.row, clear.col);
+            setClearingCells([cellKey(clear.row, clear.col)]);
+
             const prevGrid = store.get(player_grid_atom);
             const nextGrid = prevGrid.map((row) => [...row]);
-            nextGrid[write.row]![write.col] = write.letter;
+            nextGrid[clear.row]![clear.col] = '';
             setPlayerGrid(nextGrid);
-            setRevealingCells((prev) => [...prev, cellKey(write.row, write.col)]);
-            setFocus({
-              row: write.row,
-              col: write.col,
-              direction: entry.direction,
-              entryId: entry.id
-            });
 
-            if (isLast) {
-              applyEvaluation(nextGrid);
-              setRevealingEntryId(null);
-              const clearId = window.setTimeout(() => {
-                setRevealingCells([]);
-              }, REVEAL_FLASH_CLEAR_MS);
-              revealTimersRef.current.push(clearId);
-            }
+            const clearFlashId = window.setTimeout(() => {
+              setClearingCells((prev) => prev.filter((k) => k !== cellKey(clear.row, clear.col)));
+            }, REVEAL_CLEAR_STEP_MS);
+            revealTimersRef.current.push(clearFlashId);
           },
-          REVEAL_START_DELAY_MS + index * REVEAL_STEP_MS
+          REVEAL_START_DELAY_MS + index * REVEAL_CLEAR_STEP_MS
         );
         revealTimersRef.current.push(timerId);
       });
+
+      const writeDelay =
+        REVEAL_START_DELAY_MS +
+        clears.length * REVEAL_CLEAR_STEP_MS +
+        (clears.length > 0 ? REVEAL_AFTER_CLEAR_MS : 0);
+
+      const writeId = window.setTimeout(() => {
+        setClearingCells([]);
+
+        const prevGrid = store.get(player_grid_atom);
+        const nextGrid = prevGrid.map((row) => [...row]);
+        nextGrid[revealCell.row]![revealCell.col] = revealLetter;
+        setPlayerGrid(nextGrid);
+        setRevealingCells([cellKey(revealCell.row, revealCell.col)]);
+        applyEvaluation(nextGrid);
+        setRevealingEntryId(null);
+
+        // Advance past the revealed letter so the next keystroke lands on the
+        // following enterable cell instead of overwriting what we just filled.
+        const freshSolved = store.get(solved_entry_ids_atom);
+        const isCellSolvedNow = (row: number, col: number) =>
+          findEntriesAtCell(entries, row, col).some((e) => freshSolved.includes(e.id));
+
+        const isEnterable = (row: number, col: number) => {
+          if (!isEditableCell(puzzle.grid[row]![col]!)) return false;
+          if (isCellSolvedNow(row, col)) return false;
+          return (nextGrid[row]?.[col] ?? '') === '';
+        };
+
+        let next = nextCellInEntry(entry, revealCell.row, revealCell.col, 1);
+        while (next && !isEnterable(next.row, next.col)) {
+          next = nextCellInEntry(entry, next.row, next.col, 1);
+        }
+        focusOn(next?.row ?? revealCell.row, next?.col ?? revealCell.col);
+
+        const clearId = window.setTimeout(() => {
+          setRevealingCells([]);
+        }, REVEAL_FLASH_CLEAR_MS);
+        revealTimersRef.current.push(clearId);
+      }, writeDelay);
+      revealTimersRef.current.push(writeId);
     },
     [
       applyEvaluation,
@@ -720,6 +784,7 @@ export function useCrossWordGame(timerRef: RefObject<ReturnType<typeof setInterv
       completed,
       entries,
       puzzle,
+      setClearingCells,
       setFocus,
       setPlayerGrid,
       setRevealingCells,
@@ -752,7 +817,6 @@ export function useCrossWordGame(timerRef: RefObject<ReturnType<typeof setInterv
     clearFocus,
     revealEntry,
     revealingEntryId,
-    revealsLeft,
     revealsUsed
   };
 }

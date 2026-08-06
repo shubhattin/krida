@@ -419,7 +419,6 @@ export function CrossWordGame({
       <div className="mb-3 flex flex-col items-center gap-3 sm:mb-4">
         <GameProgress
           onReset={game.resetGame}
-          revealsLeft={game.revealsLeft}
           revealingEntryId={game.revealingEntryId}
           onReveal={game.revealEntry}
         />

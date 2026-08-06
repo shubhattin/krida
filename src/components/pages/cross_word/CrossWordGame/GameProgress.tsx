@@ -18,17 +18,11 @@ import styles from './crossword-game.module.css';
 
 type GameProgressProps = {
   onReset?: () => void;
-  revealsLeft?: number;
   revealingEntryId?: string | null;
   onReveal?: (entryId: string) => void;
 };
 
-export function GameProgress({
-  onReset,
-  revealsLeft = 0,
-  revealingEntryId = null,
-  onReveal
-}: GameProgressProps) {
+export function GameProgress({ onReset, revealingEntryId = null, onReveal }: GameProgressProps) {
   const started = useAtomValue(started_atom);
   const completed = useAtomValue(completed_atom);
   const seconds = useAtomValue(seconds_atom);
@@ -90,7 +84,6 @@ export function GameProgress({
       {/* Trailing actions — same status row, never overlaps the grid */}
       {!completed && onReveal ? (
         <RevealWordButton
-          revealsLeft={revealsLeft}
           busy={revealingEntryId !== null}
           entryId={canReveal ? focusedEntryId : null}
           onReveal={onReveal}

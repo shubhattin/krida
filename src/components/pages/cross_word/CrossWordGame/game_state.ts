@@ -43,15 +43,14 @@ export const letter_inputs_atom = atom(0);
  */
 export const incorrect_entry_attempts_atom = atom(0);
 
-/** Max word reveals allowed per play session. */
-export const MAX_WORD_REVEALS = 3;
-/** How many reveal power-ups have been used this session. */
+/** How many letter reveals have been used this session (unlimited). */
 export const reveals_used_atom = atom(0);
 /** Entry id currently animating a reveal; blocks all input while non-null. */
 export const revealing_entry_id_atom = atom<string | null>(null);
 /** Cell keys that just landed from a reveal (drives the amber flash). */
 export const revealing_cells_atom = atom<string[]>([]);
-export const reveals_left_atom = atom((get) => MAX_WORD_REVEALS - get(reveals_used_atom));
+/** Cell keys currently animating an incorrect-letter clear during reveal. */
+export const clearing_cells_atom = atom<string[]>([]);
 
 export const progress_atom = atom((get) => {
   const entries = get(numbered_entries_atom);

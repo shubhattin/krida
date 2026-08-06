@@ -6,6 +6,7 @@ import type { z } from 'zod';
 import { CrossWordGame } from './CrossWordGame';
 import {
   celebration_fired_atom,
+  clearing_cells_atom,
   completed_atom,
   game_session_nonce_atom,
   incorrect_entry_attempts_atom,
@@ -87,6 +88,7 @@ export default function CrossWordGameRoot({
     store.set(reveals_used_atom, 0);
     store.set(revealing_entry_id_atom, null);
     store.set(revealing_cells_atom, []);
+    store.set(clearing_cells_atom, []);
     return store;
   }, [puzzle]);
 
