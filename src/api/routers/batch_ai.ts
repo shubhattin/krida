@@ -70,11 +70,13 @@ const discard_puzzle_image_batch_response_route = protectedAdminProcedure
   .input(
     z.object({
       batch_id: z.string(),
-      custom_id: z.string()
+      custom_id: z.string(),
+      /** When true, also delete the uploaded `image_assets` row + S3 object. Default false. */
+      delete_image_asset: z.boolean().default(false)
     })
   )
-  .mutation(({ input: { batch_id, custom_id } }) =>
-    runTrpcEffect(discard_puzzle_image_batch_response(batch_id, custom_id))
+  .mutation(({ input: { batch_id, custom_id, delete_image_asset } }) =>
+    runTrpcEffect(discard_puzzle_image_batch_response(batch_id, custom_id, delete_image_asset))
   );
 
 export const batch_ai_router = t.router({

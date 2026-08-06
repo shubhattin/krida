@@ -1277,7 +1277,7 @@ export const get_batch_manager_groups = Effect.fn('batch_ai.get_batch_manager_gr
 
 export const discard_puzzle_image_batch_response = Effect.fn(
   'batch_ai.discard_puzzle_image_batch_response'
-)(function* (batch_id: string, custom_id: string) {
+)(function* (batch_id: string, custom_id: string, delete_image_asset = false) {
   const row = yield* dbRun('batch_ai.find_response_for_discard', (client) =>
     client.query.ai_batch_responses.findFirst({
       where: and(
@@ -1297,7 +1297,7 @@ export const discard_puzzle_image_batch_response = Effect.fn(
 
   const metadata = parseBatchMetadata(row.metadata);
   let deleted_image_id: number | null = null;
-  if (metadata.uploaded_image_id !== undefined) {
+  if (delete_image_asset && metadata.uploaded_image_id !== undefined) {
     yield* deleteImageAssetById(metadata.uploaded_image_id);
     deleted_image_id = metadata.uploaded_image_id;
   }

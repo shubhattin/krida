@@ -28,6 +28,7 @@ import {
 } from '~/components/ui/alert-dialog';
 import { Spinner } from '~/components/ui/spinner';
 import { Skeleton } from '~/components/ui/skeleton';
+import { Checkbox } from '~/components/ui/checkbox';
 import { getCDNUrl } from '~/constants';
 import {
   PUZZLE_IMAGE_BATCH_STATUS_LABELS,
@@ -50,6 +51,7 @@ const BatchManagerPage = ({ game = 'padavali' }: BatchManagerPageProps) => {
   const [review_item, setReviewItem] = useState<BatchManagerItem | null>(null);
   const [poll_confirm_batch_id, setPollConfirmBatchId] = useState<string | null>(null);
   const [discard_confirm_item, setDiscardConfirmItem] = useState<BatchManagerItem | null>(null);
+  const [discard_delete_image_asset, setDiscardDeleteImageAsset] = useState(false);
 
   const list_href = game === 'crossword' ? '/padajala/list' : '/padavali/list';
   const edit_href = (puzzle_id: number) =>
@@ -78,6 +80,7 @@ const BatchManagerPage = ({ game = 'padavali' }: BatchManagerPageProps) => {
       await invalidateAll();
       toast.success('Batch item discarded');
       setDiscardConfirmItem(null);
+      setDiscardDeleteImageAsset(false);
     },
     onError: (err) => toast.error(err.message || 'Failed to discard batch item')
   });
@@ -105,8 +108,14 @@ const BatchManagerPage = ({ game = 'padavali' }: BatchManagerPageProps) => {
     if (!discard_confirm_item || discard_mut.isPending) return;
     discard_mut.mutate({
       batch_id: discard_confirm_item.batch_id,
-      custom_id: discard_confirm_item.custom_id
+      custom_id: discard_confirm_item.custom_id,
+      delete_image_asset: discard_delete_image_asset
     });
+  };
+
+  const openDiscardConfirm = (item: BatchManagerItem) => {
+    setDiscardDeleteImageAsset(false);
+    setDiscardConfirmItem(item);
   };
 
   return (
@@ -269,7 +278,7 @@ const BatchManagerPage = ({ game = 'padavali' }: BatchManagerPageProps) => {
                                 size="sm"
                                 variant="outline"
                                 disabled={discarding_this}
-                                onClick={() => setDiscardConfirmItem(item)}
+                                onClick={() => openDiscardConfirm(item)}
                               >
                                 {discarding_this ? <Spinner className="size-4" /> : null}
                                 Discard
@@ -320,7 +329,10 @@ const BatchManagerPage = ({ game = 'padavali' }: BatchManagerPageProps) => {
       <AlertDialog
         open={discard_confirm_item !== null}
         onOpenChange={(open) => {
-          if (!open && !discard_mut.isPending) setDiscardConfirmItem(null);
+          if (!open && !discard_mut.isPending) {
+            setDiscardConfirmItem(null);
+            setDiscardDeleteImageAsset(false);
+          }
         }}
       >
         <AlertDialogContent>
@@ -334,9 +346,23 @@ const BatchManagerPage = ({ game = 'padavali' }: BatchManagerPageProps) => {
               </span>{' '}
               from batch{' '}
               <span className="font-mono text-foreground">{discard_confirm_item?.batch_id}</span>.
-              Any uploaded preview image for this item will also be deleted. This cannot be undone.
+              This cannot be undone.
             </AlertDialogDescription>
           </AlertDialogHeader>
+          {discard_confirm_item?.image_asset ? (
+            <label className="flex items-start gap-2 text-sm">
+              <Checkbox
+                checked={discard_delete_image_asset}
+                onCheckedChange={(checked) => setDiscardDeleteImageAsset(checked === true)}
+                disabled={discard_mut.isPending}
+                className="mt-0.5"
+              />
+              <span>
+                Also delete the generated image asset from storage. Leave unchecked to keep the
+                image file.
+              </span>
+            </label>
+          ) : null}
           <AlertDialogFooter>
             <AlertDialogCancel disabled={discard_mut.isPending}>Cancel</AlertDialogCancel>
             <AlertDialogAction

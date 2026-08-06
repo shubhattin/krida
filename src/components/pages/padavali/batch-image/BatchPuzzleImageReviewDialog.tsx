@@ -25,6 +25,7 @@ import {
   AlertDialogTrigger
 } from '~/components/ui/alert-dialog';
 import { Button } from '~/components/ui/button';
+import { Checkbox } from '~/components/ui/checkbox';
 import { useInvalidatePuzzleImageBatchQueries } from './usePuzzleImageBatchStatus';
 import type { PuzzleImageBatchStatus } from './BatchPuzzleImageStatus';
 
@@ -56,6 +57,7 @@ export function BatchPuzzleImageReviewDialog({
     batchStatus.game ?? batchStatus.metadata.game ?? 'padavali'
   );
   const [discard_open, setDiscardOpen] = useState(false);
+  const [delete_image_asset, setDeleteImageAsset] = useState(false);
 
   const approve_mut = client_q.batch_ai.approve_puzzle_image.useMutation({
     onSuccess: async (data) => {
@@ -82,6 +84,7 @@ export function BatchPuzzleImageReviewDialog({
       await invalidateAll(batchStatus.puzzle_id ?? undefined);
       toast.success('Generated image discarded');
       setDiscardOpen(false);
+      setDeleteImageAsset(false);
       onOpenChange(false);
       onDiscarded?.();
     },
@@ -145,7 +148,13 @@ export function BatchPuzzleImageReviewDialog({
         ) : null}
 
         <DialogFooter className="gap-2 sm:justify-between">
-          <AlertDialog open={discard_open} onOpenChange={setDiscardOpen}>
+          <AlertDialog
+            open={discard_open}
+            onOpenChange={(next_open) => {
+              setDiscardOpen(next_open);
+              if (!next_open) setDeleteImageAsset(false);
+            }}
+          >
             <AlertDialogTrigger
               render={
                 <Button type="button" variant="outline" disabled={is_working}>
@@ -157,10 +166,24 @@ export function BatchPuzzleImageReviewDialog({
               <AlertDialogHeader>
                 <AlertDialogTitle>Discard generated image?</AlertDialogTitle>
                 <AlertDialogDescription>
-                  This removes the batch result and deletes the generated image asset if one was
-                  uploaded.
+                  This removes the batch result. The generated image asset is kept unless you choose
+                  to delete it below.
                 </AlertDialogDescription>
               </AlertDialogHeader>
+              {image_asset ? (
+                <label className="flex items-start gap-2 text-sm">
+                  <Checkbox
+                    checked={delete_image_asset}
+                    onCheckedChange={(checked) => setDeleteImageAsset(checked === true)}
+                    disabled={discard_mut.isPending}
+                    className="mt-0.5"
+                  />
+                  <span>
+                    Also delete the generated image asset from storage. Leave unchecked to keep the
+                    image file.
+                  </span>
+                </label>
+              ) : null}
               <AlertDialogFooter>
                 <AlertDialogCancel disabled={discard_mut.isPending}>Cancel</AlertDialogCancel>
                 <AlertDialogAction
@@ -170,7 +193,8 @@ export function BatchPuzzleImageReviewDialog({
                     e.preventDefault();
                     discard_mut.mutate({
                       batch_id: batchStatus.batch_id,
-                      custom_id: batchStatus.custom_id
+                      custom_id: batchStatus.custom_id,
+                      delete_image_asset
                     });
                   }}
                 >
