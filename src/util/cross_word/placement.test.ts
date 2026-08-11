@@ -331,6 +331,7 @@ describe('adapter and game model', () => {
     expect(isFixedCell(game.grid[0]![0]!)).toBe(true);
     expect(game.entries[0]).toMatchObject({
       answer: 'CAT',
+      word_dev: 'बिल्ली',
       clue: 'feline',
       direction: 'across',
       row: 0,

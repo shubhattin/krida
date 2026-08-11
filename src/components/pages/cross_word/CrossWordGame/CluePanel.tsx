@@ -4,12 +4,14 @@ import { useEffect, useEffectEvent, useMemo, useRef, useState } from 'react';
 import { useAtomValue } from 'jotai';
 import { AnimatePresence, LayoutGroup, motion } from 'framer-motion';
 import { AlertCircle, CheckCircle2, Sparkles } from 'lucide-react';
+import { transliterate } from 'lipilekhika';
 import { cn } from '~/lib/utils';
 import { Popover, PopoverContent, PopoverTrigger } from '~/components/ui/popover';
 import { active_focus_atom, numbered_entries_atom, solved_entry_ids_atom } from './game_state';
 import type { useCrossWordGame } from './useCrossWordGame';
 import type { MoreHintsQuery } from './useMoreHints';
 import type { NumberedEntry } from '~/util/cross_word/game_model';
+import { DEFAULT_DATA_SCRIPT } from '~/state/script_list';
 
 type ClueFilter = 'all' | 'across' | 'down';
 
@@ -25,6 +27,9 @@ const FILTERS: { id: ClueFilter; label: string }[] = [
   { id: 'down', label: 'Down' }
 ];
 
+const ROMANIZED_SCRIPT = 'Romanized' as const;
+const romanizedCache = new Map<string, string>();
+
 function sortClues(entries: NumberedEntry[], solvedIds: string[]) {
   const solvedSet = new Set(solvedIds);
   return entries.toSorted((a, b) => {
@@ -35,6 +40,52 @@ function sortClues(entries: NumberedEntry[], solvedIds: string[]) {
     if (a.direction !== b.direction) return a.direction === 'across' ? -1 : 1;
     return 0;
   });
+}
+
+function SolvedRomanizedWord({ wordDev }: { wordDev: string }) {
+  const trimmed = wordDev.trim();
+  const [romanized, setRomanized] = useState(() =>
+    trimmed ? (romanizedCache.get(trimmed) ?? null) : null
+  );
+
+  useEffect(() => {
+    if (!trimmed) {
+      setRomanized(null);
+      return;
+    }
+    const cached = romanizedCache.get(trimmed);
+    if (cached) {
+      setRomanized(cached);
+      return;
+    }
+
+    let active = true;
+    void transliterate(trimmed, DEFAULT_DATA_SCRIPT, ROMANIZED_SCRIPT).then((result) => {
+      if (!active) return;
+      romanizedCache.set(trimmed, result);
+      setRomanized(result);
+    });
+    return () => {
+      active = false;
+    };
+  }, [trimmed]);
+
+  if (!trimmed || !romanized) return null;
+
+  return (
+    <motion.span
+      initial={{ opacity: 0, y: -4 }}
+      animate={{ opacity: 1, y: 0 }}
+      transition={{ duration: 0.25 }}
+      className={cn(
+        'mt-1 block text-[0.8rem] leading-snug font-medium tracking-wide no-underline',
+        'text-emerald-700/90 dark:text-emerald-300/90'
+      )}
+      aria-label={`Romanized Sanskrit: ${romanized}`}
+    >
+      {romanized}
+    </motion.span>
+  );
 }
 
 function MoreHintPopover({ entryId, moreHints }: { entryId: string; moreHints: MoreHintsQuery }) {
@@ -277,7 +328,7 @@ export function CluePanel({ game, moreHints, className }: CluePanelProps) {
                       !active &&
                         !solved &&
                         'text-slate-700 hover:bg-slate-100/70 hover:text-slate-900 dark:text-slate-200 dark:hover:bg-slate-700/40 dark:hover:text-white',
-                      solved && 'text-slate-400 line-through dark:text-slate-400'
+                      solved && 'text-slate-400 dark:text-slate-400'
                     )}
                   >
                     <span className="flex items-start gap-2">
@@ -294,21 +345,26 @@ export function CluePanel({ game, moreHints, className }: CluePanelProps) {
                         {entry.number}
                       </span>
                       <span className="min-w-0 flex-1 wrap-break-word">
-                        {entry.clue}
-                        <AnimatePresence>
-                          {solved ? (
-                            <motion.span
-                              key="check"
-                              initial={{ opacity: 0, scale: 0.5 }}
-                              animate={{ opacity: 1, scale: 1 }}
-                              exit={{ opacity: 0, scale: 0.5 }}
-                              transition={{ type: 'spring', stiffness: 420, damping: 22 }}
-                              className="ml-1.5 inline-flex align-middle no-underline"
-                            >
-                              <CheckCircle2 className="size-3.5 text-emerald-500 dark:text-emerald-400" />
-                            </motion.span>
-                          ) : null}
-                        </AnimatePresence>
+                        <span className={cn(solved && 'line-through')}>
+                          {entry.clue}
+                          <AnimatePresence>
+                            {solved ? (
+                              <motion.span
+                                key="check"
+                                initial={{ opacity: 0, scale: 0.5 }}
+                                animate={{ opacity: 1, scale: 1 }}
+                                exit={{ opacity: 0, scale: 0.5 }}
+                                transition={{ type: 'spring', stiffness: 420, damping: 22 }}
+                                className="ml-1.5 inline-flex align-middle no-underline"
+                              >
+                                <CheckCircle2 className="size-3.5 text-emerald-500 dark:text-emerald-400" />
+                              </motion.span>
+                            ) : null}
+                          </AnimatePresence>
+                        </span>
+                        {solved && entry.word_dev.trim().length > 0 ? (
+                          <SolvedRomanizedWord wordDev={entry.word_dev} />
+                        ) : null}
                       </span>
                     </span>
                   </motion.button>
