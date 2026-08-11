@@ -15,7 +15,7 @@ export default function CrosswordPublicLayout({ children }: { children: ReactNod
       {children}
       <footer
         className={cn(
-          'py-6 sm:py-8',
+          'pt-3 pb-6 sm:pt-4 sm:pb-6',
           'bg-linear-to-b from-slate-50 to-stone-50 dark:from-slate-900 dark:to-zinc-900'
         )}
       >

@@ -9,8 +9,8 @@ import { InfoIcon } from 'lucide-react';
 import { IoShareSocialOutline } from 'react-icons/io5';
 import { toast } from 'sonner';
 import { Popover, PopoverContent, PopoverTrigger } from '~/components/ui/popover';
-import { Switch } from '~/components/ui/switch';
-import { Label } from '~/components/ui/label';
+// import { Switch } from '~/components/ui/switch';
+// import { Label } from '~/components/ui/label';
 import { CrossWordGrid } from './CrossWordGrid';
 import { GameProgress } from './GameProgress';
 import { GameControls } from './GameControls';
@@ -114,7 +114,7 @@ export function CrossWordGame({
   const [keyboardOpen, setKeyboardOpen] = useState(false);
   const keyboardPanelOpen = keyboardOpen && started && !completed;
   const hasMedia = !!(attachments && attachments.length > 0);
-  const [useVirtualKeyboard, setUseVirtualKeyboard] = useState(INPUT_VIRTUAL_KEYBOARD_ENABLED);
+  const [useVirtualKeyboard] = useState(INPUT_VIRTUAL_KEYBOARD_ENABLED);
   const moreHints = useMoreHints(puzzle?.id, puzzleSlug, puzzle?.entries);
 
   const showAccordion = !completed && (location === 'main_page' || location === 'view_page');
@@ -308,7 +308,7 @@ export function CrossWordGame({
   return (
     <div
       className={cn(
-        'mx-auto w-full max-w-7xl bg-linear-to-br from-slate-50 via-blue-50 to-indigo-50 px-2 pt-2 pb-6 sm:px-4 sm:pt-3 sm:pb-12 md:px-6',
+        'mx-auto w-full max-w-7xl bg-linear-to-br from-slate-50 via-blue-50 to-indigo-50 px-2 pt-2 pb-2 sm:px-4 sm:pt-3 sm:pb-4 md:px-6',
         'dark:from-slate-900 dark:via-slate-800 dark:to-slate-900'
       )}
       style={{
@@ -532,6 +532,7 @@ export function CrossWordGame({
         </div>
       </div>
 
+      {/* On-screen keyboard toggle — hidden for now
       <div className="mt-6 flex items-center justify-center gap-2.5 border-t border-border/40 pt-4">
         <Switch
           id="crossword-virtual-keyboard"
@@ -550,6 +551,7 @@ export function CrossWordGame({
           On-screen keyboard
         </Label>
       </div>
+      */}
     </div>
   );
 }
