@@ -706,87 +706,99 @@ function CrosswordWordRow({
   const missingClue = isAdded && hasLatinWord && item.description.trim().length === 0;
 
   return (
-    <div className="flex flex-wrap items-start gap-2 sm:flex-nowrap">
-      {showSelection ? (
-        <Checkbox
-          checked={isAdded}
-          onCheckedChange={(checked) => onToggleAdded(originalIndex, checked === true)}
-          aria-label={isAdded ? 'Exclude word from puzzle' : 'Include word in puzzle'}
-          className="mt-2.5"
+    <div
+      className={cn(
+        'flex flex-col gap-2 rounded-md border border-border/50 bg-muted/10 p-2.5 sm:flex-row sm:flex-nowrap sm:items-start sm:gap-2 sm:rounded-none sm:border-0 sm:bg-transparent sm:p-0',
+        !isAdded && 'opacity-90'
+      )}
+    >
+      <div className="flex min-w-0 items-start gap-2 sm:contents">
+        {showSelection ? (
+          <Checkbox
+            checked={isAdded}
+            onCheckedChange={(checked) => onToggleAdded(originalIndex, checked === true)}
+            aria-label={isAdded ? 'Exclude word from puzzle' : 'Include word in puzzle'}
+            className="mt-2.5 shrink-0"
+          />
+        ) : null}
+        <Input
+          value={item.word}
+          onChange={(e) =>
+            onUpdate(originalIndex, {
+              word: e.currentTarget.value.toUpperCase().replace(/[^A-Z]/g, '')
+            })
+          }
+          onFocus={wordHistoryField.onFocus}
+          onBlur={wordHistoryField.onBlur}
+          placeholder="WORD"
+          className={cn(
+            'min-w-0 flex-1 font-mono uppercase sm:w-44 sm:flex-none',
+            !isAdded && 'opacity-60'
+          )}
         />
-      ) : null}
-      <Input
-        value={item.word}
-        onChange={(e) =>
-          onUpdate(originalIndex, {
-            word: e.currentTarget.value.toUpperCase().replace(/[^A-Z]/g, '')
-          })
-        }
-        onFocus={wordHistoryField.onFocus}
-        onBlur={wordHistoryField.onBlur}
-        placeholder="WORD"
-        className={cn('w-36 font-mono uppercase sm:w-44', !isAdded && 'opacity-60')}
-      />
-      <Input
-        value={item.word_dev}
-        onChange={(e) => onUpdate(originalIndex, { word_dev: e.currentTarget.value })}
-        onBeforeInput={(event) =>
-          handleTypingBeforeInputEvent(
-            typingContext,
-            event,
-            (newValue) => onUpdate(originalIndex, { word_dev: newValue }),
-            lipiLekhikaActive
-          )
-        }
-        onFocus={wordDevHistoryField.onFocus}
-        onBlur={() => {
-          typingContext.clearContext();
-          wordDevHistoryField.onBlur();
-        }}
-        onKeyDown={(event) => clearTypingContextOnKeyDown(event, typingContext)}
-        placeholder="देवनागरी"
-        required={isAdded && hasLatinWord}
-        aria-invalid={missingWordDev || undefined}
-        aria-label={`Devanagari word ${originalIndex + 1}`}
-        title={missingWordDev ? 'Devanagari word is required' : undefined}
-        className={cn(
-          'w-28 text-base sm:w-32',
-          !isAdded && 'opacity-60',
-          missingWordDev &&
-            'border-destructive focus-visible:border-destructive focus-visible:ring-destructive/30'
-        )}
-      />
-      <Input
-        value={item.description}
-        onChange={(e) => onUpdate(originalIndex, { description: e.currentTarget.value })}
-        onFocus={clueHistoryField.onFocus}
-        onBlur={clueHistoryField.onBlur}
-        placeholder="Clue / description"
-        required={isAdded && hasLatinWord}
-        aria-invalid={missingClue || undefined}
-        className={cn(
-          'min-w-0 flex-1',
-          !isAdded && 'opacity-60',
-          missingClue &&
-            'border-destructive focus-visible:border-destructive focus-visible:ring-destructive/30'
-        )}
-      />
-      <span
-        className="inline-flex h-9 min-w-14 shrink-0 items-center justify-center rounded-md border border-border bg-muted/40 px-2 font-mono text-xs text-muted-foreground"
-        title={statusTitle}
-      >
-        {startLabel}
-      </span>
-      {showRemove ? (
-        <Button
-          variant="ghost"
-          className="p-0 text-red-500 has-[>svg]:p-0 dark:text-red-400"
-          onClick={() => onRemove(originalIndex)}
-          aria-label={`Remove word ${originalIndex + 1}`}
+        <Input
+          value={item.word_dev}
+          onChange={(e) => onUpdate(originalIndex, { word_dev: e.currentTarget.value })}
+          onBeforeInput={(event) =>
+            handleTypingBeforeInputEvent(
+              typingContext,
+              event,
+              (newValue) => onUpdate(originalIndex, { word_dev: newValue }),
+              lipiLekhikaActive
+            )
+          }
+          onFocus={wordDevHistoryField.onFocus}
+          onBlur={() => {
+            typingContext.clearContext();
+            wordDevHistoryField.onBlur();
+          }}
+          onKeyDown={(event) => clearTypingContextOnKeyDown(event, typingContext)}
+          placeholder="देवनागरी"
+          required={isAdded && hasLatinWord}
+          aria-invalid={missingWordDev || undefined}
+          aria-label={`Devanagari word ${originalIndex + 1}`}
+          title={missingWordDev ? 'Devanagari word is required' : undefined}
+          className={cn(
+            'min-w-0 flex-1 text-base sm:w-32 sm:flex-none',
+            !isAdded && 'opacity-60',
+            missingWordDev &&
+              'border-destructive focus-visible:border-destructive focus-visible:ring-destructive/30'
+          )}
+        />
+      </div>
+      <div className="flex min-w-0 items-center gap-2 sm:contents">
+        <Input
+          value={item.description}
+          onChange={(e) => onUpdate(originalIndex, { description: e.currentTarget.value })}
+          onFocus={clueHistoryField.onFocus}
+          onBlur={clueHistoryField.onBlur}
+          placeholder="Clue / description"
+          required={isAdded && hasLatinWord}
+          aria-invalid={missingClue || undefined}
+          className={cn(
+            'min-w-0 flex-1',
+            !isAdded && 'opacity-60',
+            missingClue &&
+              'border-destructive focus-visible:border-destructive focus-visible:ring-destructive/30'
+          )}
+        />
+        <span
+          className="inline-flex h-9 min-w-14 shrink-0 items-center justify-center rounded-md border border-border bg-muted/40 px-2 font-mono text-xs text-muted-foreground"
+          title={statusTitle}
         >
-          <IoMdClose className="inline-block" />
-        </Button>
-      ) : null}
+          {startLabel}
+        </span>
+        {showRemove ? (
+          <Button
+            variant="ghost"
+            className="shrink-0 p-0 text-red-500 has-[>svg]:p-0 dark:text-red-400"
+            onClick={() => onRemove(originalIndex)}
+            aria-label={`Remove word ${originalIndex + 1}`}
+          >
+            <IoMdClose className="inline-block" />
+          </Button>
+        ) : null}
+      </div>
     </div>
   );
 }
@@ -1445,7 +1457,7 @@ const WordListEditor = () => {
     { showSelection, showRemove }: { showSelection: boolean; showRemove: boolean }
   ) => (
     <div className="max-h-80 overflow-y-auto overscroll-contain pr-1">
-      <div className="flex flex-col gap-2">
+      <div className="flex flex-col gap-3 sm:gap-2">
         {rows.map(({ item, originalIndex }) => {
           const status = analysis.statuses[originalIndex];
           const startLabel =
