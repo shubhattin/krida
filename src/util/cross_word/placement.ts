@@ -130,10 +130,8 @@ function isContainedWithin(placement: WordPlacement, containingPlacement: WordPl
   return placement.cells.every(([row, col]) => containingCells.has(cellKey(row, col)));
 }
 
-function normalizeWordDev(word_dev: string | null | undefined): string | null {
-  if (word_dev == null) return null;
-  const trimmed = word_dev.trim();
-  return trimmed.length > 0 ? trimmed : null;
+function normalizeWordDev(word_dev: string | null | undefined): string {
+  return (word_dev ?? '').trim();
 }
 
 /**

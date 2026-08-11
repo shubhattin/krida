@@ -178,7 +178,7 @@ describe('placement analysis', () => {
     });
     expect(resolved[1]).toMatchObject({
       word: 'XYZ',
-      word_dev: null,
+      word_dev: '',
       added: false
     });
   });
@@ -310,6 +310,7 @@ describe('adapter and game model', () => {
       word_list: [
         {
           word: 'CAT',
+          word_dev: 'बिल्ली',
           location: [0, 0],
           direction: 'horizontal',
           description: 'feline',
