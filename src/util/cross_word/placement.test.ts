@@ -147,6 +147,42 @@ describe('placement analysis', () => {
     });
   });
 
+  it('preserves word_dev when resolving for save', () => {
+    const grid = [
+      [letter('C', true), letter('A'), letter('T')],
+      [box(), box(), box()],
+      [box(), box(), box()]
+    ];
+    const resolved = resolveWordListForSave(grid, [
+      {
+        word: 'CAT',
+        word_dev: '  बिल्ली  ',
+        description: 'feline',
+        location: [0, 0],
+        direction: 'horizontal',
+        added: true
+      },
+      {
+        word: 'XYZ',
+        word_dev: '   ',
+        description: '',
+        location: [0, 0],
+        direction: 'horizontal',
+        added: false
+      }
+    ]);
+    expect(resolved[0]).toMatchObject({
+      word: 'CAT',
+      word_dev: 'बिल्ली',
+      added: true
+    });
+    expect(resolved[1]).toMatchObject({
+      word: 'XYZ',
+      word_dev: null,
+      added: false
+    });
+  });
+
   it('warns when found word has no visible letter', () => {
     const grid = [
       [letter('C'), letter('A'), letter('T')],

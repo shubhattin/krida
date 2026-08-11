@@ -130,6 +130,12 @@ function isContainedWithin(placement: WordPlacement, containingPlacement: WordPl
   return placement.cells.every(([row, col]) => containingCells.has(cellKey(row, col)));
 }
 
+function normalizeWordDev(word_dev: string | null | undefined): string | null {
+  if (word_dev == null) return null;
+  const trimmed = word_dev.trim();
+  return trimmed.length > 0 ? trimmed : null;
+}
+
 /**
  * Analyze word_list against grid. Only words with exactly one matching
  * horizontal/vertical path get a resolved location/direction.
@@ -138,7 +144,7 @@ function isContainedWithin(placement: WordPlacement, containingPlacement: WordPl
 export function analyzeWordPlacements(
   grid: CrossordPuzzleGridCell[][],
   wordList: (Pick<CrossWordPuzzleWord, 'word' | 'description'> &
-    Partial<Pick<CrossWordPuzzleWord, 'added'>>)[]
+    Partial<Pick<CrossWordPuzzleWord, 'added' | 'word_dev'>>)[]
 ): PlacementAnalysis {
   const statuses: (WordPlacementStatus | undefined)[] = [];
   const occupiedCells = new Set<string>();
@@ -221,6 +227,7 @@ export function analyzeWordPlacements(
     }
     resolvedWordList.push({
       word,
+      word_dev: normalizeWordDev(item.word_dev),
       location: status.placement.location,
       direction: status.placement.direction,
       description: item.description.trim(),
@@ -264,15 +271,17 @@ export function analyzeWordPlacements(
 export function resolveWordListForSave(
   grid: CrossordPuzzleGridCell[][],
   wordList: (Pick<CrossWordPuzzleWord, 'word' | 'description' | 'location' | 'direction'> &
-    Partial<Pick<CrossWordPuzzleWord, 'added'>>)[]
+    Partial<Pick<CrossWordPuzzleWord, 'added' | 'word_dev'>>)[]
 ): CrossWordPuzzleWord[] {
   const analysis = analyzeWordPlacements(grid, wordList);
   return wordList.map((item, i) => {
     const added = item.added ?? true;
+    const word_dev = normalizeWordDev(item.word_dev);
     const status = analysis.statuses[i];
     if (status?.status === 'ok') {
       return {
         word: item.word.trim().toUpperCase(),
+        word_dev,
         location: status.placement.location,
         direction: status.placement.direction,
         description: item.description.trim(),
@@ -281,6 +290,7 @@ export function resolveWordListForSave(
     }
     return {
       word: item.word.trim().toUpperCase(),
+      word_dev,
       location: item.location ?? [0, 0],
       direction: item.direction ?? 'horizontal',
       description: item.description.trim(),
