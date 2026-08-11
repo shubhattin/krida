@@ -53,7 +53,7 @@ export function CrossWordCell({
         styles.playCell,
         fixed && styles.cellFixed,
         solved && styles.cellSolved,
-        inActiveWord && !selected && !solved && styles.cellActiveWord,
+        inActiveWord && !selected && styles.cellActiveWord,
         selected && styles.cellSelected,
         incorrect && !solved && styles.cellIncorrectState,
         justSolved && styles.cellJustSolved,

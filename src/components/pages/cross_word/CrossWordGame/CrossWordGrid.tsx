@@ -153,14 +153,16 @@ export function CrossWordGrid({ game, onRequestKeyboard }: CrossWordGridProps) {
                   revealed={revealed}
                   clearing={clearing}
                   incorrect={incorrect}
-                  disabled={!game.started || game.completed}
+                  disabled={!game.started}
                   onSelect={() => {
-                    if (!game.started || game.completed) return;
+                    if (!game.started) return;
                     game.focusCell(r, c, {
                       toggle: focus?.row === r && focus?.col === c
                     });
-                    // Must focus the hidden input inside the same tap gesture (iOS).
-                    onRequestKeyboard?.();
+                    // Soft keyboard only while the puzzle is still in progress.
+                    if (!game.completed) {
+                      onRequestKeyboard?.();
+                    }
                   }}
                 />
               </div>

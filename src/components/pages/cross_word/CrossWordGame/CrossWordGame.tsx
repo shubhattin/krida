@@ -278,8 +278,9 @@ export function CrossWordGame({
 
   // Click outside to deselect grid focus — keyboard panel buttons are excluded
   // via the generic `button` check so typing never clears selection.
+  // Also active after completion so review selection can be cleared.
   useEffect(() => {
-    if (!started || completed) return;
+    if (!started) return;
 
     const handleDocumentClick = (event: MouseEvent) => {
       const target = event.target as HTMLElement | null;
@@ -300,7 +301,7 @@ export function CrossWordGame({
     return () => {
       document.removeEventListener('mousedown', handleDocumentClick);
     };
-  }, [game, started, completed]);
+  }, [game, started]);
 
   if (!puzzle) return null;
 

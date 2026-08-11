@@ -2,7 +2,7 @@
 
 import { useEffect, useEffectEvent, useMemo, useRef, useState } from 'react';
 import { useAtomValue } from 'jotai';
-import { AnimatePresence, LayoutGroup, motion } from 'framer-motion';
+import { LayoutGroup, motion } from 'framer-motion';
 import { AlertCircle, CheckCircle2, Sparkles } from 'lucide-react';
 import { transliterate } from 'lipilekhika';
 import { cn } from '~/lib/utils';
@@ -186,11 +186,11 @@ export function CluePanel({ game, moreHints, className }: CluePanelProps) {
   const displayFilter = useMemo((): ClueFilter => {
     if (!focus || filter === 'all') return filter;
     const entry = entries.find((e) => e.id === focus.entryId);
-    if (!entry || solvedIds.includes(entry.id)) return filter;
+    if (!entry) return filter;
     if (filter === 'across' && entry.direction === 'down') return 'down';
     if (filter === 'down' && entry.direction === 'across') return 'across';
     return filter;
-  }, [filter, focus, entries, solvedIds]);
+  }, [filter, focus, entries]);
 
   const filtered =
     displayFilter === 'all'
@@ -220,11 +220,10 @@ export function CluePanel({ game, moreHints, className }: CluePanelProps) {
     onFocusedEntrySolved();
   }, [solvedIds, focus?.entryId]);
 
-  // Scroll the focused (unsolved) clue into view within the list scroller.
+  // Scroll the focused clue into view (including solved/review selection).
   useEffect(() => {
     if (!focus) return;
     if (suppressScrollRef.current) return;
-    if (solvedIds.includes(focus.entryId)) return;
 
     const entry = entries.find((e) => e.id === focus.entryId);
     if (!entry) return;
@@ -240,7 +239,7 @@ export function CluePanel({ game, moreHints, className }: CluePanelProps) {
     });
 
     return () => cancelAnimationFrame(frame);
-  }, [focus, displayFilter, entries, solvedIds]);
+  }, [focus, displayFilter, entries]);
 
   return (
     <div
@@ -286,7 +285,7 @@ export function CluePanel({ game, moreHints, className }: CluePanelProps) {
           ) : (
             sorted.map((entry) => {
               const solved = solvedIds.includes(entry.id);
-              const active = focus?.entryId === entry.id && !solved;
+              const active = focus?.entryId === entry.id;
 
               return (
                 <motion.li
@@ -295,7 +294,7 @@ export function CluePanel({ game, moreHints, className }: CluePanelProps) {
                   data-entry-id={entry.id}
                   initial={false}
                   animate={{
-                    opacity: solved ? 0.72 : 1,
+                    opacity: solved && !active ? 0.72 : 1,
                     scale: 1
                   }}
                   transition={{
@@ -303,20 +302,27 @@ export function CluePanel({ game, moreHints, className }: CluePanelProps) {
                     opacity: { duration: 0.25 }
                   }}
                   className={cn(
-                    'flex items-start gap-1 rounded-xl',
+                    'relative flex items-start rounded-xl',
+                    // Reserve More-button lane on every row so activate/deactivate never reflows text.
+                    'pr-12',
                     active &&
-                      'border-l-[3px] border-blue-400 bg-linear-to-r from-blue-500/15 to-indigo-500/10 dark:from-blue-500/20 dark:to-indigo-500/10'
+                      !solved &&
+                      'bg-blue-500/10 shadow-[inset_3px_0_0_0] shadow-blue-400 dark:bg-blue-500/15',
+                    active &&
+                      solved &&
+                      'bg-emerald-500/10 shadow-[inset_3px_0_0_0] shadow-emerald-400 dark:bg-emerald-500/15'
                   )}
                 >
                   <motion.button
                     type="button"
-                    disabled={!game.started || game.completed}
+                    disabled={!game.started}
                     aria-current={active ? 'true' : undefined}
                     onClick={() => {
                       game.focusCell(entry.row, entry.col, { direction: entry.direction });
                     }}
                     animate={
-                      solved
+                      // Only tint unselected solved rows — active rows use the li accent alone.
+                      solved && !active
                         ? { backgroundColor: 'rgba(16, 185, 129, 0.08)' }
                         : { backgroundColor: 'rgba(0, 0, 0, 0)' }
                     }
@@ -324,43 +330,46 @@ export function CluePanel({ game, moreHints, className }: CluePanelProps) {
                     className={cn(
                       'min-w-0 flex-1 rounded-xl px-2.5 py-2 text-left text-sm leading-snug transition-colors duration-200 outline-none focus:outline-none focus-visible:outline-none',
                       'disabled:cursor-default disabled:opacity-60',
-                      active && 'text-foreground dark:text-slate-50',
+                      active && !solved && 'text-foreground dark:text-slate-50',
+                      active && solved && 'text-foreground dark:text-slate-50',
                       !active &&
                         !solved &&
                         'text-slate-700 hover:bg-slate-100/70 hover:text-slate-900 dark:text-slate-200 dark:hover:bg-slate-700/40 dark:hover:text-white',
-                      solved && 'text-slate-400 dark:text-slate-400'
+                      !active && solved && 'text-slate-400 dark:text-slate-400'
                     )}
                   >
                     <span className="flex items-start gap-2">
                       <span
                         className={cn(
                           'inline-flex h-5 min-w-5 shrink-0 items-center justify-center rounded-md text-[0.7rem] font-bold',
-                          active
+                          active && !solved
                             ? 'bg-linear-to-br from-blue-500 to-indigo-600 text-white'
-                            : solved
-                              ? 'bg-emerald-500/20 text-emerald-600 dark:text-emerald-400'
-                              : 'bg-slate-200/90 text-slate-700 dark:bg-slate-600/80 dark:text-slate-100'
+                            : active && solved
+                              ? 'bg-linear-to-br from-emerald-500 to-teal-600 text-white'
+                              : solved
+                                ? 'bg-emerald-500/20 text-emerald-600 dark:text-emerald-400'
+                                : 'bg-slate-200/90 text-slate-700 dark:bg-slate-600/80 dark:text-slate-100'
                         )}
                       >
                         {entry.number}
                       </span>
-                      <span className="min-w-0 flex-1 wrap-break-word">
-                        <span className={cn(solved && 'line-through')}>
-                          {entry.clue}
-                          <AnimatePresence>
-                            {solved ? (
-                              <motion.span
-                                key="check"
-                                initial={{ opacity: 0, scale: 0.5 }}
-                                animate={{ opacity: 1, scale: 1 }}
-                                exit={{ opacity: 0, scale: 0.5 }}
-                                transition={{ type: 'spring', stiffness: 420, damping: 22 }}
-                                className="ml-1.5 inline-flex align-middle no-underline"
-                              >
-                                <CheckCircle2 className="size-3.5 text-emerald-500 dark:text-emerald-400" />
-                              </motion.span>
-                            ) : null}
-                          </AnimatePresence>
+                      <span className="min-w-0 flex-1">
+                        <span className="flex items-start gap-1.5">
+                          <span
+                            className={cn(
+                              'min-w-0 flex-1 wrap-break-word',
+                              solved && 'line-through'
+                            )}
+                          >
+                            {entry.clue}
+                          </span>
+                          {/* Keep check out of the clue wrap flow; hide while selected (More lane). */}
+                          {solved && !active ? (
+                            <CheckCircle2
+                              className="mt-0.5 size-3.5 shrink-0 text-emerald-500 no-underline dark:text-emerald-400"
+                              aria-hidden
+                            />
+                          ) : null}
                         </span>
                         {solved && entry.word_dev.trim().length > 0 ? (
                           <SolvedRomanizedWord wordDev={entry.word_dev} />
@@ -370,7 +379,7 @@ export function CluePanel({ game, moreHints, className }: CluePanelProps) {
                   </motion.button>
 
                   {active ? (
-                    <div className="shrink-0 pt-1.5 pr-1.5">
+                    <div className="absolute top-1.5 right-1.5 z-10">
                       <MoreHintPopover entryId={entry.id} moreHints={moreHints} />
                     </div>
                   ) : null}
