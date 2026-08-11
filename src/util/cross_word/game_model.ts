@@ -9,6 +9,8 @@ export type CrossWordDirection = 'across' | 'down';
 export type CrossWordEntry = {
   id: string;
   answer: string;
+  /** Devanagari Sanskrit form — romanized in the clue panel after solve */
+  word_dev: string;
   clue: string;
   row: number;
   col: number;

@@ -178,7 +178,7 @@ describe('placement analysis', () => {
     });
     expect(resolved[1]).toMatchObject({
       word: 'XYZ',
-      word_dev: null,
+      word_dev: '',
       added: false
     });
   });
@@ -310,6 +310,7 @@ describe('adapter and game model', () => {
       word_list: [
         {
           word: 'CAT',
+          word_dev: 'बिल्ली',
           location: [0, 0],
           direction: 'horizontal',
           description: 'feline',
@@ -330,6 +331,7 @@ describe('adapter and game model', () => {
     expect(isFixedCell(game.grid[0]![0]!)).toBe(true);
     expect(game.entries[0]).toMatchObject({
       answer: 'CAT',
+      word_dev: 'बिल्ली',
       clue: 'feline',
       direction: 'across',
       row: 0,

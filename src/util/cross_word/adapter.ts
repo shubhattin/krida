@@ -36,6 +36,7 @@ export function wordToEntry(word: CrossWordPuzzleWord): CrossWordEntry {
   return {
     id: entryIdFromWord(word),
     answer: word.word.toUpperCase(),
+    word_dev: word.word_dev.trim(),
     clue: word.description.trim(),
     row: word.location[0],
     col: word.location[1],

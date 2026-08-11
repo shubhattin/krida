@@ -37,7 +37,7 @@ export const CrossWordPuzzleWordSchema = z
     /** Only word is filled in manually, location and direction are calculated auto */
     word: z.string(),
     /** Actutal sanskrit word in devanagari */
-    word_dev: z.string().optional().nullable(),
+    word_dev: z.string().trim(),
     /** approved to be displayed in word list to the user */
     added: z.boolean().default(true),
     /** starting index in the nxn grid array */
@@ -52,6 +52,13 @@ export const CrossWordPuzzleWordSchema = z
         code: 'custom',
         message: 'Clue is required',
         path: ['description']
+      });
+    }
+    if (entry.added && entry.word.trim().length > 0 && entry.word_dev.trim().length === 0) {
+      ctx.addIssue({
+        code: 'custom',
+        message: 'Devanagari word is required',
+        path: ['word_dev']
       });
     }
   });

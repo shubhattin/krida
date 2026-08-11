@@ -179,7 +179,7 @@ function toEditableWords(words: CrossWordPuzzleWord[]): EditableWord[] {
   return words.map((w) => ({
     id: createEditableWordId(),
     word: w.word,
-    word_dev: w.word_dev ?? '',
+    word_dev: w.word_dev,
     description: w.description,
     location: w.location,
     direction: w.direction,
@@ -701,6 +701,9 @@ function CrosswordWordRow({
   const wordDevHistoryField = useHistoryTextField();
   const clueHistoryField = useHistoryTextField();
   const isAdded = isWordAdded(item);
+  const hasLatinWord = item.word.trim().length > 0;
+  const missingWordDev = isAdded && hasLatinWord && item.word_dev.trim().length === 0;
+  const missingClue = isAdded && hasLatinWord && item.description.trim().length === 0;
 
   return (
     <div className="flex flex-wrap items-start gap-2 sm:flex-nowrap">
@@ -742,8 +745,16 @@ function CrosswordWordRow({
         }}
         onKeyDown={(event) => clearTypingContextOnKeyDown(event, typingContext)}
         placeholder="देवनागरी"
+        required={isAdded && hasLatinWord}
+        aria-invalid={missingWordDev || undefined}
         aria-label={`Devanagari word ${originalIndex + 1}`}
-        className={cn('w-28 text-base sm:w-32', !isAdded && 'opacity-60')}
+        title={missingWordDev ? 'Devanagari word is required' : undefined}
+        className={cn(
+          'w-28 text-base sm:w-32',
+          !isAdded && 'opacity-60',
+          missingWordDev &&
+            'border-destructive focus-visible:border-destructive focus-visible:ring-destructive/30'
+        )}
       />
       <Input
         value={item.description}
@@ -751,7 +762,14 @@ function CrosswordWordRow({
         onFocus={clueHistoryField.onFocus}
         onBlur={clueHistoryField.onBlur}
         placeholder="Clue / description"
-        className={cn('min-w-0 flex-1', !isAdded && 'opacity-60')}
+        required={isAdded && hasLatinWord}
+        aria-invalid={missingClue || undefined}
+        className={cn(
+          'min-w-0 flex-1',
+          !isAdded && 'opacity-60',
+          missingClue &&
+            'border-destructive focus-visible:border-destructive focus-visible:ring-destructive/30'
+        )}
       />
       <span
         className="inline-flex h-9 min-w-14 shrink-0 items-center justify-center rounded-md border border-border bg-muted/40 px-2 font-mono text-xs text-muted-foreground"
@@ -1977,11 +1995,17 @@ const SaveControls = ({ puzzle }: { puzzle: ViewEditCrosswordProps['puzzle'] }) 
       return;
     }
 
-    const missingClue = wordList.find(
-      (w) => w.added && w.word.trim().length > 0 && w.description.trim().length === 0
-    );
+    const wordsToSave = wordList.filter((w) => w.word.trim().length > 0);
+
+    const missingClue = wordsToSave.find((w) => w.added && w.description.trim().length === 0);
     if (missingClue) {
       toast.error(`Add a clue for "${missingClue.word.trim().toUpperCase()}"`);
+      return;
+    }
+
+    const missingDevanagari = wordsToSave.find((w) => w.added && w.word_dev.trim().length === 0);
+    if (missingDevanagari) {
+      toast.error(`Add a Devanagari word for "${missingDevanagari.word.trim().toUpperCase()}"`);
       return;
     }
 
@@ -1995,32 +2019,49 @@ const SaveControls = ({ puzzle }: { puzzle: ViewEditCrosswordProps['puzzle'] }) 
         listed,
         grid_dimensions: gridDimensions,
         grid_data: gridData,
-        word_list: wordList
-          .filter((w) => w.word.trim().length > 0)
-          .map((w) => {
-            const word_dev = w.word_dev.trim();
-            return {
-              word: w.word,
-              word_dev: word_dev.length > 0 ? word_dev : null,
-              location: w.location,
-              direction: w.direction,
-              description: w.description.trim(),
-              added: w.added
-            };
-          }),
+        word_list: wordsToSave.map((w) => ({
+          word: w.word,
+          word_dev: w.word_dev.trim(),
+          location: w.location,
+          direction: w.direction,
+          description: w.description.trim(),
+          added: w.added
+        })),
         attachments
       }
     };
 
     const parse = crossword_update_input_schema.safeParse(data);
-    if (parse.success) {
-      beginSave();
-      saveSnapRef.current = { attachments, image_id };
-      update_mut.mutate(parse.data);
-    } else {
+    if (!parse.success) {
       console.error(parse.error);
-      toast.error('Failed to update puzzle, fix the entered data');
+      const firstIssue = parse.error.issues[0];
+      const wordIndex =
+        firstIssue?.path[0] === 'puzzle_data' &&
+        firstIssue.path[1] === 'word_list' &&
+        typeof firstIssue.path[2] === 'number'
+          ? firstIssue.path[2]
+          : null;
+      const field = firstIssue?.path.at(-1);
+      const wordLabel =
+        wordIndex != null
+          ? wordsToSave[wordIndex]?.word.trim().toUpperCase() || `Word ${wordIndex + 1}`
+          : null;
+
+      if (field === 'word_dev' && wordLabel) {
+        toast.error(`Add a Devanagari word for "${wordLabel}"`);
+        return;
+      }
+      if (field === 'description' && wordLabel) {
+        toast.error(`Add a clue for "${wordLabel}"`);
+        return;
+      }
+      toast.error(firstIssue?.message || 'Failed to update puzzle, fix the entered data');
+      return;
     }
+
+    beginSave();
+    saveSnapRef.current = { attachments, image_id };
+    update_mut.mutate(parse.data);
   };
 
   return (
