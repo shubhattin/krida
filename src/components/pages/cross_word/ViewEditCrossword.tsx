@@ -28,6 +28,11 @@ import {
   verticalListSortingStrategy
 } from '@dnd-kit/sortable';
 import { CSS } from '@dnd-kit/utilities';
+import {
+  clearTypingContextOnKeyDown,
+  createTypingContext,
+  handleTypingBeforeInputEvent
+} from 'lipilekhika/typing';
 import { client_q } from '~/api/client';
 import type { CrossordPuzzle, CrossordPuzzleGridCell, CrossWordPuzzleWord } from '~/db/schema_zod';
 import { crossword_update_input_schema } from '~/db/crossword_shared';
@@ -110,9 +115,12 @@ import { Checkbox } from '~/components/ui/checkbox';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '~/components/ui/tabs';
 import { isWordAdded } from '~/util/puzzle/word_list';
 
+const BASE_SCRIPT = 'Devanagari';
+
 type EditableWord = {
   id: string;
   word: string;
+  word_dev: string;
   description: string;
   location: [number, number];
   direction: CrossWordPuzzleWord['direction'];
@@ -171,6 +179,7 @@ function toEditableWords(words: CrossWordPuzzleWord[]): EditableWord[] {
   return words.map((w) => ({
     id: createEditableWordId(),
     word: w.word,
+    word_dev: w.word_dev ?? '',
     description: w.description,
     location: w.location,
     direction: w.direction,
@@ -179,8 +188,9 @@ function toEditableWords(words: CrossWordPuzzleWord[]): EditableWord[] {
 }
 
 function editableWordsComparable(words: EditableWord[]) {
-  return words.map(({ word, description, location, direction, added }) => ({
+  return words.map(({ word, word_dev, description, location, direction, added }) => ({
     word,
+    word_dev,
     description,
     location,
     direction,
@@ -667,6 +677,8 @@ type CrosswordWordRowProps = {
   showRemove: boolean;
   startLabel: string;
   statusTitle: string;
+  typingContext: ReturnType<typeof createTypingContext>;
+  lipiLekhikaActive: boolean;
   onUpdate: (index: number, patch: Partial<EditableWord>) => void;
   onToggleAdded: (index: number, added: boolean) => void;
   onRemove: (index: number) => void;
@@ -679,11 +691,14 @@ function CrosswordWordRow({
   showRemove,
   startLabel,
   statusTitle,
+  typingContext,
+  lipiLekhikaActive,
   onUpdate,
   onToggleAdded,
   onRemove
 }: CrosswordWordRowProps) {
   const wordHistoryField = useHistoryTextField();
+  const wordDevHistoryField = useHistoryTextField();
   const clueHistoryField = useHistoryTextField();
   const isAdded = isWordAdded(item);
 
@@ -708,6 +723,27 @@ function CrosswordWordRow({
         onBlur={wordHistoryField.onBlur}
         placeholder="WORD"
         className={cn('w-36 font-mono uppercase sm:w-44', !isAdded && 'opacity-60')}
+      />
+      <Input
+        value={item.word_dev}
+        onChange={(e) => onUpdate(originalIndex, { word_dev: e.currentTarget.value })}
+        onBeforeInput={(event) =>
+          handleTypingBeforeInputEvent(
+            typingContext,
+            event,
+            (newValue) => onUpdate(originalIndex, { word_dev: newValue }),
+            lipiLekhikaActive
+          )
+        }
+        onFocus={wordDevHistoryField.onFocus}
+        onBlur={() => {
+          typingContext.clearContext();
+          wordDevHistoryField.onBlur();
+        }}
+        onKeyDown={(event) => clearTypingContextOnKeyDown(event, typingContext)}
+        placeholder="देवनागरी"
+        aria-label={`Devanagari word ${originalIndex + 1}`}
+        className={cn('w-28 text-base sm:w-32', !isAdded && 'opacity-60')}
       />
       <Input
         value={item.description}
@@ -1338,6 +1374,12 @@ const WordListEditor = () => {
   const [wordList, setWordList] = useAtom(word_list_atom);
   const [gridData] = useAtom(grid_data_atom);
   const { commit } = useEditorHistoryActions();
+  const [lipiLekhikaActive, setLipiLekhikaActive] = useState(true);
+  const typingContext = useMemo(() => createTypingContext(BASE_SCRIPT), []);
+
+  useEffect(() => {
+    void typingContext.ready;
+  }, [typingContext]);
 
   const analysis = useMemo(() => analyzeWordPlacements(gridData, wordList), [gridData, wordList]);
 
@@ -1356,6 +1398,7 @@ const WordListEditor = () => {
       {
         id: createEditableWordId(),
         word: '',
+        word_dev: '',
         description: '',
         location: [0, 0],
         direction: 'horizontal',
@@ -1407,6 +1450,8 @@ const WordListEditor = () => {
               showRemove={showRemove}
               startLabel={startLabel}
               statusTitle={statusTitle}
+              typingContext={typingContext}
+              lipiLekhikaActive={lipiLekhikaActive}
               onUpdate={updateWord}
               onToggleAdded={toggleAdded}
               onRemove={removeWord}
@@ -1419,7 +1464,17 @@ const WordListEditor = () => {
 
   return (
     <div className="flex flex-col gap-3">
-      <Label className="text-lg font-semibold">Words & clues</Label>
+      <div className="flex flex-wrap items-center justify-between gap-3">
+        <Label className="text-lg font-semibold">Words & clues</Label>
+        <Label className="inline-flex items-center gap-2 text-sm font-medium">
+          <Switch
+            checked={lipiLekhikaActive}
+            onCheckedChange={setLipiLekhikaActive}
+            aria-label="Lipi Lekhika typing for Devanagari words"
+          />
+          Lipi Lekhika
+        </Label>
+      </div>
       <Tabs defaultValue="added" className="gap-3">
         <TabsList className="w-full">
           <TabsTrigger value="added" className="flex-1">
@@ -1942,13 +1997,17 @@ const SaveControls = ({ puzzle }: { puzzle: ViewEditCrosswordProps['puzzle'] }) 
         grid_data: gridData,
         word_list: wordList
           .filter((w) => w.word.trim().length > 0)
-          .map((w) => ({
-            word: w.word,
-            location: w.location,
-            direction: w.direction,
-            description: w.description.trim(),
-            added: w.added
-          })),
+          .map((w) => {
+            const word_dev = w.word_dev.trim();
+            return {
+              word: w.word,
+              word_dev: word_dev.length > 0 ? word_dev : null,
+              location: w.location,
+              direction: w.direction,
+              description: w.description.trim(),
+              added: w.added
+            };
+          }),
         attachments
       }
     };

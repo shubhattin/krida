@@ -36,6 +36,8 @@ export const CrossWordPuzzleWordSchema = z
   .object({
     /** Only word is filled in manually, location and direction are calculated auto */
     word: z.string(),
+    /** Actutal sanskrit word in devanagari */
+    word_dev: z.string().optional().nullable(),
     /** approved to be displayed in word list to the user */
     added: z.boolean().default(true),
     /** starting index in the nxn grid array */
