@@ -1,40 +1,40 @@
 import { Schema } from 'effect';
 
-export class DatabaseError extends Schema.TaggedErrorClass<DatabaseError>()('DatabaseError', {
+export class DatabaseError extends Schema.TaggedError<DatabaseError>()('DatabaseError', {
   operation: Schema.String,
   cause: Schema.Unknown
 }) {}
 
-export class RedisError extends Schema.TaggedErrorClass<RedisError>()('RedisError', {
+export class RedisError extends Schema.TaggedError<RedisError>()('RedisError', {
   operation: Schema.String,
   cause: Schema.Unknown
 }) {}
 
-export class CacheError extends Schema.TaggedErrorClass<CacheError>()('CacheError', {
-  operation: Schema.String,
-  key: Schema.optional(Schema.String),
-  cause: Schema.Unknown
-}) {}
-
-export class StorageError extends Schema.TaggedErrorClass<StorageError>()('StorageError', {
+export class CacheError extends Schema.TaggedError<CacheError>()('CacheError', {
   operation: Schema.String,
   key: Schema.optional(Schema.String),
   cause: Schema.Unknown
 }) {}
 
-export class AiProviderError extends Schema.TaggedErrorClass<AiProviderError>()('AiProviderError', {
+export class StorageError extends Schema.TaggedError<StorageError>()('StorageError', {
+  operation: Schema.String,
+  key: Schema.optional(Schema.String),
+  cause: Schema.Unknown
+}) {}
+
+export class AiProviderError extends Schema.TaggedError<AiProviderError>()('AiProviderError', {
   operation: Schema.String,
   provider: Schema.optional(Schema.String),
   cause: Schema.Unknown
 }) {}
 
-export class BatchError extends Schema.TaggedErrorClass<BatchError>()('BatchError', {
+export class BatchError extends Schema.TaggedError<BatchError>()('BatchError', {
   operation: Schema.String,
   batchId: Schema.optional(Schema.String),
   cause: Schema.Unknown
 }) {}
 
-export class ImageProcessingError extends Schema.TaggedErrorClass<ImageProcessingError>()(
+export class ImageProcessingError extends Schema.TaggedError<ImageProcessingError>()(
   'ImageProcessingError',
   {
     operation: Schema.String,
@@ -42,12 +42,12 @@ export class ImageProcessingError extends Schema.TaggedErrorClass<ImageProcessin
   }
 ) {}
 
-export class QueueError extends Schema.TaggedErrorClass<QueueError>()('QueueError', {
+export class QueueError extends Schema.TaggedError<QueueError>()('QueueError', {
   operation: Schema.String,
   cause: Schema.Unknown
 }) {}
 
-export class NotificationError extends Schema.TaggedErrorClass<NotificationError>()(
+export class NotificationError extends Schema.TaggedError<NotificationError>()(
   'NotificationError',
   {
     operation: Schema.String,
@@ -55,42 +55,42 @@ export class NotificationError extends Schema.TaggedErrorClass<NotificationError
   }
 ) {}
 
-export class AuthError extends Schema.TaggedErrorClass<AuthError>()('AuthError', {
+export class AuthError extends Schema.TaggedError<AuthError>()('AuthError', {
   operation: Schema.String,
   cause: Schema.Unknown
 }) {}
 
-export class ConfigError extends Schema.TaggedErrorClass<ConfigError>()('ConfigError', {
+export class ConfigError extends Schema.TaggedError<ConfigError>()('ConfigError', {
   message: Schema.String,
   cause: Schema.optional(Schema.Unknown)
 }) {}
 
-export class ValidationError extends Schema.TaggedErrorClass<ValidationError>()('ValidationError', {
+export class ValidationError extends Schema.TaggedError<ValidationError>()('ValidationError', {
   message: Schema.String,
   cause: Schema.optional(Schema.Unknown)
 }) {}
 
-export class NotFoundError extends Schema.TaggedErrorClass<NotFoundError>()('NotFoundError', {
+export class NotFoundError extends Schema.TaggedError<NotFoundError>()('NotFoundError', {
   resource: Schema.String,
   message: Schema.String
 }) {}
 
-export class ConflictError extends Schema.TaggedErrorClass<ConflictError>()('ConflictError', {
+export class ConflictError extends Schema.TaggedError<ConflictError>()('ConflictError', {
   message: Schema.String
 }) {}
 
-export class BadRequestError extends Schema.TaggedErrorClass<BadRequestError>()('BadRequestError', {
+export class BadRequestError extends Schema.TaggedError<BadRequestError>()('BadRequestError', {
   message: Schema.String
 }) {}
 
-export class UnauthorizedError extends Schema.TaggedErrorClass<UnauthorizedError>()(
+export class UnauthorizedError extends Schema.TaggedError<UnauthorizedError>()(
   'UnauthorizedError',
   {
     message: Schema.optional(Schema.String)
   }
 ) {}
 
-export class ForbiddenError extends Schema.TaggedErrorClass<ForbiddenError>()('ForbiddenError', {
+export class ForbiddenError extends Schema.TaggedError<ForbiddenError>()('ForbiddenError', {
   message: Schema.optional(Schema.String)
 }) {}
 

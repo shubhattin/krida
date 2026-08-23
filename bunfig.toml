@@ -4,6 +4,8 @@ minimumReleaseAge = 259200 # 3 days (secs)
 minimumReleaseAgeExcludes = [
   "@types/node",
   "typescript",
-  "lipilekhika"
+  "lipilekhika",
+  "effect",
+  "@effect/vitest"
 ]
 
