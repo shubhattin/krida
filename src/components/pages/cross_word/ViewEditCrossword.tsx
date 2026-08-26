@@ -1528,20 +1528,31 @@ function CrosswordLayoutGenerator() {
           ) : null}
 
           <DialogFooter className="shrink-0 border-t border-border px-4 py-3">
-            <div className="flex w-full flex-wrap justify-end gap-2">
-              <Button variant="outline" onClick={() => setOpen(false)}>
-                Cancel
-              </Button>
+            <div className="flex w-full flex-wrap items-center justify-between gap-2">
               <Button
-                disabled={!activeCandidate}
+                type="button"
+                variant="outline"
                 onClick={() => {
-                  if (!activeCandidate) return;
-                  setCandidateToApply(activeCandidate);
-                  setConfirmOpen(true);
+                  runGeneration();
                 }}
               >
-                Use this layout
+                Generate again
               </Button>
+              <div className="flex flex-wrap gap-2">
+                <Button variant="outline" onClick={() => setOpen(false)}>
+                  Cancel
+                </Button>
+                <Button
+                  disabled={!activeCandidate}
+                  onClick={() => {
+                    if (!activeCandidate) return;
+                    setCandidateToApply(activeCandidate);
+                    setConfirmOpen(true);
+                  }}
+                >
+                  Use this layout
+                </Button>
+              </div>
             </div>
           </DialogFooter>
         </DialogContent>
