@@ -7,6 +7,7 @@ import {
   createTypingContext,
   handleTypingBeforeInputEvent
 } from 'lipilekhika/typing';
+import { AlertTriangle } from 'lucide-react';
 import { Badge } from '~/components/ui/badge';
 import { Button } from '~/components/ui/button';
 import { Checkbox } from '~/components/ui/checkbox';
@@ -17,6 +18,11 @@ import { cn } from '~/lib/utils';
 import type { PadavaliWordCandidate } from '~/util/puzzle/word_list';
 import { isWordAdded } from '~/util/puzzle/word_list';
 import { countDevanagariAksharas } from '~/util/puzzle/devanagari_syllables';
+import {
+  getWordColorPair,
+  wordColorCssVars,
+  wordColorSwatchClassName
+} from '~/util/puzzle/word_colors';
 
 const BASE_SCRIPT = 'Devanagari';
 
@@ -52,6 +58,8 @@ function WordCandidateRow({
   const syllableCount = countDevanagariAksharas(entry.word);
   const isAdded = isWordAdded(entry);
 
+  const colorPair = getWordColorPair(originalIndex);
+
   return (
     <div className={cn('flex min-w-0 items-center gap-2', !isAdded && 'opacity-60')}>
       {showSelection ? (
@@ -61,6 +69,13 @@ function WordCandidateRow({
           aria-label={isAdded ? 'Exclude word from puzzle' : 'Include word in puzzle'}
         />
       ) : null}
+      {/* Always-reserved swatch — avoids layout shift when colors apply */}
+      <span
+        aria-hidden
+        className={cn('size-2.5 shrink-0 rounded-full', wordColorSwatchClassName)}
+        style={wordColorCssVars(colorPair)}
+        title={`Word color ${colorPair.id}`}
+      />
       <Input
         type="text"
         className="min-w-0 flex-1 text-base"
@@ -162,14 +177,28 @@ function SyllableSummary({ wordList, gridDimensions }: SyllableSummaryProps) {
     0
   );
   const remaining = capacity - addedSyllables;
+  const isOver = remaining < 0;
 
   return (
-    <div className="flex flex-wrap items-center gap-2 text-sm text-muted-foreground">
-      <Badge variant={remaining < 0 ? 'destructive' : 'secondary'} className="tabular-nums">
+    <div
+      className={cn(
+        'flex flex-wrap items-center gap-2 text-sm',
+        isOver ? 'text-amber-700 dark:text-amber-300' : 'text-muted-foreground'
+      )}
+    >
+      <Badge
+        variant={isOver ? 'outline' : 'secondary'}
+        className={cn(
+          'gap-1.5 tabular-nums',
+          isOver &&
+            'border-amber-300 bg-amber-100 text-amber-800 dark:border-amber-600 dark:bg-amber-950 dark:text-amber-200'
+        )}
+      >
+        {isOver ? <AlertTriangle className="size-3.5 shrink-0" /> : null}
         Added syllables: {addedSyllables} / {capacity}
       </Badge>
-      <span className="tabular-nums">
-        {remaining < 0 ? `${Math.abs(remaining)} over capacity` : `${remaining} remaining`}
+      <span className={cn('tabular-nums', isOver && 'font-medium')}>
+        {isOver ? `${Math.abs(remaining)} over capacity` : `${remaining} remaining`}
       </span>
     </div>
   );
@@ -216,6 +245,7 @@ export function PadavaliWordListEditor({
         </TabsList>
         <TabsContent value="added">
           <div className="flex flex-col gap-3">
+            <SyllableSummary wordList={wordList} gridDimensions={gridDimensions} />
             <WordCandidateList
               candidates={addedCandidates}
               layout="grid"
@@ -223,7 +253,7 @@ export function PadavaliWordListEditor({
               lipiLekhikaActive={lipiLekhikaActive}
               showSelection={false}
               showRemove={false}
-              showSyllableCount={false}
+              showSyllableCount
               onRemove={onRemoveWord}
               onUpdateWord={onUpdateWord}
               onToggleAdded={onToggleAdded}
