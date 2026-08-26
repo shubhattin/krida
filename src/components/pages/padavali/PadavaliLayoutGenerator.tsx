@@ -72,8 +72,7 @@ const WORD_ORDER_INFO =
 
 const LAYOUT_RANKING_ITEMS = [
   { value: 'words', label: 'Most words' },
-  { value: 'fill', label: 'Fewest empty cells' },
-  { value: 'compact', label: 'Most compact' }
+  { value: 'fill', label: 'Fewest empty cells' }
 ] as const;
 
 const LAYOUT_CANDIDATE_LIMITS = [4, 8, 12, 16, 24, 32] as const;
@@ -95,7 +94,7 @@ function parseLayoutPathStyle(value: string | null | undefined): LayoutPathStyle
 }
 
 function parseLayoutRanking(value: string | null | undefined): LayoutRanking | null {
-  if (value === 'words' || value === 'fill' || value === 'compact') return value;
+  if (value === 'words' || value === 'fill') return value;
   return null;
 }
 
@@ -132,6 +131,21 @@ function GeneratedLayoutPreview({
   const gridWidth = cellPx * cols + LAYOUT_PREVIEW_GAP_PX * Math.max(0, cols - 1);
   const gridHeight = cellPx * rows + LAYOUT_PREVIEW_GAP_PX * Math.max(0, rows - 1);
   const fontSizePx = Math.max(8, Math.min(14, cellPx - 6));
+  const trailGlowWidth = Math.max(2, Math.min(4.5, cellPx * 0.22));
+  const trailMainWidth = Math.max(1, Math.min(2, cellPx * 0.1));
+
+  const cellCenter = (row: number, col: number) => ({
+    x: col * (cellPx + LAYOUT_PREVIEW_GAP_PX) + cellPx / 2,
+    y: row * (cellPx + LAYOUT_PREVIEW_GAP_PX) + cellPx / 2
+  });
+
+  const buildPoints = (path: readonly (readonly [number, number])[]) =>
+    path
+      .map(([row, col]) => {
+        const { x, y } = cellCenter(row, col);
+        return `${x},${y}`;
+      })
+      .join(' ');
 
   return (
     <div
@@ -140,40 +154,102 @@ function GeneratedLayoutPreview({
     >
       <div
         aria-label={`Generated ${rows} by ${cols} grid preview`}
-        className="grid bg-border/60"
-        style={{
-          width: gridWidth,
-          height: gridHeight,
-          gap: LAYOUT_PREVIEW_GAP_PX,
-          gridTemplateColumns: `repeat(${cols}, ${cellPx}px)`,
-          gridTemplateRows: `repeat(${rows}, ${cellPx}px)`
-        }}
+        className="relative"
+        style={{ width: gridWidth, height: gridHeight }}
       >
-        {candidate.gridData.flatMap((row, rowIndex) =>
-          row.map((cell, columnIndex) => {
-            const tint = cellWordTintAppearance(cellColorMap.get(`${rowIndex},${columnIndex}`));
-            const isEmpty = cell.trim() === '';
+        <div
+          className="relative z-10 grid bg-border/60"
+          style={{
+            width: gridWidth,
+            height: gridHeight,
+            gap: LAYOUT_PREVIEW_GAP_PX,
+            gridTemplateColumns: `repeat(${cols}, ${cellPx}px)`,
+            gridTemplateRows: `repeat(${rows}, ${cellPx}px)`
+          }}
+        >
+          {candidate.gridData.flatMap((row, rowIndex) =>
+            row.map((cell, columnIndex) => {
+              const tint = cellWordTintAppearance(cellColorMap.get(`${rowIndex},${columnIndex}`));
+              const isEmpty = cell.trim() === '';
+              return (
+                <div
+                  key={`${rowIndex}-${columnIndex}`}
+                  className={cn(
+                    'relative z-10 flex items-center justify-center overflow-hidden rounded-[2px] leading-none font-medium',
+                    isEmpty ? 'bg-background text-transparent' : 'bg-background text-foreground',
+                    tint.className
+                  )}
+                  style={{
+                    width: cellPx,
+                    height: cellPx,
+                    fontSize: fontSizePx,
+                    lineHeight: 1,
+                    ...tint.style
+                  }}
+                >
+                  {cell}
+                </div>
+              );
+            })
+          )}
+        </div>
+        {/* Soft path overlay — readable glyphs, still clear path order */}
+        <svg
+          className="pointer-events-none absolute inset-0 z-20 overflow-visible"
+          width={gridWidth}
+          height={gridHeight}
+          aria-hidden
+        >
+          {candidate.placements.map(({ slotIndex, path }) => {
+            if (path.length < 2) return null;
+            const points = buildPoints(path);
+            const pair = getWordColorPair(slotIndex);
             return (
-              <div
-                key={`${rowIndex}-${columnIndex}`}
-                className={cn(
-                  'flex items-center justify-center overflow-hidden rounded-[2px] leading-none font-medium',
-                  isEmpty ? 'bg-background text-transparent' : 'bg-background text-foreground',
-                  tint.className
-                )}
-                style={{
-                  width: cellPx,
-                  height: cellPx,
-                  fontSize: fontSizePx,
-                  lineHeight: 1,
-                  ...tint.style
-                }}
-              >
-                {cell}
-              </div>
+              <g key={`preview-trail-${slotIndex}-${path.map(([r, c]) => `${r},${c}`).join('|')}`}>
+                <polyline
+                  points={points}
+                  fill="none"
+                  stroke={pair.light.swatch}
+                  strokeWidth={trailGlowWidth}
+                  strokeOpacity={0.08}
+                  strokeLinecap="round"
+                  strokeLinejoin="round"
+                  className="dark:hidden"
+                />
+                <polyline
+                  points={points}
+                  fill="none"
+                  stroke={pair.light.swatch}
+                  strokeWidth={trailMainWidth}
+                  strokeOpacity={0.26}
+                  strokeLinecap="round"
+                  strokeLinejoin="round"
+                  className="dark:hidden"
+                />
+                <polyline
+                  points={points}
+                  fill="none"
+                  stroke={pair.dark.swatch}
+                  strokeWidth={trailGlowWidth}
+                  strokeOpacity={0.1}
+                  strokeLinecap="round"
+                  strokeLinejoin="round"
+                  className="hidden dark:block"
+                />
+                <polyline
+                  points={points}
+                  fill="none"
+                  stroke={pair.dark.swatch}
+                  strokeWidth={trailMainWidth}
+                  strokeOpacity={0.28}
+                  strokeLinecap="round"
+                  strokeLinejoin="round"
+                  className="hidden dark:block"
+                />
+              </g>
             );
-          })
-        )}
+          })}
+        </svg>
       </div>
     </div>
   );

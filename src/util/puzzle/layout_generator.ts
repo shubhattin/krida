@@ -18,7 +18,7 @@ export type LayoutNeighborhoodMode = GridNeighborhood | 'all';
  */
 export type LayoutPathStyle = 'flexible' | 'straight';
 
-export type LayoutRanking = 'words' | 'fill' | 'compact';
+export type LayoutRanking = 'words' | 'fill';
 
 /** Left→right and top→bottom only. */
 const STRAIGHT_DIRECTIONS: readonly Coordinate[] = [
@@ -667,13 +667,9 @@ export function rankGeneratedLayouts(
         ? right.score.placedWordCount - left.score.placedWordCount ||
           left.score.emptyCellCount - right.score.emptyCellCount ||
           left.score.compactness - right.score.compactness
-        : ranking === 'fill'
-          ? left.score.emptyCellCount - right.score.emptyCellCount ||
-            right.score.placedWordCount - left.score.placedWordCount ||
-            left.score.compactness - right.score.compactness
-          : left.score.compactness - right.score.compactness ||
-            left.score.emptyCellCount - right.score.emptyCellCount ||
-            right.score.placedWordCount - left.score.placedWordCount;
+        : left.score.emptyCellCount - right.score.emptyCellCount ||
+          right.score.placedWordCount - left.score.placedWordCount ||
+          left.score.compactness - right.score.compactness;
     return (
       scoreDifference ||
       left.score.turnCount - right.score.turnCount ||

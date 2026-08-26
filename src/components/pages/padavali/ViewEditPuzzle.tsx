@@ -97,6 +97,7 @@ import {
   buildCellWordColorMap,
   cellWordTintAppearance,
   getActiveNonEmptyWordSlotIndices,
+  getWordColorPair,
   type CellWordColorInfo
 } from '~/util/puzzle/word_colors';
 
@@ -557,6 +558,26 @@ const getCellConflicts = (
   return conflicts;
 };
 
+type WordTrail = {
+  slotIndex: number;
+  path: Coordinate[];
+};
+
+/** Unique single-path placements only — same source as cell tints. */
+function getUniqueWordTrails(
+  uniqueTraversalsMap: Map<number, Traversal[]>,
+  slotIndices: readonly number[]
+): WordTrail[] {
+  const trails: WordTrail[] = [];
+  for (const [validIdx, traversals] of uniqueTraversalsMap) {
+    const path = traversals[0];
+    const slotIndex = slotIndices[validIdx];
+    if (!path || path.length < 2 || slotIndex === undefined) continue;
+    trails.push({ slotIndex, path: path.map(([r, c]) => [r, c] as Coordinate) });
+  }
+  return trails;
+}
+
 const TraversalAndGridData = ({ grid_dimensions }: { grid_dimensions: [number, number] }) => {
   const [wordList] = useAtom(word_list_atom);
   const [gridData] = useAtom(grid_data_atom);
@@ -567,13 +588,18 @@ const TraversalAndGridData = ({ grid_dimensions }: { grid_dimensions: [number, n
     grid_dimensions
   );
 
+  const slotIndices = getActiveNonEmptyWordSlotIndices(wordList);
   const uniqueTraversalsMap = new Map(
     [...traversalsMap.entries()].filter(([, traversals]) => traversals.length === 1)
   );
   const cellColorMap =
     gridData.length === 0 || wordList.length === 0
       ? new Map<string, CellWordColorInfo>()
-      : buildCellWordColorMap(uniqueTraversalsMap, getActiveNonEmptyWordSlotIndices(wordList));
+      : buildCellWordColorMap(uniqueTraversalsMap, slotIndices);
+  const wordTrails =
+    gridData.length === 0 || wordList.length === 0
+      ? []
+      : getUniqueWordTrails(uniqueTraversalsMap, slotIndices);
 
   return (
     <>
@@ -583,7 +609,11 @@ const TraversalAndGridData = ({ grid_dimensions }: { grid_dimensions: [number, n
         validWords={validWords}
         occupiedCells={occupiedCells}
       />
-      <GridData grid_dimensions={grid_dimensions} cellColorMap={cellColorMap} />
+      <GridData
+        grid_dimensions={grid_dimensions}
+        cellColorMap={cellColorMap}
+        wordTrails={wordTrails}
+      />
     </>
   );
 };
@@ -980,16 +1010,87 @@ const WordList = ({ gridDimensions }: { gridDimensions: [number, number] }) => {
 
 const GridData = ({
   grid_dimensions,
-  cellColorMap
+  cellColorMap,
+  wordTrails
 }: {
   grid_dimensions: [number, number];
   cellColorMap: Map<string, CellWordColorInfo>;
+  wordTrails: WordTrail[];
 }) => {
   const [gridData, setGridData] = useAtom(grid_data_atom);
   const [rows, cols] = grid_dimensions;
   const [lipi_lekhika_active] = useAtom(lipi_lekhika_active_atom);
   const historyField = useHistoryTextField();
   const gridRef = useRef<HTMLDivElement>(null);
+  const [cellCenters, setCellCenters] = useState<Record<string, { x: number; y: number }>>({});
+  const lastGridSizeRef = useRef({ width: 0, height: 0 });
+
+  // Measure cell centers for SVG connector trails (same approach as GameGrid / landing demo)
+  useEffect(() => {
+    const el = gridRef.current;
+    if (!el) return;
+
+    let rafId: number | null = null;
+
+    const syncLayout = () => {
+      const parentRect = el.getBoundingClientRect();
+      const rounded = {
+        width: Math.round(parentRect.width),
+        height: Math.round(parentRect.height)
+      };
+      if (rounded.width === 0 || rounded.height === 0) return;
+
+      const centers: Record<string, { x: number; y: number }> = {};
+      const cells = el.querySelectorAll<HTMLElement>('input[data-grid-r][data-grid-c]');
+      for (const cell of cells) {
+        const r = cell.dataset.gridR;
+        const c = cell.dataset.gridC;
+        if (r === undefined || c === undefined) continue;
+        const cellRect = cell.getBoundingClientRect();
+        centers[`${r}-${c}`] = {
+          x: cellRect.left + cellRect.width / 2 - parentRect.left,
+          y: cellRect.top + cellRect.height / 2 - parentRect.top
+        };
+      }
+
+      const sizeChanged =
+        rounded.width !== lastGridSizeRef.current.width ||
+        rounded.height !== lastGridSizeRef.current.height;
+      lastGridSizeRef.current = rounded;
+      // Always refresh when trails/grid content change; size gate only skips identical resize noise
+      if (sizeChanged || Object.keys(centers).length > 0) {
+        setCellCenters(centers);
+      }
+    };
+
+    const scheduleSync = () => {
+      if (rafId !== null) return;
+      rafId = requestAnimationFrame(() => {
+        rafId = null;
+        syncLayout();
+      });
+    };
+
+    syncLayout();
+    const observer = new ResizeObserver(scheduleSync);
+    observer.observe(el);
+    window.addEventListener('resize', scheduleSync, { passive: true });
+
+    return () => {
+      if (rafId !== null) cancelAnimationFrame(rafId);
+      observer.disconnect();
+      window.removeEventListener('resize', scheduleSync);
+    };
+  }, [gridData, rows, cols]);
+
+  const buildPoints = (path: Coordinate[]) =>
+    path
+      .map(([r, c]) => {
+        const center = cellCenters[`${r}-${c}`];
+        return center ? `${center.x},${center.y}` : null;
+      })
+      .filter((p): p is string => p !== null)
+      .join(' ');
 
   const updateCell = (r: number, c: number, value: string) => {
     setGridData((prev) => {
@@ -1040,9 +1141,9 @@ const GridData = ({
     const tint = cellWordTintAppearance(cellColorMap.get(`${r},${c}`));
     return {
       className: cn(
-        'rounded text-center transition-colors duration-200',
-        // Distinct focus highlighter — stays readable over soft word tints
-        'focus-visible:z-10 focus-visible:border-foreground/50',
+        'relative z-10 rounded text-center transition-colors duration-200',
+        // Focus above soft trail overlay
+        'focus-visible:z-30 focus-visible:border-foreground/50',
         'focus-visible:ring-2 focus-visible:ring-foreground/55 focus-visible:ring-offset-2',
         'focus-visible:ring-offset-background',
         'dark:focus-visible:border-white/70 dark:focus-visible:ring-white/65',
@@ -1056,45 +1157,101 @@ const GridData = ({
     <div>
       <Label className="mb-2 block text-lg font-semibold">Grid</Label>
       <p className="mb-2 hidden text-xs text-muted-foreground/80 sm:block">
-        Navigate the grid with the arrow keys (↑ ↓ ← →)
+        Navigate the grid with the arrow keys (↑ ↓ ← →). Colored trails show each word’s path order.
       </p>
-      <div
-        ref={gridRef}
-        className="md:3/5 grid w-full gap-1 sm:w-4/5 md:w-3/5 lg:w-2/5"
-        style={{ gridTemplateColumns: `repeat(${cols}, minmax(0, 1fr))` }}
-      >
-        {gridData.map((row, r) =>
-          row.map((cell, c) => {
-            const { className, style } = getCellAppearance(r, c);
+      <div ref={gridRef} className="relative w-full sm:w-4/5 md:w-3/5 lg:w-2/5">
+        <div
+          className="relative z-10 grid w-full gap-1"
+          style={{ gridTemplateColumns: `repeat(${cols}, minmax(0, 1fr))` }}
+        >
+          {gridData.map((row, r) =>
+            row.map((cell, c) => {
+              const { className, style } = getCellAppearance(r, c);
+              return (
+                <Input
+                  key={`${r}-${c}`}
+                  type="text"
+                  data-grid-r={r}
+                  data-grid-c={c}
+                  className={className}
+                  style={style}
+                  minLength={1}
+                  value={cell}
+                  onChange={(e) => updateCell(r, c, e.currentTarget.value)}
+                  onBeforeInput={(e) =>
+                    handleTypingBeforeInputEvent(
+                      ctx,
+                      e,
+                      (newValue) => updateCell(r, c, newValue),
+                      lipi_lekhika_active
+                    )
+                  }
+                  onFocus={historyField.onFocus}
+                  onBlur={() => {
+                    ctx.clearContext();
+                    historyField.onBlur();
+                  }}
+                  onKeyDown={(e) => handleCellKeyDown(r, c, e)}
+                />
+              );
+            })
+          )}
+        </div>
+        {/* Soft path overlay — above cells but light enough to keep glyphs readable */}
+        <svg
+          className="pointer-events-none absolute inset-0 z-20 h-full w-full overflow-visible"
+          aria-hidden
+        >
+          {wordTrails.map(({ slotIndex, path }) => {
+            const points = buildPoints(path);
+            if (!points || points.split(' ').length < 2) return null;
+            const pair = getWordColorPair(slotIndex);
             return (
-              <Input
-                key={`${r}-${c}`}
-                type="text"
-                data-grid-r={r}
-                data-grid-c={c}
-                className={className}
-                style={style}
-                minLength={1}
-                value={cell}
-                onChange={(e) => updateCell(r, c, e.currentTarget.value)}
-                onBeforeInput={(e) =>
-                  handleTypingBeforeInputEvent(
-                    ctx,
-                    e,
-                    (newValue) => updateCell(r, c, newValue),
-                    lipi_lekhika_active
-                  )
-                }
-                onFocus={historyField.onFocus}
-                onBlur={() => {
-                  ctx.clearContext();
-                  historyField.onBlur();
-                }}
-                onKeyDown={(e) => handleCellKeyDown(r, c, e)}
-              />
+              <g key={`trail-${slotIndex}-${path.map(([r, c]) => `${r},${c}`).join('|')}`}>
+                <polyline
+                  points={points}
+                  fill="none"
+                  stroke={pair.light.swatch}
+                  strokeWidth={4.5}
+                  strokeOpacity={0.08}
+                  strokeLinecap="round"
+                  strokeLinejoin="round"
+                  className="dark:hidden"
+                />
+                <polyline
+                  points={points}
+                  fill="none"
+                  stroke={pair.light.swatch}
+                  strokeWidth={1.75}
+                  strokeOpacity={0.26}
+                  strokeLinecap="round"
+                  strokeLinejoin="round"
+                  className="dark:hidden"
+                />
+                <polyline
+                  points={points}
+                  fill="none"
+                  stroke={pair.dark.swatch}
+                  strokeWidth={5}
+                  strokeOpacity={0.1}
+                  strokeLinecap="round"
+                  strokeLinejoin="round"
+                  className="hidden dark:block"
+                />
+                <polyline
+                  points={points}
+                  fill="none"
+                  stroke={pair.dark.swatch}
+                  strokeWidth={2}
+                  strokeOpacity={0.28}
+                  strokeLinecap="round"
+                  strokeLinejoin="round"
+                  className="hidden dark:block"
+                />
+              </g>
             );
-          })
-        )}
+          })}
+        </svg>
       </div>
     </div>
   );
