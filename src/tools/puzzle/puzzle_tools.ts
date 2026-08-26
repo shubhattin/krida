@@ -1,29 +1,47 @@
 export type Coordinate = [number, number];
 export type Traversal = Coordinate[];
 
+/** Orthogonal neighbors (up, down, left, right). */
+export type GridNeighborhood = 'n4' | 'n8';
+
+export const GRID_DIRECTIONS_N4: readonly Coordinate[] = [
+  [-1, 0],
+  [1, 0],
+  [0, -1],
+  [0, 1]
+];
+
+/** All adjacent neighbors, including diagonals — how players swipe in the game. */
+export const GRID_DIRECTIONS_N8: readonly Coordinate[] = [
+  [-1, -1],
+  [-1, 0],
+  [-1, 1],
+  [0, -1],
+  [0, 1],
+  [1, -1],
+  [1, 0],
+  [1, 1]
+];
+
+export function neighborhoodDirections(neighborhood: GridNeighborhood): readonly Coordinate[] {
+  return neighborhood === 'n4' ? GRID_DIRECTIONS_N4 : GRID_DIRECTIONS_N8;
+}
+
 /**
  * Finds all possible ways to traverse the grid to form each word in the list.
  * Returns a map from word index to an array of traversals (each traversal is an array of coordinates).
+ *
+ * Defaults to 8-neighbor moves so results match live play (diagonal swipes allowed).
  */
 export function findAllTraversals(
   gridData: string[][],
   gridDimensions: [number, number],
-  wordList: string[]
+  wordList: string[],
+  neighborhood: GridNeighborhood = 'n8'
 ): Map<number, Traversal[]> {
   const [rows, cols] = gridDimensions;
   const result = new Map<number, Traversal[]>();
-
-  // All 8 directions
-  const directions: Coordinate[] = [
-    [-1, -1],
-    [-1, 0],
-    [-1, 1],
-    [0, -1],
-    [0, 1],
-    [1, -1],
-    [1, 0],
-    [1, 1]
-  ];
+  const directions = neighborhoodDirections(neighborhood);
 
   for (let wIdx = 0; wIdx < wordList.length; wIdx++) {
     const word = wordList[wIdx];

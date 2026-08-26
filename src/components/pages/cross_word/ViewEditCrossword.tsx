@@ -114,6 +114,13 @@ import { Badge } from '~/components/ui/badge';
 import { Checkbox } from '~/components/ui/checkbox';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '~/components/ui/tabs';
 import { isWordAdded } from '~/util/puzzle/word_list';
+import {
+  cellWordTintAppearance,
+  getWordColorPair,
+  wordColorCssVars,
+  wordColorSwatchClassName
+} from '~/util/puzzle/word_colors';
+import type { WordPlacementStatus } from '~/util/cross_word/placement';
 
 const BASE_SCRIPT = 'Devanagari';
 
@@ -126,6 +133,24 @@ type EditableWord = {
   direction: CrossWordPuzzleWord['direction'];
   added: boolean;
 };
+
+/**
+ * Soft word tint by slot index for uniquely resolved placements.
+ * Intersections keep the first word’s color (no conflict red — normal for crossword).
+ */
+function buildCrosswordCellWordSlots(
+  statuses: readonly WordPlacementStatus[]
+): Map<string, number> {
+  const slots = new Map<string, number>();
+  statuses.forEach((status, wordIndex) => {
+    if (status.status !== 'ok') return;
+    for (const [r, c] of status.placement.cells) {
+      const key = `${r},${c}`;
+      if (!slots.has(key)) slots.set(key, wordIndex);
+    }
+  });
+  return slots;
+}
 
 type EditableAttachment = Omit<z.infer<typeof attachment_schema>, 'id'> & {
   id: number | null;
@@ -673,6 +698,9 @@ const DimensionsField = () => {
 type CrosswordWordRowProps = {
   item: EditableWord;
   originalIndex: number;
+  /** Index among currently rendered rows (for ↑↓←→ navigation). */
+  listRowIndex: number;
+  listRowCount: number;
   showSelection: boolean;
   showRemove: boolean;
   startLabel: string;
@@ -684,9 +712,29 @@ type CrosswordWordRowProps = {
   onRemove: (index: number) => void;
 };
 
+type WordListField = 'word' | 'dev' | 'clue';
+const WORD_LIST_FIELDS: WordListField[] = ['word', 'dev', 'clue'];
+
+function focusWordListInput(
+  container: ParentNode,
+  row: number,
+  field: WordListField
+): HTMLInputElement | null {
+  const el = container.querySelector<HTMLInputElement>(
+    `input[data-wl-row="${row}"][data-wl-field="${field}"]`
+  );
+  if (!el) return null;
+  el.focus();
+  const end = el.value.length;
+  el.setSelectionRange(end, end);
+  return el;
+}
+
 function CrosswordWordRow({
   item,
   originalIndex,
+  listRowIndex,
+  listRowCount,
   showSelection,
   showRemove,
   startLabel,
@@ -705,6 +753,45 @@ function CrosswordWordRow({
   const missingWordDev = isAdded && hasLatinWord && item.word_dev.trim().length === 0;
   const missingClue = isAdded && hasLatinWord && item.description.trim().length === 0;
 
+  const handleListNavKeyDown = (event: KeyboardEvent<HTMLInputElement>, field: WordListField) => {
+    const container = event.currentTarget.closest('[data-word-list]');
+    if (!container) return;
+
+    const fieldIndex = WORD_LIST_FIELDS.indexOf(field);
+    const input = event.currentTarget;
+    const start = input.selectionStart ?? 0;
+    const end = input.selectionEnd ?? 0;
+    const atStart = start === 0 && end === 0;
+    const atEnd = start === input.value.length && end === input.value.length;
+
+    const moveTo = (row: number, nextField: WordListField) => {
+      if (focusWordListInput(container, row, nextField)) {
+        event.preventDefault();
+      }
+    };
+
+    if (event.key === 'ArrowUp' && listRowIndex > 0) {
+      moveTo(listRowIndex - 1, field);
+      return;
+    }
+    if (event.key === 'ArrowDown' && listRowIndex < listRowCount - 1) {
+      moveTo(listRowIndex + 1, field);
+      return;
+    }
+    if (event.key === 'ArrowLeft' && atStart) {
+      if (fieldIndex > 0) moveTo(listRowIndex, WORD_LIST_FIELDS[fieldIndex - 1]!);
+      else if (listRowIndex > 0) moveTo(listRowIndex - 1, 'clue');
+      return;
+    }
+    if (event.key === 'ArrowRight' && atEnd) {
+      if (fieldIndex < WORD_LIST_FIELDS.length - 1) {
+        moveTo(listRowIndex, WORD_LIST_FIELDS[fieldIndex + 1]!);
+      } else if (listRowIndex < listRowCount - 1) {
+        moveTo(listRowIndex + 1, 'word');
+      }
+    }
+  };
+
   return (
     <div
       className={cn(
@@ -721,8 +808,25 @@ function CrosswordWordRow({
             className="mt-2.5 shrink-0"
           />
         ) : null}
+        {/* Always-reserved swatch — matches grid tint, no layout shift */}
+        <span
+          aria-hidden
+          className={cn(
+            'mt-3 size-2.5 shrink-0 rounded-full sm:mt-2.5',
+            wordColorSwatchClassName,
+            !isAdded && 'opacity-50'
+          )}
+          style={wordColorCssVars(getWordColorPair(originalIndex))}
+          title={`Word color ${getWordColorPair(originalIndex).id}`}
+        />
         <Input
           value={item.word}
+          data-wl-row={listRowIndex}
+          data-wl-field="word"
+          spellCheck={false}
+          autoCorrect="off"
+          autoCapitalize="characters"
+          autoComplete="off"
           onChange={(e) =>
             onUpdate(originalIndex, {
               word: e.currentTarget.value.toUpperCase().replace(/[^A-Z]/g, '')
@@ -730,7 +834,9 @@ function CrosswordWordRow({
           }
           onFocus={wordHistoryField.onFocus}
           onBlur={wordHistoryField.onBlur}
+          onKeyDown={(event) => handleListNavKeyDown(event, 'word')}
           placeholder="WORD"
+          aria-label={`English word ${originalIndex + 1}`}
           className={cn(
             'min-w-0 flex-1 font-mono uppercase sm:w-44 sm:flex-none',
             !isAdded && 'opacity-60'
@@ -738,6 +844,8 @@ function CrosswordWordRow({
         />
         <Input
           value={item.word_dev}
+          data-wl-row={listRowIndex}
+          data-wl-field="dev"
           onChange={(e) => onUpdate(originalIndex, { word_dev: e.currentTarget.value })}
           onBeforeInput={(event) =>
             handleTypingBeforeInputEvent(
@@ -752,7 +860,10 @@ function CrosswordWordRow({
             typingContext.clearContext();
             wordDevHistoryField.onBlur();
           }}
-          onKeyDown={(event) => clearTypingContextOnKeyDown(event, typingContext)}
+          onKeyDown={(event) => {
+            clearTypingContextOnKeyDown(event, typingContext);
+            handleListNavKeyDown(event, 'dev');
+          }}
           placeholder="देवनागरी"
           required={isAdded && hasLatinWord}
           aria-invalid={missingWordDev || undefined}
@@ -769,12 +880,16 @@ function CrosswordWordRow({
       <div className="flex min-w-0 items-center gap-2 sm:contents">
         <Input
           value={item.description}
+          data-wl-row={listRowIndex}
+          data-wl-field="clue"
           onChange={(e) => onUpdate(originalIndex, { description: e.currentTarget.value })}
           onFocus={clueHistoryField.onFocus}
           onBlur={clueHistoryField.onBlur}
+          onKeyDown={(event) => handleListNavKeyDown(event, 'clue')}
           placeholder="Clue / description"
           required={isAdded && hasLatinWord}
           aria-invalid={missingClue || undefined}
+          aria-label={`Clue ${originalIndex + 1}`}
           className={cn(
             'min-w-0 flex-1',
             !isAdded && 'opacity-60',
@@ -878,6 +993,28 @@ function GeneratedLayoutPreview({ candidate }: { candidate: GeneratedCrosswordLa
   const fontSizePx = Math.max(8, Math.min(12, cellPx - 4));
   const rangeLabel = `${formatGridCellRef(firstRow, firstColumn)}–${formatGridCellRef(lastRow, lastColumn)}`;
 
+  // Color by placement order; first word wins on intersections
+  const previewTintByLocalKey = new Map<string, number>();
+  candidate.placements.forEach((placement, placementIndex) => {
+    let [r, c] = placement.location;
+    while (
+      r >= 0 &&
+      c >= 0 &&
+      r < candidate.gridData.length &&
+      c < (candidate.gridData[0]?.length ?? 0) &&
+      cellHasLetter(candidate.gridData[r]![c]!)
+    ) {
+      if (r >= firstRow && r <= lastRow && c >= firstColumn && c <= lastColumn) {
+        const localKey = `${r - firstRow},${c - firstColumn}`;
+        if (!previewTintByLocalKey.has(localKey)) {
+          previewTintByLocalKey.set(localKey, placementIndex);
+        }
+      }
+      if (placement.direction === 'horizontal') c += 1;
+      else r += 1;
+    }
+  });
+
   return (
     <div
       className="flex shrink-0 items-center justify-center rounded-md border border-border/60 bg-muted/20 p-1"
@@ -895,25 +1032,33 @@ function GeneratedLayoutPreview({ candidate }: { candidate: GeneratedCrosswordLa
         }}
       >
         {previewRows.flatMap((row, rowIndex) =>
-          row.map((cell, columnIndex) => (
-            <span
-              key={`${rowIndex}-${columnIndex}`}
-              className={cn(
-                'flex items-center justify-center overflow-hidden font-mono leading-none font-semibold',
-                cellHasLetter(cell)
-                  ? 'bg-blue-50 text-foreground dark:bg-blue-950/50'
-                  : 'bg-popover text-transparent'
-              )}
-              style={{
-                width: cellPx,
-                height: cellPx,
-                fontSize: fontSizePx,
-                lineHeight: 1
-              }}
-            >
-              {cell.text}
-            </span>
-          ))
+          row.map((cell, columnIndex) => {
+            const hasLetter = cellHasLetter(cell);
+            const slotIndex = previewTintByLocalKey.get(`${rowIndex},${columnIndex}`);
+            const tint =
+              hasLetter && slotIndex !== undefined
+                ? cellWordTintAppearance({ slotIndex, conflict: false })
+                : { className: '', style: undefined };
+            return (
+              <span
+                key={`${rowIndex}-${columnIndex}`}
+                className={cn(
+                  'flex items-center justify-center overflow-hidden font-mono leading-none font-semibold',
+                  hasLetter ? 'bg-background text-foreground' : 'bg-popover text-transparent',
+                  tint.className
+                )}
+                style={{
+                  width: cellPx,
+                  height: cellPx,
+                  fontSize: fontSizePx,
+                  lineHeight: 1,
+                  ...tint.style
+                }}
+              >
+                {cell.text}
+              </span>
+            );
+          })
         )}
       </div>
     </div>
@@ -924,12 +1069,14 @@ function WordChipList({
   ids,
   wordNames,
   emptyLabel,
-  tone = 'default'
+  tone = 'default',
+  colorById
 }: {
   ids: readonly string[];
   wordNames: ReadonlyMap<string, string>;
   emptyLabel: string;
   tone?: 'default' | 'warning';
+  colorById?: ReadonlyMap<string, number>;
 }) {
   if (ids.length === 0) {
     return <p className="text-xs text-muted-foreground">{emptyLabel}</p>;
@@ -937,21 +1084,32 @@ function WordChipList({
 
   return (
     <div className="flex flex-wrap gap-1.5">
-      {ids.map((id) => (
-        <Badge
-          key={id}
-          variant="outline"
-          className={cn(
-            'max-w-full font-mono normal-case',
-            tone === 'warning' &&
-              'border-amber-500/40 bg-amber-500/10 text-amber-800 dark:text-amber-200'
-          )}
-        >
-          <span className="truncate">
-            {wordNames.get(id)?.trim().toUpperCase() || 'Untitled word'}
-          </span>
-        </Badge>
-      ))}
+      {ids.map((id) => {
+        const colorIndex = colorById?.get(id);
+        const colorPair = colorIndex !== undefined ? getWordColorPair(colorIndex) : null;
+        return (
+          <Badge
+            key={id}
+            variant="outline"
+            className={cn(
+              'max-w-full gap-1.5 font-mono normal-case',
+              tone === 'warning' &&
+                'border-amber-500/40 bg-amber-500/10 text-amber-800 dark:text-amber-200'
+            )}
+          >
+            {tone === 'default' && colorPair ? (
+              <span
+                aria-hidden
+                className={cn('size-2 shrink-0 rounded-full', wordColorSwatchClassName)}
+                style={wordColorCssVars(colorPair)}
+              />
+            ) : null}
+            <span className="truncate">
+              {wordNames.get(id)?.trim().toUpperCase() || 'Untitled word'}
+            </span>
+          </Badge>
+        );
+      })}
     </div>
   );
 }
@@ -963,6 +1121,14 @@ function LayoutCandidateDetail({
   candidate: GeneratedCrosswordLayout;
   wordNames: ReadonlyMap<string, string>;
 }) {
+  const colorById = useMemo(() => {
+    const map = new Map<string, number>();
+    candidate.placements.forEach((placement, index) => {
+      map.set(placement.id, index);
+    });
+    return map;
+  }, [candidate.placements]);
+
   return (
     <div className="flex flex-col gap-4 sm:flex-row sm:items-start">
       <GeneratedLayoutPreview candidate={candidate} />
@@ -978,6 +1144,7 @@ function LayoutCandidateDetail({
             ids={candidate.placedIds}
             wordNames={wordNames}
             emptyLabel="No words placed in this layout."
+            colorById={colorById}
           />
         </div>
         {candidate.omittedIds.length > 0 ? (
@@ -1456,9 +1623,12 @@ const WordListEditor = () => {
     rows: readonly { item: EditableWord; originalIndex: number }[],
     { showSelection, showRemove }: { showSelection: boolean; showRemove: boolean }
   ) => (
-    <div className="max-h-80 overflow-y-auto overscroll-contain pr-1">
+    <div className="max-h-80 overflow-y-auto overscroll-contain pr-1" data-word-list>
+      <p className="mb-2 hidden text-xs text-muted-foreground/80 sm:block">
+        Navigate fields with the arrow keys (↑ ↓ ← →)
+      </p>
       <div className="flex flex-col gap-3 sm:gap-2">
-        {rows.map(({ item, originalIndex }) => {
+        {rows.map(({ item, originalIndex }, listRowIndex) => {
           const status = analysis.statuses[originalIndex];
           const startLabel =
             status?.status === 'ok'
@@ -1476,6 +1646,8 @@ const WordListEditor = () => {
               key={item.id}
               item={item}
               originalIndex={originalIndex}
+              listRowIndex={listRowIndex}
+              listRowCount={rows.length}
               showSelection={showSelection}
               showRemove={showRemove}
               startLabel={startLabel}
@@ -1544,11 +1716,19 @@ const PlacementAndGrid = () => {
   const [dimensions] = useAtom(grid_dimensions_atom);
 
   const analysis = useMemo(() => analyzeWordPlacements(gridData, wordList), [gridData, wordList]);
+  const cellWordSlots = useMemo(
+    () => buildCrosswordCellWordSlots(analysis.statuses),
+    [analysis.statuses]
+  );
 
   return (
     <>
       <PlacementAnalysisPanel analysis={analysis} />
-      <GridEditor occupiedCells={analysis.occupiedCells} dimensions={dimensions} />
+      <GridEditor
+        occupiedCells={analysis.occupiedCells}
+        cellWordSlots={cellWordSlots}
+        dimensions={dimensions}
+      />
     </>
   );
 };
@@ -1726,9 +1906,11 @@ const PlacementAnalysisPanel = ({
 
 const GridEditor = ({
   occupiedCells,
+  cellWordSlots,
   dimensions
 }: {
   occupiedCells: Set<string>;
+  cellWordSlots: Map<string, number>;
   dimensions: [number, number];
 }) => {
   const [gridData, setGridData] = useAtom(grid_data_atom);
@@ -1771,6 +1953,7 @@ const GridEditor = ({
     );
     if (!el) return false;
     el.focus();
+    // Single-letter cells — select all so typing replaces immediately
     el.select();
     return true;
   };
@@ -1805,34 +1988,49 @@ const GridEditor = ({
     }
   };
 
-  const getCellClassName = (r: number, c: number) => {
+  const getCellAppearance = (r: number, c: number) => {
     const cell = gridData[r]?.[c];
-    if (!cell) return '';
+    if (!cell) return { className: '', style: undefined };
     const isBox = isBoxCell(cell);
     const hasLetter = cellHasLetter(cell);
     const isVisible = hasLetter && cell.is_visible;
     const isOccupied = occupiedCells.has(`${r},${c}`);
+    const slotIndex = cellWordSlots.get(`${r},${c}`);
+    // Soft word fill (background only) — status stays on border/ring
+    const tint =
+      !isBox && slotIndex !== undefined
+        ? cellWordTintAppearance({ slotIndex, conflict: false })
+        : { className: '', style: undefined };
 
-    return cn(
-      // Override default Input border/focus (often bluish) with explicit state rings.
-      'h-9 rounded border bg-transparent px-0 text-center font-mono text-sm uppercase shadow-none transition-all duration-200',
-      'focus-visible:ring-2 focus-visible:ring-offset-0',
-      isBox &&
-        'border-transparent bg-muted/50 text-muted-foreground focus-visible:ring-muted-foreground/30',
-      // Prefilled hint → green
-      isVisible &&
-        'border-emerald-500 bg-emerald-50/80 focus-visible:ring-emerald-500/40 dark:border-emerald-400 dark:bg-emerald-950/40',
-      // Covered by a word, not prefilled → Padavali-style blue
-      hasLetter &&
-        !isVisible &&
-        isOccupied &&
-        'border-blue-300/80 focus-visible:ring-blue-400/30 dark:border-blue-500/60',
-      // Letter not covered by any word → white (orphan)
-      hasLetter &&
-        !isVisible &&
-        !isOccupied &&
-        'border-white focus-visible:ring-white/40 dark:border-white/70'
-    );
+    return {
+      className: cn(
+        // Override default Input border/focus (often bluish) with explicit state rings.
+        'h-9 rounded border bg-transparent px-0 text-center font-mono text-sm uppercase shadow-none transition-all duration-200',
+        'focus-visible:ring-2 focus-visible:ring-offset-0',
+        isBox &&
+          'border-transparent bg-muted/50 text-muted-foreground focus-visible:ring-muted-foreground/30',
+        // Prefilled hint → strong green frame only (do not alter word tint background)
+        isVisible &&
+          cn(
+            'border-2 border-emerald-500',
+            'ring-2 ring-emerald-400/65',
+            'focus-visible:ring-emerald-400/80',
+            'dark:border-emerald-400 dark:ring-emerald-400/55'
+          ),
+        // Covered by a word, not prefilled → blue border/ring
+        hasLetter &&
+          !isVisible &&
+          isOccupied &&
+          'border-blue-300/80 focus-visible:ring-blue-400/30 dark:border-blue-500/60',
+        // Letter not covered by any word → white (orphan)
+        hasLetter &&
+          !isVisible &&
+          !isOccupied &&
+          'border-white focus-visible:ring-white/40 dark:border-white/70',
+        tint.className
+      ),
+      style: tint.style
+    };
   };
 
   return (
@@ -1850,7 +2048,7 @@ const GridEditor = ({
         on a letter to mark it as prefilled (soft-keyboard Enter works too).
       </p>
       <p className="hidden text-xs text-muted-foreground/80 sm:block">
-        Navigate the grid with the arrow keys (↑ ↓ ← →)
+        Navigate the grid with the arrow keys (↑ ↓ ← →). Soft cell colors match each word.
       </p>
       <div
         ref={gridRef}
@@ -1875,6 +2073,7 @@ const GridEditor = ({
             {row.map((cell, c) => {
               const isBox = isBoxCell(cell);
               const cellRef = formatGridCellRef(r, c);
+              const { className, style } = getCellAppearance(r, c);
 
               return (
                 <Input
@@ -1890,7 +2089,8 @@ const GridEditor = ({
                   onKeyDown={(e) => handleCellKeyDown(r, c, e)}
                   onFocus={historyField.onFocus}
                   onBlur={historyField.onBlur}
-                  className={getCellClassName(r, c)}
+                  className={className}
+                  style={style}
                   maxLength={2}
                   aria-label={
                     isBox
@@ -1907,16 +2107,19 @@ const GridEditor = ({
       </div>
       <div className="flex flex-wrap gap-x-5 gap-y-2 text-[11px] text-muted-foreground">
         <div className="flex h-3 items-center gap-1.5">
-          <div className="size-2 shrink-0 rounded-full bg-emerald-500" aria-hidden />
+          <div
+            className="size-2.5 shrink-0 rounded-full bg-emerald-500 ring-2 ring-emerald-400/70"
+            aria-hidden
+          />
           <span className="leading-none">Prefilled</span>
         </div>
         <div className="flex h-3 items-center gap-1.5">
           <div className="size-2 shrink-0 rounded-full bg-blue-400 dark:bg-blue-500" aria-hidden />
-          <span className="leading-none">In a word</span>
+          <span className="leading-none">In a word (border)</span>
         </div>
         <div className="flex h-3 items-center gap-1.5">
           <div className="size-2 shrink-0 rounded-full bg-white" aria-hidden />
-          <span className="leading-none">Not in any word</span>
+          <span className="leading-none">Not in any word (border)</span>
         </div>
       </div>
     </div>

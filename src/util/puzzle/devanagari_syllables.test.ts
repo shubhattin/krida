@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import { countDevanagariAksharas } from './devanagari_syllables';
+import { countDevanagariAksharas, splitDevanagariAksharas } from './devanagari_syllables';
 
 describe('countDevanagariAksharas', () => {
   it.each([
@@ -36,5 +36,12 @@ describe('countDevanagariAksharas', () => {
     ['ॷ', 1]
   ])('counts %s as %i akṣaras', (word, expected) => {
     expect(countDevanagariAksharas(word)).toBe(expected);
+    expect(splitDevanagariAksharas(word)).toHaveLength(expected);
+  });
+
+  it('splits conjuncts into the same units used for counting', () => {
+    expect(splitDevanagariAksharas('गङ्गा')).toEqual(['ग', 'ङ्गा']);
+    expect(splitDevanagariAksharas('शक्तिः')).toEqual(['श', 'क्तिः']);
+    expect(splitDevanagariAksharas('राम')).toEqual(['रा', 'म']);
   });
 });
