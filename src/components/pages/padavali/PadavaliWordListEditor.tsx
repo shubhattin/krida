@@ -18,6 +18,11 @@ import { cn } from '~/lib/utils';
 import type { PadavaliWordCandidate } from '~/util/puzzle/word_list';
 import { isWordAdded } from '~/util/puzzle/word_list';
 import { countDevanagariAksharas } from '~/util/puzzle/devanagari_syllables';
+import {
+  getWordColorPair,
+  wordColorCssVars,
+  wordColorSwatchClassName
+} from '~/util/puzzle/word_colors';
 
 const BASE_SCRIPT = 'Devanagari';
 
@@ -53,6 +58,8 @@ function WordCandidateRow({
   const syllableCount = countDevanagariAksharas(entry.word);
   const isAdded = isWordAdded(entry);
 
+  const colorPair = getWordColorPair(originalIndex);
+
   return (
     <div className={cn('flex min-w-0 items-center gap-2', !isAdded && 'opacity-60')}>
       {showSelection ? (
@@ -62,6 +69,13 @@ function WordCandidateRow({
           aria-label={isAdded ? 'Exclude word from puzzle' : 'Include word in puzzle'}
         />
       ) : null}
+      {/* Always-reserved swatch — avoids layout shift when colors apply */}
+      <span
+        aria-hidden
+        className={cn('size-2.5 shrink-0 rounded-full', wordColorSwatchClassName)}
+        style={wordColorCssVars(colorPair)}
+        title={`Word color ${colorPair.id}`}
+      />
       <Input
         type="text"
         className="min-w-0 flex-1 text-base"
@@ -175,7 +189,7 @@ function SyllableSummary({ wordList, gridDimensions }: SyllableSummaryProps) {
       <Badge
         variant={isOver ? 'outline' : 'secondary'}
         className={cn(
-          'tabular-nums gap-1.5',
+          'gap-1.5 tabular-nums',
           isOver &&
             'border-amber-300 bg-amber-100 text-amber-800 dark:border-amber-600 dark:bg-amber-950 dark:text-amber-200'
         )}

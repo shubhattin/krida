@@ -92,6 +92,15 @@ import {
 } from '~/hooks/useEditorHistory';
 import { padavaliActiveWords } from '~/util/puzzle/word_list';
 import { PadavaliWordListEditor } from '~/components/pages/padavali/PadavaliWordListEditor';
+import {
+  buildCellWordColorMap,
+  getActiveNonEmptyWordSlotIndices,
+  getWordColorPair,
+  WORD_COLOR_CONFLICT,
+  wordColorCssVars,
+  wordColorTintClassName,
+  type CellWordColorInfo
+} from '~/util/puzzle/word_colors';
 
 const ATTACHMENT_TYPE_ITEMS = [
   { label: 'Select attachment type', value: null },
@@ -560,6 +569,11 @@ const TraversalAndGridData = ({ grid_dimensions }: { grid_dimensions: [number, n
     grid_dimensions
   );
 
+  const cellColorMap =
+    gridData.length === 0 || wordList.length === 0
+      ? new Map<string, CellWordColorInfo>()
+      : buildCellWordColorMap(traversalsMap, getActiveNonEmptyWordSlotIndices(wordList));
+
   return (
     <>
       <TraversalAnalysis
@@ -568,7 +582,7 @@ const TraversalAndGridData = ({ grid_dimensions }: { grid_dimensions: [number, n
         validWords={validWords}
         occupiedCells={occupiedCells}
       />
-      <GridData grid_dimensions={grid_dimensions} occupiedCells={occupiedCells} />
+      <GridData grid_dimensions={grid_dimensions} cellColorMap={cellColorMap} />
     </>
   );
 };
@@ -946,31 +960,16 @@ const WordList = ({ gridDimensions }: { gridDimensions: [number, number] }) => {
 
 const GridData = ({
   grid_dimensions,
-  occupiedCells
+  cellColorMap
 }: {
   grid_dimensions: [number, number];
-  occupiedCells: Set<Coordinate>;
+  cellColorMap: Map<string, CellWordColorInfo>;
 }) => {
   const [gridData, setGridData] = useAtom(grid_data_atom);
-  const [wordList] = useAtom(word_list_atom);
   const [rows, cols] = grid_dimensions;
   const [lipi_lekhika_active] = useAtom(lipi_lekhika_active_atom);
   const historyField = useHistoryTextField();
   const gridRef = useRef<HTMLDivElement>(null);
-
-  const occupiedCellsStrList = (() => {
-    if (gridData.length === 0 || wordList.length === 0) {
-      return new Set<string>();
-    }
-
-    const occupiedCellsCoords = occupiedCells;
-
-    const occupiedCellsSet = new Set<string>();
-    for (const [r, c] of occupiedCellsCoords) {
-      occupiedCellsSet.add(`${r},${c}`);
-    }
-    return occupiedCellsSet;
-  })();
 
   const updateCell = (r: number, c: number, value: string) => {
     setGridData((prev) => {
@@ -988,7 +987,8 @@ const GridData = ({
     );
     if (!el) return false;
     el.focus();
-    el.select();
+    const end = el.value.length;
+    el.setSelectionRange(end, end);
     return true;
   };
 
@@ -1016,13 +1016,26 @@ const GridData = ({
     }
   };
 
-  const getCellClassName = (r: number, c: number) => {
-    const isOccupied = occupiedCellsStrList.has(`${r},${c}`);
-    return `rounded text-center transition-all duration-200 ${
-      isOccupied
-        ? 'ring-1 ring-blue-300 ring-opacity-50 shadow-sm dark:ring-blue-500 dark:ring-opacity-40'
-        : ''
-    }`;
+  const getCellAppearance = (r: number, c: number) => {
+    const info = cellColorMap.get(`${r},${c}`);
+    const focusClassName = cn(
+      'rounded text-center transition-colors duration-200',
+      // Distinct focus highlighter — stays readable over soft word tints
+      'focus-visible:z-10 focus-visible:border-foreground/50',
+      'focus-visible:ring-2 focus-visible:ring-foreground/55 focus-visible:ring-offset-2',
+      'focus-visible:ring-offset-background',
+      'dark:focus-visible:border-white/70 dark:focus-visible:ring-white/65'
+    );
+
+    if (!info) {
+      return { className: focusClassName, style: undefined };
+    }
+
+    const pair = info.conflict ? WORD_COLOR_CONFLICT : getWordColorPair(info.slotIndex);
+    return {
+      className: cn(focusClassName, wordColorTintClassName),
+      style: wordColorCssVars(pair)
+    };
   };
 
   return (
@@ -1037,32 +1050,36 @@ const GridData = ({
         style={{ gridTemplateColumns: `repeat(${cols}, minmax(0, 1fr))` }}
       >
         {gridData.map((row, r) =>
-          row.map((cell, c) => (
-            <Input
-              key={`${r}-${c}`}
-              type="text"
-              data-grid-r={r}
-              data-grid-c={c}
-              className={getCellClassName(r, c)}
-              minLength={1}
-              value={cell}
-              onChange={(e) => updateCell(r, c, e.currentTarget.value)}
-              onBeforeInput={(e) =>
-                handleTypingBeforeInputEvent(
-                  ctx,
-                  e,
-                  (newValue) => updateCell(r, c, newValue),
-                  lipi_lekhika_active
-                )
-              }
-              onFocus={historyField.onFocus}
-              onBlur={() => {
-                ctx.clearContext();
-                historyField.onBlur();
-              }}
-              onKeyDown={(e) => handleCellKeyDown(r, c, e)}
-            />
-          ))
+          row.map((cell, c) => {
+            const { className, style } = getCellAppearance(r, c);
+            return (
+              <Input
+                key={`${r}-${c}`}
+                type="text"
+                data-grid-r={r}
+                data-grid-c={c}
+                className={className}
+                style={style}
+                minLength={1}
+                value={cell}
+                onChange={(e) => updateCell(r, c, e.currentTarget.value)}
+                onBeforeInput={(e) =>
+                  handleTypingBeforeInputEvent(
+                    ctx,
+                    e,
+                    (newValue) => updateCell(r, c, newValue),
+                    lipi_lekhika_active
+                  )
+                }
+                onFocus={historyField.onFocus}
+                onBlur={() => {
+                  ctx.clearContext();
+                  historyField.onBlur();
+                }}
+                onKeyDown={(e) => handleCellKeyDown(r, c, e)}
+              />
+            );
+          })
         )}
       </div>
     </div>
