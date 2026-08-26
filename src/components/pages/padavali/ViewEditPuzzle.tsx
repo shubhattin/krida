@@ -681,7 +681,7 @@ const TraversalAnalysis = ({
   }
 
   return (
-    <AnimatePresence mode="wait">
+    <AnimatePresence>
       {analysisResult.warnings.length > 0 && (
         <motion.div
           key="warnings"

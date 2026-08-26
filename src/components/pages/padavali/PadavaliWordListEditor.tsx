@@ -7,6 +7,7 @@ import {
   createTypingContext,
   handleTypingBeforeInputEvent
 } from 'lipilekhika/typing';
+import { AlertTriangle } from 'lucide-react';
 import { Badge } from '~/components/ui/badge';
 import { Button } from '~/components/ui/button';
 import { Checkbox } from '~/components/ui/checkbox';
@@ -162,14 +163,28 @@ function SyllableSummary({ wordList, gridDimensions }: SyllableSummaryProps) {
     0
   );
   const remaining = capacity - addedSyllables;
+  const isOver = remaining < 0;
 
   return (
-    <div className="flex flex-wrap items-center gap-2 text-sm text-muted-foreground">
-      <Badge variant={remaining < 0 ? 'destructive' : 'secondary'} className="tabular-nums">
+    <div
+      className={cn(
+        'flex flex-wrap items-center gap-2 text-sm',
+        isOver ? 'text-amber-700 dark:text-amber-300' : 'text-muted-foreground'
+      )}
+    >
+      <Badge
+        variant={isOver ? 'outline' : 'secondary'}
+        className={cn(
+          'tabular-nums gap-1.5',
+          isOver &&
+            'border-amber-300 bg-amber-100 text-amber-800 dark:border-amber-600 dark:bg-amber-950 dark:text-amber-200'
+        )}
+      >
+        {isOver ? <AlertTriangle className="size-3.5 shrink-0" /> : null}
         Added syllables: {addedSyllables} / {capacity}
       </Badge>
-      <span className="tabular-nums">
-        {remaining < 0 ? `${Math.abs(remaining)} over capacity` : `${remaining} remaining`}
+      <span className={cn('tabular-nums', isOver && 'font-medium')}>
+        {isOver ? `${Math.abs(remaining)} over capacity` : `${remaining} remaining`}
       </span>
     </div>
   );
@@ -216,6 +231,7 @@ export function PadavaliWordListEditor({
         </TabsList>
         <TabsContent value="added">
           <div className="flex flex-col gap-3">
+            <SyllableSummary wordList={wordList} gridDimensions={gridDimensions} />
             <WordCandidateList
               candidates={addedCandidates}
               layout="grid"
@@ -223,7 +239,7 @@ export function PadavaliWordListEditor({
               lipiLekhikaActive={lipiLekhikaActive}
               showSelection={false}
               showRemove={false}
-              showSyllableCount={false}
+              showSyllableCount
               onRemove={onRemoveWord}
               onUpdateWord={onUpdateWord}
               onToggleAdded={onToggleAdded}
