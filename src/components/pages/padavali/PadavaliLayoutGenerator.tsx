@@ -495,11 +495,26 @@ export function PadavaliLayoutGenerator({
       >
         <DialogContent className="flex max-h-[min(90vh,52rem)] flex-col gap-0 overflow-hidden p-0 sm:max-w-3xl">
           <DialogHeader className="shrink-0 gap-1.5 px-4 pt-4 pr-12 pb-3">
-            <DialogTitle>Generate grid layouts</DialogTitle>
-            <DialogDescription>
-              Browse candidates for the current grid size. Choosing one replaces the grid; words
-              that do not fit stay in your list.
-            </DialogDescription>
+            <div className="flex items-start justify-between gap-3">
+              <div className="flex min-w-0 flex-col gap-1.5">
+                <DialogTitle>Generate grid layouts</DialogTitle>
+                <DialogDescription>
+                  Browse candidates for the current grid size. Choosing one replaces the grid; words
+                  that do not fit stay in your list.
+                </DialogDescription>
+              </div>
+              <Button
+                type="button"
+                variant="outline"
+                size="sm"
+                className="shrink-0"
+                onClick={() => {
+                  runGeneration();
+                }}
+              >
+                Generate again
+              </Button>
+            </div>
           </DialogHeader>
 
           <div className="shrink-0 border-b border-border bg-muted/20 px-4 py-3">
@@ -682,15 +697,6 @@ export function PadavaliLayoutGenerator({
 
           <DialogFooter className="shrink-0 border-t border-border px-4 py-3">
             <div className="flex w-full flex-wrap justify-end gap-2">
-              <Button
-                type="button"
-                variant="outline"
-                onClick={() => {
-                  runGeneration();
-                }}
-              >
-                Generate again
-              </Button>
               <Button variant="outline" onClick={() => setOpen(false)}>
                 Cancel
               </Button>
