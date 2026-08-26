@@ -1,6 +1,6 @@
 'use client';
 
-import { useEffect, useMemo } from 'react';
+import { useEffect, useMemo, type ReactNode } from 'react';
 import { IoMdAdd, IoMdClose } from 'react-icons/io';
 import {
   clearTypingContextOnKeyDown,
@@ -212,6 +212,7 @@ export type PadavaliWordListEditorProps = {
   onRemoveWord: (index: number) => void;
   onUpdateWord: (index: number, value: string) => void;
   onToggleAdded: (index: number, added: boolean) => void;
+  addedWordsActions?: ReactNode;
 };
 
 export function PadavaliWordListEditor({
@@ -221,7 +222,8 @@ export function PadavaliWordListEditor({
   onAddWord,
   onRemoveWord,
   onUpdateWord,
-  onToggleAdded
+  onToggleAdded,
+  addedWordsActions
 }: PadavaliWordListEditorProps) {
   const typingContext = useMemo(() => createTypingContext(BASE_SCRIPT), []);
   const fullCandidates = wordList.map((entry, originalIndex) => ({ entry, originalIndex }));
@@ -258,10 +260,19 @@ export function PadavaliWordListEditor({
               onUpdateWord={onUpdateWord}
               onToggleAdded={onToggleAdded}
             />
-            <Button type="button" variant="outline" size="sm" className="w-fit" onClick={onAddWord}>
-              <IoMdAdd data-icon="inline-start" />
-              Add Word Slot
-            </Button>
+            <div className="flex flex-wrap gap-2">
+              <Button
+                type="button"
+                variant="outline"
+                size="sm"
+                className="w-fit"
+                onClick={onAddWord}
+              >
+                <IoMdAdd data-icon="inline-start" />
+                Add Word Slot
+              </Button>
+              {addedWordsActions}
+            </div>
           </div>
         </TabsContent>
         <TabsContent value="edit">

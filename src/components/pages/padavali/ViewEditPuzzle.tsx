@@ -92,13 +92,11 @@ import {
 } from '~/hooks/useEditorHistory';
 import { padavaliActiveWords } from '~/util/puzzle/word_list';
 import { PadavaliWordListEditor } from '~/components/pages/padavali/PadavaliWordListEditor';
+import { PadavaliLayoutGenerator } from '~/components/pages/padavali/PadavaliLayoutGenerator';
 import {
   buildCellWordColorMap,
+  cellWordTintAppearance,
   getActiveNonEmptyWordSlotIndices,
-  getWordColorPair,
-  WORD_COLOR_CONFLICT,
-  wordColorCssVars,
-  wordColorTintClassName,
   type CellWordColorInfo
 } from '~/util/puzzle/word_colors';
 
@@ -569,10 +567,13 @@ const TraversalAndGridData = ({ grid_dimensions }: { grid_dimensions: [number, n
     grid_dimensions
   );
 
+  const uniqueTraversalsMap = new Map(
+    [...traversalsMap.entries()].filter(([, traversals]) => traversals.length === 1)
+  );
   const cellColorMap =
     gridData.length === 0 || wordList.length === 0
       ? new Map<string, CellWordColorInfo>()
-      : buildCellWordColorMap(traversalsMap, getActiveNonEmptyWordSlotIndices(wordList));
+      : buildCellWordColorMap(uniqueTraversalsMap, getActiveNonEmptyWordSlotIndices(wordList));
 
   return (
     <>
@@ -926,6 +927,7 @@ const TraversalAnalysis = ({
 
 const WordList = ({ gridDimensions }: { gridDimensions: [number, number] }) => {
   const [wordList, setWordList] = useAtom(word_list_atom);
+  const [, setGridData] = useAtom(grid_data_atom);
   const [lipi_lekhika_active] = useAtom(lipi_lekhika_active_atom);
   const { commit } = useEditorHistoryActions();
 
@@ -954,6 +956,24 @@ const WordList = ({ gridDimensions }: { gridDimensions: [number, number] }) => {
       onRemoveWord={removeWord}
       onUpdateWord={updateWord}
       onToggleAdded={toggleAdded}
+      addedWordsActions={
+        <PadavaliLayoutGenerator
+          wordList={wordList}
+          gridDimensions={gridDimensions}
+          onApply={(layout) => {
+            setGridData(layout.gridData);
+            if (layout.omittedSlotIndices.length > 0) {
+              const omitted = new Set(layout.omittedSlotIndices);
+              setWordList((prev) =>
+                prev.map((entry, index) =>
+                  omitted.has(index) ? { ...entry, added: false } : entry
+                )
+              );
+            }
+            commit();
+          }}
+        />
+      }
     />
   );
 };
@@ -1017,24 +1037,18 @@ const GridData = ({
   };
 
   const getCellAppearance = (r: number, c: number) => {
-    const info = cellColorMap.get(`${r},${c}`);
-    const focusClassName = cn(
-      'rounded text-center transition-colors duration-200',
-      // Distinct focus highlighter — stays readable over soft word tints
-      'focus-visible:z-10 focus-visible:border-foreground/50',
-      'focus-visible:ring-2 focus-visible:ring-foreground/55 focus-visible:ring-offset-2',
-      'focus-visible:ring-offset-background',
-      'dark:focus-visible:border-white/70 dark:focus-visible:ring-white/65'
-    );
-
-    if (!info) {
-      return { className: focusClassName, style: undefined };
-    }
-
-    const pair = info.conflict ? WORD_COLOR_CONFLICT : getWordColorPair(info.slotIndex);
+    const tint = cellWordTintAppearance(cellColorMap.get(`${r},${c}`));
     return {
-      className: cn(focusClassName, wordColorTintClassName),
-      style: wordColorCssVars(pair)
+      className: cn(
+        'rounded text-center transition-colors duration-200',
+        // Distinct focus highlighter — stays readable over soft word tints
+        'focus-visible:z-10 focus-visible:border-foreground/50',
+        'focus-visible:ring-2 focus-visible:ring-foreground/55 focus-visible:ring-offset-2',
+        'focus-visible:ring-offset-background',
+        'dark:focus-visible:border-white/70 dark:focus-visible:ring-white/65',
+        tint.className
+      ),
+      style: tint.style
     };
   };
 

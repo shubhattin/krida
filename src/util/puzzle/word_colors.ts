@@ -155,6 +155,21 @@ export function buildCellWordColorMap(
   return result;
 }
 
+/** Color map from known placement paths (no path rediscovery). */
+export function buildCellWordColorMapFromPlacements(
+  placements: readonly { slotIndex: number; path: readonly (readonly [number, number])[] }[]
+): Map<string, CellWordColorInfo> {
+  const traversalsMap = new Map<number, readonly (readonly [number, number][])[]>();
+  const slotIndices: number[] = [];
+  for (let index = 0; index < placements.length; index += 1) {
+    const placement = placements[index]!;
+    slotIndices.push(placement.slotIndex);
+    const path = placement.path.map(([row, col]) => [row, col] as [number, number]);
+    traversalsMap.set(index, [path]);
+  }
+  return buildCellWordColorMap(traversalsMap, slotIndices);
+}
+
 /** CSS custom properties so light/dark follow the `dark` class without JS theme reads. */
 export function wordColorCssVars(pair: WordColorPair): CSSProperties {
   return {
@@ -167,6 +182,21 @@ export function wordColorCssVars(pair: WordColorPair): CSSProperties {
 
 /** Soft fill — `!` so it reliably overrides Input `dark:bg-input/30`. */
 export const wordColorTintClassName = '!bg-[var(--word-tint)] dark:!bg-[var(--word-tint-dark)]';
+
+/** Tint class + CSS vars for a grid cell, shared by the editor and layout previews. */
+export function cellWordTintAppearance(info: CellWordColorInfo | undefined): {
+  className: string;
+  style: CSSProperties | undefined;
+} {
+  if (!info) {
+    return { className: '', style: undefined };
+  }
+  const pair = info.conflict ? WORD_COLOR_CONFLICT : getWordColorPair(info.slotIndex);
+  return {
+    className: wordColorTintClassName,
+    style: wordColorCssVars(pair)
+  };
+}
 
 export const wordColorSwatchClassName =
   '!bg-[var(--word-swatch)] dark:!bg-[var(--word-swatch-dark)]';

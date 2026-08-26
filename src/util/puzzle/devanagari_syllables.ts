@@ -62,14 +62,14 @@ function consumeAkshara(characters: readonly string[], start: number): number {
 }
 
 /**
- * Returns the number of Devanagari akṣaras in `text`.
+ * Splits `text` into Devanagari akṣaras (one grid cell each).
  *
  * Whitespace, punctuation, non-Devanagari characters, and unattached combining
- * marks are ignored so unfinished editor input never produces a phantom count.
+ * marks are ignored so unfinished editor input never produces a phantom unit.
  */
-export function countDevanagariAksharas(text: string): number {
+export function splitDevanagariAksharas(text: string): string[] {
   const characters = Array.from(text.normalize('NFC'));
-  let count = 0;
+  const syllables: string[] = [];
 
   for (let index = 0; index < characters.length;) {
     const character = characters[index]!;
@@ -78,9 +78,20 @@ export function countDevanagariAksharas(text: string): number {
       continue;
     }
 
-    count += 1;
-    index = consumeAkshara(characters, index);
+    const end = consumeAkshara(characters, index);
+    syllables.push(characters.slice(index, end).join(''));
+    index = end;
   }
 
-  return count;
+  return syllables;
+}
+
+/**
+ * Returns the number of Devanagari akṣaras in `text`.
+ *
+ * Whitespace, punctuation, non-Devanagari characters, and unattached combining
+ * marks are ignored so unfinished editor input never produces a phantom count.
+ */
+export function countDevanagariAksharas(text: string): number {
+  return splitDevanagariAksharas(text).length;
 }
