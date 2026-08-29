@@ -62,10 +62,9 @@ export const PuzzlePreviewCard = ({ puzzle, compact = false }: Props) => {
             <Image
               src={imageUrl}
               alt=""
-              layout="fullWidth"
-              aspectRatio={w / h}
-              objectFit="cover"
-              className="object-cover object-center"
+              width={w * 128}
+              height={h * 128}
+              className="size-full object-cover object-center"
             />
           ) : (
             <div className="bg-linear-to-br flex size-full items-center justify-center from-slate-600 via-slate-700 to-slate-800 dark:from-slate-700 dark:via-slate-800 dark:to-slate-900">

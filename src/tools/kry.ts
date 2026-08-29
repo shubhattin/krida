@@ -1,7 +1,4 @@
-import { Buffer } from 'buffer';
-
 export const search_with_key = <T, K extends keyof T>(key: K, value: T[K], data_list: T[]) => {
-  // this function can also be used in frontend despite of this file using node modules (using treeshaking)
   for (let i = 0; i < data_list.length; i++) if (data_list[i][key] === value) return i;
   return -1;
 };
@@ -38,15 +35,27 @@ export const bin_str_to_str = (binary: string) => {
   }
   return String.fromCharCode(...new Uint16Array(bytes.buffer));
 };
+const bytesToBase64 = (bytes: Uint8Array) => {
+  let binary = '';
+  for (let i = 0; i < bytes.length; i++) binary += String.fromCharCode(bytes[i]!);
+  return btoa(binary);
+};
+
+const base64ToBytes = (b64: string) => {
+  const binary = atob(b64);
+  const bytes = new Uint8Array(binary.length);
+  for (let i = 0; i < binary.length; i++) bytes[i] = binary.charCodeAt(i);
+  return bytes;
+};
+
 /** `encode=false` by default */
 export const to_base64 = (str: string, encode = false) => {
   if (encode) str = str_to_bin_str(str);
-  str = Buffer.from(str, 'utf-8').toString('base64');
-  return str;
+  return bytesToBase64(new TextEncoder().encode(str));
 };
 /** `decode=false` by default */
 export const from_base64 = (str: string, decode = false) => {
-  str = Buffer.from(str, 'base64').toString('utf-8');
+  str = new TextDecoder().decode(base64ToBytes(str));
   try {
     if (decode) str = bin_str_to_str(str);
   } catch {}

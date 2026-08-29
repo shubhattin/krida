@@ -19,19 +19,28 @@ export default function PWAInit() {
   const [, setPwaState] = useAtom(pwa_state_atom);
 
   useEffect(() => {
-    // Register service worker
     const registerServiceWorker = async () => {
-      if ('serviceWorker' in navigator) {
+      if (!('serviceWorker' in navigator)) return;
+
+      // Avoid caching/dev-HMR fights; also clear any SW left from a prior session.
+      if (import.meta.env.DEV) {
         try {
-          const registration = await navigator.serviceWorker.register('/sw.js');
-          console.log('Service Worker registered successfully:', registration);
-        } catch (error) {
-          console.log('Service Worker registration failed:', error);
+          const registrations = await navigator.serviceWorker.getRegistrations();
+          await Promise.all(registrations.map((r) => r.unregister()));
+        } catch {
+          // ignore
         }
+        return;
+      }
+
+      try {
+        await navigator.serviceWorker.register('/sw.js');
+      } catch (error) {
+        console.log('Service Worker registration failed:', error);
       }
     };
 
-    registerServiceWorker();
+    void registerServiceWorker();
 
     // Check if the app is installed (running in standalone mode)
     const checkInstallStatus = () => {
