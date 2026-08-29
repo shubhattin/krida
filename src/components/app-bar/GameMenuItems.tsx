@@ -1,6 +1,6 @@
 'use client';
 
-import Link from 'next/link';
+import { Link } from '@tanstack/react-router';
 import { Calendar, List, Pencil, BarChart3, Images } from 'lucide-react';
 import { useAtom } from 'jotai';
 import { active_puzzle_id_atom } from '~/components/pages/padavali/WordGame/game_state';
@@ -22,7 +22,8 @@ export function PadavaliMenuItems({ onNavigate }: { onNavigate?: () => void }) {
     <>
       {activePuzzleId != null && (
         <Link
-          href={`/padavali/edit/${activePuzzleId}`}
+          to="/padavali/edit/$id"
+          params={{ id: String(activePuzzleId) }}
           onClick={onNavigate}
           className={accountMenuLinkClass}
         >
@@ -32,25 +33,25 @@ export function PadavaliMenuItems({ onNavigate }: { onNavigate?: () => void }) {
           <span className="truncate">Edit #{activePuzzleId}</span>
         </Link>
       )}
-      <Link href="/padavali/list" onClick={onNavigate} className={accountMenuLinkClass}>
+      <Link to="/padavali/list" onClick={onNavigate} className={accountMenuLinkClass}>
         <div className={`${accountMenuIconClass} from-purple-500 to-violet-600`}>
           <List className="size-3 text-white" />
         </div>
         <span className="truncate">List</span>
       </Link>
-      <Link href="/padavali/schedules" onClick={onNavigate} className={accountMenuLinkClass}>
+      <Link to="/padavali/schedules" onClick={onNavigate} className={accountMenuLinkClass}>
         <div className={`${accountMenuIconClass} from-emerald-500 to-teal-600`}>
           <Calendar className="size-3 text-white" />
         </div>
         <span className="truncate">Schedules</span>
       </Link>
-      <Link href="/padavali/analytics" onClick={onNavigate} className={accountMenuLinkClass}>
+      <Link to="/padavali/analytics" onClick={onNavigate} className={accountMenuLinkClass}>
         <div className={`${accountMenuIconClass} from-sky-500 to-blue-600`}>
           <BarChart3 className="size-3 text-white" />
         </div>
         <span className="truncate">Analytics</span>
       </Link>
-      <Link href="/padavali/batch_manager" onClick={onNavigate} className={accountMenuLinkClass}>
+      <Link to="/padavali/batch_manager" onClick={onNavigate} className={accountMenuLinkClass}>
         <div className={`${accountMenuIconClass} from-fuchsia-500 to-pink-600`}>
           <Images className="size-3 text-white" />
         </div>
@@ -69,7 +70,8 @@ export function CrosswordMenuItems({ onNavigate }: { onNavigate?: () => void }) 
     <>
       {activeCrosswordId != null && (
         <Link
-          href={`/padajala/edit/${activeCrosswordId}`}
+          to="/padajala/edit/$id"
+          params={{ id: String(activeCrosswordId) }}
           onClick={onNavigate}
           className={accountMenuLinkClass}
         >
@@ -79,25 +81,25 @@ export function CrosswordMenuItems({ onNavigate }: { onNavigate?: () => void }) 
           <span className="truncate">Edit #{activeCrosswordId}</span>
         </Link>
       )}
-      <Link href="/padajala/list" onClick={onNavigate} className={accountMenuLinkClass}>
+      <Link to="/padajala/list" onClick={onNavigate} className={accountMenuLinkClass}>
         <div className={`${accountMenuIconClass} from-purple-500 to-violet-600`}>
           <List className="size-3 text-white" />
         </div>
         <span className="truncate">List</span>
       </Link>
-      <Link href="/padajala/schedules" onClick={onNavigate} className={accountMenuLinkClass}>
+      <Link to="/padajala/schedules" onClick={onNavigate} className={accountMenuLinkClass}>
         <div className={`${accountMenuIconClass} from-emerald-500 to-teal-600`}>
           <Calendar className="size-3 text-white" />
         </div>
         <span className="truncate">Schedules</span>
       </Link>
-      <Link href="/padajala/analytics" onClick={onNavigate} className={accountMenuLinkClass}>
+      <Link to="/padajala/analytics" onClick={onNavigate} className={accountMenuLinkClass}>
         <div className={`${accountMenuIconClass} from-sky-500 to-blue-600`}>
           <BarChart3 className="size-3 text-white" />
         </div>
         <span className="truncate">Analytics</span>
       </Link>
-      <Link href="/padajala/batch_manager" onClick={onNavigate} className={accountMenuLinkClass}>
+      <Link to="/padajala/batch_manager" onClick={onNavigate} className={accountMenuLinkClass}>
         <div className={`${accountMenuIconClass} from-fuchsia-500 to-pink-600`}>
           <Images className="size-3 text-white" />
         </div>

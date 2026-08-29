@@ -9,7 +9,6 @@ import {
   image_assets
 } from '~/db/schema';
 import { and, asc, count, desc, eq, ilike, inArray, or, sql } from 'drizzle-orm';
-import { revalidatePath } from 'next/cache';
 import { escapeIlikeToken, tokenizeSearchQuery } from '~/util/puzzle/search';
 import { createEmptyGridData } from '~/util/cross_word/grid';
 import { analyzeWordPlacements, resolveWordListForSave } from '~/util/cross_word/placement';
@@ -42,15 +41,6 @@ import { runTrpcEffect } from '~/effect/run';
 import { crosswordActiveWordList } from '~/util/puzzle/word_list';
 
 type AttachmentInput = z.infer<typeof CrosswordUpdateInputSchema>['puzzle_data']['attachments'];
-
-const revalidateCrosswordPaths = (slug?: string) => {
-  revalidatePath('/padajala');
-  revalidatePath('/padajala/puzzles');
-  revalidatePath('/padajala/list');
-  if (slug) {
-    revalidatePath(`/padajala/${slug}`);
-  }
-};
 
 const settle = <A, E, R>(effect: Effect.Effect<A, E, R>) =>
   effect.pipe(Effect.catch(() => Effect.void));
@@ -314,8 +304,6 @@ const add_puzzle_route = protectedAdminProcedure
   .mutation(({ input }) =>
     runTrpcEffect(
       Effect.gen(function* () {
-        yield* Effect.sync(() => revalidateCrosswordPaths());
-
         yield* assert_slug_usable_for_mutation(input.slug, {
           override_redirect_slug: input.override_redirect_slug
         });
@@ -347,7 +335,6 @@ const add_puzzle_route = protectedAdminProcedure
         yield* settle(
           invalidate_and_refresh_cache(CACHE.crossword.listed_puzzle_list, NO_CACHE_PARAMS)
         );
-        yield* Effect.sync(() => revalidatePath(`/padajala/edit/${inserted.id}`));
         return { id: inserted.id };
       })
     )
@@ -358,8 +345,6 @@ const update_puzzle_route = protectedAdminProcedure
   .mutation(({ input: { puzzle_id, puzzle_data, puzzle_slug, image_id } }) =>
     runTrpcEffect(
       Effect.gen(function* () {
-        yield* Effect.sync(() => revalidateCrosswordPaths(puzzle_slug));
-
         const existing = yield* dbRun('crossword.find_puzzle_for_update', (client) =>
           client.query.crossword_puzzles.findFirst({
             columns: {
@@ -470,7 +455,6 @@ const update_puzzle_route = protectedAdminProcedure
           );
         }
 
-        yield* Effect.sync(() => revalidatePath(`/padajala/edit/${puzzle_id}`));
         return { success: true as const, newly_added_index_ids };
       })
     )
@@ -533,11 +517,6 @@ const update_puzzle_slug_route = protectedAdminProcedure
           );
         }
 
-        yield* Effect.sync(() => {
-          revalidateCrosswordPaths(new_slug);
-          revalidateCrosswordPaths(current_slug);
-        });
-
         yield* settle(
           invalidate_and_refresh_cache(CACHE.crossword.word_puzzle, { slug: new_slug })
         );
@@ -561,7 +540,6 @@ const update_puzzle_slug_route = protectedAdminProcedure
           );
         }
 
-        yield* Effect.sync(() => revalidatePath(`/padajala/edit/${puzzle_id}`));
         return { success: true as const, slug: new_slug };
       })
     )
@@ -615,7 +593,6 @@ const set_listed_route = protectedAdminProcedure
             .where(eq(crossword_puzzles.id, puzzle_id));
         });
 
-        yield* Effect.sync(() => revalidateCrosswordPaths(existing.slug));
         yield* invalidate_and_refresh_cache(CACHE.crossword.listed_puzzle_list, NO_CACHE_PARAMS);
         yield* invalidate_and_refresh_cache(CACHE.crossword.word_puzzle, { slug: existing.slug });
         return { success: true as const };
@@ -649,11 +626,6 @@ const delete_puzzle_route = protectedAdminProcedure
           await tx
             .delete(crossword_puzzles)
             .where(and(eq(crossword_puzzles.id, id), eq(crossword_puzzles.slug, normalizedSlug)));
-        });
-
-        yield* Effect.sync(() => {
-          revalidateCrosswordPaths(normalizedSlug);
-          revalidatePath(`/padajala/edit/${id}`);
         });
 
         if (puzzle.listed) {
@@ -784,7 +756,6 @@ const delete_redirect_slug_route = protectedAdminProcedure
 
         yield* settle(CACHE.crossword.word_puzzle.delete({ slug: redirect_slug }));
         yield* settle(CACHE.crossword.more_hints.delete({ slug: redirect_slug }));
-        yield* Effect.sync(() => revalidatePath(`/padajala/${redirect_slug}`));
 
         return { success: true as const };
       })

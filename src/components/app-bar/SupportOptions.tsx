@@ -23,7 +23,7 @@ const SupportOptions = () => {
       <DialogTrigger>
         <span
           className={cn(
-            '-mt-1 rounded-md px-1 py-2 font-semibold outline-hidden select-none hover:bg-gray-200 sm:px-2 dark:hover:bg-gray-700',
+            'outline-hidden -mt-1 select-none rounded-md px-1 py-2 font-semibold hover:bg-gray-200 sm:px-2 dark:hover:bg-gray-700',
             'mr-3 space-x-1.5 sm:mr-3'
           )}
         >
@@ -85,11 +85,11 @@ const SupportOptionsContent: React.FC = () => {
           <a
             href={UPI_ID_LINK}
             target="_blank"
-            className="ml-1 outline-hidden select-none"
+            className="outline-hidden ml-1 select-none"
             rel="noopener noreferrer"
           >
             <Icon src={UPIIcon} className="-mt-1.5 text-3xl" /> UPI :{' '}
-            <span className="text-sm text-blue-600 outline-hidden hover:text-blue-500 dark:text-blue-400 dark:hover:text-blue-300">
+            <span className="outline-hidden text-sm text-blue-600 hover:text-blue-500 dark:text-blue-400 dark:hover:text-blue-300">
               {UPI_ID}
             </span>
           </a>
@@ -120,7 +120,7 @@ const SupportOptionsContent: React.FC = () => {
             title="Support us on Razorpay"
           >
             <Icon src={RazorpayIcon} className="-my-12 -mt-3 text-7xl" />
-            <span className="mt-2 ml-1 text-sm text-blue-600 hover:text-blue-500 dark:text-blue-400 dark:hover:text-blue-300">
+            <span className="ml-1 mt-2 text-sm text-blue-600 hover:text-blue-500 dark:text-blue-400 dark:hover:text-blue-300">
               rzp.com/thesanskritchannel
             </span>
           </a>

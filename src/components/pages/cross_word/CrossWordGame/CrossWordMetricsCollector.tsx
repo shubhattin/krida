@@ -3,7 +3,8 @@
 import { useAtom, useAtomValue, useSetAtom } from 'jotai';
 import { useEffect, useEffectEvent, useRef, useState } from 'react';
 import { useTurnstile } from 'react-turnstile';
-import { client_q } from '~/api/client';
+import { useMutation } from '@tanstack/react-query';
+import { useTRPC } from '~/api/client';
 import type { location_list_type } from '~/db/types';
 import TurnstileWidget from '~/components/Turnstile';
 import { load_posthog } from '~/components/tags/PosthogInit';
@@ -47,6 +48,7 @@ export default function CrossWordMetricsCollector({
   puzzle_id: number;
   location: location_list_type;
 }) {
+  const trpc = useTRPC();
   const [started] = useAtom(started_atom);
   const [completed] = useAtom(completed_atom);
   const [seconds] = useAtom(seconds_atom);
@@ -76,19 +78,21 @@ export default function CrossWordMetricsCollector({
     reset: resetSubmitStats,
     isSuccess: submitStatsSuccess,
     isPending: submitStatsPending
-  } = client_q.crossword.stats.submit_stats.useMutation({
-    onSuccess() {
-      setTurnstileToken(null);
-      resetTurnstile();
-      resetGamesStarted();
-      resetSubmitStats();
-    },
-    onError() {
-      statsSubmittedForNonceRef.current = null;
-      setTurnstileToken(null);
-      resetTurnstile();
-    }
-  });
+  } = useMutation(
+    trpc.crossword.stats.submit_stats.mutationOptions({
+      onSuccess() {
+        setTurnstileToken(null);
+        resetTurnstile();
+        resetGamesStarted();
+        resetSubmitStats();
+      },
+      onError() {
+        statsSubmittedForNonceRef.current = null;
+        setTurnstileToken(null);
+        resetTurnstile();
+      }
+    })
+  );
 
   const {
     mutate: mutateGamesStarted,
@@ -96,23 +100,25 @@ export default function CrossWordMetricsCollector({
     isSuccess: gamesStartedSuccess,
     isPending: gamesStartedPending,
     data: gamesStartedData
-  } = client_q.crossword.stats.update_games_started.useMutation({
-    onSuccess() {
-      setTurnstileToken(null);
-      resetTurnstile();
-      load_posthog((posthog) => {
-        posthog.capture('gameplay_started', {
-          puzzle_id,
-          location,
-          game_type: 'crossword'
+  } = useMutation(
+    trpc.crossword.stats.update_games_started.mutationOptions({
+      onSuccess() {
+        setTurnstileToken(null);
+        resetTurnstile();
+        load_posthog((posthog) => {
+          posthog.capture('gameplay_started', {
+            puzzle_id,
+            location,
+            game_type: 'crossword'
+          });
         });
-      });
-    },
-    onError() {
-      // Do NOT reset Turnstile here — a fresh token would re-enter the start effect.
-      setTurnstileToken(null);
-    }
-  });
+      },
+      onError() {
+        // Do NOT reset Turnstile here — a fresh token would re-enter the start effect.
+        setTurnstileToken(null);
+      }
+    })
+  );
 
   useEffect(() => {
     if (previousGameSessionNonceRef.current === gameSessionNonce) return;

@@ -1,7 +1,7 @@
 'use client';
 
 import { useEffect, useRef, useState } from 'react';
-import { useRouter } from 'next/navigation';
+import { useRouter } from '@tanstack/react-router';
 import { ClockIcon, Loader2Icon, SparklesIcon, LayoutGridIcon } from 'lucide-react';
 import { motion } from 'framer-motion';
 import { IoExtensionPuzzleSharp } from 'react-icons/io5';
@@ -116,7 +116,7 @@ export const NoScheduledPadavali = ({
       for (let attempt = 0; attempt <= SCHEDULE_REFRESH_MAX_RETRIES; attempt++) {
         try {
           const result = await client.puzzle.refresh_current_schedule.mutate();
-          router.refresh();
+          void router.invalidate();
           if (result.has_current) return;
         } catch {
           // retry on failure
@@ -142,17 +142,17 @@ export const NoScheduledPadavali = ({
   }, [next_schedule, router]);
 
   return (
-    <div className="w-full bg-linear-to-br from-slate-50 via-blue-50 to-indigo-50 pb-12 dark:from-slate-900 dark:via-slate-800 dark:to-slate-900">
+    <div className="bg-linear-to-br w-full from-slate-50 via-blue-50 to-indigo-50 pb-12 dark:from-slate-900 dark:via-slate-800 dark:to-slate-900">
       {/* Header */}
       <div className="relative overflow-hidden">
         {/* Decorative background blobs */}
         <div className="pointer-events-none absolute inset-0 overflow-hidden">
           <div className="absolute -top-20 left-1/2 h-64 w-64 -translate-x-1/2 rounded-full bg-blue-400/10 blur-3xl dark:bg-blue-500/10" />
           <div className="absolute -top-10 left-1/3 h-48 w-48 rounded-full bg-indigo-400/10 blur-2xl dark:bg-indigo-500/10" />
-          <div className="absolute -top-10 right-1/3 h-48 w-48 rounded-full bg-purple-400/8 blur-2xl dark:bg-purple-500/8" />
+          <div className="bg-purple-400/8 dark:bg-purple-500/8 absolute -top-10 right-1/3 h-48 w-48 rounded-full blur-2xl" />
         </div>
 
-        <div className="relative mx-auto max-w-6xl px-4 pt-10 pb-6 text-center sm:pt-14">
+        <div className="relative mx-auto max-w-6xl px-4 pb-6 pt-10 text-center sm:pt-14">
           {loadingNewPuzzle ? (
             /* Loading state */
             <motion.div
@@ -160,7 +160,7 @@ export const NoScheduledPadavali = ({
               animate={{ opacity: 1 }}
               className="flex flex-col items-center gap-4"
             >
-              <div className="flex size-14 items-center justify-center rounded-2xl bg-linear-to-br from-blue-500 to-indigo-600 shadow-lg shadow-blue-500/30">
+              <div className="bg-linear-to-br flex size-14 items-center justify-center rounded-2xl from-blue-500 to-indigo-600 shadow-lg shadow-blue-500/30">
                 <Loader2Icon className="size-7 animate-spin text-white" />
               </div>
               <div>
@@ -181,7 +181,7 @@ export const NoScheduledPadavali = ({
                 transition={{ duration: 0.4 }}
                 className="mb-5 flex justify-center"
               >
-                <span className="inline-flex items-center gap-1.5 rounded-full border border-slate-200/60 bg-white/60 px-3 py-1 text-xs leading-none font-medium text-slate-500 shadow-sm backdrop-blur-sm dark:border-slate-700/60 dark:bg-slate-800/40 dark:text-slate-400">
+                <span className="inline-flex items-center gap-1.5 rounded-full border border-slate-200/60 bg-white/60 px-3 py-1 text-xs font-medium leading-none text-slate-500 shadow-sm backdrop-blur-sm dark:border-slate-700/60 dark:bg-slate-800/40 dark:text-slate-400">
                   <span className="relative size-1.5 shrink-0 translate-y-[-0.5px] rounded-full bg-slate-400 dark:bg-slate-500" />
                   <span>No puzzle scheduled right now</span>
                 </span>
@@ -195,11 +195,11 @@ export const NoScheduledPadavali = ({
                 className="mb-5 flex flex-col items-center gap-4"
               >
                 <div className="relative">
-                  <div className="flex size-16 items-center justify-center rounded-2xl bg-linear-to-br from-blue-500 to-indigo-600 shadow-lg shadow-blue-500/25">
+                  <div className="bg-linear-to-br flex size-16 items-center justify-center rounded-2xl from-blue-500 to-indigo-600 shadow-lg shadow-blue-500/25">
                     <IoExtensionPuzzleSharp className="size-8 text-white" />
                   </div>
                   <motion.div
-                    className="absolute -top-1 -right-1 flex size-5 items-center justify-center rounded-full bg-amber-400 shadow"
+                    className="absolute -right-1 -top-1 flex size-5 items-center justify-center rounded-full bg-amber-400 shadow"
                     animate={{ scale: [1, 1.2, 1] }}
                     transition={{ duration: 2, repeat: Infinity, ease: 'easeInOut' }}
                   >

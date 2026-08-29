@@ -2,7 +2,7 @@ node_modules
 build
 .netlify
 .vercel
-.next
+.output
 
 .agents
 

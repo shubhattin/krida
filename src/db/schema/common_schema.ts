@@ -11,7 +11,7 @@ import {
   primaryKey
 } from 'drizzle-orm/pg-core';
 import { ATTACHMENT_TYPE_LIST } from '../db_shared_vals';
-import { BatchMetadata } from '~/util/types/ai_batch_metadata';
+import type { BatchMetadata } from '~/util/types/ai_batch_metadata';
 
 export const image_assets = pgTable('image_assets', {
   id: serial().primaryKey(),

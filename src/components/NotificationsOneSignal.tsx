@@ -7,14 +7,14 @@ export default function Page() {
   useEffect(() => {
     // Ensure this code runs only on the client side
     if (
-      process.env.NODE_ENV === 'production' &&
+      import.meta.env.PROD &&
       typeof window !== 'undefined' &&
-      process.env.NEXT_PUBLIC_ONESIGNAL_APP_ID &&
-      process.env.NEXT_PUBLIC_ONESIGNAL_SAFARI_WEB_ID
+      import.meta.env.VITE_ONESIGNAL_APP_ID &&
+      import.meta.env.VITE_ONESIGNAL_SAFARI_WEB_ID
     ) {
       OneSignal.init({
-        appId: process.env.NEXT_PUBLIC_ONESIGNAL_APP_ID,
-        safari_web_id: process.env.NEXT_PUBLIC_ONESIGNAL_SAFARI_WEB_ID,
+        appId: import.meta.env.VITE_ONESIGNAL_APP_ID,
+        safari_web_id: import.meta.env.VITE_ONESIGNAL_SAFARI_WEB_ID,
         // @ts-expect-error OneSignal typings omit this option
         notifyButton: {
           enable: false

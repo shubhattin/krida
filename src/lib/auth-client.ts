@@ -3,7 +3,7 @@ import { adminClient } from 'better-auth/client/plugins';
 import { userInfoPluginClient } from './auth_plugins/user_info/client';
 
 export const authClient = createAuthClient({
-  baseURL: process.env.NEXT_PUBLIC_BETTER_AUTH_URL ?? 'http://localhost:5173',
+  baseURL: import.meta.env.VITE_BETTER_AUTH_URL ?? 'http://localhost:5173',
   plugins: [
     // usernameClient(),
     adminClient(),

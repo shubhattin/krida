@@ -15,7 +15,7 @@ import {
   notoSansGrantha,
   segoiUIHistoric
 } from '~/components/fonts';
-import { SCRIPT_LIST, ScriptType, DEFAULT_DATA_SCRIPT } from './script_list';
+import { SCRIPT_LIST, DEFAULT_DATA_SCRIPT, type ScriptType } from './script_list';
 
 export const get_lang_from_cookie = (value?: string) => {
   if (value && SCRIPT_LIST.includes(value as ScriptType)) {

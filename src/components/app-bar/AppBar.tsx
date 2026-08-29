@@ -1,5 +1,5 @@
-import Image from 'next/image';
-import Link from 'next/link';
+import { Image } from '@unpic/react';
+import { Link } from '@tanstack/react-router';
 import type { ReactNode } from 'react';
 import { MenuButton } from '~/components/app-bar/AppBarMenu';
 import { robotoSans } from '../fonts';
@@ -49,10 +49,10 @@ export default function AppBar({ game, title, description, gameMenuItems }: AppB
   const resolvedDescription = description ?? defaults.description;
 
   return (
-    <header className="w-full border-b border-slate-200/60 bg-linear-to-r from-white via-slate-50 to-blue-50 shadow-lg backdrop-blur-sm dark:border-slate-700/60 dark:from-slate-900 dark:via-slate-800 dark:to-slate-900">
+    <header className="bg-linear-to-r w-full border-b border-slate-200/60 from-white via-slate-50 to-blue-50 shadow-lg backdrop-blur-sm dark:border-slate-700/60 dark:from-slate-900 dark:via-slate-800 dark:to-slate-900">
       <div className="mx-auto flex h-16 max-w-4xl items-center justify-between px-4 lg:px-6">
         {/* Logo/Title Section */}
-        <Link href={defaults.href} className="group flex items-center space-x-3 no-underline">
+        <Link to={defaults.href} className="group flex items-center space-x-3 no-underline">
           {/* Plain mark only — no gray plate (plate is for cards / cross-promo) */}
           <Image
             src={GAME_APP_ICON_SRC[defaults.iconGame]}

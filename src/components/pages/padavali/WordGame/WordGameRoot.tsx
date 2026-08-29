@@ -21,8 +21,8 @@ import { IoShareSocialOutline } from 'react-icons/io5';
 import { copy_text_to_clipboard } from '~/tools/kry';
 import { toast } from 'sonner';
 import { get_puzzle_share_url } from './GameInfo';
-import { client_q } from '~/api/client';
-import { useRouter } from 'next/navigation';
+import { useTRPC } from '~/api/client';
+import { useNavigate } from '@tanstack/react-router';
 import {
   AlertDialog,
   AlertDialogAction,
@@ -262,7 +262,7 @@ const CompactGameActionButtons = ({
           font_info.className
         )}
       >
-        <FaRegStopCircle className="-mt-1 size-4.5" />
+        <FaRegStopCircle className="size-4.5 -mt-1" />
         <span>{wordMsgs.stop}</span>
       </motion.button>
 
@@ -303,7 +303,7 @@ const CompactGameActionButtons = ({
             }}
           />
         ) : null}
-        <Eye className="relative z-10 -mt-0.5 size-4.5" />
+        <Eye className="size-4.5 relative z-10 -mt-0.5" />
         <span className="relative z-10">{wordMsgs.reveal}</span>
       </motion.button>
     </div>
@@ -344,20 +344,22 @@ function WordGame({
   const [completed] = useAtom(completed_atom);
   const [practiceMode] = useAtom(practice_mode_atom);
   const [pendingUrl, setPendingUrl] = useAtom(pending_navigation_url_atom);
-  const router = useRouter();
+  const navigate = useNavigate();
   const queryClient = useQueryClient();
-  const utils = client_q.useUtils();
+  const trpc = useTRPC();
 
   useEffect(() => {
     queryClient.prefetchQuery({
       queryKey: ['listed_puzzles_carousel', script, puzzle_slug, puzzle_id],
       queryFn: getCarouselPuzzlesQueryFn(script, puzzle_slug, puzzle_id)
     });
-    utils.public_ai.get_puzzle_word_meanings.prefetch({
-      puzzle_id,
-      puzzle_slug
-    });
-  }, [puzzle_id, puzzle_slug, utils, script, queryClient]);
+    void queryClient.prefetchQuery(
+      trpc.public_ai.get_puzzle_word_meanings.queryOptions({
+        puzzle_id,
+        puzzle_slug
+      })
+    );
+  }, [puzzle_id, puzzle_slug, trpc, script, queryClient]);
 
   const font_info = FONT_INFO[script as ScriptType];
   const gameInProgress = started && !completed;
@@ -407,7 +409,7 @@ function WordGame({
 
   // Prevent page refresh/navigation during active game
   useEffect(() => {
-    if (process.env.NODE_ENV === 'development') return;
+    if (import.meta.env.DEV) return;
     if (!started || completed) return;
 
     const handleBeforeUnload = (e: BeforeUnloadEvent) => {
@@ -449,7 +451,7 @@ function WordGame({
   return (
     <div
       className={cn(
-        'w-full bg-linear-to-br from-slate-50 via-blue-50 to-indigo-50 dark:from-slate-900 dark:via-slate-800 dark:to-slate-900',
+        'bg-linear-to-br w-full from-slate-50 via-blue-50 to-indigo-50 dark:from-slate-900 dark:via-slate-800 dark:to-slate-900',
         'pb-6 sm:pb-12'
       )}
       style={{
@@ -476,7 +478,7 @@ function WordGame({
             <AlertDialogAction
               onClick={() => {
                 if (pendingUrl) {
-                  router.push(pendingUrl);
+                  navigate({ href: pendingUrl });
                   setPendingUrl(null);
                 }
               }}
@@ -519,7 +521,7 @@ function WordGame({
         {/* Title + inline script selector (desktop: right side, mobile: below title) */}
         <div className="relative mb-2 text-center sm:mb-3">
           {/* Desktop script selector — absolutely positioned right of the title */}
-          <div className="absolute top-1/2 right-0 hidden -translate-y-1/2 items-center gap-1.5 rounded-full border border-slate-200/60 bg-white/75 px-3 py-1.5 shadow-md backdrop-blur-sm lg:flex dark:border-slate-700/60 dark:bg-slate-900/75">
+          <div className="absolute right-0 top-1/2 hidden -translate-y-1/2 items-center gap-1.5 rounded-full border border-slate-200/60 bg-white/75 px-3 py-1.5 shadow-md backdrop-blur-sm lg:flex dark:border-slate-700/60 dark:bg-slate-900/75">
             <Icon className="size-5" src={LanguageIcon} />
             <ScriptSelector script={script} onScriptChange={setScript} />
             {font_info.experimental && (
@@ -544,9 +546,9 @@ function WordGame({
                 <PopoverContent
                   side="top"
                   align="center"
-                  className="z-80 w-fit max-w-[calc(100vw-32px)] overflow-hidden rounded-xl border border-slate-200 bg-linear-to-r from-amber-50 to-orange-50 px-3 py-2 shadow-xl outline-none sm:max-w-md md:max-w-lg dark:border-slate-700 dark:from-teal-950/80 dark:to-green-950/80"
+                  className="z-80 bg-linear-to-r w-fit max-w-[calc(100vw-32px)] overflow-hidden rounded-xl border border-slate-200 from-amber-50 to-orange-50 px-3 py-2 shadow-xl outline-none sm:max-w-md md:max-w-lg dark:border-slate-700 dark:from-teal-950/80 dark:to-green-950/80"
                 >
-                  <div className="text-sm font-semibold wrap-break-word whitespace-normal text-stone-600 dark:text-stone-200">
+                  <div className="wrap-break-word whitespace-normal text-sm font-semibold text-stone-600 dark:text-stone-200">
                     {description_transliterated}
                   </div>
                 </PopoverContent>
@@ -581,7 +583,7 @@ function WordGame({
                 title="Share Puzzle"
                 aria-label="Share Puzzle"
               >
-                <IoShareSocialOutline className="size-3.5 sm:size-4.5" />
+                <IoShareSocialOutline className="sm:size-4.5 size-3.5" />
               </button>
             )}
           </div>
@@ -640,7 +642,7 @@ function WordGame({
               {(started || completed) && <GameInfo />}
             </motion.div>
             <motion.div
-              className="mb-4.5 pt-3 sm:mb-5.5 sm:pt-5 md:mb-6"
+              className="mb-4.5 sm:mb-5.5 pt-3 sm:pt-5 md:mb-6"
               initial={{ opacity: 0, y: 24 }}
               animate={{ opacity: 1, y: 0 }}
               transition={{
@@ -729,10 +731,10 @@ export const NextPuzzleTimePopup = ({
       </PopoverTrigger>
       <PopoverContent
         align="center"
-        className="z-100 flex items-center gap-2 overflow-hidden rounded-xl border border-amber-200/50 bg-linear-to-r from-amber-50 to-orange-50 px-3 py-2 shadow-xl outline-none dark:border-slate-700 dark:from-teal-950/80 dark:to-green-950/80"
+        className="z-100 bg-linear-to-r flex items-center gap-2 overflow-hidden rounded-xl border border-amber-200/50 from-amber-50 to-orange-50 px-3 py-2 shadow-xl outline-none dark:border-slate-700 dark:from-teal-950/80 dark:to-green-950/80"
       >
         <Calendar className="-mt-1 size-4" />
-        <span className="bg-linear-to-r from-amber-700 to-orange-500 bg-clip-text text-xs font-bold text-transparent brightness-95 dark:bg-linear-to-r dark:from-amber-300 dark:to-orange-300">
+        <span className="bg-linear-to-r dark:bg-linear-to-r from-amber-700 to-orange-500 bg-clip-text text-xs font-bold text-transparent brightness-95 dark:from-amber-300 dark:to-orange-300">
           {next_puzzle_start_time.toLocaleDateString('en-GB', {
             day: 'numeric',
             month: 'long'

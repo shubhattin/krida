@@ -1,11 +1,10 @@
 'use client';
 
 import { useState } from 'react';
-import { useRouter } from 'next/navigation';
+import { useRouter } from '@tanstack/react-router';
 import { CheckIcon, Loader2Icon, PencilIcon, Trash2Icon, XIcon } from 'lucide-react';
-import { client_q } from '~/api/client';
-import { useQueryClient } from '@tanstack/react-query';
-import { invalidatePage } from '~/tools/invalidate_nextjs_server_route';
+import { useTRPC } from '~/api/client';
+import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import { Button } from '~/components/ui/button';
 import {
   Dialog,
@@ -50,7 +49,7 @@ const SlugStatusIcon = ({
   status: ReturnType<typeof useDebouncedSlugCheck>['status'];
 }) => {
   if (status === 'checking') {
-    return <Loader2Icon className="size-4 animate-spin text-muted-foreground" />;
+    return <Loader2Icon className="text-muted-foreground size-4 animate-spin" />;
   }
   if (status === 'available') {
     return <CheckIcon className="size-4 text-green-600" />;
@@ -63,8 +62,8 @@ const SlugStatusIcon = ({
 
 export const EditSlugDialog = ({ puzzleId, currentSlug, onSlugUpdated }: Props) => {
   const router = useRouter();
+  const trpc = useTRPC();
   const queryClient = useQueryClient();
-  const utils = client_q.useUtils();
   const [open, setOpen] = useState(false);
   const [confirmOpen, setConfirmOpen] = useState(false);
   const [newSlug, setNewSlug] = useState(currentSlug);
@@ -80,29 +79,28 @@ export const EditSlugDialog = ({ puzzleId, currentSlug, onSlugUpdated }: Props) 
   });
   const overrideRedirectSlug = overrideForSlug === normalizedSlug;
 
-  const update_slug_mut = client_q.puzzle.update_puzzle_slug.useMutation({
-    onSuccess(data) {
-      toast.success('Slug updated successfully');
+  const update_slug_mut = useMutation(
+    trpc.puzzle.update_puzzle_slug.mutationOptions({
+      onSuccess: async (data) => {
+        toast.success('Slug updated successfully');
 
-      void queryClient.invalidateQueries({ queryKey: ['listed_puzzles_carousel'] });
-      void utils.puzzle.get_puzzle_slugs.invalidate({ puzzle_id: puzzleId });
+        void queryClient.invalidateQueries({ queryKey: ['listed_puzzles_carousel'] });
+        void queryClient.invalidateQueries(
+          trpc.puzzle.get_puzzle_slugs.queryFilter({ puzzle_id: puzzleId })
+        );
+        await router.invalidate();
 
-      void invalidatePage('/padavali/puzzles');
-      void invalidatePage('/padavali/list');
-      void invalidatePage(`/padavali/${currentSlug}`);
-      void invalidatePage(`/padavali/${data.slug}`);
-
-      onSlugUpdated(data.slug);
-      setOpen(false);
-      setConfirmOpen(false);
-      setOverrideForSlug(null);
-      router.refresh();
-    },
-    onError() {
-      toast.error('Failed to update slug');
-      setConfirmOpen(false);
-    }
-  });
+        onSlugUpdated(data.slug);
+        setOpen(false);
+        setConfirmOpen(false);
+        setOverrideForSlug(null);
+      },
+      onError() {
+        toast.error('Failed to update slug');
+        setConfirmOpen(false);
+      }
+    })
+  );
 
   const slugChanged = normalizedSlug !== currentSlug;
   const slugReady =
@@ -163,7 +161,7 @@ export const EditSlugDialog = ({ puzzleId, currentSlug, onSlugUpdated }: Props) 
                   slugChanged ? 'edit-slug-redirect-note edit-slug-status' : 'edit-slug-status'
                 }
               />
-              <div className="absolute top-1/2 right-2.5 -translate-y-1/2">
+              <div className="absolute right-2.5 top-1/2 -translate-y-1/2">
                 <SlugStatusIcon status={slugStatus} />
               </div>
             </div>
@@ -230,7 +228,7 @@ export const EditSlugDialog = ({ puzzleId, currentSlug, onSlugUpdated }: Props) 
             <AlertDialogTitle>Confirm slug change</AlertDialogTitle>
             <AlertDialogDescription>
               Change slug from &quot;{currentSlug}&quot; to &quot;{normalizedSlug}&quot;?
-              <span className="mt-2 block text-muted-foreground">
+              <span className="text-muted-foreground mt-2 block">
                 &quot;{currentSlug}&quot; will remain valid and redirect to &quot;{normalizedSlug}
                 &quot;.
               </span>
@@ -257,26 +255,31 @@ export const SlugField = ({
   puzzleId: number;
   onSlugUpdated: (slug: string) => void;
 }) => {
-  const utils = client_q.useUtils();
+  const trpc = useTRPC();
+  const queryClient = useQueryClient();
+  const router = useRouter();
   const [deleteSlugConfirm, setDeleteSlugConfirm] = useState<string | null>(null);
 
-  const puzzle_slugs_q = client_q.puzzle.get_puzzle_slugs.useQuery(
-    { puzzle_id: puzzleId },
-    { enabled: puzzleId > 0 }
+  const puzzle_slugs_q = useQuery(
+    trpc.puzzle.get_puzzle_slugs.queryOptions({ puzzle_id: puzzleId }, { enabled: puzzleId > 0 })
   );
 
-  const delete_redirect_mut = client_q.puzzle.delete_redirect_slug.useMutation({
-    onSuccess(_data, variables) {
-      toast.success('Redirect removed');
-      setDeleteSlugConfirm(null);
-      void utils.puzzle.get_puzzle_slugs.invalidate({ puzzle_id: puzzleId });
-      void invalidatePage(`/padavali/${variables.redirect_slug}`);
-    },
-    onError() {
-      toast.error('Failed to remove redirect');
-      setDeleteSlugConfirm(null);
-    }
-  });
+  const delete_redirect_mut = useMutation(
+    trpc.puzzle.delete_redirect_slug.mutationOptions({
+      onSuccess: async () => {
+        toast.success('Redirect removed');
+        setDeleteSlugConfirm(null);
+        void queryClient.invalidateQueries(
+          trpc.puzzle.get_puzzle_slugs.queryFilter({ puzzle_id: puzzleId })
+        );
+        await router.invalidate();
+      },
+      onError() {
+        toast.error('Failed to remove redirect');
+        setDeleteSlugConfirm(null);
+      }
+    })
+  );
 
   const all_slugs = puzzle_slugs_q.data?.all_slugs ?? [slug];
   const show_slug_aliases = all_slugs.length > 1;
@@ -302,11 +305,11 @@ export const SlugField = ({
       {show_slug_aliases ? (
         <Accordion className="mt-2 max-w-md">
           <AccordionItem value="puzzle-slugs" className="rounded-md border px-3">
-            <AccordionTrigger className="py-2 text-xs font-medium text-muted-foreground hover:no-underline">
+            <AccordionTrigger className="text-muted-foreground py-2 text-xs font-medium hover:no-underline">
               All URLs for this puzzle ({all_slugs.length})
             </AccordionTrigger>
             <AccordionContent>
-              <ul className="space-y-1 rounded-md bg-muted/30 px-1 py-2 text-sm">
+              <ul className="bg-muted/30 space-y-1 rounded-md px-1 py-2 text-sm">
                 {all_slugs.map((entry_slug) => {
                   const is_current = entry_slug === slug;
 
@@ -318,7 +321,7 @@ export const SlugField = ({
                       <div className="flex shrink-0 items-center gap-1.5">
                         <span
                           className={cn(
-                            'rounded-full px-2 py-0.5 text-[10px] font-medium tracking-wide uppercase',
+                            'rounded-full px-2 py-0.5 text-[10px] font-medium uppercase tracking-wide',
                             is_current
                               ? 'bg-primary/10 text-primary'
                               : 'bg-muted text-muted-foreground'
@@ -370,7 +373,7 @@ export const SlugField = ({
             <AlertDialogAction
               disabled={isDeletingRedirect}
               onClick={handleDeleteRedirect}
-              className="bg-destructive text-white hover:bg-destructive/90"
+              className="bg-destructive hover:bg-destructive/90 text-white"
             >
               {isDeletingRedirect ? 'Deleting...' : 'Delete'}
             </AlertDialogAction>

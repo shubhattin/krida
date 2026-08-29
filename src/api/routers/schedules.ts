@@ -3,7 +3,6 @@ import { Effect } from 'effect';
 import { z } from 'zod';
 import { dbRun, dbTransaction, type DbTransaction } from '~/effect/database';
 import { padavali_schedules } from '~/db/schema';
-import { revalidatePath } from 'next/cache';
 import { and, eq } from 'drizzle-orm';
 import {
   CACHE,
@@ -175,7 +174,6 @@ const add_puzzle_schedule_route = protectedAdminProcedure
           );
         }
 
-        yield* Effect.sync(() => revalidatePath('/padavali/schedules'));
         yield* settle(refreshScheduleCaches());
         yield* settle(notify_new_puzzle(puzzle_id, schedule.id, start_time));
         const qstash = yield* QStashPublisher;
@@ -203,8 +201,6 @@ const delete_puzzle_schedule_route = protectedAdminProcedure
   .mutation(({ input: { schedule_id } }) =>
     runTrpcEffect(
       Effect.gen(function* () {
-        yield* Effect.sync(() => revalidatePath('/padavali/schedules'));
-
         yield* dbTransaction('padavali_schedules.delete_schedule', async (tx) => {
           await tx.delete(padavali_schedules).where(eq(padavali_schedules.id, schedule_id));
         });
@@ -228,8 +224,6 @@ const update_puzzle_schedule_route = protectedAdminProcedure
   .mutation(({ input: { schedule_id, puzzle_id, start_time, end_time } }) =>
     runTrpcEffect(
       Effect.gen(function* () {
-        yield* Effect.sync(() => revalidatePath('/padavali/schedules'));
-
         const listing_verify_key = generateRandomAlphanumeric(32);
         yield* dbTransaction('padavali_schedules.update_schedule', async (tx) => {
           await tx

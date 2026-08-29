@@ -22,7 +22,7 @@ export function MediaAttachments({
   attachments: z.infer<typeof attachment_schema>[];
   className?: string;
 }) {
-  const PROD = process.env.NODE_ENV === 'production';
+  const PROD = import.meta.env.PROD;
 
   return (
     <div

@@ -2,7 +2,7 @@
 
 import { useCallback, useEffect, useRef, useState } from 'react';
 import { useAtom, useAtomValue } from 'jotai';
-import { useRouter } from 'next/navigation';
+import { useNavigate } from '@tanstack/react-router';
 import { useQueryClient } from '@tanstack/react-query';
 import { motion } from 'framer-motion';
 import { InfoIcon } from 'lucide-react';
@@ -42,7 +42,7 @@ import { copy_text_to_clipboard } from '~/tools/kry';
 import type { Attachment } from '~/util/puzzle/attachments';
 import type { location_list_type } from '~/db/types';
 import { MediaAttachments } from '~/components/pages/puzzle/MediaAttachments';
-import { client_q } from '~/api/client';
+import { useTRPC } from '~/api/client';
 import {
   AlertDialog,
   AlertDialogAction,
@@ -108,9 +108,9 @@ export function CrossWordGame({
   const started = useAtomValue(started_atom);
   const completed = useAtomValue(completed_atom);
   const [pendingUrl, setPendingUrl] = useAtom(pending_navigation_url_atom);
-  const router = useRouter();
+  const navigate = useNavigate();
   const queryClient = useQueryClient();
-  const utils = client_q.useUtils();
+  const trpc = useTRPC();
   const [keyboardOpen, setKeyboardOpen] = useState(false);
   const keyboardPanelOpen = keyboardOpen && started && !completed;
   const hasMedia = !!(attachments && attachments.length > 0);
@@ -127,12 +127,14 @@ export function CrossWordGame({
       queryFn: getCrosswordCarouselPuzzlesQueryFn(puzzleSlug ?? undefined, puzzle.id)
     });
     if (puzzleSlug) {
-      void utils.public_ai.get_crossword_more_hints.prefetch({
-        puzzle_id: puzzle.id,
-        puzzle_slug: puzzleSlug
-      });
+      void queryClient.prefetchQuery(
+        trpc.public_ai.get_crossword_more_hints.queryOptions({
+          puzzle_id: puzzle.id,
+          puzzle_slug: puzzleSlug
+        })
+      );
     }
-  }, [puzzle, puzzleSlug, queryClient, utils]);
+  }, [puzzle, puzzleSlug, queryClient, trpc]);
 
   useEffect(() => {
     if (!(started && !completed)) return;
@@ -308,7 +310,7 @@ export function CrossWordGame({
   return (
     <div
       className={cn(
-        'mx-auto w-full max-w-7xl bg-linear-to-br from-slate-50 via-blue-50 to-indigo-50 px-2 pt-2 pb-2 sm:px-4 sm:pt-3 sm:pb-4 md:px-6',
+        'bg-linear-to-br mx-auto w-full max-w-7xl from-slate-50 via-blue-50 to-indigo-50 px-2 pb-2 pt-2 sm:px-4 sm:pb-4 sm:pt-3 md:px-6',
         'dark:from-slate-900 dark:via-slate-800 dark:to-slate-900'
       )}
       style={{
@@ -338,7 +340,7 @@ export function CrossWordGame({
             <AlertDialogAction
               onClick={() => {
                 if (pendingUrl) {
-                  router.push(pendingUrl);
+                  navigate({ href: pendingUrl });
                   setPendingUrl(null);
                 }
               }}
@@ -373,7 +375,7 @@ export function CrossWordGame({
           <Popover>
             <PopoverTrigger
               render={
-                <button className="mt-2 ml-3 align-middle outline-none hover:brightness-75" />
+                <button className="ml-3 mt-2 align-middle outline-none hover:brightness-75" />
               }
             >
               <InfoIcon className="size-3 sm:size-4" />
@@ -381,9 +383,9 @@ export function CrossWordGame({
             <PopoverContent
               side="top"
               align="center"
-              className="z-80 w-fit max-w-[calc(100vw-32px)] overflow-hidden rounded-xl border border-slate-200 bg-linear-to-r from-amber-50 to-orange-50 px-3 py-2 shadow-xl outline-none sm:max-w-md md:max-w-lg dark:border-slate-700 dark:from-teal-950/80 dark:to-green-950/80"
+              className="z-80 bg-linear-to-r w-fit max-w-[calc(100vw-32px)] overflow-hidden rounded-xl border border-slate-200 from-amber-50 to-orange-50 px-3 py-2 shadow-xl outline-none sm:max-w-md md:max-w-lg dark:border-slate-700 dark:from-teal-950/80 dark:to-green-950/80"
             >
-              <div className="text-sm font-semibold wrap-break-word whitespace-normal text-stone-600 dark:text-stone-200">
+              <div className="wrap-break-word whitespace-normal text-sm font-semibold text-stone-600 dark:text-stone-200">
                 {puzzle.description}
               </div>
             </PopoverContent>
@@ -399,11 +401,11 @@ export function CrossWordGame({
                 'Puzzle link copied to clipboard'
               );
             }}
-            className="mt-2 ml-3 inline-flex items-center justify-center align-middle text-slate-500 outline-none hover:text-slate-700 hover:brightness-75 dark:text-slate-400 dark:hover:text-slate-200"
+            className="ml-3 mt-2 inline-flex items-center justify-center align-middle text-slate-500 outline-none hover:text-slate-700 hover:brightness-75 dark:text-slate-400 dark:hover:text-slate-200"
             title="Share Puzzle"
             aria-label="Share Puzzle"
           >
-            <IoShareSocialOutline className="size-3.5 sm:size-4.5" />
+            <IoShareSocialOutline className="sm:size-4.5 size-3.5" />
           </button>
         ) : null}
       </motion.header>
@@ -451,7 +453,7 @@ export function CrossWordGame({
           <div
             ref={boardAnchorRef}
             className={cn(
-              'relative w-full max-w-[min(100%,24rem)] lg:max-w-100 xl:max-w-104 2xl:max-w-108',
+              'lg:max-w-100 xl:max-w-104 2xl:max-w-108 relative w-full max-w-[min(100%,24rem)]',
               // Reserve seam space for the floating toggle when the panel is closed.
               useVirtualKeyboard && started && !completed && !keyboardPanelOpen && 'pb-4'
             )}
@@ -469,13 +471,13 @@ export function CrossWordGame({
               onRequestKeyboard={useVirtualKeyboard ? undefined : requestKeyboard}
             />
             {!started ? (
-              <div className="absolute inset-0 flex items-center justify-center rounded-lg bg-background/25 backdrop-blur-[2px]">
+              <div className="bg-background/25 absolute inset-0 flex items-center justify-center rounded-lg backdrop-blur-[2px]">
                 <GameControls game={game} onAfterStart={handleAfterStart} />
               </div>
             ) : null}
             {/* Toggle sits on the grid/keyboard seam so it doesn't add a gap row. */}
             {started && !completed ? (
-              <div className="absolute right-1 bottom-0 z-20 translate-y-1/2 sm:right-0">
+              <div className="absolute bottom-0 right-1 z-20 translate-y-1/2 sm:right-0">
                 <CrossWordOnScreenKeyboard
                   enabled={useVirtualKeyboard}
                   open={keyboardPanelOpen}

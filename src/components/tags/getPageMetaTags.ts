@@ -1,5 +1,3 @@
-import { type Metadata } from 'next';
-
 interface ShareImageInfo {
   url: string;
   width: number;
@@ -13,6 +11,7 @@ interface Props {
   description?: string | null;
   share_image_info?: ShareImageInfo;
   project?: MetadataProject;
+  robots?: string;
 }
 
 export const DEFAULT_SHARE_IMAGE_INFO: ShareImageInfo = {
@@ -35,36 +34,38 @@ export const SHARE_IMAGE_INFO: Record<MetadataProject, ShareImageInfo> = {
   }
 };
 
-export function getMetadata({
+/** TanStack Router `head` meta entries. */
+export function routeHeadFromPageMeta({
   title,
   description = null,
   share_image_info,
-  project = 'padavali'
-}: Props): Metadata {
+  project = 'padavali',
+  robots
+}: Props) {
   const image = share_image_info || SHARE_IMAGE_INFO[project];
+  const desc = description || undefined;
 
   return {
-    title,
-    description: description || undefined,
-    openGraph: {
-      title,
-      description: description || undefined,
-      //   url: '',
-      siteName: 'Padavali',
-      images: [
-        {
-          url: image.url,
-          width: image.width,
-          height: image.height
-        }
-      ],
-      type: 'website'
-    },
-    twitter: {
-      card: 'summary_large_image',
-      title,
-      description: description || undefined,
-      images: [image.url]
-    }
-  } satisfies Metadata;
+    meta: [
+      { title },
+      ...(desc ? ([{ name: 'description', content: desc }] as const) : []),
+      ...(robots ? ([{ name: 'robots', content: robots }] as const) : []),
+      { property: 'og:title', content: title },
+      ...(desc ? ([{ property: 'og:description', content: desc }] as const) : []),
+      { property: 'og:site_name', content: 'Padavali' },
+      { property: 'og:type', content: 'website' },
+      { property: 'og:image', content: image.url },
+      { property: 'og:image:width', content: String(image.width) },
+      { property: 'og:image:height', content: String(image.height) },
+      { name: 'twitter:card', content: 'summary_large_image' },
+      { name: 'twitter:title', content: title },
+      ...(desc ? ([{ name: 'twitter:description', content: desc }] as const) : []),
+      { name: 'twitter:image', content: image.url }
+    ]
+  };
+}
+
+/** @deprecated Prefer routeHeadFromPageMeta */
+export function getMetadata(props: Props) {
+  return routeHeadFromPageMeta(props);
 }

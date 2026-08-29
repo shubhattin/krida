@@ -19,19 +19,28 @@ export default function PWAInit() {
   const [, setPwaState] = useAtom(pwa_state_atom);
 
   useEffect(() => {
-    // Register service worker
     const registerServiceWorker = async () => {
-      if ('serviceWorker' in navigator) {
+      if (!('serviceWorker' in navigator)) return;
+
+      // Avoid caching/dev-HMR fights; also clear any SW left from a prior session.
+      if (import.meta.env.DEV) {
         try {
-          const registration = await navigator.serviceWorker.register('/sw.js');
-          console.log('Service Worker registered successfully:', registration);
-        } catch (error) {
-          console.log('Service Worker registration failed:', error);
+          const registrations = await navigator.serviceWorker.getRegistrations();
+          await Promise.all(registrations.map((r) => r.unregister()));
+        } catch {
+          // ignore
         }
+        return;
+      }
+
+      try {
+        await navigator.serviceWorker.register('/sw.js');
+      } catch (error) {
+        console.log('Service Worker registration failed:', error);
       }
     };
 
-    registerServiceWorker();
+    void registerServiceWorker();
 
     // Check if the app is installed (running in standalone mode)
     const checkInstallStatus = () => {
@@ -116,10 +125,10 @@ export const PWAInstallButton = ({ setOpen }: { setOpen?: (v: boolean) => void }
     >
       <button
         onClick={handleInstall}
-        className="flex w-full items-center gap-3 rounded-lg border-2 border-green-200 bg-linear-to-r from-green-50 to-emerald-50 p-3 text-left text-sm font-medium text-green-700 transition-all duration-200 hover:scale-[1.02] hover:border-green-300 hover:from-green-100 hover:to-emerald-100 hover:shadow-md active:scale-[0.98] dark:border-green-800 dark:from-green-950/30 dark:to-emerald-950/30 dark:text-green-300 dark:hover:border-green-700 dark:hover:from-green-900/40 dark:hover:to-emerald-900/40"
+        className="bg-linear-to-r flex w-full items-center gap-3 rounded-lg border-2 border-green-200 from-green-50 to-emerald-50 p-3 text-left text-sm font-medium text-green-700 transition-all duration-200 hover:scale-[1.02] hover:border-green-300 hover:from-green-100 hover:to-emerald-100 hover:shadow-md active:scale-[0.98] dark:border-green-800 dark:from-green-950/30 dark:to-emerald-950/30 dark:text-green-300 dark:hover:border-green-700 dark:hover:from-green-900/40 dark:hover:to-emerald-900/40"
         title="Install PWA App for offline access"
       >
-        <div className="flex h-8 w-8 items-center justify-center rounded-lg bg-linear-to-br from-green-500 to-emerald-600 shadow-sm">
+        <div className="bg-linear-to-br flex h-8 w-8 items-center justify-center rounded-lg from-green-500 to-emerald-600 shadow-sm">
           <LogIn className="h-4 w-4 text-white" />
         </div>
         <div className="flex-1">

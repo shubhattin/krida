@@ -24,12 +24,12 @@ import {
   clearTypingContextOnKeyDown,
   handleTypingBeforeInputEvent
 } from 'lipilekhika/typing';
-import { client_q } from '~/api/client';
+import { useTRPC } from '~/api/client';
 import { toast } from 'sonner';
 import { IoMdAdd, IoMdClose } from 'react-icons/io';
 import { atom, useAtom } from 'jotai';
 import { MdDeleteOutline, MdDragIndicator } from 'react-icons/md';
-import { useRouter } from 'next/navigation';
+import { useNavigate, useRouter } from '@tanstack/react-router';
 import { Info, ArrowRight, ExternalLink } from 'lucide-react';
 import { PuzzleCardImageSection } from '~/components/pages/puzzle/PuzzleCardImageSection';
 import { EditorActionDock } from '~/components/pages/puzzle/EditorActionDock';
@@ -83,8 +83,7 @@ import {
   SelectItem,
   SelectContent
 } from '~/components/ui/select';
-import { useQueryClient } from '@tanstack/react-query';
-import { invalidatePage } from '~/tools/invalidate_nextjs_server_route';
+import { useMutation, useQueryClient } from '@tanstack/react-query';
 import {
   EditorHistoryProvider,
   useEditorHistoryActions,
@@ -488,7 +487,7 @@ const LipiLekhikaSwitch = () => {
           onCheckedChange={setLipiLekhikaActive}
           className="-mt-1"
         />
-        <Icon src={LanguageIcon} className="-mt-1 size-6.5" />
+        <Icon src={LanguageIcon} className="size-6.5 -mt-1" />
         <span className="text-base font-bold">Devanagari</span>
       </Label>
     </div>
@@ -769,7 +768,7 @@ const TraversalAnalysis = ({
                         <Popover>
                           <PopoverTrigger
                             render={
-                              <Info className="-mt-1 size-4.5 text-amber-600 dark:text-amber-400" />
+                              <Info className="size-4.5 -mt-1 text-amber-600 dark:text-amber-400" />
                             }
                             nativeButton={false}
                           />
@@ -799,7 +798,7 @@ const TraversalAnalysis = ({
                         <Popover>
                           <PopoverTrigger
                             render={
-                              <Info className="-mt-1 size-4.5 text-amber-600 dark:text-amber-400" />
+                              <Info className="size-4.5 -mt-1 text-amber-600 dark:text-amber-400" />
                             }
                             nativeButton={false}
                           />
@@ -880,7 +879,7 @@ const TraversalAnalysis = ({
                       {conflict.conflictingWords.map((wordInfo, widx) => (
                         <span
                           key={widx}
-                          className="rounded bg-red-100 px-1.5 pt-1 pb-0.5 text-xs text-red-800 dark:bg-red-900 dark:text-red-200"
+                          className="rounded bg-red-100 px-1.5 pb-0.5 pt-1 text-xs text-red-800 dark:bg-red-900 dark:text-red-200"
                         >
                           {wordInfo.word}
                         </span>
@@ -1156,7 +1155,7 @@ const GridData = ({
   return (
     <div>
       <Label className="mb-2 block text-lg font-semibold">Grid</Label>
-      <p className="mb-2 hidden text-xs text-muted-foreground/80 sm:block">
+      <p className="text-muted-foreground/80 mb-2 hidden text-xs sm:block">
         Navigate the grid with the arrow keys (↑ ↓ ← →). Colored trails show each word’s path order.
       </p>
       <div ref={gridRef} className="relative w-full sm:w-4/5 md:w-3/5 lg:w-2/5">
@@ -1274,7 +1273,7 @@ const ListedSwitch = ({ slug }: { slug: string }) => {
               aria-label="Listed visibility info"
               className="inline-flex border-0 bg-transparent p-0"
             >
-              <Info className="size-4 text-muted-foreground" aria-hidden="true" />
+              <Info className="text-muted-foreground size-4" aria-hidden="true" />
             </TooltipTrigger>
             <TooltipContent>When enabled, this puzzle will be publicly visible.</TooltipContent>
           </Tooltip>
@@ -1285,7 +1284,7 @@ const ListedSwitch = ({ slug }: { slug: string }) => {
           href={listedPuzzleUrl}
           target="_blank"
           rel="noopener noreferrer"
-          className="inline-flex items-center justify-center gap-1.5 text-sm font-medium text-primary underline-offset-4 hover:underline"
+          className="text-primary inline-flex items-center justify-center gap-1.5 text-sm font-medium underline-offset-4 hover:underline"
         >
           Listed Puzzle URL
           <ExternalLink className="size-3.5 shrink-0" aria-hidden="true" />
@@ -1333,7 +1332,9 @@ const Description = () => {
 };
 
 const SaveButton = ({ word_puzzle }: { word_puzzle: Puzzle }) => {
+  const trpc = useTRPC();
   const queryClient = useQueryClient();
+  const router = useRouter();
   const [title] = useAtom(title_atom);
   const [wordList] = useAtom(word_list_atom);
   const [gridData] = useAtom(grid_data_atom);
@@ -1348,71 +1349,65 @@ const SaveButton = ({ word_puzzle }: { word_puzzle: Puzzle }) => {
     image_id: number | null;
   } | null>(null);
 
-  const router = useRouter();
+  const navigate = useNavigate();
 
-  const update_word_puzzle_mut = client_q.puzzle.update_puzzle.useMutation({
-    onSuccess: (data) => {
-      if (data.success) {
-        toast.success('Puzzle updated successfully');
+  const update_word_puzzle_mut = useMutation(
+    trpc.puzzle.update_puzzle.mutationOptions({
+      onSuccess: async (data) => {
+        if (data.success) {
+          toast.success('Puzzle updated successfully');
 
-        const submitted = saveSnapRef.current;
-        const baseAttachments = submitted?.attachments ?? attachments;
-        const savedImageId = submitted?.image_id ?? image_id;
+          const submitted = saveSnapRef.current;
+          const baseAttachments = submitted?.attachments ?? attachments;
+          const savedImageId = submitted?.image_id ?? image_id;
 
-        const { newly_added_index_ids } = data;
-        const updatedAttachments =
-          newly_added_index_ids.length > 0
-            ? baseAttachments.map((val, i) => {
-                const elm = newly_added_index_ids.find(({ index }) => index === i);
-                return elm ? { ...val, id: elm.id } : val;
-              })
-            : baseAttachments;
+          const { newly_added_index_ids } = data;
+          const updatedAttachments =
+            newly_added_index_ids.length > 0
+              ? baseAttachments.map((val, i) => {
+                  const elm = newly_added_index_ids.find(({ index }) => index === i);
+                  return elm ? { ...val, id: elm.id } : val;
+                })
+              : baseAttachments;
 
-        if (newly_added_index_ids.length > 0) {
-          // after update for the newly added attachemnts filling
-          // in the null values for thier ids
-          setAttachments(updatedAttachments);
+          if (newly_added_index_ids.length > 0) {
+            // after update for the newly added attachemnts filling
+            // in the null values for thier ids
+            setAttachments(updatedAttachments);
+          }
+
+          setImageBaseline(savedImageId);
+          markSaved(
+            newly_added_index_ids.length > 0 ? { attachments: updatedAttachments } : undefined
+          );
+          saveSnapRef.current = null;
+
+          void queryClient.invalidateQueries({ queryKey: ['listed_puzzles_carousel'] });
+          await router.invalidate();
         }
-
-        setImageBaseline(savedImageId);
-        markSaved(
-          newly_added_index_ids.length > 0 ? { attachments: updatedAttachments } : undefined
-        );
+      },
+      onError() {
         saveSnapRef.current = null;
-
-        // Clear React Query cache for the puzzle carousel
-        void queryClient.invalidateQueries({ queryKey: ['listed_puzzles_carousel'] });
-
-        // Invalidate Next.js cache routes on the server
-        void invalidatePage('/padavali/puzzles');
-        void invalidatePage('/padavali/list');
-        void invalidatePage(`/padavali/${word_puzzle.slug}`);
+        toast.error('Failed to update puzzle, check the entered data');
       }
-    },
-    onError() {
-      saveSnapRef.current = null;
-      toast.error('Failed to update puzzle, check the entered data');
-    }
-  });
+    })
+  );
 
-  const delete_word_puzzle_mut = client_q.puzzle.delete_puzzle.useMutation({
-    onSuccess() {
-      toast.success('Puzzle deleted successfully');
+  const delete_word_puzzle_mut = useMutation(
+    trpc.puzzle.delete_puzzle.mutationOptions({
+      onSuccess: async () => {
+        toast.success('Puzzle deleted successfully');
 
-      // Clear React Query cache for the puzzle carousel
-      void queryClient.invalidateQueries({ queryKey: ['listed_puzzles_carousel'] });
+        void queryClient.invalidateQueries({ queryKey: ['listed_puzzles_carousel'] });
+        await router.invalidate();
 
-      // Invalidate Next.js cache routes on the server
-      void invalidatePage('/padavali/puzzles');
-      void invalidatePage('/padavali/list');
-      void invalidatePage(`/padavali/${word_puzzle.slug}`);
-
-      router.push('/padavali/list');
-    },
-    onError() {
-      toast.error('Failed to delete puzzle');
-    }
-  });
+        navigate({ href: '/padavali/list' });
+      },
+      onError() {
+        toast.error('Failed to delete puzzle');
+      }
+    })
+  );
 
   const handleSave = () => {
     if (!description.trim()) {

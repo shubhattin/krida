@@ -78,7 +78,7 @@ function SolvedRomanizedWord({ wordDev }: { wordDev: string }) {
       animate={{ opacity: 1, y: 0 }}
       transition={{ duration: 0.25 }}
       className={cn(
-        'mt-1 block text-[0.8rem] leading-snug font-medium tracking-wide no-underline',
+        'mt-1 block text-[0.8rem] font-medium leading-snug tracking-wide no-underline',
         'text-emerald-700/90 dark:text-emerald-300/90'
       )}
       aria-label={`Romanized Sanskrit: ${romanized}`}
@@ -102,9 +102,9 @@ function MoreHintPopover({ entryId, moreHints }: { entryId: string; moreHints: M
         onPointerDown={(e) => e.stopPropagation()}
         className={cn(
           'mt-0.5 inline-flex shrink-0 items-center gap-1 rounded-full border px-2 py-0.5',
-          'border-violet-300/70 bg-linear-to-r from-violet-100 to-fuchsia-100',
-          'text-[0.6rem] font-bold tracking-wide text-violet-700 uppercase',
-          'shadow-sm transition-colors outline-none',
+          'bg-linear-to-r border-violet-300/70 from-violet-100 to-fuchsia-100',
+          'text-[0.6rem] font-bold uppercase tracking-wide text-violet-700',
+          'shadow-sm outline-none transition-colors',
           'hover:from-violet-200/90 hover:to-fuchsia-200/80',
           'focus-visible:ring-2 focus-visible:ring-violet-400/50',
           'dark:border-violet-500/40 dark:from-violet-900/50 dark:to-fuchsia-900/40 dark:text-violet-200',
@@ -123,13 +123,13 @@ function MoreHintPopover({ entryId, moreHints }: { entryId: string; moreHints: M
         onMouseDown={(e) => e.stopPropagation()}
       >
         <div className="flex flex-wrap items-center gap-1.5">
-          <p className="text-sm font-semibold text-foreground">More hint</p>
+          <p className="text-foreground text-sm font-semibold">More hint</p>
           <span
             className={cn(
               'inline-flex items-center gap-1 rounded-full px-2 py-0.5',
               'bg-linear-to-r from-violet-100 to-fuchsia-100',
               'dark:from-violet-900/50 dark:to-fuchsia-900/40',
-              'text-[9px] font-bold tracking-wide text-violet-600 uppercase',
+              'text-[9px] font-bold uppercase tracking-wide text-violet-600',
               'dark:text-violet-300'
             )}
           >
@@ -145,7 +145,7 @@ function MoreHintPopover({ entryId, moreHints }: { entryId: string; moreHints: M
           </div>
         ) : error ? (
           <div className="flex flex-col items-start gap-2">
-            <div className="flex items-start gap-2 text-xs text-muted-foreground">
+            <div className="text-muted-foreground flex items-start gap-2 text-xs">
               <AlertCircle className="mt-0.5 size-3.5 shrink-0 text-rose-500" />
               <span>Could not load this hint.</span>
             </div>
@@ -165,9 +165,9 @@ function MoreHintPopover({ entryId, moreHints }: { entryId: string; moreHints: M
             </button>
           </div>
         ) : hint ? (
-          <p className="text-sm leading-snug text-muted-foreground">{hint}</p>
+          <p className="text-muted-foreground text-sm leading-snug">{hint}</p>
         ) : (
-          <p className="text-xs text-muted-foreground">No extra hint available for this clue.</p>
+          <p className="text-muted-foreground text-xs">No extra hint available for this clue.</p>
         )}
       </PopoverContent>
     </Popover>
@@ -244,14 +244,14 @@ export function CluePanel({ game, moreHints, className }: CluePanelProps) {
   return (
     <div
       className={cn(
-        'flex min-h-0 w-full flex-col overflow-hidden rounded-2xl border border-border/50',
+        'border-border/50 flex min-h-0 w-full flex-col overflow-hidden rounded-2xl border',
         'bg-linear-to-b from-card/80 via-card/65 to-card/50 shadow-[0_4px_20px_oklch(0_0_0/0.04)] backdrop-blur-md',
         'dark:border-slate-600/40 dark:from-slate-800/80 dark:via-slate-800/60 dark:to-slate-900/50',
         'dark:shadow-[0_10px_35px_oklch(0_0_0/0.25)]',
         className
       )}
     >
-      <div className="flex shrink-0 items-center gap-1.5 px-2.5 pt-2.5 pb-1.5">
+      <div className="flex shrink-0 items-center gap-1.5 px-2.5 pb-1.5 pt-2.5">
         {FILTERS.map(({ id, label }) => {
           const isActiveFilter = filter === id;
           return (
@@ -261,10 +261,10 @@ export function CluePanel({ game, moreHints, className }: CluePanelProps) {
               onClick={() => setFilter(id)}
               aria-pressed={isActiveFilter}
               className={cn(
-                'rounded-full border px-2.5 py-1 text-[0.65rem] font-semibold tracking-wide uppercase shadow-sm backdrop-blur-sm transition-all outline-none focus:outline-none focus-visible:outline-none',
+                'rounded-full border px-2.5 py-1 text-[0.65rem] font-semibold uppercase tracking-wide shadow-sm outline-none backdrop-blur-sm transition-all focus:outline-none focus-visible:outline-none',
                 isActiveFilter
-                  ? 'border-blue-400/60 bg-linear-to-br from-blue-500/90 to-indigo-600/90 text-white shadow-md dark:border-blue-400/50 dark:from-blue-500/80 dark:to-indigo-600/80'
-                  : 'border-slate-300/80 bg-linear-to-br from-white/90 to-slate-100/80 text-slate-600 hover:from-white hover:to-slate-50 hover:shadow-md dark:border-slate-500/50 dark:from-slate-700/80 dark:to-slate-800/70 dark:text-slate-200 dark:hover:from-slate-600/80 dark:hover:to-slate-700/70'
+                  ? 'bg-linear-to-br border-blue-400/60 from-blue-500/90 to-indigo-600/90 text-white shadow-md dark:border-blue-400/50 dark:from-blue-500/80 dark:to-indigo-600/80'
+                  : 'bg-linear-to-br border-slate-300/80 from-white/90 to-slate-100/80 text-slate-600 hover:from-white hover:to-slate-50 hover:shadow-md dark:border-slate-500/50 dark:from-slate-700/80 dark:to-slate-800/70 dark:text-slate-200 dark:hover:from-slate-600/80 dark:hover:to-slate-700/70'
               )}
             >
               {label}
@@ -281,7 +281,7 @@ export function CluePanel({ game, moreHints, className }: CluePanelProps) {
           aria-label="Crossword clues"
         >
           {sorted.length === 0 ? (
-            <li className="px-2 py-4 text-center text-sm text-muted-foreground">No clues</li>
+            <li className="text-muted-foreground px-2 py-4 text-center text-sm">No clues</li>
           ) : (
             sorted.map((entry) => {
               const solved = solvedIds.includes(entry.id);
@@ -328,7 +328,7 @@ export function CluePanel({ game, moreHints, className }: CluePanelProps) {
                     }
                     transition={{ duration: 0.35 }}
                     className={cn(
-                      'min-w-0 flex-1 rounded-xl px-2.5 py-2 text-left text-sm leading-snug transition-colors duration-200 outline-none focus:outline-none focus-visible:outline-none',
+                      'min-w-0 flex-1 rounded-xl px-2.5 py-2 text-left text-sm leading-snug outline-none transition-colors duration-200 focus:outline-none focus-visible:outline-none',
                       'disabled:cursor-default disabled:opacity-60',
                       active && !solved && 'text-foreground dark:text-slate-50',
                       active && solved && 'text-foreground dark:text-slate-50',
@@ -357,7 +357,7 @@ export function CluePanel({ game, moreHints, className }: CluePanelProps) {
                         <span className="flex items-start gap-1.5">
                           <span
                             className={cn(
-                              'min-w-0 flex-1 wrap-break-word',
+                              'wrap-break-word min-w-0 flex-1',
                               solved && 'line-through'
                             )}
                           >
@@ -379,7 +379,7 @@ export function CluePanel({ game, moreHints, className }: CluePanelProps) {
                   </motion.button>
 
                   {active ? (
-                    <div className="absolute top-1.5 right-1.5 z-10">
+                    <div className="absolute right-1.5 top-1.5 z-10">
                       <MoreHintPopover entryId={entry.id} moreHints={moreHints} />
                     </div>
                   ) : null}

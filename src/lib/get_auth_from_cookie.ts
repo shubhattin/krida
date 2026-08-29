@@ -1,18 +1,11 @@
-import type { authClient } from '@/lib/auth-client';
-import { Effect } from 'effect';
-import { AppConfig } from '~/effect/config';
-import { runServerEffect } from '~/effect/run';
+import { authClient } from '@/lib/auth-client';
+import { createIsomorphicFn, createServerOnlyFn } from '@tanstack/react-start';
+import { getRequestHeader } from '@tanstack/react-start/server';
 
-const get_seesion_from_cookie = async (cookie: string) => {
+/** Server-side session lookup from raw `Cookie` header (e.g. tRPC `createContext`). */
+async function getSessionFromCookie(cookie: string) {
   try {
-    const betterAuthUrl = await runServerEffect(
-      Effect.gen(function* () {
-        const config = yield* AppConfig;
-        return config.betterAuthUrl;
-      })
-    );
-
-    const res = await fetch(`${betterAuthUrl}/api/auth/get-session`, {
+    const res = await fetch(`${import.meta.env.VITE_BETTER_AUTH_URL}/api/auth/get-session`, {
       method: 'GET',
       headers: {
         Cookie: cookie
@@ -26,6 +19,26 @@ const get_seesion_from_cookie = async (cookie: string) => {
   } catch {
     return null;
   }
-};
+}
 
-export default get_seesion_from_cookie;
+/** Single helper for use on both server and client. */
+export const getUserSession$ = createIsomorphicFn()
+  .client(async () => {
+    const session = (await authClient.getSession()).data;
+    return session;
+  })
+  .server(async () => {
+    const cookie = getRequestHeader('cookie');
+    const session = await getSessionFromCookie(cookie ?? '');
+    return session;
+  });
+
+/** Server-only (serverFn / tRPC). */
+export const getServerUserSession$ = createServerOnlyFn(async () => {
+  const cookie = getRequestHeader('cookie');
+  const session = await getSessionFromCookie(cookie ?? '');
+  return session;
+});
+
+/** @deprecated Prefer getServerUserSession$ / getUserSession$ */
+export default getSessionFromCookie;

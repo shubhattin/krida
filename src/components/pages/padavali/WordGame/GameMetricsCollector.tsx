@@ -1,7 +1,8 @@
 import { useAtom } from 'jotai';
 import { useContext, useEffect, useEffectEvent, useRef, useState } from 'react';
 import { useTurnstile } from 'react-turnstile';
-import { client_q } from '~/api/client';
+import { useMutation } from '@tanstack/react-query';
+import { useTRPC } from '~/api/client';
 import {
   completed_atom,
   original_word_list_atom,
@@ -11,7 +12,7 @@ import {
   practice_mode_atom,
   game_session_nonce_atom
 } from './game_state';
-import { location_list_type } from '~/db/types';
+import type { location_list_type } from '~/db/types';
 import TurnstileWidget from '~/components/Turnstile';
 import { AppContext } from '~/components/AppDataContext';
 import { load_posthog } from '~/components/tags/PosthogInit';
@@ -29,6 +30,7 @@ const GameMetricsCollector = ({
   puzzle_id: number;
   location: location_list_type;
 }) => {
+  const trpc = useTRPC();
   const [started] = useAtom(started_atom);
   const [completed] = useAtom(completed_atom);
   const [totalAttempts] = useAtom(total_attempts_atom);
@@ -59,19 +61,21 @@ const GameMetricsCollector = ({
     reset: resetSubmitStats,
     isSuccess: submitStatsSuccess,
     isPending: submitStatsPending
-  } = client_q.puzzle.stats.submit_stats.useMutation({
-    onSuccess() {
-      setTurnstileToken(null);
-      resetTurnstile();
-      resetGamesStarted();
-      resetSubmitStats();
-    },
-    onError() {
-      statsSubmittedForNonceRef.current = null;
-      setTurnstileToken(null);
-      resetTurnstile();
-    }
-  });
+  } = useMutation(
+    trpc.puzzle.stats.submit_stats.mutationOptions({
+      onSuccess() {
+        setTurnstileToken(null);
+        resetTurnstile();
+        resetGamesStarted();
+        resetSubmitStats();
+      },
+      onError() {
+        statsSubmittedForNonceRef.current = null;
+        setTurnstileToken(null);
+        resetTurnstile();
+      }
+    })
+  );
 
   const {
     mutate: mutateGamesStarted,
@@ -79,41 +83,45 @@ const GameMetricsCollector = ({
     isSuccess: gamesStartedSuccess,
     isPending: gamesStartedPending,
     data: gamesStartedData
-  } = client_q.puzzle.stats.update_games_started.useMutation({
-    onSuccess(data, variables) {
-      setPracticeModeSyncedSessionId(variables.practice_mode ? data.session_id : null);
-      setTurnstileToken(null);
-      resetTurnstile();
-      load_posthog((posthog) => {
-        posthog.capture('gameplay_started', {
-          puzzle_id,
-          location,
-          script,
-          practice_mode: variables.practice_mode
+  } = useMutation(
+    trpc.puzzle.stats.update_games_started.mutationOptions({
+      onSuccess(data, variables) {
+        setPracticeModeSyncedSessionId(variables.practice_mode ? data.session_id : null);
+        setTurnstileToken(null);
+        resetTurnstile();
+        load_posthog((posthog) => {
+          posthog.capture('gameplay_started', {
+            puzzle_id,
+            location,
+            script,
+            practice_mode: variables.practice_mode
+          });
         });
-      });
-    },
-    onError() {
-      // Do NOT reset Turnstile here — a fresh token would re-enter the start effect.
-      setTurnstileToken(null);
-    }
-  });
+      },
+      onError() {
+        // Do NOT reset Turnstile here — a fresh token would re-enter the start effect.
+        setTurnstileToken(null);
+      }
+    })
+  );
 
   const {
     mutate: syncSessionPracticeMode,
     isPending: isSyncingSessionPracticeMode,
     reset: resetSessionPracticeModeSync
-  } = client_q.puzzle.stats.update_session_practice_mode.useMutation({
-    onSuccess(_data, variables) {
-      setPracticeModeSyncedSessionId(variables.session_id);
-      setTurnstileToken(null);
-      resetTurnstile();
-    },
-    onError() {
-      setTurnstileToken(null);
-      resetTurnstile();
-    }
-  });
+  } = useMutation(
+    trpc.puzzle.stats.update_session_practice_mode.mutationOptions({
+      onSuccess(_data, variables) {
+        setPracticeModeSyncedSessionId(variables.session_id);
+        setTurnstileToken(null);
+        resetTurnstile();
+      },
+      onError() {
+        setTurnstileToken(null);
+        resetTurnstile();
+      }
+    })
+  );
 
   useEffect(() => {
     if (previousGameSessionNonceRef.current === gameSessionNonce) return;

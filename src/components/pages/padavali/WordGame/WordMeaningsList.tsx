@@ -109,7 +109,7 @@ export function WordMeaningsList({ meanings, compact = false }: Props) {
               >
                 {idx + 1}
               </span>
-              <span className="min-w-0 flex-1 text-sm leading-snug font-semibold wrap-break-word text-slate-800 dark:text-slate-100">
+              <span className="wrap-break-word min-w-0 flex-1 text-sm font-semibold leading-snug text-slate-800 dark:text-slate-100">
                 {transliteratedWord}
               </span>
               {isDifferentScript ? (

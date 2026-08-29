@@ -3,8 +3,8 @@
 import { useEffect, useMemo, useRef, useState, type KeyboardEvent } from 'react';
 import { atom, useAtom } from 'jotai';
 import { useHydrateAtoms } from 'jotai/utils';
-import { useRouter } from 'next/navigation';
-import { useQueryClient } from '@tanstack/react-query';
+import { useNavigate, useRouter } from '@tanstack/react-router';
+import { useMutation, useQueryClient } from '@tanstack/react-query';
 import { AnimatePresence, motion } from 'framer-motion';
 import useEmblaCarousel from 'embla-carousel-react';
 import { ArrowRight, ChevronLeft, ChevronRight, Info, Pencil, WandSparkles } from 'lucide-react';
@@ -33,7 +33,7 @@ import {
   createTypingContext,
   handleTypingBeforeInputEvent
 } from 'lipilekhika/typing';
-import { client_q } from '~/api/client';
+import { useTRPC } from '~/api/client';
 import type { CrossordPuzzle, CrossordPuzzleGridCell, CrossWordPuzzleWord } from '~/db/schema_zod';
 import { crossword_update_input_schema } from '~/db/crossword_shared';
 import {
@@ -101,7 +101,6 @@ import {
   rowIndexToLetter,
   colIndexToNumberLabel
 } from '~/util/cross_word/grid';
-import { invalidatePage } from '~/tools/invalidate_nextjs_server_route';
 import { CrosswordSlugField } from '~/components/pages/cross_word/EditCrosswordSlugDialog';
 import { PuzzleCardImageSection } from '~/components/pages/puzzle/PuzzleCardImageSection';
 import { EditorActionDock } from '~/components/pages/puzzle/EditorActionDock';
@@ -615,7 +614,7 @@ const DimensionsField = () => {
           <Input
             value={`${dimensions[0]} × ${dimensions[1]}`}
             disabled
-            className="w-36 bg-muted/50"
+            className="bg-muted/50 w-36"
           />
         </div>
         <Button
@@ -795,7 +794,7 @@ function CrosswordWordRow({
   return (
     <div
       className={cn(
-        'flex flex-col gap-2 rounded-md border border-border/50 bg-muted/10 p-2.5 sm:flex-row sm:flex-nowrap sm:items-start sm:gap-2 sm:rounded-none sm:border-0 sm:bg-transparent sm:p-0',
+        'border-border/50 bg-muted/10 flex flex-col gap-2 rounded-md border p-2.5 sm:flex-row sm:flex-nowrap sm:items-start sm:gap-2 sm:rounded-none sm:border-0 sm:bg-transparent sm:p-0',
         !isAdded && 'opacity-90'
       )}
     >
@@ -898,7 +897,7 @@ function CrosswordWordRow({
           )}
         />
         <span
-          className="inline-flex h-9 min-w-14 shrink-0 items-center justify-center rounded-md border border-border bg-muted/40 px-2 font-mono text-xs text-muted-foreground"
+          className="border-border bg-muted/40 text-muted-foreground inline-flex h-9 min-w-14 shrink-0 items-center justify-center rounded-md border px-2 font-mono text-xs"
           title={statusTitle}
         >
           {startLabel}
@@ -1017,12 +1016,12 @@ function GeneratedLayoutPreview({ candidate }: { candidate: GeneratedCrosswordLa
 
   return (
     <div
-      className="flex shrink-0 items-center justify-center rounded-md border border-border/60 bg-muted/20 p-1"
+      className="border-border/60 bg-muted/20 flex shrink-0 items-center justify-center rounded-md border p-1"
       style={{ width: LAYOUT_PREVIEW_FRAME_PX + 10, height: LAYOUT_PREVIEW_FRAME_PX + 10 }}
     >
       <div
         aria-label={`Letter-cell preview from ${rangeLabel}`}
-        className="grid bg-border/60"
+        className="bg-border/60 grid"
         style={{
           width: gridWidth,
           height: gridHeight,
@@ -1043,7 +1042,7 @@ function GeneratedLayoutPreview({ candidate }: { candidate: GeneratedCrosswordLa
               <span
                 key={`${rowIndex}-${columnIndex}`}
                 className={cn(
-                  'flex items-center justify-center overflow-hidden font-mono leading-none font-semibold',
+                  'flex items-center justify-center overflow-hidden font-mono font-semibold leading-none',
                   hasLetter ? 'bg-background text-foreground' : 'bg-popover text-transparent',
                   tint.className
                 )}
@@ -1079,7 +1078,7 @@ function WordChipList({
   colorById?: ReadonlyMap<string, number>;
 }) {
   if (ids.length === 0) {
-    return <p className="text-xs text-muted-foreground">{emptyLabel}</p>;
+    return <p className="text-muted-foreground text-xs">{emptyLabel}</p>;
   }
 
   return (
@@ -1153,7 +1152,7 @@ function LayoutCandidateDetail({
               <h4 className="text-sm font-medium text-amber-700 dark:text-amber-300">Excluded</h4>
               <Badge
                 variant="outline"
-                className="border-amber-500/40 text-amber-700 tabular-nums dark:text-amber-300"
+                className="border-amber-500/40 tabular-nums text-amber-700 dark:text-amber-300"
               >
                 {candidate.omittedIds.length}
               </Badge>
@@ -1211,7 +1210,7 @@ function LayoutTabsCarousel({
   };
 
   return (
-    <div className="flex shrink-0 flex-col gap-1.5 border-b border-border bg-popover px-3 py-2 sm:px-4">
+    <div className="border-border bg-popover flex shrink-0 flex-col gap-1.5 border-b px-3 py-2 sm:px-4">
       <div className="flex items-center gap-1.5">
         <Button
           type="button"
@@ -1232,7 +1231,7 @@ function LayoutTabsCarousel({
         >
           <TabsList
             variant="line"
-            className="flex! h-auto w-max max-w-none touch-pan-y justify-start gap-1 select-none"
+            className="flex! h-auto w-max max-w-none touch-pan-y select-none justify-start gap-1"
           >
             {candidates.map((candidate, index) => {
               const key = layoutCandidateKey(candidate);
@@ -1240,7 +1239,7 @@ function LayoutTabsCarousel({
                 <TabsTrigger
                   key={key}
                   value={key}
-                  className="flex-none shrink-0 grow-0 basis-auto px-3 select-none"
+                  className="flex-none shrink-0 grow-0 basis-auto select-none px-3"
                 >
                   Layout {index + 1}
                   <Badge variant="secondary" className="tabular-nums">
@@ -1264,7 +1263,7 @@ function LayoutTabsCarousel({
           <ChevronRight />
         </Button>
       </div>
-      <p className="px-0.5 text-[11px] text-muted-foreground/70 select-none">
+      <p className="text-muted-foreground/70 select-none px-0.5 text-[11px]">
         N× = crossings · drag tabs to browse
       </p>
     </div>
@@ -1394,7 +1393,7 @@ function CrosswordLayoutGenerator() {
         }}
       >
         <DialogContent className="flex max-h-[min(90vh,52rem)] flex-col gap-0 overflow-hidden p-0 sm:max-w-3xl">
-          <DialogHeader className="shrink-0 gap-1.5 px-4 pt-4 pr-12 pb-3">
+          <DialogHeader className="shrink-0 gap-1.5 px-4 pb-3 pr-12 pt-4">
             <DialogTitle>Generate crossword layouts</DialogTitle>
             <DialogDescription>
               Browse candidates for the current grid size. Choosing one replaces the grid; words
@@ -1402,12 +1401,12 @@ function CrosswordLayoutGenerator() {
             </DialogDescription>
           </DialogHeader>
 
-          <div className="shrink-0 border-b border-border bg-muted/20 px-4 py-3">
+          <div className="border-border bg-muted/20 shrink-0 border-b px-4 py-3">
             <div className="grid grid-cols-1 gap-3 sm:grid-cols-3">
               <div className="flex min-w-0 flex-col gap-1.5">
                 <Label
                   htmlFor="layout-density"
-                  className="text-xs font-medium tracking-wide text-muted-foreground uppercase"
+                  className="text-muted-foreground text-xs font-medium uppercase tracking-wide"
                 >
                   Word density
                 </Label>
@@ -1431,7 +1430,7 @@ function CrosswordLayoutGenerator() {
                     ))}
                   </SelectContent>
                 </Select>
-                <p className="text-[11px] leading-snug text-muted-foreground/80">
+                <p className="text-muted-foreground/80 text-[11px] leading-snug">
                   Prefer where words gather on the grid
                 </p>
               </div>
@@ -1439,7 +1438,7 @@ function CrosswordLayoutGenerator() {
               <div className="flex min-w-0 flex-col gap-1.5">
                 <Label
                   htmlFor="layout-ranking"
-                  className="text-xs font-medium tracking-wide text-muted-foreground uppercase"
+                  className="text-muted-foreground text-xs font-medium uppercase tracking-wide"
                 >
                   Rank by
                 </Label>
@@ -1463,7 +1462,7 @@ function CrosswordLayoutGenerator() {
                     ))}
                   </SelectContent>
                 </Select>
-                <p className="text-[11px] leading-snug text-muted-foreground/80">
+                <p className="text-muted-foreground/80 text-[11px] leading-snug">
                   Reorders tabs without regenerating
                 </p>
               </div>
@@ -1471,7 +1470,7 @@ function CrosswordLayoutGenerator() {
               <div className="flex min-w-0 flex-col gap-1.5">
                 <Label
                   htmlFor="layout-candidate-limit"
-                  className="text-xs font-medium tracking-wide text-muted-foreground uppercase"
+                  className="text-muted-foreground text-xs font-medium uppercase tracking-wide"
                 >
                   Candidates
                 </Label>
@@ -1495,7 +1494,7 @@ function CrosswordLayoutGenerator() {
                     ))}
                   </SelectContent>
                 </Select>
-                <p className="text-[11px] leading-snug text-muted-foreground/80">
+                <p className="text-muted-foreground/80 text-[11px] leading-snug">
                   Max distinct layouts to keep
                 </p>
               </div>
@@ -1514,7 +1513,7 @@ function CrosswordLayoutGenerator() {
                 onSelect={setSelectedKey}
               />
 
-              <div className="min-h-0 flex-1 overflow-x-hidden overflow-y-auto px-4 pt-4 pb-6">
+              <div className="min-h-0 flex-1 overflow-y-auto overflow-x-hidden px-4 pb-6 pt-4">
                 {rankedCandidates.map((candidate) => {
                   const key = layoutCandidateKey(candidate);
                   return (
@@ -1527,7 +1526,7 @@ function CrosswordLayoutGenerator() {
             </Tabs>
           ) : null}
 
-          <DialogFooter className="shrink-0 border-t border-border px-4 py-3">
+          <DialogFooter className="border-border shrink-0 border-t px-4 py-3">
             <div className="flex w-full flex-wrap items-center justify-between gap-2">
               <Button
                 type="button"
@@ -1635,7 +1634,7 @@ const WordListEditor = () => {
     { showSelection, showRemove }: { showSelection: boolean; showRemove: boolean }
   ) => (
     <div className="max-h-80 overflow-y-auto overscroll-contain pr-1" data-word-list>
-      <p className="mb-2 hidden text-xs text-muted-foreground/80 sm:block">
+      <p className="text-muted-foreground/80 mb-2 hidden text-xs sm:block">
         Navigate fields with the arrow keys (↑ ↓ ← →)
       </p>
       <div className="flex flex-col gap-3 sm:gap-2">
@@ -1814,7 +1813,7 @@ const PlacementAnalysisPanel = ({
                     <Popover>
                       <PopoverTrigger
                         render={
-                          <Info className="-mt-0.5 size-4.5 text-amber-600 dark:text-amber-400" />
+                          <Info className="size-4.5 -mt-0.5 text-amber-600 dark:text-amber-400" />
                         }
                         nativeButton={false}
                       />
@@ -2047,18 +2046,18 @@ const GridEditor = ({
   return (
     <div className="flex flex-col gap-2">
       <Label className="text-lg font-semibold">Grid</Label>
-      <p className="text-sm text-foreground/80">
+      <p className="text-foreground/80 text-sm">
         Press{' '}
-        <kbd className="rounded border border-border bg-muted px-1 py-0.5 font-mono text-xs">
+        <kbd className="border-border bg-muted rounded border px-1 py-0.5 font-mono text-xs">
           Enter
         </kbd>{' '}
         or{' '}
-        <kbd className="rounded border border-border bg-muted px-1 py-0.5 font-mono text-xs">
+        <kbd className="border-border bg-muted rounded border px-1 py-0.5 font-mono text-xs">
           Tab
         </kbd>{' '}
         on a letter to mark it as prefilled (soft-keyboard Enter works too).
       </p>
-      <p className="hidden text-xs text-muted-foreground/80 sm:block">
+      <p className="text-muted-foreground/80 hidden text-xs sm:block">
         Navigate the grid with the arrow keys (↑ ↓ ← →). Soft cell colors match each word.
       </p>
       <div
@@ -2070,7 +2069,7 @@ const GridEditor = ({
         {Array.from({ length: cols }, (_, c) => (
           <div
             key={`col-h-${c}`}
-            className="flex h-4 items-center justify-center font-mono text-[10px] text-muted-foreground"
+            className="text-muted-foreground flex h-4 items-center justify-center font-mono text-[10px]"
           >
             {colIndexToNumberLabel(c)}
           </div>
@@ -2078,7 +2077,7 @@ const GridEditor = ({
 
         {gridData.map((row, r) => (
           <div key={`row-${r}`} className="contents">
-            <div className="flex items-center justify-center font-mono text-[10px] text-muted-foreground">
+            <div className="text-muted-foreground flex items-center justify-center font-mono text-[10px]">
               {rowIndexToLetter(r)}
             </div>
             {row.map((cell, c) => {
@@ -2116,7 +2115,7 @@ const GridEditor = ({
           </div>
         ))}
       </div>
-      <div className="flex flex-wrap gap-x-5 gap-y-2 text-[11px] text-muted-foreground">
+      <div className="text-muted-foreground flex flex-wrap gap-x-5 gap-y-2 text-[11px]">
         <div className="flex h-3 items-center gap-1.5">
           <div
             className="size-2.5 shrink-0 rounded-full bg-emerald-500 ring-2 ring-emerald-400/70"
@@ -2138,8 +2137,10 @@ const GridEditor = ({
 };
 
 const SaveControls = ({ puzzle }: { puzzle: ViewEditCrosswordProps['puzzle'] }) => {
+  const trpc = useTRPC();
   const queryClient = useQueryClient();
   const router = useRouter();
+  const navigate = useNavigate();
   const [title] = useAtom(title_atom);
   const [description] = useAtom(description_atom);
   const [listed] = useAtom(listed_atom);
@@ -2155,59 +2156,57 @@ const SaveControls = ({ puzzle }: { puzzle: ViewEditCrosswordProps['puzzle'] }) 
     image_id: number | null;
   } | null>(null);
 
-  const update_mut = client_q.crossword.update_puzzle.useMutation({
-    onSuccess: (data) => {
-      toast.success('Puzzle updated successfully');
+  const update_mut = useMutation(
+    trpc.crossword.update_puzzle.mutationOptions({
+      onSuccess: async (data) => {
+        toast.success('Puzzle updated successfully');
 
-      const submitted = saveSnapRef.current;
-      const baseAttachments = submitted?.attachments ?? attachments;
-      const savedImageId = submitted?.image_id ?? image_id;
+        const submitted = saveSnapRef.current;
+        const baseAttachments = submitted?.attachments ?? attachments;
+        const savedImageId = submitted?.image_id ?? image_id;
 
-      const updatedAttachments =
-        data.newly_added_index_ids.length > 0
-          ? baseAttachments.map((val, i) => {
-              const elm = data.newly_added_index_ids.find(({ index }) => index === i);
-              return elm ? { ...val, id: elm.id } : val;
-            })
-          : baseAttachments;
+        const updatedAttachments =
+          data.newly_added_index_ids.length > 0
+            ? baseAttachments.map((val, i) => {
+                const elm = data.newly_added_index_ids.find(({ index }) => index === i);
+                return elm ? { ...val, id: elm.id } : val;
+              })
+            : baseAttachments;
 
-      if (data.newly_added_index_ids.length > 0) {
-        setAttachments(updatedAttachments);
+        if (data.newly_added_index_ids.length > 0) {
+          setAttachments(updatedAttachments);
+        }
+
+        setImageBaseline(savedImageId);
+        setImageId(savedImageId);
+        markSaved(
+          data.newly_added_index_ids.length > 0 ? { attachments: updatedAttachments } : undefined
+        );
+        saveSnapRef.current = null;
+
+        void queryClient.invalidateQueries({ queryKey: ['crossword_list'] });
+        await router.invalidate();
+      },
+      onError(err) {
+        saveSnapRef.current = null;
+        toast.error(err.message || 'Failed to update puzzle');
       }
+    })
+  );
 
-      setImageBaseline(savedImageId);
-      setImageId(savedImageId);
-      markSaved(
-        data.newly_added_index_ids.length > 0 ? { attachments: updatedAttachments } : undefined
-      );
-      saveSnapRef.current = null;
-
-      void queryClient.invalidateQueries({ queryKey: ['crossword_list'] });
-      void invalidatePage('/padajala');
-      void invalidatePage('/padajala/list');
-      void invalidatePage('/padajala/puzzles');
-      void invalidatePage(`/padajala/edit/${puzzle.id}`);
-      void invalidatePage(`/padajala/${puzzle.slug}`);
-    },
-    onError(err) {
-      saveSnapRef.current = null;
-      toast.error(err.message || 'Failed to update puzzle');
-    }
-  });
-
-  const delete_mut = client_q.crossword.delete_puzzle.useMutation({
-    onSuccess: () => {
-      toast.success('Puzzle deleted');
-      void queryClient.invalidateQueries({ queryKey: ['crossword_list'] });
-      void invalidatePage('/padajala');
-      void invalidatePage('/padajala/list');
-      void invalidatePage('/padajala/puzzles');
-      router.push('/padajala/list');
-    },
-    onError() {
-      toast.error('Failed to delete puzzle');
-    }
-  });
+  const delete_mut = useMutation(
+    trpc.crossword.delete_puzzle.mutationOptions({
+      onSuccess: async () => {
+        toast.success('Puzzle deleted');
+        void queryClient.invalidateQueries({ queryKey: ['crossword_list'] });
+        await router.invalidate();
+        navigate({ href: '/padajala/list' });
+      },
+      onError() {
+        toast.error('Failed to delete puzzle');
+      }
+    })
+  );
 
   const handleSave = () => {
     if (!description.trim()) {

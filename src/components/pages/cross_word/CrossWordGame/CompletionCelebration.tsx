@@ -164,13 +164,13 @@ export function CompletionCelebration({
           className={cn(
             'relative w-full max-w-md overflow-hidden rounded-2xl border p-5 backdrop-blur-2xl sm:p-6',
             isPerfect
-              ? 'border-yellow-300/70 bg-linear-to-br from-yellow-50 via-green-50 to-emerald-50 shadow-[0_8px_32px_oklch(0.75_0.12_95/0.25)] dark:border-yellow-700/50 dark:from-yellow-950/50 dark:via-green-950/50 dark:to-emerald-950/50 dark:shadow-[0_8px_32px_oklch(0.4_0.1_95/0.3)]'
+              ? 'bg-linear-to-br border-yellow-300/70 from-yellow-50 via-green-50 to-emerald-50 shadow-[0_8px_32px_oklch(0.75_0.12_95/0.25)] dark:border-yellow-700/50 dark:from-yellow-950/50 dark:via-green-950/50 dark:to-emerald-950/50 dark:shadow-[0_8px_32px_oklch(0.4_0.1_95/0.3)]'
               : 'border-emerald-500/30 bg-[linear-gradient(135deg,color-mix(in_oklch,var(--card)_90%,transparent),color-mix(in_oklch,hsl(142_71%_45%)_8%,transparent))] shadow-[0_8px_32px_color-mix(in_oklch,var(--foreground)_20%,transparent),0_0_20px_color-mix(in_oklch,hsl(142_71%_45%)_10%,transparent)]'
           )}
         >
           {isPerfect ? (
             <motion.div
-              className="pointer-events-none absolute inset-0 bg-linear-to-r from-transparent via-yellow-200/35 to-transparent dark:via-yellow-400/15"
+              className="bg-linear-to-r pointer-events-none absolute inset-0 from-transparent via-yellow-200/35 to-transparent dark:via-yellow-400/15"
               initial={{ x: '-100%' }}
               animate={{ x: '200%' }}
               transition={{ duration: 1.2, delay: 0.5, ease: 'easeInOut' }}
@@ -192,10 +192,10 @@ export function CompletionCelebration({
               <Sparkles className={cn('size-5', isPerfect ? 'text-white' : 'text-emerald-400')} />
             </motion.div>
             <div>
-              <p className="font-semibold text-foreground">
+              <p className="text-foreground font-semibold">
                 {isPerfect ? '⭐ Perfect Score!' : 'Puzzle Complete!'}
               </p>
-              <p className="text-sm text-muted-foreground">
+              <p className="text-muted-foreground text-sm">
                 Finished in {formatElapsed(seconds)} ·{' '}
                 <span
                   className={cn(isPerfect && 'font-semibold text-yellow-600 dark:text-yellow-300')}

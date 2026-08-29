@@ -76,13 +76,13 @@ const loadConfig = Effect.fn('loadConfig')(function* () {
     openrouterApiKey: env.OPENROUTER_API_KEY,
     qstashToken: env.QSTASH_TOKEN,
     onesignalApiKey: env.ONESIGNAL_API_KEY,
-    onesignalAppId: env.NEXT_PUBLIC_ONESIGNAL_APP_ID,
+    onesignalAppId: env.VITE_ONESIGNAL_APP_ID,
     turnstileSecretKey: env.TURNSTILE_SECRET_KEY,
-    betterAuthUrl: env.NEXT_PUBLIC_BETTER_AUTH_URL,
-    siteUrl: env.NEXT_PUBLIC_SITE_URL,
-    cloudfrontUrl: env.NEXT_PUBLIC_AWS_CLOUDFRONT_URL,
-    isDev: env.NODE_ENV === 'development',
-    isProd: env.NODE_ENV === 'production',
+    betterAuthUrl: env.VITE_BETTER_AUTH_URL,
+    siteUrl: env.VITE_SITE_URL,
+    cloudfrontUrl: env.VITE_AWS_CLOUDFRONT_URL,
+    isDev: import.meta.env?.DEV === true || env.NODE_ENV === 'development',
+    isProd: import.meta.env?.PROD === true || env.NODE_ENV === 'production',
     isQstashEnabled: isProductionMode(env)
   });
 

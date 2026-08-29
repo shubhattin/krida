@@ -1,8 +1,8 @@
 'use client';
 
 import { useContext } from 'react';
-import Image from 'next/image';
-import Link from 'next/link';
+import { Image } from '@unpic/react';
+import { Link } from '@tanstack/react-router';
 import { motion } from 'framer-motion';
 import { IoExtensionPuzzleSharp } from 'react-icons/io5';
 import { AppContext } from '~/components/AppDataContext';
@@ -44,7 +44,8 @@ export const PuzzlePreviewCard = ({ puzzle, compact = false }: Props) => {
 
   return (
     <Link
-      href={`/padavali/${puzzle.slug}`}
+      to="/padavali/$slug"
+      params={{ slug: puzzle.slug }}
       onClick={handleClick}
       className="group block h-full no-underline"
     >
@@ -58,9 +59,15 @@ export const PuzzlePreviewCard = ({ puzzle, compact = false }: Props) => {
           style={{ aspectRatio: `${w} / ${h}` }}
         >
           {imageUrl ? (
-            <Image src={imageUrl} alt="" fill unoptimized className="object-cover object-center" />
+            <Image
+              src={imageUrl}
+              alt=""
+              width={w * 128}
+              height={h * 128}
+              className="size-full object-cover object-center"
+            />
           ) : (
-            <div className="flex size-full items-center justify-center bg-linear-to-br from-slate-600 via-slate-700 to-slate-800 dark:from-slate-700 dark:via-slate-800 dark:to-slate-900">
+            <div className="bg-linear-to-br flex size-full items-center justify-center from-slate-600 via-slate-700 to-slate-800 dark:from-slate-700 dark:via-slate-800 dark:to-slate-900">
               <IoExtensionPuzzleSharp
                 className={cn(
                   'text-slate-300/80 dark:text-slate-400/70',
