@@ -92,7 +92,7 @@ export function EditorActionDock({ onSave, isSaving = false, className }: Editor
           animate={{ opacity: 1, y: 0 }}
           transition={{ duration: 0.18 }}
           className={cn(
-            'pointer-events-auto flex max-w-full items-center gap-1.5 rounded-full border border-border/70',
+            'border-border/70 pointer-events-auto flex max-w-full items-center gap-1.5 rounded-full border',
             'bg-card/95 px-2 py-1.5 shadow-lg backdrop-blur-md',
             'dark:border-white/10 dark:bg-slate-900/90'
           )}
@@ -105,7 +105,7 @@ export function EditorActionDock({ onSave, isSaving = false, className }: Editor
               )}
               aria-hidden
             />
-            <span className="truncate text-xs font-medium text-muted-foreground sm:text-sm">
+            <span className="text-muted-foreground truncate text-xs font-medium sm:text-sm">
               <span className="sm:hidden">
                 {isDirty ? (changeCount > 0 ? String(changeCount) : '•') : '✓'}
               </span>
@@ -113,7 +113,7 @@ export function EditorActionDock({ onSave, isSaving = false, className }: Editor
             </span>
           </div>
 
-          <div className="h-5 w-px shrink-0 bg-border/80" aria-hidden />
+          <div className="bg-border/80 h-5 w-px shrink-0" aria-hidden />
 
           <Tooltip>
             <TooltipTrigger
@@ -153,7 +153,7 @@ export function EditorActionDock({ onSave, isSaving = false, className }: Editor
             <TooltipContent side="top">Redo ({modLabel}+Shift+Z)</TooltipContent>
           </Tooltip>
 
-          <div className="h-5 w-px shrink-0 bg-border/80" aria-hidden />
+          <div className="bg-border/80 h-5 w-px shrink-0" aria-hidden />
 
           <AlertDialog>
             <AlertDialogTrigger

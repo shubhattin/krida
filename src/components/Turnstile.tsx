@@ -13,8 +13,8 @@ export default function TurnstileWidget({ setToken }: Props) {
     () => true,
     () => false
   );
-  const SITE_KEY = process.env.NEXT_PUBLIC_TURNSTILE_SITE_KEY!;
-  const PROD = process.env.NODE_ENV === 'production';
+  const SITE_KEY = import.meta.env.VITE_TURNSTILE_SITE_KEY!;
+  const PROD = import.meta.env.PROD;
 
   if (!mounted || !SITE_KEY || !PROD) return <></>;
   // if (!mounted || !SITE_KEY || PROD) return <></>; // for dev mode testing

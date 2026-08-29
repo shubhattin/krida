@@ -9,7 +9,6 @@ import {
   image_assets
 } from '~/db/schema';
 import { and, asc, count, desc, eq, ilike, inArray, or, sql } from 'drizzle-orm';
-import { revalidatePath } from 'next/cache';
 import { padavali_stats_router } from './padavali_stats';
 import {
   CACHE,
@@ -287,7 +286,6 @@ const update_puzzle_route = protectedAdminProcedure
   .mutation(({ input: { puzzle_id, puzzle_data, puzzle_slug, image_id } }) =>
     runTrpcEffect(
       Effect.gen(function* () {
-        yield* Effect.sync(() => revalidatePath('/padavali/list'));
         const existing = yield* dbRun('padavali.find_puzzle_for_update', (client) =>
           client.query.padavali_puzzles.findFirst({
             columns: {
@@ -435,7 +433,6 @@ const update_puzzle_slug_route = protectedAdminProcedure
           );
         }
 
-        yield* Effect.sync(() => revalidatePath('/padavali/list'));
         yield* settle(invalidate_and_refresh_cache(CACHE.padavali.word_puzzle, { slug: new_slug }));
         yield* settle(CACHE.padavali.word_puzzle.delete({ slug: current_slug }));
         yield* settle(
@@ -469,8 +466,6 @@ const add_puzzle_route = protectedAdminProcedure
   .mutation(({ input }) =>
     runTrpcEffect(
       Effect.gen(function* () {
-        yield* Effect.sync(() => revalidatePath('/padavali/list'));
-
         yield* assert_slug_usable_for_mutation(input.slug, {
           override_redirect_slug: input.override_redirect_slug
         });
@@ -508,7 +503,6 @@ const delete_puzzle_route = protectedAdminProcedure
   .mutation(({ input: { id, slug } }) =>
     runTrpcEffect(
       Effect.gen(function* () {
-        yield* Effect.sync(() => revalidatePath('/padavali/list'));
         const normalizedSlug = normalizeSlug(slug);
         const puzzle = yield* dbRun('padavali.find_puzzle_for_delete', (client) =>
           client.query.padavali_puzzles.findFirst({
@@ -788,7 +782,6 @@ const delete_redirect_slug_route = protectedAdminProcedure
 
         yield* settle(CACHE.padavali.word_puzzle.delete({ slug: redirect_slug }));
         yield* settle(CACHE.padavali.word_meanings.delete({ slug: redirect_slug }));
-        yield* Effect.sync(() => revalidatePath(`/padavali/${redirect_slug}`));
 
         return { success: true as const };
       })

@@ -1,6 +1,6 @@
 'use client';
 
-import { useTheme } from '@teispace/next-themes';
+import { useTheme } from '~/components/theme-provider';
 import { Toaster as Sonner, type ToasterProps } from 'sonner';
 import {
   CircleCheckIcon,

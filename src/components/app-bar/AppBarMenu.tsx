@@ -18,7 +18,7 @@ import {
 } from 'lucide-react';
 import { SiGithub } from 'react-icons/si';
 import { FaYoutube, FaInstagram } from 'react-icons/fa';
-import { useTheme } from '@teispace/next-themes';
+import { useTheme, type Theme } from '~/components/theme-provider';
 
 import { Button } from '@/components/ui/button';
 import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover';
@@ -70,7 +70,7 @@ function LoggedInAccountMenu({
 
       <div className="grid grid-cols-2 gap-1">
         <a
-          href={`${process.env.NEXT_PUBLIC_BETTER_AUTH_URL}/user`}
+          href={`${import.meta.env.VITE_BETTER_AUTH_URL}/user`}
           target="_blank"
           rel="noopener noreferrer"
           onClick={onNavigate}
@@ -171,7 +171,12 @@ export function MenuButton({
   const [isIos] = useAtom(is_ios_atom);
   const closeMenu = () => setOpen(false);
 
-  const themeOptions = [
+  const themeOptions: {
+    value: Theme;
+    label: string;
+    icon: typeof Monitor;
+    description: string;
+  }[] = [
     {
       value: 'system',
       label: 'System',
@@ -221,7 +226,7 @@ export function MenuButton({
       >
         <div className="p-4">
           <div className="mb-4 flex items-center gap-2">
-            <div className="flex h-8 w-8 items-center justify-center rounded-lg bg-linear-to-br from-blue-500 to-indigo-600">
+            <div className="bg-linear-to-br flex h-8 w-8 items-center justify-center rounded-lg from-blue-500 to-indigo-600">
               <Settings className="h-4 w-4 text-white" />
             </div>
             <div>
@@ -328,7 +333,7 @@ export function MenuButton({
                 target="_blank"
                 rel="noopener noreferrer"
                 onClick={closeMenu}
-                className="flex h-12 w-12 items-center justify-center rounded-xl border-2 border-pink-500/20 bg-linear-to-br from-pink-50 to-purple-50 text-pink-600 transition-all duration-200 hover:scale-105 hover:border-pink-500/40 hover:from-pink-100 hover:to-purple-100 hover:shadow-md active:scale-95 dark:border-pink-400/20 dark:from-pink-950/30 dark:to-purple-950/30 dark:text-pink-400 dark:hover:border-pink-400/40 dark:hover:from-pink-900/40 dark:hover:to-purple-900/40"
+                className="bg-linear-to-br flex h-12 w-12 items-center justify-center rounded-xl border-2 border-pink-500/20 from-pink-50 to-purple-50 text-pink-600 transition-all duration-200 hover:scale-105 hover:border-pink-500/40 hover:from-pink-100 hover:to-purple-100 hover:shadow-md active:scale-95 dark:border-pink-400/20 dark:from-pink-950/30 dark:to-purple-950/30 dark:text-pink-400 dark:hover:border-pink-400/40 dark:hover:from-pink-900/40 dark:hover:to-purple-900/40"
                 title="Instagram"
               >
                 <FaInstagram className="h-6 w-6" />
@@ -343,7 +348,7 @@ export function MenuButton({
                 onClick={closeMenu}
                 className="flex w-full items-center gap-3 rounded-lg border border-slate-200 bg-slate-50 p-3 text-left text-sm font-medium text-slate-700 transition-all duration-200 hover:scale-[1.02] hover:border-slate-300 hover:bg-slate-100 active:scale-[0.98] dark:border-slate-700 dark:bg-slate-800/50 dark:text-slate-300 dark:hover:border-slate-600 dark:hover:bg-slate-700/50"
               >
-                <div className="flex h-8 w-8 items-center justify-center rounded-lg bg-linear-to-br from-green-500 to-emerald-600">
+                <div className="bg-linear-to-br flex h-8 w-8 items-center justify-center rounded-lg from-green-500 to-emerald-600">
                   <Book className="h-4 w-4 text-white" />
                 </div>
                 <div>
@@ -360,7 +365,7 @@ export function MenuButton({
                 onClick={closeMenu}
                 className="flex w-full items-center gap-3 rounded-lg border border-slate-200 bg-slate-50 p-3 text-left text-sm font-medium text-slate-700 transition-all duration-200 hover:scale-[1.02] hover:border-slate-300 hover:bg-slate-100 active:scale-[0.98] dark:border-slate-700 dark:bg-slate-800/50 dark:text-slate-300 dark:hover:border-slate-600 dark:hover:bg-slate-700/50"
               >
-                <div className="flex h-8 w-8 items-center justify-center rounded-lg bg-linear-to-br from-indigo-500 to-purple-600">
+                <div className="bg-linear-to-br flex h-8 w-8 items-center justify-center rounded-lg from-indigo-500 to-purple-600">
                   <Music className="h-4 w-4 text-white" />
                 </div>
                 <div>
@@ -377,7 +382,7 @@ export function MenuButton({
                 onClick={closeMenu}
                 className="flex w-full items-center gap-3 rounded-lg border border-slate-200 bg-slate-50 p-3 text-left text-sm font-medium text-slate-700 transition-all duration-200 hover:scale-[1.02] hover:border-slate-300 hover:bg-slate-100 active:scale-[0.98] dark:border-slate-700 dark:bg-slate-800/50 dark:text-slate-300 dark:hover:border-slate-600 dark:hover:bg-slate-700/50"
               >
-                <div className="flex h-8 w-8 items-center justify-center rounded-lg bg-linear-to-br from-orange-400 to-orange-600">
+                <div className="bg-linear-to-br flex h-8 w-8 items-center justify-center rounded-lg from-orange-400 to-orange-600">
                   <BsVectorPen className="h-4 w-4 text-white" />
                 </div>
                 <div>

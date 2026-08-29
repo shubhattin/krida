@@ -83,12 +83,15 @@ export const runTrpcEffect = async <A, E, R>(effect: Effect.Effect<A, E, R>): Pr
 };
 
 /**
- * Run an Effect at RSC / server-action / loader boundaries.
+ * Run an Effect at the route-loader / server-fn boundary.
  */
-export const runServerEffect = <A, E, R>(effect: Effect.Effect<A, E, R>): Promise<A> =>
+export const runLoaderEffect = <A, E, R>(effect: Effect.Effect<A, E, R>): Promise<A> =>
   appRuntime.runPromise(
-    effect.pipe(Effect.annotateLogs({ boundary: 'server' })) as Effect.Effect<A, E>
+    effect.pipe(Effect.annotateLogs({ boundary: 'loader' })) as Effect.Effect<A, E>
   );
+
+/** @deprecated Prefer runLoaderEffect */
+export const runServerEffect = runLoaderEffect;
 
 /**
  * Run an Effect at a Next.js route-handler boundary and map known errors to Response.

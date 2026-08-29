@@ -133,7 +133,7 @@ export const ScriptSelector = ({ script, onScriptChange }: Props) => {
       onOpenChange={handleOpenChange}
     >
       <SelectTrigger
-        className="h-8 w-46 gap-2 border-border/50 bg-background/50 text-sm"
+        className="w-46 border-border/50 bg-background/50 h-8 gap-2 text-sm"
         onPointerEnter={() => prefetchScript(script)}
         onFocus={() => prefetchScript(script)}
       >

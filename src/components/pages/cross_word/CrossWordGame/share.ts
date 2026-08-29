@@ -1,6 +1,6 @@
 export const get_crossword_share_url = (slug: string) => {
   const base =
-    process.env.NEXT_PUBLIC_SITE_URL ??
+    import.meta.env.VITE_SITE_URL ??
     (typeof window !== 'undefined'
       ? window.location.origin
       : 'https://krida.thesanskritchannel.org');

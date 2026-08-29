@@ -1,6 +1,6 @@
 'use client';
 
-import Link from 'next/link';
+import { Link } from '@tanstack/react-router';
 import { RefreshCw } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { Button } from '~/components/ui/button';
@@ -57,7 +57,7 @@ export function BatchPuzzleImageStatus({
   return (
     <div
       className={cn(
-        'flex flex-col gap-2 rounded-lg border border-border bg-muted/30 p-3 sm:flex-row sm:items-center sm:justify-between',
+        'border-border bg-muted/30 flex flex-col gap-2 rounded-lg border p-3 sm:flex-row sm:items-center sm:justify-between',
         className
       )}
     >
@@ -73,8 +73,8 @@ export function BatchPuzzleImageStatus({
           </div>
           {showBatchManagerLink ? (
             <Link
-              href={batch_manager_href}
-              className="text-xs text-primary underline-offset-4 hover:underline"
+              to={batch_manager_href}
+              className="text-primary text-xs underline-offset-4 hover:underline"
             >
               Open Batch Manager
             </Link>

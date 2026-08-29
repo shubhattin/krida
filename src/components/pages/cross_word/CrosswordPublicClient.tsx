@@ -1,7 +1,7 @@
 'use client';
 
 import { useState } from 'react';
-import Link from 'next/link';
+import { Link } from '@tanstack/react-router';
 import { ArrowLeftIcon, PencilIcon, SettingsIcon } from 'lucide-react';
 import { Card, CardDescription, CardHeader, CardTitle } from '~/components/ui/card';
 import { Button } from '~/components/ui/button';
@@ -35,12 +35,12 @@ export default function CrosswordPublicClient({ puzzles, isAdmin }: CrosswordPub
   if (selected) {
     return (
       <div className="relative">
-        <div className="absolute top-2 left-2 z-20 flex flex-wrap items-center gap-2 sm:top-4 sm:left-4">
+        <div className="absolute left-2 top-2 z-20 flex flex-wrap items-center gap-2 sm:left-4 sm:top-4">
           <Button
             type="button"
             variant="outline"
             size="sm"
-            className="gap-2 bg-background/80 backdrop-blur-sm"
+            className="bg-background/80 gap-2 backdrop-blur-sm"
             onClick={() => setSelectedId(null)}
           >
             <ArrowLeftIcon className="size-4 shrink-0" />
@@ -50,7 +50,8 @@ export default function CrosswordPublicClient({ puzzles, isAdmin }: CrosswordPub
             <Button
               render={
                 <Link
-                  href={`/padajala/edit/${selected.id}`}
+                  to="/padajala/edit/$id"
+                  params={{ id: String(selected.id) }}
                   className="inline-flex items-center gap-1.5"
                 />
               }
@@ -74,13 +75,13 @@ export default function CrosswordPublicClient({ puzzles, isAdmin }: CrosswordPub
       <div className="flex flex-wrap items-center justify-between gap-3">
         <div>
           <h1 className="text-2xl font-bold tracking-tight sm:text-3xl">Crossword Puzzles</h1>
-          <p className="mt-1 text-sm text-muted-foreground">
+          <p className="text-muted-foreground mt-1 text-sm">
             Pick a puzzle to play. More will appear as they are published.
           </p>
         </div>
         {isAdmin ? (
           <Button
-            render={<Link href="/padajala/list" className="inline-flex items-center gap-2" />}
+            render={<Link to="/padajala/list" className="inline-flex items-center gap-2" />}
             nativeButton={false}
             variant="outline"
           >
@@ -91,7 +92,7 @@ export default function CrosswordPublicClient({ puzzles, isAdmin }: CrosswordPub
       </div>
 
       {puzzles.length === 0 ? (
-        <p className="py-12 text-center text-muted-foreground">No listed puzzles yet.</p>
+        <p className="text-muted-foreground py-12 text-center">No listed puzzles yet.</p>
       ) : (
         <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-3">
           {puzzles.map((puzzle) => (
@@ -101,7 +102,7 @@ export default function CrosswordPublicClient({ puzzles, isAdmin }: CrosswordPub
               onClick={() => setSelectedId(puzzle.id)}
               className="text-left"
             >
-              <Card className="border-l-3 border-l-primary/40 transition-all duration-200 hover:translate-x-0.5 hover:border-l-primary hover:bg-slate-50 hover:shadow-md dark:hover:bg-slate-800/60">
+              <Card className="border-l-3 border-l-primary/40 hover:border-l-primary transition-all duration-200 hover:translate-x-0.5 hover:bg-slate-50 hover:shadow-md dark:hover:bg-slate-800/60">
                 <CardHeader>
                   <CardTitle>{puzzle.title}</CardTitle>
                   <CardDescription className="line-clamp-3">

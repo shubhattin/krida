@@ -9,14 +9,14 @@ import { HelpCircle, Sparkles, Users, Trophy } from 'lucide-react';
 export const GameHelp = () => {
   return (
     <div className="h-full">
-      <div className="border-b border-slate-200 px-4 py-3 sm:px-6 sm:py-5 lg:py-6.5 dark:border-slate-700">
+      <div className="lg:py-6.5 border-b border-slate-200 px-4 py-3 sm:px-6 sm:py-5 dark:border-slate-700">
         <div className="flex items-center gap-2 text-slate-800 dark:text-slate-200">
           <HelpCircle className="h-6 w-6" />
           <h3 className="text-lg font-semibold">Game Guide</h3>
         </div>
       </div>
 
-      <div className="px-3 pt-1.5 pb-2 sm:pb-3 lg:px-2 lg:pb-4 xl:px-6">
+      <div className="px-3 pb-2 pt-1.5 sm:pb-3 lg:px-2 lg:pb-4 xl:px-6">
         <Accordion className="space-y-2">
           <AccordionItem
             value="how-to-play"

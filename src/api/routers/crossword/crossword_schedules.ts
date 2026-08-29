@@ -3,7 +3,6 @@ import { Effect } from 'effect';
 import { z } from 'zod';
 import { dbRun, dbTransaction } from '~/effect/database';
 import { crossword_schedules } from '~/db/schema';
-import { revalidatePath } from 'next/cache';
 import { and, eq } from 'drizzle-orm';
 import {
   CACHE,
@@ -101,7 +100,6 @@ const add_puzzle_schedule_route = protectedAdminProcedure
           );
         }
 
-        yield* Effect.sync(() => revalidatePath('/padajala/schedules'));
         yield* settle(refreshScheduleCaches());
         const qstash = yield* QStashPublisher;
         yield* settle(
@@ -129,7 +127,6 @@ const delete_puzzle_schedule_route = protectedAdminProcedure
           await tx.delete(crossword_schedules).where(eq(crossword_schedules.id, schedule_id));
         });
 
-        yield* Effect.sync(() => revalidatePath('/padajala/schedules'));
         yield* refreshScheduleCaches();
 
         return { success: true };
@@ -177,7 +174,6 @@ const update_puzzle_schedule_route = protectedAdminProcedure
           );
         }
 
-        yield* Effect.sync(() => revalidatePath('/padajala/schedules'));
         yield* settle(refreshScheduleCaches());
         const qstash = yield* QStashPublisher;
         yield* settle(

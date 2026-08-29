@@ -1,7 +1,7 @@
 'use client';
 
 import { useMemo, useState } from 'react';
-import Link from 'next/link';
+import { Link } from '@tanstack/react-router';
 import Fuse from 'fuse.js';
 import { motion } from 'framer-motion';
 import { ExternalLinkIcon, SearchIcon } from 'lucide-react';
@@ -45,8 +45,8 @@ export function ListedCrosswordBrowseEmbed({ listed_puzzles }: Props) {
           Browse puzzles
         </h2>
         <Link
-          href="/padajala/puzzles"
-          className="flex items-center justify-center gap-0.5 rounded-full border border-blue-200/70 bg-blue-50/80 px-2 py-0.5 text-xs leading-none font-medium text-blue-600 no-underline transition-all duration-150 hover:bg-blue-100 hover:text-blue-700 dark:border-blue-700/50 dark:bg-blue-950/40 dark:text-blue-400 dark:hover:bg-blue-900/50"
+          to="/padajala/puzzles"
+          className="flex items-center justify-center gap-0.5 rounded-full border border-blue-200/70 bg-blue-50/80 px-2 py-0.5 text-xs font-medium leading-none text-blue-600 no-underline transition-all duration-150 hover:bg-blue-100 hover:text-blue-700 dark:border-blue-700/50 dark:bg-blue-950/40 dark:text-blue-400 dark:hover:bg-blue-900/50"
         >
           <ExternalLinkIcon className="relative size-3 shrink-0 translate-y-[-1.5px]" />
           <span>View all</span>
@@ -56,7 +56,7 @@ export function ListedCrosswordBrowseEmbed({ listed_puzzles }: Props) {
       <div className="mb-6">
         <InputGroup>
           <InputGroupAddon>
-            <SearchIcon className="size-4 text-muted-foreground" />
+            <SearchIcon className="text-muted-foreground size-4" />
           </InputGroupAddon>
           <InputGroupInput
             value={query}
@@ -91,7 +91,7 @@ export function ListedCrosswordBrowseEmbed({ listed_puzzles }: Props) {
         <p className="mt-4 text-center text-sm text-slate-500 dark:text-slate-400">
           Showing {EMBED_PAGE_LIMIT} of {filtered.length} matches.{' '}
           <Link
-            href="/padajala/puzzles"
+            to="/padajala/puzzles"
             className="font-medium text-blue-600 hover:underline dark:text-blue-400"
           >
             View all

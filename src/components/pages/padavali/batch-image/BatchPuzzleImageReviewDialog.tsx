@@ -1,9 +1,10 @@
 'use client';
 
-import Image from 'next/image';
+import { Image } from '@unpic/react';
 import { useState } from 'react';
 import { toast } from 'sonner';
-import { client_q } from '~/api/client';
+import { useMutation } from '@tanstack/react-query';
+import { useTRPC } from '~/api/client';
 import { getCDNUrl } from '~/constants';
 import {
   Dialog,
@@ -53,45 +54,50 @@ export function BatchPuzzleImageReviewDialog({
   onApproved,
   onDiscarded
 }: BatchPuzzleImageReviewDialogProps) {
+  const trpc = useTRPC();
   const { invalidateAll } = useInvalidatePuzzleImageBatchQueries(
     batchStatus.game ?? batchStatus.metadata.game ?? 'padavali'
   );
   const [discard_open, setDiscardOpen] = useState(false);
   const [delete_image_asset, setDeleteImageAsset] = useState(false);
 
-  const approve_mut = client_q.batch_ai.approve_puzzle_image.useMutation({
-    onSuccess: async (data) => {
-      const asset = batchStatus.image_asset;
-      if (asset && onApproved) {
-        onApproved({
-          id: data.uploaded_image_id,
-          s3_key: asset.s3_key,
-          width: asset.width,
-          height: asset.height
-        });
+  const approve_mut = useMutation(
+    trpc.batch_ai.approve_puzzle_image.mutationOptions({
+      onSuccess: async (data) => {
+        const asset = batchStatus.image_asset;
+        if (asset && onApproved) {
+          onApproved({
+            id: data.uploaded_image_id,
+            s3_key: asset.s3_key,
+            width: asset.width,
+            height: asset.height
+          });
+        }
+        await invalidateAll(batchStatus.puzzle_id ?? undefined);
+        toast.success('Generated image applied to puzzle');
+        onOpenChange(false);
+      },
+      onError: (err) => {
+        toast.error(err.message || 'Failed to approve generated image');
       }
-      await invalidateAll(batchStatus.puzzle_id ?? undefined);
-      toast.success('Generated image applied to puzzle');
-      onOpenChange(false);
-    },
-    onError: (err) => {
-      toast.error(err.message || 'Failed to approve generated image');
-    }
-  });
+    })
+  );
 
-  const discard_mut = client_q.batch_ai.discard_puzzle_image_batch_response.useMutation({
-    onSuccess: async () => {
-      await invalidateAll(batchStatus.puzzle_id ?? undefined);
-      toast.success('Generated image discarded');
-      setDiscardOpen(false);
-      setDeleteImageAsset(false);
-      onOpenChange(false);
-      onDiscarded?.();
-    },
-    onError: (err) => {
-      toast.error(err.message || 'Failed to discard generated image');
-    }
-  });
+  const discard_mut = useMutation(
+    trpc.batch_ai.discard_puzzle_image_batch_response.mutationOptions({
+      onSuccess: async () => {
+        await invalidateAll(batchStatus.puzzle_id ?? undefined);
+        toast.success('Generated image discarded');
+        setDiscardOpen(false);
+        setDeleteImageAsset(false);
+        onOpenChange(false);
+        onDiscarded?.();
+      },
+      onError: (err) => {
+        toast.error(err.message || 'Failed to discard generated image');
+      }
+    })
+  );
 
   const image_asset = batchStatus.image_asset;
   const is_working = approve_mut.isPending || discard_mut.isPending;
@@ -114,25 +120,26 @@ export function BatchPuzzleImageReviewDialog({
         </DialogHeader>
 
         {image_asset ? (
-          <div className="relative overflow-hidden rounded-lg border border-border shadow-sm">
+          <div
+            className="border-border relative overflow-hidden rounded-lg border shadow-sm"
+            style={{ aspectRatio: IMAGE_ASPECT }}
+          >
             <Image
               src={getCDNUrl(image_asset.s3_key)}
               alt="Generated puzzle card preview"
               width={768}
               height={512}
-              unoptimized
-              className="block w-full object-cover"
-              style={{ aspectRatio: IMAGE_ASPECT }}
+              className="block h-full w-full object-cover"
             />
           </div>
         ) : (
-          <p className="text-sm text-muted-foreground">No preview available for this batch item.</p>
+          <p className="text-muted-foreground text-sm">No preview available for this batch item.</p>
         )}
 
         {batchStatus.metadata.image_description ? (
           <div className="space-y-1">
             <p className="text-sm font-semibold">Image description</p>
-            <p className="text-sm text-muted-foreground">
+            <p className="text-muted-foreground text-sm">
               {batchStatus.metadata.image_description}
             </p>
           </div>
@@ -141,7 +148,7 @@ export function BatchPuzzleImageReviewDialog({
         {batchStatus.metadata.image_prompt ? (
           <div className="space-y-1">
             <p className="text-sm font-semibold">Image prompt</p>
-            <p className="max-h-40 overflow-y-auto rounded-md border border-border bg-muted/30 p-2 text-xs text-muted-foreground">
+            <p className="border-border bg-muted/30 text-muted-foreground max-h-40 overflow-y-auto rounded-md border p-2 text-xs">
               {batchStatus.metadata.image_prompt}
             </p>
           </div>

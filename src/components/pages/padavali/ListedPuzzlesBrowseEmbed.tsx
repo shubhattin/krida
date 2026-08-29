@@ -3,7 +3,7 @@
 import { useQuery } from '@tanstack/react-query';
 import { useContext, useEffect, useMemo, useState } from 'react';
 import { transliterate } from 'lipilekhika';
-import Link from 'next/link';
+import { Link } from '@tanstack/react-router';
 import { SearchIcon, ExternalLinkIcon } from 'lucide-react';
 import { ScriptSelector } from '~/components/pages/padavali/ScriptSelector';
 import Icon from '~/tools/Icon';
@@ -123,8 +123,8 @@ const BrowseEmbedView = ({ puzzles }: { puzzles: DisplayPuzzle[] }) => {
           Browse puzzles
         </h2>
         <Link
-          href="/padavali/puzzles"
-          className="flex items-center justify-center gap-0.5 rounded-full border border-blue-200/70 bg-blue-50/80 px-2 py-0.5 text-xs leading-none font-medium text-blue-600 no-underline transition-all duration-150 hover:bg-blue-100 hover:text-blue-700 dark:border-blue-700/50 dark:bg-blue-950/40 dark:text-blue-400 dark:hover:bg-blue-900/50"
+          to="/padavali/puzzles"
+          className="flex items-center justify-center gap-0.5 rounded-full border border-blue-200/70 bg-blue-50/80 px-2 py-0.5 text-xs font-medium leading-none text-blue-600 no-underline transition-all duration-150 hover:bg-blue-100 hover:text-blue-700 dark:border-blue-700/50 dark:bg-blue-950/40 dark:text-blue-400 dark:hover:bg-blue-900/50"
         >
           <ExternalLinkIcon className="relative size-3 shrink-0 translate-y-[-1.5px]" />
           <span>View all</span>
@@ -167,7 +167,7 @@ const BrowseEmbedView = ({ puzzles }: { puzzles: DisplayPuzzle[] }) => {
             className="-mt-1"
             aria-label="Enable Lipi Lekhika typing in search"
           />
-          <Icon src={LanguageIcon} className="-mt-1 size-6.5" />
+          <Icon src={LanguageIcon} className="size-6.5 -mt-1" />
         </Label>
         <div className="flex shrink-0 items-center justify-center gap-2 sm:justify-end">
           <ScriptSelector script={script} onScriptChange={setScript} />
@@ -202,7 +202,7 @@ const BrowseEmbedView = ({ puzzles }: { puzzles: DisplayPuzzle[] }) => {
         <p className="mt-4 text-center text-sm text-slate-500 dark:text-slate-400">
           Showing {EMBED_PAGE_LIMIT} of {filteredPuzzles.length} matches.{' '}
           <Link
-            href="/padavali/puzzles/"
+            to="/padavali/puzzles"
             className="font-medium text-blue-600 hover:underline dark:text-blue-400"
           >
             View all

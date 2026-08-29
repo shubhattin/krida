@@ -1,6 +1,6 @@
 'use client';
 
-import Image from 'next/image';
+import { Image } from '@unpic/react';
 import { useEffect, useState } from 'react';
 import { toast } from 'sonner';
 import {
@@ -56,8 +56,8 @@ import {
   PaginationPrevious
 } from '~/components/ui/pagination';
 import { InputGroup, InputGroupAddon, InputGroupInput } from '~/components/ui/input-group';
-import { useQuery, useQueryClient } from '@tanstack/react-query';
-import { client, client_q } from '~/api/client';
+import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
+import { client, useTRPC } from '~/api/client';
 import { getCDNUrl } from '~/constants';
 import { cn } from '~/lib/utils';
 import { BatchPuzzleImageCostNote } from '~/components/pages/padavali/batch-image/BatchPuzzleImageCostNote';
@@ -192,15 +192,16 @@ export function PuzzleCardImageSection({
 
       {image_info ? (
         <div className="flex flex-col items-start gap-3">
-          <div className="relative w-full max-w-sm overflow-hidden rounded-lg border border-border shadow-sm">
+          <div
+            className="border-border relative w-full max-w-sm overflow-hidden rounded-lg border shadow-sm"
+            style={{ aspectRatio: IMAGE_ASPECT }}
+          >
             <Image
               src={getCDNUrl(image_info.s3_key)}
               alt="Puzzle card image"
               width={768}
               height={512}
-              unoptimized
-              className="block w-full object-cover"
-              style={{ aspectRatio: IMAGE_ASPECT }}
+              className="block h-full w-full object-cover"
             />
           </div>
           <div className="flex items-center gap-2">
@@ -350,22 +351,25 @@ const ExistingImageCard = ({
 }) => {
   const [delete_open, setDeleteOpen] = useState(false);
   const [menu_open, setMenuOpen] = useState(false);
+  const trpc = useTRPC();
 
-  const delete_mut = client_q.image_assets.delete_image_asset.useMutation({
-    onSuccess: (data) => {
-      if (data.deleted) {
-        toast.success('Image deleted');
-        onDeleted(image.id);
-      } else {
-        toast.error('Image not found');
+  const delete_mut = useMutation(
+    trpc.image_assets.delete_image_asset.mutationOptions({
+      onSuccess: (data) => {
+        if (data.deleted) {
+          toast.success('Image deleted');
+          onDeleted(image.id);
+        } else {
+          toast.error('Image not found');
+        }
+        setDeleteOpen(false);
+      },
+      onError: () => {
+        toast.error('Failed to delete image');
+        setDeleteOpen(false);
       }
-      setDeleteOpen(false);
-    },
-    onError: () => {
-      toast.error('Failed to delete image');
-      setDeleteOpen(false);
-    }
-  });
+    })
+  );
 
   return (
     <div className="relative">
@@ -373,21 +377,20 @@ const ExistingImageCard = ({
         type="button"
         onClick={() => onSelect(selected ? null : toImageInfo(image))}
         className={cn(
-          'relative w-full overflow-hidden rounded-lg border bg-card text-left shadow-sm transition-colors',
-          selected ? 'border-primary ring-2 ring-primary' : 'border-border hover:border-primary/50'
+          'bg-card relative w-full overflow-hidden rounded-lg border text-left shadow-sm transition-colors',
+          selected ? 'border-primary ring-primary ring-2' : 'border-border hover:border-primary/50'
         )}
+        style={{ aspectRatio: IMAGE_ASPECT }}
       >
         <Image
           src={getCDNUrl(image.s3_key)}
           alt={image.description ?? 'Image asset'}
           width={768}
           height={512}
-          unoptimized
           className="block w-full object-cover"
-          style={{ aspectRatio: IMAGE_ASPECT }}
         />
         {image.description ? (
-          <p className="truncate px-2 py-1.5 text-xs text-muted-foreground">{image.description}</p>
+          <p className="text-muted-foreground truncate px-2 py-1.5 text-xs">{image.description}</p>
         ) : null}
       </button>
 
@@ -397,7 +400,7 @@ const ExistingImageCard = ({
             <Button
               variant="secondary"
               size="icon-sm"
-              className="absolute top-1.5 right-1.5 size-7 bg-background/90 shadow-sm"
+              className="bg-background/90 absolute right-1.5 top-1.5 size-7 shadow-sm"
               aria-label="Image actions"
             />
           }
@@ -408,7 +411,7 @@ const ExistingImageCard = ({
           <Button
             variant="ghost"
             size="sm"
-            className="w-full justify-start text-destructive hover:text-destructive"
+            className="text-destructive hover:text-destructive w-full justify-start"
             onClick={() => {
               setMenuOpen(false);
               setDeleteOpen(true);
@@ -555,7 +558,7 @@ const ExistingImageTab = ({
         </div>
       ) : (
         <div
-          className="flex items-center justify-center rounded-lg border border-dashed border-border bg-muted/20 text-sm text-muted-foreground"
+          className="border-border bg-muted/20 text-muted-foreground flex items-center justify-center rounded-lg border border-dashed text-sm"
           style={{ minHeight: 120 }}
         >
           {image_assets_q.isFetching ? 'Loading…' : 'No images found'}
@@ -667,10 +670,10 @@ const CreateNewImageTab = ({
       {phase.state === 'idle' && (
         <div className="flex w-full flex-col items-center gap-4">
           <div
-            className="flex w-full max-w-sm items-center justify-center rounded-lg border border-dashed border-border bg-muted/30"
+            className="border-border bg-muted/30 flex w-full max-w-sm items-center justify-center rounded-lg border border-dashed"
             style={{ aspectRatio: IMAGE_ASPECT }}
           >
-            <div className="flex flex-col items-center gap-2 text-muted-foreground">
+            <div className="text-muted-foreground flex flex-col items-center gap-2">
               <ImageIcon className="size-10 opacity-40" />
               <span className="text-sm">No image yet</span>
             </div>
@@ -691,7 +694,7 @@ const CreateNewImageTab = ({
                     render={
                       <button
                         type="button"
-                        className="inline-flex size-4 shrink-0 items-center justify-center text-muted-foreground hover:text-foreground"
+                        className="text-muted-foreground hover:text-foreground inline-flex size-4 shrink-0 items-center justify-center"
                         aria-label="About include word meanings"
                       />
                     }
@@ -727,7 +730,7 @@ const CreateNewImageTab = ({
             <Wand2 className="size-4" />
             Create AI Image
           </Button>
-          <div className="w-full max-w-sm space-y-3 rounded-lg border border-border bg-muted/20 p-3">
+          <div className="border-border bg-muted/20 w-full max-w-sm space-y-3 rounded-lg border p-3">
             <div className="space-y-1">
               <p className="text-sm font-semibold">Cheaper background generation</p>
               <BatchPuzzleImageCostNote />
@@ -764,15 +767,16 @@ const CreateNewImageTab = ({
 
       {phase.state === 'done' && (
         <div className="flex w-full flex-col items-center gap-4">
-          <div className="relative w-full max-w-sm overflow-hidden rounded-lg border border-border shadow">
+          <div
+            className="border-border relative w-full max-w-sm overflow-hidden rounded-lg border shadow"
+            style={{ aspectRatio: IMAGE_ASPECT }}
+          >
             <Image
               src={getCDNUrl(phase.image_info.s3_key)}
               alt="Generated puzzle card"
               width={768}
               height={512}
-              unoptimized
-              className="block w-full object-cover"
-              style={{ aspectRatio: IMAGE_ASPECT }}
+              className="block h-full w-full object-cover"
             />
           </div>
 
@@ -795,7 +799,7 @@ const CreateNewImageTab = ({
           <div className="w-full space-y-2">
             <p className="text-sm font-semibold">Edit Image Prompt</p>
             <div className="space-y-1">
-              <span className="text-xs text-muted-foreground">Image Prompt</span>
+              <span className="text-muted-foreground text-xs">Image Prompt</span>
               <Textarea
                 className="min-h-25 w-full resize-y text-sm"
                 value={custom_prompt}
@@ -836,6 +840,7 @@ function AIImageDialogContent({
   onImageCleared: () => void;
 }) {
   const queryClient = useQueryClient();
+  const trpc = useTRPC();
   const { invalidateAll } = useInvalidatePuzzleImageBatchQueries(game);
   const [active_tab, setActiveTab] = useState<ImageDialogTab>('create-new');
   const [auto_approved, setAutoApproved] = useState(true);
@@ -866,57 +871,63 @@ function AIImageDialogContent({
     void queryClient.invalidateQueries({ queryKey: [IMAGE_ASSETS_LIST_QUERY_KEY] });
   };
 
-  const generate_mut = client_q.ai_image_gen.generate_puzzle_card_image.useMutation({
-    onSuccess: (data) => {
-      if (data.success) {
-        const image_info = { id: data.id, s3_key: data.s3_key, width: 768, height: 512 };
-        setPhase({
-          state: 'done',
-          image_prompt: data.image_prompt,
-          image_info
-        });
-        setCustomPrompt(data.image_prompt);
-        setSelectedImage(image_info);
-        invalidateImageAssetsList();
-      } else {
-        toast.error(`Image generation failed: ${data.err_code}`);
+  const generate_mut = useMutation(
+    trpc.ai_image_gen.generate_puzzle_card_image.mutationOptions({
+      onSuccess: (data) => {
+        if (data.success) {
+          const image_info = { id: data.id, s3_key: data.s3_key, width: 768, height: 512 };
+          setPhase({
+            state: 'done',
+            image_prompt: data.image_prompt,
+            image_info
+          });
+          setCustomPrompt(data.image_prompt);
+          setSelectedImage(image_info);
+          invalidateImageAssetsList();
+        } else {
+          toast.error(`Image generation failed: ${data.err_code}`);
+          setPhase({ state: 'idle' });
+        }
+      },
+      onError: () => {
+        toast.error('Image generation failed');
         setPhase({ state: 'idle' });
       }
-    },
-    onError: () => {
-      toast.error('Image generation failed');
-      setPhase({ state: 'idle' });
-    }
-  });
+    })
+  );
 
-  const delete_mut = client_q.image_assets.delete_image_asset.useMutation({
-    onSuccess: () => {
-      setPhase({ state: 'idle' });
-      setCustomPrompt('');
-      setSelectedImage(null);
-      onImageCleared();
-      invalidateImageAssetsList();
-    },
-    onError: () => toast.error('Failed to delete image')
-  });
+  const delete_mut = useMutation(
+    trpc.image_assets.delete_image_asset.mutationOptions({
+      onSuccess: () => {
+        setPhase({ state: 'idle' });
+        setCustomPrompt('');
+        setSelectedImage(null);
+        onImageCleared();
+        invalidateImageAssetsList();
+      },
+      onError: () => toast.error('Failed to delete image')
+    })
+  );
 
-  const batch_trigger_mut = client_q.batch_ai.trigger_batch_puzzle_image_gen.useMutation({
-    onSuccess: async (_data, variables) => {
-      await invalidateAll(puzzle_id);
-      if (variables.auto_approved) {
-        toast.success(
-          'Background image generation queued. It will be applied automatically when ready.'
-        );
-      } else {
-        toast.success(
-          'Background image generation queued. Review it from the puzzle page when ready.'
-        );
+  const batch_trigger_mut = useMutation(
+    trpc.batch_ai.trigger_batch_puzzle_image_gen.mutationOptions({
+      onSuccess: async (_data, variables) => {
+        await invalidateAll(puzzle_id);
+        if (variables.auto_approved) {
+          toast.success(
+            'Background image generation queued. It will be applied automatically when ready.'
+          );
+        } else {
+          toast.success(
+            'Background image generation queued. Review it from the puzzle page when ready.'
+          );
+        }
+      },
+      onError: (err) => {
+        toast.error(err.message || 'Failed to queue background image generation');
       }
-    },
-    onError: (err) => {
-      toast.error(err.message || 'Failed to queue background image generation');
-    }
-  });
+    })
+  );
 
   const startGeneration = (existing_image_prompt?: string) => {
     setPhase({ state: 'generating' });

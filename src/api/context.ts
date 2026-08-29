@@ -1,13 +1,11 @@
-import get_seesion_from_cookie from '@/lib/get_auth_from_cookie';
+import { getServerUserSession$ } from '@/lib/get_auth_from_cookie';
 
-export const createContext = async ({ req }: { req: Request }) => {
-  const cookie = req.headers.get('cookie') ?? '';
-  const session = await get_seesion_from_cookie(cookie);
+export const createContext = async () => {
+  const session = await getServerUserSession$();
   const user = session?.user;
 
   return {
-    user,
-    cookie
+    user
   };
 };
 

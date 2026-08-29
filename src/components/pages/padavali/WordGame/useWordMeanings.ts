@@ -2,19 +2,23 @@
 
 import { useContext, useEffect, useState } from 'react';
 import { transliterate } from 'lipilekhika';
-import { client_q } from '~/api/client';
+import { useQuery } from '@tanstack/react-query';
+import { useTRPC } from '~/api/client';
 import { AppContext } from '~/components/AppDataContext';
 import { DEFAULT_DATA_SCRIPT } from '~/state/script_list';
 
 export function useWordMeanings(puzzle_id: number, puzzle_slug: string) {
+  const trpc = useTRPC();
   const { script } = useContext(AppContext);
   const [transliteratedWords, setTransliteratedWords] = useState<Record<string, string>>({});
 
   // Fetch as soon as the puzzle mounts — AI-generated meanings can take a while on
   // first request, so we warm the cache early. UI components gate *display* only.
-  const query = client_q.public_ai.get_puzzle_word_meanings.useQuery(
-    { puzzle_id, puzzle_slug },
-    { staleTime: Infinity }
+  const query = useQuery(
+    trpc.public_ai.get_puzzle_word_meanings.queryOptions(
+      { puzzle_id, puzzle_slug },
+      { staleTime: Infinity }
+    )
   );
 
   useEffect(() => {
