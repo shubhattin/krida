@@ -1,0 +1,69 @@
+{
+  "$schema": "./node_modules/oxlint/configuration_schema.json",
+  "plugins": ["typescript", "unicorn", "oxc", "react"],
+  "categories": {
+    "correctness": "error"
+  },
+  "jsPlugins": [
+    "./node_modules/oxlint-plugin-query/dist/index.js",
+    "./node_modules/oxlint-plugin-router/dist/index.js",
+    {
+      "name": "anti-slop",
+      "specifier": "./tools/oxlint/anti-slop/index.ts"
+    },
+    {
+      "name": "anti-slop-effect",
+      "specifier": "./tools/oxlint/anti-slop/effect/index.ts"
+    }
+  ],
+  "rules": {
+    "complexity": ["warn", { "max": 15 }],
+    "oxlint-plugin-query/exhaustive-deps": "error",
+    "oxlint-plugin-query/no-rest-destructuring": "warn",
+    "oxlint-plugin-query/stable-query-client": "error",
+    "oxlint-plugin-query/no-unstable-deps": "error",
+    "oxlint-plugin-query/infinite-query-property-order": "error",
+    "oxlint-plugin-query/mutation-property-order": "error",
+    "oxlint-plugin-router/create-route-property-order": "error",
+    "oxlint-plugin-router/route-param-names": "error",
+    "anti-slop/no-chained-type-assertions": "warn",
+    "anti-slop/no-conditional-empty-object-spread": "warn",
+    "anti-slop/no-known-value-widening": "warn",
+    "anti-slop/no-module-mocking": "warn",
+    "anti-slop/no-object-parameters": "warn",
+    "anti-slop/no-reflect-apply": "warn",
+    "anti-slop/no-reflect-get": "warn",
+    "anti-slop/no-runtime-typeof": "warn",
+    "anti-slop/no-shape-in-symbol-names": "warn",
+    "anti-slop/no-unknown-parameters": "warn",
+    "anti-slop/no-unknown-returns": "warn",
+    "anti-slop/no-unknown-type-aliases": "warn",
+    "anti-slop/no-unsafe-dictionary-type": "warn",
+    "anti-slop/no-widen-then-assert": "warn",
+    "anti-slop/require-safety-comment-for-type-assertion": "warn",
+    "anti-slop-effect/no-service-constructor-imports": "warn"
+  },
+  "ignorePatterns": [
+    "src/routeTree.gen.ts",
+    "src/db/migrations/**",
+    "src/db/scripts/out/**",
+    "src/db/scripts/backup/**",
+    "src/tools/lipi_lekhika/resources/**",
+    "src/components/ui/**",
+    ".output/**",
+    ".tanstack/**",
+    ".agents/**",
+    ".agent/**",
+    ".claude/**",
+    ".codex/**",
+    ".continue/**",
+    ".cursor/**",
+    ".gemini/**",
+    ".opencode/**",
+    ".pi/**",
+    ".roo/**",
+    ".windsurf/**",
+    "tools/oxlint/anti-slop/**",
+    ".vercel/**"
+  ]
+}

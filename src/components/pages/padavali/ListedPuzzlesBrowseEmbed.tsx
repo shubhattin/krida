@@ -124,7 +124,7 @@ const BrowseEmbedView = ({ puzzles }: { puzzles: DisplayPuzzle[] }) => {
         </h2>
         <Link
           to="/padavali/puzzles"
-          className="flex items-center justify-center gap-0.5 rounded-full border border-blue-200/70 bg-blue-50/80 px-2 py-0.5 text-xs font-medium leading-none text-blue-600 no-underline transition-all duration-150 hover:bg-blue-100 hover:text-blue-700 dark:border-blue-700/50 dark:bg-blue-950/40 dark:text-blue-400 dark:hover:bg-blue-900/50"
+          className="flex items-center justify-center gap-0.5 rounded-full border border-blue-200/70 bg-blue-50/80 px-2 py-0.5 text-xs leading-none font-medium text-blue-600 no-underline transition-all duration-150 hover:bg-blue-100 hover:text-blue-700 dark:border-blue-700/50 dark:bg-blue-950/40 dark:text-blue-400 dark:hover:bg-blue-900/50"
         >
           <ExternalLinkIcon className="relative size-3 shrink-0 translate-y-[-1.5px]" />
           <span>View all</span>
@@ -167,7 +167,7 @@ const BrowseEmbedView = ({ puzzles }: { puzzles: DisplayPuzzle[] }) => {
             className="-mt-1"
             aria-label="Enable Lipi Lekhika typing in search"
           />
-          <Icon src={LanguageIcon} className="size-6.5 -mt-1" />
+          <Icon src={LanguageIcon} className="-mt-1 size-6.5" />
         </Label>
         <div className="flex shrink-0 items-center justify-center gap-2 sm:justify-end">
           <ScriptSelector script={script} onScriptChange={setScript} />

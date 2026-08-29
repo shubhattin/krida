@@ -69,7 +69,9 @@ export type CreateCacheConfig<TParams, TCached, TData = TCached> = {
 
 /** Snapshot of generation for a guarded write; `unavailable` skips caching. */
 type GenerationSnapshot =
-  { kind: 'unguarded' } | { kind: 'guarded'; gen: number } | { kind: 'unavailable' };
+  | { kind: 'unguarded' }
+  | { kind: 'guarded'; gen: number }
+  | { kind: 'unavailable' };
 
 const redisGenerationKey = (cacheKey: string) => `${cacheKey}:gen`;
 

@@ -149,7 +149,7 @@ function GeneratedLayoutPreview({
 
   return (
     <div
-      className="border-border/60 bg-muted/20 flex shrink-0 items-center justify-center rounded-md border p-1"
+      className="flex shrink-0 items-center justify-center rounded-md border border-border/60 bg-muted/20 p-1"
       style={{ width: LAYOUT_PREVIEW_FRAME_PX + 10, height: LAYOUT_PREVIEW_FRAME_PX + 10 }}
     >
       <div
@@ -158,7 +158,7 @@ function GeneratedLayoutPreview({
         style={{ width: gridWidth, height: gridHeight }}
       >
         <div
-          className="bg-border/60 relative z-10 grid"
+          className="relative z-10 grid bg-border/60"
           style={{
             width: gridWidth,
             height: gridHeight,
@@ -175,7 +175,7 @@ function GeneratedLayoutPreview({
                 <div
                   key={`${rowIndex}-${columnIndex}`}
                   className={cn(
-                    'relative z-10 flex items-center justify-center overflow-hidden rounded-[2px] font-medium leading-none',
+                    'relative z-10 flex items-center justify-center overflow-hidden rounded-[2px] leading-none font-medium',
                     isEmpty ? 'bg-background text-transparent' : 'bg-background text-foreground',
                     tint.className
                   )}
@@ -267,7 +267,7 @@ function WordChipList({
   tone?: 'default' | 'warning';
 }) {
   if (slotIndices.length === 0) {
-    return <p className="text-muted-foreground text-xs">{emptyLabel}</p>;
+    return <p className="text-xs text-muted-foreground">{emptyLabel}</p>;
   }
 
   return (
@@ -321,7 +321,7 @@ function LayoutCandidateDetail({
         gridDimensions={gridDimensions}
       />
       <div className="flex min-w-0 flex-1 flex-col gap-4">
-        <p className="text-muted-foreground text-xs">{neighborhoodLabel(candidate.neighborhood)}</p>
+        <p className="text-xs text-muted-foreground">{neighborhoodLabel(candidate.neighborhood)}</p>
         <div className="flex flex-col gap-2">
           <div className="flex items-center gap-2">
             <h4 className="text-sm font-medium">Placed</h4>
@@ -341,7 +341,7 @@ function LayoutCandidateDetail({
               <h4 className="text-sm font-medium text-amber-700 dark:text-amber-300">Excluded</h4>
               <Badge
                 variant="outline"
-                className="border-amber-500/40 tabular-nums text-amber-700 dark:text-amber-300"
+                className="border-amber-500/40 text-amber-700 tabular-nums dark:text-amber-300"
               >
                 {candidate.omittedSlotIndices.length}
               </Badge>
@@ -398,7 +398,7 @@ function LayoutTabsCarousel({
   };
 
   return (
-    <div className="border-border bg-popover flex shrink-0 flex-col gap-1.5 border-b px-3 py-2 sm:px-4">
+    <div className="flex shrink-0 flex-col gap-1.5 border-b border-border bg-popover px-3 py-2 sm:px-4">
       <div className="flex items-center gap-1.5">
         <Button
           type="button"
@@ -419,7 +419,7 @@ function LayoutTabsCarousel({
         >
           <TabsList
             variant="line"
-            className="flex! h-auto w-max max-w-none touch-pan-y select-none justify-start gap-1"
+            className="flex! h-auto w-max max-w-none touch-pan-y justify-start gap-1 select-none"
           >
             {candidates.map((candidate, index) => {
               const key = layoutCandidateKey(candidate);
@@ -427,7 +427,7 @@ function LayoutTabsCarousel({
                 <TabsTrigger
                   key={key}
                   value={key}
-                  className="flex-none shrink-0 grow-0 basis-auto select-none px-3"
+                  className="flex-none shrink-0 grow-0 basis-auto px-3 select-none"
                 >
                   Layout {index + 1}
                   <Badge variant="secondary" className="tabular-nums">
@@ -451,7 +451,7 @@ function LayoutTabsCarousel({
           <ChevronRight />
         </Button>
       </div>
-      <p className="text-muted-foreground/70 select-none px-0.5 text-[11px]">
+      <p className="px-0.5 text-[11px] text-muted-foreground/70 select-none">
         Number = words placed · drag tabs to browse
       </p>
     </div>
@@ -570,7 +570,7 @@ export function PadavaliLayoutGenerator({
         }}
       >
         <DialogContent className="flex max-h-[min(90vh,52rem)] flex-col gap-0 overflow-hidden p-0 sm:max-w-3xl">
-          <DialogHeader className="shrink-0 gap-1.5 px-4 pb-3 pr-12 pt-4">
+          <DialogHeader className="shrink-0 gap-1.5 px-4 pt-4 pr-12 pb-3">
             <DialogTitle>Generate grid layouts</DialogTitle>
             <DialogDescription>
               Browse candidates for the current grid size. Choosing one replaces the grid; words
@@ -578,19 +578,19 @@ export function PadavaliLayoutGenerator({
             </DialogDescription>
           </DialogHeader>
 
-          <div className="border-border bg-muted/20 shrink-0 border-b px-4 py-3">
+          <div className="shrink-0 border-b border-border bg-muted/20 px-4 py-3">
             <div className="grid grid-cols-1 gap-3 sm:grid-cols-2">
               <div className="flex min-w-0 flex-col gap-1.5">
                 <div className="flex items-center gap-1">
                   <Label
                     htmlFor="padavali-layout-neighborhood"
-                    className="text-muted-foreground text-xs font-medium uppercase tracking-wide"
+                    className="text-xs font-medium tracking-wide text-muted-foreground uppercase"
                   >
                     Neighbor moves
                   </Label>
                   <Popover>
                     <PopoverTrigger
-                      render={<Info className="text-muted-foreground size-3.5" />}
+                      render={<Info className="size-3.5 text-muted-foreground" />}
                       nativeButton={false}
                       aria-label="About neighbor moves"
                     />
@@ -625,13 +625,13 @@ export function PadavaliLayoutGenerator({
                 <div className="flex items-center gap-1">
                   <Label
                     htmlFor="padavali-layout-path-style"
-                    className="text-muted-foreground text-xs font-medium uppercase tracking-wide"
+                    className="text-xs font-medium tracking-wide text-muted-foreground uppercase"
                   >
                     Word order
                   </Label>
                   <Popover>
                     <PopoverTrigger
-                      render={<Info className="text-muted-foreground size-3.5" />}
+                      render={<Info className="size-3.5 text-muted-foreground" />}
                       nativeButton={false}
                       aria-label="About word order"
                     />
@@ -665,7 +665,7 @@ export function PadavaliLayoutGenerator({
               <div className="flex min-w-0 flex-col gap-1.5">
                 <Label
                   htmlFor="padavali-layout-ranking"
-                  className="text-muted-foreground text-xs font-medium uppercase tracking-wide"
+                  className="text-xs font-medium tracking-wide text-muted-foreground uppercase"
                 >
                   Rank by
                 </Label>
@@ -688,7 +688,7 @@ export function PadavaliLayoutGenerator({
                     ))}
                   </SelectContent>
                 </Select>
-                <p className="text-muted-foreground/80 text-[11px] leading-snug">
+                <p className="text-[11px] leading-snug text-muted-foreground/80">
                   Reorders tabs without regenerating
                 </p>
               </div>
@@ -696,7 +696,7 @@ export function PadavaliLayoutGenerator({
               <div className="flex min-w-0 flex-col gap-1.5">
                 <Label
                   htmlFor="padavali-layout-candidate-limit"
-                  className="text-muted-foreground text-xs font-medium uppercase tracking-wide"
+                  className="text-xs font-medium tracking-wide text-muted-foreground uppercase"
                 >
                   Candidates
                 </Label>
@@ -720,7 +720,7 @@ export function PadavaliLayoutGenerator({
                     ))}
                   </SelectContent>
                 </Select>
-                <p className="text-muted-foreground/80 text-[11px] leading-snug">
+                <p className="text-[11px] leading-snug text-muted-foreground/80">
                   Max distinct layouts to keep
                 </p>
               </div>
@@ -739,7 +739,7 @@ export function PadavaliLayoutGenerator({
                 onSelect={setSelectedKey}
               />
 
-              <div className="min-h-0 flex-1 overflow-y-auto overflow-x-hidden px-4 pb-6 pt-4">
+              <div className="min-h-0 flex-1 overflow-x-hidden overflow-y-auto px-4 pt-4 pb-6">
                 {rankedCandidates.map((candidate) => {
                   const key = layoutCandidateKey(candidate);
                   return (
@@ -756,7 +756,7 @@ export function PadavaliLayoutGenerator({
             </Tabs>
           ) : null}
 
-          <DialogFooter className="border-border shrink-0 border-t px-4 py-3">
+          <DialogFooter className="shrink-0 border-t border-border px-4 py-3">
             <div className="flex w-full flex-wrap items-center justify-between gap-2">
               <Button
                 type="button"

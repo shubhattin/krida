@@ -22,7 +22,7 @@ function List() {
           Main Page
         </Link>
       </div>
-      <div className="mb-5 mt-2 flex flex-wrap items-center justify-center gap-4 px-2">
+      <div className="mt-2 mb-5 flex flex-wrap items-center justify-center gap-4 px-2">
         <Button
           render={<Link to="/padajala/analytics" className="inline-flex items-center gap-2" />}
           nativeButton={false}

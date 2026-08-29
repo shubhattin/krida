@@ -70,14 +70,14 @@ const formatScheduleRange = (startTime: Date, endTime: Date) => {
 };
 
 const ScheduleCardTitle = ({ title, puzzleId }: { title: string; puzzleId: number }) => (
-  <CardTitle className="flex items-center gap-2 text-base font-semibold leading-snug">
+  <CardTitle className="flex items-center gap-2 text-base leading-snug font-semibold">
     <span className="min-w-0 flex-1">{title}</span>
     <a
       href={`/padajala/edit/${puzzleId}`}
       target="_blank"
       rel="noopener noreferrer"
       aria-label={`Open puzzle editor for ${title}`}
-      className="text-muted-foreground inline-flex shrink-0 items-center justify-center transition-colors hover:text-blue-500"
+      className="inline-flex shrink-0 items-center justify-center text-muted-foreground transition-colors hover:text-blue-500"
     >
       <SquareArrowOutUpRightIcon className="size-3.5" />
     </a>
@@ -94,10 +94,10 @@ const ScheduleCardMeta = ({
   createdAt: Date;
 }) => (
   <div className="space-y-1.5">
-    <p className="text-muted-foreground text-sm leading-relaxed">
+    <p className="text-sm leading-relaxed text-muted-foreground">
       {formatScheduleRange(startTime, endTime)}
     </p>
-    <div className="text-muted-foreground flex items-center gap-1.5 text-sm leading-none">
+    <div className="flex items-center gap-1.5 text-sm leading-none text-muted-foreground">
       <span className="inline-flex items-center justify-center">
         <ClockIcon className="size-3.5" />
       </span>
@@ -137,7 +137,7 @@ const ListSchedules = ({ upcomming_schedules }: Props) => {
                   to="/padajala/schedules/edit/$id"
                   params={{ id: String(schedule.id) }}
                   aria-label={`Edit schedule for ${schedule.puzzle.title}`}
-                  className="text-muted-foreground inline-flex items-center justify-center p-1 hover:text-blue-500"
+                  className="inline-flex items-center justify-center p-1 text-muted-foreground hover:text-blue-500"
                 >
                   <PencilIcon className="size-4" />
                 </Link>
@@ -207,7 +207,7 @@ export const PastSchedules = () => {
       <Accordion className="w-full" value={value} onValueChange={setValue}>
         <AccordionItem
           value="past-schedules"
-          className="border-border/60 bg-card/40 rounded-xl border px-4"
+          className="rounded-xl border border-border/60 bg-card/40 px-4"
         >
           <AccordionTrigger className="py-4 text-lg font-semibold hover:no-underline focus-visible:border-transparent">
             Past Schedules
@@ -254,7 +254,7 @@ export const PastSchedules = () => {
               ) : past_schedules_q.data ? (
                 <Card>
                   <CardContent className="flex flex-col items-center justify-center py-12 text-center">
-                    <div className="text-muted-foreground mb-4">
+                    <div className="mb-4 text-muted-foreground">
                       <ClockIcon className="mx-auto mb-2 h-12 w-12 opacity-50" />
                     </div>
                     <h3 className="mb-2 text-lg font-semibold">No Past Schedules</h3>

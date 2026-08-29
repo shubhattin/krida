@@ -350,7 +350,7 @@ const CrosswordListPage = () => {
         <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4">
           {puzzle_list.map((item) => (
             <div key={item.id} className="relative">
-              <div className="absolute left-3 top-3 z-10">
+              <div className="absolute top-3 left-3 z-10">
                 <Checkbox
                   checked={selected_ids.has(item.id)}
                   onCheckedChange={(checked) => toggleSelection(item.id, checked === true)}
@@ -358,7 +358,7 @@ const CrosswordListPage = () => {
                   onClick={(e) => e.stopPropagation()}
                 />
               </div>
-              <div className="absolute right-3 top-3 z-10 flex items-center gap-2">
+              <div className="absolute top-3 right-3 z-10 flex items-center gap-2">
                 <Label className="inline-flex items-center gap-1.5 text-xs font-medium">
                   <Switch
                     checked={item.listed}
@@ -372,22 +372,22 @@ const CrosswordListPage = () => {
                 </Label>
               </div>
               <Link to="/padajala/edit/$id" params={{ id: String(item.id) }}>
-                <Card className="border-l-3 group border-l-blue-500/40 p-2 pl-10 pr-24 shadow-sm transition-all duration-200 hover:translate-x-0.5 hover:border-l-blue-500 hover:bg-slate-50 hover:shadow-md dark:border-l-blue-400/40 dark:hover:border-l-blue-400 dark:hover:bg-slate-800/60">
+                <Card className="group border-l-3 border-l-blue-500/40 p-2 pr-24 pl-10 shadow-sm transition-all duration-200 hover:translate-x-0.5 hover:border-l-blue-500 hover:bg-slate-50 hover:shadow-md dark:border-l-blue-400/40 dark:hover:border-l-blue-400 dark:hover:bg-slate-800/60">
                   <CardHeader>
                     <CardTitle>{item.title}</CardTitle>
                     <CardDescription className="flex flex-col gap-1">
-                      <span className="text-muted-foreground text-xs">
+                      <span className="text-xs text-muted-foreground">
                         {item.grid_dimensions[0]}×{item.grid_dimensions[1]} grid
                       </span>
                       <span className="flex flex-wrap items-center gap-x-2 gap-y-1">
                         {item.updated_at &&
                           item.updated_at.getTime() !== item.created_at.getTime() &&
                           item.updated_at.getTime() !== 0 && (
-                            <span className="text-muted-foreground inline-flex items-center text-sm">
+                            <span className="inline-flex items-center text-sm text-muted-foreground">
                               Updated: {dayjs(item.updated_at).fromNow()}
                             </span>
                           )}
-                        <span className="text-muted-foreground inline-flex items-center gap-1 text-sm">
+                        <span className="inline-flex items-center gap-1 text-sm text-muted-foreground">
                           <CalendarIcon className="size-3 shrink-0" />
                           {dayjs(item.created_at).format('MMM D, YYYY')}
                         </span>

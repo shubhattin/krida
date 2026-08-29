@@ -487,7 +487,7 @@ const LipiLekhikaSwitch = () => {
           onCheckedChange={setLipiLekhikaActive}
           className="-mt-1"
         />
-        <Icon src={LanguageIcon} className="size-6.5 -mt-1" />
+        <Icon src={LanguageIcon} className="-mt-1 size-6.5" />
         <span className="text-base font-bold">Devanagari</span>
       </Label>
     </div>
@@ -768,7 +768,7 @@ const TraversalAnalysis = ({
                         <Popover>
                           <PopoverTrigger
                             render={
-                              <Info className="size-4.5 -mt-1 text-amber-600 dark:text-amber-400" />
+                              <Info className="-mt-1 size-4.5 text-amber-600 dark:text-amber-400" />
                             }
                             nativeButton={false}
                           />
@@ -798,7 +798,7 @@ const TraversalAnalysis = ({
                         <Popover>
                           <PopoverTrigger
                             render={
-                              <Info className="size-4.5 -mt-1 text-amber-600 dark:text-amber-400" />
+                              <Info className="-mt-1 size-4.5 text-amber-600 dark:text-amber-400" />
                             }
                             nativeButton={false}
                           />
@@ -879,7 +879,7 @@ const TraversalAnalysis = ({
                       {conflict.conflictingWords.map((wordInfo, widx) => (
                         <span
                           key={widx}
-                          className="rounded bg-red-100 px-1.5 pb-0.5 pt-1 text-xs text-red-800 dark:bg-red-900 dark:text-red-200"
+                          className="rounded bg-red-100 px-1.5 pt-1 pb-0.5 text-xs text-red-800 dark:bg-red-900 dark:text-red-200"
                         >
                           {wordInfo.word}
                         </span>
@@ -1155,7 +1155,7 @@ const GridData = ({
   return (
     <div>
       <Label className="mb-2 block text-lg font-semibold">Grid</Label>
-      <p className="text-muted-foreground/80 mb-2 hidden text-xs sm:block">
+      <p className="mb-2 hidden text-xs text-muted-foreground/80 sm:block">
         Navigate the grid with the arrow keys (↑ ↓ ← →). Colored trails show each word’s path order.
       </p>
       <div ref={gridRef} className="relative w-full sm:w-4/5 md:w-3/5 lg:w-2/5">
@@ -1273,7 +1273,7 @@ const ListedSwitch = ({ slug }: { slug: string }) => {
               aria-label="Listed visibility info"
               className="inline-flex border-0 bg-transparent p-0"
             >
-              <Info className="text-muted-foreground size-4" aria-hidden="true" />
+              <Info className="size-4 text-muted-foreground" aria-hidden="true" />
             </TooltipTrigger>
             <TooltipContent>When enabled, this puzzle will be publicly visible.</TooltipContent>
           </Tooltip>
@@ -1284,7 +1284,7 @@ const ListedSwitch = ({ slug }: { slug: string }) => {
           href={listedPuzzleUrl}
           target="_blank"
           rel="noopener noreferrer"
-          className="text-primary inline-flex items-center justify-center gap-1.5 text-sm font-medium underline-offset-4 hover:underline"
+          className="inline-flex items-center justify-center gap-1.5 text-sm font-medium text-primary underline-offset-4 hover:underline"
         >
           Listed Puzzle URL
           <ExternalLink className="size-3.5 shrink-0" aria-hidden="true" />

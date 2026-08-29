@@ -48,7 +48,7 @@ const SlugStatusIcon = ({
   status: ReturnType<typeof useDebouncedSlugCheck>['status'];
 }) => {
   if (status === 'checking') {
-    return <Loader2Icon className="text-muted-foreground size-4 animate-spin" />;
+    return <Loader2Icon className="size-4 animate-spin text-muted-foreground" />;
   }
   if (status === 'available') {
     return <CheckIcon className="size-4 text-green-600" />;
@@ -179,7 +179,7 @@ const AddPuzzleDialog = () => {
                     onCheckedChange={setLipiLekhikaTyping}
                     className="-mt-1"
                   />
-                  <Icon src={LanguageIcon} className="size-6.5 -mt-1" />
+                  <Icon src={LanguageIcon} className="-mt-1 size-6.5" />
                 </Label>
               </div>
             </div>
@@ -193,7 +193,7 @@ const AddPuzzleDialog = () => {
                   placeholder="my-puzzle-slug"
                   className="pr-9"
                 />
-                <div className="absolute right-2.5 top-1/2 -translate-y-1/2">
+                <div className="absolute top-1/2 right-2.5 -translate-y-1/2">
                   <SlugStatusIcon status={slugStatus} />
                 </div>
               </div>

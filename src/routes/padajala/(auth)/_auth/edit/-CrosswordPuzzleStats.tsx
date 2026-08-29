@@ -44,7 +44,11 @@ type DateRange = {
 
 type PeriodType = 'all_time' | 'last_week' | 'last_month' | 'last_3_months' | 'custom';
 type ChartType =
-  'sessions-completions' | 'avg-time' | 'avg-accuracy' | 'letter-inputs' | 'location';
+  | 'sessions-completions'
+  | 'avg-time'
+  | 'avg-accuracy'
+  | 'letter-inputs'
+  | 'location';
 
 const PERIOD_ITEMS = [
   { label: 'All Time', value: 'all_time' as const },
@@ -216,10 +220,10 @@ const SessionsCompletionsTooltip = ({
     const completionRate = sessions > 0 ? Math.round((completions / sessions) * 100) : 0;
 
     return (
-      <div className="bg-background rounded-lg border p-2 shadow-md">
+      <div className="rounded-lg border bg-background p-2 shadow-md">
         <div className="grid gap-2">
           <div className="flex flex-col">
-            <span className="text-muted-foreground text-[0.70rem] uppercase">
+            <span className="text-[0.70rem] text-muted-foreground uppercase">
               {data.tooltipLabel}
             </span>
           </div>
@@ -264,10 +268,10 @@ const AttemptsTooltip = ({
     const correctAttempts = data.avgIncorrectAttempts || 0;
 
     return (
-      <div className="bg-background rounded-lg border p-2 shadow-md">
+      <div className="rounded-lg border bg-background p-2 shadow-md">
         <div className="grid gap-2">
           <div className="flex flex-col">
-            <span className="text-muted-foreground text-[0.70rem] uppercase">
+            <span className="text-[0.70rem] text-muted-foreground uppercase">
               {data.tooltipLabel}
             </span>
           </div>
@@ -311,10 +315,10 @@ const AvgTimeTooltip = ({
     const avgTimeTaken = data.avgTimeTaken || 0;
 
     return (
-      <div className="bg-background rounded-lg border p-2 shadow-md">
+      <div className="rounded-lg border bg-background p-2 shadow-md">
         <div className="grid gap-2">
           <div className="flex flex-col">
-            <span className="text-muted-foreground text-[0.70rem] uppercase">
+            <span className="text-[0.70rem] text-muted-foreground uppercase">
               {data.tooltipLabel}
             </span>
           </div>
@@ -554,7 +558,7 @@ const PuzzleStats = ({ puzzleId, puzzleTitle }: PuzzleStatsProps) => {
       <div className="flex flex-col gap-2 sm:flex-row sm:items-start sm:justify-between">
         <div className="min-w-0">
           <h2 className="text-xl font-bold tracking-tight">Puzzle Statistics</h2>
-          <p className="text-muted-foreground text-sm">
+          <p className="text-sm text-muted-foreground">
             {selectedPuzzles.length === 0
               ? 'Analytics across all puzzles'
               : selectedPuzzles.length === 1
@@ -593,7 +597,7 @@ const PuzzleStats = ({ puzzleId, puzzleTitle }: PuzzleStatsProps) => {
           <SummaryCards summaryStats={summaryStats} />
 
           {summaryStats.totalSessions === 0 ? (
-            <p className="text-muted-foreground py-4 text-center text-sm">
+            <p className="py-4 text-center text-sm text-muted-foreground">
               No data available for the selected time period
             </p>
           ) : (
@@ -635,16 +639,16 @@ const TopPuzzlesLeader = ({
     <Accordion defaultValue={[]} className="w-full">
       <AccordionItem
         value="top-puzzles"
-        className="bg-linear-to-br overflow-hidden rounded-xl border border-slate-200/50 from-white/80 to-slate-50/40 dark:border-slate-700/50 dark:from-slate-900/80 dark:to-slate-800/40"
+        className="overflow-hidden rounded-xl border border-slate-200/50 bg-linear-to-br from-white/80 to-slate-50/40 dark:border-slate-700/50 dark:from-slate-900/80 dark:to-slate-800/40"
       >
         <AccordionTrigger className="px-4 py-3 hover:no-underline">
           <div className="flex items-center gap-2.5">
-            <div className="flex size-8 shrink-0 items-center justify-center rounded-lg bg-amber-500/10 ring-1 ring-inset ring-black/5 dark:ring-white/10">
+            <div className="flex size-8 shrink-0 items-center justify-center rounded-lg bg-amber-500/10 ring-1 ring-black/5 ring-inset dark:ring-white/10">
               <TrophyIcon className="size-3.5 text-amber-600 dark:text-amber-400" />
             </div>
             <div className="min-w-0 text-left">
               <p className="text-sm font-semibold tracking-tight">Top Played Puzzles</p>
-              <p className="text-muted-foreground text-xs font-normal">Top 10 by plays</p>
+              <p className="text-xs font-normal text-muted-foreground">Top 10 by plays</p>
             </div>
           </div>
         </AccordionTrigger>
@@ -656,12 +660,12 @@ const TopPuzzlesLeader = ({
               ))}
             </div>
           ) : puzzles.length === 0 ? (
-            <p className="text-muted-foreground py-2 text-center text-sm">
+            <p className="py-2 text-center text-sm text-muted-foreground">
               No puzzle plays in this period
             </p>
           ) : (
             <div className="space-y-3">
-              <div className="text-muted-foreground flex items-center gap-3 text-[0.65rem]">
+              <div className="flex items-center gap-3 text-[0.65rem] text-muted-foreground">
                 <span className="inline-flex items-center gap-1">
                   <span
                     className="size-1.5 rounded-full"
@@ -692,16 +696,16 @@ const TopPuzzlesLeader = ({
                     >
                       <div className="flex items-baseline justify-between gap-2">
                         <p className="min-w-0 truncate text-sm font-medium">
-                          <span className="text-muted-foreground mr-1.5 tabular-nums">
+                          <span className="mr-1.5 text-muted-foreground tabular-nums">
                             #{index + 1}
                           </span>
                           {puzzle.title}
                         </p>
-                        <p className="text-muted-foreground shrink-0 text-[0.7rem] tabular-nums">
+                        <p className="shrink-0 text-[0.7rem] text-muted-foreground tabular-nums">
                           {puzzle.completed}/{puzzle.started}
                         </p>
                       </div>
-                      <div className="bg-muted/60 h-2 w-full overflow-hidden rounded-full">
+                      <div className="h-2 w-full overflow-hidden rounded-full bg-muted/60">
                         <div
                           className="relative h-full overflow-hidden rounded-full transition-[width] duration-300"
                           style={{
@@ -747,7 +751,7 @@ const ChartsSection = ({
       <div className="flex flex-wrap items-center justify-between gap-2">
         <ChartSelector chartType={chartType} setChartType={setChartType} />
         {chartData.isBucketed && (
-          <p className="text-muted-foreground text-xs">Grouped for readability</p>
+          <p className="text-xs text-muted-foreground">Grouped for readability</p>
         )}
       </div>
     </CardHeader>
@@ -755,7 +759,7 @@ const ChartsSection = ({
       <ChartContainer
         config={chartConfig}
         initialDimension={{ width: 1200, height: 360 }}
-        className="[&_.recharts-responsive-container]:w-full! aspect-auto h-60 w-full min-w-0 sm:h-72 md:h-80 lg:h-96 [&_.recharts-surface]:w-full"
+        className="aspect-auto h-60 w-full min-w-0 sm:h-72 md:h-80 lg:h-96 [&_.recharts-responsive-container]:w-full! [&_.recharts-surface]:w-full"
       >
         {chartType === 'location' ? (
           <BarChart
@@ -953,7 +957,7 @@ const StatsFilterControls = ({
 }) => (
   <div className="flex flex-col gap-2 sm:flex-row sm:items-center sm:gap-3">
     <div className="flex shrink-0 items-center gap-2">
-      <span className="text-muted-foreground text-xs font-medium">Period</span>
+      <span className="text-xs font-medium text-muted-foreground">Period</span>
       <Select
         items={PERIOD_ITEMS}
         value={period}
@@ -984,7 +988,7 @@ const CustomDateRangeRow = ({
   setDateRange: React.Dispatch<React.SetStateAction<DateRange>>;
 }) => (
   <div className="flex flex-wrap items-center gap-2">
-    <span className="text-muted-foreground text-xs font-medium">From</span>
+    <span className="text-xs font-medium text-muted-foreground">From</span>
     <Popover>
       <PopoverTrigger
         render={
@@ -1010,7 +1014,7 @@ const CustomDateRangeRow = ({
         />
       </PopoverContent>
     </Popover>
-    <span className="text-muted-foreground text-xs font-medium">To</span>
+    <span className="text-xs font-medium text-muted-foreground">To</span>
     <Popover>
       <PopoverTrigger
         render={
@@ -1061,28 +1065,28 @@ const StatMetricCard = ({
   icon: ComponentType<{ className?: string }>;
   accent: { bar: string; iconBg: string; iconColor: string };
 }) => (
-  <Card className="bg-linear-to-br overflow-hidden border-slate-200/50 from-white/80 to-slate-50/40 shadow-sm transition-shadow hover:shadow-md dark:border-slate-700/50 dark:from-slate-900/80 dark:to-slate-800/40">
+  <Card className="overflow-hidden border-slate-200/50 bg-linear-to-br from-white/80 to-slate-50/40 shadow-sm transition-shadow hover:shadow-md dark:border-slate-700/50 dark:from-slate-900/80 dark:to-slate-800/40">
     <CardContent className="relative flex flex-col gap-1.5 p-3">
       <div className={cn('absolute inset-y-2 left-0 w-1 rounded-r-full', accent.bar)} />
       <div className="flex items-start justify-between gap-2 pl-2">
         <div className="min-w-0 space-y-1">
-          <p className="text-muted-foreground text-[0.65rem] font-medium uppercase tracking-wide">
+          <p className="text-[0.65rem] font-medium tracking-wide text-muted-foreground uppercase">
             {title}
           </p>
-          <p className="text-xl font-bold tabular-nums leading-none tracking-tight sm:text-2xl">
+          <p className="text-xl leading-none font-bold tracking-tight tabular-nums sm:text-2xl">
             {value}
           </p>
         </div>
         <div
           className={cn(
-            'flex size-8 shrink-0 items-center justify-center rounded-lg ring-1 ring-inset ring-black/5 dark:ring-white/10',
+            'flex size-8 shrink-0 items-center justify-center rounded-lg ring-1 ring-black/5 ring-inset dark:ring-white/10',
             accent.iconBg
           )}
         >
           <Icon className={cn('size-3.5', accent.iconColor)} />
         </div>
       </div>
-      <p className="text-muted-foreground pl-2 text-[0.7rem]">{description}</p>
+      <p className="pl-2 text-[0.7rem] text-muted-foreground">{description}</p>
     </CardContent>
   </Card>
 );
@@ -1156,7 +1160,7 @@ const ChartSelector = ({
   setChartType: (chartType: ChartType) => void;
 }) => (
   <div className="flex flex-wrap items-center gap-2">
-    <label className="text-muted-foreground text-xs font-medium">View</label>
+    <label className="text-xs font-medium text-muted-foreground">View</label>
     <Select
       items={CHART_TYPE_ITEMS}
       value={chartType}

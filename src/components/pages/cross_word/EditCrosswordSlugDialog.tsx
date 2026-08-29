@@ -50,7 +50,7 @@ const SlugStatusIcon = ({
   status: ReturnType<typeof useDebouncedSlugCheck>['status'];
 }) => {
   if (status === 'checking') {
-    return <Loader2Icon className="text-muted-foreground size-4 animate-spin" />;
+    return <Loader2Icon className="size-4 animate-spin text-muted-foreground" />;
   }
   if (status === 'available') {
     return <CheckIcon className="size-4 text-green-600" />;
@@ -164,7 +164,7 @@ export const EditCrosswordSlugDialog = ({ puzzleId, currentSlug, onSlugUpdated }
                   slugChanged ? 'edit-slug-redirect-note edit-slug-status' : 'edit-slug-status'
                 }
               />
-              <div className="absolute right-2.5 top-1/2 -translate-y-1/2">
+              <div className="absolute top-1/2 right-2.5 -translate-y-1/2">
                 <SlugStatusIcon status={slugStatus} />
               </div>
             </div>
@@ -231,7 +231,7 @@ export const EditCrosswordSlugDialog = ({ puzzleId, currentSlug, onSlugUpdated }
             <AlertDialogTitle>Confirm slug change</AlertDialogTitle>
             <AlertDialogDescription>
               Change slug from &quot;{currentSlug}&quot; to &quot;{normalizedSlug}&quot;?
-              <span className="text-muted-foreground mt-2 block">
+              <span className="mt-2 block text-muted-foreground">
                 &quot;{currentSlug}&quot; will remain valid and redirect to &quot;{normalizedSlug}
                 &quot;.
               </span>
@@ -312,11 +312,11 @@ export const CrosswordSlugField = ({
       {show_slug_aliases ? (
         <Accordion className="mt-2 max-w-md">
           <AccordionItem value="puzzle-slugs" className="rounded-md border px-3">
-            <AccordionTrigger className="text-muted-foreground py-2 text-xs font-medium hover:no-underline">
+            <AccordionTrigger className="py-2 text-xs font-medium text-muted-foreground hover:no-underline">
               All URLs for this puzzle ({all_slugs.length})
             </AccordionTrigger>
             <AccordionContent>
-              <ul className="bg-muted/30 space-y-1 rounded-md px-1 py-2 text-sm">
+              <ul className="space-y-1 rounded-md bg-muted/30 px-1 py-2 text-sm">
                 {all_slugs.map((entry_slug) => {
                   const is_current = entry_slug === slug;
 
@@ -328,7 +328,7 @@ export const CrosswordSlugField = ({
                       <div className="flex shrink-0 items-center gap-1.5">
                         <span
                           className={cn(
-                            'rounded-full px-2 py-0.5 text-[10px] font-medium uppercase tracking-wide',
+                            'rounded-full px-2 py-0.5 text-[10px] font-medium tracking-wide uppercase',
                             is_current
                               ? 'bg-primary/10 text-primary'
                               : 'bg-muted text-muted-foreground'
@@ -380,7 +380,7 @@ export const CrosswordSlugField = ({
             <AlertDialogAction
               disabled={isDeletingRedirect}
               onClick={handleDeleteRedirect}
-              className="bg-destructive hover:bg-destructive/90 text-white"
+              className="bg-destructive text-white hover:bg-destructive/90"
             >
               {isDeletingRedirect ? 'Deleting...' : 'Delete'}
             </AlertDialogAction>

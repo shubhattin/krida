@@ -62,7 +62,7 @@ export function createListTableColumns({
       accessorKey: 'id',
       header: 'ID',
       cell: ({ row }) => (
-        <span className="text-muted-foreground font-mono text-xs tabular-nums">
+        <span className="font-mono text-xs text-muted-foreground tabular-nums">
           {row.getValue('id')}
         </span>
       )
@@ -87,7 +87,7 @@ export function createListTableColumns({
       accessorKey: 'slug',
       header: 'Slug',
       cell: ({ row }) => (
-        <span className="text-muted-foreground max-w-48 truncate font-mono text-xs sm:max-w-xs">
+        <span className="max-w-48 truncate font-mono text-xs text-muted-foreground sm:max-w-xs">
           {row.getValue('slug')}
         </span>
       )

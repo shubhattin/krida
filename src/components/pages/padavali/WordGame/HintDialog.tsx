@@ -114,7 +114,7 @@ export function HintDialog({ puzzle_id, puzzle_slug, timerRef }: Props) {
               transition={{ duration: 1.1, repeat: Infinity, ease: 'easeInOut' }}
               className={cn(
                 'relative inline-flex items-center gap-1.5 overflow-hidden rounded-full px-3.5 py-1.5',
-                'bg-linear-to-r border border-orange-400/70 from-orange-500 via-amber-600 to-orange-600',
+                'border border-orange-400/70 bg-linear-to-r from-orange-500 via-amber-600 to-orange-600',
                 'text-sm font-semibold text-white shadow-md shadow-orange-500/35',
                 'transition-all hover:brightness-110 active:scale-90',
                 'dark:border-orange-500/50 dark:shadow-orange-600/25'
@@ -124,20 +124,20 @@ export function HintDialog({ puzzle_id, puzzle_slug, timerRef }: Props) {
         >
           <Lightbulb className="size-5 shrink-0" />
           <span>Hint</span>
-          <span className="bg-linear-to-r pointer-events-none absolute inset-0 from-transparent via-white/25 to-transparent" />
+          <span className="pointer-events-none absolute inset-0 bg-linear-to-r from-transparent via-white/25 to-transparent" />
         </DialogTrigger>
 
         <DialogContent className="max-h-[min(90vh,640px)] gap-0 overflow-hidden p-0 sm:max-w-md">
-          <DialogHeader className="border-border gap-2 border-b px-4 pb-3 pt-4 sm:px-5">
+          <DialogHeader className="gap-2 border-b border-border px-4 pt-4 pb-3 sm:px-5">
             <DialogTitle className={cn('text-lg leading-snug', font_info.className)}>
               {title}
             </DialogTitle>
             {description ? (
-              <DialogDescription className={cn('text-foreground/80 text-sm', font_info.className)}>
+              <DialogDescription className={cn('text-sm text-foreground/80', font_info.className)}>
                 {description}
               </DialogDescription>
             ) : null}
-            <p className="text-muted-foreground text-xs leading-relaxed">
+            <p className="text-xs leading-relaxed text-muted-foreground">
               Use this as practice, then try again without hints.
             </p>
           </DialogHeader>
@@ -145,7 +145,7 @@ export function HintDialog({ puzzle_id, puzzle_slug, timerRef }: Props) {
           <div className="flex flex-col gap-3 overflow-y-auto px-4 py-3 sm:px-5">
             {!showMeanings ? (
               <div className="flex flex-col items-center gap-3 py-4 text-center">
-                <p className="text-muted-foreground text-sm">
+                <p className="text-sm text-muted-foreground">
                   Reveal words and meanings to learn before you play.
                 </p>
                 <Button
@@ -178,7 +178,7 @@ export function HintDialog({ puzzle_id, puzzle_slug, timerRef }: Props) {
           </div>
 
           {showMeanings ? (
-            <DialogFooter className="border-border flex justify-center border-t px-4 py-3 sm:px-5">
+            <DialogFooter className="flex justify-center border-t border-border px-4 py-3 sm:px-5">
               <button
                 type="button"
                 onClick={handlePlay}

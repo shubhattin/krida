@@ -64,7 +64,7 @@ export function CrossWordCell({
       )}
     >
       {clueNumber ? (
-        <span className="text-muted-foreground/70 pointer-events-none absolute left-0.5 top-px text-[0.5rem] font-semibold leading-none sm:text-[0.6rem]">
+        <span className="pointer-events-none absolute top-px left-0.5 text-[0.5rem] leading-none font-semibold text-muted-foreground/70 sm:text-[0.6rem]">
           {clueNumber}
         </span>
       ) : null}

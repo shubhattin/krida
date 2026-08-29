@@ -143,7 +143,7 @@ export const GameInfo = () => {
           initial={{ opacity: 0, y: 20 }}
           animate={{ opacity: 1, y: 0 }}
           transition={{ duration: 0.5, ease: 'easeOut' }}
-          className="bg-linear-to-r min-w-36 rounded-xl border border-slate-200 from-slate-50 to-blue-50 p-2.5 sm:rounded-2xl sm:p-5 md:p-6 lg:px-8 dark:border-slate-700 dark:from-slate-900 dark:to-blue-950"
+          className="min-w-36 rounded-xl border border-slate-200 bg-linear-to-r from-slate-50 to-blue-50 p-2.5 sm:rounded-2xl sm:p-5 md:p-6 lg:px-8 dark:border-slate-700 dark:from-slate-900 dark:to-blue-950"
         >
           <motion.div
             initial={{ opacity: 0 }}
@@ -190,7 +190,7 @@ export const GameInfo = () => {
                 initial={{ width: 0 }}
                 animate={{ width: `${(foundWords.length / wordList.length) * 100}%` }}
                 transition={{ duration: 0.8, ease: 'easeOut' }}
-                className="bg-linear-to-r h-full rounded-full from-blue-500 to-emerald-500"
+                className="h-full rounded-full bg-linear-to-r from-blue-500 to-emerald-500"
               />
             </motion.div>
           </motion.div>
@@ -206,14 +206,14 @@ export const GameInfo = () => {
           className={cn(
             'relative overflow-hidden rounded-xl border px-4 py-3 sm:rounded-2xl sm:px-5 sm:py-4',
             isPerfect
-              ? 'bg-linear-to-br border-yellow-300/70 from-yellow-50 via-green-50 to-emerald-50 dark:border-yellow-700/50 dark:from-yellow-950/50 dark:via-green-950/50 dark:to-emerald-950/50'
-              : 'bg-linear-to-br border-green-200 from-green-50 to-emerald-50 dark:border-green-800 dark:from-green-950 dark:to-emerald-950'
+              ? 'border-yellow-300/70 bg-linear-to-br from-yellow-50 via-green-50 to-emerald-50 dark:border-yellow-700/50 dark:from-yellow-950/50 dark:via-green-950/50 dark:to-emerald-950/50'
+              : 'border-green-200 bg-linear-to-br from-green-50 to-emerald-50 dark:border-green-800 dark:from-green-950 dark:to-emerald-950'
           )}
         >
           {/* Perfect score star shimmer overlay */}
           {isPerfect && (
             <motion.div
-              className="bg-linear-to-r pointer-events-none absolute inset-0 from-transparent via-yellow-200/30 to-transparent"
+              className="pointer-events-none absolute inset-0 bg-linear-to-r from-transparent via-yellow-200/30 to-transparent"
               initial={{ x: '-100%' }}
               animate={{ x: '200%' }}
               transition={{ duration: 1.2, delay: 0.5, ease: 'easeInOut' }}
@@ -338,7 +338,7 @@ export const GameInfo = () => {
                     }
                   }
                 }}
-                className="bg-linear-to-r flex transform items-center gap-1.5 rounded-lg from-green-600 to-emerald-600 px-3 py-1.5 text-sm font-semibold text-white shadow-sm transition-all duration-200 hover:scale-105 hover:from-green-700 hover:to-emerald-700 active:scale-95"
+                className="flex transform items-center gap-1.5 rounded-lg bg-linear-to-r from-green-600 to-emerald-600 px-3 py-1.5 text-sm font-semibold text-white shadow-sm transition-all duration-200 hover:scale-105 hover:from-green-700 hover:to-emerald-700 active:scale-95"
               >
                 <IoShareSocialOutline className="text-sm" />
                 Share Achievement

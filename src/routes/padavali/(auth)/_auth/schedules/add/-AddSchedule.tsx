@@ -245,7 +245,7 @@ const AddSchedule = (props: Props) => {
               step="1"
               value={startTime}
               onChange={(e) => setStartTime(e.target.value)}
-              className="bg-background appearance-none [&::-webkit-calendar-picker-indicator]:hidden [&::-webkit-calendar-picker-indicator]:appearance-none"
+              className="appearance-none bg-background [&::-webkit-calendar-picker-indicator]:hidden [&::-webkit-calendar-picker-indicator]:appearance-none"
             />
           </div>
         </div>
@@ -269,7 +269,7 @@ const AddSchedule = (props: Props) => {
               step="1"
               value={endTime}
               onChange={(e) => setEndTime(e.target.value)}
-              className="bg-background appearance-none [&::-webkit-calendar-picker-indicator]:hidden [&::-webkit-calendar-picker-indicator]:appearance-none"
+              className="appearance-none bg-background [&::-webkit-calendar-picker-indicator]:hidden [&::-webkit-calendar-picker-indicator]:appearance-none"
             />
           </div>
         </div>
@@ -318,7 +318,7 @@ const AddSchedule = (props: Props) => {
           <div className="flex flex-col gap-3">
             <Label className="px-1 font-semibold">Search Puzzle</Label>
             <div className="flex items-center gap-4">
-              <SearchIcon className="text-muted-foreground size-5" />
+              <SearchIcon className="size-5 text-muted-foreground" />
               <Input
                 value={search_title}
                 onChange={(e) => setSearchTitle(e.currentTarget.value)}
@@ -342,7 +342,7 @@ const AddSchedule = (props: Props) => {
                     onCheckedChange={setLipiLekhikaTyping}
                     className="-mt-1"
                   />
-                  <Icon src={LanguageIcon} className="size-6.5 -mt-1" />
+                  <Icon src={LanguageIcon} className="-mt-1 size-6.5" />
                   <span className="text-base font-bold">देवनागरी</span>
                 </Label>
               </div>
@@ -352,10 +352,10 @@ const AddSchedule = (props: Props) => {
           {!isInitialLoading && (
             <div className="space-y-3">
               {selectedPuzzle && (
-                <p className="text-muted-foreground flex items-center gap-1.5 px-1 text-xs">
+                <p className="flex items-center gap-1.5 px-1 text-xs text-muted-foreground">
                   <span className="size-1.5 shrink-0 rounded-full bg-blue-500" aria-hidden />
                   Selected:{' '}
-                  <span className="text-foreground font-medium">{selectedPuzzle.title}</span>
+                  <span className="font-medium text-foreground">{selectedPuzzle.title}</span>
                 </p>
               )}
               <div className="grid max-h-52 grid-cols-2 gap-2 overflow-y-scroll rounded-md border border-gray-200 bg-gray-50/50 p-3 sm:grid-cols-3 lg:grid-cols-4 dark:border-gray-700 dark:bg-gray-800/50">
@@ -364,7 +364,7 @@ const AddSchedule = (props: Props) => {
                     <button
                       key={puzzle.id}
                       className={cn(
-                        'rounded-md border px-4 py-3 text-left text-sm font-semibold outline-none transition-all duration-200 ease-in-out',
+                        'rounded-md border px-4 py-3 text-left text-sm font-semibold transition-all duration-200 ease-in-out outline-none',
                         'hover:shadow-md focus:ring-2 focus:ring-blue-500/50',
                         selectedPuzzle?.id === puzzle.id
                           ? 'border-blue-400 bg-blue-100 text-blue-900 shadow-md dark:border-blue-500 dark:bg-blue-900/30 dark:text-blue-100'

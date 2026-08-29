@@ -528,7 +528,7 @@ export const GameGrid = ({ timerRef, original_grid_data }: Props) => {
                   opacity: { duration: 0.3 },
                   scale: { duration: 0.3 }
                 }}
-                className="pointer-events-none -translate-x-1/2 translate-y-[-15%] select-none text-2xl drop-shadow-md sm:text-3xl"
+                className="pointer-events-none -translate-x-1/2 translate-y-[-15%] text-2xl drop-shadow-md select-none sm:text-3xl"
               >
                 👆
               </motion.div>
@@ -656,7 +656,7 @@ export const GameGrid = ({ timerRef, original_grid_data }: Props) => {
                   'group absolute inset-0 z-20 m-auto size-fit overflow-hidden',
                   'bg-linear-to-r from-blue-500 to-indigo-500 hover:from-blue-600 hover:to-indigo-600',
                   'dark:from-blue-700 dark:to-indigo-700 dark:hover:from-blue-800 dark:hover:to-indigo-800',
-                  'rounded-xl px-3 pb-1 pt-2.5 font-bold text-white shadow-lg hover:shadow-xl sm:rounded-2xl sm:px-5 sm:py-4 sm:pb-2',
+                  'rounded-xl px-3 pt-2.5 pb-1 font-bold text-white shadow-lg hover:shadow-xl sm:rounded-2xl sm:px-5 sm:py-4 sm:pb-2',
                   'transform transition-all duration-200 hover:scale-105 active:scale-95',
                   'flex items-center justify-center space-x-2 sm:space-x-3',
                   font_info.className,
@@ -664,7 +664,7 @@ export const GameGrid = ({ timerRef, original_grid_data }: Props) => {
                 )}
               >
                 <span className={playStyles.playButtonShine} aria-hidden />
-                <FaPlay className="md:size-6.5 relative -mt-2 size-5 sm:size-6 lg:size-7" />
+                <FaPlay className="relative -mt-2 size-5 sm:size-6 md:size-6.5 lg:size-7" />
                 <span className="relative text-xl sm:text-2xl">{wordMsgs.play}</span>
               </button>
             )}
@@ -733,16 +733,16 @@ const GridCell = ({
         'aspect-square border-2 sm:p-1 md:p-2',
         'transform transition-all duration-300 ease-out',
         'hover:scale-105 active:scale-95',
-        'bg-linear-to-br border-slate-300 from-white to-slate-50 dark:border-slate-600 dark:from-slate-700 dark:to-slate-800',
+        'border-slate-300 bg-linear-to-br from-white to-slate-50 dark:border-slate-600 dark:from-slate-700 dark:to-slate-800',
         'shadow-lg hover:shadow-xl',
         isInDemo &&
           !started && [
             demoState === 'success' &&
-              'bg-linear-to-br border-emerald-400 from-emerald-100 to-green-200 text-emerald-800 shadow-emerald-200 dark:border-emerald-500 dark:from-emerald-900 dark:to-green-800 dark:text-emerald-100 dark:shadow-emerald-900',
+              'border-emerald-400 bg-linear-to-br from-emerald-100 to-green-200 text-emerald-800 shadow-emerald-200 dark:border-emerald-500 dark:from-emerald-900 dark:to-green-800 dark:text-emerald-100 dark:shadow-emerald-900',
             demoState === 'fail' &&
-              'bg-linear-to-br border-red-400 from-red-100 to-rose-200 text-red-800 shadow-red-200 dark:border-red-500 dark:from-red-900 dark:to-rose-800 dark:text-red-100 dark:shadow-red-900',
+              'border-red-400 bg-linear-to-br from-red-100 to-rose-200 text-red-800 shadow-red-200 dark:border-red-500 dark:from-red-900 dark:to-rose-800 dark:text-red-100 dark:shadow-red-900',
             demoState === 'selecting' &&
-              'bg-linear-to-br border-blue-400 from-blue-100 to-indigo-200 text-blue-800 shadow-blue-200 dark:border-blue-500 dark:from-blue-900 dark:to-indigo-800 dark:text-blue-100 dark:shadow-blue-900'
+              'border-blue-400 bg-linear-to-br from-blue-100 to-indigo-200 text-blue-800 shadow-blue-200 dark:border-blue-500 dark:from-blue-900 dark:to-indigo-800 dark:text-blue-100 dark:shadow-blue-900'
           ],
         isInRevealed &&
           !isInFound &&
@@ -750,7 +750,7 @@ const GridCell = ({
             'border-orange-400 dark:border-orange-500',
             'bg-linear-to-br from-orange-100 to-amber-200 dark:from-orange-950 dark:to-amber-900',
             'text-orange-900 dark:text-orange-100',
-            'shadow-orange-200 ring-2 ring-orange-300/70 dark:shadow-orange-950 dark:ring-orange-500/45'
+            'ring-2 shadow-orange-200 ring-orange-300/70 dark:shadow-orange-950 dark:ring-orange-500/45'
           ],
         isInFound && [
           'border-emerald-400 dark:border-emerald-500',
@@ -765,7 +765,7 @@ const GridCell = ({
             'text-blue-800 dark:text-blue-100',
             'shadow-blue-200 dark:shadow-blue-900'
           ],
-        isLast && 'ring-4 ring-blue-300 ring-opacity-50 dark:ring-blue-600',
+        isLast && 'ring-opacity-50 ring-4 ring-blue-300 dark:ring-blue-600',
         !isInCurrent &&
           !isInFound &&
           !isInRevealed &&

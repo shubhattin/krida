@@ -55,7 +55,7 @@ function MoreCrosswordPuzzlesCarouselSkeleton({
             )}
           </div>
           <div className="flex shrink-0 items-center gap-2">
-            <div className="w-18 h-6 animate-pulse rounded-full bg-slate-200 dark:bg-slate-700" />
+            <div className="h-6 w-18 animate-pulse rounded-full bg-slate-200 dark:bg-slate-700" />
             <div className="size-7 animate-pulse rounded-full bg-slate-200 dark:bg-slate-700" />
             <div className="size-7 animate-pulse rounded-full bg-slate-200 dark:bg-slate-700" />
           </div>
@@ -108,13 +108,13 @@ const ExploreMoreCarouselCard = () => {
     <Link
       to="/padajala/puzzles"
       onClick={(e) => guardNavigate(e, '/padajala/puzzles')}
-      className="bg-linear-to-br group flex h-full flex-col overflow-hidden rounded-xl border border-dashed border-blue-300 from-blue-50 to-indigo-50 no-underline shadow-lg transition-all duration-200 hover:border-blue-400 hover:shadow-xl dark:border-blue-600/60 dark:from-blue-950/40 dark:to-indigo-950/40 dark:hover:border-blue-500"
+      className="group flex h-full flex-col overflow-hidden rounded-xl border border-dashed border-blue-300 bg-linear-to-br from-blue-50 to-indigo-50 no-underline shadow-lg transition-all duration-200 hover:border-blue-400 hover:shadow-xl dark:border-blue-600/60 dark:from-blue-950/40 dark:to-indigo-950/40 dark:hover:border-blue-500"
     >
       <div
         className="flex flex-1 flex-col items-center justify-center gap-3 p-4 text-center"
         style={{ aspectRatio: '3 / 2' }}
       >
-        <div className="bg-linear-to-br flex size-12 items-center justify-center rounded-full from-blue-500 to-indigo-600 shadow-md transition-transform group-hover:scale-105">
+        <div className="flex size-12 items-center justify-center rounded-full bg-linear-to-br from-blue-500 to-indigo-600 shadow-md transition-transform group-hover:scale-105">
           <ArrowRightIcon className="size-6 text-white" />
         </div>
         <div>
@@ -208,7 +208,7 @@ export const MoreCrosswordPuzzlesCarousel = ({
               <Link
                 to="/padajala/puzzles"
                 onClick={(e) => guardNavigate(e, '/padajala/puzzles')}
-                className="flex items-center justify-center gap-1 rounded-full border border-blue-200/70 bg-blue-50/80 px-2.5 py-1 text-xs font-medium leading-none text-blue-600 no-underline transition-all duration-150 hover:bg-blue-100 hover:text-blue-700 dark:border-blue-700/50 dark:bg-blue-950/40 dark:text-blue-400 dark:hover:bg-blue-900/50"
+                className="flex items-center justify-center gap-1 rounded-full border border-blue-200/70 bg-blue-50/80 px-2.5 py-1 text-xs leading-none font-medium text-blue-600 no-underline transition-all duration-150 hover:bg-blue-100 hover:text-blue-700 dark:border-blue-700/50 dark:bg-blue-950/40 dark:text-blue-400 dark:hover:bg-blue-900/50"
               >
                 <ExternalLinkIcon className="relative size-3 shrink-0 translate-y-[-1.5px]" />
                 <span>View All</span>
@@ -273,7 +273,7 @@ export const MoreCrosswordPuzzlesAccordion = ({
               )}
             >
               <div className="flex items-center gap-1.5">
-                <div className="bg-linear-to-br flex size-6 shrink-0 items-center justify-center rounded-md from-blue-500 to-indigo-600 shadow-sm">
+                <div className="flex size-6 shrink-0 items-center justify-center rounded-md bg-linear-to-br from-blue-500 to-indigo-600 shadow-sm">
                   <LayoutGridIcon className="size-3.5 text-white" />
                 </div>
                 <span className="leading-none">More Puzzles</span>
@@ -323,12 +323,12 @@ export const CompletionMoreCrosswordPuzzlesCarousel = ({
     >
       <div className="mx-auto max-w-6xl">
         <div className="mb-2 flex items-center gap-2">
-          <div className="bg-linear-to-r h-px flex-1 from-transparent via-slate-300 to-transparent dark:via-slate-600" />
+          <div className="h-px flex-1 bg-linear-to-r from-transparent via-slate-300 to-transparent dark:via-slate-600" />
           <span className="flex items-center gap-1.5 rounded-full border border-slate-200/60 bg-white/60 px-3 py-1 text-xs font-semibold text-slate-500 shadow-sm backdrop-blur-sm dark:border-slate-700/60 dark:bg-slate-800/40 dark:text-slate-400">
             <LayoutGridIcon className="size-3" />
             More Puzzles
           </span>
-          <div className="bg-linear-to-r h-px flex-1 from-transparent via-slate-300 to-transparent dark:via-slate-600" />
+          <div className="h-px flex-1 bg-linear-to-r from-transparent via-slate-300 to-transparent dark:via-slate-600" />
         </div>
         <MoreCrosswordPuzzlesCarousel
           excludeSlug={excludeSlug}

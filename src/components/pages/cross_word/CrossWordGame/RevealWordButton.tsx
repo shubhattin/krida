@@ -63,7 +63,7 @@ export function RevealWordButton({ busy, entryId, onReveal, className }: RevealW
       title={title}
       className={cn(
         'relative h-8 gap-1 overflow-hidden rounded-full border px-2.5 font-semibold shadow-sm backdrop-blur-md',
-        'bg-linear-to-r border-amber-500/30 from-orange-50/90 to-amber-50/80 text-amber-800',
+        'border-amber-500/30 bg-linear-to-r from-orange-50/90 to-amber-50/80 text-amber-800',
         'dark:border-amber-400/35 dark:from-orange-950/70 dark:to-amber-950/60 dark:text-amber-200',
         !blocked &&
           'hover:from-orange-100 hover:to-amber-100 hover:text-amber-900 dark:hover:from-orange-900/80 dark:hover:to-amber-900/70 dark:hover:text-amber-100',

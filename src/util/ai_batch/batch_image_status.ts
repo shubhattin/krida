@@ -1,7 +1,10 @@
 import type { BatchMetadata } from '~/util/types/ai_batch_metadata';
 
 export type PuzzleImageBatchUiStatus =
-  'processing' | 'ready_for_review' | 'auto_applying' | 'failed';
+  | 'processing'
+  | 'ready_for_review'
+  | 'auto_applying'
+  | 'failed';
 
 export const PUZZLE_IMAGE_BATCH_STATUS_LABELS: Record<PuzzleImageBatchUiStatus, string> = {
   processing: 'Processing',

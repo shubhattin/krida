@@ -160,17 +160,17 @@ const PuzzleListView = ({ puzzles }: { puzzles: DisplayPuzzle[] }) => {
   }
 
   return (
-    <div className="bg-linear-to-br min-h-screen w-full from-slate-50 via-blue-50 to-indigo-50 dark:from-slate-900 dark:via-slate-800 dark:to-slate-900">
+    <div className="min-h-screen w-full bg-linear-to-br from-slate-50 via-blue-50 to-indigo-50 dark:from-slate-900 dark:via-slate-800 dark:to-slate-900">
       {/* Hero Header */}
       <div className="relative overflow-hidden border-b border-slate-200/60 dark:border-slate-700/60">
         {/* Background gradient blobs */}
         <div className="pointer-events-none absolute inset-0">
           <div className="absolute -top-24 left-1/2 h-80 w-80 -translate-x-1/2 rounded-full bg-blue-400/15 blur-3xl dark:bg-blue-500/15" />
           <div className="absolute -top-12 left-1/4 h-56 w-56 rounded-full bg-indigo-400/10 blur-2xl dark:bg-indigo-500/10" />
-          <div className="bg-purple-400/8 absolute -top-12 right-1/4 h-56 w-56 rounded-full blur-2xl" />
+          <div className="absolute -top-12 right-1/4 h-56 w-56 rounded-full bg-purple-400/8 blur-2xl" />
         </div>
 
-        <div className="container relative mx-auto max-w-6xl px-4 pb-7 pt-5">
+        <div className="relative container mx-auto max-w-6xl px-4 pt-5 pb-7">
           {/* Back button — top left */}
           <motion.div
             initial={{ opacity: 0, x: -16 }}
@@ -201,12 +201,12 @@ const PuzzleListView = ({ puzzles }: { puzzles: DisplayPuzzle[] }) => {
                 initial={{ scale: 0.8, rotate: -10 }}
                 animate={{ scale: 1, rotate: 0 }}
                 transition={{ type: 'spring', stiffness: 260, damping: 20, delay: 0.15 }}
-                className="bg-linear-to-br flex size-16 items-center justify-center rounded-2xl from-blue-500 to-indigo-600 shadow-xl shadow-blue-500/30"
+                className="flex size-16 items-center justify-center rounded-2xl bg-linear-to-br from-blue-500 to-indigo-600 shadow-xl shadow-blue-500/30"
               >
                 <IoExtensionPuzzleSharp className="size-8 text-white" />
               </motion.div>
               <motion.div
-                className="absolute -right-1 -top-1 flex size-5 items-center justify-center rounded-full bg-amber-400 shadow"
+                className="absolute -top-1 -right-1 flex size-5 items-center justify-center rounded-full bg-amber-400 shadow"
                 animate={{ scale: [1, 1.25, 1] }}
                 transition={{ duration: 2.5, repeat: Infinity, ease: 'easeInOut', delay: 0.5 }}
               >
@@ -288,7 +288,7 @@ const PuzzleListView = ({ puzzles }: { puzzles: DisplayPuzzle[] }) => {
               className="-mt-1"
               aria-label="Enable Lipi Lekhika typing in search"
             />
-            <Icon src={LanguageIcon} className="size-6.5 -mt-1" />
+            <Icon src={LanguageIcon} className="-mt-1 size-6.5" />
           </Label>
           <div className="flex shrink-0 items-center justify-center gap-2 sm:justify-end">
             <ScriptSelector script={script} onScriptChange={setScript} />
@@ -384,7 +384,7 @@ const PuzzleListView = ({ puzzles }: { puzzles: DisplayPuzzle[] }) => {
 
 const EmptyPuzzleList = () => {
   return (
-    <div className="bg-linear-to-br min-h-screen w-full from-slate-50 via-blue-50 to-indigo-50 dark:from-slate-900 dark:via-slate-800 dark:to-slate-900">
+    <div className="min-h-screen w-full bg-linear-to-br from-slate-50 via-blue-50 to-indigo-50 dark:from-slate-900 dark:via-slate-800 dark:to-slate-900">
       <div className="flex min-h-screen px-4 pt-40">
         <motion.div
           initial={{ opacity: 0, y: 20 }}
@@ -393,14 +393,14 @@ const EmptyPuzzleList = () => {
         >
           <div className="mb-8 flex justify-center">
             <div className="relative">
-              <div className="bg-linear-to-r absolute inset-0 animate-pulse rounded-full from-blue-400 to-indigo-400 opacity-20 blur-xl"></div>
-              <div className="bg-linear-to-r relative rounded-full from-blue-500 to-indigo-600 p-6 shadow-2xl">
+              <div className="absolute inset-0 animate-pulse rounded-full bg-linear-to-r from-blue-400 to-indigo-400 opacity-20 blur-xl"></div>
+              <div className="relative rounded-full bg-linear-to-r from-blue-500 to-indigo-600 p-6 shadow-2xl">
                 <IoExtensionPuzzleSharp className="size-12 text-white" />
               </div>
             </div>
           </div>
 
-          <h1 className="bg-linear-to-r mb-4 from-slate-700 to-blue-600 bg-clip-text text-3xl font-bold text-transparent dark:from-slate-200 dark:to-blue-400">
+          <h1 className="mb-4 bg-linear-to-r from-slate-700 to-blue-600 bg-clip-text text-3xl font-bold text-transparent dark:from-slate-200 dark:to-blue-400">
             No Puzzles Available
           </h1>
 
@@ -408,7 +408,7 @@ const EmptyPuzzleList = () => {
             There are no listed puzzles yet. Check back later!
           </p>
 
-          <div className="bg-linear-to-r inline-flex items-center gap-2 rounded-xl from-blue-100 to-indigo-100 px-6 py-3 text-blue-700 shadow-lg dark:from-blue-900/30 dark:to-indigo-900/30 dark:text-blue-300">
+          <div className="inline-flex items-center gap-2 rounded-xl bg-linear-to-r from-blue-100 to-indigo-100 px-6 py-3 text-blue-700 shadow-lg dark:from-blue-900/30 dark:to-indigo-900/30 dark:text-blue-300">
             <SparklesIcon className="h-5 w-5" />
             <span className="font-medium">New puzzles will appear here</span>
           </div>

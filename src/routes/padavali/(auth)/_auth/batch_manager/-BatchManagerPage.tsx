@@ -133,7 +133,7 @@ const BatchManagerPage = ({ game = 'padavali' }: BatchManagerPageProps) => {
       <div className="flex flex-wrap items-center justify-between gap-3">
         <div>
           <h1 className="text-2xl font-bold">{title}</h1>
-          <p className="text-muted-foreground text-sm">
+          <p className="text-sm text-muted-foreground">
             Monitor background puzzle image batches, poll for results, and review generated images.
           </p>
         </div>
@@ -156,9 +156,9 @@ const BatchManagerPage = ({ game = 'padavali' }: BatchManagerPageProps) => {
           ))}
         </div>
       ) : groups_q.isError ? (
-        <div className="border-destructive/40 bg-destructive/5 rounded-xl border p-8 text-center">
-          <p className="text-destructive font-medium">Failed to load batch jobs</p>
-          <p className="text-muted-foreground mt-1 text-sm">
+        <div className="rounded-xl border border-destructive/40 bg-destructive/5 p-8 text-center">
+          <p className="font-medium text-destructive">Failed to load batch jobs</p>
+          <p className="mt-1 text-sm text-muted-foreground">
             {groups_q.error.message || 'Something went wrong while fetching batch groups.'}
           </p>
           <Button type="button" className="mt-4" onClick={() => void groups_q.refetch()}>
@@ -166,9 +166,9 @@ const BatchManagerPage = ({ game = 'padavali' }: BatchManagerPageProps) => {
           </Button>
         </div>
       ) : groups.length === 0 ? (
-        <div className="border-border rounded-xl border border-dashed p-8 text-center">
+        <div className="rounded-xl border border-dashed border-border p-8 text-center">
           <p className="font-medium">No active batch image jobs</p>
-          <p className="text-muted-foreground mt-1 text-sm">
+          <p className="mt-1 text-sm text-muted-foreground">
             Queue background generation from the puzzle list or edit page.
           </p>
           <Button render={<Link to={list_href} />} nativeButton={false} className="mt-4">
@@ -183,13 +183,13 @@ const BatchManagerPage = ({ game = 'padavali' }: BatchManagerPageProps) => {
               <AccordionItem
                 key={group.batch_id}
                 value={group.batch_id}
-                className="border-border rounded-xl border px-4"
+                className="rounded-xl border border-border px-4"
               >
                 <AccordionTrigger className="py-4 hover:no-underline">
                   <div className="flex w-full flex-col gap-2 pr-2 text-left sm:flex-row sm:items-center sm:justify-between">
                     <div className="space-y-1">
                       <p className="font-semibold">Batch {group.batch_id}</p>
-                      <p className="text-muted-foreground text-xs">{group.items.length} item(s)</p>
+                      <p className="text-xs text-muted-foreground">{group.items.length} item(s)</p>
                     </div>
                     <div className="flex flex-wrap gap-2">
                       <Badge variant="secondary">Pending {group.counts.pending}</Badge>
@@ -226,7 +226,7 @@ const BatchManagerPage = ({ game = 'padavali' }: BatchManagerPageProps) => {
                       return (
                         <div
                           key={`${item.batch_id}-${item.custom_id}`}
-                          className="border-border flex flex-col gap-3 rounded-lg border p-3 sm:flex-row sm:items-center sm:justify-between"
+                          className="flex flex-col gap-3 rounded-lg border border-border p-3 sm:flex-row sm:items-center sm:justify-between"
                         >
                           <div className="flex min-w-0 flex-1 items-start gap-3">
                             {item.image_asset ? (
@@ -239,10 +239,10 @@ const BatchManagerPage = ({ game = 'padavali' }: BatchManagerPageProps) => {
                                 }
                                 width={64}
                                 height={64}
-                                className="border-border size-16 shrink-0 rounded-md border object-cover"
+                                className="size-16 shrink-0 rounded-md border border-border object-cover"
                               />
                             ) : (
-                              <div className="border-border bg-muted/30 text-muted-foreground flex size-16 shrink-0 items-center justify-center rounded-md border border-dashed text-xs">
+                              <div className="flex size-16 shrink-0 items-center justify-center rounded-md border border-dashed border-border bg-muted/30 text-xs text-muted-foreground">
                                 {item.status === 'processing' ? (
                                   <Spinner className="size-4" />
                                 ) : (
@@ -262,11 +262,11 @@ const BatchManagerPage = ({ game = 'padavali' }: BatchManagerPageProps) => {
                                   <Badge variant="outline">Auto-apply</Badge>
                                 ) : null}
                               </div>
-                              <p className="text-muted-foreground text-xs">{item.custom_id}</p>
+                              <p className="text-xs text-muted-foreground">{item.custom_id}</p>
                               {item.puzzle_id ? (
                                 <Link
                                   to={edit_href(item.puzzle_id)}
-                                  className="text-primary inline-flex items-center gap-1 text-xs hover:underline"
+                                  className="inline-flex items-center gap-1 text-xs text-primary hover:underline"
                                 >
                                   Open puzzle
                                   <ExternalLink className="size-3" />
@@ -316,7 +316,7 @@ const BatchManagerPage = ({ game = 'padavali' }: BatchManagerPageProps) => {
             <AlertDialogTitle>Poll this batch now?</AlertDialogTitle>
             <AlertDialogDescription>
               This checks OpenAI for the latest results for batch{' '}
-              <span className="text-foreground font-mono">{poll_confirm_batch_id}</span> and uploads
+              <span className="font-mono text-foreground">{poll_confirm_batch_id}</span> and uploads
               any completed images. Other batches stay available while this runs.
             </AlertDialogDescription>
           </AlertDialogHeader>
@@ -349,12 +349,12 @@ const BatchManagerPage = ({ game = 'padavali' }: BatchManagerPageProps) => {
             <AlertDialogTitle>Discard this batch item?</AlertDialogTitle>
             <AlertDialogDescription>
               Remove{' '}
-              <span className="text-foreground font-medium">
+              <span className="font-medium text-foreground">
                 {discard_confirm_item?.puzzle_title ??
                   `Puzzle #${discard_confirm_item?.puzzle_id ?? '?'}`}
               </span>{' '}
               from batch{' '}
-              <span className="text-foreground font-mono">{discard_confirm_item?.batch_id}</span>.
+              <span className="font-mono text-foreground">{discard_confirm_item?.batch_id}</span>.
               This cannot be undone.
             </AlertDialogDescription>
           </AlertDialogHeader>

@@ -117,7 +117,7 @@ function KeyboardToggle({
             aria-pressed={open}
             onClick={() => onOpenChange(!open)}
             className={cn(
-              'border-border/60 bg-card/95 text-foreground rounded-full shadow-[0_2px_8px_oklch(0_0_0/0.12),0_1px_0_oklch(1_0_0/0.6)_inset] backdrop-blur-sm transition-all duration-150',
+              'rounded-full border-border/60 bg-card/95 text-foreground shadow-[0_2px_8px_oklch(0_0_0/0.12),0_1px_0_oklch(1_0_0/0.6)_inset] backdrop-blur-sm transition-all duration-150',
               'hover:bg-muted/80 hover:shadow-[0_4px_12px_oklch(0_0_0/0.16),0_1px_0_oklch(1_0_0/0.5)_inset]',
               'active:translate-y-px active:shadow-[inset_0_1px_3px_oklch(0_0_0/0.15)]',
               // Dark: elevated slate chip so the toggle stays visible on the navy game shell
@@ -126,7 +126,7 @@ function KeyboardToggle({
               'dark:hover:border-white/25 dark:hover:bg-slate-700 dark:hover:text-white',
               'dark:active:shadow-[inset_0_1px_4px_oklch(0_0_0/0.45)]',
               open &&
-                'ring-primary/40 dark:border-primary/45 dark:ring-primary/55 ring-2 dark:bg-slate-700 dark:text-white dark:hover:bg-slate-600'
+                'ring-2 ring-primary/40 dark:border-primary/45 dark:bg-slate-700 dark:text-white dark:ring-primary/55 dark:hover:bg-slate-600'
             )}
           />
         }
@@ -172,7 +172,7 @@ export function CrossWordOnScreenKeyboard({
 
   return (
     <TooltipProvider>
-      <div className="lg:max-w-100 xl:max-w-104 2xl:max-w-108 flex w-full max-w-[24rem] flex-col items-center">
+      <div className="flex w-full max-w-[24rem] flex-col items-center lg:max-w-100 xl:max-w-104 2xl:max-w-108">
         {!panelOnly ? (
           <div className="mb-1 flex w-full items-center justify-end px-1 sm:mb-2">
             <KeyboardToggle open={open} onOpenChange={onOpenChange} />
@@ -199,9 +199,9 @@ export function CrossWordOnScreenKeyboard({
                   'bg-linear-to-br from-card/95 via-card/75 to-primary/6',
                   'shadow-[0_10px_30px_-6px_oklch(0_0_0/0.12),0_1px_0_oklch(1_0_0/0.6)_inset]',
                   'backdrop-blur-md',
-                  'dark:from-white/6 dark:via-card/60 dark:to-primary/12 dark:border-white/10',
+                  'dark:border-white/10 dark:from-white/6 dark:via-card/60 dark:to-primary/12',
                   'dark:shadow-[0_20px_50px_-10px_oklch(0_0_0/0.65),0_1px_0_oklch(1_0_0/0.07)_inset]',
-                  'ring-primary/10 dark:ring-primary/25 ring-1'
+                  'ring-1 ring-primary/10 dark:ring-primary/25'
                 )}
               >
                 {/* Close floats in the corner so we don't reserve a full header row. */}
@@ -211,7 +211,7 @@ export function CrossWordOnScreenKeyboard({
                   variant="ghost"
                   aria-label="Close on-screen keyboard"
                   onClick={() => onOpenChange(false)}
-                  className="bg-card/70 text-muted-foreground hover:text-foreground absolute right-1 top-1 z-10 rounded-full backdrop-blur-sm"
+                  className="absolute top-1 right-1 z-10 rounded-full bg-card/70 text-muted-foreground backdrop-blur-sm hover:text-foreground"
                 >
                   <X />
                 </Button>

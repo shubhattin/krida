@@ -319,7 +319,7 @@ const ListPage = () => {
                   onCheckedChange={setLipiLekhikaTyping}
                   className="-mt-1"
                 />
-                <Icon src={LanguageIcon} className="size-6.5 -mt-1" />
+                <Icon src={LanguageIcon} className="-mt-1 size-6.5" />
               </Label>
             </div>
           </div>
@@ -443,7 +443,7 @@ const ListPage = () => {
           <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4">
             {puzzle_list.map((item) => (
               <div key={item.id} className="relative">
-                <div className="absolute left-3 top-3 z-10">
+                <div className="absolute top-3 left-3 z-10">
                   <Checkbox
                     checked={selected_ids.has(item.id)}
                     onCheckedChange={(checked) => toggleSelection(item.id, checked === true)}
@@ -452,7 +452,7 @@ const ListPage = () => {
                   />
                 </div>
                 {item.image?.s3_key ? (
-                  <div className="border-border/80 bg-muted pointer-events-none absolute right-3 top-3 z-10 size-14 overflow-hidden rounded-md border shadow-sm">
+                  <div className="pointer-events-none absolute top-3 right-3 z-10 size-14 overflow-hidden rounded-md border border-border/80 bg-muted shadow-sm">
                     <Image
                       src={getCDNUrl(item.image.s3_key)}
                       alt=""
@@ -465,25 +465,25 @@ const ListPage = () => {
                 <Link to="/padavali/edit/$id" params={{ id: String(item.id) }}>
                   <Card
                     className={cn(
-                      'border-l-3 group border-l-blue-500/40 p-2 pl-10 shadow-sm transition-all duration-200 hover:translate-x-0.5 hover:border-l-blue-500 hover:bg-slate-50 hover:shadow-md dark:border-l-blue-400/40 dark:hover:border-l-blue-400 dark:hover:bg-slate-800/60',
+                      'group border-l-3 border-l-blue-500/40 p-2 pl-10 shadow-sm transition-all duration-200 hover:translate-x-0.5 hover:border-l-blue-500 hover:bg-slate-50 hover:shadow-md dark:border-l-blue-400/40 dark:hover:border-l-blue-400 dark:hover:bg-slate-800/60',
                       item.image?.s3_key && 'pr-20'
                     )}
                   >
                     <CardHeader>
                       <CardTitle>{item.title}</CardTitle>
                       <CardDescription className="space-y-1">
-                        <span className="text-muted-foreground/90 block truncate font-mono text-xs">
+                        <span className="block truncate font-mono text-xs text-muted-foreground/90">
                           {item.slug}
                         </span>
                         <span className="flex flex-wrap items-center gap-x-2 gap-y-1 sm:flex-row sm:items-center">
                           {item.updated_at &&
                             item.updated_at.getTime() !== item.created_at.getTime() &&
                             item.updated_at.getTime() !== 0 && (
-                              <span className="text-muted-foreground inline-flex items-center text-sm">
+                              <span className="inline-flex items-center text-sm text-muted-foreground">
                                 Updated: {dayjs(item.updated_at).fromNow()}
                               </span>
                             )}
-                          <span className="text-muted-foreground inline-flex items-center gap-1 text-sm">
+                          <span className="inline-flex items-center gap-1 text-sm text-muted-foreground">
                             <CalendarIcon className="size-3 shrink-0" />
                             {dayjs(item.created_at).format('MMM D, YYYY')}
                           </span>

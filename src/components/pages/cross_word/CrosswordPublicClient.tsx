@@ -35,12 +35,12 @@ export default function CrosswordPublicClient({ puzzles, isAdmin }: CrosswordPub
   if (selected) {
     return (
       <div className="relative">
-        <div className="absolute left-2 top-2 z-20 flex flex-wrap items-center gap-2 sm:left-4 sm:top-4">
+        <div className="absolute top-2 left-2 z-20 flex flex-wrap items-center gap-2 sm:top-4 sm:left-4">
           <Button
             type="button"
             variant="outline"
             size="sm"
-            className="bg-background/80 gap-2 backdrop-blur-sm"
+            className="gap-2 bg-background/80 backdrop-blur-sm"
             onClick={() => setSelectedId(null)}
           >
             <ArrowLeftIcon className="size-4 shrink-0" />
@@ -75,7 +75,7 @@ export default function CrosswordPublicClient({ puzzles, isAdmin }: CrosswordPub
       <div className="flex flex-wrap items-center justify-between gap-3">
         <div>
           <h1 className="text-2xl font-bold tracking-tight sm:text-3xl">Crossword Puzzles</h1>
-          <p className="text-muted-foreground mt-1 text-sm">
+          <p className="mt-1 text-sm text-muted-foreground">
             Pick a puzzle to play. More will appear as they are published.
           </p>
         </div>
@@ -92,7 +92,7 @@ export default function CrosswordPublicClient({ puzzles, isAdmin }: CrosswordPub
       </div>
 
       {puzzles.length === 0 ? (
-        <p className="text-muted-foreground py-12 text-center">No listed puzzles yet.</p>
+        <p className="py-12 text-center text-muted-foreground">No listed puzzles yet.</p>
       ) : (
         <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-3">
           {puzzles.map((puzzle) => (
@@ -102,7 +102,7 @@ export default function CrosswordPublicClient({ puzzles, isAdmin }: CrosswordPub
               onClick={() => setSelectedId(puzzle.id)}
               className="text-left"
             >
-              <Card className="border-l-3 border-l-primary/40 hover:border-l-primary transition-all duration-200 hover:translate-x-0.5 hover:bg-slate-50 hover:shadow-md dark:hover:bg-slate-800/60">
+              <Card className="border-l-3 border-l-primary/40 transition-all duration-200 hover:translate-x-0.5 hover:border-l-primary hover:bg-slate-50 hover:shadow-md dark:hover:bg-slate-800/60">
                 <CardHeader>
                   <CardTitle>{puzzle.title}</CardTitle>
                   <CardDescription className="line-clamp-3">

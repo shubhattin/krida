@@ -44,7 +44,7 @@ export function WordMeaningsPanel({
         'overflow-hidden rounded-2xl',
         warm
           ? 'border border-amber-200/40 dark:border-amber-500/15'
-          : 'dark:border-violet-500/12 border border-violet-200/30',
+          : 'border border-violet-200/30 dark:border-violet-500/12',
         'bg-linear-to-r from-white/90 to-slate-50/80',
         'dark:from-slate-900/90 dark:to-slate-900/70',
         'shadow-md backdrop-blur-sm'
@@ -84,7 +84,7 @@ export function WordMeaningsPanel({
                       'inline-flex items-center gap-1 rounded-full px-2 py-0.5',
                       'bg-linear-to-r from-violet-100 to-fuchsia-100',
                       'dark:from-violet-900/50 dark:to-fuchsia-900/40',
-                      'text-[9px] font-bold uppercase tracking-wide text-violet-600 sm:text-[10px]',
+                      'text-[9px] font-bold tracking-wide text-violet-600 uppercase sm:text-[10px]',
                       'dark:text-violet-300'
                     )}
                   >
@@ -93,7 +93,7 @@ export function WordMeaningsPanel({
                   </span>
                 ) : null}
                 {practiceMode ? (
-                  <span className="rounded-full bg-amber-100 px-2 py-0.5 text-[9px] font-semibold uppercase text-amber-800 dark:bg-amber-900/40 dark:text-amber-200">
+                  <span className="rounded-full bg-amber-100 px-2 py-0.5 text-[9px] font-semibold text-amber-800 uppercase dark:bg-amber-900/40 dark:text-amber-200">
                     Practice
                   </span>
                 ) : null}
@@ -109,8 +109,8 @@ export function WordMeaningsPanel({
               className={cn(
                 'overflow-y-auto overscroll-contain px-2.5 py-2 sm:px-3 sm:py-2.5',
                 warm
-                  ? '[&::-webkit-scrollbar-thumb]:rounded-full [&::-webkit-scrollbar-thumb]:bg-amber-300/40 dark:[&::-webkit-scrollbar-thumb]:bg-amber-700/40 [&::-webkit-scrollbar]:w-1'
-                  : '[&::-webkit-scrollbar-thumb]:rounded-full [&::-webkit-scrollbar-thumb]:bg-violet-300/40 dark:[&::-webkit-scrollbar-thumb]:bg-violet-700/40 [&::-webkit-scrollbar]:w-1',
+                  ? '[&::-webkit-scrollbar]:w-1 [&::-webkit-scrollbar-thumb]:rounded-full [&::-webkit-scrollbar-thumb]:bg-amber-300/40 dark:[&::-webkit-scrollbar-thumb]:bg-amber-700/40'
+                  : '[&::-webkit-scrollbar]:w-1 [&::-webkit-scrollbar-thumb]:rounded-full [&::-webkit-scrollbar-thumb]:bg-violet-300/40 dark:[&::-webkit-scrollbar-thumb]:bg-violet-700/40',
                 compact
                   ? 'max-h-[min(240px,40vh)]'
                   : 'max-h-[min(280px,45vh)] sm:max-h-[min(320px,50vh)]'

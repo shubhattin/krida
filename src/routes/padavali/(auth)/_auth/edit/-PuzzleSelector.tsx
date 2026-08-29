@@ -95,9 +95,9 @@ const PuzzleSelector = ({
 
   return (
     <div className="flex min-h-8 flex-wrap items-center gap-2 rounded-lg border border-slate-200/60 bg-white/50 px-2 py-1.5 dark:border-slate-700/40 dark:bg-slate-800/30">
-      <span className="text-muted-foreground shrink-0 text-xs font-medium">Puzzles</span>
+      <span className="shrink-0 text-xs font-medium text-muted-foreground">Puzzles</span>
       {selectedPuzzles.length === 0 ? (
-        <span className="text-muted-foreground px-1 text-sm">All puzzles (combined)</span>
+        <span className="px-1 text-sm text-muted-foreground">All puzzles (combined)</span>
       ) : (
         selectedPuzzles.map((puzzle) => (
           <span
@@ -109,7 +109,7 @@ const PuzzleSelector = ({
               <button
                 type="button"
                 onClick={() => removePuzzle(puzzle.id)}
-                className="text-muted-foreground hover:text-foreground rounded-full p-0.5 hover:bg-slate-200 dark:hover:bg-slate-600"
+                className="rounded-full p-0.5 text-muted-foreground hover:bg-slate-200 hover:text-foreground dark:hover:bg-slate-600"
                 aria-label={`Remove ${puzzle.title}`}
               >
                 <XIcon className="size-3.5" />
@@ -188,19 +188,19 @@ const PuzzleSelector = ({
                         className={cn(
                           'flex w-full flex-col rounded-md px-2 py-1.5 text-left text-sm transition-colors',
                           isSelected
-                            ? 'bg-muted/60 text-muted-foreground cursor-not-allowed'
+                            ? 'cursor-not-allowed bg-muted/60 text-muted-foreground'
                             : 'hover:bg-accent'
                         )}
                       >
                         <span className="truncate font-medium">{item.title}</span>
-                        <span className="text-muted-foreground truncate font-mono text-xs">
+                        <span className="truncate font-mono text-xs text-muted-foreground">
                           {item.slug}
                         </span>
                       </button>
                     );
                   })}
                 {puzzleListQ.isSuccess && puzzleList.length === 0 && (
-                  <p className="text-muted-foreground py-4 text-center text-sm">No puzzles found</p>
+                  <p className="py-4 text-center text-sm text-muted-foreground">No puzzles found</p>
                 )}
               </div>
 
@@ -222,7 +222,7 @@ const PuzzleSelector = ({
                       />
                     </PaginationItem>
                     <PaginationItem>
-                      <span className="text-muted-foreground px-2 text-xs">Page {page}</span>
+                      <span className="px-2 text-xs text-muted-foreground">Page {page}</span>
                     </PaginationItem>
                     <PaginationItem>
                       <PaginationNext
@@ -249,7 +249,7 @@ const PuzzleSelector = ({
           type="button"
           variant="ghost"
           size="sm"
-          className="text-muted-foreground h-7 px-2 text-xs"
+          className="h-7 px-2 text-xs text-muted-foreground"
           onClick={() => onSelectedPuzzlesChange([])}
         >
           Clear all
