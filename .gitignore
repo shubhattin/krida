@@ -13,8 +13,7 @@
 # testing
 /coverage
 
-# next.js
-/.next/
+/.output/
 /out/
 
 # production
