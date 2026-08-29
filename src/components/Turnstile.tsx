@@ -1,4 +1,4 @@
-import Turnstile from 'react-turnstile';
+import { Turnstile } from 'react-turnstile';
 import { useSyncExternalStore, type Dispatch, type SetStateAction } from 'react';
 
 type Props = {
