@@ -573,8 +573,8 @@ export function PadavaliLayoutGenerator({
           <DialogHeader className="shrink-0 gap-1.5 px-4 pt-4 pr-12 pb-3">
             <DialogTitle>Generate grid layouts</DialogTitle>
             <DialogDescription>
-              Browse candidates for the current grid size. Choosing one replaces the grid; words that
-              do not fit stay in your list.
+              Browse candidates for the current grid size. Choosing one replaces the grid; words
+              that do not fit stay in your list.
             </DialogDescription>
           </DialogHeader>
 
