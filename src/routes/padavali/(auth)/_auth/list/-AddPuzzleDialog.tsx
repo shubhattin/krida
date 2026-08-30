@@ -48,7 +48,7 @@ const SlugStatusIcon = ({
   status: ReturnType<typeof useDebouncedSlugCheck>['status'];
 }) => {
   if (status === 'checking') {
-    return <Loader2Icon className="text-muted-foreground size-4 animate-spin" />;
+    return <Loader2Icon className="size-4 animate-spin text-muted-foreground" />;
   }
   if (status === 'available') {
     return <CheckIcon className="size-4 text-green-600" />;
@@ -58,6 +58,30 @@ const SlugStatusIcon = ({
   }
   return null;
 };
+
+type SlugStatus = ReturnType<typeof useDebouncedSlugCheck>['status'];
+
+const SlugStatusHint = ({
+  status,
+  normalizedSlug
+}: {
+  status: SlugStatus;
+  normalizedSlug: string;
+}) => (
+  <p
+    className={cn(
+      'text-xs',
+      status === 'taken' || status === 'invalid' ? 'text-red-600' : 'text-muted-foreground'
+    )}
+  >
+    {status === 'invalid' &&
+      'Only lowercase letters, numbers, underscores, and dashes are allowed.'}
+    {status === 'taken' && 'This slug is already used by another puzzle and cannot be reused.'}
+    {status === 'available' && `Available as "${normalizedSlug}".`}
+    {status === 'redirect_conflict' &&
+      `Slug "${normalizedSlug}" conflicts with an existing redirect.`}
+  </p>
+);
 
 const AddPuzzleDialog = () => {
   const navigate = useNavigate();
@@ -179,7 +203,7 @@ const AddPuzzleDialog = () => {
                     onCheckedChange={setLipiLekhikaTyping}
                     className="-mt-1"
                   />
-                  <Icon src={LanguageIcon} className="size-6.5 -mt-1" />
+                  <Icon src={LanguageIcon} className="-mt-1 size-6.5" />
                 </Label>
               </div>
             </div>
@@ -193,26 +217,11 @@ const AddPuzzleDialog = () => {
                   placeholder="my-puzzle-slug"
                   className="pr-9"
                 />
-                <div className="absolute right-2.5 top-1/2 -translate-y-1/2">
+                <div className="absolute top-1/2 right-2.5 -translate-y-1/2">
                   <SlugStatusIcon status={slugStatus} />
                 </div>
               </div>
-              <p
-                className={cn(
-                  'text-xs',
-                  slugStatus === 'taken' || slugStatus === 'invalid'
-                    ? 'text-red-600'
-                    : 'text-muted-foreground'
-                )}
-              >
-                {slugStatus === 'invalid' &&
-                  'Only lowercase letters, numbers, underscores, and dashes are allowed.'}
-                {slugStatus === 'taken' &&
-                  'This slug is already used by another puzzle and cannot be reused.'}
-                {slugStatus === 'available' && `Available as "${normalizedSlug}".`}
-                {slugStatus === 'redirect_conflict' &&
-                  `Slug "${normalizedSlug}" conflicts with an existing redirect.`}
-              </p>
+              <SlugStatusHint status={slugStatus} normalizedSlug={normalizedSlug} />
               {slugStatus === 'redirect_conflict' && redirectConflict ? (
                 <SlugRedirectConflictPrompt
                   conflict={redirectConflict}

@@ -69,7 +69,7 @@ const CompletedMeanings = ({ puzzle_id, puzzle_slug, practiceMode }: CompletedMe
               repeat: Infinity,
               repeatDelay: 0.9
             }}
-            className="bg-linear-to-r pointer-events-none absolute inset-y-0 z-20 w-2/5 skew-x-[-18deg] from-transparent via-white/50 to-transparent dark:via-violet-200/20"
+            className="pointer-events-none absolute inset-y-0 z-20 w-2/5 skew-x-[-18deg] bg-linear-to-r from-transparent via-white/50 to-transparent dark:via-violet-200/20"
           />
         ) : null}
 
@@ -121,14 +121,14 @@ export const AIWordExplanations = ({ puzzle_id, puzzle_slug }: Props) => {
           <div
             className={cn(
               'relative overflow-hidden rounded-2xl',
-              'dark:border-violet-500/12 border border-violet-200/30',
+              'border border-violet-200/30 dark:border-violet-500/12',
               'bg-linear-to-r from-white/90 to-slate-50/80',
               'dark:from-slate-900/90 dark:to-slate-900/70',
               'shadow-md backdrop-blur-sm',
               'px-4 py-3 sm:px-5 sm:py-4'
             )}
           >
-            <div className="bg-linear-to-r dark:via-white/3 pointer-events-none absolute inset-0 from-transparent via-white/10 to-transparent" />
+            <div className="pointer-events-none absolute inset-0 bg-linear-to-r from-transparent via-white/10 to-transparent dark:via-white/3" />
 
             <div className="relative flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
               <div className="flex items-center gap-2.5">
@@ -151,7 +151,7 @@ export const AIWordExplanations = ({ puzzle_id, puzzle_slug }: Props) => {
                         'inline-flex items-center gap-1 rounded-full px-2 py-0.5',
                         'bg-linear-to-r from-violet-100 to-fuchsia-100',
                         'dark:from-violet-900/50 dark:to-fuchsia-900/40',
-                        'text-[9px] font-bold uppercase tracking-wide text-violet-600 sm:text-[10px]',
+                        'text-[9px] font-bold tracking-wide text-violet-600 uppercase sm:text-[10px]',
                         'dark:text-violet-300'
                       )}
                     >

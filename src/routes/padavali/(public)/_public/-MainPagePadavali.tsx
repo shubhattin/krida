@@ -36,7 +36,7 @@ const MainPagePadavali = ({ script, word_puzzle, initial_script_data, next_sched
           animate={{ opacity: 1, y: 0 }}
           exit={{ opacity: 0, y: -20 }}
           transition={{ duration: 0.5, ease: 'easeOut' }}
-          className="bg-linear-to-r w-full border-b border-slate-200/60 from-emerald-50 via-blue-50 to-purple-50 dark:border-slate-700/60 dark:from-emerald-950/30 dark:via-blue-950/30 dark:to-purple-950/30"
+          className="w-full border-b border-slate-200/60 bg-linear-to-r from-emerald-50 via-blue-50 to-purple-50 dark:border-slate-700/60 dark:from-emerald-950/30 dark:via-blue-950/30 dark:to-purple-950/30"
         >
           <div className="flex items-center justify-center">
             <div className="flex items-center gap-3 sm:gap-4">
@@ -59,7 +59,7 @@ const MainPagePadavali = ({ script, word_puzzle, initial_script_data, next_sched
                       repeatDelay: 3
                     }}
                   >
-                    <Sparkles className="sm:size-5.5 -mt-1 size-5" />
+                    <Sparkles className="-mt-1 size-5 sm:size-5.5" />
                   </motion.div>
                   <motion.h2
                     initial={{ x: -20, opacity: 0 }}

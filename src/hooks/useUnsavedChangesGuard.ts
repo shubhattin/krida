@@ -7,12 +7,11 @@ const DEFAULT_MESSAGE =
 
 const GUARD_STATE = { __padavaliEditorUnsavedGuard: true } as const;
 
-function isGuardState(state: unknown): boolean {
-  return (
-    !!state &&
-    typeof state === 'object' &&
-    (state as { __padavaliEditorUnsavedGuard?: boolean }).__padavaliEditorUnsavedGuard === true
-  );
+/** Marker state pushed onto the history stack so the guard can recognize its own sentinel. */
+type UnsavedGuardState = { __padavaliEditorUnsavedGuard?: boolean };
+
+function isGuardState(state: UnsavedGuardState | undefined): boolean {
+  return state?.__padavaliEditorUnsavedGuard === true;
 }
 
 /**

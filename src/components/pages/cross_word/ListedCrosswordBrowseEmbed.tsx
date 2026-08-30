@@ -46,7 +46,7 @@ export function ListedCrosswordBrowseEmbed({ listed_puzzles }: Props) {
         </h2>
         <Link
           to="/padajala/puzzles"
-          className="flex items-center justify-center gap-0.5 rounded-full border border-blue-200/70 bg-blue-50/80 px-2 py-0.5 text-xs font-medium leading-none text-blue-600 no-underline transition-all duration-150 hover:bg-blue-100 hover:text-blue-700 dark:border-blue-700/50 dark:bg-blue-950/40 dark:text-blue-400 dark:hover:bg-blue-900/50"
+          className="flex items-center justify-center gap-0.5 rounded-full border border-blue-200/70 bg-blue-50/80 px-2 py-0.5 text-xs leading-none font-medium text-blue-600 no-underline transition-all duration-150 hover:bg-blue-100 hover:text-blue-700 dark:border-blue-700/50 dark:bg-blue-950/40 dark:text-blue-400 dark:hover:bg-blue-900/50"
         >
           <ExternalLinkIcon className="relative size-3 shrink-0 translate-y-[-1.5px]" />
           <span>View all</span>
@@ -56,7 +56,7 @@ export function ListedCrosswordBrowseEmbed({ listed_puzzles }: Props) {
       <div className="mb-6">
         <InputGroup>
           <InputGroupAddon>
-            <SearchIcon className="text-muted-foreground size-4" />
+            <SearchIcon className="size-4 text-muted-foreground" />
           </InputGroupAddon>
           <InputGroupInput
             value={query}

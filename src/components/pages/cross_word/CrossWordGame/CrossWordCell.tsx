@@ -22,6 +22,49 @@ type CrossWordCellProps = {
   onSelect: () => void;
 };
 
+function cellAriaLabel(row: number, col: number, clueNumber: number | undefined, letter: string) {
+  const cluePart = clueNumber ? `, clue ${clueNumber}` : '';
+  const letterPart = letter ? `, letter ${letter}` : ', empty';
+  return `Row ${row + 1}, column ${col + 1}${cluePart}${letterPart}`;
+}
+
+function cellClasses(props: {
+  fixed: boolean;
+  solved: boolean;
+  inActiveWord: boolean;
+  selected: boolean;
+  incorrect: boolean;
+  justSolved: boolean;
+  revealed: boolean;
+  clearing: boolean;
+  disabled: boolean;
+}) {
+  const {
+    fixed,
+    solved,
+    inActiveWord,
+    selected,
+    incorrect,
+    justSolved,
+    revealed,
+    clearing,
+    disabled
+  } = props;
+  return cn(
+    styles.playCell,
+    fixed && styles.cellFixed,
+    solved && styles.cellSolved,
+    inActiveWord && !selected && styles.cellActiveWord,
+    selected && styles.cellSelected,
+    incorrect && !solved && styles.cellIncorrectState,
+    justSolved && styles.cellJustSolved,
+    revealed && !justSolved && styles.cellRevealed,
+    clearing && styles.cellClearing,
+    incorrect && !solved && styles.cellIncorrect,
+    disabled && 'cursor-default'
+  );
+}
+
 export function CrossWordCell({
   row,
   col,
@@ -48,23 +91,21 @@ export function CrossWordCell({
       type="button"
       disabled={disabled}
       onClick={onSelect}
-      aria-label={`Row ${row + 1}, column ${col + 1}${clueNumber ? `, clue ${clueNumber}` : ''}${letter ? `, letter ${letter}` : ', empty'}`}
-      className={cn(
-        styles.playCell,
-        fixed && styles.cellFixed,
-        solved && styles.cellSolved,
-        inActiveWord && !selected && styles.cellActiveWord,
-        selected && styles.cellSelected,
-        incorrect && !solved && styles.cellIncorrectState,
-        justSolved && styles.cellJustSolved,
-        revealed && !justSolved && styles.cellRevealed,
-        clearing && styles.cellClearing,
-        incorrect && !solved && styles.cellIncorrect,
-        disabled && 'cursor-default'
-      )}
+      aria-label={cellAriaLabel(row, col, clueNumber, letter)}
+      className={cellClasses({
+        fixed,
+        solved,
+        inActiveWord,
+        selected,
+        incorrect,
+        justSolved,
+        revealed,
+        clearing,
+        disabled
+      })}
     >
       {clueNumber ? (
-        <span className="text-muted-foreground/70 pointer-events-none absolute left-0.5 top-px text-[0.5rem] font-semibold leading-none sm:text-[0.6rem]">
+        <span className="pointer-events-none absolute top-px left-0.5 text-[0.5rem] leading-none font-semibold text-muted-foreground/70 sm:text-[0.6rem]">
           {clueNumber}
         </span>
       ) : null}

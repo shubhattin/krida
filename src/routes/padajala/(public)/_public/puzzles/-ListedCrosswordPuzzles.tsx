@@ -39,13 +39,13 @@ export function ListedCrosswordPuzzles({ listed_puzzles }: Props) {
         <div>
           <Link
             to="/padajala"
-            className="text-muted-foreground hover:text-foreground mb-3 inline-flex items-center gap-2 text-sm font-medium"
+            className="mb-3 inline-flex items-center gap-2 text-sm font-medium text-muted-foreground hover:text-foreground"
           >
             <ArrowLeftIcon className="size-4 shrink-0" />
             Home
           </Link>
           <h1 className="text-2xl font-bold tracking-tight sm:text-3xl">Crossword Puzzles</h1>
-          <p className="text-muted-foreground mt-1 text-sm">
+          <p className="mt-1 text-sm text-muted-foreground">
             Search and play from the crossword puzzles.
           </p>
         </div>
@@ -56,7 +56,7 @@ export function ListedCrosswordPuzzles({ listed_puzzles }: Props) {
 
       <InputGroup>
         <InputGroupAddon>
-          <SearchIcon className="text-muted-foreground size-4" />
+          <SearchIcon className="size-4 text-muted-foreground" />
         </InputGroupAddon>
         <InputGroupInput
           value={query}
@@ -67,7 +67,7 @@ export function ListedCrosswordPuzzles({ listed_puzzles }: Props) {
       </InputGroup>
 
       {filtered.length === 0 ? (
-        <p className="text-muted-foreground py-12 text-center">
+        <p className="py-12 text-center text-muted-foreground">
           {listed_puzzles.length === 0 ? 'No listed puzzles yet.' : 'No puzzles match your search.'}
         </p>
       ) : (

@@ -14,6 +14,7 @@ async function getSessionFromCookie(cookie: string) {
     if (!res.ok) {
       throw new Error(`Failed to fetch session: ${res.statusText}`);
     }
+    // SAFETY: /api/auth/get-session returns the Better Auth session shape
     const session = (await res.json()) as typeof authClient.$Infer.Session;
     return session;
   } catch {

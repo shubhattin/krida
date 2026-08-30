@@ -1,7 +1,7 @@
 'use client';
 
 import { z } from 'zod';
-import { useEffect, useRef, useState, type KeyboardEvent } from 'react';
+import { useEffect, useRef, useState, type FormEvent, type KeyboardEvent } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { Card, CardContent } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
@@ -260,7 +260,7 @@ const SortableAttachmentItem = ({
 }: {
   attachment: Puzzle['attachments'][0];
   index: number;
-  onUpdate: (field: string, value: unknown, event: unknown) => void;
+  onUpdate: (field: string, value: string, event: FormEvent<HTMLInputElement> | null) => void;
   onRemove: () => void;
 }) => {
   const { attributes, listeners, setNodeRef, transform, transition, isDragging } = useSortable({
@@ -405,7 +405,7 @@ const Attachments = () => {
     });
   };
 
-  const updateAttachment = (index: number, field: string, value: unknown) => {
+  const updateAttachment = (index: number, field: string, value: string) => {
     setAttachments((prev) => prev.map((a, i) => (i === index ? { ...a, [field]: value } : a)));
   };
 
@@ -487,7 +487,7 @@ const LipiLekhikaSwitch = () => {
           onCheckedChange={setLipiLekhikaActive}
           className="-mt-1"
         />
-        <Icon src={LanguageIcon} className="size-6.5 -mt-1" />
+        <Icon src={LanguageIcon} className="-mt-1 size-6.5" />
         <span className="text-base font-bold">Devanagari</span>
       </Label>
     </div>
@@ -572,6 +572,7 @@ function getUniqueWordTrails(
     const path = traversals[0];
     const slotIndex = slotIndices[validIdx];
     if (!path || path.length < 2 || slotIndex === undefined) continue;
+    // SAFETY: traversal paths are [row, col] pairs by the Traversal contract
     trails.push({ slotIndex, path: path.map(([r, c]) => [r, c] as Coordinate) });
   }
   return trails;
@@ -617,6 +618,135 @@ const TraversalAndGridData = ({ grid_dimensions }: { grid_dimensions: [number, n
   );
 };
 
+type TraversalWarning = {
+  wordIndex: number;
+  word: string;
+  traversalCount: number;
+  type: 'none' | 'multiple' | 'duplicate';
+  paths?: Coordinate[][];
+  duplicateIndices?: number[];
+};
+
+function countWordIndices(validWords: string[]) {
+  const wordCountMap = new Map<string, number[]>();
+  validWords.forEach((word, index) => {
+    if (!wordCountMap.has(word)) {
+      wordCountMap.set(word, []);
+    }
+    wordCountMap.get(word)!.push(index);
+  });
+  return wordCountMap;
+}
+
+/** Add a single warning per word that appears multiple times in the word list. */
+function addDuplicateWarnings(warnings: TraversalWarning[], validWords: string[]) {
+  const wordCountMap = countWordIndices(validWords);
+  const processedDuplicates = new Set<string>();
+  wordCountMap.forEach((indices, word) => {
+    if (indices.length > 1 && !processedDuplicates.has(word)) {
+      processedDuplicates.add(word);
+      // Add warning for the first occurrence, referencing all duplicates
+      warnings.push({
+        wordIndex: indices[0],
+        word: word,
+        traversalCount: indices.length,
+        type: 'duplicate',
+        duplicateIndices: indices
+      });
+    }
+  });
+}
+
+/** Warn for words with no traversal (not placeable) or multiple traversals. */
+function addPlacementWarnings(
+  warnings: TraversalWarning[],
+  traversalsMap: Map<number, Traversal[]>,
+  validWords: string[]
+) {
+  let hasAllValidWords = true;
+  for (let i = 0; i < validWords.length; i++) {
+    const traversals = traversalsMap.get(i) || [];
+    if (traversals.length === 0) {
+      hasAllValidWords = false;
+      warnings.push({
+        wordIndex: i,
+        word: validWords[i],
+        traversalCount: 0,
+        type: 'none'
+      });
+    } else if (traversals.length > 1) {
+      warnings.push({
+        wordIndex: i,
+        word: validWords[i],
+        traversalCount: traversals.length,
+        type: 'multiple',
+        paths: traversals
+      });
+    }
+  }
+  return hasAllValidWords;
+}
+
+/** Count non-empty grid letters that no valid word traverses. */
+function countUncoveredLetters(gridData: string[][], occupiedCells: Set<Coordinate>) {
+  const occupiedKeys = new Set<string>();
+  for (const [r, c] of occupiedCells) {
+    occupiedKeys.add(`${r},${c}`);
+  }
+  let uncoveredLetterCount = 0;
+  for (let r = 0; r < gridData.length; r++) {
+    const row = gridData[r]!;
+    for (let c = 0; c < row.length; c++) {
+      if ((row[c] ?? '').trim().length === 0) continue;
+      if (!occupiedKeys.has(`${r},${c}`)) uncoveredLetterCount += 1;
+    }
+  }
+  return uncoveredLetterCount;
+}
+
+type TraversalAnalysisResult = {
+  warnings: TraversalWarning[];
+  cellConflicts: ReturnType<typeof getCellConflicts>;
+  hasAllValidWords: boolean;
+  uncoveredLetterCount: number;
+};
+
+function emptyTraversalAnalysis(): TraversalAnalysisResult {
+  return {
+    warnings: [],
+    cellConflicts: [],
+    hasAllValidWords: false,
+    uncoveredLetterCount: 0
+  };
+}
+
+function analyzeTraversalGrid(
+  traversalsMap: Map<number, Traversal[]>,
+  validWords: string[],
+  occupiedCells: Set<Coordinate>,
+  gridData: string[][]
+): TraversalAnalysisResult {
+  if (gridData.length === 0 || validWords.length === 0) {
+    return emptyTraversalAnalysis();
+  }
+
+  const warnings: TraversalWarning[] = [];
+
+  // Get cell conflicts
+  const cellConflicts = getCellConflicts(traversalsMap, validWords);
+
+  addDuplicateWarnings(warnings, validWords);
+  const hasAllValidWords = addPlacementWarnings(warnings, traversalsMap, validWords);
+  const uncoveredLetterCount = countUncoveredLetters(gridData, occupiedCells);
+
+  return {
+    warnings,
+    cellConflicts,
+    uncoveredLetterCount,
+    hasAllValidWords: hasAllValidWords && warnings.length === 0 && cellConflicts.length === 0
+  };
+}
+
 const TraversalAnalysis = ({
   traversalsMap,
   validWords,
@@ -630,95 +760,7 @@ const TraversalAnalysis = ({
   const [wordList] = useAtom(word_list_atom);
   const [gridData] = useAtom(grid_data_atom);
 
-  const analysisResult = (() => {
-    if (gridData.length === 0 || wordList.length === 0 || validWords.length === 0) {
-      return {
-        warnings: [],
-        cellConflicts: [],
-        hasAllValidWords: false,
-        uncoveredLetterCount: 0
-      };
-    }
-
-    const warnings: {
-      wordIndex: number;
-      word: string;
-      traversalCount: number;
-      type: 'none' | 'multiple' | 'duplicate';
-      paths?: Coordinate[][];
-      duplicateIndices?: number[];
-    }[] = [];
-    let hasAllValidWords = true;
-
-    // Get cell conflicts
-    const cellConflicts = getCellConflicts(traversalsMap, validWords);
-
-    // Check for duplicate words in validWords
-    const wordCountMap = new Map<string, number[]>();
-    validWords.forEach((word, index) => {
-      if (!wordCountMap.has(word)) {
-        wordCountMap.set(word, []);
-      }
-      wordCountMap.get(word)!.push(index);
-    });
-
-    // Add warnings for duplicate words
-    const processedDuplicates = new Set<string>();
-    wordCountMap.forEach((indices, word) => {
-      if (indices.length > 1 && !processedDuplicates.has(word)) {
-        processedDuplicates.add(word);
-        // Add warning for the first occurrence, referencing all duplicates
-        warnings.push({
-          wordIndex: indices[0],
-          word: word,
-          traversalCount: indices.length,
-          type: 'duplicate',
-          duplicateIndices: indices
-        });
-      }
-    });
-
-    for (let i = 0; i < validWords.length; i++) {
-      const traversals = traversalsMap.get(i) || [];
-      if (traversals.length === 0) {
-        hasAllValidWords = false;
-        warnings.push({
-          wordIndex: i,
-          word: validWords[i],
-          traversalCount: 0,
-          type: 'none'
-        });
-      } else if (traversals.length > 1) {
-        warnings.push({
-          wordIndex: i,
-          word: validWords[i],
-          traversalCount: traversals.length,
-          type: 'multiple',
-          paths: traversals
-        });
-      }
-    }
-
-    const occupiedKeys = new Set<string>();
-    for (const [r, c] of occupiedCells) {
-      occupiedKeys.add(`${r},${c}`);
-    }
-    let uncoveredLetterCount = 0;
-    for (let r = 0; r < gridData.length; r++) {
-      const row = gridData[r]!;
-      for (let c = 0; c < row.length; c++) {
-        if ((row[c] ?? '').trim().length === 0) continue;
-        if (!occupiedKeys.has(`${r},${c}`)) uncoveredLetterCount += 1;
-      }
-    }
-
-    return {
-      warnings,
-      cellConflicts,
-      uncoveredLetterCount,
-      hasAllValidWords: hasAllValidWords && warnings.length === 0 && cellConflicts.length === 0
-    };
-  })();
+  const analysisResult = analyzeTraversalGrid(traversalsMap, validWords, occupiedCells, gridData);
 
   if (gridData.length === 0 || wordList.length === 0) {
     return null;
@@ -768,7 +810,7 @@ const TraversalAnalysis = ({
                         <Popover>
                           <PopoverTrigger
                             render={
-                              <Info className="size-4.5 -mt-1 text-amber-600 dark:text-amber-400" />
+                              <Info className="-mt-1 size-4.5 text-amber-600 dark:text-amber-400" />
                             }
                             nativeButton={false}
                           />
@@ -798,7 +840,7 @@ const TraversalAnalysis = ({
                         <Popover>
                           <PopoverTrigger
                             render={
-                              <Info className="size-4.5 -mt-1 text-amber-600 dark:text-amber-400" />
+                              <Info className="-mt-1 size-4.5 text-amber-600 dark:text-amber-400" />
                             }
                             nativeButton={false}
                           />
@@ -879,7 +921,7 @@ const TraversalAnalysis = ({
                       {conflict.conflictingWords.map((wordInfo, widx) => (
                         <span
                           key={widx}
-                          className="rounded bg-red-100 px-1.5 pb-0.5 pt-1 text-xs text-red-800 dark:bg-red-900 dark:text-red-200"
+                          className="rounded bg-red-100 px-1.5 pt-1 pb-0.5 text-xs text-red-800 dark:bg-red-900 dark:text-red-200"
                         >
                           {wordInfo.word}
                         </span>
@@ -1155,7 +1197,7 @@ const GridData = ({
   return (
     <div>
       <Label className="mb-2 block text-lg font-semibold">Grid</Label>
-      <p className="text-muted-foreground/80 mb-2 hidden text-xs sm:block">
+      <p className="mb-2 hidden text-xs text-muted-foreground/80 sm:block">
         Navigate the grid with the arrow keys (↑ ↓ ← →). Colored trails show each word’s path order.
       </p>
       <div ref={gridRef} className="relative w-full sm:w-4/5 md:w-3/5 lg:w-2/5">
@@ -1273,7 +1315,7 @@ const ListedSwitch = ({ slug }: { slug: string }) => {
               aria-label="Listed visibility info"
               className="inline-flex border-0 bg-transparent p-0"
             >
-              <Info className="text-muted-foreground size-4" aria-hidden="true" />
+              <Info className="size-4 text-muted-foreground" aria-hidden="true" />
             </TooltipTrigger>
             <TooltipContent>When enabled, this puzzle will be publicly visible.</TooltipContent>
           </Tooltip>
@@ -1284,7 +1326,7 @@ const ListedSwitch = ({ slug }: { slug: string }) => {
           href={listedPuzzleUrl}
           target="_blank"
           rel="noopener noreferrer"
-          className="text-primary inline-flex items-center justify-center gap-1.5 text-sm font-medium underline-offset-4 hover:underline"
+          className="inline-flex items-center justify-center gap-1.5 text-sm font-medium text-primary underline-offset-4 hover:underline"
         >
           Listed Puzzle URL
           <ExternalLink className="size-3.5 shrink-0" aria-hidden="true" />
@@ -1352,6 +1394,9 @@ const SaveButton = ({ word_puzzle }: { word_puzzle: Puzzle }) => {
   const navigate = useNavigate();
 
   const update_word_puzzle_mut = useMutation(
+    // SAFETY: the callbacks below only run after the mutation settles (async),
+    // never during render — the ref is read/written from mutation lifecycle code.
+    // oxlint-disable-next-line react/refs
     trpc.puzzle.update_puzzle.mutationOptions({
       onSuccess: async (data) => {
         if (data.success) {

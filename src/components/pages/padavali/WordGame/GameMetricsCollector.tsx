@@ -62,6 +62,9 @@ const GameMetricsCollector = ({
     isSuccess: submitStatsSuccess,
     isPending: submitStatsPending
   } = useMutation(
+    // SAFETY: the callbacks below only run after the mutation settles (async),
+    // never during render — the ref is read/written from mutation lifecycle code.
+    // oxlint-disable-next-line react/refs
     trpc.puzzle.stats.submit_stats.mutationOptions({
       onSuccess() {
         setTurnstileToken(null);
@@ -84,6 +87,9 @@ const GameMetricsCollector = ({
     isPending: gamesStartedPending,
     data: gamesStartedData
   } = useMutation(
+    // SAFETY: the callbacks below only run after the mutation settles (async),
+    // never during render — the ref is read/written from mutation lifecycle code.
+    // oxlint-disable-next-line react/refs
     trpc.puzzle.stats.update_games_started.mutationOptions({
       onSuccess(data, variables) {
         setPracticeModeSyncedSessionId(variables.practice_mode ? data.session_id : null);
@@ -110,6 +116,9 @@ const GameMetricsCollector = ({
     isPending: isSyncingSessionPracticeMode,
     reset: resetSessionPracticeModeSync
   } = useMutation(
+    // SAFETY: the callbacks below only run after the mutation settles (async),
+    // never during render — the ref is read/written from mutation lifecycle code.
+    // oxlint-disable-next-line react/refs
     trpc.puzzle.stats.update_session_practice_mode.mutationOptions({
       onSuccess(_data, variables) {
         setPracticeModeSyncedSessionId(variables.session_id);

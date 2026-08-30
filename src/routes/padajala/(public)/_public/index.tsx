@@ -33,7 +33,7 @@ function CrosswordHomePage() {
   const { current_schedule, next_schedule, listed_puzzles } = Route.useLoaderData();
 
   return (
-    <main className="bg-linear-to-br relative min-h-dvh overflow-x-clip from-slate-50 via-blue-50 to-indigo-50 dark:from-slate-900 dark:via-slate-800 dark:to-slate-900">
+    <main className="relative min-h-dvh overflow-x-clip bg-linear-to-br from-slate-50 via-blue-50 to-indigo-50 dark:from-slate-900 dark:via-slate-800 dark:to-slate-900">
       {current_schedule ? (
         <MainPageCrossword word_puzzle={current_schedule.puzzle} />
       ) : (

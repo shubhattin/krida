@@ -3,7 +3,7 @@ import ms from 'ms';
 
 export const STALE_TIME = ms('15mins');
 
-export function makeQueryClient() {
+export function createQueryClient() {
   return new QueryClient({
     defaultOptions: {
       queries: {

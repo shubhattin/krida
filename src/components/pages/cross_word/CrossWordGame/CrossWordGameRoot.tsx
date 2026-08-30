@@ -73,6 +73,7 @@ export default function CrossWordGameRoot({
   // `toCrossWordGamePuzzle(raw)` every render yields a new object; using that as a
   // useMemo dep wiped started/completed right after Start.
   const jotaiStore = useMemo(() => {
+    // SAFETY: both db puzzle variants share the same grid_data/word_list schema the adapter reads
     const puzzle = isDbPuzzle(raw) ? toCrossWordGamePuzzle(raw as CrossordPuzzle) : raw;
     const store = createStore();
     store.set(puzzle_atom, puzzle);

@@ -1,0 +1,42 @@
+{
+  "$schema": "./node_modules/oxfmt/configuration_schema.json",
+  "singleQuote": true,
+  "semi": true,
+  "endOfLine": "lf",
+  "useTabs": false,
+  "trailingComma": "none",
+  "printWidth": 100,
+  "sortPackageJson": false,
+  "sortTailwindcss": {
+    "stylesheet": "./src/styles.css",
+    "functions": ["clsx", "cn", "cva"]
+  },
+  "ignorePatterns": [
+    "node_modules",
+    "build",
+    ".netlify",
+    ".vercel",
+    ".DS_Store",
+    "dist",
+    "dist-ssr",
+    "*.local",
+    ".env",
+    ".env.*",
+    ".nitro",
+    ".tanstack",
+    ".wrangler",
+    ".output",
+    ".vinxi",
+    "__unconfig*",
+    "todos.json",
+    ".agents",
+    "src/routeTree.gen.ts",
+    "pnpm-lock.yaml",
+    "bun.lock",
+    "src/db/migrations",
+    "src/db/scripts/out/",
+    "src/db/scripts/backup/",
+    "src/tools/lipi_lekhika/resources",
+    "src/components/ui"
+  ]
+}

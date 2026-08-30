@@ -106,7 +106,7 @@ export function CrossWordGrid({ game, onRequestKeyboard }: CrossWordGridProps) {
       tabIndex={0}
       role="grid"
       aria-label={`${puzzle.title} crossword grid`}
-      className="lg:max-w-100 xl:max-w-104 2xl:max-w-108 mx-auto w-full max-w-[min(100vw-2rem,22rem)] outline-none sm:max-w-[24rem]"
+      className="mx-auto w-full max-w-[min(100vw-2rem,22rem)] outline-none sm:max-w-[24rem] lg:max-w-100 xl:max-w-104 2xl:max-w-108"
       initial={{ opacity: 0, scale: 0.97 }}
       animate={{ opacity: 1, scale: 1 }}
       transition={{ duration: 0.4, ease: 'easeOut' }}

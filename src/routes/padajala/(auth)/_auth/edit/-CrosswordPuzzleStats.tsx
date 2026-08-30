@@ -44,7 +44,11 @@ type DateRange = {
 
 type PeriodType = 'all_time' | 'last_week' | 'last_month' | 'last_3_months' | 'custom';
 type ChartType =
-  'sessions-completions' | 'avg-time' | 'avg-accuracy' | 'letter-inputs' | 'location';
+  | 'sessions-completions'
+  | 'avg-time'
+  | 'avg-accuracy'
+  | 'letter-inputs'
+  | 'location';
 
 const PERIOD_ITEMS = [
   { label: 'All Time', value: 'all_time' as const },
@@ -216,10 +220,10 @@ const SessionsCompletionsTooltip = ({
     const completionRate = sessions > 0 ? Math.round((completions / sessions) * 100) : 0;
 
     return (
-      <div className="bg-background rounded-lg border p-2 shadow-md">
+      <div className="rounded-lg border bg-background p-2 shadow-md">
         <div className="grid gap-2">
           <div className="flex flex-col">
-            <span className="text-muted-foreground text-[0.70rem] uppercase">
+            <span className="text-[0.70rem] text-muted-foreground uppercase">
               {data.tooltipLabel}
             </span>
           </div>
@@ -264,10 +268,10 @@ const AttemptsTooltip = ({
     const correctAttempts = data.avgIncorrectAttempts || 0;
 
     return (
-      <div className="bg-background rounded-lg border p-2 shadow-md">
+      <div className="rounded-lg border bg-background p-2 shadow-md">
         <div className="grid gap-2">
           <div className="flex flex-col">
-            <span className="text-muted-foreground text-[0.70rem] uppercase">
+            <span className="text-[0.70rem] text-muted-foreground uppercase">
               {data.tooltipLabel}
             </span>
           </div>
@@ -311,10 +315,10 @@ const AvgTimeTooltip = ({
     const avgTimeTaken = data.avgTimeTaken || 0;
 
     return (
-      <div className="bg-background rounded-lg border p-2 shadow-md">
+      <div className="rounded-lg border bg-background p-2 shadow-md">
         <div className="grid gap-2">
           <div className="flex flex-col">
-            <span className="text-muted-foreground text-[0.70rem] uppercase">
+            <span className="text-[0.70rem] text-muted-foreground uppercase">
               {data.tooltipLabel}
             </span>
           </div>
@@ -341,40 +345,214 @@ type PuzzleStatsProps = {
   puzzleTitle?: string;
 };
 
+type ResolvedRange = { from: Date; to: Date } | null;
+
+type CrosswordStatsSession = { created_at: Date | string; location: string | null };
+type CrosswordStatsCompletion = {
+  created_at: Date | string;
+  time_taken: number;
+  accuracy: number;
+  letter_inputs: number;
+  incorrect_entry_attempts: number;
+};
+
+function defaultDateRange(): DateRange {
+  const today = endOfDay(new Date());
+  const monthAgo = startOfDay(subMonths(today, 1));
+  return { from: monthAgo, to: today };
+}
+
+function initialSelectedPuzzles(puzzleId?: number, puzzleTitle?: string): SelectedPuzzle[] {
+  return puzzleId && puzzleTitle ? [{ id: puzzleId, title: puzzleTitle }] : [];
+}
+
+function resolvePeriodRange(period: PeriodType, dateRange: DateRange): ResolvedRange {
+  const today = endOfDay(new Date());
+  if (period === 'all_time') return null;
+  if (period === 'last_week') return { from: startOfDay(subWeeks(today, 1)), to: today };
+  if (period === 'last_month') return { from: startOfDay(subMonths(today, 1)), to: today };
+  if (period === 'last_3_months') return { from: startOfDay(subMonths(today, 3)), to: today };
+  return dateRange.from && dateRange.to
+    ? { from: startOfDay(dateRange.from), to: endOfDay(dateRange.to) }
+    : null;
+}
+
+function statsRangeEnabled(allTime: boolean, range: ResolvedRange): boolean {
+  return allTime || !!(range?.from && range?.to);
+}
+
+function selectionLabel(selectedPuzzles: SelectedPuzzle[]): string {
+  if (selectedPuzzles.length === 0) return 'Analytics across all puzzles';
+  if (selectedPuzzles.length === 1) return `Analytics for ${selectedPuzzles[0].title}`;
+  return `Analytics for ${selectedPuzzles.length} selected puzzles`;
+}
+
+type DailyBucketTotals = {
+  date: string;
+  sessions: number;
+  completions: number;
+  totalTimeTaken: number;
+  totalAccuracy: number;
+  totalLetterInputs: number;
+  totalIncorrectAttempts: number;
+};
+
+function emptyDailyBucket(dateKey: string): DailyBucketTotals {
+  return {
+    date: dateKey,
+    sessions: 0,
+    completions: 0,
+    totalTimeTaken: 0,
+    totalAccuracy: 0,
+    totalLetterInputs: 0,
+    totalIncorrectAttempts: 0
+  };
+}
+
+function avgPerCompletion(total: number, completions: number): number {
+  return completions > 0 ? Math.round(total / completions) : 0;
+}
+
+function buildDailyStats(
+  sessions: CrosswordStatsSession[],
+  stats: CrosswordStatsCompletion[],
+  allTime: boolean,
+  effectiveDateRange: ResolvedRange
+): DailyStatPoint[] {
+  // Create daily aggregation
+  const dailyMap = new Map<string, DailyBucketTotals>();
+
+  for (const session of sessions) {
+    const dateKey = format(new Date(session.created_at), 'yyyy-MM-dd');
+    const existing = dailyMap.get(dateKey) ?? emptyDailyBucket(dateKey);
+    existing.sessions += 1;
+    dailyMap.set(dateKey, existing);
+  }
+
+  for (const stat of stats) {
+    const dateKey = format(new Date(stat.created_at), 'yyyy-MM-dd');
+    const existing = dailyMap.get(dateKey) ?? emptyDailyBucket(dateKey);
+    existing.completions += 1;
+    existing.totalTimeTaken += stat.time_taken;
+    existing.totalAccuracy += stat.accuracy;
+    existing.totalLetterInputs += stat.letter_inputs;
+    existing.totalIncorrectAttempts += stat.incorrect_entry_attempts;
+    dailyMap.set(dateKey, existing);
+  }
+
+  // Calculate averages for each day
+  const dailyStatsRaw = Array.from(dailyMap.values())
+    .map((day) => ({
+      ...day,
+      endDate: day.date,
+      label: '',
+      tooltipLabel: '',
+      avgTimeTaken: avgPerCompletion(day.totalTimeTaken, day.completions),
+      avgAccuracy: avgPerCompletion(day.totalAccuracy, day.completions),
+      avgLetterInputs: avgPerCompletion(day.totalLetterInputs, day.completions),
+      avgIncorrectAttempts: avgPerCompletion(day.totalIncorrectAttempts, day.completions)
+    }))
+    .sort((a, b) => a.date.localeCompare(b.date));
+
+  const showYearInTooltip = shouldShowYearInTooltip(
+    allTime,
+    effectiveDateRange,
+    dailyStatsRaw.map((d) => d.date)
+  );
+
+  return bucketDailyStats(
+    dailyStatsRaw.map((day) => {
+      const { label, tooltipLabel, endDate } = buildDateLabels(
+        day.date,
+        day.endDate,
+        showYearInTooltip
+      );
+      return { ...day, endDate, label, tooltipLabel };
+    }),
+    showYearInTooltip
+  );
+}
+
+// Calculate location frequency (ignore null values)
+function buildLocationFrequency(
+  sessions: CrosswordStatsSession[]
+): { name: string; frequency: number }[] {
+  const locationMap = new Map<string, number>();
+  for (const session of sessions) {
+    if (session.location === null) continue;
+    const count = locationMap.get(session.location) ?? 0;
+    locationMap.set(session.location, count + 1);
+  }
+  return Array.from(locationMap.entries())
+    .map(([name, frequency]) => ({ name, frequency }))
+    .sort((a, b) => b.frequency - a.frequency);
+}
+
+function computeChartData(
+  filteredStatsData: {
+    sessions: CrosswordStatsSession[];
+    stats: CrosswordStatsCompletion[];
+  } | null,
+  allTime: boolean,
+  effectiveDateRange: ResolvedRange
+): ChartDataType {
+  if (!filteredStatsData) {
+    return { dailyStats: [], locationFrequency: [], isBucketed: false };
+  }
+
+  const { sessions, stats } = filteredStatsData;
+  const dailyStats = buildDailyStats(sessions, stats, allTime, effectiveDateRange);
+
+  return {
+    dailyStats,
+    locationFrequency: buildLocationFrequency(sessions),
+    isBucketed: dailyStats.length > MAX_CHART_POINTS
+  };
+}
+
+function meanRound(values: number[]): number {
+  if (values.length === 0) return 0;
+  return Math.round(values.reduce((sum, value) => sum + value, 0) / values.length);
+}
+
+// Summary statistics
+function computeSummaryStats(
+  filteredStatsData: {
+    sessions: CrosswordStatsSession[];
+    stats: CrosswordStatsCompletion[];
+  } | null
+) {
+  if (!filteredStatsData) return null;
+
+  const { sessions, stats } = filteredStatsData;
+
+  return {
+    totalSessions: sessions.length,
+    totalCompletions: stats.length,
+    completionRate: sessions.length > 0 ? Math.round((stats.length / sessions.length) * 100) : 0,
+    avgTimeTaken: meanRound(stats.map((stat) => stat.time_taken)),
+    avgAccuracy: meanRound(stats.map((stat) => stat.accuracy))
+  };
+}
+
 const PuzzleStats = ({ puzzleId, puzzleTitle }: PuzzleStatsProps) => {
   const isEmbedded = puzzleId != null;
   const [period, setPeriod] = useState<PeriodType>('last_month');
   const [chartType, setChartType] = useState<ChartType>('sessions-completions');
   const [selectedPuzzles, setSelectedPuzzles] = useState<SelectedPuzzle[]>(() =>
-    puzzleId && puzzleTitle ? [{ id: puzzleId, title: puzzleTitle }] : []
+    initialSelectedPuzzles(puzzleId, puzzleTitle)
   );
-  const [dateRange, setDateRange] = useState<DateRange>(() => {
-    const today = endOfDay(new Date());
-    const monthAgo = startOfDay(subMonths(today, 1));
-    return { from: monthAgo, to: today };
-  });
+  const [dateRange, setDateRange] = useState<DateRange>(defaultDateRange);
 
-  const effectiveDateRange = useMemo(() => {
-    const today = endOfDay(new Date());
-    if (period === 'all_time') return null;
-    if (period === 'last_week') {
-      return { from: startOfDay(subWeeks(today, 1)), to: today };
-    }
-    if (period === 'last_month') {
-      return { from: startOfDay(subMonths(today, 1)), to: today };
-    }
-    if (period === 'last_3_months') {
-      return { from: startOfDay(subMonths(today, 3)), to: today };
-    }
-    return dateRange.from && dateRange.to
-      ? { from: startOfDay(dateRange.from), to: endOfDay(dateRange.to) }
-      : null;
-  }, [period, dateRange]);
+  const effectiveDateRange = useMemo(
+    () => resolvePeriodRange(period, dateRange),
+    [period, dateRange]
+  );
 
   const puzzleIds = selectedPuzzles.length > 0 ? selectedPuzzles.map((p) => p.id) : undefined;
   const allTime = period === 'all_time';
 
-  const statsQueryEnabled = allTime || !!(effectiveDateRange?.from && effectiveDateRange?.to);
+  const statsQueryEnabled = statsRangeEnabled(allTime, effectiveDateRange);
 
   const trpc = useTRPC();
 
@@ -409,158 +587,19 @@ const PuzzleStats = ({ puzzleId, puzzleTitle }: PuzzleStatsProps) => {
   const filteredStatsData = statsQuery.data ?? null;
 
   // Process data for charts
-  const chartData = useMemo(() => {
-    if (!filteredStatsData) return { dailyStats: [], locationFrequency: [], isBucketed: false };
+  const chartData = useMemo(
+    () => computeChartData(filteredStatsData, allTime, effectiveDateRange),
+    [filteredStatsData, allTime, effectiveDateRange]
+  );
 
-    const { sessions, stats } = filteredStatsData;
-
-    // Create daily aggregation
-    const dailyMap = new Map<
-      string,
-      {
-        date: string;
-        sessions: number;
-        completions: number;
-        totalTimeTaken: number;
-        totalAccuracy: number;
-        totalLetterInputs: number;
-        totalIncorrectAttempts: number;
-        avgTimeTaken: number;
-        avgAccuracy: number;
-        avgLetterInputs: number;
-        avgIncorrectAttempts: number;
-      }
-    >();
-
-    sessions.forEach((session) => {
-      const dateKey = format(new Date(session.created_at), 'yyyy-MM-dd');
-      const existing = dailyMap.get(dateKey) || {
-        date: dateKey,
-        sessions: 0,
-        completions: 0,
-        totalTimeTaken: 0,
-        totalAccuracy: 0,
-        totalLetterInputs: 0,
-        totalIncorrectAttempts: 0,
-        avgTimeTaken: 0,
-        avgAccuracy: 0,
-        avgLetterInputs: 0,
-        avgIncorrectAttempts: 0
-      };
-      existing.sessions += 1;
-      dailyMap.set(dateKey, existing);
-    });
-
-    stats.forEach((stat) => {
-      const dateKey = format(new Date(stat.created_at), 'yyyy-MM-dd');
-      const existing = dailyMap.get(dateKey) || {
-        date: dateKey,
-        sessions: 0,
-        completions: 0,
-        totalTimeTaken: 0,
-        totalAccuracy: 0,
-        totalLetterInputs: 0,
-        totalIncorrectAttempts: 0,
-        avgTimeTaken: 0,
-        avgAccuracy: 0,
-        avgLetterInputs: 0,
-        avgIncorrectAttempts: 0
-      };
-      existing.completions += 1;
-      existing.totalTimeTaken += stat.time_taken;
-      existing.totalAccuracy += stat.accuracy;
-      existing.totalLetterInputs += stat.letter_inputs;
-      existing.totalIncorrectAttempts += stat.incorrect_entry_attempts;
-      dailyMap.set(dateKey, existing);
-    });
-
-    // Calculate averages for each day
-    const dailyStatsRaw = Array.from(dailyMap.values())
-      .map((day) => ({
-        ...day,
-        endDate: day.date,
-        label: '',
-        tooltipLabel: '',
-        avgTimeTaken: day.completions > 0 ? Math.round(day.totalTimeTaken / day.completions) : 0,
-        avgAccuracy: day.completions > 0 ? Math.round(day.totalAccuracy / day.completions) : 0,
-        avgLetterInputs:
-          day.completions > 0 ? Math.round(day.totalLetterInputs / day.completions) : 0,
-        avgIncorrectAttempts:
-          day.completions > 0 ? Math.round(day.totalIncorrectAttempts / day.completions) : 0
-      }))
-      .sort((a, b) => a.date.localeCompare(b.date));
-
-    const showYearInTooltip = shouldShowYearInTooltip(
-      allTime,
-      effectiveDateRange,
-      dailyStatsRaw.map((d) => d.date)
-    );
-
-    const dailyStatsLabeled = dailyStatsRaw.map((day) => {
-      const { label, tooltipLabel, endDate } = buildDateLabels(
-        day.date,
-        day.endDate,
-        showYearInTooltip
-      );
-      return { ...day, endDate, label, tooltipLabel };
-    });
-
-    const isBucketed = dailyStatsLabeled.length > MAX_CHART_POINTS;
-    const dailyStats = bucketDailyStats(dailyStatsLabeled, showYearInTooltip);
-
-    // Calculate location frequency (ignore null values)
-    const locationMap = new Map<string, number>();
-    sessions.forEach((session) => {
-      if (session.location !== null) {
-        const count = locationMap.get(session.location) || 0;
-        locationMap.set(session.location, count + 1);
-      }
-    });
-    const locationFrequency = Array.from(locationMap.entries())
-      .map(([name, frequency]) => ({ name, frequency }))
-      .sort((a, b) => b.frequency - a.frequency);
-
-    return { dailyStats, locationFrequency, isBucketed };
-  }, [filteredStatsData, allTime, effectiveDateRange]);
-
-  // Summary statistics
-  const summaryStats = useMemo(() => {
-    if (!filteredStatsData) return null;
-
-    const { sessions, stats } = filteredStatsData;
-
-    // Calculate averages from completed sessions
-    const avgTimeTaken =
-      stats.length > 0
-        ? Math.round(stats.reduce((sum, stat) => sum + stat.time_taken, 0) / stats.length)
-        : 0;
-
-    const avgAccuracy =
-      stats.length > 0
-        ? Math.round(stats.reduce((sum, stat) => sum + stat.accuracy, 0) / stats.length)
-        : 0;
-
-    return {
-      totalSessions: sessions.length,
-      totalCompletions: stats.length,
-      completionRate: sessions.length > 0 ? Math.round((stats.length / sessions.length) * 100) : 0,
-      avgTimeTaken,
-      avgAccuracy
-    };
-  }, [filteredStatsData]);
+  const summaryStats = useMemo(() => computeSummaryStats(filteredStatsData), [filteredStatsData]);
 
   return (
     <div className="space-y-3 p-4">
       <div className="flex flex-col gap-2 sm:flex-row sm:items-start sm:justify-between">
         <div className="min-w-0">
           <h2 className="text-xl font-bold tracking-tight">Puzzle Statistics</h2>
-          <p className="text-muted-foreground text-sm">
-            {selectedPuzzles.length === 0
-              ? 'Analytics across all puzzles'
-              : selectedPuzzles.length === 1
-                ? `Analytics for ${selectedPuzzles[0].title}`
-                : `Analytics for ${selectedPuzzles.length} selected puzzles`}
-          </p>
+          <p className="text-sm text-muted-foreground">{selectionLabel(selectedPuzzles)}</p>
         </div>
         <StatsFilterControls period={period} setPeriod={setPeriod} />
       </div>
@@ -581,32 +620,61 @@ const PuzzleStats = ({ puzzleId, puzzleTitle }: PuzzleStatsProps) => {
         </div>
       )}
       {/* Stats Content */}
-      {!statsQuery.isLoading && statsQuery.isSuccess && summaryStats && (
-        <>
-          {!isEmbedded && (
-            <TopPuzzlesLeader
-              puzzles={topPuzzlesQuery.data?.puzzles ?? []}
-              isLoading={topPuzzlesQuery.isLoading}
-            />
-          )}
-          {/* Summary Cards */}
-          <SummaryCards summaryStats={summaryStats} />
-
-          {summaryStats.totalSessions === 0 ? (
-            <p className="text-muted-foreground py-4 text-center text-sm">
-              No data available for the selected time period
-            </p>
-          ) : (
-            <ChartsSection
-              chartData={chartData}
-              chartConfig={DEFAULT_CHART_CONFIG}
-              chartType={chartType}
-              setChartType={setChartType}
-            />
-          )}
-        </>
+      {!statsQuery.isLoading && statsQuery.isSuccess && (
+        <StatsContentBody
+          isEmbedded={isEmbedded}
+          topPuzzles={topPuzzlesQuery.data?.puzzles ?? []}
+          topPuzzlesLoading={topPuzzlesQuery.isLoading}
+          summaryStats={summaryStats}
+          chartData={chartData}
+          chartType={chartType}
+          setChartType={setChartType}
+        />
       )}
     </div>
+  );
+};
+
+type StatsContentBodyProps = {
+  isEmbedded: boolean;
+  topPuzzles: TopPuzzleRow[];
+  topPuzzlesLoading: boolean;
+  summaryStats: ReturnType<typeof computeSummaryStats>;
+  chartData: ChartDataType;
+  chartType: ChartType;
+  setChartType: (chartType: ChartType) => void;
+};
+
+const StatsContentBody = ({
+  isEmbedded,
+  topPuzzles,
+  topPuzzlesLoading,
+  summaryStats,
+  chartData,
+  chartType,
+  setChartType
+}: StatsContentBodyProps) => {
+  if (!summaryStats) return null;
+
+  return (
+    <>
+      {!isEmbedded && <TopPuzzlesLeader puzzles={topPuzzles} isLoading={topPuzzlesLoading} />}
+      {/* Summary Cards */}
+      <SummaryCards summaryStats={summaryStats} />
+
+      {summaryStats.totalSessions === 0 ? (
+        <p className="py-4 text-center text-sm text-muted-foreground">
+          No data available for the selected time period
+        </p>
+      ) : (
+        <ChartsSection
+          chartData={chartData}
+          chartConfig={DEFAULT_CHART_CONFIG}
+          chartType={chartType}
+          setChartType={setChartType}
+        />
+      )}
+    </>
   );
 };
 
@@ -635,16 +703,16 @@ const TopPuzzlesLeader = ({
     <Accordion defaultValue={[]} className="w-full">
       <AccordionItem
         value="top-puzzles"
-        className="bg-linear-to-br overflow-hidden rounded-xl border border-slate-200/50 from-white/80 to-slate-50/40 dark:border-slate-700/50 dark:from-slate-900/80 dark:to-slate-800/40"
+        className="overflow-hidden rounded-xl border border-slate-200/50 bg-linear-to-br from-white/80 to-slate-50/40 dark:border-slate-700/50 dark:from-slate-900/80 dark:to-slate-800/40"
       >
         <AccordionTrigger className="px-4 py-3 hover:no-underline">
           <div className="flex items-center gap-2.5">
-            <div className="flex size-8 shrink-0 items-center justify-center rounded-lg bg-amber-500/10 ring-1 ring-inset ring-black/5 dark:ring-white/10">
+            <div className="flex size-8 shrink-0 items-center justify-center rounded-lg bg-amber-500/10 ring-1 ring-black/5 ring-inset dark:ring-white/10">
               <TrophyIcon className="size-3.5 text-amber-600 dark:text-amber-400" />
             </div>
             <div className="min-w-0 text-left">
               <p className="text-sm font-semibold tracking-tight">Top Played Puzzles</p>
-              <p className="text-muted-foreground text-xs font-normal">Top 10 by plays</p>
+              <p className="text-xs font-normal text-muted-foreground">Top 10 by plays</p>
             </div>
           </div>
         </AccordionTrigger>
@@ -656,12 +724,12 @@ const TopPuzzlesLeader = ({
               ))}
             </div>
           ) : puzzles.length === 0 ? (
-            <p className="text-muted-foreground py-2 text-center text-sm">
+            <p className="py-2 text-center text-sm text-muted-foreground">
               No puzzle plays in this period
             </p>
           ) : (
             <div className="space-y-3">
-              <div className="text-muted-foreground flex items-center gap-3 text-[0.65rem]">
+              <div className="flex items-center gap-3 text-[0.65rem] text-muted-foreground">
                 <span className="inline-flex items-center gap-1">
                   <span
                     className="size-1.5 rounded-full"
@@ -692,16 +760,16 @@ const TopPuzzlesLeader = ({
                     >
                       <div className="flex items-baseline justify-between gap-2">
                         <p className="min-w-0 truncate text-sm font-medium">
-                          <span className="text-muted-foreground mr-1.5 tabular-nums">
+                          <span className="mr-1.5 text-muted-foreground tabular-nums">
                             #{index + 1}
                           </span>
                           {puzzle.title}
                         </p>
-                        <p className="text-muted-foreground shrink-0 text-[0.7rem] tabular-nums">
+                        <p className="shrink-0 text-[0.7rem] text-muted-foreground tabular-nums">
                           {puzzle.completed}/{puzzle.started}
                         </p>
                       </div>
-                      <div className="bg-muted/60 h-2 w-full overflow-hidden rounded-full">
+                      <div className="h-2 w-full overflow-hidden rounded-full bg-muted/60">
                         <div
                           className="relative h-full overflow-hidden rounded-full transition-[width] duration-300"
                           style={{
@@ -747,7 +815,7 @@ const ChartsSection = ({
       <div className="flex flex-wrap items-center justify-between gap-2">
         <ChartSelector chartType={chartType} setChartType={setChartType} />
         {chartData.isBucketed && (
-          <p className="text-muted-foreground text-xs">Grouped for readability</p>
+          <p className="text-xs text-muted-foreground">Grouped for readability</p>
         )}
       </div>
     </CardHeader>
@@ -755,7 +823,7 @@ const ChartsSection = ({
       <ChartContainer
         config={chartConfig}
         initialDimension={{ width: 1200, height: 360 }}
-        className="[&_.recharts-responsive-container]:w-full! aspect-auto h-60 w-full min-w-0 sm:h-72 md:h-80 lg:h-96 [&_.recharts-surface]:w-full"
+        className="aspect-auto h-60 w-full min-w-0 sm:h-72 md:h-80 lg:h-96 [&_.recharts-responsive-container]:w-full! [&_.recharts-surface]:w-full"
       >
         {chartType === 'location' ? (
           <BarChart
@@ -833,6 +901,7 @@ const ChartsSection = ({
                 ) : (
                   <ChartTooltipContent
                     labelFormatter={(_, payload) => {
+                      // SAFETY: recharts tooltip payload entries carry the chart's DailyStatPoint
                       const point = payload?.[0]?.payload as DailyStatPoint | undefined;
                       return point?.tooltipLabel ?? '';
                     }}
@@ -953,7 +1022,7 @@ const StatsFilterControls = ({
 }) => (
   <div className="flex flex-col gap-2 sm:flex-row sm:items-center sm:gap-3">
     <div className="flex shrink-0 items-center gap-2">
-      <span className="text-muted-foreground text-xs font-medium">Period</span>
+      <span className="text-xs font-medium text-muted-foreground">Period</span>
       <Select
         items={PERIOD_ITEMS}
         value={period}
@@ -984,7 +1053,7 @@ const CustomDateRangeRow = ({
   setDateRange: React.Dispatch<React.SetStateAction<DateRange>>;
 }) => (
   <div className="flex flex-wrap items-center gap-2">
-    <span className="text-muted-foreground text-xs font-medium">From</span>
+    <span className="text-xs font-medium text-muted-foreground">From</span>
     <Popover>
       <PopoverTrigger
         render={
@@ -1010,7 +1079,7 @@ const CustomDateRangeRow = ({
         />
       </PopoverContent>
     </Popover>
-    <span className="text-muted-foreground text-xs font-medium">To</span>
+    <span className="text-xs font-medium text-muted-foreground">To</span>
     <Popover>
       <PopoverTrigger
         render={
@@ -1061,28 +1130,28 @@ const StatMetricCard = ({
   icon: ComponentType<{ className?: string }>;
   accent: { bar: string; iconBg: string; iconColor: string };
 }) => (
-  <Card className="bg-linear-to-br overflow-hidden border-slate-200/50 from-white/80 to-slate-50/40 shadow-sm transition-shadow hover:shadow-md dark:border-slate-700/50 dark:from-slate-900/80 dark:to-slate-800/40">
+  <Card className="overflow-hidden border-slate-200/50 bg-linear-to-br from-white/80 to-slate-50/40 shadow-sm transition-shadow hover:shadow-md dark:border-slate-700/50 dark:from-slate-900/80 dark:to-slate-800/40">
     <CardContent className="relative flex flex-col gap-1.5 p-3">
       <div className={cn('absolute inset-y-2 left-0 w-1 rounded-r-full', accent.bar)} />
       <div className="flex items-start justify-between gap-2 pl-2">
         <div className="min-w-0 space-y-1">
-          <p className="text-muted-foreground text-[0.65rem] font-medium uppercase tracking-wide">
+          <p className="text-[0.65rem] font-medium tracking-wide text-muted-foreground uppercase">
             {title}
           </p>
-          <p className="text-xl font-bold tabular-nums leading-none tracking-tight sm:text-2xl">
+          <p className="text-xl leading-none font-bold tracking-tight tabular-nums sm:text-2xl">
             {value}
           </p>
         </div>
         <div
           className={cn(
-            'flex size-8 shrink-0 items-center justify-center rounded-lg ring-1 ring-inset ring-black/5 dark:ring-white/10',
+            'flex size-8 shrink-0 items-center justify-center rounded-lg ring-1 ring-black/5 ring-inset dark:ring-white/10',
             accent.iconBg
           )}
         >
           <Icon className={cn('size-3.5', accent.iconColor)} />
         </div>
       </div>
-      <p className="text-muted-foreground pl-2 text-[0.7rem]">{description}</p>
+      <p className="pl-2 text-[0.7rem] text-muted-foreground">{description}</p>
     </CardContent>
   </Card>
 );
@@ -1156,7 +1225,7 @@ const ChartSelector = ({
   setChartType: (chartType: ChartType) => void;
 }) => (
   <div className="flex flex-wrap items-center gap-2">
-    <label className="text-muted-foreground text-xs font-medium">View</label>
+    <label className="text-xs font-medium text-muted-foreground">View</label>
     <Select
       items={CHART_TYPE_ITEMS}
       value={chartType}

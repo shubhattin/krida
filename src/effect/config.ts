@@ -39,7 +39,8 @@ type RedactedConfigKeys =
   | 'onesignalApiKey'
   | 'turnstileSecretKey';
 
-export type AppConfigShape = Omit<AppConfigDecoded, RedactedConfigKeys> & {
+/** Service API for the loaded application configuration (secrets held as `Redacted`). */
+export type AppConfigService = Omit<AppConfigDecoded, RedactedConfigKeys> & {
   readonly dbUrl: Redacted.Redacted<string>;
   readonly upstashRedisToken: Redacted.Redacted<string>;
   readonly awsSecretAccessKey: Redacted.Redacted<string>;
@@ -118,9 +119,9 @@ const loadConfig = Effect.fn('loadConfig')(function* () {
     isDev: data.isDev,
     isProd: data.isProd,
     isQstashEnabled: data.isQstashEnabled
-  } satisfies AppConfigShape;
+  } satisfies AppConfigService;
 });
 
-export class AppConfig extends Context.Service<AppConfig, AppConfigShape>()('AppConfig') {
+export class AppConfig extends Context.Service<AppConfig, AppConfigService>()('AppConfig') {
   static readonly Live = Layer.effect(AppConfig)(loadConfig());
 }

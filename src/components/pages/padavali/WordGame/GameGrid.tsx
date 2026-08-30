@@ -6,6 +6,7 @@ import { cn } from '~/lib/utils';
 import { useAtom } from 'jotai';
 import {
   type CellPosition,
+  type Selection,
   started_atom,
   completed_atom,
   current_selection_atom,
@@ -30,21 +31,164 @@ type Props = {
   location: location_list_type;
 };
 
-type DragEventLike = {
-  clientX?: number;
-  clientY?: number;
-  touches?: ArrayLike<{ clientX: number; clientY: number }>;
-  changedTouches?: ArrayLike<{ clientX: number; clientY: number }>;
+type DragEventLike = PointerEvent | MouseEvent | TouchEvent | KeyboardEvent;
+
+const getPointerCoords = (e: DragEventLike): { clientX: number; clientY: number } | null => {
+  // Keyboard-driven drags carry no pointer position.
+  if (e instanceof KeyboardEvent) return null;
+  if (e instanceof TouchEvent) {
+    const touch = e.touches[0] ?? e.changedTouches[0];
+    return touch ? { clientX: touch.clientX, clientY: touch.clientY } : null;
+  }
+  return { clientX: e.clientX, clientY: e.clientY };
 };
 
-const getPointerCoords = (e: unknown): { clientX: number; clientY: number } | null => {
-  if (!e || typeof e !== 'object') return null;
-  const ev = e as DragEventLike;
-  const clientX = ev.clientX ?? ev.touches?.[0]?.clientX ?? ev.changedTouches?.[0]?.clientX;
-  const clientY = ev.clientY ?? ev.touches?.[0]?.clientY ?? ev.changedTouches?.[0]?.clientY;
-  if (clientX == null || clientY == null) return null;
-  return { clientX, clientY };
+function resolveGridDimension(dim: number, fallback: number) {
+  return dim > 0 ? dim : fallback;
+}
+
+type DemoState = 'idle' | 'selecting' | 'success' | 'fail';
+
+type DemoDisplay = {
+  path: CellPosition[];
+  state: DemoState;
+  handPos: CellPosition | null;
+  lastHandPos: CellPosition | null;
 };
+
+/** Demo-path overlay state; frozen to idle when the game is running. */
+function demoDisplayState(
+  demoActive: boolean,
+  demoPath: CellPosition[],
+  demoState: DemoState,
+  handPos: CellPosition | null,
+  lastHandPos: CellPosition | null
+): DemoDisplay {
+  if (!demoActive) {
+    return { path: [], state: 'idle', handPos: null, lastHandPos: null };
+  }
+  return { path: demoPath, state: demoState, handPos, lastHandPos };
+}
+
+/** Reveal-path overlay state; empty while no word is being revealed. */
+type RevealDisplay = { path: CellPosition[]; handPos: CellPosition | null };
+
+function revealDisplayState(
+  revealedWord: Selection | null,
+  revealPath: CellPosition[],
+  revealHandPos: CellPosition | null
+): RevealDisplay {
+  if (!revealedWord) {
+    return { path: [], handPos: null };
+  }
+  return { path: revealPath, handPos: revealHandPos };
+}
+
+/** Static class maps (Tailwind needs literal class names). */
+const DEMO_TRAIL_CLASSES = {
+  idle: { glow: '', main: '' },
+  success: {
+    glow: 'stroke-emerald-300 dark:stroke-emerald-400',
+    main: 'stroke-emerald-500 dark:stroke-emerald-400'
+  },
+  fail: {
+    glow: 'stroke-red-300 dark:stroke-red-400',
+    main: 'stroke-red-500 dark:stroke-red-400'
+  },
+  selecting: {
+    glow: 'stroke-blue-300 dark:stroke-blue-400',
+    main: 'stroke-blue-500 dark:stroke-blue-400'
+  }
+} satisfies Record<DemoState, { glow: string; main: string }>;
+
+const BASE_CELL_CLASSES = [
+  'text-base',
+  'flex items-center justify-center rounded-3xl px-px py-0 text-center font-bold sm:rounded-2xl',
+  'aspect-square border-2 sm:p-1 md:p-2',
+  'transform transition-all duration-300 ease-out',
+  'hover:scale-105 active:scale-95',
+  'border-slate-300 bg-linear-to-br from-white to-slate-50 dark:border-slate-600 dark:from-slate-700 dark:to-slate-800',
+  'shadow-lg hover:shadow-xl'
+];
+
+function demoCellClasses(demoState: DemoState) {
+  return [
+    demoState === 'success' &&
+      'border-emerald-400 bg-linear-to-br from-emerald-100 to-green-200 text-emerald-800 shadow-emerald-200 dark:border-emerald-500 dark:from-emerald-900 dark:to-green-800 dark:text-emerald-100 dark:shadow-emerald-900',
+    demoState === 'fail' &&
+      'border-red-400 bg-linear-to-br from-red-100 to-rose-200 text-red-800 shadow-red-200 dark:border-red-500 dark:from-red-900 dark:to-rose-800 dark:text-red-100 dark:shadow-red-900',
+    demoState === 'selecting' &&
+      'border-blue-400 bg-linear-to-br from-blue-100 to-indigo-200 text-blue-800 shadow-blue-200 dark:border-blue-500 dark:from-blue-900 dark:to-indigo-800 dark:text-blue-100 dark:shadow-blue-900'
+  ];
+}
+
+function revealedCellClasses(isInRevealed: boolean, isInFound: boolean, isInCurrent: boolean) {
+  if (!isInRevealed || isInFound || isInCurrent) return [];
+  return [
+    'border-orange-400 dark:border-orange-500',
+    'bg-linear-to-br from-orange-100 to-amber-200 dark:from-orange-950 dark:to-amber-900',
+    'text-orange-900 dark:text-orange-100',
+    'ring-2 shadow-orange-200 ring-orange-300/70 dark:shadow-orange-950 dark:ring-orange-500/45'
+  ];
+}
+
+function foundCellClasses(isInFound: boolean) {
+  if (!isInFound) return [];
+  return [
+    'border-emerald-400 dark:border-emerald-500',
+    'bg-linear-to-br from-emerald-100 to-green-200 dark:from-emerald-900 dark:to-green-800',
+    'text-emerald-800 dark:text-emerald-100',
+    'shadow-emerald-200 dark:shadow-emerald-900'
+  ];
+}
+
+function currentCellClasses(isInCurrent: boolean, isInFound: boolean) {
+  if (!isInCurrent || isInFound) return [];
+  return [
+    'border-blue-400 dark:border-blue-500',
+    'bg-linear-to-br from-blue-100 to-indigo-200 dark:from-blue-900 dark:to-indigo-800',
+    'text-blue-800 dark:text-blue-100',
+    'shadow-blue-200 dark:shadow-blue-900'
+  ];
+}
+
+function hoverCellClasses(
+  started: boolean,
+  isInCurrent: boolean,
+  isInFound: boolean,
+  isInRevealed: boolean
+) {
+  if (isInCurrent || isInFound || isInRevealed || !started) return [];
+  return [
+    'hover:bg-linear-to-br hover:from-slate-100 hover:to-slate-200 dark:hover:from-slate-600 dark:hover:to-slate-700'
+  ];
+}
+
+function gridCellClass(props: {
+  fontInfo: { fontSize: number; className: string };
+  started: boolean;
+  isInDemo: boolean;
+  isInFound: boolean;
+  isInCurrent: boolean;
+  isInRevealed: boolean;
+  isLast: boolean;
+  demoState: DemoState;
+}) {
+  const { fontInfo, started, isInDemo, isInFound, isInCurrent, isInRevealed, isLast, demoState } =
+    props;
+  return cn(
+    fontInfo.className,
+    !started && 'blur-sm',
+    started && 'cursor-pointer',
+    BASE_CELL_CLASSES,
+    isInDemo && !started && demoCellClasses(demoState),
+    revealedCellClasses(isInRevealed, isInFound, isInCurrent),
+    foundCellClasses(isInFound),
+    currentCellClasses(isInCurrent, isInFound),
+    isLast && 'ring-opacity-50 ring-4 ring-blue-300 dark:ring-blue-600',
+    hoverCellClasses(started, isInCurrent, isInFound, isInRevealed)
+  );
+}
 
 export const GameGrid = ({ timerRef, original_grid_data }: Props) => {
   const { script } = useContext(AppContext);
@@ -60,8 +204,8 @@ export const GameGrid = ({ timerRef, original_grid_data }: Props) => {
   const [revealedWord, setRevealedWord] = useAtom(revealed_word_atom);
 
   const handleStart = useStartPuzzleGame(timerRef);
-  const rows = gridDimensions[0] > 0 ? gridDimensions[0] : original_grid_data.length;
-  const cols = gridDimensions[1] > 0 ? gridDimensions[1] : original_grid_data[0].length;
+  const rows = resolveGridDimension(gridDimensions[0], original_grid_data.length);
+  const cols = resolveGridDimension(gridDimensions[1], original_grid_data[0]!.length);
   const gridRef = useRef<HTMLDivElement>(null);
   const lastGridSizeRef = useRef({ width: 0, height: 0 });
 
@@ -81,12 +225,8 @@ export const GameGrid = ({ timerRef, original_grid_data }: Props) => {
   const [cellCenters, setCellCenters] = useState<Record<string, { x: number; y: number }>>({});
 
   const demoActive = !started && !completed;
-  const displayDemoPath = demoActive ? demoPath : [];
-  const displayDemoState = demoActive ? demoState : 'idle';
-  const displayHandPos = demoActive ? handPos : null;
-  const displayLastHandPos = demoActive ? lastHandPos : null;
-  const displayRevealPath = revealedWord ? revealPath : [];
-  const displayRevealHandPos = revealedWord ? revealHandPos : null;
+  const demo = demoDisplayState(demoActive, demoPath, demoState, handPos, lastHandPos);
+  const reveal = revealDisplayState(revealedWord, revealPath, revealHandPos);
 
   const handleRevealUpdate = useCallback(
     (state: { path: CellPosition[]; handPos: CellPosition | null }) => {
@@ -171,6 +311,7 @@ export const GameGrid = ({ timerRef, original_grid_data }: Props) => {
     const preventNavigation = (e: TouchEvent) => {
       // Prevent pull-to-refresh and navigation gestures
       if (e.touches.length === 1) {
+        // SAFETY: touch event targets on document are DOM nodes
         const target = e.target as Element;
 
         // Check if touch started on the game grid
@@ -186,6 +327,7 @@ export const GameGrid = ({ timerRef, original_grid_data }: Props) => {
     const preventOverscroll = (e: TouchEvent) => {
       // Prevent overscroll bounce that can trigger refresh
       if (e.touches.length === 1) {
+        // SAFETY: touch event targets on document are DOM nodes
         const target = e.target as Element;
         if (
           target &&
@@ -198,6 +340,7 @@ export const GameGrid = ({ timerRef, original_grid_data }: Props) => {
 
     const preventContextMenu = (e: Event) => {
       // Prevent long press context menu on mobile
+      // SAFETY: event targets on document are DOM nodes
       const target = e.target as Element;
       if (target && (target.closest('[data-game-grid]') || target.hasAttribute('data-game-grid'))) {
         e.preventDefault();
@@ -206,6 +349,7 @@ export const GameGrid = ({ timerRef, original_grid_data }: Props) => {
 
     const preventDoubleClick = (e: Event) => {
       // Prevent double-click zoom on mobile
+      // SAFETY: event targets on document are DOM nodes
       const target = e.target as Element;
       if (target && (target.closest('[data-game-grid]') || target.hasAttribute('data-game-grid'))) {
         e.preventDefault();
@@ -296,7 +440,7 @@ export const GameGrid = ({ timerRef, original_grid_data }: Props) => {
     sel.map((cell) => original_grid_data[cell.row][cell.col]).join('');
 
   // hit-test using elementFromPoint (as before)
-  const getCellFromEvent = (e: unknown): CellPosition | null => {
+  const getCellFromEvent = (e: DragEventLike): CellPosition | null => {
     const coords = getPointerCoords(e);
     if (!coords) return null;
 
@@ -344,9 +488,42 @@ export const GameGrid = ({ timerRef, original_grid_data }: Props) => {
     return sel;
   };
 
+  // Finalize the drag: attempt one last cell hit-test, evaluate the word, reset.
+  const commitSelection = (event: DragEventLike) => {
+    // On mobile, the final touch position may not have been processed
+    // in a preceding `down` event, so try to add it now.
+    const cell = getCellFromEvent(event);
+    if (cell) {
+      const next = tryAddCell(selectionRef.current, cell);
+      if (next !== selectionRef.current) {
+        selectionRef.current = next;
+        // No need to setCurrentSelection here since we clear it below
+      }
+    }
+
+    // Use the ref (always up-to-date) instead of the stale closure value
+    const finalSelection = selectionRef.current;
+    const word = getWordFromSelection(finalSelection);
+
+    if (finalSelection.length >= 2) {
+      // Track attempt only if selection has at least 2 cells
+      setTotalAttempts((prev) => prev + 1);
+
+      if (wordList.includes(word)) {
+        setFoundWords((prev) => [...prev, { cells: [...finalSelection], word }]);
+        if (revealedWord?.word === word) {
+          setRevealedWord(null);
+        }
+      }
+    }
+    selectionRef.current = [];
+    setCurrentSelection([]);
+  };
+
   // Enhanced drag logic with better mobile support
   const bind = useDrag(
-    ({ event, first, down, last }) => {
+    (state) => {
+      const { event, first, down, last } = state;
       if (!started || completed) {
         // Allow native scroll behavior on mobile when game is off
         return;
@@ -379,34 +556,7 @@ export const GameGrid = ({ timerRef, original_grid_data }: Props) => {
       }
 
       if (last) {
-        // On mobile, the final touch position may not have been processed
-        // in a preceding `down` event, so try to add it now.
-        const cell = getCellFromEvent(event);
-        if (cell) {
-          const next = tryAddCell(selectionRef.current, cell);
-          if (next !== selectionRef.current) {
-            selectionRef.current = next;
-            // No need to setCurrentSelection here since we clear it below
-          }
-        }
-
-        // Use the ref (always up-to-date) instead of the stale closure value
-        const finalSelection = selectionRef.current;
-        const word = getWordFromSelection(finalSelection);
-
-        if (finalSelection.length >= 2) {
-          // Track attempt only if selection has at least 2 cells
-          setTotalAttempts((prev) => prev + 1);
-
-          if (wordList.includes(word)) {
-            setFoundWords((prev) => [...prev, { cells: [...finalSelection], word }]);
-            if (revealedWord?.word === word) {
-              setRevealedWord(null);
-            }
-          }
-        }
-        selectionRef.current = [];
-        setCurrentSelection([]);
+        commitSelection(event);
       }
     },
     {
@@ -443,19 +593,21 @@ export const GameGrid = ({ timerRef, original_grid_data }: Props) => {
     }
   }, [foundWords.length, wordList.length, started, setCompleted, timerRef]);
 
-  const demoDisplayPos = displayHandPos ?? displayLastHandPos;
-  const isDemoHandVisible = !!displayHandPos;
-  const isRevealHandVisible = started && !completed && !!displayRevealHandPos;
+  const demoDisplayPos = demo.handPos ?? demo.lastHandPos;
+  const isDemoHandVisible = !!demo.handPos;
+  const isRevealHandVisible = started && !completed && !!reveal.handPos;
   const isHandVisible = isDemoHandVisible || isRevealHandVisible;
-  const displayPos = isDemoHandVisible ? demoDisplayPos : displayRevealHandPos;
+  const displayPos = isDemoHandVisible ? demoDisplayPos : reveal.handPos;
 
   const revealAnimatorKey = revealedWord
     ? `${revealedWord.word}:${revealedWord.cells.map((c) => `${c.row},${c.col}`).join('|')}`
     : null;
+  const showRevealAnimator = !!revealAnimatorKey && started && !completed;
+  const touchAction = activeTouchAction(started, completed);
 
   return (
     <>
-      {revealAnimatorKey && started && !completed ? (
+      {showRevealAnimator ? (
         <RevealPathAnimator
           key={revealAnimatorKey}
           cells={revealedWord!.cells}
@@ -485,7 +637,7 @@ export const GameGrid = ({ timerRef, original_grid_data }: Props) => {
                 // Additional CSS properties for mobile gesture prevention
                 WebkitTouchCallout: 'none',
                 WebkitUserSelect: 'none',
-                touchAction: started && !completed ? 'none' : 'pan-y',
+                touchAction,
                 // Prevent iOS Safari bounce and zoom
                 WebkitOverflowScrolling: 'touch',
                 overscrollBehavior: 'contain'
@@ -502,178 +654,243 @@ export const GameGrid = ({ timerRef, original_grid_data }: Props) => {
                     started={started}
                     currentSelection={currentSelection}
                     foundWords={foundWords}
-                    demoPath={displayDemoPath}
-                    demoState={displayDemoState}
-                    revealedCells={displayRevealPath}
+                    demoPath={demo.path}
+                    demoState={demo.state}
+                    revealedCells={reveal.path}
                   />
                 ))
               )}
               {/* Hand Pointer overlay inside the grid */}
-              <motion.div
-                style={{
-                  position: 'absolute',
-                  zIndex: 35,
-                  pointerEvents: 'none'
-                }}
-                initial={false}
-                animate={{
-                  left: displayPos ? `${((displayPos.col + 0.5) / cols) * 100}%` : '50%',
-                  top: displayPos ? `${((displayPos.row + 0.5) / rows) * 100}%` : '50%',
-                  opacity: isHandVisible ? 1 : 0,
-                  scale: isHandVisible ? 1 : 0.8
-                }}
-                transition={{
-                  left: { type: 'spring', stiffness: 100, damping: 15 },
-                  top: { type: 'spring', stiffness: 100, damping: 15 },
-                  opacity: { duration: 0.3 },
-                  scale: { duration: 0.3 }
-                }}
-                className="pointer-events-none -translate-x-1/2 translate-y-[-15%] select-none text-2xl drop-shadow-md sm:text-3xl"
-              >
-                👆
-              </motion.div>
+              <HandPointerOverlay
+                displayPos={displayPos}
+                isVisible={isHandVisible}
+                rows={rows}
+                cols={cols}
+              />
             </div>
 
             {/* Overlay SVG for trails */}
-            <svg
-              className="pointer-events-none absolute inset-0 h-full w-full"
-              xmlns="http://www.w3.org/2000/svg"
-            >
-              {/* Found words trails in green with glow effect */}
-              {foundWords.map((sel, i) => (
-                <g key={i}>
-                  {/* Glow effect */}
-                  <polyline
-                    points={buildPoints(sel.cells)}
-                    fill="none"
-                    className="stroke-emerald-300 dark:stroke-emerald-400"
-                    strokeWidth={12}
-                    strokeLinecap="round"
-                    strokeLinejoin="round"
-                    opacity={0.3}
-                  />
-                  {/* Main line */}
-                  <polyline
-                    points={buildPoints(sel.cells)}
-                    fill="none"
-                    className="stroke-emerald-500 dark:stroke-emerald-400"
-                    strokeWidth={6}
-                    strokeLinecap="round"
-                    strokeLinejoin="round"
-                  />
-                </g>
-              ))}
-
-              {/* Revealed word trail — grows with the hand */}
-              {started && !completed && displayRevealPath.length > 1 && (
-                <g>
-                  <polyline
-                    points={buildPoints(displayRevealPath)}
-                    fill="none"
-                    className="stroke-orange-300 dark:stroke-orange-400"
-                    strokeWidth={12}
-                    strokeLinecap="round"
-                    strokeLinejoin="round"
-                    opacity={0.35}
-                  />
-                  <polyline
-                    points={buildPoints(displayRevealPath)}
-                    fill="none"
-                    className="stroke-orange-500 dark:stroke-orange-400"
-                    strokeWidth={6}
-                    strokeLinecap="round"
-                    strokeLinejoin="round"
-                  />
-                </g>
-              )}
-
-              {/* Current selection trail in blue with glow effect */}
-              {currentSelection.length > 1 && (
-                <g>
-                  {/* Glow effect */}
-                  <polyline
-                    points={buildPoints(currentSelection)}
-                    fill="none"
-                    className="stroke-blue-300 dark:stroke-blue-400"
-                    strokeWidth={12}
-                    strokeLinecap="round"
-                    strokeLinejoin="round"
-                    opacity={0.3}
-                  />
-                  {/* Main line */}
-                  <polyline
-                    points={buildPoints(currentSelection)}
-                    fill="none"
-                    className="stroke-blue-500 dark:stroke-blue-400"
-                    strokeWidth={6}
-                    strokeLinecap="round"
-                    strokeLinejoin="round"
-                  />
-                </g>
-              )}
-              {/* Demo path trail */}
-              {!started && displayDemoPath.length > 1 && (
-                <g>
-                  {/* Glow effect */}
-                  <polyline
-                    points={buildPoints(displayDemoPath)}
-                    fill="none"
-                    className={cn(
-                      displayDemoState === 'success' &&
-                        'stroke-emerald-300 dark:stroke-emerald-400',
-                      displayDemoState === 'fail' && 'stroke-red-300 dark:stroke-red-400',
-                      displayDemoState === 'selecting' && 'stroke-blue-300 dark:stroke-blue-400'
-                    )}
-                    strokeWidth={12}
-                    strokeLinecap="round"
-                    strokeLinejoin="round"
-                    opacity={0.3}
-                  />
-                  {/* Main line */}
-                  <polyline
-                    points={buildPoints(displayDemoPath)}
-                    fill="none"
-                    className={cn(
-                      displayDemoState === 'success' &&
-                        'stroke-emerald-500 dark:stroke-emerald-400',
-                      displayDemoState === 'fail' && 'stroke-red-500 dark:stroke-red-400',
-                      displayDemoState === 'selecting' && 'stroke-blue-500 dark:stroke-blue-400'
-                    )}
-                    strokeWidth={6}
-                    strokeLinecap="round"
-                    strokeLinejoin="round"
-                  />
-                </g>
-              )}
-            </svg>
+            <TrailsOverlay
+              foundWords={foundWords}
+              currentSelection={currentSelection}
+              demoPath={demo.path}
+              demoState={demo.state}
+              revealPath={reveal.path}
+              started={started}
+              completed={completed}
+              buildPoints={buildPoints}
+            />
 
             {/* Play Button Overlay - centered over the grid */}
-            {!started && (
-              <button
-                onClick={() => handleStart()}
-                className={cn(
-                  // Blue gradient with light and dark variants
-                  'group absolute inset-0 z-20 m-auto size-fit overflow-hidden',
-                  'bg-linear-to-r from-blue-500 to-indigo-500 hover:from-blue-600 hover:to-indigo-600',
-                  'dark:from-blue-700 dark:to-indigo-700 dark:hover:from-blue-800 dark:hover:to-indigo-800',
-                  'rounded-xl px-3 pb-1 pt-2.5 font-bold text-white shadow-lg hover:shadow-xl sm:rounded-2xl sm:px-5 sm:py-4 sm:pb-2',
-                  'transform transition-all duration-200 hover:scale-105 active:scale-95',
-                  'flex items-center justify-center space-x-2 sm:space-x-3',
-                  font_info.className,
-                  playStyles.playButton
-                )}
-              >
-                <span className={playStyles.playButtonShine} aria-hidden />
-                <FaPlay className="md:size-6.5 relative -mt-2 size-5 sm:size-6 lg:size-7" />
-                <span className="relative text-xl sm:text-2xl">{wordMsgs.play}</span>
-              </button>
-            )}
+            {!started ? (
+              <PlayOverlay onStart={handleStart} label={wordMsgs.play} fontInfo={font_info} />
+            ) : null}
           </div>
         </div>
       </div>
     </>
   );
 };
+
+function activeTouchAction(started: boolean, completed: boolean) {
+  return started && !completed ? ('none' as const) : ('pan-y' as const);
+}
+
+function HandPointerOverlay({
+  displayPos,
+  isVisible,
+  rows,
+  cols
+}: {
+  displayPos: CellPosition | null;
+  isVisible: boolean;
+  rows: number;
+  cols: number;
+}) {
+  return (
+    <motion.div
+      style={{
+        position: 'absolute',
+        zIndex: 35,
+        pointerEvents: 'none'
+      }}
+      initial={false}
+      animate={{
+        left: displayPos ? `${((displayPos.col + 0.5) / cols) * 100}%` : '50%',
+        top: displayPos ? `${((displayPos.row + 0.5) / rows) * 100}%` : '50%',
+        opacity: isVisible ? 1 : 0,
+        scale: isVisible ? 1 : 0.8
+      }}
+      transition={{
+        left: { type: 'spring', stiffness: 100, damping: 15 },
+        top: { type: 'spring', stiffness: 100, damping: 15 },
+        opacity: { duration: 0.3 },
+        scale: { duration: 0.3 }
+      }}
+      className="pointer-events-none -translate-x-1/2 translate-y-[-15%] text-2xl drop-shadow-md select-none sm:text-3xl"
+    >
+      👆
+    </motion.div>
+  );
+}
+
+function TrailPolyline({
+  points,
+  className,
+  strokeWidth,
+  opacity
+}: {
+  points: string;
+  className: string;
+  strokeWidth: number;
+  opacity?: number;
+}) {
+  return (
+    <polyline
+      points={points}
+      fill="none"
+      className={className}
+      strokeWidth={strokeWidth}
+      strokeLinecap="round"
+      strokeLinejoin="round"
+      opacity={opacity}
+    />
+  );
+}
+
+function TrailsOverlay({
+  foundWords,
+  currentSelection,
+  demoPath,
+  demoState,
+  revealPath,
+  started,
+  completed,
+  buildPoints
+}: {
+  foundWords: { cells: CellPosition[] }[];
+  currentSelection: CellPosition[];
+  demoPath: CellPosition[];
+  demoState: DemoState;
+  revealPath: CellPosition[];
+  started: boolean;
+  completed: boolean;
+  buildPoints: (cells: CellPosition[]) => string;
+}) {
+  const demoTrail = DEMO_TRAIL_CLASSES[demoState];
+
+  return (
+    <svg
+      className="pointer-events-none absolute inset-0 h-full w-full"
+      xmlns="http://www.w3.org/2000/svg"
+    >
+      {/* Found words trails in green with glow effect */}
+      {foundWords.map((sel, i) => (
+        <g key={i}>
+          {/* Glow effect */}
+          <TrailPolyline
+            points={buildPoints(sel.cells)}
+            className="stroke-emerald-300 dark:stroke-emerald-400"
+            strokeWidth={12}
+            opacity={0.3}
+          />
+          {/* Main line */}
+          <TrailPolyline
+            points={buildPoints(sel.cells)}
+            className="stroke-emerald-500 dark:stroke-emerald-400"
+            strokeWidth={6}
+          />
+        </g>
+      ))}
+
+      {/* Revealed word trail — grows with the hand */}
+      {started && !completed && revealPath.length > 1 ? (
+        <g>
+          <TrailPolyline
+            points={buildPoints(revealPath)}
+            className="stroke-orange-300 dark:stroke-orange-400"
+            strokeWidth={12}
+            opacity={0.35}
+          />
+          <TrailPolyline
+            points={buildPoints(revealPath)}
+            className="stroke-orange-500 dark:stroke-orange-400"
+            strokeWidth={6}
+          />
+        </g>
+      ) : null}
+
+      {/* Current selection trail in blue with glow effect */}
+      {currentSelection.length > 1 ? (
+        <g>
+          {/* Glow effect */}
+          <TrailPolyline
+            points={buildPoints(currentSelection)}
+            className="stroke-blue-300 dark:stroke-blue-400"
+            strokeWidth={12}
+            opacity={0.3}
+          />
+          {/* Main line */}
+          <TrailPolyline
+            points={buildPoints(currentSelection)}
+            className="stroke-blue-500 dark:stroke-blue-400"
+            strokeWidth={6}
+          />
+        </g>
+      ) : null}
+
+      {/* Demo path trail */}
+      {!started && demoPath.length > 1 ? (
+        <g>
+          {/* Glow effect */}
+          <TrailPolyline
+            points={buildPoints(demoPath)}
+            className={demoTrail.glow}
+            strokeWidth={12}
+            opacity={0.3}
+          />
+          {/* Main line */}
+          <TrailPolyline
+            points={buildPoints(demoPath)}
+            className={demoTrail.main}
+            strokeWidth={6}
+          />
+        </g>
+      ) : null}
+    </svg>
+  );
+}
+
+function PlayOverlay({
+  onStart,
+  label,
+  fontInfo
+}: {
+  onStart: () => void;
+  label: string;
+  fontInfo: { fontSize: number; className: string };
+}) {
+  return (
+    <button
+      onClick={onStart}
+      className={cn(
+        // Blue gradient with light and dark variants
+        'group absolute inset-0 z-20 m-auto size-fit overflow-hidden',
+        'bg-linear-to-r from-blue-500 to-indigo-500 hover:from-blue-600 hover:to-indigo-600',
+        'dark:from-blue-700 dark:to-indigo-700 dark:hover:from-blue-800 dark:hover:to-indigo-800',
+        'rounded-xl px-3 pt-2.5 pb-1 font-bold text-white shadow-lg hover:shadow-xl sm:rounded-2xl sm:px-5 sm:py-4 sm:pb-2',
+        'transform transition-all duration-200 hover:scale-105 active:scale-95',
+        'flex items-center justify-center space-x-2 sm:space-x-3',
+        fontInfo.className,
+        playStyles.playButton
+      )}
+    >
+      <span className={playStyles.playButtonShine} aria-hidden />
+      <FaPlay className="relative -mt-2 size-5 sm:size-6 md:size-6.5 lg:size-7" />
+      <span className="relative text-xl sm:text-2xl">{label}</span>
+    </button>
+  );
+}
 
 type GridCellProps = {
   row: number;
@@ -724,54 +941,16 @@ const GridCell = ({
         WebkitTouchCallout: 'none',
         WebkitUserSelect: 'none'
       }}
-      className={cn(
-        fontInfo.className,
-        !started && 'blur-sm',
-        started && 'cursor-pointer',
-        'text-base',
-        'flex items-center justify-center rounded-3xl px-px py-0 text-center font-bold sm:rounded-2xl',
-        'aspect-square border-2 sm:p-1 md:p-2',
-        'transform transition-all duration-300 ease-out',
-        'hover:scale-105 active:scale-95',
-        'bg-linear-to-br border-slate-300 from-white to-slate-50 dark:border-slate-600 dark:from-slate-700 dark:to-slate-800',
-        'shadow-lg hover:shadow-xl',
-        isInDemo &&
-          !started && [
-            demoState === 'success' &&
-              'bg-linear-to-br border-emerald-400 from-emerald-100 to-green-200 text-emerald-800 shadow-emerald-200 dark:border-emerald-500 dark:from-emerald-900 dark:to-green-800 dark:text-emerald-100 dark:shadow-emerald-900',
-            demoState === 'fail' &&
-              'bg-linear-to-br border-red-400 from-red-100 to-rose-200 text-red-800 shadow-red-200 dark:border-red-500 dark:from-red-900 dark:to-rose-800 dark:text-red-100 dark:shadow-red-900',
-            demoState === 'selecting' &&
-              'bg-linear-to-br border-blue-400 from-blue-100 to-indigo-200 text-blue-800 shadow-blue-200 dark:border-blue-500 dark:from-blue-900 dark:to-indigo-800 dark:text-blue-100 dark:shadow-blue-900'
-          ],
-        isInRevealed &&
-          !isInFound &&
-          !isInCurrent && [
-            'border-orange-400 dark:border-orange-500',
-            'bg-linear-to-br from-orange-100 to-amber-200 dark:from-orange-950 dark:to-amber-900',
-            'text-orange-900 dark:text-orange-100',
-            'shadow-orange-200 ring-2 ring-orange-300/70 dark:shadow-orange-950 dark:ring-orange-500/45'
-          ],
-        isInFound && [
-          'border-emerald-400 dark:border-emerald-500',
-          'bg-linear-to-br from-emerald-100 to-green-200 dark:from-emerald-900 dark:to-green-800',
-          'text-emerald-800 dark:text-emerald-100',
-          'shadow-emerald-200 dark:shadow-emerald-900'
-        ],
-        isInCurrent &&
-          !isInFound && [
-            'border-blue-400 dark:border-blue-500',
-            'bg-linear-to-br from-blue-100 to-indigo-200 dark:from-blue-900 dark:to-indigo-800',
-            'text-blue-800 dark:text-blue-100',
-            'shadow-blue-200 dark:shadow-blue-900'
-          ],
-        isLast && 'ring-4 ring-blue-300 ring-opacity-50 dark:ring-blue-600',
-        !isInCurrent &&
-          !isInFound &&
-          !isInRevealed &&
-          started &&
-          'hover:bg-linear-to-br hover:from-slate-100 hover:to-slate-200 dark:hover:from-slate-600 dark:hover:to-slate-700'
-      )}
+      className={gridCellClass({
+        fontInfo,
+        started,
+        isInDemo,
+        isInFound,
+        isInCurrent,
+        isInRevealed,
+        isLast,
+        demoState
+      })}
     >
       {letter}
     </div>
@@ -784,6 +963,30 @@ const isCenterCell = (r: number, c: number, rows: number, cols: number) => {
   // If the cell is in the middle region where play overlay lies
   return Math.abs(r - midRow) < 1 && Math.abs(c - midCol) < 1;
 };
+
+/** All in-bounds neighbors of a cell that aren't the center overlay or already used. */
+function collectNeighbors(
+  current: CellPosition,
+  rows: number,
+  cols: number,
+  path: CellPosition[]
+): CellPosition[] {
+  const neighbors: CellPosition[] = [];
+  for (let dr = -1; dr <= 1; dr++) {
+    for (let dc = -1; dc <= 1; dc++) {
+      if (dr === 0 && dc === 0) continue;
+      const nr = current.row + dr;
+      const nc = current.col + dc;
+
+      if (nr < 0 || nr >= rows || nc < 0 || nc >= cols) continue;
+      if (isCenterCell(nr, nc, rows, cols)) continue;
+      if (path.some((p) => p.row === nr && p.col === nc)) continue;
+
+      neighbors.push({ row: nr, col: nc });
+    }
+  }
+  return neighbors;
+}
 
 const generateRandomPath = (rows: number, cols: number): CellPosition[] => {
   for (let attempt = 0; attempt < 20; attempt++) {
@@ -801,27 +1004,14 @@ const generateRandomPath = (rows: number, cols: number): CellPosition[] => {
     let success = true;
 
     for (let step = 1; step < targetLength; step++) {
-      const neighbors: CellPosition[] = [];
-      for (let dr = -1; dr <= 1; dr++) {
-        for (let dc = -1; dc <= 1; dc++) {
-          if (dr === 0 && dc === 0) continue;
-          const nr = current.row + dr;
-          const nc = current.col + dc;
-
-          if (nr < 0 || nr >= rows || nc < 0 || nc >= cols) continue;
-          if (isCenterCell(nr, nc, rows, cols)) continue;
-          if (path.some((p) => p.row === nr && p.col === nc)) continue;
-
-          neighbors.push({ row: nr, col: nc });
-        }
-      }
+      const neighbors = collectNeighbors(current, rows, cols, path);
 
       if (neighbors.length === 0) {
         success = false;
         break;
       }
 
-      const next = neighbors[Math.floor(Math.random() * neighbors.length)];
+      const next = neighbors[Math.floor(Math.random() * neighbors.length)]!;
       path.push(next);
       current = next;
     }

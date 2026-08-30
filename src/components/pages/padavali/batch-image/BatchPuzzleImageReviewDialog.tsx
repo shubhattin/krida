@@ -121,7 +121,7 @@ export function BatchPuzzleImageReviewDialog({
 
         {image_asset ? (
           <div
-            className="border-border relative overflow-hidden rounded-lg border shadow-sm"
+            className="relative overflow-hidden rounded-lg border border-border shadow-sm"
             style={{ aspectRatio: IMAGE_ASPECT }}
           >
             <Image
@@ -133,13 +133,13 @@ export function BatchPuzzleImageReviewDialog({
             />
           </div>
         ) : (
-          <p className="text-muted-foreground text-sm">No preview available for this batch item.</p>
+          <p className="text-sm text-muted-foreground">No preview available for this batch item.</p>
         )}
 
         {batchStatus.metadata.image_description ? (
           <div className="space-y-1">
             <p className="text-sm font-semibold">Image description</p>
-            <p className="text-muted-foreground text-sm">
+            <p className="text-sm text-muted-foreground">
               {batchStatus.metadata.image_description}
             </p>
           </div>
@@ -148,7 +148,7 @@ export function BatchPuzzleImageReviewDialog({
         {batchStatus.metadata.image_prompt ? (
           <div className="space-y-1">
             <p className="text-sm font-semibold">Image prompt</p>
-            <p className="border-border bg-muted/30 text-muted-foreground max-h-40 overflow-y-auto rounded-md border p-2 text-xs">
+            <p className="max-h-40 overflow-y-auto rounded-md border border-border bg-muted/30 p-2 text-xs text-muted-foreground">
               {batchStatus.metadata.image_prompt}
             </p>
           </div>

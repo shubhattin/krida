@@ -67,7 +67,7 @@ export const PuzzlePreviewCard = ({ puzzle, compact = false }: Props) => {
               className="size-full object-cover object-center"
             />
           ) : (
-            <div className="bg-linear-to-br flex size-full items-center justify-center from-slate-600 via-slate-700 to-slate-800 dark:from-slate-700 dark:via-slate-800 dark:to-slate-900">
+            <div className="flex size-full items-center justify-center bg-linear-to-br from-slate-600 via-slate-700 to-slate-800 dark:from-slate-700 dark:via-slate-800 dark:to-slate-900">
               <IoExtensionPuzzleSharp
                 className={cn(
                   'text-slate-300/80 dark:text-slate-400/70',

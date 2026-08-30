@@ -8,7 +8,6 @@ export default function Page() {
     // Ensure this code runs only on the client side
     if (
       import.meta.env.PROD &&
-      typeof window !== 'undefined' &&
       import.meta.env.VITE_ONESIGNAL_APP_ID &&
       import.meta.env.VITE_ONESIGNAL_SAFARI_WEB_ID
     ) {

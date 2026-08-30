@@ -80,11 +80,11 @@ function PadavaliSchedulesRoute() {
         {upcomming_schedules.length === 0 ? (
           <Card>
             <CardContent className="flex flex-col items-center justify-center py-12 text-center">
-              <div className="text-muted-foreground mb-4">
+              <div className="mb-4 text-muted-foreground">
                 <FiPlus className="mx-auto mb-2 h-12 w-12 opacity-50" />
               </div>
               <h3 className="mb-2 text-lg font-semibold">No Upcoming Schedules</h3>
-              <p className="text-muted-foreground mb-4">
+              <p className="mb-4 text-muted-foreground">
                 There are no upcoming schedules. Please add a schedule first.
               </p>
               <Button

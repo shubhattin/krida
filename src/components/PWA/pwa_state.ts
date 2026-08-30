@@ -16,6 +16,9 @@ export const pwa_state_atom = atom<{
 
 // Detect iOS Safari specifically (not other iOS browsers)
 export const is_ios_safari_atom = atom<boolean>(() => {
+  // SAFETY: atoms may be evaluated during SSR, where `window` does not exist;
+  // a runtime environment check for the browser global is the right tool here.
+  // oxlint-disable-next-line anti-slop/no-runtime-typeof
   if (typeof window === 'undefined') return false;
 
   const userAgent = window.navigator.userAgent;
@@ -26,6 +29,9 @@ export const is_ios_safari_atom = atom<boolean>(() => {
 });
 
 export const is_ios_atom = atom<boolean>(() => {
+  // SAFETY: atoms may be evaluated during SSR, where `window` does not exist;
+  // a runtime environment check for the browser global is the right tool here.
+  // oxlint-disable-next-line anti-slop/no-runtime-typeof
   if (typeof window === 'undefined') return false;
   return /iPad|iPhone|iPod/.test(window.navigator.userAgent);
 });

@@ -41,7 +41,7 @@ export function ResetPuzzleButton({ onReset, className }: ResetPuzzleButtonProps
         aria-label="Reset puzzle"
         title="Reset"
         className={cn(
-          'bg-card/80 rounded-full border border-red-500/25 text-red-500 shadow-sm backdrop-blur-md',
+          'rounded-full border border-red-500/25 bg-card/80 text-red-500 shadow-sm backdrop-blur-md',
           'hover:bg-red-500/10 hover:text-red-600',
           'dark:border-red-400/30 dark:bg-slate-900/70 dark:text-red-400 dark:hover:bg-red-500/15 dark:hover:text-red-300',
           className

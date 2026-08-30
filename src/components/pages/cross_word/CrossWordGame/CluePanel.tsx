@@ -44,31 +44,27 @@ function sortClues(entries: NumberedEntry[], solvedIds: string[]) {
 
 function SolvedRomanizedWord({ wordDev }: { wordDev: string }) {
   const trimmed = wordDev.trim();
-  const [romanized, setRomanized] = useState(() =>
-    trimmed ? (romanizedCache.get(trimmed) ?? null) : null
-  );
+  const [fetched, setFetched] = useState<{ word: string; result: string } | null>(null);
 
   useEffect(() => {
-    if (!trimmed) {
-      setRomanized(null);
-      return;
-    }
-    const cached = romanizedCache.get(trimmed);
-    if (cached) {
-      setRomanized(cached);
-      return;
-    }
+    if (!trimmed || romanizedCache.has(trimmed)) return;
 
     let active = true;
     void transliterate(trimmed, DEFAULT_DATA_SCRIPT, ROMANIZED_SCRIPT).then((result) => {
       if (!active) return;
       romanizedCache.set(trimmed, result);
-      setRomanized(result);
+      setFetched({ word: trimmed, result });
     });
     return () => {
       active = false;
     };
   }, [trimmed]);
+
+  // Derived during render: cache hit first, then the value fetched by this
+  // instance for the current word. No setState needed for cache hits or resets.
+  const romanized = trimmed
+    ? ((fetched?.word === trimmed ? fetched.result : null) ?? romanizedCache.get(trimmed) ?? null)
+    : null;
 
   if (!trimmed || !romanized) return null;
 
@@ -78,7 +74,7 @@ function SolvedRomanizedWord({ wordDev }: { wordDev: string }) {
       animate={{ opacity: 1, y: 0 }}
       transition={{ duration: 0.25 }}
       className={cn(
-        'mt-1 block text-[0.8rem] font-medium leading-snug tracking-wide no-underline',
+        'mt-1 block text-[0.8rem] leading-snug font-medium tracking-wide no-underline',
         'text-emerald-700/90 dark:text-emerald-300/90'
       )}
       aria-label={`Romanized Sanskrit: ${romanized}`}
@@ -102,9 +98,9 @@ function MoreHintPopover({ entryId, moreHints }: { entryId: string; moreHints: M
         onPointerDown={(e) => e.stopPropagation()}
         className={cn(
           'mt-0.5 inline-flex shrink-0 items-center gap-1 rounded-full border px-2 py-0.5',
-          'bg-linear-to-r border-violet-300/70 from-violet-100 to-fuchsia-100',
-          'text-[0.6rem] font-bold uppercase tracking-wide text-violet-700',
-          'shadow-sm outline-none transition-colors',
+          'border-violet-300/70 bg-linear-to-r from-violet-100 to-fuchsia-100',
+          'text-[0.6rem] font-bold tracking-wide text-violet-700 uppercase',
+          'shadow-sm transition-colors outline-none',
           'hover:from-violet-200/90 hover:to-fuchsia-200/80',
           'focus-visible:ring-2 focus-visible:ring-violet-400/50',
           'dark:border-violet-500/40 dark:from-violet-900/50 dark:to-fuchsia-900/40 dark:text-violet-200',
@@ -123,13 +119,13 @@ function MoreHintPopover({ entryId, moreHints }: { entryId: string; moreHints: M
         onMouseDown={(e) => e.stopPropagation()}
       >
         <div className="flex flex-wrap items-center gap-1.5">
-          <p className="text-foreground text-sm font-semibold">More hint</p>
+          <p className="text-sm font-semibold text-foreground">More hint</p>
           <span
             className={cn(
               'inline-flex items-center gap-1 rounded-full px-2 py-0.5',
               'bg-linear-to-r from-violet-100 to-fuchsia-100',
               'dark:from-violet-900/50 dark:to-fuchsia-900/40',
-              'text-[9px] font-bold uppercase tracking-wide text-violet-600',
+              'text-[9px] font-bold tracking-wide text-violet-600 uppercase',
               'dark:text-violet-300'
             )}
           >
@@ -145,7 +141,7 @@ function MoreHintPopover({ entryId, moreHints }: { entryId: string; moreHints: M
           </div>
         ) : error ? (
           <div className="flex flex-col items-start gap-2">
-            <div className="text-muted-foreground flex items-start gap-2 text-xs">
+            <div className="flex items-start gap-2 text-xs text-muted-foreground">
               <AlertCircle className="mt-0.5 size-3.5 shrink-0 text-rose-500" />
               <span>Could not load this hint.</span>
             </div>
@@ -165,12 +161,130 @@ function MoreHintPopover({ entryId, moreHints }: { entryId: string; moreHints: M
             </button>
           </div>
         ) : hint ? (
-          <p className="text-muted-foreground text-sm leading-snug">{hint}</p>
+          <p className="text-sm leading-snug text-muted-foreground">{hint}</p>
         ) : (
-          <p className="text-muted-foreground text-xs">No extra hint available for this clue.</p>
+          <p className="text-xs text-muted-foreground">No extra hint available for this clue.</p>
         )}
       </PopoverContent>
     </Popover>
+  );
+}
+
+function clueRowClass(active: boolean, solved: boolean) {
+  return cn(
+    'relative flex items-start rounded-xl',
+    // Reserve More-button lane on every row so activate/deactivate never reflows text.
+    'pr-12',
+    active &&
+      !solved &&
+      'bg-blue-500/10 shadow-[inset_3px_0_0_0] shadow-blue-400 dark:bg-blue-500/15',
+    active &&
+      solved &&
+      'bg-emerald-500/10 shadow-[inset_3px_0_0_0] shadow-emerald-400 dark:bg-emerald-500/15'
+  );
+}
+
+function clueButtonClass(active: boolean, solved: boolean) {
+  return cn(
+    'min-w-0 flex-1 rounded-xl px-2.5 py-2 text-left text-sm leading-snug transition-colors duration-200 outline-none focus:outline-none focus-visible:outline-none',
+    'disabled:cursor-default disabled:opacity-60',
+    active && !solved && 'text-foreground dark:text-slate-50',
+    active && solved && 'text-foreground dark:text-slate-50',
+    !active &&
+      !solved &&
+      'text-slate-700 hover:bg-slate-100/70 hover:text-slate-900 dark:text-slate-200 dark:hover:bg-slate-700/40 dark:hover:text-white',
+    !active && solved && 'text-slate-400 dark:text-slate-400'
+  );
+}
+
+function clueBadgeClass(active: boolean, solved: boolean) {
+  if (active && !solved) return 'bg-linear-to-br from-blue-500 to-indigo-600 text-white';
+  if (active && solved) return 'bg-linear-to-br from-emerald-500 to-teal-600 text-white';
+  if (solved) return 'bg-emerald-500/20 text-emerald-600 dark:text-emerald-400';
+  return 'bg-slate-200/90 text-slate-700 dark:bg-slate-600/80 dark:text-slate-100';
+}
+
+function clueButtonAnimate(active: boolean, solved: boolean) {
+  // Only tint unselected solved rows — active rows use the li accent alone.
+  return solved && !active
+    ? { backgroundColor: 'rgba(16, 185, 129, 0.08)' }
+    : { backgroundColor: 'rgba(0, 0, 0, 0)' };
+}
+
+function ClueRow({
+  entry,
+  solved,
+  active,
+  game,
+  moreHints
+}: {
+  entry: NumberedEntry;
+  solved: boolean;
+  active: boolean;
+  game: ReturnType<typeof useCrossWordGame>;
+  moreHints: MoreHintsQuery;
+}) {
+  return (
+    <motion.li
+      layout
+      data-entry-id={entry.id}
+      initial={false}
+      animate={{
+        opacity: solved && !active ? 0.72 : 1,
+        scale: 1
+      }}
+      transition={{
+        layout: { type: 'spring', stiffness: 380, damping: 32, mass: 0.8 },
+        opacity: { duration: 0.25 }
+      }}
+      className={clueRowClass(active, solved)}
+    >
+      <motion.button
+        type="button"
+        disabled={!game.started}
+        aria-current={active ? 'true' : undefined}
+        onClick={() => {
+          game.focusCell(entry.row, entry.col, { direction: entry.direction });
+        }}
+        animate={clueButtonAnimate(active, solved)}
+        transition={{ duration: 0.35 }}
+        className={clueButtonClass(active, solved)}
+      >
+        <span className="flex items-start gap-2">
+          <span
+            className={cn(
+              'inline-flex h-5 min-w-5 shrink-0 items-center justify-center rounded-md text-[0.7rem] font-bold',
+              clueBadgeClass(active, solved)
+            )}
+          >
+            {entry.number}
+          </span>
+          <span className="min-w-0 flex-1">
+            <span className="flex items-start gap-1.5">
+              <span className={cn('min-w-0 flex-1 wrap-break-word', solved && 'line-through')}>
+                {entry.clue}
+              </span>
+              {/* Keep check out of the clue wrap flow; hide while selected (More lane). */}
+              {solved && !active ? (
+                <CheckCircle2
+                  className="mt-0.5 size-3.5 shrink-0 text-emerald-500 no-underline dark:text-emerald-400"
+                  aria-hidden
+                />
+              ) : null}
+            </span>
+            {solved && entry.word_dev.trim().length > 0 ? (
+              <SolvedRomanizedWord wordDev={entry.word_dev} />
+            ) : null}
+          </span>
+        </span>
+      </motion.button>
+
+      {active ? (
+        <div className="absolute top-1.5 right-1.5 z-10">
+          <MoreHintPopover entryId={entry.id} moreHints={moreHints} />
+        </div>
+      ) : null}
+    </motion.li>
   );
 }
 
@@ -244,14 +358,14 @@ export function CluePanel({ game, moreHints, className }: CluePanelProps) {
   return (
     <div
       className={cn(
-        'border-border/50 flex min-h-0 w-full flex-col overflow-hidden rounded-2xl border',
+        'flex min-h-0 w-full flex-col overflow-hidden rounded-2xl border border-border/50',
         'bg-linear-to-b from-card/80 via-card/65 to-card/50 shadow-[0_4px_20px_oklch(0_0_0/0.04)] backdrop-blur-md',
         'dark:border-slate-600/40 dark:from-slate-800/80 dark:via-slate-800/60 dark:to-slate-900/50',
         'dark:shadow-[0_10px_35px_oklch(0_0_0/0.25)]',
         className
       )}
     >
-      <div className="flex shrink-0 items-center gap-1.5 px-2.5 pb-1.5 pt-2.5">
+      <div className="flex shrink-0 items-center gap-1.5 px-2.5 pt-2.5 pb-1.5">
         {FILTERS.map(({ id, label }) => {
           const isActiveFilter = filter === id;
           return (
@@ -261,10 +375,10 @@ export function CluePanel({ game, moreHints, className }: CluePanelProps) {
               onClick={() => setFilter(id)}
               aria-pressed={isActiveFilter}
               className={cn(
-                'rounded-full border px-2.5 py-1 text-[0.65rem] font-semibold uppercase tracking-wide shadow-sm outline-none backdrop-blur-sm transition-all focus:outline-none focus-visible:outline-none',
+                'rounded-full border px-2.5 py-1 text-[0.65rem] font-semibold tracking-wide uppercase shadow-sm backdrop-blur-sm transition-all outline-none focus:outline-none focus-visible:outline-none',
                 isActiveFilter
-                  ? 'bg-linear-to-br border-blue-400/60 from-blue-500/90 to-indigo-600/90 text-white shadow-md dark:border-blue-400/50 dark:from-blue-500/80 dark:to-indigo-600/80'
-                  : 'bg-linear-to-br border-slate-300/80 from-white/90 to-slate-100/80 text-slate-600 hover:from-white hover:to-slate-50 hover:shadow-md dark:border-slate-500/50 dark:from-slate-700/80 dark:to-slate-800/70 dark:text-slate-200 dark:hover:from-slate-600/80 dark:hover:to-slate-700/70'
+                  ? 'border-blue-400/60 bg-linear-to-br from-blue-500/90 to-indigo-600/90 text-white shadow-md dark:border-blue-400/50 dark:from-blue-500/80 dark:to-indigo-600/80'
+                  : 'border-slate-300/80 bg-linear-to-br from-white/90 to-slate-100/80 text-slate-600 hover:from-white hover:to-slate-50 hover:shadow-md dark:border-slate-500/50 dark:from-slate-700/80 dark:to-slate-800/70 dark:text-slate-200 dark:hover:from-slate-600/80 dark:hover:to-slate-700/70'
               )}
             >
               {label}
@@ -281,109 +395,21 @@ export function CluePanel({ game, moreHints, className }: CluePanelProps) {
           aria-label="Crossword clues"
         >
           {sorted.length === 0 ? (
-            <li className="text-muted-foreground px-2 py-4 text-center text-sm">No clues</li>
+            <li className="px-2 py-4 text-center text-sm text-muted-foreground">No clues</li>
           ) : (
             sorted.map((entry) => {
               const solved = solvedIds.includes(entry.id);
               const active = focus?.entryId === entry.id;
 
               return (
-                <motion.li
+                <ClueRow
                   key={entry.id}
-                  layout
-                  data-entry-id={entry.id}
-                  initial={false}
-                  animate={{
-                    opacity: solved && !active ? 0.72 : 1,
-                    scale: 1
-                  }}
-                  transition={{
-                    layout: { type: 'spring', stiffness: 380, damping: 32, mass: 0.8 },
-                    opacity: { duration: 0.25 }
-                  }}
-                  className={cn(
-                    'relative flex items-start rounded-xl',
-                    // Reserve More-button lane on every row so activate/deactivate never reflows text.
-                    'pr-12',
-                    active &&
-                      !solved &&
-                      'bg-blue-500/10 shadow-[inset_3px_0_0_0] shadow-blue-400 dark:bg-blue-500/15',
-                    active &&
-                      solved &&
-                      'bg-emerald-500/10 shadow-[inset_3px_0_0_0] shadow-emerald-400 dark:bg-emerald-500/15'
-                  )}
-                >
-                  <motion.button
-                    type="button"
-                    disabled={!game.started}
-                    aria-current={active ? 'true' : undefined}
-                    onClick={() => {
-                      game.focusCell(entry.row, entry.col, { direction: entry.direction });
-                    }}
-                    animate={
-                      // Only tint unselected solved rows — active rows use the li accent alone.
-                      solved && !active
-                        ? { backgroundColor: 'rgba(16, 185, 129, 0.08)' }
-                        : { backgroundColor: 'rgba(0, 0, 0, 0)' }
-                    }
-                    transition={{ duration: 0.35 }}
-                    className={cn(
-                      'min-w-0 flex-1 rounded-xl px-2.5 py-2 text-left text-sm leading-snug outline-none transition-colors duration-200 focus:outline-none focus-visible:outline-none',
-                      'disabled:cursor-default disabled:opacity-60',
-                      active && !solved && 'text-foreground dark:text-slate-50',
-                      active && solved && 'text-foreground dark:text-slate-50',
-                      !active &&
-                        !solved &&
-                        'text-slate-700 hover:bg-slate-100/70 hover:text-slate-900 dark:text-slate-200 dark:hover:bg-slate-700/40 dark:hover:text-white',
-                      !active && solved && 'text-slate-400 dark:text-slate-400'
-                    )}
-                  >
-                    <span className="flex items-start gap-2">
-                      <span
-                        className={cn(
-                          'inline-flex h-5 min-w-5 shrink-0 items-center justify-center rounded-md text-[0.7rem] font-bold',
-                          active && !solved
-                            ? 'bg-linear-to-br from-blue-500 to-indigo-600 text-white'
-                            : active && solved
-                              ? 'bg-linear-to-br from-emerald-500 to-teal-600 text-white'
-                              : solved
-                                ? 'bg-emerald-500/20 text-emerald-600 dark:text-emerald-400'
-                                : 'bg-slate-200/90 text-slate-700 dark:bg-slate-600/80 dark:text-slate-100'
-                        )}
-                      >
-                        {entry.number}
-                      </span>
-                      <span className="min-w-0 flex-1">
-                        <span className="flex items-start gap-1.5">
-                          <span
-                            className={cn(
-                              'wrap-break-word min-w-0 flex-1',
-                              solved && 'line-through'
-                            )}
-                          >
-                            {entry.clue}
-                          </span>
-                          {/* Keep check out of the clue wrap flow; hide while selected (More lane). */}
-                          {solved && !active ? (
-                            <CheckCircle2
-                              className="mt-0.5 size-3.5 shrink-0 text-emerald-500 no-underline dark:text-emerald-400"
-                              aria-hidden
-                            />
-                          ) : null}
-                        </span>
-                        {solved && entry.word_dev.trim().length > 0 ? (
-                          <SolvedRomanizedWord wordDev={entry.word_dev} />
-                        ) : null}
-                      </span>
-                    </span>
-                  </motion.button>
-
-                  {active ? (
-                    <div className="absolute right-1.5 top-1.5 z-10">
-                      <MoreHintPopover entryId={entry.id} moreHints={moreHints} />
-                    </div>
-                  ) : null}
-                </motion.li>
+                  entry={entry}
+                  solved={solved}
+                  active={active}
+                  game={game}
+                  moreHints={moreHints}
+                />
               );
             })
           )}

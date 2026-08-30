@@ -498,6 +498,10 @@ function neighborhoodForAttempt(mode: LayoutNeighborhoodMode, attempt: number): 
   return attempt % 2 === 0 ? 'n8' : 'n4';
 }
 
+function fallbackNeighborhoodFor(mode: LayoutNeighborhoodMode): GridNeighborhood {
+  return mode === 'n4' || mode === 'n8' ? mode : 'n8';
+}
+
 function isBetterScore(
   current: GeneratedLayoutScore,
   best: GeneratedLayoutScore,
@@ -538,6 +542,111 @@ function prepareWords(
   return prepared;
 }
 
+type SearchBest = {
+  grid: string[][];
+  placements: InternalPlacement[];
+  score: GeneratedLayoutScore;
+} | null;
+
+/** Greedy backtracking placement search over the shuffled word order. */
+function runPlacementSearch(
+  orderedWords: PreparedWord[],
+  dimensions: [number, number],
+  attemptNeighborhood: GridNeighborhood,
+  pathStyle: LayoutPathStyle,
+  random: () => number
+): SearchBest {
+  let searchNodes = 0;
+  let best: SearchBest = null;
+
+  const search = (index: number, grid: string[][], placements: InternalPlacement[]) => {
+    if (searchNodes >= DEFAULT_SEARCH_NODES) return;
+    searchNodes += 1;
+    const currentScore = layoutScore(grid, placements);
+    if (!best || isBetterScore(currentScore, best.score, pathStyle)) {
+      best = { grid, placements, score: currentScore };
+    }
+    if (index >= orderedWords.length) return;
+
+    const word = orderedWords[index]!;
+    const paths = collectPathsForWord(
+      grid,
+      word.syllables.length,
+      attemptNeighborhood,
+      pathStyle,
+      dimensions,
+      random
+    );
+    for (const path of paths) {
+      const nextGrid = placeSyllables(grid, path, word.syllables);
+      search(index + 1, nextGrid, [...placements, { slotIndex: word.slotIndex, path, word }]);
+      if (searchNodes >= DEFAULT_SEARCH_NODES) return;
+    }
+    search(index + 1, grid, placements);
+  };
+
+  search(0, createEmptyGridData(dimensions), []);
+  return best;
+}
+
+function addUniqueCandidate(
+  candidates: GeneratedPadavaliLayout[],
+  candidateKeys: Set<string>,
+  candidate: GeneratedPadavaliLayout
+): boolean {
+  const key = candidateKey(candidate);
+  if (candidateKeys.has(key)) return false;
+  candidateKeys.add(key);
+  candidates.push(candidate);
+  return true;
+}
+
+/** Last resort: one-word packs so the UI never hits an empty result when anything fits. */
+function collectFallbackCandidates(
+  prepared: PreparedWord[],
+  dimensions: [number, number],
+  fallbackNeighborhood: GridNeighborhood,
+  pathStyle: LayoutPathStyle,
+  random: () => number,
+  maxCandidates: number,
+  candidates: GeneratedPadavaliLayout[],
+  candidateKeys: Set<string>
+): void {
+  for (const word of prepared) {
+    const paths = collectPathsForWord(
+      createEmptyGridData(dimensions),
+      word.syllables.length,
+      fallbackNeighborhood,
+      pathStyle,
+      dimensions,
+      random
+    );
+    for (const path of paths) {
+      const candidate = toCandidate(
+        [{ slotIndex: word.slotIndex, path, word }],
+        prepared,
+        fallbackNeighborhood,
+        dimensions
+      );
+      if (candidate) addUniqueCandidate(candidates, candidateKeys, candidate);
+      if (candidates.length >= maxCandidates) return;
+    }
+  }
+}
+
+function addSearchedCandidate(
+  best: SearchBest,
+  prepared: PreparedWord[],
+  attemptNeighborhood: GridNeighborhood,
+  dimensions: [number, number],
+  candidates: GeneratedPadavaliLayout[],
+  candidateKeys: Set<string>
+): void {
+  if (!best || best.placements.length === 0) return;
+  const candidate = toCandidate(best.placements, prepared, attemptNeighborhood, dimensions);
+  if (candidate) addUniqueCandidate(candidates, candidateKeys, candidate);
+}
+
 /**
  * Pack added Padavali words as disjoint akṣara-paths on a fixed-size grid.
  * Words that cannot fit stay omitted so applying a partial candidate is safe.
@@ -571,85 +680,34 @@ export function generatePadavaliLayouts({
     const orderedWords = shuffled(prepared, random).toSorted(
       (left, right) => right.syllables.length - left.syllables.length
     );
-    let searchNodes = 0;
-    const best: {
-      current: {
-        grid: string[][];
-        placements: InternalPlacement[];
-        score: GeneratedLayoutScore;
-      } | null;
-    } = { current: null };
-
-    const search = (index: number, grid: string[][], placements: InternalPlacement[]) => {
-      if (searchNodes >= DEFAULT_SEARCH_NODES) return;
-      searchNodes += 1;
-      const currentScore = layoutScore(grid, placements);
-      if (!best.current || isBetterScore(currentScore, best.current.score, pathStyle)) {
-        best.current = { grid, placements, score: currentScore };
-      }
-      if (index >= orderedWords.length) return;
-
-      const word = orderedWords[index]!;
-      const paths = collectPathsForWord(
-        grid,
-        word.syllables.length,
-        attemptNeighborhood,
-        pathStyle,
-        dimensions,
-        random
-      );
-      for (const path of paths) {
-        const nextGrid = placeSyllables(grid, path, word.syllables);
-        search(index + 1, nextGrid, [...placements, { slotIndex: word.slotIndex, path, word }]);
-        if (searchNodes >= DEFAULT_SEARCH_NODES) return;
-      }
-      search(index + 1, grid, placements);
-    };
-
-    search(0, createEmptyGridData(dimensions), []);
-    if (!best.current || best.current.placements.length === 0) continue;
-    const candidate = toCandidate(
-      best.current.placements,
+    const best = runPlacementSearch(
+      orderedWords,
+      dimensions,
+      attemptNeighborhood,
+      pathStyle,
+      random
+    );
+    addSearchedCandidate(
+      best,
       prepared,
       attemptNeighborhood,
-      dimensions
+      dimensions,
+      candidates,
+      candidateKeys
     );
-    if (!candidate) continue;
-    const key = candidateKey(candidate);
-    if (candidateKeys.has(key)) continue;
-    candidateKeys.add(key);
-    candidates.push(candidate);
   }
 
-  // Last resort: one-word packs so the UI never hits an empty result when anything fits.
   if (candidates.length === 0) {
-    const fallbackNeighborhood =
-      neighborhood === 'n4' || neighborhood === 'n8' ? neighborhood : 'n8';
-    for (const word of prepared) {
-      const paths = collectPathsForWord(
-        createEmptyGridData(dimensions),
-        word.syllables.length,
-        fallbackNeighborhood,
-        pathStyle,
-        dimensions,
-        random
-      );
-      for (const path of paths) {
-        const candidate = toCandidate(
-          [{ slotIndex: word.slotIndex, path, word }],
-          prepared,
-          fallbackNeighborhood,
-          dimensions
-        );
-        if (!candidate) continue;
-        const key = candidateKey(candidate);
-        if (candidateKeys.has(key)) continue;
-        candidateKeys.add(key);
-        candidates.push(candidate);
-        if (candidates.length >= maxCandidates) break;
-      }
-      if (candidates.length >= maxCandidates) break;
-    }
+    collectFallbackCandidates(
+      prepared,
+      dimensions,
+      fallbackNeighborhoodFor(neighborhood),
+      pathStyle,
+      random,
+      maxCandidates,
+      candidates,
+      candidateKeys
+    );
   }
 
   return rankGeneratedLayouts(candidates, 'words');

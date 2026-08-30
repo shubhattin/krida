@@ -25,6 +25,183 @@ import { copy_text_to_clipboard } from '~/tools/kry';
 const GOOGLE_COLORS = ['#4285F4', '#EA4335', '#FBBC05', '#34A853'];
 const STANDARD_COLORS = ['#f59e0b', '#22c55e', '#38bdf8', '#a78bfa', '#f472b6'];
 
+type RafHandle = { current: number };
+
+function burstPerfectWideConfetti(raf: RafHandle) {
+  const colors = GOOGLE_COLORS;
+  confetti({
+    particleCount: 140,
+    spread: 90,
+    origin: { y: 0.6 },
+    colors
+  });
+
+  const end = Date.now() + 3200;
+  const frame = () => {
+    confetti({
+      particleCount: 5,
+      angle: 60,
+      spread: 55,
+      origin: { x: 0, y: 0.65 },
+      colors
+    });
+    confetti({
+      particleCount: 5,
+      angle: 120,
+      spread: 55,
+      origin: { x: 1, y: 0.65 },
+      colors
+    });
+    confetti({
+      particleCount: 4,
+      spread: 100,
+      origin: { x: 0.5, y: 0.55 },
+      colors
+    });
+    if (Date.now() < end) raf.current = requestAnimationFrame(frame);
+  };
+  frame();
+}
+
+function burstPerfectNarrowConfetti(raf: RafHandle) {
+  const colors = GOOGLE_COLORS;
+  confetti({
+    particleCount: 200,
+    spread: 100,
+    startVelocity: 42,
+    origin: { y: 0.6 },
+    colors
+  });
+
+  const end = Date.now() + 2500;
+  const frame = () => {
+    confetti({
+      particleCount: 10,
+      spread: 110,
+      startVelocity: 32,
+      origin: { x: 0.5, y: 0.55 },
+      colors
+    });
+    if (Date.now() < end) raf.current = requestAnimationFrame(frame);
+  };
+  frame();
+}
+
+function burstStandardConfetti(raf: RafHandle) {
+  confetti({
+    particleCount: 120,
+    spread: 80,
+    origin: { y: 0.6 },
+    colors: STANDARD_COLORS
+  });
+
+  const end = Date.now() + 2000;
+  const frame = () => {
+    confetti({
+      particleCount: 4,
+      angle: 60,
+      spread: 55,
+      origin: { x: 0, y: 0.65 },
+      colors: STANDARD_COLORS
+    });
+    confetti({
+      particleCount: 4,
+      angle: 120,
+      spread: 55,
+      origin: { x: 1, y: 0.65 },
+      colors: STANDARD_COLORS
+    });
+    if (Date.now() < end) raf.current = requestAnimationFrame(frame);
+  };
+  frame();
+}
+
+/** Fire the celebration confetti; tracks the latest animation frame in `raf`. */
+function fireCelebrationConfetti(isPerfect: boolean, isWideScreen: boolean, raf: RafHandle) {
+  if (!isPerfect) {
+    burstStandardConfetti(raf);
+    return;
+  }
+  if (isWideScreen) {
+    burstPerfectWideConfetti(raf);
+  } else {
+    burstPerfectNarrowConfetti(raf);
+  }
+}
+
+function accuracyPercent(totalEntries: number, incorrectEntryAttempts: number) {
+  const denom = totalEntries + incorrectEntryAttempts;
+  return denom === 0 ? 0 : Math.trunc((totalEntries / denom) * 100);
+}
+
+function ShareAchievementButton({
+  puzzle,
+  seconds,
+  accuracy,
+  isPerfect,
+  puzzleSlug
+}: {
+  puzzle: { title: string; description: string };
+  seconds: number;
+  accuracy: number;
+  isPerfect: boolean;
+  puzzleSlug: string;
+}) {
+  const handleShare = async () => {
+    const text = get_achievement_share_msg(
+      puzzle.title,
+      puzzle.description,
+      formatElapsed(seconds),
+      accuracy,
+      puzzleSlug
+    );
+    try {
+      if (navigator.share) {
+        await navigator.share({
+          title: `${puzzle.title} - Padajāla`,
+          text
+        });
+      } else {
+        try {
+          await copy_text_to_clipboard(text);
+          toast.success('Achievement message copied to clipboard');
+        } catch (err) {
+          toast.error('Could not copy to clipboard');
+          console.log('Error copying:', err);
+        }
+      }
+    } catch (err) {
+      // SAFETY: navigator.share rejections are DOMException errors carrying .name
+      if ((err as Error).name !== 'AbortError') {
+        console.log('Error sharing:', err);
+      }
+    }
+  };
+
+  return (
+    <motion.div
+      initial={{ opacity: 0, y: 8 }}
+      animate={{ opacity: 1, y: 0 }}
+      transition={{ delay: 0.35, duration: 0.4 }}
+      className="relative mt-4 flex justify-center"
+    >
+      <Button
+        type="button"
+        onClick={handleShare}
+        className={cn(
+          'flex transform items-center gap-1.5 rounded-lg px-3 py-1.5 text-sm font-semibold text-white shadow-sm transition-all duration-200 hover:scale-105 active:scale-95',
+          isPerfect
+            ? 'bg-linear-to-r from-yellow-500 via-orange-500 to-amber-500 hover:from-yellow-600 hover:via-orange-600 hover:to-amber-600'
+            : 'bg-linear-to-r from-green-600 to-emerald-600 hover:from-green-700 hover:to-emerald-700'
+        )}
+      >
+        <IoShareSocialOutline className="text-sm" />
+        Share Achievement
+      </Button>
+    </motion.div>
+  );
+}
+
 export function CompletionCelebration({
   listed = false,
   puzzleSlug = null
@@ -41,8 +218,7 @@ export function CompletionCelebration({
   const hasTriggeredRef = useRef(false);
 
   const totalEntries = entries.length;
-  const denom = totalEntries + incorrectEntryAttempts;
-  const accuracy = denom === 0 ? 0 : Math.trunc((totalEntries / denom) * 100);
+  const accuracy = accuracyPercent(totalEntries, incorrectEntryAttempts);
   const isPerfect = accuracy === 100;
 
   useEffect(() => {
@@ -54,103 +230,15 @@ export function CompletionCelebration({
     hasTriggeredRef.current = true;
     setFired(true);
 
-    const prefersReduced =
-      typeof window !== 'undefined' &&
-      window.matchMedia('(prefers-reduced-motion: reduce)').matches;
+    const prefersReduced = window.matchMedia('(prefers-reduced-motion: reduce)').matches;
     if (prefersReduced) return;
 
-    const isWideScreen =
-      typeof window !== 'undefined' && window.matchMedia('(min-width: 640px)').matches;
-    let raf = 0;
+    const isWideScreen = window.matchMedia('(min-width: 640px)').matches;
+    const raf: RafHandle = { current: 0 };
 
-    if (isPerfect) {
-      const colors = GOOGLE_COLORS;
+    fireCelebrationConfetti(isPerfect, isWideScreen, raf);
 
-      if (isWideScreen) {
-        confetti({
-          particleCount: 140,
-          spread: 90,
-          origin: { y: 0.6 },
-          colors
-        });
-
-        const end = Date.now() + 3200;
-        const frame = () => {
-          confetti({
-            particleCount: 5,
-            angle: 60,
-            spread: 55,
-            origin: { x: 0, y: 0.65 },
-            colors
-          });
-          confetti({
-            particleCount: 5,
-            angle: 120,
-            spread: 55,
-            origin: { x: 1, y: 0.65 },
-            colors
-          });
-          confetti({
-            particleCount: 4,
-            spread: 100,
-            origin: { x: 0.5, y: 0.55 },
-            colors
-          });
-          if (Date.now() < end) raf = requestAnimationFrame(frame);
-        };
-        frame();
-      } else {
-        confetti({
-          particleCount: 200,
-          spread: 100,
-          startVelocity: 42,
-          origin: { y: 0.6 },
-          colors
-        });
-
-        const end = Date.now() + 2500;
-        const frame = () => {
-          confetti({
-            particleCount: 10,
-            spread: 110,
-            startVelocity: 32,
-            origin: { x: 0.5, y: 0.55 },
-            colors
-          });
-          if (Date.now() < end) raf = requestAnimationFrame(frame);
-        };
-        frame();
-      }
-    } else {
-      confetti({
-        particleCount: 120,
-        spread: 80,
-        origin: { y: 0.6 },
-        colors: STANDARD_COLORS
-      });
-
-      const end = Date.now() + 2000;
-      const frame = () => {
-        confetti({
-          particleCount: 4,
-          angle: 60,
-          spread: 55,
-          origin: { x: 0, y: 0.65 },
-          colors: STANDARD_COLORS
-        });
-        confetti({
-          particleCount: 4,
-          angle: 120,
-          spread: 55,
-          origin: { x: 1, y: 0.65 },
-          colors: STANDARD_COLORS
-        });
-        if (Date.now() < end) raf = requestAnimationFrame(frame);
-      };
-      frame();
-    }
-
-    return () => cancelAnimationFrame(raf);
+    return () => cancelAnimationFrame(raf.current);
   }, [completed, isPerfect, setFired]);
 
   return (
@@ -164,13 +252,13 @@ export function CompletionCelebration({
           className={cn(
             'relative w-full max-w-md overflow-hidden rounded-2xl border p-5 backdrop-blur-2xl sm:p-6',
             isPerfect
-              ? 'bg-linear-to-br border-yellow-300/70 from-yellow-50 via-green-50 to-emerald-50 shadow-[0_8px_32px_oklch(0.75_0.12_95/0.25)] dark:border-yellow-700/50 dark:from-yellow-950/50 dark:via-green-950/50 dark:to-emerald-950/50 dark:shadow-[0_8px_32px_oklch(0.4_0.1_95/0.3)]'
+              ? 'border-yellow-300/70 bg-linear-to-br from-yellow-50 via-green-50 to-emerald-50 shadow-[0_8px_32px_oklch(0.75_0.12_95/0.25)] dark:border-yellow-700/50 dark:from-yellow-950/50 dark:via-green-950/50 dark:to-emerald-950/50 dark:shadow-[0_8px_32px_oklch(0.4_0.1_95/0.3)]'
               : 'border-emerald-500/30 bg-[linear-gradient(135deg,color-mix(in_oklch,var(--card)_90%,transparent),color-mix(in_oklch,hsl(142_71%_45%)_8%,transparent))] shadow-[0_8px_32px_color-mix(in_oklch,var(--foreground)_20%,transparent),0_0_20px_color-mix(in_oklch,hsl(142_71%_45%)_10%,transparent)]'
           )}
         >
           {isPerfect ? (
             <motion.div
-              className="bg-linear-to-r pointer-events-none absolute inset-0 from-transparent via-yellow-200/35 to-transparent dark:via-yellow-400/15"
+              className="pointer-events-none absolute inset-0 bg-linear-to-r from-transparent via-yellow-200/35 to-transparent dark:via-yellow-400/15"
               initial={{ x: '-100%' }}
               animate={{ x: '200%' }}
               transition={{ duration: 1.2, delay: 0.5, ease: 'easeInOut' }}
@@ -192,10 +280,10 @@ export function CompletionCelebration({
               <Sparkles className={cn('size-5', isPerfect ? 'text-white' : 'text-emerald-400')} />
             </motion.div>
             <div>
-              <p className="text-foreground font-semibold">
+              <p className="font-semibold text-foreground">
                 {isPerfect ? '⭐ Perfect Score!' : 'Puzzle Complete!'}
               </p>
-              <p className="text-muted-foreground text-sm">
+              <p className="text-sm text-muted-foreground">
                 Finished in {formatElapsed(seconds)} ·{' '}
                 <span
                   className={cn(isPerfect && 'font-semibold text-yellow-600 dark:text-yellow-300')}
@@ -220,54 +308,13 @@ export function CompletionCelebration({
           ) : null}
 
           {listed && puzzleSlug && puzzle ? (
-            <motion.div
-              initial={{ opacity: 0, y: 8 }}
-              animate={{ opacity: 1, y: 0 }}
-              transition={{ delay: 0.35, duration: 0.4 }}
-              className="relative mt-4 flex justify-center"
-            >
-              <Button
-                type="button"
-                onClick={async () => {
-                  const text = get_achievement_share_msg(
-                    puzzle.title,
-                    puzzle.description,
-                    formatElapsed(seconds),
-                    accuracy,
-                    puzzleSlug
-                  );
-                  try {
-                    if (typeof navigator !== 'undefined' && navigator.share) {
-                      await navigator.share({
-                        title: `${puzzle.title} - Padajāla`,
-                        text
-                      });
-                    } else {
-                      try {
-                        await copy_text_to_clipboard(text);
-                        toast.success('Achievement message copied to clipboard');
-                      } catch (err) {
-                        toast.error('Could not copy to clipboard');
-                        console.log('Error copying:', err);
-                      }
-                    }
-                  } catch (err) {
-                    if ((err as Error).name !== 'AbortError') {
-                      console.log('Error sharing:', err);
-                    }
-                  }
-                }}
-                className={cn(
-                  'flex transform items-center gap-1.5 rounded-lg px-3 py-1.5 text-sm font-semibold text-white shadow-sm transition-all duration-200 hover:scale-105 active:scale-95',
-                  isPerfect
-                    ? 'bg-linear-to-r from-yellow-500 via-orange-500 to-amber-500 hover:from-yellow-600 hover:via-orange-600 hover:to-amber-600'
-                    : 'bg-linear-to-r from-green-600 to-emerald-600 hover:from-green-700 hover:to-emerald-700'
-                )}
-              >
-                <IoShareSocialOutline className="text-sm" />
-                Share Achievement
-              </Button>
-            </motion.div>
+            <ShareAchievementButton
+              puzzle={puzzle}
+              seconds={seconds}
+              accuracy={accuracy}
+              isPerfect={isPerfect}
+              puzzleSlug={puzzleSlug}
+            />
           ) : null}
         </motion.div>
       )}

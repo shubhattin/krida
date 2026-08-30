@@ -4,15 +4,15 @@ import { appRuntime } from './runtime';
 import { isKnownError, type KnownError } from './errors';
 
 /** Domain / config errors with distinct tRPC codes; infra errors share the default. */
-const TRPC_CODE_BY_TAG: Partial<Record<KnownError['_tag'], TRPCError['code']>> = {
-  NotFoundError: 'NOT_FOUND',
-  BadRequestError: 'BAD_REQUEST',
-  ValidationError: 'BAD_REQUEST',
-  ConflictError: 'CONFLICT',
-  UnauthorizedError: 'UNAUTHORIZED',
-  ForbiddenError: 'FORBIDDEN',
-  ConfigError: 'INTERNAL_SERVER_ERROR'
-};
+const TRPC_CODE_BY_TAG = new Map<KnownError['_tag'], TRPCError['code']>([
+  ['NotFoundError', 'NOT_FOUND'],
+  ['BadRequestError', 'BAD_REQUEST'],
+  ['ValidationError', 'BAD_REQUEST'],
+  ['ConflictError', 'CONFLICT'],
+  ['UnauthorizedError', 'UNAUTHORIZED'],
+  ['ForbiddenError', 'FORBIDDEN'],
+  ['ConfigError', 'INTERNAL_SERVER_ERROR']
+]);
 
 const toTrpcMessage = (error: KnownError): string => {
   switch (error._tag) {
@@ -33,7 +33,7 @@ const toTrpcMessage = (error: KnownError): string => {
 
 const toTrpcError = (error: KnownError): TRPCError =>
   new TRPCError({
-    code: TRPC_CODE_BY_TAG[error._tag] ?? 'INTERNAL_SERVER_ERROR',
+    code: TRPC_CODE_BY_TAG.get(error._tag) ?? 'INTERNAL_SERVER_ERROR',
     message: toTrpcMessage(error),
     cause: error
   });
@@ -61,6 +61,7 @@ const httpStatusForError = (error: KnownError): number => {
  * call into the Effect runtime.
  */
 export const runTrpcEffect = async <A, E, R>(effect: Effect.Effect<A, E, R>): Promise<A> => {
+  // SAFETY: boundary effects reach here with R = never; annotateLogs adds no requirements
   const exit = await appRuntime.runPromiseExit(
     effect.pipe(Effect.annotateLogs({ boundary: 'trpc' })) as Effect.Effect<A, E>
   );
@@ -86,6 +87,7 @@ export const runTrpcEffect = async <A, E, R>(effect: Effect.Effect<A, E, R>): Pr
  * Run an Effect at the route-loader / server-fn boundary.
  */
 export const runLoaderEffect = <A, E, R>(effect: Effect.Effect<A, E, R>): Promise<A> =>
+  // SAFETY: boundary effects reach here with R = never; annotateLogs adds no requirements
   appRuntime.runPromise(
     effect.pipe(Effect.annotateLogs({ boundary: 'loader' })) as Effect.Effect<A, E>
   );
@@ -102,6 +104,7 @@ export const runRouteEffect = async <A, E, R>(
     onSuccess?: (value: A) => Response;
   }
 ): Promise<Response> => {
+  // SAFETY: boundary effects reach here with R = never; annotateLogs adds no requirements
   const exit = await appRuntime.runPromiseExit(
     effect.pipe(Effect.annotateLogs({ boundary: 'route' })) as Effect.Effect<A, E>
   );
@@ -133,6 +136,7 @@ export const runQstashEffect = async <A, E, R>(
     onSuccess?: (value: A) => Response;
   }
 ): Promise<Response> => {
+  // SAFETY: boundary effects reach here with R = never; annotateLogs adds no requirements
   const exit = await appRuntime.runPromiseExit(
     effect.pipe(Effect.annotateLogs({ boundary: 'qstash' })) as Effect.Effect<A, E>
   );

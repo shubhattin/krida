@@ -21,7 +21,10 @@ type SnapshotOf<M extends AtomMap> = {
 
 const MAX_STACK = 100;
 
-type HistoryActions = {
+/** JSON-serializable value — the contract for comparable representations fed to JSON.stringify. */
+type JsonValue = string | number | boolean | null | JsonValue[] | { [key: string]: JsonValue };
+
+type HistoryActions<M extends AtomMap = AtomMap> = {
   undo(): void;
   redo(): void;
   commit(): void;
@@ -33,7 +36,7 @@ type HistoryActions = {
    * Mark the beginSave() snapshot (or current, if none) as saved.
    * Optional patch overlays fields reconciled after the server response (e.g. attachment ids).
    */
-  markSaved(patch?: Record<string, unknown>): void;
+  markSaved(patch?: Partial<SnapshotOf<M>>): void;
   /** Copy current values of the given keys into the saved baseline (e.g. after persisted image save). */
   acceptKeysAsSaved(...keys: string[]): void;
 };
@@ -45,8 +48,8 @@ type HistoryState = {
   changeCount: number;
 };
 
-type HistoryContextValue = {
-  actions: HistoryActions;
+type HistoryContextValue<M extends AtomMap = AtomMap> = {
+  actions: HistoryActions<M>;
   subscribe: (listener: () => void) => () => void;
   getState: () => HistoryState;
   getServerSnapshot: () => HistoryState;
@@ -65,7 +68,7 @@ function cloneSnapshot<T>(value: T): T {
   return structuredClone(value);
 }
 
-function serializeSnapshot(value: unknown): string {
+function serializeSnapshot<T>(value: T): string {
   return JSON.stringify(value);
 }
 
@@ -75,11 +78,12 @@ export function EditorHistoryProvider<M extends AtomMap>({
   children
 }: {
   atoms: M;
-  comparable?: (snapshot: SnapshotOf<M>) => unknown;
+  comparable?: (snapshot: SnapshotOf<M>) => JsonValue;
   children: ReactNode;
 }) {
   const store = useStore();
   // Stable list of [key, atom] for the lifetime of this atoms object.
+  // SAFETY: Object.entries widens keys to string[]; the atoms map keys are exactly keyof M
   const atomEntriesRef = useRef(Object.entries(atoms) as [keyof M & string, M[keyof M]][]);
   const comparableRef = useRef(comparable);
 
@@ -98,9 +102,11 @@ export function EditorHistoryProvider<M extends AtomMap>({
   // Cached state so useSyncExternalStore can bail out on referential equality.
   const stateCacheRef = useRef<HistoryState>(EMPTY_STATE);
 
-  const takeSnapshot = useCallback((): SnapshotOf<M> => {
+  const takeSnapshot = useCallback(() => {
+    // SAFETY: snapshot is filled key-by-key from the typed atom entries below
     const snap = {} as SnapshotOf<M>;
     for (const [key, atom] of atomEntriesRef.current) {
+      // SAFETY: each entry's atom holds exactly that key's snapshot value type
       snap[key] = store.get(atom) as SnapshotOf<M>[typeof key];
     }
     return snap;
@@ -201,6 +207,7 @@ export function EditorHistoryProvider<M extends AtomMap>({
   const commitNowRef = useRef(commitNow);
 
   useEffect(() => {
+    // SAFETY: Object.entries widens keys to string[]; the atoms map keys are exactly keyof M
     atomEntriesRef.current = Object.entries(atoms) as [keyof M & string, M[keyof M]][];
     comparableRef.current = comparable;
     scheduleCommitRef.current = scheduleCommit;
@@ -212,6 +219,7 @@ export function EditorHistoryProvider<M extends AtomMap>({
   // Seed baselines once; reset history when the atom map's keys change.
   // Equivalent map object replacements with the same keys keep existing stacks.
   useEffect(() => {
+    // SAFETY: Object.entries widens keys to string[]; the atoms map keys are exactly keyof M
     atomEntriesRef.current = Object.entries(atoms) as [keyof M & string, M[keyof M]][];
     const atomsKey = atomEntriesRef.current
       .map(([key]) => key)
@@ -266,7 +274,7 @@ export function EditorHistoryProvider<M extends AtomMap>({
     }
   }, []);
 
-  const actions = useMemo<HistoryActions>(
+  const actions = useMemo<HistoryActions<M>>(
     () => ({
       undo() {
         if (undoStackRef.current.length === 0) return;
@@ -299,14 +307,12 @@ export function EditorHistoryProvider<M extends AtomMap>({
       beginSave() {
         pendingSaveRef.current = cloneSnapshot(takeSnapshot());
       },
-      markSaved(patch?: Record<string, unknown>) {
+      markSaved(patch?: Partial<SnapshotOf<M>>) {
         const base = pendingSaveRef.current ?? takeSnapshot();
         pendingSaveRef.current = null;
         const next = cloneSnapshot(base);
         if (patch) {
-          for (const [key, value] of Object.entries(patch)) {
-            (next as Record<string, unknown>)[key] = cloneSnapshot(value);
-          }
+          Object.assign(next, cloneSnapshot(patch));
         }
         savedBaselineRef.current = next;
         lastCommittedRef.current = cloneSnapshot(next);
@@ -327,9 +333,11 @@ export function EditorHistoryProvider<M extends AtomMap>({
         const nextLast = last ? cloneSnapshot(last) : cloneSnapshot(current);
         for (const key of keys) {
           if (key in current) {
-            const value = cloneSnapshot((current as Record<string, unknown>)[key]);
-            (nextBaseline as Record<string, unknown>)[key] = value;
-            (nextLast as Record<string, unknown>)[key] = value;
+            // SAFETY: `key in current` guard proves the key exists on the snapshot
+            const snapshotKey = key as keyof SnapshotOf<M>;
+            const value = cloneSnapshot(current[snapshotKey]);
+            Object.assign(nextBaseline, { [snapshotKey]: value });
+            Object.assign(nextLast, { [snapshotKey]: value });
           }
         }
         savedBaselineRef.current = nextBaseline;
@@ -340,7 +348,7 @@ export function EditorHistoryProvider<M extends AtomMap>({
     [beginTyping, commitNow, endTyping, notify, restoreSnapshot, takeSnapshot]
   );
 
-  const value = useMemo<HistoryContextValue>(
+  const value = useMemo<HistoryContextValue<M>>(
     () => ({ actions, subscribe, getState, getServerSnapshot }),
     [actions, subscribe, getState, getServerSnapshot]
   );

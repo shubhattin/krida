@@ -34,7 +34,6 @@ function pathIsStraightAcrossOrDown(candidate: GeneratedPadavaliLayout): boolean
   return candidate.placements.every((placement) => {
     if (placement.path.length <= 1) return true;
     const [startRow, startCol] = placement.path[0]!;
-    const end = placement.path[placement.path.length - 1]!;
     const sameRow = placement.path.every(([row]) => row === startRow);
     const sameCol = placement.path.every(([, col]) => col === startCol);
     if (sameRow) {

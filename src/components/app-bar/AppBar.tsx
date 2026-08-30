@@ -8,16 +8,7 @@ import { GAME_APP_ICON_SRC, type GameAppIconId } from '~/components/GameAppIcon'
 
 export type AppGame = 'padavali' | 'crossword';
 
-const GAME_DEFAULTS: Record<
-  AppGame,
-  {
-    title: string;
-    description: string;
-    href: string;
-    iconGame: GameAppIconId;
-    showPwaControls: boolean;
-  }
-> = {
+const GAME_DEFAULTS = {
   padavali: {
     title: 'Padāvalī',
     description: 'Sanskrit Word Puzzle',
@@ -32,7 +23,16 @@ const GAME_DEFAULTS: Record<
     iconGame: 'padajala',
     showPwaControls: false
   }
-};
+} satisfies Record<
+  AppGame,
+  {
+    title: string;
+    description: string;
+    href: string;
+    iconGame: GameAppIconId;
+    showPwaControls: boolean;
+  }
+>;
 
 export type AppBarProps = {
   game: AppGame;
@@ -49,7 +49,7 @@ export default function AppBar({ game, title, description, gameMenuItems }: AppB
   const resolvedDescription = description ?? defaults.description;
 
   return (
-    <header className="bg-linear-to-r w-full border-b border-slate-200/60 from-white via-slate-50 to-blue-50 shadow-lg backdrop-blur-sm dark:border-slate-700/60 dark:from-slate-900 dark:via-slate-800 dark:to-slate-900">
+    <header className="w-full border-b border-slate-200/60 bg-linear-to-r from-white via-slate-50 to-blue-50 shadow-lg backdrop-blur-sm dark:border-slate-700/60 dark:from-slate-900 dark:via-slate-800 dark:to-slate-900">
       <div className="mx-auto flex h-16 max-w-4xl items-center justify-between px-4 lg:px-6">
         {/* Logo/Title Section */}
         <Link to={defaults.href} className="group flex items-center space-x-3 no-underline">

@@ -57,6 +57,88 @@ const CROSSWORD_LETTERS = [
   ['V', 'E', 'D', 'A', '']
 ];
 
+// Color green as soon as the word containing the cell is completed
+// - YOGA is complete at filledCount >= 4
+// - GITA is complete at filledCount >= 10
+// - VEDA (and GITA) are complete at filledCount >= 10
+function crosswordCellWordComplete(index: number, filledCount: number): boolean {
+  if (index <= 3) return filledCount >= 4;
+  if (index <= 5) return filledCount >= 10;
+  if (index <= 9) return filledCount >= 10;
+  return false;
+}
+
+const CrosswordPreviewCell = ({
+  row,
+  col,
+  index,
+  filledCount
+}: {
+  row: number;
+  col: number;
+  index: number;
+  filledCount: number;
+}) => {
+  const isFilled = index < filledCount;
+  const letter = CROSSWORD_LETTERS[row]?.[col] || '';
+  const isWordComplete = crosswordCellWordComplete(index, filledCount);
+
+  return (
+    <div
+      key={`${row}-${col}`}
+      className={cn(
+        'flex aspect-square items-center justify-center rounded-xl border text-sm font-extrabold transition-colors duration-300',
+        !isFilled &&
+          'border-slate-200 bg-white/70 text-slate-300 dark:border-slate-800/80 dark:bg-slate-900/40 dark:text-slate-600',
+        isFilled &&
+          !isWordComplete && [
+            'border-amber-400 bg-linear-to-br from-amber-50 to-orange-100 text-amber-700',
+            'shadow-[0_0_12px_rgba(251,191,36,0.4)] ring-1 ring-amber-300/60',
+            'dark:border-amber-400/90 dark:from-amber-950 dark:to-orange-950 dark:text-amber-200',
+            'dark:shadow-[0_0_16px_rgba(251,191,36,0.45)] dark:ring-amber-400/45'
+          ],
+        isFilled &&
+          isWordComplete && [
+            'border-emerald-400 bg-linear-to-br from-emerald-50 to-green-100 text-emerald-700',
+            'shadow-[0_0_14px_rgba(52,211,153,0.45)] ring-1 ring-emerald-300/70',
+            'dark:border-emerald-400 dark:from-emerald-950 dark:to-emerald-900 dark:text-emerald-200',
+            'dark:shadow-[0_0_18px_rgba(52,211,153,0.5)] dark:ring-emerald-400/50'
+          ]
+      )}
+    >
+      <AnimatePresence mode="wait" initial={false}>
+        {isFilled ? (
+          <motion.span
+            key={`letter-${row}-${col}`}
+            initial={{ scale: 0.12, opacity: 0, y: 10 }}
+            animate={{ scale: 1, opacity: 1, y: 0 }}
+            exit={{ scale: 0.35, opacity: 0 }}
+            transition={{
+              type: 'spring',
+              stiffness: 560,
+              damping: 16,
+              mass: 0.65
+            }}
+            className="inline-block origin-center drop-shadow-[0_0_6px_rgba(255,255,255,0.3)]"
+          >
+            {letter}
+          </motion.span>
+        ) : (
+          <motion.span
+            key={`dot-${row}-${col}`}
+            initial={{ opacity: 0 }}
+            animate={{ opacity: 0.5 }}
+            exit={{ opacity: 0, scale: 0.5 }}
+            transition={{ duration: 0.12 }}
+            className="inline-block"
+          >
+            ·
+          </motion.span>
+        )}
+      </AnimatePresence>
+    </div>
+  );
+};
 // ─── Script Samples ───────────────────────────────────────
 const SCRIPT_SAMPLES = [
   { script: 'Devanagari', text: 'पदावली' },
@@ -196,6 +278,86 @@ function cellsEqual(a: CellPos, b: CellPos) {
 function isCellInPath(path: CellPos[], row: number, col: number) {
   return path.some((c) => c.row === row && c.col === col);
 }
+
+type DemoState = 'idle' | 'selecting' | 'success' | 'fail';
+
+// Solid base (keeps trails under glyphs) + neon rim/glow on active states
+function miniDemoCellClassName(
+  inDemo: boolean,
+  inFound: boolean,
+  isLast: boolean,
+  demoState: DemoState
+): string {
+  return cn(
+    'relative z-10 flex aspect-square items-center justify-center rounded-xl border text-base font-extrabold transition-all duration-300',
+    'border-slate-200 bg-linear-to-br from-white to-slate-50 text-slate-800 shadow-xs',
+    'dark:border-slate-700 dark:from-slate-800 dark:to-slate-950 dark:text-slate-200',
+    inFound &&
+      !(inDemo && demoState === 'selecting') && [
+        // No scale — keeps H/V gap open so trails stay visible
+        'border-emerald-400 bg-linear-to-br from-emerald-50 to-green-100 text-emerald-700',
+        'shadow-[0_0_14px_rgba(52,211,153,0.45)] ring-1 ring-emerald-300/70',
+        'dark:border-emerald-400/90 dark:from-emerald-950 dark:to-emerald-900 dark:text-emerald-200',
+        'dark:shadow-[0_0_18px_rgba(52,211,153,0.5)] dark:ring-emerald-400/50'
+      ],
+    inDemo &&
+      demoState === 'selecting' && [
+        'border-blue-400 bg-linear-to-br from-sky-50 to-blue-100 text-blue-700',
+        'shadow-[0_0_14px_rgba(96,165,250,0.5)] ring-1 ring-blue-300/70',
+        'dark:border-blue-400/90 dark:from-blue-950 dark:to-indigo-950 dark:text-blue-200',
+        'dark:shadow-[0_0_18px_rgba(96,165,250,0.55)] dark:ring-blue-400/50'
+      ],
+    inDemo &&
+      demoState === 'success' && [
+        'border-emerald-400 bg-linear-to-br from-emerald-50 to-green-100 text-emerald-700',
+        'shadow-[0_0_16px_rgba(52,211,153,0.55)] ring-1 ring-emerald-300/80',
+        'dark:border-emerald-400 dark:from-emerald-950 dark:to-emerald-900 dark:text-emerald-100',
+        'dark:shadow-[0_0_20px_rgba(52,211,153,0.6)] dark:ring-emerald-400/60'
+      ],
+    inDemo &&
+      demoState === 'fail' && [
+        'border-red-400 bg-linear-to-br from-red-50 to-rose-100 text-red-700',
+        'shadow-[0_0_14px_rgba(248,113,113,0.45)] ring-1 ring-red-300/70',
+        'dark:border-red-400/90 dark:from-red-950 dark:to-rose-950 dark:text-red-200',
+        'dark:shadow-[0_0_18px_rgba(248,113,113,0.5)] dark:ring-red-400/50'
+      ],
+    isLast && demoState === 'selecting' && 'ring-2 ring-blue-300/80 dark:ring-blue-400/70'
+  );
+}
+
+const MiniDemoCell = ({
+  letter,
+  row,
+  col,
+  inDemo,
+  inFound,
+  isLast,
+  demoState
+}: {
+  letter: string;
+  row: number;
+  col: number;
+  inDemo: boolean;
+  inFound: boolean;
+  isLast: boolean;
+  demoState: DemoState;
+}) => (
+  <div
+    key={`${row}-${col}`}
+    data-mini-row={row}
+    data-mini-col={col}
+    className={miniDemoCellClassName(inDemo, inFound, isLast, demoState)}
+  >
+    <span
+      className={cn(
+        'relative z-10',
+        (inDemo || inFound) && 'drop-shadow-[0_0_6px_rgba(255,255,255,0.35)]'
+      )}
+    >
+      {letter}
+    </span>
+  </div>
+);
 
 // ─── Padavali Mini Grid Preview ───────────────────────────
 // Mirrors GameGrid idle-demo: hand emoji traces a path, blue selection →
@@ -353,12 +515,12 @@ export function PadavaliMiniPreview() {
           };
 
   return (
-    <div className="p-4.5 relative rounded-2xl border border-slate-200/40 bg-slate-100/40 dark:border-slate-800/40 dark:bg-slate-950/20">
+    <div className="relative rounded-2xl border border-slate-200/40 bg-slate-100/40 p-4.5 dark:border-slate-800/40 dark:bg-slate-950/20">
       {/* Header */}
       <div className="mb-3 flex items-center justify-between gap-2">
         <div className="flex items-center gap-1.5">
           <div className="size-1.5 animate-pulse rounded-full bg-emerald-500" />
-          <span className="text-[10px] font-bold uppercase tracking-wider text-slate-500 dark:text-slate-400">
+          <span className="text-[10px] font-bold tracking-wider text-slate-500 uppercase dark:text-slate-400">
             Live Demo
           </span>
         </div>
@@ -371,7 +533,7 @@ export function PadavaliMiniPreview() {
                 animate={{ opacity: 1, y: 0 }}
                 exit={{ opacity: 0, y: -4 }}
                 className={cn(
-                  'shadow-xs rounded-full px-2 py-0.5 text-[10px] font-bold',
+                  'rounded-full px-2 py-0.5 text-[10px] font-bold shadow-xs',
                   demoState === 'fail'
                     ? 'border border-red-500/20 bg-red-500/10 text-red-600 dark:text-red-400'
                     : demoState === 'success'
@@ -385,7 +547,7 @@ export function PadavaliMiniPreview() {
           </AnimatePresence>
           <span
             className={cn(
-              'shadow-xs rounded-full px-2 py-0.5 text-[10px] font-semibold',
+              'rounded-full px-2 py-0.5 text-[10px] font-semibold shadow-xs',
               wordsFound > 0
                 ? 'border border-emerald-500/20 bg-emerald-500/10 text-emerald-600 dark:text-emerald-400'
                 : 'bg-white text-slate-500 dark:bg-slate-900 dark:text-slate-400'
@@ -469,58 +631,16 @@ export function PadavaliMiniPreview() {
                 cellsEqual(demoPath[demoPath.length - 1]!, { row: rIdx, col: cIdx });
 
               return (
-                <div
+                <MiniDemoCell
                   key={`${rIdx}-${cIdx}`}
-                  data-mini-row={rIdx}
-                  data-mini-col={cIdx}
-                  className={cn(
-                    'relative z-10 flex aspect-square items-center justify-center rounded-xl border text-base font-extrabold transition-all duration-300',
-                    // Solid base (keeps trails under glyphs) + neon rim/glow on active states
-                    'bg-linear-to-br shadow-xs border-slate-200 from-white to-slate-50 text-slate-800',
-                    'dark:border-slate-700 dark:from-slate-800 dark:to-slate-950 dark:text-slate-200',
-                    inFound &&
-                      !(inDemo && demoState === 'selecting') && [
-                        // No scale — keeps H/V gap open so trails stay visible
-                        'bg-linear-to-br border-emerald-400 from-emerald-50 to-green-100 text-emerald-700',
-                        'shadow-[0_0_14px_rgba(52,211,153,0.45)] ring-1 ring-emerald-300/70',
-                        'dark:border-emerald-400/90 dark:from-emerald-950 dark:to-emerald-900 dark:text-emerald-200',
-                        'dark:shadow-[0_0_18px_rgba(52,211,153,0.5)] dark:ring-emerald-400/50'
-                      ],
-                    inDemo &&
-                      demoState === 'selecting' && [
-                        'bg-linear-to-br border-blue-400 from-sky-50 to-blue-100 text-blue-700',
-                        'shadow-[0_0_14px_rgba(96,165,250,0.5)] ring-1 ring-blue-300/70',
-                        'dark:border-blue-400/90 dark:from-blue-950 dark:to-indigo-950 dark:text-blue-200',
-                        'dark:shadow-[0_0_18px_rgba(96,165,250,0.55)] dark:ring-blue-400/50'
-                      ],
-                    inDemo &&
-                      demoState === 'success' && [
-                        'bg-linear-to-br border-emerald-400 from-emerald-50 to-green-100 text-emerald-700',
-                        'shadow-[0_0_16px_rgba(52,211,153,0.55)] ring-1 ring-emerald-300/80',
-                        'dark:border-emerald-400 dark:from-emerald-950 dark:to-emerald-900 dark:text-emerald-100',
-                        'dark:shadow-[0_0_20px_rgba(52,211,153,0.6)] dark:ring-emerald-400/60'
-                      ],
-                    inDemo &&
-                      demoState === 'fail' && [
-                        'bg-linear-to-br border-red-400 from-red-50 to-rose-100 text-red-700',
-                        'shadow-[0_0_14px_rgba(248,113,113,0.45)] ring-1 ring-red-300/70',
-                        'dark:border-red-400/90 dark:from-red-950 dark:to-rose-950 dark:text-red-200',
-                        'dark:shadow-[0_0_18px_rgba(248,113,113,0.5)] dark:ring-red-400/50'
-                      ],
-                    isLast &&
-                      demoState === 'selecting' &&
-                      'ring-2 ring-blue-300/80 dark:ring-blue-400/70'
-                  )}
-                >
-                  <span
-                    className={cn(
-                      'relative z-10',
-                      (inDemo || inFound) && 'drop-shadow-[0_0_6px_rgba(255,255,255,0.35)]'
-                    )}
-                  >
-                    {letter}
-                  </span>
-                </div>
+                  letter={letter}
+                  row={rIdx}
+                  col={cIdx}
+                  inDemo={inDemo}
+                  inFound={inFound}
+                  isLast={isLast}
+                  demoState={demoState}
+                />
               );
             })
           )}
@@ -546,7 +666,7 @@ export function PadavaliMiniPreview() {
               opacity: { duration: 0.3 },
               scale: { duration: 0.3 }
             }}
-            className="pointer-events-none -translate-x-1/2 translate-y-[-18%] select-none text-lg drop-shadow-md sm:text-2xl"
+            className="pointer-events-none -translate-x-1/2 translate-y-[-18%] text-lg drop-shadow-md select-none sm:text-2xl"
           >
             👆
           </motion.div>
@@ -612,19 +732,19 @@ export function PadajalaMiniPreview() {
   const isComplete = wordsFound === 3;
 
   return (
-    <div className="p-4.5 relative rounded-2xl border border-slate-200/40 bg-slate-100/40 dark:border-slate-800/40 dark:bg-slate-950/20">
+    <div className="relative rounded-2xl border border-slate-200/40 bg-slate-100/40 p-4.5 dark:border-slate-800/40 dark:bg-slate-950/20">
       {/* Header */}
       <div className="mb-3 flex items-center justify-between">
         <div className="flex items-center gap-1.5">
           <div
             className={`size-1.5 rounded-full ${isComplete ? 'bg-emerald-500' : 'bg-amber-500'}`}
           />
-          <span className="text-[10px] font-bold uppercase tracking-wider text-slate-500 dark:text-slate-400">
+          <span className="text-[10px] font-bold tracking-wider text-slate-500 uppercase dark:text-slate-400">
             Preview
           </span>
         </div>
         <div
-          className={`shadow-xs rounded-full px-2 py-0.5 text-[10px] font-semibold ${
+          className={`rounded-full px-2 py-0.5 text-[10px] font-semibold shadow-xs ${
             isComplete
               ? 'border border-emerald-500/20 bg-emerald-500/10 text-emerald-600 dark:text-emerald-400'
               : 'bg-white text-slate-500 dark:bg-slate-900 dark:text-slate-400'
@@ -647,77 +767,14 @@ export function PadajalaMiniPreview() {
               );
             }
 
-            const currentIndex = cellIndex++;
-            const isFilled = currentIndex < filledCount;
-            const letter = CROSSWORD_LETTERS[rIdx]?.[cIdx] || '';
-
-            // Color green as soon as the word containing the cell is completed
-            let isWordComplete = false;
-            if (currentIndex >= 0 && currentIndex <= 3) {
-              // YOGA is complete at filledCount >= 4
-              isWordComplete = filledCount >= 4;
-            } else if (currentIndex === 4 || currentIndex === 5) {
-              // GITA is complete at filledCount >= 10
-              isWordComplete = filledCount >= 10;
-            } else if (currentIndex >= 6 && currentIndex <= 9) {
-              // VEDA (and GITA) are complete at filledCount >= 10
-              isWordComplete = filledCount >= 10;
-            }
-
             return (
-              <div
-                key={`${rIdx}-${cIdx}`}
-                className={cn(
-                  'flex aspect-square items-center justify-center rounded-xl border text-sm font-extrabold transition-colors duration-300',
-                  !isFilled &&
-                    'border-slate-200 bg-white/70 text-slate-300 dark:border-slate-800/80 dark:bg-slate-900/40 dark:text-slate-600',
-                  isFilled &&
-                    !isWordComplete && [
-                      'bg-linear-to-br border-amber-400 from-amber-50 to-orange-100 text-amber-700',
-                      'shadow-[0_0_12px_rgba(251,191,36,0.4)] ring-1 ring-amber-300/60',
-                      'dark:border-amber-400/90 dark:from-amber-950 dark:to-orange-950 dark:text-amber-200',
-                      'dark:shadow-[0_0_16px_rgba(251,191,36,0.45)] dark:ring-amber-400/45'
-                    ],
-                  isFilled &&
-                    isWordComplete && [
-                      'bg-linear-to-br border-emerald-400 from-emerald-50 to-green-100 text-emerald-700',
-                      'shadow-[0_0_14px_rgba(52,211,153,0.45)] ring-1 ring-emerald-300/70',
-                      'dark:border-emerald-400 dark:from-emerald-950 dark:to-emerald-900 dark:text-emerald-200',
-                      'dark:shadow-[0_0_18px_rgba(52,211,153,0.5)] dark:ring-emerald-400/50'
-                    ]
-                )}
-              >
-                <AnimatePresence mode="wait" initial={false}>
-                  {isFilled ? (
-                    <motion.span
-                      key={`letter-${rIdx}-${cIdx}`}
-                      initial={{ scale: 0.12, opacity: 0, y: 10 }}
-                      animate={{ scale: 1, opacity: 1, y: 0 }}
-                      exit={{ scale: 0.35, opacity: 0 }}
-                      transition={{
-                        type: 'spring',
-                        stiffness: 560,
-                        damping: 16,
-                        mass: 0.65
-                      }}
-                      className="inline-block origin-center drop-shadow-[0_0_6px_rgba(255,255,255,0.3)]"
-                    >
-                      {letter}
-                    </motion.span>
-                  ) : (
-                    <motion.span
-                      key={`dot-${rIdx}-${cIdx}`}
-                      initial={{ opacity: 0 }}
-                      animate={{ opacity: 0.5 }}
-                      exit={{ opacity: 0, scale: 0.5 }}
-                      transition={{ duration: 0.12 }}
-                      className="inline-block"
-                    >
-                      ·
-                    </motion.span>
-                  )}
-                </AnimatePresence>
-              </div>
+              <CrosswordPreviewCell
+                key={`cell-${rIdx}-${cIdx}`}
+                row={rIdx}
+                col={cIdx}
+                index={cellIndex++}
+                filledCount={filledCount}
+              />
             );
           })
         )}
@@ -737,7 +794,7 @@ export function GameShowcaseCard({ game, index }: { game: (typeof GAMES)[number]
     >
       {/* Glow effect behind card */}
       <div
-        className={`bg-linear-to-br absolute -inset-1 rounded-3xl ${game.gradient.from} ${game.gradient.to} opacity-0 blur-xl transition-opacity duration-500 group-hover:opacity-15`}
+        className={`absolute -inset-1 rounded-3xl bg-linear-to-br ${game.gradient.from} ${game.gradient.to} opacity-0 blur-xl transition-opacity duration-500 group-hover:opacity-15`}
       />
 
       <div
@@ -753,7 +810,7 @@ export function GameShowcaseCard({ game, index }: { game: (typeof GAMES)[number]
             >
               {game.name}
             </h3>
-            <span className="text-xs font-semibold uppercase tracking-wide text-slate-500 dark:text-slate-400">
+            <span className="text-xs font-semibold tracking-wide text-slate-500 uppercase dark:text-slate-400">
               {game.subtitle}
             </span>
           </div>
@@ -775,7 +832,7 @@ export function GameShowcaseCard({ game, index }: { game: (typeof GAMES)[number]
             }
             nativeButton={false}
             size="sm"
-            className={`bg-linear-to-r flex-1 ${game.gradient.from} ${game.gradient.to} px-4 py-2.5 text-xs text-white shadow-md ${game.gradient.shadowColor} transition-all duration-200 hover:-translate-y-0.5 hover:shadow-lg`}
+            className={`flex-1 bg-linear-to-r ${game.gradient.from} ${game.gradient.to} px-4 py-2.5 text-xs text-white shadow-md ${game.gradient.shadowColor} transition-all duration-200 hover:-translate-y-0.5 hover:shadow-lg`}
           >
             <Play className="size-3.5 fill-white" />
             Play Now
@@ -840,14 +897,14 @@ export default function LandingPage() {
     <div className="relative left-1/2 min-h-screen w-screen max-w-[100vw] -translate-x-1/2 overflow-x-hidden bg-slate-50 text-slate-900 transition-colors duration-300 dark:bg-slate-950 dark:text-slate-100">
       {/* Decorative Radial Background Blobs */}
       <div className="pointer-events-none absolute inset-0 overflow-hidden">
-        <div className="h-125 w-125 absolute -top-40 left-1/4 rounded-full bg-blue-400/10 blur-3xl dark:bg-blue-500/10" />
-        <div className="h-150 w-150 absolute right-1/4 top-1/3 rounded-full bg-purple-400/10 blur-3xl dark:bg-purple-500/10" />
-        <div className="h-125 w-125 absolute -bottom-20 left-1/3 rounded-full bg-indigo-400/10 blur-3xl dark:bg-indigo-500/10" />
-        <div className="h-100 w-100 bg-amber-400/8 dark:bg-amber-500/8 absolute right-1/3 top-1/2 rounded-full blur-3xl" />
+        <div className="absolute -top-40 left-1/4 h-125 w-125 rounded-full bg-blue-400/10 blur-3xl dark:bg-blue-500/10" />
+        <div className="absolute top-1/3 right-1/4 h-150 w-150 rounded-full bg-purple-400/10 blur-3xl dark:bg-purple-500/10" />
+        <div className="absolute -bottom-20 left-1/3 h-125 w-125 rounded-full bg-indigo-400/10 blur-3xl dark:bg-indigo-500/10" />
+        <div className="absolute top-1/2 right-1/3 h-100 w-100 rounded-full bg-amber-400/8 blur-3xl dark:bg-amber-500/8" />
       </div>
 
       {/* Hero Section */}
-      <section className="relative px-4 pb-10 pt-16 md:pb-16 md:pt-24">
+      <section className="relative px-4 pt-16 pb-10 md:pt-24 md:pb-16">
         <div className="mx-auto max-w-6xl">
           <motion.div
             className="space-y-6 text-center"
@@ -865,7 +922,7 @@ export default function LandingPage() {
 
             {/* Headline */}
             <motion.h1
-              className="bg-linear-to-r mx-auto max-w-3xl from-slate-900 via-blue-700 to-indigo-600 bg-clip-text text-5xl font-black tracking-tight text-transparent sm:text-6xl md:text-7xl dark:from-white dark:via-blue-300 dark:to-indigo-400"
+              className="mx-auto max-w-3xl bg-linear-to-r from-slate-900 via-blue-700 to-indigo-600 bg-clip-text text-5xl font-black tracking-tight text-transparent sm:text-6xl md:text-7xl dark:from-white dark:via-blue-300 dark:to-indigo-400"
               variants={itemVariants}
             >
               Learn Sanskrit{' '}
@@ -927,7 +984,7 @@ export default function LandingPage() {
             <AnimatePresence mode="wait">
               <motion.div
                 key={scriptIndex}
-                className="min-w-50 flex flex-col items-center gap-1 rounded-2xl border border-slate-200/60 bg-white px-8 py-5 shadow-lg dark:border-slate-800/60 dark:bg-slate-900/80"
+                className="flex min-w-50 flex-col items-center gap-1 rounded-2xl border border-slate-200/60 bg-white px-8 py-5 shadow-lg dark:border-slate-800/60 dark:bg-slate-900/80"
                 initial={{ opacity: 0, scale: 0.95, y: 5 }}
                 animate={{ opacity: 1, scale: 1, y: 0 }}
                 exit={{ opacity: 0, scale: 0.95, y: -5 }}
@@ -936,7 +993,7 @@ export default function LandingPage() {
                 <span className="text-3xl font-extrabold text-blue-600 dark:text-blue-400">
                   {SCRIPT_SAMPLES[scriptIndex].text}
                 </span>
-                <span className="mt-1 text-[10px] font-bold uppercase tracking-widest text-slate-400 dark:text-slate-500">
+                <span className="mt-1 text-[10px] font-bold tracking-widest text-slate-400 uppercase dark:text-slate-500">
                   {SCRIPT_SAMPLES[scriptIndex].script} Script
                 </span>
               </motion.div>
@@ -1051,7 +1108,7 @@ export default function LandingPage() {
                 <div className="text-3xl font-extrabold text-blue-600 md:text-4xl dark:text-blue-400">
                   {stat.number}
                 </div>
-                <div className="text-xs font-semibold uppercase tracking-wide text-slate-500 dark:text-slate-400">
+                <div className="text-xs font-semibold tracking-wide text-slate-500 uppercase dark:text-slate-400">
                   {stat.label}
                 </div>
               </div>
@@ -1081,7 +1138,7 @@ export default function LandingPage() {
           <div className="mb-12 space-y-4">
             <div className="flex items-center justify-center gap-2">
               <ExternalLink className="h-4 w-4 text-slate-400" />
-              <span className="text-xs font-semibold uppercase tracking-widest text-slate-400">
+              <span className="text-xs font-semibold tracking-widest text-slate-400 uppercase">
                 Connect with us
               </span>
             </div>
@@ -1091,7 +1148,7 @@ export default function LandingPage() {
                 href="https://github.com/shubhattin/padavali/"
                 target="_blank"
                 rel="noopener noreferrer"
-                className="shadow-xs flex h-12 w-12 items-center justify-center rounded-xl border border-slate-200 bg-white text-slate-700 transition-all duration-200 hover:border-slate-900 hover:bg-slate-900 hover:text-white dark:border-slate-800 dark:bg-slate-900 dark:text-slate-300 dark:hover:border-white dark:hover:bg-white dark:hover:text-slate-900"
+                className="flex h-12 w-12 items-center justify-center rounded-xl border border-slate-200 bg-white text-slate-700 shadow-xs transition-all duration-200 hover:border-slate-900 hover:bg-slate-900 hover:text-white dark:border-slate-800 dark:bg-slate-900 dark:text-slate-300 dark:hover:border-white dark:hover:bg-white dark:hover:text-slate-900"
                 title="GitHub"
               >
                 <SiGithub className="h-6 w-6" />
@@ -1101,7 +1158,7 @@ export default function LandingPage() {
                 href="https://www.youtube.com/@TheSanskritChannel"
                 target="_blank"
                 rel="noopener noreferrer"
-                className="shadow-xs flex h-12 w-12 items-center justify-center rounded-xl border border-red-200 bg-red-50/50 text-red-600 transition-all duration-200 hover:border-red-500 hover:bg-red-500 hover:text-white dark:border-red-950 dark:bg-red-950/20 dark:text-red-400 dark:hover:border-red-500 dark:hover:bg-red-500 dark:hover:text-white"
+                className="flex h-12 w-12 items-center justify-center rounded-xl border border-red-200 bg-red-50/50 text-red-600 shadow-xs transition-all duration-200 hover:border-red-500 hover:bg-red-500 hover:text-white dark:border-red-950 dark:bg-red-950/20 dark:text-red-400 dark:hover:border-red-500 dark:hover:bg-red-500 dark:hover:text-white"
                 title="YouTube"
               >
                 <FaYoutube className="h-6 w-6" />
@@ -1111,7 +1168,7 @@ export default function LandingPage() {
                 href="https://www.instagram.com/thesanskritchannel/"
                 target="_blank"
                 rel="noopener noreferrer"
-                className="bg-linear-to-br shadow-xs dark:bg-linear-to-br flex h-12 w-12 items-center justify-center rounded-xl border border-pink-200 from-pink-50/40 to-purple-50/40 text-pink-600 transition-all duration-200 hover:border-pink-500 hover:bg-pink-500 hover:text-white dark:border-pink-950 dark:from-pink-950/20 dark:to-purple-950/20 dark:text-pink-400 dark:hover:border-pink-500 dark:hover:bg-pink-500 dark:hover:text-white"
+                className="flex h-12 w-12 items-center justify-center rounded-xl border border-pink-200 bg-linear-to-br from-pink-50/40 to-purple-50/40 text-pink-600 shadow-xs transition-all duration-200 hover:border-pink-500 hover:bg-pink-500 hover:text-white dark:border-pink-950 dark:bg-linear-to-br dark:from-pink-950/20 dark:to-purple-950/20 dark:text-pink-400 dark:hover:border-pink-500 dark:hover:bg-pink-500 dark:hover:text-white"
                 title="Instagram"
               >
                 <FaInstagram className="h-6 w-6" />
@@ -1126,7 +1183,7 @@ export default function LandingPage() {
                 rel="noopener noreferrer"
                 className="flex items-center gap-3 rounded-2xl border border-slate-200/60 bg-white/40 p-3 text-left transition-all duration-200 hover:border-blue-500/30 hover:bg-blue-50/30 dark:border-slate-800 dark:bg-slate-900/40 dark:hover:border-blue-500/30 dark:hover:bg-blue-950/15"
               >
-                <div className="bg-linear-to-br flex size-9 shrink-0 items-center justify-center rounded-xl from-green-500 to-emerald-600 shadow-sm">
+                <div className="flex size-9 shrink-0 items-center justify-center rounded-xl bg-linear-to-br from-green-500 to-emerald-600 shadow-sm">
                   <Book className="h-4.5 w-4.5 text-white" />
                 </div>
                 <div>
@@ -1146,7 +1203,7 @@ export default function LandingPage() {
                 rel="noopener noreferrer"
                 className="flex items-center gap-3 rounded-2xl border border-slate-200/60 bg-white/40 p-3 text-left transition-all duration-200 hover:border-purple-500/30 hover:bg-purple-50/30 dark:border-slate-800 dark:bg-slate-900/40 dark:hover:border-purple-500/30 dark:hover:bg-purple-950/15"
               >
-                <div className="bg-linear-to-br flex size-9 shrink-0 items-center justify-center rounded-xl from-indigo-500 to-purple-600 shadow-sm">
+                <div className="flex size-9 shrink-0 items-center justify-center rounded-xl bg-linear-to-br from-indigo-500 to-purple-600 shadow-sm">
                   <Music className="h-4.5 w-4.5 text-white" />
                 </div>
                 <div>
@@ -1161,7 +1218,7 @@ export default function LandingPage() {
               </a>
             </div>
           </div>
-          <div className="text-center text-[10px] font-bold uppercase tracking-widest text-slate-400 dark:text-slate-500">
+          <div className="text-center text-[10px] font-bold tracking-widest text-slate-400 uppercase dark:text-slate-500">
             © {new Date().getFullYear()} Sanskrit Games. All rights reserved.
           </div>
         </div>

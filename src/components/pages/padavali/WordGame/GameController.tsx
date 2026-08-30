@@ -41,7 +41,7 @@ export const GameContoller = ({ timerRef }: Props) => {
             animate={{ opacity: 1, scale: 1 }}
             transition={{ duration: 0.3, ease: 'easeInOut' }}
             className={cn(
-              'bg-linear-to-r group relative overflow-hidden from-blue-500 to-indigo-500 hover:from-blue-600 hover:to-indigo-600',
+              'group relative overflow-hidden bg-linear-to-r from-blue-500 to-indigo-500 hover:from-blue-600 hover:to-indigo-600',
               'rounded-xl px-4 py-2.5 font-bold text-white shadow-lg hover:shadow-xl sm:rounded-2xl sm:px-6 sm:py-3',
               'transform transition-all duration-200 hover:scale-105 active:scale-95',
               'flex h-full min-h-16 w-full items-center justify-center gap-2 sm:min-h-20',
@@ -61,7 +61,7 @@ export const GameContoller = ({ timerRef }: Props) => {
           initial={{ opacity: 0, scale: 0.9 }}
           animate={{ opacity: 1, scale: 1 }}
           transition={{ duration: 0.45, ease: 'easeInOut' }}
-          className="bg-linear-to-r rounded-xl border border-blue-200 from-blue-50 to-indigo-50 p-2.5 sm:rounded-2xl sm:p-5 md:p-6 lg:p-4 dark:border-blue-800 dark:from-blue-950 dark:to-indigo-950"
+          className="rounded-xl border border-blue-200 bg-linear-to-r from-blue-50 to-indigo-50 p-2.5 sm:rounded-2xl sm:p-5 md:p-6 lg:p-4 dark:border-blue-800 dark:from-blue-950 dark:to-indigo-950"
         >
           <div className="flex items-center justify-center space-x-2 sm:space-x-3">
             <div>

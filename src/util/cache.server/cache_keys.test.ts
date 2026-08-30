@@ -1,5 +1,6 @@
 import { describe, expect, it } from 'vitest';
 import { z } from 'zod';
+import type { RedisJsonValue } from '~/effect/redis';
 import { crosswordCacheKeys } from '~/util/cache.server/crossword_cache';
 import { padavaliCacheKeys } from '~/util/cache.server/padavali_cache';
 
@@ -7,13 +8,11 @@ const redisGenerationKey = (cacheKey: string) => `${cacheKey}:gen`;
 
 const parseScheduleSentinel =
   <T>(schema: z.ZodType<T>) =>
-  (raw: unknown): T | undefined | null => {
+  (raw: RedisJsonValue): T | undefined | null => {
     if (raw === 'undefined') return undefined;
-    if (typeof raw === 'object' && raw !== null) {
-      const parsed = schema.safeParse(raw);
-      return parsed.success ? parsed.data : null;
-    }
-    return null;
+    // Non-object payloads fail the object schema itself, mapping to a cache miss.
+    const parsed = schema.safeParse(raw);
+    return parsed.success ? parsed.data : null;
   };
 
 describe('cache keys', () => {

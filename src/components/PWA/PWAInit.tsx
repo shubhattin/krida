@@ -45,6 +45,7 @@ export default function PWAInit() {
     // Check if the app is installed (running in standalone mode)
     const checkInstallStatus = () => {
       const isStandalone = window.matchMedia('(display-mode: standalone)').matches;
+      // SAFETY: iOS Safari exposes a standalone flag on navigator that TS types lack
       const isWebAppCapable =
         'standalone' in window.navigator
           ? (window.navigator as Navigator & { standalone?: boolean }).standalone
@@ -70,6 +71,7 @@ export default function PWAInit() {
       event.preventDefault();
       setPwaState((prev) => ({
         ...prev,
+        // SAFETY: beforeinstallprompt always delivers a BeforeInstallPromptEvent
         event_triggerer: event as BeforeInstallPromptEvent,
         install_event_fired: true
       }));
@@ -125,10 +127,10 @@ export const PWAInstallButton = ({ setOpen }: { setOpen?: (v: boolean) => void }
     >
       <button
         onClick={handleInstall}
-        className="bg-linear-to-r flex w-full items-center gap-3 rounded-lg border-2 border-green-200 from-green-50 to-emerald-50 p-3 text-left text-sm font-medium text-green-700 transition-all duration-200 hover:scale-[1.02] hover:border-green-300 hover:from-green-100 hover:to-emerald-100 hover:shadow-md active:scale-[0.98] dark:border-green-800 dark:from-green-950/30 dark:to-emerald-950/30 dark:text-green-300 dark:hover:border-green-700 dark:hover:from-green-900/40 dark:hover:to-emerald-900/40"
+        className="flex w-full items-center gap-3 rounded-lg border-2 border-green-200 bg-linear-to-r from-green-50 to-emerald-50 p-3 text-left text-sm font-medium text-green-700 transition-all duration-200 hover:scale-[1.02] hover:border-green-300 hover:from-green-100 hover:to-emerald-100 hover:shadow-md active:scale-[0.98] dark:border-green-800 dark:from-green-950/30 dark:to-emerald-950/30 dark:text-green-300 dark:hover:border-green-700 dark:hover:from-green-900/40 dark:hover:to-emerald-900/40"
         title="Install PWA App for offline access"
       >
-        <div className="bg-linear-to-br flex h-8 w-8 items-center justify-center rounded-lg from-green-500 to-emerald-600 shadow-sm">
+        <div className="flex h-8 w-8 items-center justify-center rounded-lg bg-linear-to-br from-green-500 to-emerald-600 shadow-sm">
           <LogIn className="h-4 w-4 text-white" />
         </div>
         <div className="flex-1">

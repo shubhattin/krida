@@ -64,11 +64,11 @@ export type TriggerBatchPuzzleImageGenInput = {
   puzzles: TriggerPuzzleImageInput[];
 };
 
-export function parseBatchMetadata(metadata: unknown): BatchMetadata {
+export function parseBatchMetadata(metadata: BatchMetadata): BatchMetadata {
   return batch_metadata_schema.parse(metadata);
 }
 
-export function tryParseBatchMetadata(metadata: unknown): BatchMetadata | null {
+export function tryParseBatchMetadata(metadata: BatchMetadata): BatchMetadata | null {
   const parsed = batch_metadata_schema.safeParse(metadata);
   return parsed.success ? parsed.data : null;
 }
@@ -485,12 +485,12 @@ async function markBatchOutputResolvedIfComplete(
   batch_id: string,
   output_file_id?: string | null
 ) {
+  const updates: Partial<typeof ai_batches.$inferInsert> = { output_resolved: true };
+  if (output_file_id != null) updates.output_file_id = output_file_id;
+
   await tx
     .update(ai_batches)
-    .set({
-      output_resolved: true,
-      ...(output_file_id != null ? { output_file_id } : {})
-    })
+    .set(updates)
     .where(
       and(
         eq(ai_batches.batch_id, batch_id),
@@ -784,6 +784,104 @@ const markItemFailed = Effect.fn('batch_ai.markItemFailed')(function* (
   return yield* loadResolvedPollItem(batch_id, custom_id);
 });
 
+type BatchResponseRow = Pick<typeof ai_batch_responses.$inferSelect, 'custom_id' | 'metadata'>;
+
+/** Read back a row that another worker already finalized; null while it is still unprocessed. */
+const findResolvedRowItem = Effect.fn('batch_ai.findResolvedRowItem')(function* (
+  db_span: string,
+  batch_id: string,
+  custom_id: string
+) {
+  const resolved_row = yield* dbRun(db_span, (client) =>
+    client.query.ai_batch_responses.findFirst({
+      where: and(
+        eq(ai_batch_responses.batch_id, batch_id),
+        eq(ai_batch_responses.custom_id, custom_id)
+      )
+    })
+  );
+  if (!resolved_row) return null;
+  const resolved_metadata = parseBatchMetadata(resolved_row.metadata);
+  if (!isResponseItemProcessed(resolved_metadata)) return null;
+  return toPollItem(resolved_row.custom_id, resolved_metadata);
+});
+
+const markItemFailedAndCollect = Effect.fn('batch_ai.markItemFailedAndCollect')(function* (
+  batch_id: string,
+  custom_id: string,
+  metadata: BatchMetadata,
+  batch_output_file_id: string | null,
+  items: PollBatchPuzzleImageGenItem[]
+) {
+  const failed_item = yield* markItemFailed(batch_id, custom_id, metadata, batch_output_file_id);
+  if (failed_item) items.push(failed_item);
+});
+
+function isSuccessfulImageOutput(
+  output: { success: boolean; type: string; image_b64?: string } | undefined
+): output is { success: true; type: 'image'; image_b64: string } {
+  return (
+    output !== undefined &&
+    output.success &&
+    output.type === 'image' &&
+    output.image_b64 !== undefined &&
+    output.image_b64.length > 0
+  );
+}
+
+/** Mark every still-unprocessed row as failed and snapshot the batch output file id. */
+const markTerminalFailure = Effect.fn('batch_ai.markTerminalFailure')(function* (
+  batch_id: string,
+  db_rows: BatchResponseRow[],
+  batch_output_file_id: string | null
+) {
+  yield* dbTransaction('batch_ai.mark_terminal_failure', async (tx) => {
+    const unprocessed_rows = db_rows.filter(
+      (row) => !isResponseItemProcessed(parseBatchMetadata(row.metadata))
+    );
+    if (unprocessed_rows.length > 0) {
+      const value_rows = unprocessed_rows.map((row) => {
+        const metadata = {
+          ...parseBatchMetadata(row.metadata),
+          success: false
+        };
+        return sql`(${row.custom_id}::text, ${JSON.stringify(metadata)}::jsonb)`;
+      });
+      await tx.execute(sql`
+        UPDATE ${ai_batch_responses} AS t
+        SET metadata = v.metadata
+        FROM (VALUES ${sql.join(value_rows, sql`, `)}) AS v(custom_id, metadata)
+        WHERE t.batch_id = ${batch_id}
+          AND t.custom_id = v.custom_id
+          AND t.metadata->>'success' IS NULL
+      `);
+      if (batch_output_file_id != null) {
+        await tx
+          .update(ai_batches)
+          .set({ output_file_id: batch_output_file_id })
+          .where(eq(ai_batches.batch_id, batch_id));
+      }
+    }
+    await markBatchOutputResolvedIfComplete(tx, batch_id, batch_output_file_id);
+  });
+});
+
+/** Drop a duplicate upload and resolve the row state after losing the write race. */
+const cleanupLostUpload = Effect.fn('batch_ai.cleanupLostUpload')(function* (
+  batch_id: string,
+  custom_id: string,
+  upload_image_id: number
+) {
+  yield* deleteImageAssetById(upload_image_id).pipe(
+    Effect.catch((err) =>
+      Effect.sync(() => {
+        console.error(`Failed to clean up duplicate batch upload image ${upload_image_id}:`, err);
+      })
+    )
+  );
+  return yield* findResolvedRowItem('batch_ai.find_row_after_cas_loss', batch_id, custom_id);
+});
+
 export const poll_batch_puzzle_image_gen = Effect.fn('poll_batch_puzzle_image_gen')(function* (
   batch_id: string
 ) {
@@ -826,35 +924,7 @@ export const poll_batch_puzzle_image_gen = Effect.fn('poll_batch_puzzle_image_ge
     const openai_status = batch.status;
 
     if (TERMINAL_FAILURE_STATUSES.has(openai_status)) {
-      yield* dbTransaction('batch_ai.mark_terminal_failure', async (tx) => {
-        const unprocessed_rows = db_rows.filter(
-          (row) => !isResponseItemProcessed(parseBatchMetadata(row.metadata))
-        );
-        if (unprocessed_rows.length > 0) {
-          const value_rows = unprocessed_rows.map((row) => {
-            const metadata = {
-              ...parseBatchMetadata(row.metadata),
-              success: false
-            };
-            return sql`(${row.custom_id}::text, ${JSON.stringify(metadata)}::jsonb)`;
-          });
-          await tx.execute(sql`
-            UPDATE ${ai_batch_responses} AS t
-            SET metadata = v.metadata
-            FROM (VALUES ${sql.join(value_rows, sql`, `)}) AS v(custom_id, metadata)
-            WHERE t.batch_id = ${batch_id}
-              AND t.custom_id = v.custom_id
-              AND t.metadata->>'success' IS NULL
-          `);
-          if (batch_output_file_id != null) {
-            await tx
-              .update(ai_batches)
-              .set({ output_file_id: batch_output_file_id })
-              .where(eq(ai_batches.batch_id, batch_id));
-          }
-        }
-        await markBatchOutputResolvedIfComplete(tx, batch_id, batch_output_file_id);
-      });
+      yield* markTerminalFailure(batch_id, db_rows, batch_output_file_id);
       return {
         status: 'terminal_failure',
         batch_id,
@@ -886,34 +956,26 @@ export const poll_batch_puzzle_image_gen = Effect.fn('poll_batch_puzzle_image_ge
 
     const claimed_row = yield* tryClaimBatchRow(batch_id, row.custom_id);
     if (!claimed_row) {
-      const resolved_row = yield* dbRun('batch_ai.find_claimed_or_resolved_row', (client) =>
-        client.query.ai_batch_responses.findFirst({
-          where: and(
-            eq(ai_batch_responses.batch_id, batch_id),
-            eq(ai_batch_responses.custom_id, row.custom_id)
-          )
-        })
+      const resolved_item = yield* findResolvedRowItem(
+        'batch_ai.find_claimed_or_resolved_row',
+        batch_id,
+        row.custom_id
       );
-      if (resolved_row) {
-        const resolved_metadata = parseBatchMetadata(resolved_row.metadata);
-        if (isResponseItemProcessed(resolved_metadata)) {
-          items.push(toPollItem(resolved_row.custom_id, resolved_metadata));
-        }
-      }
+      if (resolved_item) items.push(resolved_item);
       continue;
     }
 
     const metadata = parseBatchMetadata(claimed_row.metadata);
     const output = output_by_custom_id.get(row.custom_id);
 
-    if (!output || !output.success || output.type !== 'image' || !output.image_b64) {
-      const failed_item = yield* markItemFailed(
+    if (!isSuccessfulImageOutput(output)) {
+      yield* markItemFailedAndCollect(
         batch_id,
         row.custom_id,
         metadata,
-        batch_output_file_id
+        batch_output_file_id,
+        items
       );
-      if (failed_item) items.push(failed_item);
       continue;
     }
 
@@ -929,13 +991,13 @@ export const poll_batch_puzzle_image_gen = Effect.fn('poll_batch_puzzle_image_ge
     );
 
     if (!upload_result.success) {
-      const failed_item = yield* markItemFailed(
+      yield* markItemFailedAndCollect(
         batch_id,
         row.custom_id,
         metadata,
-        batch_output_file_id
+        batch_output_file_id,
+        items
       );
-      if (failed_item) items.push(failed_item);
       continue;
     }
 
@@ -959,30 +1021,8 @@ export const poll_batch_puzzle_image_gen = Effect.fn('poll_batch_puzzle_image_ge
     });
 
     if (!persisted) {
-      yield* deleteImageAssetById(upload_result.id).pipe(
-        Effect.catch((err) =>
-          Effect.sync(() => {
-            console.error(
-              `Failed to clean up duplicate batch upload image ${upload_result.id}:`,
-              err
-            );
-          })
-        )
-      );
-      const resolved_row = yield* dbRun('batch_ai.find_row_after_cas_loss', (client) =>
-        client.query.ai_batch_responses.findFirst({
-          where: and(
-            eq(ai_batch_responses.batch_id, batch_id),
-            eq(ai_batch_responses.custom_id, row.custom_id)
-          )
-        })
-      );
-      if (resolved_row) {
-        const resolved_metadata = parseBatchMetadata(resolved_row.metadata);
-        if (isResponseItemProcessed(resolved_metadata)) {
-          items.push(toPollItem(resolved_row.custom_id, resolved_metadata));
-        }
-      }
+      const resolved_item = yield* cleanupLostUpload(batch_id, row.custom_id, upload_result.id);
+      if (resolved_item) items.push(resolved_item);
       continue;
     }
 
@@ -1137,6 +1177,56 @@ export const get_puzzle_image_batch_status = Effect.fn('batch_ai.get_puzzle_imag
   }
 );
 
+type BatchGroupCounts = {
+  pending: number;
+  ready: number;
+  failed: number;
+  auto_approved: number;
+};
+
+type BatchManagerRow = {
+  batch_id: string;
+  custom_id: string;
+  output_resolved: boolean;
+  auto_approved: boolean;
+  metadata: BatchMetadata;
+};
+
+type BatchRowIds = { puzzle_ids: Set<number>; image_ids: Set<number> };
+
+function collectBatchRowIds(rows: BatchManagerRow[]): BatchRowIds {
+  const puzzle_ids = new Set<number>();
+  const image_ids = new Set<number>();
+  for (const row of rows) {
+    if (row.metadata.puzzle_id !== undefined) {
+      puzzle_ids.add(row.metadata.puzzle_id);
+    } else {
+      const parsed = parsePuzzleIdFromBatchCustomId(row.custom_id);
+      if (parsed !== null) puzzle_ids.add(parsed.puzzle_id);
+    }
+    if (row.metadata.uploaded_image_id !== undefined) {
+      image_ids.add(row.metadata.uploaded_image_id);
+    }
+  }
+  return { puzzle_ids, image_ids };
+}
+
+function countGroupItems(items: EnrichedBatchRow[]): BatchGroupCounts {
+  const counts = {
+    pending: 0,
+    ready: 0,
+    failed: 0,
+    auto_approved: 0
+  };
+  for (const item of items) {
+    if (item.status === 'processing') counts.pending++;
+    else if (item.status === 'ready_for_review' || item.status === 'auto_applying') counts.ready++;
+    else if (item.status === 'failed') counts.failed++;
+    if (item.auto_approved) counts.auto_approved++;
+  }
+  return counts;
+}
+
 export const get_batch_manager_groups = Effect.fn('batch_ai.get_batch_manager_groups')(function* (
   game: PuzzleImageGame
 ) {
@@ -1160,28 +1250,17 @@ export const get_batch_manager_groups = Effect.fn('batch_ai.get_batch_manager_gr
           output_resolved: batch.output_resolved,
           auto_approved: response.auto_approved,
           metadata
-        }
+        } satisfies BatchManagerRow
       ];
     })
   );
 
-  const puzzle_ids = new Set<number>();
-  const image_ids = new Set<number>();
-  for (const row of rows) {
-    if (row.metadata.puzzle_id !== undefined) {
-      puzzle_ids.add(row.metadata.puzzle_id);
-    } else {
-      const parsed = parsePuzzleIdFromBatchCustomId(row.custom_id);
-      if (parsed !== null) puzzle_ids.add(parsed.puzzle_id);
-    }
-    if (row.metadata.uploaded_image_id !== undefined) {
-      image_ids.add(row.metadata.uploaded_image_id);
-    }
-  }
+  const { puzzle_ids, image_ids } = collectBatchRowIds(rows);
 
   const puzzle_id_list = [...puzzle_ids];
   const { puzzles, assets } = yield* Effect.all({
     puzzles:
+      // SAFETY: empty list stands in for the findMany rows (id + title) when there are none
       puzzle_id_list.length > 0
         ? dbRun('batch_ai.find_puzzles_for_manager', (client) =>
             game === 'crossword'
@@ -1210,6 +1289,7 @@ export const get_batch_manager_groups = Effect.fn('batch_ai.get_batch_manager_gr
             })
           )
         : Effect.succeed(
+            // SAFETY: empty list stands in for findMany rows with these exact columns
             [] as Array<{
               id: number;
               s3_key: string;
@@ -1257,22 +1337,7 @@ export const get_batch_manager_groups = Effect.fn('batch_ai.get_batch_manager_gr
     }
   }
 
-  return [...groups.values()].map((group) => {
-    const counts = {
-      pending: 0,
-      ready: 0,
-      failed: 0,
-      auto_approved: 0
-    };
-    for (const item of group.items) {
-      if (item.status === 'processing') counts.pending++;
-      else if (item.status === 'ready_for_review' || item.status === 'auto_applying')
-        counts.ready++;
-      else if (item.status === 'failed') counts.failed++;
-      if (item.auto_approved) counts.auto_approved++;
-    }
-    return { ...group, counts };
-  });
+  return [...groups.values()].map((group) => ({ ...group, counts: countGroupItems(group.items) }));
 });
 
 export const discard_puzzle_image_batch_response = Effect.fn(

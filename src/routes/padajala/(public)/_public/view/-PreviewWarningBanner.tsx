@@ -36,7 +36,7 @@ export function PreviewWarningBanner({ listed, slug }: PreviewWarningBannerProps
         <Link
           to="/padajala/$slug"
           params={{ slug }}
-          className="text-primary inline-flex items-center gap-1 text-sm font-medium underline-offset-4 hover:underline"
+          className="inline-flex items-center gap-1 text-sm font-medium text-primary underline-offset-4 hover:underline"
         >
           Listed URL
           <ExternalLink className="size-3.5 shrink-0" aria-hidden="true" />

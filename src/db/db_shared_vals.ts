@@ -16,12 +16,12 @@ export const ATTACHMENT_TYPE_LIST = [
   'youtube_embed'
 ] as const;
 export type attachment_list_type = (typeof ATTACHMENT_TYPE_LIST)[number];
-export const ATTACHMENT_TYPE_NAMES: Record<attachment_list_type, string> = {
+export const ATTACHMENT_TYPE_NAMES = {
   link: 'Link',
   youtube_video: 'Youtube Video',
   youtube_playlist: 'Youtube Playlist',
   youtube_embed: 'Youtube Embed'
-};
+} satisfies Record<attachment_list_type, string>;
 
 export const DEFAULT_YOUTUBE_EMBED = {
   title: null,

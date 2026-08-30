@@ -27,7 +27,10 @@ export const revealed_word_atom = atom<Selection | null>(null);
 export const PADAVLI_REVEAL_COOLDOWN_PERIOD_MS = 6200;
 export const seconds_atom = atom(0);
 export const total_attempts_atom = atom(0);
-export const word_msgs_atom = atom<typeof word_game_msgs>({} as typeof word_game_msgs);
+export const word_msgs_atom = atom<typeof word_game_msgs>(
+  // SAFETY: placeholder store value until initial_script_data.word_msgs arrives on mount
+  {} as typeof word_game_msgs
+);
 export const pending_navigation_url_atom = atom<string | null>(null);
 export const puzzle_slug_atom = atom('');
 

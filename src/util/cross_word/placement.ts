@@ -29,6 +29,55 @@ function cellKey(r: number, c: number) {
   return `${r},${c}`;
 }
 
+type RunDirection = 'horizontal' | 'vertical';
+
+function runCellAt(
+  grid: CrossordPuzzleGridCell[][],
+  direction: RunDirection,
+  line: number,
+  pos: number
+): CrossordPuzzleGridCell {
+  return direction === 'horizontal' ? grid[line]![pos]! : grid[pos]![line]!;
+}
+
+function runLocation(direction: RunDirection, line: number, start: number): [number, number] {
+  return direction === 'horizontal' ? [line, start] : [start, line];
+}
+
+function runCellCoords(direction: RunDirection, line: number, pos: number): [number, number] {
+  return direction === 'horizontal' ? [line, pos] : [pos, line];
+}
+
+/**
+ * Collect contiguous letter runs (length >= 2) along one direction.
+ * For horizontal runs `line` is the row; for vertical runs it is the column.
+ * Blank (box) cells break a run — only filled letters count.
+ */
+function collectRunsInDirection(
+  grid: CrossordPuzzleGridCell[][],
+  direction: RunDirection,
+  lineCount: number,
+  lineLength: number
+): WordPlacement[] {
+  const runs: WordPlacement[] = [];
+  for (let line = 0; line < lineCount; line++) {
+    let pos = 0;
+    while (pos < lineLength) {
+      while (pos < lineLength && !cellHasLetter(runCellAt(grid, direction, line, pos))) pos++;
+      const start = pos;
+      const cells: [number, number][] = [];
+      while (pos < lineLength && cellHasLetter(runCellAt(grid, direction, line, pos))) {
+        cells.push(runCellCoords(direction, line, pos));
+        pos++;
+      }
+      if (cells.length >= 2) {
+        runs.push({ location: runLocation(direction, line, start), direction, cells });
+      }
+    }
+  }
+  return runs;
+}
+
 /**
  * Collect contiguous letter runs (length >= 2) in both directions.
  * Blank (box) cells break a run — only filled letters count.
@@ -36,43 +85,10 @@ function cellKey(r: number, c: number) {
 export function findAllRuns(grid: CrossordPuzzleGridCell[][]): WordPlacement[] {
   const rows = grid.length;
   const cols = grid[0]?.length ?? 0;
-  const runs: WordPlacement[] = [];
-
-  // Horizontal
-  for (let r = 0; r < rows; r++) {
-    let c = 0;
-    while (c < cols) {
-      while (c < cols && !cellHasLetter(grid[r]![c]!)) c++;
-      const start = c;
-      const cells: [number, number][] = [];
-      while (c < cols && cellHasLetter(grid[r]![c]!)) {
-        cells.push([r, c]);
-        c++;
-      }
-      if (cells.length >= 2) {
-        runs.push({ location: [r, start], direction: 'horizontal', cells });
-      }
-    }
-  }
-
-  // Vertical
-  for (let c = 0; c < cols; c++) {
-    let r = 0;
-    while (r < rows) {
-      while (r < rows && !cellHasLetter(grid[r]![c]!)) r++;
-      const start = r;
-      const cells: [number, number][] = [];
-      while (r < rows && cellHasLetter(grid[r]![c]!)) {
-        cells.push([r, c]);
-        r++;
-      }
-      if (cells.length >= 2) {
-        runs.push({ location: [start, c], direction: 'vertical', cells });
-      }
-    }
-  }
-
-  return runs;
+  return [
+    ...collectRunsInDirection(grid, 'horizontal', rows, cols),
+    ...collectRunsInDirection(grid, 'vertical', cols, rows)
+  ];
 }
 
 export function findPlacementsForWord(
@@ -134,22 +150,17 @@ function normalizeWordDev(word_dev: string | null | undefined): string {
   return (word_dev ?? '').trim();
 }
 
-/**
- * Analyze word_list against grid. Only words with exactly one matching
- * horizontal/vertical path get a resolved location/direction.
- * Entries with `added === false` are skipped (treated as empty for validation).
- */
-export function analyzeWordPlacements(
-  grid: CrossordPuzzleGridCell[][],
-  wordList: (Pick<CrossWordPuzzleWord, 'word' | 'description'> &
-    Partial<Pick<CrossWordPuzzleWord, 'added' | 'word_dev'>>)[]
-): PlacementAnalysis {
-  const statuses: (WordPlacementStatus | undefined)[] = [];
-  const occupiedCells = new Set<string>();
-  const noVisibleHintWords: { wordIndex: number; word: string }[] = [];
-  const resolvedLongerPlacements: WordPlacement[] = [];
+type WordListEntry = Pick<CrossWordPuzzleWord, 'word' | 'description'> &
+  Partial<Pick<CrossWordPuzzleWord, 'added' | 'word_dev'>>;
 
-  // Duplicate detection across enabled word list (case-insensitive)
+type DuplicateInfo = {
+  /** Case-insensitive word -> indices of enabled entries sharing it */
+  wordCountMap: Map<string, number[]>;
+  duplicateIndices: Set<number>;
+};
+
+// Duplicate detection across enabled word list (case-insensitive)
+function buildDuplicateInfo(wordList: WordListEntry[]): DuplicateInfo {
   const wordCountMap = new Map<string, number[]>();
   wordList.forEach((item, index) => {
     if (item.added === false) return;
@@ -165,44 +176,93 @@ export function analyzeWordPlacements(
       for (const i of indices) duplicateIndices.add(i);
     }
   }
+  return { wordCountMap, duplicateIndices };
+}
 
+/** Resolve a single enabled entry against the grid, longest placements first. */
+function resolveEntryStatus(
+  grid: CrossordPuzzleGridCell[][],
+  index: number,
+  wordList: WordListEntry[],
+  duplicateInfo: DuplicateInfo,
+  resolvedLongerPlacements: WordPlacement[]
+): WordPlacementStatus {
+  const item = wordList[index]!;
+  const word = item.word.trim();
+  if (!word) return { status: 'empty' };
+
+  if (duplicateInfo.duplicateIndices.has(index)) {
+    const indices = duplicateInfo.wordCountMap.get(word.toUpperCase()) ?? [index];
+    return { status: 'duplicate', word, indices };
+  }
+
+  const placements = findPlacementsForWord(grid, word).filter(
+    (placement) =>
+      !resolvedLongerPlacements.some((longerPlacement) =>
+        isContainedWithin(placement, longerPlacement)
+      )
+  );
+  if (placements.length === 0) return { status: 'missing', word };
+  if (placements.length > 1) return { status: 'ambiguous', word, placements };
+
+  const placement = placements[0]!;
+  const hasVisibleLetter = placementHasVisibleLetter(grid, placement);
+  resolvedLongerPlacements.push(placement);
+  return { status: 'ok', placement, hasVisibleLetter };
+}
+
+/** Collect cells from any found placement (unique, ambiguous, or duplicate). */
+function collectStatusCells(
+  grid: CrossordPuzzleGridCell[][],
+  status: WordPlacementStatus,
+  occupiedCells: Set<string>
+): void {
+  const addCells = (placement: WordPlacement) => {
+    for (const [r, c] of placement.cells) occupiedCells.add(cellKey(r, c));
+  };
+  switch (status.status) {
+    case 'ok':
+      addCells(status.placement);
+      break;
+    case 'ambiguous':
+      for (const placement of status.placements) addCells(placement);
+      break;
+    case 'duplicate':
+      for (const placement of findPlacementsForWord(grid, status.word)) addCells(placement);
+      break;
+  }
+}
+
+/**
+ * Analyze word_list against grid. Only words with exactly one matching
+ * horizontal/vertical path get a resolved location/direction.
+ * Entries with `added === false` are skipped (treated as empty for validation).
+ */
+export function analyzeWordPlacements(
+  grid: CrossordPuzzleGridCell[][],
+  wordList: WordListEntry[]
+): PlacementAnalysis {
+  const statuses: (WordPlacementStatus | undefined)[] = [];
+  const occupiedCells = new Set<string>();
+  const noVisibleHintWords: { wordIndex: number; word: string }[] = [];
+  const resolvedLongerPlacements: WordPlacement[] = [];
+
+  const duplicateInfo = buildDuplicateInfo(wordList);
+
+  // Resolve long words first, then their potential subwords. This permits
+  // intentional overlap such as PRANAYAMA and YAMA on the same path.
   const placementOrder = wordList
     .map((item, index) => ({ index, length: item.word.trim().length, added: item.added !== false }))
     .filter((entry) => entry.added)
     .toSorted((a, b) => b.length - a.length || a.index - b.index);
-
-  // Resolve long words first, then their potential subwords. This permits
-  // intentional overlap such as PRANAYAMA and YAMA on the same path.
-  for (const { index: i } of placementOrder) {
-    const item = wordList[i]!;
-    const word = item.word.trim();
-    if (!word) {
-      statuses[i] = { status: 'empty' };
-      continue;
-    }
-
-    if (duplicateIndices.has(i)) {
-      const indices = wordCountMap.get(word.toUpperCase()) ?? [i];
-      statuses[i] = { status: 'duplicate', word, indices };
-      continue;
-    }
-
-    const placements = findPlacementsForWord(grid, word).filter(
-      (placement) =>
-        !resolvedLongerPlacements.some((longerPlacement) =>
-          isContainedWithin(placement, longerPlacement)
-        )
+  for (const { index } of placementOrder) {
+    statuses[index] = resolveEntryStatus(
+      grid,
+      index,
+      wordList,
+      duplicateInfo,
+      resolvedLongerPlacements
     );
-    if (placements.length === 0) {
-      statuses[i] = { status: 'missing', word };
-    } else if (placements.length > 1) {
-      statuses[i] = { status: 'ambiguous', word, placements };
-    } else {
-      const placement = placements[0]!;
-      const hasVisibleLetter = placementHasVisibleLetter(grid, placement);
-      statuses[i] = { status: 'ok', placement, hasVisibleLetter };
-      resolvedLongerPlacements.push(placement);
-    }
   }
 
   // Mark disabled / unset entries as empty so they do not affect listing checks
@@ -235,24 +295,15 @@ export function analyzeWordPlacements(
 
   // Coverage for editor warnings/highlights: include cells from any found placement
   // (unique, ambiguous, or duplicate). Orphan letters are only those never matched.
-  for (let i = 0; i < resolvedStatuses.length; i++) {
-    const status = resolvedStatuses[i]!;
-    if (status.status === 'ok') {
-      for (const [r, c] of status.placement.cells) occupiedCells.add(cellKey(r, c));
-    } else if (status.status === 'ambiguous') {
-      for (const placement of status.placements) {
-        for (const [r, c] of placement.cells) occupiedCells.add(cellKey(r, c));
-      }
-    } else if (status.status === 'duplicate') {
-      for (const placement of findPlacementsForWord(grid, status.word)) {
-        for (const [r, c] of placement.cells) occupiedCells.add(cellKey(r, c));
-      }
-    }
+  for (const status of resolvedStatuses) {
+    collectStatusCells(grid, status, occupiedCells);
   }
 
   const nonEmpty = resolvedStatuses.filter((s) => s.status !== 'empty');
   const hasAllValid =
-    nonEmpty.length > 0 && nonEmpty.every((s) => s.status === 'ok') && duplicateIndices.size === 0;
+    nonEmpty.length > 0 &&
+    nonEmpty.every((s) => s.status === 'ok') &&
+    duplicateInfo.duplicateIndices.size === 0;
   const canList = hasAllValid;
 
   return {

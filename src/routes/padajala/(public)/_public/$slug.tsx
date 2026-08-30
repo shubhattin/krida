@@ -107,7 +107,7 @@ function CrosswordSlugPage() {
   const data = Route.useLoaderData();
 
   return (
-    <main className="bg-linear-to-br relative min-h-dvh overflow-x-clip from-slate-50 via-blue-50 to-indigo-50 dark:from-slate-900 dark:via-slate-800 dark:to-slate-900">
+    <main className="relative min-h-dvh overflow-x-clip bg-linear-to-br from-slate-50 via-blue-50 to-indigo-50 dark:from-slate-900 dark:via-slate-800 dark:to-slate-900">
       <div className="px-4 pt-4 sm:px-6 sm:pt-5">
         <Link
           to="/padajala/puzzles"
@@ -118,7 +118,7 @@ function CrosswordSlugPage() {
         </Link>
       </div>
       {data.kind === 'unavailable' ? (
-        <div className="text-muted-foreground px-4 py-8 text-center">
+        <div className="px-4 py-8 text-center text-muted-foreground">
           This puzzle is not available.
         </div>
       ) : (

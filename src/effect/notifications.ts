@@ -47,6 +47,18 @@ export class NotificationService extends Context.Service<
               Effect.mapError((cause) => NotificationError.make({ operation: 'validate', cause }))
             );
 
+            const notification_body = {
+              app_id: config.onesignalAppId,
+              target_channel: body.target_channel ?? 'push',
+              included_segments: body.included_segments ?? ['All'],
+              name: body.name,
+              headings: body.headings,
+              contents: body.contents,
+              // JSON.stringify drops `undefined` properties, matching conditional omission.
+              chrome_web_image: body.chrome_web_image || undefined,
+              url: body.url
+            };
+
             return yield* tryNotify('send', async () => {
               const response = await fetch('https://api.onesignal.com/notifications', {
                 method: 'POST',
@@ -54,16 +66,7 @@ export class NotificationService extends Context.Service<
                   'Content-Type': 'application/json; charset=utf-8',
                   Authorization: `Key ${Redacted.value(config.onesignalApiKey!)}`
                 },
-                body: JSON.stringify({
-                  app_id: config.onesignalAppId,
-                  target_channel: body.target_channel ?? 'push',
-                  included_segments: body.included_segments ?? ['All'],
-                  name: body.name,
-                  headings: body.headings,
-                  contents: body.contents,
-                  ...(body.chrome_web_image ? { chrome_web_image: body.chrome_web_image } : {}),
-                  ...(body.url !== undefined ? { url: body.url } : {})
-                }),
+                body: JSON.stringify(notification_body),
                 signal: AbortSignal.timeout(10_000)
               });
 

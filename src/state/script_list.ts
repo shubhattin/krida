@@ -21,7 +21,7 @@ export const SCRIPT_LIST = [...SCRIPT_LIST_MAIN, ...SCRIPT_LIST_ANCIENT] as cons
 
 export type ScriptType = (typeof SCRIPT_LIST)[number];
 
-export const SCRIPT_NAMES: Record<ScriptType, string> = {
+export const SCRIPT_NAMES = {
   Devanagari: 'Devanagari',
   Telugu: 'Telugu',
   Kannada: 'Kannada',
@@ -38,7 +38,7 @@ export const SCRIPT_NAMES: Record<ScriptType, string> = {
   Sinhala: 'Sinhala',
   Sharada: 'Sharada',
   Granth: 'Grantha'
-};
+} satisfies Record<ScriptType, string>;
 export const script_list_enum = z.enum(SCRIPT_LIST);
 
 export const DEFAULT_DATA_SCRIPT: ScriptType = 'Devanagari';
