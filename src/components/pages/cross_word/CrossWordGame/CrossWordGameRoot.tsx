@@ -56,9 +56,7 @@ export default function CrossWordGameRoot({
   attachments: attachmentsProp,
   image
 }: CrossWordGameRootProps) {
-  // SAFETY: both db puzzle variants share the same grid_data/word_list schema the adapter reads
-  const puzzle = isDbPuzzle(raw) ? toCrossWordGamePuzzle(raw as CrossordPuzzle) : raw;
-
+  const puzzleId = raw.id;
   const listed = isDbPuzzle(raw) ? raw.listed : false;
   const puzzleSlug = isDbPuzzle(raw) ? raw.slug : null;
 
@@ -66,11 +64,17 @@ export default function CrossWordGameRoot({
     const source =
       attachmentsProp ?? (isDbPuzzle(raw) && 'attachments' in raw ? raw.attachments : []);
     return resolveAttachmentsWithDefaults(source ?? []);
-  }, [attachmentsProp, raw]);
+    // eslint-disable-next-line react-hooks/exhaustive-deps -- refresh with puzzle identity / explicit prop
+  }, [attachmentsProp, puzzleId]);
 
   void image;
 
+  // Recreate the jotai store only when switching puzzles. Calling
+  // `toCrossWordGamePuzzle(raw)` every render yields a new object; using that as a
+  // useMemo dep wiped started/completed right after Start.
   const jotaiStore = useMemo(() => {
+    // SAFETY: both db puzzle variants share the same grid_data/word_list schema the adapter reads
+    const puzzle = isDbPuzzle(raw) ? toCrossWordGamePuzzle(raw as CrossordPuzzle) : raw;
     const store = createStore();
     store.set(puzzle_atom, puzzle);
     store.set(numbered_entries_atom, numberEntries(puzzle.entries));
@@ -91,13 +95,14 @@ export default function CrossWordGameRoot({
     store.set(revealing_cells_atom, []);
     store.set(clearing_cells_atom, []);
     return store;
-  }, [puzzle]);
+    // eslint-disable-next-line react-hooks/exhaustive-deps -- reset only when puzzleId changes
+  }, [puzzleId]);
 
   return (
     <>
-      <ActiveCrosswordRegistrar puzzleId={puzzle.id} />
-      <Provider store={jotaiStore} key={String(puzzle.id)}>
-        <CrossWordMetricsCollector puzzle_id={puzzle.id} location={location} />
+      <ActiveCrosswordRegistrar puzzleId={puzzleId} />
+      <Provider store={jotaiStore} key={String(puzzleId)}>
+        <CrossWordMetricsCollector puzzle_id={puzzleId} location={location} />
         <CrossWordGame
           attachments={attachments}
           listed={listed}
