@@ -117,6 +117,12 @@ export default function WordGameRoot(
     script: ScriptType;
   }
 ) {
+  const puzzleId = props.id;
+  const location = props.location;
+
+  // Recreate the jotai store only when switching puzzles (or play location).
+  // Loader arrays/objects (`dims`, `word_list`, `grid_data`, `word_msgs`) get new
+  // identities after Start hydration/refetch; using them as deps wiped started.
   const jotaiStore = useMemo(() => {
     const store = createStore();
     store.set(title_current_atom, props.initial_script_data.title);
@@ -136,20 +142,13 @@ export default function WordGameRoot(
     store.set(puzzle_slug_atom, props.puzzle_slug);
     store.set(description_current_atom, props.description);
     return store;
-  }, [
-    props.description,
-    props.dims,
-    props.initial_script_data.grid_data,
-    props.initial_script_data.title,
-    props.initial_script_data.word_msgs,
-    props.puzzle_slug,
-    props.word_list
-  ]);
+    // eslint-disable-next-line react-hooks/exhaustive-deps -- reset only when puzzle identity changes
+  }, [puzzleId, location]);
 
   return (
     <>
-      <ActivePuzzleRegistrar puzzleId={props.id} />
-      <Provider store={jotaiStore} key={`${props.id}-${props.location}`}>
+      <ActivePuzzleRegistrar puzzleId={puzzleId} />
+      <Provider store={jotaiStore} key={`${puzzleId}-${location}`}>
         <WordGame {...props} />
       </Provider>
     </>
