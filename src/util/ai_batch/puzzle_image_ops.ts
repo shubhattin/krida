@@ -824,7 +824,8 @@ function isSuccessfulImageOutput(
     output !== undefined &&
     output.success &&
     output.type === 'image' &&
-    output.image_b64 !== undefined
+    output.image_b64 !== undefined &&
+    output.image_b64.length > 0
   );
 }
 
