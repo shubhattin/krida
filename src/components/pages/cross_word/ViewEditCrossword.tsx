@@ -693,6 +693,36 @@ type CrosswordWordRowProps = {
 type WordListField = 'word' | 'dev' | 'clue';
 const WORD_LIST_FIELDS: WordListField[] = ['word', 'dev', 'clue'];
 
+/** Resolve the failing word-list field and its display label, if any. */
+function saveErrorWordContext(error: z.ZodError, wordsToSave: EditableWord[]) {
+  const firstIssue = error.issues[0];
+  const pathIndex = z.number().int().safeParse(firstIssue?.path[2]);
+  const wordIndex =
+    firstIssue?.path[0] === 'puzzle_data' && firstIssue.path[1] === 'word_list' && pathIndex.success
+      ? pathIndex.data
+      : null;
+  const field = firstIssue?.path.at(-1);
+  const wordLabel =
+    wordIndex != null
+      ? wordsToSave[wordIndex]?.word.trim().toUpperCase() || `Word ${wordIndex + 1}`
+      : null;
+  return { field, wordLabel };
+}
+
+/** Human-readable message for the first validation issue of a save payload. */
+function describeSaveParseError(error: z.ZodError, wordsToSave: EditableWord[]): string {
+  const firstIssue = error.issues[0];
+  const { field, wordLabel } = saveErrorWordContext(error, wordsToSave);
+
+  if (field === 'word_dev' && wordLabel) {
+    return `Add a Devanagari word for "${wordLabel}"`;
+  }
+  if (field === 'description' && wordLabel) {
+    return `Add a clue for "${wordLabel}"`;
+  }
+  return firstIssue?.message || 'Failed to update puzzle, fix the entered data';
+}
+
 function focusWordListInput(
   container: ParentNode,
   row: number,
@@ -706,6 +736,38 @@ function focusWordListInput(
   const end = el.value.length;
   el.setSelectionRange(end, end);
   return el;
+}
+
+/** Shared tail classes for the muted state of a word-list input. */
+function wordListInputClass(isAdded: boolean, missing?: boolean) {
+  return cn(
+    !isAdded && 'opacity-60',
+    missing &&
+      'border-destructive focus-visible:border-destructive focus-visible:ring-destructive/30'
+  );
+}
+
+/** Horizontal word-list navigation target, or null when the key isn't handled. */
+function wordListHorizontalTarget(
+  key: string,
+  atStart: boolean,
+  atEnd: boolean,
+  fieldIndex: number,
+  listRowIndex: number,
+  listRowCount: number
+): { row: number; field: WordListField } | null {
+  if (key === 'ArrowLeft' && atStart) {
+    if (fieldIndex > 0) return { row: listRowIndex, field: WORD_LIST_FIELDS[fieldIndex - 1]! };
+    if (listRowIndex > 0) return { row: listRowIndex - 1, field: 'clue' };
+    return null;
+  }
+  if (key === 'ArrowRight' && atEnd) {
+    if (fieldIndex < WORD_LIST_FIELDS.length - 1) {
+      return { row: listRowIndex, field: WORD_LIST_FIELDS[fieldIndex + 1]! };
+    }
+    if (listRowIndex < listRowCount - 1) return { row: listRowIndex + 1, field: 'word' };
+  }
+  return null;
 }
 
 function CrosswordWordRow({
@@ -730,6 +792,7 @@ function CrosswordWordRow({
   const hasLatinWord = item.word.trim().length > 0;
   const missingWordDev = isAdded && hasLatinWord && item.word_dev.trim().length === 0;
   const missingClue = isAdded && hasLatinWord && item.description.trim().length === 0;
+  const required = isAdded && hasLatinWord;
 
   const handleListNavKeyDown = (event: KeyboardEvent<HTMLInputElement>, field: WordListField) => {
     const container = event.currentTarget.closest('[data-word-list]');
@@ -748,25 +811,27 @@ function CrosswordWordRow({
       }
     };
 
-    if (event.key === 'ArrowUp' && listRowIndex > 0) {
-      moveTo(listRowIndex - 1, field);
+    const verticalTarget =
+      event.key === 'ArrowUp' && listRowIndex > 0
+        ? listRowIndex - 1
+        : event.key === 'ArrowDown' && listRowIndex < listRowCount - 1
+          ? listRowIndex + 1
+          : null;
+    if (verticalTarget !== null) {
+      moveTo(verticalTarget, field);
       return;
     }
-    if (event.key === 'ArrowDown' && listRowIndex < listRowCount - 1) {
-      moveTo(listRowIndex + 1, field);
-      return;
-    }
-    if (event.key === 'ArrowLeft' && atStart) {
-      if (fieldIndex > 0) moveTo(listRowIndex, WORD_LIST_FIELDS[fieldIndex - 1]!);
-      else if (listRowIndex > 0) moveTo(listRowIndex - 1, 'clue');
-      return;
-    }
-    if (event.key === 'ArrowRight' && atEnd) {
-      if (fieldIndex < WORD_LIST_FIELDS.length - 1) {
-        moveTo(listRowIndex, WORD_LIST_FIELDS[fieldIndex + 1]!);
-      } else if (listRowIndex < listRowCount - 1) {
-        moveTo(listRowIndex + 1, 'word');
-      }
+
+    const horizontalTarget = wordListHorizontalTarget(
+      event.key,
+      atStart,
+      atEnd,
+      fieldIndex,
+      listRowIndex,
+      listRowCount
+    );
+    if (horizontalTarget) {
+      moveTo(horizontalTarget.row, horizontalTarget.field);
     }
   };
 
@@ -806,7 +871,7 @@ function CrosswordWordRow({
           aria-label={`English word ${originalIndex + 1}`}
           className={cn(
             'min-w-0 flex-1 font-mono uppercase sm:w-44 sm:flex-none',
-            !isAdded && 'opacity-60'
+            wordListInputClass(isAdded)
           )}
         />
         <Input
@@ -832,15 +897,13 @@ function CrosswordWordRow({
             handleListNavKeyDown(event, 'dev');
           }}
           placeholder="देवनागरी"
-          required={isAdded && hasLatinWord}
+          required={required}
           aria-invalid={missingWordDev || undefined}
           aria-label={`Devanagari word ${originalIndex + 1}`}
           title={missingWordDev ? 'Devanagari word is required' : undefined}
           className={cn(
             'min-w-0 flex-1 text-base sm:w-32 sm:flex-none',
-            !isAdded && 'opacity-60',
-            missingWordDev &&
-              'border-destructive focus-visible:border-destructive focus-visible:ring-destructive/30'
+            wordListInputClass(isAdded, missingWordDev)
           )}
         />
       </div>
@@ -854,15 +917,10 @@ function CrosswordWordRow({
           onBlur={clueHistoryField.onBlur}
           onKeyDown={(event) => handleListNavKeyDown(event, 'clue')}
           placeholder="Clue / description"
-          required={isAdded && hasLatinWord}
+          required={required}
           aria-invalid={missingClue || undefined}
           aria-label={`Clue ${originalIndex + 1}`}
-          className={cn(
-            'min-w-0 flex-1',
-            !isAdded && 'opacity-60',
-            missingClue &&
-              'border-destructive focus-visible:border-destructive focus-visible:ring-destructive/30'
-          )}
+          className={cn('min-w-0 flex-1', wordListInputClass(isAdded, missingClue))}
         />
         <span
           className="inline-flex h-9 min-w-14 shrink-0 items-center justify-center rounded-md border border-border bg-muted/40 px-2 font-mono text-xs text-muted-foreground"
@@ -2147,30 +2205,7 @@ const SaveControls = ({ puzzle }: { puzzle: ViewEditCrosswordProps['puzzle'] }) 
 
     const parse = crossword_update_input_schema.safeParse(data);
     if (!parse.success) {
-      console.error(parse.error);
-      const firstIssue = parse.error.issues[0];
-      const pathIndex = z.number().int().safeParse(firstIssue?.path[2]);
-      const wordIndex =
-        firstIssue?.path[0] === 'puzzle_data' &&
-        firstIssue.path[1] === 'word_list' &&
-        pathIndex.success
-          ? pathIndex.data
-          : null;
-      const field = firstIssue?.path.at(-1);
-      const wordLabel =
-        wordIndex != null
-          ? wordsToSave[wordIndex]?.word.trim().toUpperCase() || `Word ${wordIndex + 1}`
-          : null;
-
-      if (field === 'word_dev' && wordLabel) {
-        toast.error(`Add a Devanagari word for "${wordLabel}"`);
-        return;
-      }
-      if (field === 'description' && wordLabel) {
-        toast.error(`Add a clue for "${wordLabel}"`);
-        return;
-      }
-      toast.error(firstIssue?.message || 'Failed to update puzzle, fix the entered data');
+      toast.error(describeSaveParseError(parse.error, wordsToSave));
       return;
     }
 

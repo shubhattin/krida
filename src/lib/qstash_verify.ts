@@ -23,10 +23,3 @@ export async function verifyQstashRequest(request: Request): Promise<VerifyQstas
     };
   }
 }
-
-/** @deprecated Prefer verifyQstashRequest */
-export async function verifyAndParseQstashBody(request: Request): Promise<unknown> {
-  const verified = await verifyQstashRequest(request);
-  if (!verified.ok) throw new Error('QStash verification failed');
-  return verified.body;
-}

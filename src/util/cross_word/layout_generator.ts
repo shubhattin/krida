@@ -91,6 +91,50 @@ function isInBounds(row: number, col: number, dimensions: [number, number]): boo
   return row >= 0 && col >= 0 && row < dimensions[0] && col < dimensions[1];
 }
 
+function perpendicularNeighbors(
+  direction: CrossWordPuzzleWord['direction'],
+  row: number,
+  col: number
+): [number, number][] {
+  return direction === 'horizontal'
+    ? [
+        [row - 1, col],
+        [row + 1, col]
+      ]
+    : [
+        [row, col - 1],
+        [row, col + 1]
+      ];
+}
+
+function hasFilledNeighbor(
+  grid: GridCell[][],
+  cells: [number, number][],
+  dimensions: [number, number]
+): boolean {
+  return cells.some(
+    ([neighborRow, neighborCol]) =>
+      isInBounds(neighborRow, neighborCol, dimensions) && grid[neighborRow]![neighborCol]
+  );
+}
+
+function isOccupied(
+  grid: GridCell[][],
+  row: number,
+  col: number,
+  dimensions: [number, number]
+): boolean {
+  return isInBounds(row, col, dimensions) && grid[row]![col] !== null;
+}
+
+function conflictsWithCell(
+  existing: NonNullable<GridCell>,
+  letter: string,
+  direction: CrossWordPuzzleWord['direction']
+): boolean {
+  return existing.letter !== letter || existing.directions.has(direction);
+}
+
 function fitsPlacement(
   grid: GridCell[][],
   placement: InternalPlacement,
@@ -111,8 +155,8 @@ function fitsPlacement(
   const beforeCol = startCol - colStep;
   const afterRow = endRow + rowStep;
   const afterCol = endCol + colStep;
-  if (isInBounds(beforeRow, beforeCol, dimensions) && grid[beforeRow]![beforeCol]) return null;
-  if (isInBounds(afterRow, afterCol, dimensions) && grid[afterRow]![afterCol]) return null;
+  if (isOccupied(grid, beforeRow, beforeCol, dimensions)) return null;
+  if (isOccupied(grid, afterRow, afterCol, dimensions)) return null;
 
   let intersections = 0;
   for (let index = 0; index < normalized.length; index += 1) {
@@ -121,27 +165,12 @@ function fitsPlacement(
     const existing = grid[row]![col];
     const letter = normalized[index]!;
     if (existing) {
-      if (existing.letter !== letter || existing.directions.has(placement.direction)) return null;
+      if (conflictsWithCell(existing, letter, placement.direction)) return null;
       intersections += 1;
       continue;
     }
 
-    const perpendicularCells =
-      placement.direction === 'horizontal'
-        ? [
-            [row - 1, col],
-            [row + 1, col]
-          ]
-        : [
-            [row, col - 1],
-            [row, col + 1]
-          ];
-    if (
-      perpendicularCells.some(
-        ([neighborRow, neighborCol]) =>
-          isInBounds(neighborRow, neighborCol, dimensions) && grid[neighborRow]![neighborCol]
-      )
-    ) {
+    if (hasFilledNeighbor(grid, perpendicularNeighbors(placement.direction, row, col), dimensions)) {
       return null;
     }
   }
@@ -163,41 +192,30 @@ function addPlacement(grid: GridCell[][], placement: InternalPlacement): void {
   }
 }
 
-function potentialPlacements(
+function firstWordCandidates(
+  word: NormalizedWord,
+  dimensions: [number, number],
+  addCandidate: (location: [number, number], direction: CrossWordPuzzleWord['direction']) => void
+): void {
+  const directions: CrossWordPuzzleWord['direction'][] = ['horizontal', 'vertical'];
+  for (const direction of directions) {
+    const rowLimit =
+      direction === 'vertical' ? dimensions[0] - word.normalized.length + 1 : dimensions[0];
+    const colLimit =
+      direction === 'horizontal' ? dimensions[1] - word.normalized.length + 1 : dimensions[1];
+    for (let row = 0; row < rowLimit; row += 1) {
+      for (let col = 0; col < colLimit; col += 1) addCandidate([row, col], direction);
+    }
+  }
+}
+
+function anchoredCandidates(
   grid: GridCell[][],
   word: NormalizedWord,
   dimensions: [number, number],
-  hasPlacedWord: boolean
-): { placement: InternalPlacement; intersections: number }[] {
-  const candidates: { placement: InternalPlacement; intersections: number }[] = [];
-  const seen = new Set<string>();
+  addCandidate: (location: [number, number], direction: CrossWordPuzzleWord['direction']) => void
+): void {
   const directions: CrossWordPuzzleWord['direction'][] = ['horizontal', 'vertical'];
-
-  const addCandidate = (
-    location: [number, number],
-    direction: CrossWordPuzzleWord['direction']
-  ) => {
-    const key = `${location[0]},${location[1]},${direction}`;
-    if (seen.has(key)) return;
-    seen.add(key);
-    const placement: InternalPlacement = { id: word.id, word, location, direction };
-    const intersections = fitsPlacement(grid, placement, dimensions, hasPlacedWord);
-    if (intersections !== null) candidates.push({ placement, intersections });
-  };
-
-  if (!hasPlacedWord) {
-    for (const direction of directions) {
-      const rowLimit =
-        direction === 'vertical' ? dimensions[0] - word.normalized.length + 1 : dimensions[0];
-      const colLimit =
-        direction === 'horizontal' ? dimensions[1] - word.normalized.length + 1 : dimensions[1];
-      for (let row = 0; row < rowLimit; row += 1) {
-        for (let col = 0; col < colLimit; col += 1) addCandidate([row, col], direction);
-      }
-    }
-    return candidates;
-  }
-
   for (let row = 0; row < dimensions[0]; row += 1) {
     for (let col = 0; col < dimensions[1]; col += 1) {
       const cell = grid[row]![col];
@@ -217,6 +235,35 @@ function potentialPlacements(
       }
     }
   }
+}
+
+function potentialPlacements(
+  grid: GridCell[][],
+  word: NormalizedWord,
+  dimensions: [number, number],
+  hasPlacedWord: boolean
+): { placement: InternalPlacement; intersections: number }[] {
+  const candidates: { placement: InternalPlacement; intersections: number }[] = [];
+  const seen = new Set<string>();
+
+  const addCandidate = (
+    location: [number, number],
+    direction: CrossWordPuzzleWord['direction']
+  ) => {
+    const key = `${location[0]},${location[1]},${direction}`;
+    if (seen.has(key)) return;
+    seen.add(key);
+    const placement: InternalPlacement = { id: word.id, word, location, direction };
+    const intersections = fitsPlacement(grid, placement, dimensions, hasPlacedWord);
+    if (intersections !== null) candidates.push({ placement, intersections });
+  };
+
+  if (!hasPlacedWord) {
+    firstWordCandidates(word, dimensions, addCandidate);
+    return candidates;
+  }
+
+  anchoredCandidates(grid, word, dimensions, addCandidate);
   return candidates;
 }
 
@@ -437,6 +484,111 @@ function candidateKey(candidate: GeneratedCrosswordLayout): string {
     .join('|');
 }
 
+function isBetterScore(
+  currentScore: GeneratedLayoutScore,
+  currentGrid: GridCell[][],
+  bestScore: GeneratedLayoutScore,
+  bestGrid: GridCell[][],
+  dimensions: [number, number],
+  density: LayoutDensity
+): boolean {
+  if (currentScore.placedWordCount !== bestScore.placedWordCount) {
+    return currentScore.placedWordCount > bestScore.placedWordCount;
+  }
+  if (currentScore.intersectionCount !== bestScore.intersectionCount) {
+    return currentScore.intersectionCount > bestScore.intersectionCount;
+  }
+  if (currentScore.gapCount !== bestScore.gapCount) {
+    return currentScore.gapCount < bestScore.gapCount;
+  }
+  if (currentScore.compactness !== bestScore.compactness) {
+    return currentScore.compactness < bestScore.compactness;
+  }
+  return (
+    layoutRegionAffinity(currentGrid, dimensions, density) >
+    layoutRegionAffinity(bestGrid, dimensions, density)
+  );
+}
+
+type SearchBest = {
+  grid: GridCell[][];
+  placements: InternalPlacement[];
+  score: GeneratedLayoutScore;
+} | null;
+
+/** Greedy backtracking placement search over the shuffled word order. */
+function runPlacementSearch(
+  orderedWords: NormalizedWord[],
+  dimensions: [number, number],
+  density: LayoutDensity,
+  random: () => number
+): SearchBest {
+  let searchNodes = 0;
+  let best: SearchBest = null;
+
+  const search = (index: number, grid: GridCell[][], placements: InternalPlacement[]) => {
+    if (searchNodes >= DEFAULT_SEARCH_NODES) return;
+    searchNodes += 1;
+    const currentScore = layoutScore(grid, placements);
+    if (!best || isBetterScore(currentScore, grid, best.score, best.grid, dimensions, density)) {
+      best = { grid, placements, score: currentScore };
+    }
+    if (index >= orderedWords.length) return;
+
+    const word = orderedWords[index]!;
+    const possible = shuffled(
+      potentialPlacements(grid, word, dimensions, placements.length > 0),
+      random
+    ).map((candidate) => ({
+      ...candidate,
+      projectedGaps: projectedGapCount(grid, candidate.placement, candidate.intersections),
+      regionScore: placementRegionAffinity(candidate.placement, dimensions, density)
+    }));
+    possible.sort(
+      (left, right) =>
+        right.intersections - left.intersections ||
+        right.regionScore - left.regionScore ||
+        left.projectedGaps - right.projectedGaps
+    );
+    const shortlist = possible.slice(0, 10);
+
+    for (const { placement } of shortlist) {
+      const nextGrid = cloneInternalGrid(grid);
+      addPlacement(nextGrid, placement);
+      search(index + 1, nextGrid, [...placements, placement]);
+    }
+    // Partial layouts are useful when every active word cannot fit.
+    search(index + 1, grid, placements);
+  };
+
+  search(0, makeInternalGrid(dimensions), []);
+  return best;
+}
+
+function normalizeGeneratorWords(words: readonly LayoutGeneratorWord[]): NormalizedWord[] {
+  const seenWords = new Set<string>();
+  const normalizedWords: NormalizedWord[] = [];
+  for (const word of words) {
+    const normalized = word.word.trim().toUpperCase();
+    if (normalized.length < 2 || seenWords.has(normalized)) continue;
+    seenWords.add(normalized);
+    normalizedWords.push({ ...word, normalized });
+  }
+  return normalizedWords;
+}
+
+function addUniqueCandidate(
+  candidates: GeneratedCrosswordLayout[],
+  candidateKeys: Set<string>,
+  candidate: GeneratedCrosswordLayout
+): boolean {
+  const key = candidateKey(candidate);
+  if (candidateKeys.has(key)) return false;
+  candidateKeys.add(key);
+  candidates.push(candidate);
+  return true;
+}
+
 /**
  * Produce several clean, connected crossword layouts without changing the grid dimensions.
  * Inputs that are empty, duplicated, or too short for the editor's placement analysis are
@@ -457,14 +609,7 @@ export function generateCrosswordLayouts({
   seed?: number;
   density?: LayoutDensity;
 }): GeneratedCrosswordLayout[] {
-  const seenWords = new Set<string>();
-  const normalizedWords: NormalizedWord[] = [];
-  for (const word of words) {
-    const normalized = word.word.trim().toUpperCase();
-    if (normalized.length < 2 || seenWords.has(normalized)) continue;
-    seenWords.add(normalized);
-    normalizedWords.push({ ...word, normalized });
-  }
+  const normalizedWords = normalizeGeneratorWords(words);
   if (normalizedWords.length === 0 || dimensions[0] < 1 || dimensions[1] < 1) return [];
 
   const candidates: GeneratedCrosswordLayout[] = [];
@@ -475,88 +620,10 @@ export function generateCrosswordLayouts({
     const orderedWords = shuffled(normalizedWords, random).toSorted(
       (left, right) => right.normalized.length - left.normalized.length
     );
-    let searchNodes = 0;
-    type BestCrosswordLayout = {
-      current: {
-        grid: GridCell[][];
-        placements: InternalPlacement[];
-        score: GeneratedLayoutScore;
-      } | null;
-    };
-    const best: BestCrosswordLayout = {
-      current: null
-    };
-
-    const isBetterScore = (
-      currentScore: GeneratedLayoutScore,
-      currentGrid: GridCell[][],
-      bestScore: GeneratedLayoutScore,
-      bestGrid: GridCell[][]
-    ) => {
-      if (currentScore.placedWordCount !== bestScore.placedWordCount) {
-        return currentScore.placedWordCount > bestScore.placedWordCount;
-      }
-      if (currentScore.intersectionCount !== bestScore.intersectionCount) {
-        return currentScore.intersectionCount > bestScore.intersectionCount;
-      }
-      if (currentScore.gapCount !== bestScore.gapCount) {
-        return currentScore.gapCount < bestScore.gapCount;
-      }
-      if (currentScore.compactness !== bestScore.compactness) {
-        return currentScore.compactness < bestScore.compactness;
-      }
-      return (
-        layoutRegionAffinity(currentGrid, dimensions, density) >
-        layoutRegionAffinity(bestGrid, dimensions, density)
-      );
-    };
-
-    const search = (index: number, grid: GridCell[][], placements: InternalPlacement[]) => {
-      if (searchNodes >= DEFAULT_SEARCH_NODES) return;
-      searchNodes += 1;
-      const currentScore = layoutScore(grid, placements);
-      if (
-        !best.current ||
-        isBetterScore(currentScore, grid, best.current.score, best.current.grid)
-      ) {
-        best.current = { grid, placements, score: currentScore };
-      }
-      if (index >= orderedWords.length) return;
-
-      const word = orderedWords[index]!;
-      const possible = shuffled(
-        potentialPlacements(grid, word, dimensions, placements.length > 0),
-        random
-      ).map((candidate) => ({
-        ...candidate,
-        projectedGaps: projectedGapCount(grid, candidate.placement, candidate.intersections),
-        regionScore: placementRegionAffinity(candidate.placement, dimensions, density)
-      }));
-      possible.sort(
-        (left, right) =>
-          right.intersections - left.intersections ||
-          right.regionScore - left.regionScore ||
-          left.projectedGaps - right.projectedGaps
-      );
-      const shortlist = possible.slice(0, 10);
-
-      for (const { placement } of shortlist) {
-        const nextGrid = cloneInternalGrid(grid);
-        addPlacement(nextGrid, placement);
-        search(index + 1, nextGrid, [...placements, placement]);
-      }
-      // Partial layouts are useful when every active word cannot fit.
-      search(index + 1, grid, placements);
-    };
-
-    search(0, makeInternalGrid(dimensions), []);
-    if (!best.current || best.current.placements.length === 0) continue;
-    const candidate = toCandidate(best.current.grid, best.current.placements, words, dimensions);
-    if (!candidate) continue;
-    const key = candidateKey(candidate);
-    if (candidateKeys.has(key)) continue;
-    candidateKeys.add(key);
-    candidates.push(candidate);
+    const best = runPlacementSearch(orderedWords, dimensions, density, random);
+    if (!best || best.placements.length === 0) continue;
+    const candidate = toCandidate(best.grid, best.placements, words, dimensions);
+    if (candidate) addUniqueCandidate(candidates, candidateKeys, candidate);
   }
 
   return rankGeneratedLayouts(candidates, 'intersections');

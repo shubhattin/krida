@@ -57,6 +57,88 @@ const CROSSWORD_LETTERS = [
   ['V', 'E', 'D', 'A', '']
 ];
 
+// Color green as soon as the word containing the cell is completed
+// - YOGA is complete at filledCount >= 4
+// - GITA is complete at filledCount >= 10
+// - VEDA (and GITA) are complete at filledCount >= 10
+function crosswordCellWordComplete(index: number, filledCount: number): boolean {
+  if (index <= 3) return filledCount >= 4;
+  if (index <= 5) return filledCount >= 10;
+  if (index <= 9) return filledCount >= 10;
+  return false;
+}
+
+const CrosswordPreviewCell = ({
+  row,
+  col,
+  index,
+  filledCount
+}: {
+  row: number;
+  col: number;
+  index: number;
+  filledCount: number;
+}) => {
+  const isFilled = index < filledCount;
+  const letter = CROSSWORD_LETTERS[row]?.[col] || '';
+  const isWordComplete = crosswordCellWordComplete(index, filledCount);
+
+  return (
+    <div
+      key={`${row}-${col}`}
+      className={cn(
+        'flex aspect-square items-center justify-center rounded-xl border text-sm font-extrabold transition-colors duration-300',
+        !isFilled &&
+          'border-slate-200 bg-white/70 text-slate-300 dark:border-slate-800/80 dark:bg-slate-900/40 dark:text-slate-600',
+        isFilled &&
+          !isWordComplete && [
+            'border-amber-400 bg-linear-to-br from-amber-50 to-orange-100 text-amber-700',
+            'shadow-[0_0_12px_rgba(251,191,36,0.4)] ring-1 ring-amber-300/60',
+            'dark:border-amber-400/90 dark:from-amber-950 dark:to-orange-950 dark:text-amber-200',
+            'dark:shadow-[0_0_16px_rgba(251,191,36,0.45)] dark:ring-amber-400/45'
+          ],
+        isFilled &&
+          isWordComplete && [
+            'border-emerald-400 bg-linear-to-br from-emerald-50 to-green-100 text-emerald-700',
+            'shadow-[0_0_14px_rgba(52,211,153,0.45)] ring-1 ring-emerald-300/70',
+            'dark:border-emerald-400 dark:from-emerald-950 dark:to-emerald-900 dark:text-emerald-200',
+            'dark:shadow-[0_0_18px_rgba(52,211,153,0.5)] dark:ring-emerald-400/50'
+          ]
+      )}
+    >
+      <AnimatePresence mode="wait" initial={false}>
+        {isFilled ? (
+          <motion.span
+            key={`letter-${row}-${col}`}
+            initial={{ scale: 0.12, opacity: 0, y: 10 }}
+            animate={{ scale: 1, opacity: 1, y: 0 }}
+            exit={{ scale: 0.35, opacity: 0 }}
+            transition={{
+              type: 'spring',
+              stiffness: 560,
+              damping: 16,
+              mass: 0.65
+            }}
+            className="inline-block origin-center drop-shadow-[0_0_6px_rgba(255,255,255,0.3)]"
+          >
+            {letter}
+          </motion.span>
+        ) : (
+          <motion.span
+            key={`dot-${row}-${col}`}
+            initial={{ opacity: 0 }}
+            animate={{ opacity: 0.5 }}
+            exit={{ opacity: 0, scale: 0.5 }}
+            transition={{ duration: 0.12 }}
+            className="inline-block"
+          >
+            ·
+          </motion.span>
+        )}
+      </AnimatePresence>
+    </div>
+  );
+};
 // ─── Script Samples ───────────────────────────────────────
 const SCRIPT_SAMPLES = [
   { script: 'Devanagari', text: 'पदावली' },
@@ -196,6 +278,86 @@ function cellsEqual(a: CellPos, b: CellPos) {
 function isCellInPath(path: CellPos[], row: number, col: number) {
   return path.some((c) => c.row === row && c.col === col);
 }
+
+type DemoState = 'idle' | 'selecting' | 'success' | 'fail';
+
+// Solid base (keeps trails under glyphs) + neon rim/glow on active states
+function miniDemoCellClassName(
+  inDemo: boolean,
+  inFound: boolean,
+  isLast: boolean,
+  demoState: DemoState
+): string {
+  return cn(
+    'relative z-10 flex aspect-square items-center justify-center rounded-xl border text-base font-extrabold transition-all duration-300',
+    'border-slate-200 bg-linear-to-br from-white to-slate-50 text-slate-800 shadow-xs',
+    'dark:border-slate-700 dark:from-slate-800 dark:to-slate-950 dark:text-slate-200',
+    inFound &&
+      !(inDemo && demoState === 'selecting') && [
+        // No scale — keeps H/V gap open so trails stay visible
+        'border-emerald-400 bg-linear-to-br from-emerald-50 to-green-100 text-emerald-700',
+        'shadow-[0_0_14px_rgba(52,211,153,0.45)] ring-1 ring-emerald-300/70',
+        'dark:border-emerald-400/90 dark:from-emerald-950 dark:to-emerald-900 dark:text-emerald-200',
+        'dark:shadow-[0_0_18px_rgba(52,211,153,0.5)] dark:ring-emerald-400/50'
+      ],
+    inDemo &&
+      demoState === 'selecting' && [
+        'border-blue-400 bg-linear-to-br from-sky-50 to-blue-100 text-blue-700',
+        'shadow-[0_0_14px_rgba(96,165,250,0.5)] ring-1 ring-blue-300/70',
+        'dark:border-blue-400/90 dark:from-blue-950 dark:to-indigo-950 dark:text-blue-200',
+        'dark:shadow-[0_0_18px_rgba(96,165,250,0.55)] dark:ring-blue-400/50'
+      ],
+    inDemo &&
+      demoState === 'success' && [
+        'border-emerald-400 bg-linear-to-br from-emerald-50 to-green-100 text-emerald-700',
+        'shadow-[0_0_16px_rgba(52,211,153,0.55)] ring-1 ring-emerald-300/80',
+        'dark:border-emerald-400 dark:from-emerald-950 dark:to-emerald-900 dark:text-emerald-100',
+        'dark:shadow-[0_0_20px_rgba(52,211,153,0.6)] dark:ring-emerald-400/60'
+      ],
+    inDemo &&
+      demoState === 'fail' && [
+        'border-red-400 bg-linear-to-br from-red-50 to-rose-100 text-red-700',
+        'shadow-[0_0_14px_rgba(248,113,113,0.45)] ring-1 ring-red-300/70',
+        'dark:border-red-400/90 dark:from-red-950 dark:to-rose-950 dark:text-red-200',
+        'dark:shadow-[0_0_18px_rgba(248,113,113,0.5)] dark:ring-red-400/50'
+      ],
+    isLast && demoState === 'selecting' && 'ring-2 ring-blue-300/80 dark:ring-blue-400/70'
+  );
+}
+
+const MiniDemoCell = ({
+  letter,
+  row,
+  col,
+  inDemo,
+  inFound,
+  isLast,
+  demoState
+}: {
+  letter: string;
+  row: number;
+  col: number;
+  inDemo: boolean;
+  inFound: boolean;
+  isLast: boolean;
+  demoState: DemoState;
+}) => (
+  <div
+    key={`${row}-${col}`}
+    data-mini-row={row}
+    data-mini-col={col}
+    className={miniDemoCellClassName(inDemo, inFound, isLast, demoState)}
+  >
+    <span
+      className={cn(
+        'relative z-10',
+        (inDemo || inFound) && 'drop-shadow-[0_0_6px_rgba(255,255,255,0.35)]'
+      )}
+    >
+      {letter}
+    </span>
+  </div>
+);
 
 // ─── Padavali Mini Grid Preview ───────────────────────────
 // Mirrors GameGrid idle-demo: hand emoji traces a path, blue selection →
@@ -469,58 +631,16 @@ export function PadavaliMiniPreview() {
                 cellsEqual(demoPath[demoPath.length - 1]!, { row: rIdx, col: cIdx });
 
               return (
-                <div
+                <MiniDemoCell
                   key={`${rIdx}-${cIdx}`}
-                  data-mini-row={rIdx}
-                  data-mini-col={cIdx}
-                  className={cn(
-                    'relative z-10 flex aspect-square items-center justify-center rounded-xl border text-base font-extrabold transition-all duration-300',
-                    // Solid base (keeps trails under glyphs) + neon rim/glow on active states
-                    'border-slate-200 bg-linear-to-br from-white to-slate-50 text-slate-800 shadow-xs',
-                    'dark:border-slate-700 dark:from-slate-800 dark:to-slate-950 dark:text-slate-200',
-                    inFound &&
-                      !(inDemo && demoState === 'selecting') && [
-                        // No scale — keeps H/V gap open so trails stay visible
-                        'border-emerald-400 bg-linear-to-br from-emerald-50 to-green-100 text-emerald-700',
-                        'shadow-[0_0_14px_rgba(52,211,153,0.45)] ring-1 ring-emerald-300/70',
-                        'dark:border-emerald-400/90 dark:from-emerald-950 dark:to-emerald-900 dark:text-emerald-200',
-                        'dark:shadow-[0_0_18px_rgba(52,211,153,0.5)] dark:ring-emerald-400/50'
-                      ],
-                    inDemo &&
-                      demoState === 'selecting' && [
-                        'border-blue-400 bg-linear-to-br from-sky-50 to-blue-100 text-blue-700',
-                        'shadow-[0_0_14px_rgba(96,165,250,0.5)] ring-1 ring-blue-300/70',
-                        'dark:border-blue-400/90 dark:from-blue-950 dark:to-indigo-950 dark:text-blue-200',
-                        'dark:shadow-[0_0_18px_rgba(96,165,250,0.55)] dark:ring-blue-400/50'
-                      ],
-                    inDemo &&
-                      demoState === 'success' && [
-                        'border-emerald-400 bg-linear-to-br from-emerald-50 to-green-100 text-emerald-700',
-                        'shadow-[0_0_16px_rgba(52,211,153,0.55)] ring-1 ring-emerald-300/80',
-                        'dark:border-emerald-400 dark:from-emerald-950 dark:to-emerald-900 dark:text-emerald-100',
-                        'dark:shadow-[0_0_20px_rgba(52,211,153,0.6)] dark:ring-emerald-400/60'
-                      ],
-                    inDemo &&
-                      demoState === 'fail' && [
-                        'border-red-400 bg-linear-to-br from-red-50 to-rose-100 text-red-700',
-                        'shadow-[0_0_14px_rgba(248,113,113,0.45)] ring-1 ring-red-300/70',
-                        'dark:border-red-400/90 dark:from-red-950 dark:to-rose-950 dark:text-red-200',
-                        'dark:shadow-[0_0_18px_rgba(248,113,113,0.5)] dark:ring-red-400/50'
-                      ],
-                    isLast &&
-                      demoState === 'selecting' &&
-                      'ring-2 ring-blue-300/80 dark:ring-blue-400/70'
-                  )}
-                >
-                  <span
-                    className={cn(
-                      'relative z-10',
-                      (inDemo || inFound) && 'drop-shadow-[0_0_6px_rgba(255,255,255,0.35)]'
-                    )}
-                  >
-                    {letter}
-                  </span>
-                </div>
+                  letter={letter}
+                  row={rIdx}
+                  col={cIdx}
+                  inDemo={inDemo}
+                  inFound={inFound}
+                  isLast={isLast}
+                  demoState={demoState}
+                />
               );
             })
           )}
@@ -647,77 +767,14 @@ export function PadajalaMiniPreview() {
               );
             }
 
-            const currentIndex = cellIndex++;
-            const isFilled = currentIndex < filledCount;
-            const letter = CROSSWORD_LETTERS[rIdx]?.[cIdx] || '';
-
-            // Color green as soon as the word containing the cell is completed
-            let isWordComplete = false;
-            if (currentIndex >= 0 && currentIndex <= 3) {
-              // YOGA is complete at filledCount >= 4
-              isWordComplete = filledCount >= 4;
-            } else if (currentIndex === 4 || currentIndex === 5) {
-              // GITA is complete at filledCount >= 10
-              isWordComplete = filledCount >= 10;
-            } else if (currentIndex >= 6 && currentIndex <= 9) {
-              // VEDA (and GITA) are complete at filledCount >= 10
-              isWordComplete = filledCount >= 10;
-            }
-
             return (
-              <div
-                key={`${rIdx}-${cIdx}`}
-                className={cn(
-                  'flex aspect-square items-center justify-center rounded-xl border text-sm font-extrabold transition-colors duration-300',
-                  !isFilled &&
-                    'border-slate-200 bg-white/70 text-slate-300 dark:border-slate-800/80 dark:bg-slate-900/40 dark:text-slate-600',
-                  isFilled &&
-                    !isWordComplete && [
-                      'border-amber-400 bg-linear-to-br from-amber-50 to-orange-100 text-amber-700',
-                      'shadow-[0_0_12px_rgba(251,191,36,0.4)] ring-1 ring-amber-300/60',
-                      'dark:border-amber-400/90 dark:from-amber-950 dark:to-orange-950 dark:text-amber-200',
-                      'dark:shadow-[0_0_16px_rgba(251,191,36,0.45)] dark:ring-amber-400/45'
-                    ],
-                  isFilled &&
-                    isWordComplete && [
-                      'border-emerald-400 bg-linear-to-br from-emerald-50 to-green-100 text-emerald-700',
-                      'shadow-[0_0_14px_rgba(52,211,153,0.45)] ring-1 ring-emerald-300/70',
-                      'dark:border-emerald-400 dark:from-emerald-950 dark:to-emerald-900 dark:text-emerald-200',
-                      'dark:shadow-[0_0_18px_rgba(52,211,153,0.5)] dark:ring-emerald-400/50'
-                    ]
-                )}
-              >
-                <AnimatePresence mode="wait" initial={false}>
-                  {isFilled ? (
-                    <motion.span
-                      key={`letter-${rIdx}-${cIdx}`}
-                      initial={{ scale: 0.12, opacity: 0, y: 10 }}
-                      animate={{ scale: 1, opacity: 1, y: 0 }}
-                      exit={{ scale: 0.35, opacity: 0 }}
-                      transition={{
-                        type: 'spring',
-                        stiffness: 560,
-                        damping: 16,
-                        mass: 0.65
-                      }}
-                      className="inline-block origin-center drop-shadow-[0_0_6px_rgba(255,255,255,0.3)]"
-                    >
-                      {letter}
-                    </motion.span>
-                  ) : (
-                    <motion.span
-                      key={`dot-${rIdx}-${cIdx}`}
-                      initial={{ opacity: 0 }}
-                      animate={{ opacity: 0.5 }}
-                      exit={{ opacity: 0, scale: 0.5 }}
-                      transition={{ duration: 0.12 }}
-                      className="inline-block"
-                    >
-                      ·
-                    </motion.span>
-                  )}
-                </AnimatePresence>
-              </div>
+              <CrosswordPreviewCell
+                key={`cell-${rIdx}-${cIdx}`}
+                row={rIdx}
+                col={cIdx}
+                index={cellIndex++}
+                filledCount={filledCount}
+              />
             );
           })
         )}

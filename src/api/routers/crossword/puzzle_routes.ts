@@ -402,14 +402,16 @@ const update_puzzle_route = protectedAdminProcedure
         const { updated_count, newly_added_index_ids } = yield* dbTransaction(
           'crossword.update_puzzle',
           async (tx) => {
+            const updates: Partial<typeof crossword_puzzles.$inferInsert> = {
+              ...puzzle_data_rest,
+              word_list: resolvedWordList,
+              image_id
+            };
+            if (becomingListed) updates.last_listed_at = new Date();
+
             const updated = await tx
               .update(crossword_puzzles)
-              .set({
-                ...puzzle_data_rest,
-                word_list: resolvedWordList,
-                image_id,
-                ...(becomingListed ? { last_listed_at: new Date() } : {})
-              })
+              .set(updates)
               .where(
                 and(eq(crossword_puzzles.id, puzzle_id), eq(crossword_puzzles.slug, puzzle_slug))
               )
@@ -584,13 +586,13 @@ const set_listed_route = protectedAdminProcedure
 
         const becomingListed = listed && !existing.listed;
 
+        const updates: Partial<typeof crossword_puzzles.$inferInsert> = { listed };
+        if (becomingListed) updates.last_listed_at = new Date();
+
         yield* dbRun('crossword.set_listed', async (client) => {
           await client
             .update(crossword_puzzles)
-            .set({
-              listed,
-              ...(becomingListed ? { last_listed_at: new Date() } : {})
-            })
+            .set(updates)
             .where(eq(crossword_puzzles.id, puzzle_id));
         });
 

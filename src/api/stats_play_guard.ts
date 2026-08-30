@@ -1,7 +1,7 @@
 import { Duration, Effect } from 'effect';
 import ms from 'ms';
 import { z } from 'zod';
-import { RedisClient } from '~/effect/redis';
+import { RedisClient, type RedisJsonValue } from '~/effect/redis';
 
 /**
  * Cross-instance play-start dedupe via Redis SET NX.
@@ -19,7 +19,7 @@ const keyFor = (kind: PlayKind, playId: string) => `stats:play:${kind}:${playId}
 /** Redis values arrive as JSON-decoded primitives; coerce number-ish raws to ids. */
 const stored_session_id_schema = z.coerce.number();
 
-const parseSessionId = (raw: unknown): number | null => {
+const parseSessionId = (raw: RedisJsonValue): number | null => {
   const parsed = stored_session_id_schema.safeParse(raw);
   if (!parsed.success) return null;
   const n = parsed.data;
@@ -41,7 +41,9 @@ export const claimPlaySession = Effect.fn('stats.claimPlaySession')(function* (
   const redis = yield* RedisClient;
   const key = keyFor(kind, playId);
 
-  const existing = yield* redis.get<unknown>(key).pipe(Effect.catch(() => Effect.succeed(null)));
+  const existing = yield* redis
+    .get<RedisJsonValue>(key)
+    .pipe(Effect.catch(() => Effect.succeed(null)));
   const existingId = parseSessionId(existing);
   if (existingId !== null) {
     return { status: 'existing', sessionId: existingId } as const satisfies PlayStartClaim;
@@ -58,7 +60,9 @@ export const claimPlaySession = Effect.fn('stats.claimPlaySession')(function* (
 
   for (let i = 0; i < MAX_POLLS; i++) {
     yield* Effect.sleep(POLL);
-    const raw = yield* redis.get<unknown>(key).pipe(Effect.catch(() => Effect.succeed(null)));
+    const raw = yield* redis
+      .get<RedisJsonValue>(key)
+      .pipe(Effect.catch(() => Effect.succeed(null)));
     const sessionId = parseSessionId(raw);
     if (sessionId !== null) {
       return { status: 'existing', sessionId } as const satisfies PlayStartClaim;
@@ -86,7 +90,7 @@ export const releasePlaySessionClaim = Effect.fn('stats.releasePlaySessionClaim'
 ) {
   const redis = yield* RedisClient;
   const key = keyFor(kind, playId);
-  const raw = yield* redis.get<unknown>(key).pipe(Effect.catch(() => Effect.succeed(null)));
+  const raw = yield* redis.get<RedisJsonValue>(key).pipe(Effect.catch(() => Effect.succeed(null)));
   if (raw === PENDING_VALUE || raw === null) {
     yield* redis.del(key).pipe(Effect.catch(() => Effect.void));
   }

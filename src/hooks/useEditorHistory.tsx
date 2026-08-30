@@ -21,6 +21,9 @@ type SnapshotOf<M extends AtomMap> = {
 
 const MAX_STACK = 100;
 
+/** JSON-serializable value — the contract for comparable representations fed to JSON.stringify. */
+type JsonValue = string | number | boolean | null | JsonValue[] | { [key: string]: JsonValue };
+
 type HistoryActions<M extends AtomMap = AtomMap> = {
   undo(): void;
   redo(): void;
@@ -65,7 +68,7 @@ function cloneSnapshot<T>(value: T): T {
   return structuredClone(value);
 }
 
-function serializeSnapshot(value: unknown): string {
+function serializeSnapshot<T>(value: T): string {
   return JSON.stringify(value);
 }
 
@@ -75,7 +78,7 @@ export function EditorHistoryProvider<M extends AtomMap>({
   children
 }: {
   atoms: M;
-  comparable?: (snapshot: SnapshotOf<M>) => unknown;
+  comparable?: (snapshot: SnapshotOf<M>) => JsonValue;
   children: ReactNode;
 }) {
   const store = useStore();

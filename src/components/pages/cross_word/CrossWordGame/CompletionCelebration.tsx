@@ -25,6 +25,183 @@ import { copy_text_to_clipboard } from '~/tools/kry';
 const GOOGLE_COLORS = ['#4285F4', '#EA4335', '#FBBC05', '#34A853'];
 const STANDARD_COLORS = ['#f59e0b', '#22c55e', '#38bdf8', '#a78bfa', '#f472b6'];
 
+type RafHandle = { current: number };
+
+function burstPerfectWideConfetti(raf: RafHandle) {
+  const colors = GOOGLE_COLORS;
+  confetti({
+    particleCount: 140,
+    spread: 90,
+    origin: { y: 0.6 },
+    colors
+  });
+
+  const end = Date.now() + 3200;
+  const frame = () => {
+    confetti({
+      particleCount: 5,
+      angle: 60,
+      spread: 55,
+      origin: { x: 0, y: 0.65 },
+      colors
+    });
+    confetti({
+      particleCount: 5,
+      angle: 120,
+      spread: 55,
+      origin: { x: 1, y: 0.65 },
+      colors
+    });
+    confetti({
+      particleCount: 4,
+      spread: 100,
+      origin: { x: 0.5, y: 0.55 },
+      colors
+    });
+    if (Date.now() < end) raf.current = requestAnimationFrame(frame);
+  };
+  frame();
+}
+
+function burstPerfectNarrowConfetti(raf: RafHandle) {
+  const colors = GOOGLE_COLORS;
+  confetti({
+    particleCount: 200,
+    spread: 100,
+    startVelocity: 42,
+    origin: { y: 0.6 },
+    colors
+  });
+
+  const end = Date.now() + 2500;
+  const frame = () => {
+    confetti({
+      particleCount: 10,
+      spread: 110,
+      startVelocity: 32,
+      origin: { x: 0.5, y: 0.55 },
+      colors
+    });
+    if (Date.now() < end) raf.current = requestAnimationFrame(frame);
+  };
+  frame();
+}
+
+function burstStandardConfetti(raf: RafHandle) {
+  confetti({
+    particleCount: 120,
+    spread: 80,
+    origin: { y: 0.6 },
+    colors: STANDARD_COLORS
+  });
+
+  const end = Date.now() + 2000;
+  const frame = () => {
+    confetti({
+      particleCount: 4,
+      angle: 60,
+      spread: 55,
+      origin: { x: 0, y: 0.65 },
+      colors: STANDARD_COLORS
+    });
+    confetti({
+      particleCount: 4,
+      angle: 120,
+      spread: 55,
+      origin: { x: 1, y: 0.65 },
+      colors: STANDARD_COLORS
+    });
+    if (Date.now() < end) raf.current = requestAnimationFrame(frame);
+  };
+  frame();
+}
+
+/** Fire the celebration confetti; tracks the latest animation frame in `raf`. */
+function fireCelebrationConfetti(isPerfect: boolean, isWideScreen: boolean, raf: RafHandle) {
+  if (!isPerfect) {
+    burstStandardConfetti(raf);
+    return;
+  }
+  if (isWideScreen) {
+    burstPerfectWideConfetti(raf);
+  } else {
+    burstPerfectNarrowConfetti(raf);
+  }
+}
+
+function accuracyPercent(totalEntries: number, incorrectEntryAttempts: number) {
+  const denom = totalEntries + incorrectEntryAttempts;
+  return denom === 0 ? 0 : Math.trunc((totalEntries / denom) * 100);
+}
+
+function ShareAchievementButton({
+  puzzle,
+  seconds,
+  accuracy,
+  isPerfect,
+  puzzleSlug
+}: {
+  puzzle: { title: string; description: string };
+  seconds: number;
+  accuracy: number;
+  isPerfect: boolean;
+  puzzleSlug: string;
+}) {
+  const handleShare = async () => {
+    const text = get_achievement_share_msg(
+      puzzle.title,
+      puzzle.description,
+      formatElapsed(seconds),
+      accuracy,
+      puzzleSlug
+    );
+    try {
+      if (navigator.share) {
+        await navigator.share({
+          title: `${puzzle.title} - Padajāla`,
+          text
+        });
+      } else {
+        try {
+          await copy_text_to_clipboard(text);
+          toast.success('Achievement message copied to clipboard');
+        } catch (err) {
+          toast.error('Could not copy to clipboard');
+          console.log('Error copying:', err);
+        }
+      }
+    } catch (err) {
+      // SAFETY: navigator.share rejections are DOMException errors carrying .name
+      if ((err as Error).name !== 'AbortError') {
+        console.log('Error sharing:', err);
+      }
+    }
+  };
+
+  return (
+    <motion.div
+      initial={{ opacity: 0, y: 8 }}
+      animate={{ opacity: 1, y: 0 }}
+      transition={{ delay: 0.35, duration: 0.4 }}
+      className="relative mt-4 flex justify-center"
+    >
+      <Button
+        type="button"
+        onClick={handleShare}
+        className={cn(
+          'flex transform items-center gap-1.5 rounded-lg px-3 py-1.5 text-sm font-semibold text-white shadow-sm transition-all duration-200 hover:scale-105 active:scale-95',
+          isPerfect
+            ? 'bg-linear-to-r from-yellow-500 via-orange-500 to-amber-500 hover:from-yellow-600 hover:via-orange-600 hover:to-amber-600'
+            : 'bg-linear-to-r from-green-600 to-emerald-600 hover:from-green-700 hover:to-emerald-700'
+        )}
+      >
+        <IoShareSocialOutline className="text-sm" />
+        Share Achievement
+      </Button>
+    </motion.div>
+  );
+}
+
 export function CompletionCelebration({
   listed = false,
   puzzleSlug = null
@@ -41,8 +218,7 @@ export function CompletionCelebration({
   const hasTriggeredRef = useRef(false);
 
   const totalEntries = entries.length;
-  const denom = totalEntries + incorrectEntryAttempts;
-  const accuracy = denom === 0 ? 0 : Math.trunc((totalEntries / denom) * 100);
+  const accuracy = accuracyPercent(totalEntries, incorrectEntryAttempts);
   const isPerfect = accuracy === 100;
 
   useEffect(() => {
@@ -58,96 +234,11 @@ export function CompletionCelebration({
     if (prefersReduced) return;
 
     const isWideScreen = window.matchMedia('(min-width: 640px)').matches;
-    let raf = 0;
+    const raf: RafHandle = { current: 0 };
 
-    if (isPerfect) {
-      const colors = GOOGLE_COLORS;
+    fireCelebrationConfetti(isPerfect, isWideScreen, raf);
 
-      if (isWideScreen) {
-        confetti({
-          particleCount: 140,
-          spread: 90,
-          origin: { y: 0.6 },
-          colors
-        });
-
-        const end = Date.now() + 3200;
-        const frame = () => {
-          confetti({
-            particleCount: 5,
-            angle: 60,
-            spread: 55,
-            origin: { x: 0, y: 0.65 },
-            colors
-          });
-          confetti({
-            particleCount: 5,
-            angle: 120,
-            spread: 55,
-            origin: { x: 1, y: 0.65 },
-            colors
-          });
-          confetti({
-            particleCount: 4,
-            spread: 100,
-            origin: { x: 0.5, y: 0.55 },
-            colors
-          });
-          if (Date.now() < end) raf = requestAnimationFrame(frame);
-        };
-        frame();
-      } else {
-        confetti({
-          particleCount: 200,
-          spread: 100,
-          startVelocity: 42,
-          origin: { y: 0.6 },
-          colors
-        });
-
-        const end = Date.now() + 2500;
-        const frame = () => {
-          confetti({
-            particleCount: 10,
-            spread: 110,
-            startVelocity: 32,
-            origin: { x: 0.5, y: 0.55 },
-            colors
-          });
-          if (Date.now() < end) raf = requestAnimationFrame(frame);
-        };
-        frame();
-      }
-    } else {
-      confetti({
-        particleCount: 120,
-        spread: 80,
-        origin: { y: 0.6 },
-        colors: STANDARD_COLORS
-      });
-
-      const end = Date.now() + 2000;
-      const frame = () => {
-        confetti({
-          particleCount: 4,
-          angle: 60,
-          spread: 55,
-          origin: { x: 0, y: 0.65 },
-          colors: STANDARD_COLORS
-        });
-        confetti({
-          particleCount: 4,
-          angle: 120,
-          spread: 55,
-          origin: { x: 1, y: 0.65 },
-          colors: STANDARD_COLORS
-        });
-        if (Date.now() < end) raf = requestAnimationFrame(frame);
-      };
-      frame();
-    }
-
-    return () => cancelAnimationFrame(raf);
+    return () => cancelAnimationFrame(raf.current);
   }, [completed, isPerfect, setFired]);
 
   return (
@@ -217,55 +308,13 @@ export function CompletionCelebration({
           ) : null}
 
           {listed && puzzleSlug && puzzle ? (
-            <motion.div
-              initial={{ opacity: 0, y: 8 }}
-              animate={{ opacity: 1, y: 0 }}
-              transition={{ delay: 0.35, duration: 0.4 }}
-              className="relative mt-4 flex justify-center"
-            >
-              <Button
-                type="button"
-                onClick={async () => {
-                  const text = get_achievement_share_msg(
-                    puzzle.title,
-                    puzzle.description,
-                    formatElapsed(seconds),
-                    accuracy,
-                    puzzleSlug
-                  );
-                  try {
-                    if (navigator.share) {
-                      await navigator.share({
-                        title: `${puzzle.title} - Padajāla`,
-                        text
-                      });
-                    } else {
-                      try {
-                        await copy_text_to_clipboard(text);
-                        toast.success('Achievement message copied to clipboard');
-                      } catch (err) {
-                        toast.error('Could not copy to clipboard');
-                        console.log('Error copying:', err);
-                      }
-                    }
-                  } catch (err) {
-                    // SAFETY: navigator.share rejections are DOMException errors carrying .name
-                    if ((err as Error).name !== 'AbortError') {
-                      console.log('Error sharing:', err);
-                    }
-                  }
-                }}
-                className={cn(
-                  'flex transform items-center gap-1.5 rounded-lg px-3 py-1.5 text-sm font-semibold text-white shadow-sm transition-all duration-200 hover:scale-105 active:scale-95',
-                  isPerfect
-                    ? 'bg-linear-to-r from-yellow-500 via-orange-500 to-amber-500 hover:from-yellow-600 hover:via-orange-600 hover:to-amber-600'
-                    : 'bg-linear-to-r from-green-600 to-emerald-600 hover:from-green-700 hover:to-emerald-700'
-                )}
-              >
-                <IoShareSocialOutline className="text-sm" />
-                Share Achievement
-              </Button>
-            </motion.div>
+            <ShareAchievementButton
+              puzzle={puzzle}
+              seconds={seconds}
+              accuracy={accuracy}
+              isPerfect={isPerfect}
+              puzzleSlug={puzzleSlug}
+            />
           ) : null}
         </motion.div>
       )}

@@ -61,6 +61,76 @@ const SlugStatusIcon = ({
   return null;
 };
 
+type SlugStatus = ReturnType<typeof useDebouncedSlugCheck>['status'];
+
+const SlugRedirectNote = ({ currentSlug, normalizedSlug }: { currentSlug: string; normalizedSlug: string }) => (
+  <div className="rounded-md border border-sky-200 bg-sky-50 px-3 py-2 dark:border-sky-900/50 dark:bg-sky-950/30">
+    <Label
+      id="edit-slug-redirect-note"
+      className="text-xs font-medium text-sky-900 dark:text-sky-200"
+    >
+      Old URL stays valid
+    </Label>
+    <p className="mt-1 text-xs text-sky-800 dark:text-sky-300">
+      After saving, <span className="font-mono font-semibold">{currentSlug}</span> will
+      keep working and redirect visitors to{' '}
+      <span className="font-mono font-semibold">{normalizedSlug}</span>.
+    </p>
+  </div>
+);
+
+const SlugStatusHint = ({
+  status,
+  slugChanged,
+  normalizedSlug,
+  currentSlug
+}: {
+  status: SlugStatus;
+  slugChanged: boolean;
+  normalizedSlug: string;
+  currentSlug: string;
+}) => (
+  <p
+    id="edit-slug-status"
+    className={cn(
+      'text-xs',
+      status === 'taken' || status === 'invalid'
+        ? 'text-red-600'
+        : 'text-muted-foreground'
+    )}
+  >
+    {status === 'invalid' &&
+      'Only lowercase letters, numbers, underscores, and dashes are allowed.'}
+    {status === 'taken' &&
+      'This slug is already used by another puzzle and cannot be reused.'}
+    {status === 'available' && slugChanged && `Available as "${normalizedSlug}".`}
+    {status === 'available' && !slugChanged && 'Enter a different slug to continue.'}
+    {status === 'redirect_conflict' &&
+      `Slug "${normalizedSlug}" conflicts with an existing redirect. Confirm below to use it anyway — "${currentSlug}" will still redirect to "${normalizedSlug}" after saving.`}
+  </p>
+);
+
+const SlugConflictSection = ({
+  status,
+  redirectConflict,
+  overrideConfirmed,
+  onOverrideChange
+}: {
+  status: SlugStatus;
+  redirectConflict: ReturnType<typeof useDebouncedSlugCheck>['redirectConflict'];
+  overrideConfirmed: boolean;
+  onOverrideChange: (confirmed: boolean) => void;
+}) => {
+  if (status !== 'redirect_conflict' || !redirectConflict) return null;
+  return (
+    <SlugRedirectConflictPrompt
+      conflict={redirectConflict}
+      overrideConfirmed={overrideConfirmed}
+      onOverrideChange={onOverrideChange}
+    />
+  );
+};
+
 export const EditCrosswordSlugDialog = ({ puzzleId, currentSlug, onSlugUpdated }: Props) => {
   const router = useRouter();
   const trpc = useTRPC();
@@ -169,47 +239,20 @@ export const EditCrosswordSlugDialog = ({ puzzleId, currentSlug, onSlugUpdated }
               </div>
             </div>
             {slugChanged ? (
-              <div className="rounded-md border border-sky-200 bg-sky-50 px-3 py-2 dark:border-sky-900/50 dark:bg-sky-950/30">
-                <Label
-                  id="edit-slug-redirect-note"
-                  className="text-xs font-medium text-sky-900 dark:text-sky-200"
-                >
-                  Old URL stays valid
-                </Label>
-                <p className="mt-1 text-xs text-sky-800 dark:text-sky-300">
-                  After saving, <span className="font-mono font-semibold">{currentSlug}</span> will
-                  keep working and redirect visitors to{' '}
-                  <span className="font-mono font-semibold">{normalizedSlug}</span>.
-                </p>
-              </div>
+              <SlugRedirectNote currentSlug={currentSlug} normalizedSlug={normalizedSlug} />
             ) : null}
-            <p
-              id="edit-slug-status"
-              className={cn(
-                'text-xs',
-                slugStatus === 'taken' || slugStatus === 'invalid'
-                  ? 'text-red-600'
-                  : 'text-muted-foreground'
-              )}
-            >
-              {slugStatus === 'invalid' &&
-                'Only lowercase letters, numbers, underscores, and dashes are allowed.'}
-              {slugStatus === 'taken' &&
-                'This slug is already used by another puzzle and cannot be reused.'}
-              {slugStatus === 'available' && slugChanged && `Available as "${normalizedSlug}".`}
-              {slugStatus === 'available' && !slugChanged && 'Enter a different slug to continue.'}
-              {slugStatus === 'redirect_conflict' &&
-                `Slug "${normalizedSlug}" conflicts with an existing redirect. Confirm below to use it anyway — "${currentSlug}" will still redirect to "${normalizedSlug}" after saving.`}
-            </p>
-            {slugStatus === 'redirect_conflict' && redirectConflict ? (
-              <SlugRedirectConflictPrompt
-                conflict={redirectConflict}
-                overrideConfirmed={overrideRedirectSlug}
-                onOverrideChange={(confirmed) =>
-                  setOverrideForSlug(confirmed ? normalizedSlug : null)
-                }
-              />
-            ) : null}
+            <SlugStatusHint
+              status={slugStatus}
+              slugChanged={slugChanged}
+              normalizedSlug={normalizedSlug}
+              currentSlug={currentSlug}
+            />
+            <SlugConflictSection
+              status={slugStatus}
+              redirectConflict={redirectConflict}
+              overrideConfirmed={overrideRedirectSlug}
+              onOverrideChange={(confirmed) => setOverrideForSlug(confirmed ? normalizedSlug : null)}
+            />
           </div>
           <DialogFooter>
             <Button variant="outline" onClick={() => setOpen(false)}>

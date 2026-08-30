@@ -451,6 +451,173 @@ const ExistingImageCard = ({
   );
 };
 
+function ImageSearchBar({
+  searchDescription,
+  onSearchChange,
+  orderBy,
+  onOrderChange
+}: {
+  searchDescription: string;
+  onSearchChange: (value: string) => void;
+  orderBy: 'asc' | 'desc';
+  onOrderChange: (value: 'asc' | 'desc') => void;
+}) {
+  return (
+    <div className="flex flex-col gap-2 sm:flex-row sm:items-center">
+      <InputGroup className="w-full flex-1">
+        <InputGroupAddon>
+          <SearchIcon />
+        </InputGroupAddon>
+        <InputGroupInput
+          className="text-sm"
+          value={searchDescription}
+          onChange={(e) => onSearchChange(e.currentTarget.value)}
+          placeholder="Search by description…"
+        />
+      </InputGroup>
+      <Select
+        items={IMAGE_ORDER_ITEMS}
+        value={orderBy}
+        onValueChange={(value) => {
+          if (value) onOrderChange(value);
+        }}
+      >
+        <SelectTrigger size="sm" className="w-full sm:w-32" aria-label="Sort order">
+          <ArrowUpDownIcon className="size-3.5" />
+          <SelectValue />
+        </SelectTrigger>
+        <SelectContent alignItemWithTrigger={false}>
+          {IMAGE_ORDER_ITEMS.map((item) => (
+            <SelectItem key={item.value} value={item.value}>
+              {item.label}
+            </SelectItem>
+          ))}
+        </SelectContent>
+      </Select>
+    </div>
+  );
+}
+
+function ImageGridSkeleton() {
+  return (
+    <div className="grid grid-cols-2 gap-3 sm:grid-cols-3">
+      {Array.from({ length: IMAGE_ASSETS_PAGE_SIZE }).map((_, index) => (
+        <Skeleton key={index} className="rounded-lg" style={{ aspectRatio: IMAGE_ASPECT }} />
+      ))}
+    </div>
+  );
+}
+
+function ExistingImageGrid({
+  images,
+  selected_image_id,
+  onSelect,
+  onDeleted
+}: {
+  images: ImageAssetListItem[];
+  selected_image_id: number | null;
+  onSelect: (info: ImageInfo | null) => void;
+  onDeleted: (id: number) => void;
+}) {
+  return (
+    <div className="grid grid-cols-2 gap-3 sm:grid-cols-3">
+      {images.map((image) => (
+        <ExistingImageCard
+          key={image.id}
+          image={image}
+          selected={selected_image_id === image.id}
+          onSelect={(info) => onSelect(info)}
+          onDeleted={onDeleted}
+        />
+      ))}
+    </div>
+  );
+}
+
+function EmptyImageState({ isFetching }: { isFetching: boolean }) {
+  return (
+    <div
+      className="flex items-center justify-center rounded-lg border border-dashed border-border bg-muted/20 text-sm text-muted-foreground"
+      style={{ minHeight: 120 }}
+    >
+      {isFetching ? 'Loading…' : 'No images found'}
+    </div>
+  );
+}
+
+function ImagePagination({
+  page,
+  pageCount,
+  total,
+  hasPrev,
+  hasNext,
+  isFetching,
+  onPageChange
+}: {
+  page: number;
+  pageCount: number;
+  total: number;
+  hasPrev: boolean;
+  hasNext: boolean;
+  isFetching: boolean;
+  onPageChange: (page: number) => void;
+}) {
+  if (!(pageCount > 1 || total > 0)) return null;
+
+  const prevDisabled = !hasPrev || isFetching;
+  const nextDisabled = !hasNext || isFetching;
+
+  return (
+    <Pagination>
+      <PaginationContent>
+        <PaginationItem>
+          <PaginationPrevious
+            href="#"
+            text="Prev"
+            onClick={(e) => {
+              e.preventDefault();
+              if (!prevDisabled) onPageChange(page - 1);
+            }}
+            aria-disabled={prevDisabled}
+            className={cn(prevDisabled && 'pointer-events-none opacity-50')}
+          />
+        </PaginationItem>
+        {getVisiblePages(page, pageCount).map((pageNumber, index) =>
+          pageNumber === 'ellipsis' ? (
+            <PaginationItem key={`ellipsis-${index}`}>
+              <PaginationEllipsis />
+            </PaginationItem>
+          ) : (
+            <PaginationItem key={pageNumber}>
+              <PaginationLink
+                href="#"
+                isActive={pageNumber === page}
+                onClick={(e) => {
+                  e.preventDefault();
+                  if (!isFetching) onPageChange(pageNumber);
+                }}
+              >
+                {pageNumber}
+              </PaginationLink>
+            </PaginationItem>
+          )
+        )}
+        <PaginationItem>
+          <PaginationNext
+            href="#"
+            onClick={(e) => {
+              e.preventDefault();
+              if (!nextDisabled) onPageChange(page + 1);
+            }}
+            aria-disabled={nextDisabled}
+            className={cn(nextDisabled && 'pointer-events-none opacity-50')}
+          />
+        </PaginationItem>
+      </PaginationContent>
+    </Pagination>
+  );
+}
+
 const ExistingImageTab = ({
   enabled,
   selected_image_id,
@@ -499,125 +666,41 @@ const ExistingImageTab = ({
 
   return (
     <div className="flex w-full flex-col gap-3">
-      <div className="flex flex-col gap-2 sm:flex-row sm:items-center">
-        <InputGroup className="w-full flex-1">
-          <InputGroupAddon>
-            <SearchIcon />
-          </InputGroupAddon>
-          <InputGroupInput
-            className="text-sm"
-            value={search_description}
-            onChange={(e) => {
-              setSearchDescription(e.currentTarget.value);
-              setPage(1);
-            }}
-            placeholder="Search by description…"
-          />
-        </InputGroup>
-        <Select
-          items={IMAGE_ORDER_ITEMS}
-          value={order_by}
-          onValueChange={(value) => {
-            if (value) {
-              setOrderBy(value);
-              setPage(1);
-            }
-          }}
-        >
-          <SelectTrigger size="sm" className="w-full sm:w-32" aria-label="Sort order">
-            <ArrowUpDownIcon className="size-3.5" />
-            <SelectValue />
-          </SelectTrigger>
-          <SelectContent alignItemWithTrigger={false}>
-            {IMAGE_ORDER_ITEMS.map((item) => (
-              <SelectItem key={item.value} value={item.value}>
-                {item.label}
-              </SelectItem>
-            ))}
-          </SelectContent>
-        </Select>
-      </div>
+      <ImageSearchBar
+        searchDescription={search_description}
+        onSearchChange={(value) => {
+          setSearchDescription(value);
+          setPage(1);
+        }}
+        orderBy={order_by}
+        onOrderChange={(value) => {
+          setOrderBy(value);
+          setPage(1);
+        }}
+      />
 
       {isInitialLoading ? (
-        <div className="grid grid-cols-2 gap-3 sm:grid-cols-3">
-          {Array.from({ length: IMAGE_ASSETS_PAGE_SIZE }).map((_, index) => (
-            <Skeleton key={index} className="rounded-lg" style={{ aspectRatio: IMAGE_ASPECT }} />
-          ))}
-        </div>
+        <ImageGridSkeleton />
       ) : images.length > 0 ? (
-        <div className="grid grid-cols-2 gap-3 sm:grid-cols-3">
-          {images.map((image) => (
-            <ExistingImageCard
-              key={image.id}
-              image={image}
-              selected={selected_image_id === image.id}
-              onSelect={(info) => onSelect(info)}
-              onDeleted={handleDeleted}
-            />
-          ))}
-        </div>
+        <ExistingImageGrid
+          images={images}
+          selected_image_id={selected_image_id}
+          onSelect={onSelect}
+          onDeleted={handleDeleted}
+        />
       ) : (
-        <div
-          className="flex items-center justify-center rounded-lg border border-dashed border-border bg-muted/20 text-sm text-muted-foreground"
-          style={{ minHeight: 120 }}
-        >
-          {image_assets_q.isFetching ? 'Loading…' : 'No images found'}
-        </div>
+        <EmptyImageState isFetching={image_assets_q.isFetching} />
       )}
 
-      {(pageCount > 1 || (image_assets_q.data?.total ?? 0) > 0) && (
-        <Pagination>
-          <PaginationContent>
-            <PaginationItem>
-              <PaginationPrevious
-                href="#"
-                text="Prev"
-                onClick={(e) => {
-                  e.preventDefault();
-                  if (hasPrev && !image_assets_q.isFetching) setPage((p) => p - 1);
-                }}
-                aria-disabled={!hasPrev || image_assets_q.isFetching}
-                className={cn(
-                  (!hasPrev || image_assets_q.isFetching) && 'pointer-events-none opacity-50'
-                )}
-              />
-            </PaginationItem>
-            {getVisiblePages(page, pageCount).map((pageNumber, index) =>
-              pageNumber === 'ellipsis' ? (
-                <PaginationItem key={`ellipsis-${index}`}>
-                  <PaginationEllipsis />
-                </PaginationItem>
-              ) : (
-                <PaginationItem key={pageNumber}>
-                  <PaginationLink
-                    href="#"
-                    isActive={pageNumber === page}
-                    onClick={(e) => {
-                      e.preventDefault();
-                      if (!image_assets_q.isFetching) setPage(pageNumber);
-                    }}
-                  >
-                    {pageNumber}
-                  </PaginationLink>
-                </PaginationItem>
-              )
-            )}
-            <PaginationItem>
-              <PaginationNext
-                href="#"
-                onClick={(e) => {
-                  e.preventDefault();
-                  if (hasNext && !image_assets_q.isFetching) setPage((p) => p + 1);
-                }}
-                aria-disabled={!hasNext || image_assets_q.isFetching}
-                className={cn(
-                  (!hasNext || image_assets_q.isFetching) && 'pointer-events-none opacity-50'
-                )}
-              />
-            </PaginationItem>
-          </PaginationContent>
-        </Pagination>
-      )}
+      <ImagePagination
+        page={page}
+        pageCount={pageCount}
+        total={image_assets_q.data?.total ?? 0}
+        hasPrev={hasPrev}
+        hasNext={hasNext}
+        isFetching={image_assets_q.isFetching}
+        onPageChange={setPage}
+      />
     </div>
   );
 };
@@ -860,10 +943,10 @@ function AIImageDialogContent({
   const buildOptionalPromptContext = () => {
     const trimmed_extra = custom_instructions.trim();
     return {
-      ...(include_word_meanings && words.length > 0 ? { words } : {}),
-      ...(include_custom_instructions && trimmed_extra.length > 0
-        ? { extra_instructions: trimmed_extra }
-        : {})
+      // `undefined` properties are treated as absent by the optional Zod input fields.
+      words: include_word_meanings && words.length > 0 ? words : undefined,
+      extra_instructions:
+        include_custom_instructions && trimmed_extra.length > 0 ? trimmed_extra : undefined
     };
   };
 

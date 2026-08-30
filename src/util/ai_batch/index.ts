@@ -20,7 +20,8 @@ import {
   type AiBatchLine,
   type AiBatchObjectOutput,
   type AiBatchOutput,
-  type AiBatchOutputExpectation
+  type AiBatchOutputExpectation,
+  type AiBatchResponseBody
 } from './types';
 
 export type { AiBatchInput, AiBatchOutput, AiBatchCreated } from './types';
@@ -112,17 +113,17 @@ export function toAiBatchLine(input: AiBatchInput): AiBatchLine {
   const parsed = ai_batch_input_schema.parse(input);
 
   if (parsed.type === 'image') {
+    // Optional image params stay present as `undefined` when unset; the batch
+    // line body schema passes them through and JSON.stringify drops them.
     const body = {
       ...parsed.body,
       model: parsed.model,
       prompt: parsed.prompt,
       quality: parsed.quality,
       size: parsed.size,
-      ...(parsed.background !== undefined ? { background: parsed.background } : {}),
-      ...(parsed.output_format !== undefined ? { output_format: parsed.output_format } : {}),
-      ...(parsed.output_compression !== undefined
-        ? { output_compression: parsed.output_compression }
-        : {})
+      background: parsed.background,
+      output_format: parsed.output_format,
+      output_compression: parsed.output_compression
     };
 
     return ai_batch_line_schema.parse({
@@ -253,7 +254,7 @@ const response_text_body_schema = z
   })
   .loose();
 
-function extractResponseText(body: unknown) {
+function extractResponseText(body: AiBatchResponseBody) {
   const parsed = response_text_body_schema.parse(body);
 
   if (parsed.output_text) {
@@ -273,7 +274,7 @@ function extractResponseText(body: unknown) {
   return text_chunks.join('');
 }
 
-function inferSuccessfulOutputType(body: unknown): AiBatchOutputExpectation['type'] {
+function inferSuccessfulOutputType(body: AiBatchResponseBody): AiBatchOutputExpectation['type'] {
   const image_body = ai_batch_image_body_schema.safeParse(body);
   return image_body.success &&
     Array.isArray(image_body.data.data) &&
@@ -311,12 +312,12 @@ const response_error_body_schema = z.object({
   error: ai_batch_api_error_schema
 });
 
-function getResponseError(body: unknown) {
+function getResponseError(body: AiBatchResponseBody) {
   return response_error_body_schema.safeParse(body).data?.error;
 }
 
 function parseOutputLine(
-  value: unknown,
+  value: AiBatchResponseBody,
   expectation: AiBatchOutputExpectation | undefined
 ): AiBatchOutput {
   const raw = ai_batch_raw_output_line_schema.parse(value);

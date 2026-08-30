@@ -324,6 +324,247 @@ const get_general_share_msg = (name: string, slug: string, description: string) 
   ].join('\n');
 };
 
+function overscrollBehaviorFor(started: boolean, completed: boolean) {
+  return started && !completed ? 'contain' : 'auto';
+}
+
+function shouldShowAccordion(completed: boolean, location: location_list_type) {
+  return !completed && (location === 'main_page' || location === 'view_page');
+}
+
+function LeaveGameDialog({
+  pendingUrl,
+  onCancel,
+  onLeave
+}: {
+  pendingUrl: string | null;
+  onCancel: () => void;
+  onLeave: () => void;
+}) {
+  return (
+    <AlertDialog open={!!pendingUrl} onOpenChange={(open) => { if (!open) onCancel(); }}>
+      <AlertDialogContent>
+        <AlertDialogHeader>
+          <AlertDialogTitle>Are you sure you want to leave?</AlertDialogTitle>
+          <AlertDialogDescription>
+            Your current word game progress will be lost.
+          </AlertDialogDescription>
+        </AlertDialogHeader>
+        <AlertDialogFooter>
+          <AlertDialogCancel onClick={onCancel}>Cancel</AlertDialogCancel>
+          <AlertDialogAction onClick={onLeave}>Leave Game</AlertDialogAction>
+        </AlertDialogFooter>
+      </AlertDialogContent>
+    </AlertDialog>
+  );
+}
+
+function ScriptSelectorRow({ script, onScriptChange, fontInfo }: {
+  script: ScriptType;
+  onScriptChange: (script: ScriptType) => void;
+  fontInfo: (typeof FONT_INFO)[ScriptType];
+}) {
+  return (
+    <>
+      <Icon className="size-5" src={LanguageIcon} />
+      <ScriptSelector script={script} onScriptChange={onScriptChange} />
+      {fontInfo.experimental && (
+        <span className="inline-flex items-center rounded-full bg-orange-100 px-1.5 py-0.5 text-xs font-medium text-orange-800 dark:bg-orange-900/20 dark:text-orange-400">
+          Beta
+        </span>
+      )}
+    </>
+  );
+}
+
+function WordGameHeader({
+  title,
+  description,
+  descriptionTransliterated,
+  script,
+  onScriptChange,
+  fontInfo,
+  listed,
+  onShare
+}: {
+  title: string;
+  description: string;
+  descriptionTransliterated: string | null;
+  script: ScriptType;
+  onScriptChange: (script: ScriptType) => void;
+  fontInfo: (typeof FONT_INFO)[ScriptType];
+  listed: boolean;
+  onShare: () => Promise<void> | void;
+}) {
+  return (
+    <div className="relative mb-2 text-center sm:mb-3">
+      {/* Desktop script selector — absolutely positioned right of the title */}
+      <div className="absolute top-1/2 right-0 hidden -translate-y-1/2 items-center gap-1.5 rounded-full border border-slate-200/60 bg-white/75 px-3 py-1.5 shadow-md backdrop-blur-sm lg:flex dark:border-slate-700/60 dark:bg-slate-900/75">
+        <ScriptSelectorRow
+          script={script}
+          onScriptChange={onScriptChange}
+          fontInfo={fontInfo}
+        />
+      </div>
+
+      {/* Puzzle title */}
+      <div className={cn('py-1 text-2xl font-bold sm:text-3xl md:text-4xl', fontInfo.className)}>
+        <span className={titleStyles.titleGradient}>{title}</span>
+        {description && (
+          <Popover>
+            <PopoverTrigger
+              render={<button className="ml-3 align-middle outline-none hover:brightness-75" />}
+            >
+              <InfoIcon className="size-3 sm:size-4" />
+            </PopoverTrigger>
+            <PopoverContent
+              side="top"
+              align="center"
+              className="z-80 w-fit max-w-[calc(100vw-32px)] overflow-hidden rounded-xl border border-slate-200 bg-linear-to-r from-amber-50 to-orange-50 px-3 py-2 shadow-xl outline-none sm:max-w-md md:max-w-lg dark:border-slate-700 dark:from-teal-950/80 dark:to-green-950/80"
+            >
+              <div className="text-sm font-semibold wrap-break-word whitespace-normal text-stone-600 dark:text-stone-200">
+                {descriptionTransliterated}
+              </div>
+            </PopoverContent>
+          </Popover>
+        )}
+        {listed && (
+          <button
+            onClick={onShare}
+            className="ml-3 inline-flex items-center justify-center align-middle text-slate-500 outline-none hover:text-slate-700 hover:brightness-75 dark:text-slate-400 dark:hover:text-slate-200"
+            title="Share Puzzle"
+            aria-label="Share Puzzle"
+          >
+            <IoShareSocialOutline className="size-3.5 sm:size-4.5" />
+          </button>
+        )}
+      </div>
+
+      {/* Script selector — mobile only, centered below title */}
+      <div className="mt-2 flex items-center justify-center gap-1.5 lg:hidden">
+        <Icon className="size-6" src={LanguageIcon} />
+        <ScriptSelector script={script} onScriptChange={onScriptChange} />
+        {fontInfo.experimental && (
+          <span className="inline-flex items-center rounded-full bg-orange-100 px-1.5 py-0.5 text-xs font-medium text-orange-800 dark:bg-orange-900/20 dark:text-orange-400">
+            Beta
+          </span>
+        )}
+      </div>
+    </div>
+  );
+}
+
+function TopHintArea({
+  hintAtTop,
+  hintHiddenInPractice,
+  puzzleId,
+  puzzleSlug,
+  timerRef
+}: {
+  hintAtTop: boolean;
+  hintHiddenInPractice: boolean;
+  puzzleId: number;
+  puzzleSlug: string;
+  timerRef: React.RefObject<NodeJS.Timeout | null>;
+}) {
+  return (
+    <div className="mb-2 flex flex-col items-center gap-2 sm:mb-3">
+      {hintAtTop ? (
+        <HintDialog puzzle_id={puzzleId} puzzle_slug={puzzleSlug} timerRef={timerRef} />
+      ) : null}
+      {hintHiddenInPractice ? (
+        <span className="inline-flex items-center gap-1.5 rounded-full border border-amber-300/60 bg-amber-50 px-3 py-1 text-xs font-semibold text-amber-800 shadow-sm dark:border-amber-600/40 dark:bg-amber-950/50 dark:text-amber-200">
+          <Sparkles className="size-3" />
+          Practice mode
+        </span>
+      ) : null}
+    </div>
+  );
+}
+
+function GameControlSection({
+  started,
+  completed,
+  timerRef,
+  originalGridData
+}: {
+  started: boolean;
+  completed: boolean;
+  timerRef: React.RefObject<NodeJS.Timeout | null>;
+  originalGridData: string[][];
+}) {
+  return (
+    <motion.div
+      className={cn(
+        'flex flex-col items-center justify-center',
+        completed && 'mx-auto mb-4 w-full max-w-2xl sm:mb-5'
+      )}
+      initial={{ opacity: 0, y: 40 }}
+      animate={{ opacity: 1, y: 0 }}
+      exit={{ opacity: 0, y: 40 }}
+      transition={{ type: 'spring', stiffness: 350, damping: 32, duration: 0.5 }}
+    >
+      <motion.div
+        className={cn(
+          'flex items-center justify-center',
+          started &&
+            !completed &&
+            'w-auto space-x-3.5 rounded-2xl border border-slate-200 bg-white px-5 py-3 shadow-xl sm:space-x-5 sm:px-6 md:space-x-5 md:px-8 dark:border-slate-700 dark:bg-slate-800',
+          // On completion: side-by-side restart + stats on desktop
+          completed && 'w-full flex-col gap-3 sm:flex-row sm:items-stretch sm:gap-4'
+        )}
+        initial={{ opacity: 0, y: 32 }}
+        animate={{ opacity: 1, y: 0 }}
+        transition={{
+          delay: 0.08,
+          type: 'spring',
+          stiffness: 300,
+          damping: 30,
+          duration: 0.45
+        }}
+      >
+        <GameContoller timerRef={timerRef} />
+        {(started || completed) && <GameInfo />}
+      </motion.div>
+      <motion.div
+        className="mb-4.5 pt-3 sm:mb-5.5 sm:pt-5 md:mb-6"
+        initial={{ opacity: 0, y: 24 }}
+        animate={{ opacity: 1, y: 0 }}
+        transition={{
+          delay: 0.18,
+          type: 'spring',
+          stiffness: 300,
+          damping: 30,
+          duration: 0.4
+        }}
+      >
+        <CompactGameActionButtons timerRef={timerRef} original_grid_data={originalGridData} />
+      </motion.div>
+    </motion.div>
+  );
+}
+
+function MediaSidebar({
+  attachments,
+  started
+}: {
+  attachments: z.infer<typeof attachment_schema>[];
+  started: boolean;
+}) {
+  return (
+    <div
+      className={cn(
+        'order-2 lg:order-1 lg:col-span-3',
+        !started && 'lg:mt-10 lg:items-start'
+      )}
+    >
+      <MediaAttachments
+        attachments={resolveAttachmentsWithDefaults(attachments.map((v) => v))}
+      />
+    </div>
+  );
+}
+
 function WordGame({
   children,
   id: puzzle_id,
@@ -367,6 +608,7 @@ function WordGame({
   const hintHiddenInPractice = gameInProgress && practiceMode;
   const hintBelowMeanings = gameInProgress && !practiceMode;
   const hintAtTop = !gameInProgress;
+  const hintAtTopArea = hintAtTop || hintHiddenInPractice;
 
   const timerRef = useRef<NodeJS.Timeout | null>(null);
   const [description_transliterated, setDescriptionTransliterated] =
@@ -446,8 +688,33 @@ function WordGame({
     };
   }, [started, completed]);
 
-  const showAccordion = !completed && (location === 'main_page' || location === 'view_page');
+  const showAccordion = shouldShowAccordion(completed, location);
   const showCompletionCarousel = completed;
+
+  const handleShare = async () => {
+    const text = get_general_share_msg(title, puzzle_slug, description);
+    try {
+      if (navigator.share) {
+        await navigator.share({
+          title: `${title} - पदावली-शब्द-क्रीडनम्`,
+          text
+        });
+      } else {
+        try {
+          await copy_text_to_clipboard(text);
+          toast.success('Puzzle link copied to clipboard');
+        } catch (err) {
+          toast.error('Could not copy to clipboard');
+          console.log('Error copying:', err);
+        }
+      }
+    } catch (err) {
+      // SAFETY: navigator.share rejections are DOMException errors carrying .name
+      if ((err as Error).name !== 'AbortError') {
+        console.log('Error sharing:', err);
+      }
+    }
+  };
 
   return (
     <div
@@ -458,37 +725,19 @@ function WordGame({
       style={{
         // Prevent iOS Safari bounce and zoom during game
         WebkitOverflowScrolling: 'touch',
-        overscrollBehavior: started && !completed ? 'contain' : 'auto'
+        overscrollBehavior: overscrollBehaviorFor(started, completed)
       }}
     >
-      <AlertDialog
-        open={!!pendingUrl}
-        onOpenChange={(open) => {
-          if (!open) setPendingUrl(null);
+      <LeaveGameDialog
+        pendingUrl={pendingUrl}
+        onCancel={() => setPendingUrl(null)}
+        onLeave={() => {
+          if (pendingUrl) {
+            navigate({ href: pendingUrl });
+            setPendingUrl(null);
+          }
         }}
-      >
-        <AlertDialogContent>
-          <AlertDialogHeader>
-            <AlertDialogTitle>Are you sure you want to leave?</AlertDialogTitle>
-            <AlertDialogDescription>
-              Your current word game progress will be lost.
-            </AlertDialogDescription>
-          </AlertDialogHeader>
-          <AlertDialogFooter>
-            <AlertDialogCancel onClick={() => setPendingUrl(null)}>Cancel</AlertDialogCancel>
-            <AlertDialogAction
-              onClick={() => {
-                if (pendingUrl) {
-                  navigate({ href: pendingUrl });
-                  setPendingUrl(null);
-                }
-              }}
-            >
-              Leave Game
-            </AlertDialogAction>
-          </AlertDialogFooter>
-        </AlertDialogContent>
-      </AlertDialog>
+      />
 
       {children}
 
@@ -505,102 +754,28 @@ function WordGame({
       )}
 
       <div className="container mx-auto max-w-7xl px-2 pt-3 sm:px-4 sm:pt-4 md:px-6 md:pt-5">
-        {hintAtTop || hintHiddenInPractice ? (
-          <div className="mb-2 flex flex-col items-center gap-2 sm:mb-3">
-            {hintAtTop ? (
-              <HintDialog puzzle_id={puzzle_id} puzzle_slug={puzzle_slug} timerRef={timerRef} />
-            ) : null}
-            {hintHiddenInPractice ? (
-              <span className="inline-flex items-center gap-1.5 rounded-full border border-amber-300/60 bg-amber-50 px-3 py-1 text-xs font-semibold text-amber-800 shadow-sm dark:border-amber-600/40 dark:bg-amber-950/50 dark:text-amber-200">
-                <Sparkles className="size-3" />
-                Practice mode
-              </span>
-            ) : null}
-          </div>
+        {hintAtTopArea ? (
+          <TopHintArea
+            hintAtTop={hintAtTop}
+            hintHiddenInPractice={hintHiddenInPractice}
+            puzzleId={puzzle_id}
+            puzzleSlug={puzzle_slug}
+            timerRef={timerRef}
+          />
         ) : null}
 
         {/* Title + inline script selector (desktop: right side, mobile: below title) */}
-        <div className="relative mb-2 text-center sm:mb-3">
-          {/* Desktop script selector — absolutely positioned right of the title */}
-          <div className="absolute top-1/2 right-0 hidden -translate-y-1/2 items-center gap-1.5 rounded-full border border-slate-200/60 bg-white/75 px-3 py-1.5 shadow-md backdrop-blur-sm lg:flex dark:border-slate-700/60 dark:bg-slate-900/75">
-            <Icon className="size-5" src={LanguageIcon} />
-            <ScriptSelector script={script} onScriptChange={setScript} />
-            {font_info.experimental && (
-              <span className="inline-flex items-center rounded-full bg-orange-100 px-1.5 py-0.5 text-xs font-medium text-orange-800 dark:bg-orange-900/20 dark:text-orange-400">
-                Beta
-              </span>
-            )}
-          </div>
-
-          {/* Puzzle title */}
-          <div
-            className={cn('py-1 text-2xl font-bold sm:text-3xl md:text-4xl', font_info.className)}
-          >
-            <span className={titleStyles.titleGradient}>{title}</span>
-            {description && (
-              <Popover>
-                <PopoverTrigger
-                  render={<button className="ml-3 align-middle outline-none hover:brightness-75" />}
-                >
-                  <InfoIcon className="size-3 sm:size-4" />
-                </PopoverTrigger>
-                <PopoverContent
-                  side="top"
-                  align="center"
-                  className="z-80 w-fit max-w-[calc(100vw-32px)] overflow-hidden rounded-xl border border-slate-200 bg-linear-to-r from-amber-50 to-orange-50 px-3 py-2 shadow-xl outline-none sm:max-w-md md:max-w-lg dark:border-slate-700 dark:from-teal-950/80 dark:to-green-950/80"
-                >
-                  <div className="text-sm font-semibold wrap-break-word whitespace-normal text-stone-600 dark:text-stone-200">
-                    {description_transliterated}
-                  </div>
-                </PopoverContent>
-              </Popover>
-            )}
-            {listed && (
-              <button
-                onClick={async () => {
-                  const text = get_general_share_msg(title, puzzle_slug, description);
-                  try {
-                    if (navigator.share) {
-                      await navigator.share({
-                        title: `${title} - पदावली-शब्द-क्रीडनम्`,
-                        text
-                      });
-                    } else {
-                      try {
-                        await copy_text_to_clipboard(text);
-                        toast.success('Puzzle link copied to clipboard');
-                      } catch (err) {
-                        toast.error('Could not copy to clipboard');
-                        console.log('Error copying:', err);
-                      }
-                    }
-                  } catch (err) {
-                    // SAFETY: navigator.share rejections are DOMException errors carrying .name
-                    if ((err as Error).name !== 'AbortError') {
-                      console.log('Error sharing:', err);
-                    }
-                  }
-                }}
-                className="ml-3 inline-flex items-center justify-center align-middle text-slate-500 outline-none hover:text-slate-700 hover:brightness-75 dark:text-slate-400 dark:hover:text-slate-200"
-                title="Share Puzzle"
-                aria-label="Share Puzzle"
-              >
-                <IoShareSocialOutline className="size-3.5 sm:size-4.5" />
-              </button>
-            )}
-          </div>
-
-          {/* Script selector — mobile only, centered below title */}
-          <div className="mt-2 flex items-center justify-center gap-1.5 lg:hidden">
-            <Icon className="size-6" src={LanguageIcon} />
-            <ScriptSelector script={script} onScriptChange={setScript} />
-            {font_info.experimental && (
-              <span className="inline-flex items-center rounded-full bg-orange-100 px-1.5 py-0.5 text-xs font-medium text-orange-800 dark:bg-orange-900/20 dark:text-orange-400">
-                Beta
-              </span>
-            )}
-          </div>
-        </div>
+        <WordGameHeader
+          title={title}
+          description={description}
+          descriptionTransliterated={description_transliterated}
+          // SAFETY: AppContext only ever stores valid ScriptType values in script
+          script={script as ScriptType}
+          onScriptChange={setScript}
+          fontInfo={font_info}
+          listed={listed}
+          onShare={handleShare}
+        />
 
         {/* More Puzzles accordion */}
         {showAccordion && (
@@ -611,53 +786,12 @@ function WordGame({
 
         {/* Game controller + info — on completion, use centered layout with more breathing room */}
         {started && (
-          <motion.div
-            className={cn(
-              'flex flex-col items-center justify-center',
-              completed && 'mx-auto mb-4 w-full max-w-2xl sm:mb-5'
-            )}
-            initial={{ opacity: 0, y: 40 }}
-            animate={{ opacity: 1, y: 0 }}
-            exit={{ opacity: 0, y: 40 }}
-            transition={{ type: 'spring', stiffness: 350, damping: 32, duration: 0.5 }}
-          >
-            <motion.div
-              className={cn(
-                'flex items-center justify-center',
-                started &&
-                  !completed &&
-                  'w-auto space-x-3.5 rounded-2xl border border-slate-200 bg-white px-5 py-3 shadow-xl sm:space-x-5 sm:px-6 md:space-x-5 md:px-8 dark:border-slate-700 dark:bg-slate-800',
-                // On completion: side-by-side restart + stats on desktop
-                completed && 'w-full flex-col gap-3 sm:flex-row sm:items-stretch sm:gap-4'
-              )}
-              initial={{ opacity: 0, y: 32 }}
-              animate={{ opacity: 1, y: 0 }}
-              transition={{
-                delay: 0.08,
-                type: 'spring',
-                stiffness: 300,
-                damping: 30,
-                duration: 0.45
-              }}
-            >
-              <GameContoller timerRef={timerRef} />
-              {(started || completed) && <GameInfo />}
-            </motion.div>
-            <motion.div
-              className="mb-4.5 pt-3 sm:mb-5.5 sm:pt-5 md:mb-6"
-              initial={{ opacity: 0, y: 24 }}
-              animate={{ opacity: 1, y: 0 }}
-              transition={{
-                delay: 0.18,
-                type: 'spring',
-                stiffness: 300,
-                damping: 30,
-                duration: 0.4
-              }}
-            >
-              <CompactGameActionButtons timerRef={timerRef} original_grid_data={org_grid_data} />
-            </motion.div>
-          </motion.div>
+          <GameControlSection
+            started={started}
+            completed={completed}
+            timerRef={timerRef}
+            originalGridData={org_grid_data}
+          />
         )}
 
         {/* Main Game Container */}
@@ -667,16 +801,7 @@ function WordGame({
           )}
         >
           {/* Game Controls & Progress - Left Sidebar on large screens, top on mobile */}
-          <div
-            className={cn(
-              'order-2 lg:order-1 lg:col-span-3',
-              !started && 'lg:mt-10 lg:items-start'
-            )}
-          >
-            <MediaAttachments
-              attachments={resolveAttachmentsWithDefaults(attachments.map((v) => v))}
-            />
-          </div>
+          <MediaSidebar attachments={attachments} started={started} />
 
           {/* Game Grid - Center */}
           <div className="order-1 flex flex-col items-center justify-center lg:order-2 lg:col-span-6">

@@ -3,6 +3,15 @@ import { Redis, type SetCommandOptions } from '@upstash/redis';
 import { AppConfig } from './config';
 import { RedisError } from './errors';
 
+/** JSON-decoded value as returned by Upstash REST `get` and stored via `set`. */
+export type RedisJsonValue =
+  | string
+  | number
+  | boolean
+  | null
+  | RedisJsonValue[]
+  | { [key: string]: RedisJsonValue };
+
 const tryRedis = <A>(operation: string, run: () => Promise<A>) =>
   Effect.tryPromise({
     try: run,
@@ -13,9 +22,9 @@ export class RedisClient extends Context.Service<
   RedisClient,
   {
     readonly get: <T = unknown>(key: string) => Effect.Effect<T | null, RedisError>;
-    readonly set: (
+    readonly set: <T>(
       key: string,
-      value: unknown,
+      value: T,
       options?: SetCommandOptions
     ) => Effect.Effect<unknown, RedisError>;
     readonly del: (...keys: string[]) => Effect.Effect<number, RedisError>;
@@ -38,7 +47,7 @@ export class RedisClient extends Context.Service<
 
       return {
         get: <T = unknown>(key: string) => tryRedis('get', () => redis.get<T>(key)),
-        set: (key: string, value: unknown, options?: SetCommandOptions) =>
+        set: <T>(key: string, value: T, options?: SetCommandOptions) =>
           tryRedis('set', () => (options ? redis.set(key, value, options) : redis.set(key, value))),
         del: (...keys: string[]) => tryRedis('del', () => redis.del(...keys)),
         incr: (key: string) => tryRedis('incr', () => redis.incr(key)),

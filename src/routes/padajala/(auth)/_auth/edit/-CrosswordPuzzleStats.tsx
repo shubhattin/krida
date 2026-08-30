@@ -345,40 +345,214 @@ type PuzzleStatsProps = {
   puzzleTitle?: string;
 };
 
+type ResolvedRange = { from: Date; to: Date } | null;
+
+type CrosswordStatsSession = { created_at: Date | string; location: string | null };
+type CrosswordStatsCompletion = {
+  created_at: Date | string;
+  time_taken: number;
+  accuracy: number;
+  letter_inputs: number;
+  incorrect_entry_attempts: number;
+};
+
+function defaultDateRange(): DateRange {
+  const today = endOfDay(new Date());
+  const monthAgo = startOfDay(subMonths(today, 1));
+  return { from: monthAgo, to: today };
+}
+
+function initialSelectedPuzzles(puzzleId?: number, puzzleTitle?: string): SelectedPuzzle[] {
+  return puzzleId && puzzleTitle ? [{ id: puzzleId, title: puzzleTitle }] : [];
+}
+
+function resolvePeriodRange(period: PeriodType, dateRange: DateRange): ResolvedRange {
+  const today = endOfDay(new Date());
+  if (period === 'all_time') return null;
+  if (period === 'last_week') return { from: startOfDay(subWeeks(today, 1)), to: today };
+  if (period === 'last_month') return { from: startOfDay(subMonths(today, 1)), to: today };
+  if (period === 'last_3_months') return { from: startOfDay(subMonths(today, 3)), to: today };
+  return dateRange.from && dateRange.to
+    ? { from: startOfDay(dateRange.from), to: endOfDay(dateRange.to) }
+    : null;
+}
+
+function statsRangeEnabled(allTime: boolean, range: ResolvedRange): boolean {
+  return allTime || !!(range?.from && range?.to);
+}
+
+function selectionLabel(selectedPuzzles: SelectedPuzzle[]): string {
+  if (selectedPuzzles.length === 0) return 'Analytics across all puzzles';
+  if (selectedPuzzles.length === 1) return `Analytics for ${selectedPuzzles[0].title}`;
+  return `Analytics for ${selectedPuzzles.length} selected puzzles`;
+}
+
+type DailyBucketTotals = {
+  date: string;
+  sessions: number;
+  completions: number;
+  totalTimeTaken: number;
+  totalAccuracy: number;
+  totalLetterInputs: number;
+  totalIncorrectAttempts: number;
+};
+
+function emptyDailyBucket(dateKey: string): DailyBucketTotals {
+  return {
+    date: dateKey,
+    sessions: 0,
+    completions: 0,
+    totalTimeTaken: 0,
+    totalAccuracy: 0,
+    totalLetterInputs: 0,
+    totalIncorrectAttempts: 0
+  };
+}
+
+function avgPerCompletion(total: number, completions: number): number {
+  return completions > 0 ? Math.round(total / completions) : 0;
+}
+
+function buildDailyStats(
+  sessions: CrosswordStatsSession[],
+  stats: CrosswordStatsCompletion[],
+  allTime: boolean,
+  effectiveDateRange: ResolvedRange
+): DailyStatPoint[] {
+  // Create daily aggregation
+  const dailyMap = new Map<string, DailyBucketTotals>();
+
+  for (const session of sessions) {
+    const dateKey = format(new Date(session.created_at), 'yyyy-MM-dd');
+    const existing = dailyMap.get(dateKey) ?? emptyDailyBucket(dateKey);
+    existing.sessions += 1;
+    dailyMap.set(dateKey, existing);
+  }
+
+  for (const stat of stats) {
+    const dateKey = format(new Date(stat.created_at), 'yyyy-MM-dd');
+    const existing = dailyMap.get(dateKey) ?? emptyDailyBucket(dateKey);
+    existing.completions += 1;
+    existing.totalTimeTaken += stat.time_taken;
+    existing.totalAccuracy += stat.accuracy;
+    existing.totalLetterInputs += stat.letter_inputs;
+    existing.totalIncorrectAttempts += stat.incorrect_entry_attempts;
+    dailyMap.set(dateKey, existing);
+  }
+
+  // Calculate averages for each day
+  const dailyStatsRaw = Array.from(dailyMap.values())
+    .map((day) => ({
+      ...day,
+      endDate: day.date,
+      label: '',
+      tooltipLabel: '',
+      avgTimeTaken: avgPerCompletion(day.totalTimeTaken, day.completions),
+      avgAccuracy: avgPerCompletion(day.totalAccuracy, day.completions),
+      avgLetterInputs: avgPerCompletion(day.totalLetterInputs, day.completions),
+      avgIncorrectAttempts: avgPerCompletion(day.totalIncorrectAttempts, day.completions)
+    }))
+    .sort((a, b) => a.date.localeCompare(b.date));
+
+  const showYearInTooltip = shouldShowYearInTooltip(
+    allTime,
+    effectiveDateRange,
+    dailyStatsRaw.map((d) => d.date)
+  );
+
+  return bucketDailyStats(
+    dailyStatsRaw.map((day) => {
+      const { label, tooltipLabel, endDate } = buildDateLabels(
+        day.date,
+        day.endDate,
+        showYearInTooltip
+      );
+      return { ...day, endDate, label, tooltipLabel };
+    }),
+    showYearInTooltip
+  );
+}
+
+// Calculate location frequency (ignore null values)
+function buildLocationFrequency(
+  sessions: CrosswordStatsSession[]
+): { name: string; frequency: number }[] {
+  const locationMap = new Map<string, number>();
+  for (const session of sessions) {
+    if (session.location === null) continue;
+    const count = locationMap.get(session.location) ?? 0;
+    locationMap.set(session.location, count + 1);
+  }
+  return Array.from(locationMap.entries())
+    .map(([name, frequency]) => ({ name, frequency }))
+    .sort((a, b) => b.frequency - a.frequency);
+}
+
+function computeChartData(
+  filteredStatsData: {
+    sessions: CrosswordStatsSession[];
+    stats: CrosswordStatsCompletion[];
+  } | null,
+  allTime: boolean,
+  effectiveDateRange: ResolvedRange
+): ChartDataType {
+  if (!filteredStatsData) {
+    return { dailyStats: [], locationFrequency: [], isBucketed: false };
+  }
+
+  const { sessions, stats } = filteredStatsData;
+  const dailyStats = buildDailyStats(sessions, stats, allTime, effectiveDateRange);
+
+  return {
+    dailyStats,
+    locationFrequency: buildLocationFrequency(sessions),
+    isBucketed: dailyStats.length > MAX_CHART_POINTS
+  };
+}
+
+function meanRound(values: number[]): number {
+  if (values.length === 0) return 0;
+  return Math.round(values.reduce((sum, value) => sum + value, 0) / values.length);
+}
+
+// Summary statistics
+function computeSummaryStats(
+  filteredStatsData: {
+    sessions: CrosswordStatsSession[];
+    stats: CrosswordStatsCompletion[];
+  } | null
+) {
+  if (!filteredStatsData) return null;
+
+  const { sessions, stats } = filteredStatsData;
+
+  return {
+    totalSessions: sessions.length,
+    totalCompletions: stats.length,
+    completionRate: sessions.length > 0 ? Math.round((stats.length / sessions.length) * 100) : 0,
+    avgTimeTaken: meanRound(stats.map((stat) => stat.time_taken)),
+    avgAccuracy: meanRound(stats.map((stat) => stat.accuracy))
+  };
+}
+
 const PuzzleStats = ({ puzzleId, puzzleTitle }: PuzzleStatsProps) => {
   const isEmbedded = puzzleId != null;
   const [period, setPeriod] = useState<PeriodType>('last_month');
   const [chartType, setChartType] = useState<ChartType>('sessions-completions');
   const [selectedPuzzles, setSelectedPuzzles] = useState<SelectedPuzzle[]>(() =>
-    puzzleId && puzzleTitle ? [{ id: puzzleId, title: puzzleTitle }] : []
+    initialSelectedPuzzles(puzzleId, puzzleTitle)
   );
-  const [dateRange, setDateRange] = useState<DateRange>(() => {
-    const today = endOfDay(new Date());
-    const monthAgo = startOfDay(subMonths(today, 1));
-    return { from: monthAgo, to: today };
-  });
+  const [dateRange, setDateRange] = useState<DateRange>(defaultDateRange);
 
-  const effectiveDateRange = useMemo(() => {
-    const today = endOfDay(new Date());
-    if (period === 'all_time') return null;
-    if (period === 'last_week') {
-      return { from: startOfDay(subWeeks(today, 1)), to: today };
-    }
-    if (period === 'last_month') {
-      return { from: startOfDay(subMonths(today, 1)), to: today };
-    }
-    if (period === 'last_3_months') {
-      return { from: startOfDay(subMonths(today, 3)), to: today };
-    }
-    return dateRange.from && dateRange.to
-      ? { from: startOfDay(dateRange.from), to: endOfDay(dateRange.to) }
-      : null;
-  }, [period, dateRange]);
+  const effectiveDateRange = useMemo(
+    () => resolvePeriodRange(period, dateRange),
+    [period, dateRange]
+  );
 
   const puzzleIds = selectedPuzzles.length > 0 ? selectedPuzzles.map((p) => p.id) : undefined;
   const allTime = period === 'all_time';
 
-  const statsQueryEnabled = allTime || !!(effectiveDateRange?.from && effectiveDateRange?.to);
+  const statsQueryEnabled = statsRangeEnabled(allTime, effectiveDateRange);
 
   const trpc = useTRPC();
 
@@ -413,158 +587,19 @@ const PuzzleStats = ({ puzzleId, puzzleTitle }: PuzzleStatsProps) => {
   const filteredStatsData = statsQuery.data ?? null;
 
   // Process data for charts
-  const chartData = useMemo(() => {
-    if (!filteredStatsData) return { dailyStats: [], locationFrequency: [], isBucketed: false };
+  const chartData = useMemo(
+    () => computeChartData(filteredStatsData, allTime, effectiveDateRange),
+    [filteredStatsData, allTime, effectiveDateRange]
+  );
 
-    const { sessions, stats } = filteredStatsData;
-
-    // Create daily aggregation
-    const dailyMap = new Map<
-      string,
-      {
-        date: string;
-        sessions: number;
-        completions: number;
-        totalTimeTaken: number;
-        totalAccuracy: number;
-        totalLetterInputs: number;
-        totalIncorrectAttempts: number;
-        avgTimeTaken: number;
-        avgAccuracy: number;
-        avgLetterInputs: number;
-        avgIncorrectAttempts: number;
-      }
-    >();
-
-    sessions.forEach((session) => {
-      const dateKey = format(new Date(session.created_at), 'yyyy-MM-dd');
-      const existing = dailyMap.get(dateKey) || {
-        date: dateKey,
-        sessions: 0,
-        completions: 0,
-        totalTimeTaken: 0,
-        totalAccuracy: 0,
-        totalLetterInputs: 0,
-        totalIncorrectAttempts: 0,
-        avgTimeTaken: 0,
-        avgAccuracy: 0,
-        avgLetterInputs: 0,
-        avgIncorrectAttempts: 0
-      };
-      existing.sessions += 1;
-      dailyMap.set(dateKey, existing);
-    });
-
-    stats.forEach((stat) => {
-      const dateKey = format(new Date(stat.created_at), 'yyyy-MM-dd');
-      const existing = dailyMap.get(dateKey) || {
-        date: dateKey,
-        sessions: 0,
-        completions: 0,
-        totalTimeTaken: 0,
-        totalAccuracy: 0,
-        totalLetterInputs: 0,
-        totalIncorrectAttempts: 0,
-        avgTimeTaken: 0,
-        avgAccuracy: 0,
-        avgLetterInputs: 0,
-        avgIncorrectAttempts: 0
-      };
-      existing.completions += 1;
-      existing.totalTimeTaken += stat.time_taken;
-      existing.totalAccuracy += stat.accuracy;
-      existing.totalLetterInputs += stat.letter_inputs;
-      existing.totalIncorrectAttempts += stat.incorrect_entry_attempts;
-      dailyMap.set(dateKey, existing);
-    });
-
-    // Calculate averages for each day
-    const dailyStatsRaw = Array.from(dailyMap.values())
-      .map((day) => ({
-        ...day,
-        endDate: day.date,
-        label: '',
-        tooltipLabel: '',
-        avgTimeTaken: day.completions > 0 ? Math.round(day.totalTimeTaken / day.completions) : 0,
-        avgAccuracy: day.completions > 0 ? Math.round(day.totalAccuracy / day.completions) : 0,
-        avgLetterInputs:
-          day.completions > 0 ? Math.round(day.totalLetterInputs / day.completions) : 0,
-        avgIncorrectAttempts:
-          day.completions > 0 ? Math.round(day.totalIncorrectAttempts / day.completions) : 0
-      }))
-      .sort((a, b) => a.date.localeCompare(b.date));
-
-    const showYearInTooltip = shouldShowYearInTooltip(
-      allTime,
-      effectiveDateRange,
-      dailyStatsRaw.map((d) => d.date)
-    );
-
-    const dailyStatsLabeled = dailyStatsRaw.map((day) => {
-      const { label, tooltipLabel, endDate } = buildDateLabels(
-        day.date,
-        day.endDate,
-        showYearInTooltip
-      );
-      return { ...day, endDate, label, tooltipLabel };
-    });
-
-    const isBucketed = dailyStatsLabeled.length > MAX_CHART_POINTS;
-    const dailyStats = bucketDailyStats(dailyStatsLabeled, showYearInTooltip);
-
-    // Calculate location frequency (ignore null values)
-    const locationMap = new Map<string, number>();
-    sessions.forEach((session) => {
-      if (session.location !== null) {
-        const count = locationMap.get(session.location) || 0;
-        locationMap.set(session.location, count + 1);
-      }
-    });
-    const locationFrequency = Array.from(locationMap.entries())
-      .map(([name, frequency]) => ({ name, frequency }))
-      .sort((a, b) => b.frequency - a.frequency);
-
-    return { dailyStats, locationFrequency, isBucketed };
-  }, [filteredStatsData, allTime, effectiveDateRange]);
-
-  // Summary statistics
-  const summaryStats = useMemo(() => {
-    if (!filteredStatsData) return null;
-
-    const { sessions, stats } = filteredStatsData;
-
-    // Calculate averages from completed sessions
-    const avgTimeTaken =
-      stats.length > 0
-        ? Math.round(stats.reduce((sum, stat) => sum + stat.time_taken, 0) / stats.length)
-        : 0;
-
-    const avgAccuracy =
-      stats.length > 0
-        ? Math.round(stats.reduce((sum, stat) => sum + stat.accuracy, 0) / stats.length)
-        : 0;
-
-    return {
-      totalSessions: sessions.length,
-      totalCompletions: stats.length,
-      completionRate: sessions.length > 0 ? Math.round((stats.length / sessions.length) * 100) : 0,
-      avgTimeTaken,
-      avgAccuracy
-    };
-  }, [filteredStatsData]);
+  const summaryStats = useMemo(() => computeSummaryStats(filteredStatsData), [filteredStatsData]);
 
   return (
     <div className="space-y-3 p-4">
       <div className="flex flex-col gap-2 sm:flex-row sm:items-start sm:justify-between">
         <div className="min-w-0">
           <h2 className="text-xl font-bold tracking-tight">Puzzle Statistics</h2>
-          <p className="text-sm text-muted-foreground">
-            {selectedPuzzles.length === 0
-              ? 'Analytics across all puzzles'
-              : selectedPuzzles.length === 1
-                ? `Analytics for ${selectedPuzzles[0].title}`
-                : `Analytics for ${selectedPuzzles.length} selected puzzles`}
-          </p>
+          <p className="text-sm text-muted-foreground">{selectionLabel(selectedPuzzles)}</p>
         </div>
         <StatsFilterControls period={period} setPeriod={setPeriod} />
       </div>
@@ -585,32 +620,61 @@ const PuzzleStats = ({ puzzleId, puzzleTitle }: PuzzleStatsProps) => {
         </div>
       )}
       {/* Stats Content */}
-      {!statsQuery.isLoading && statsQuery.isSuccess && summaryStats && (
-        <>
-          {!isEmbedded && (
-            <TopPuzzlesLeader
-              puzzles={topPuzzlesQuery.data?.puzzles ?? []}
-              isLoading={topPuzzlesQuery.isLoading}
-            />
-          )}
-          {/* Summary Cards */}
-          <SummaryCards summaryStats={summaryStats} />
-
-          {summaryStats.totalSessions === 0 ? (
-            <p className="py-4 text-center text-sm text-muted-foreground">
-              No data available for the selected time period
-            </p>
-          ) : (
-            <ChartsSection
-              chartData={chartData}
-              chartConfig={DEFAULT_CHART_CONFIG}
-              chartType={chartType}
-              setChartType={setChartType}
-            />
-          )}
-        </>
+      {!statsQuery.isLoading && statsQuery.isSuccess && (
+        <StatsContentBody
+          isEmbedded={isEmbedded}
+          topPuzzles={topPuzzlesQuery.data?.puzzles ?? []}
+          topPuzzlesLoading={topPuzzlesQuery.isLoading}
+          summaryStats={summaryStats}
+          chartData={chartData}
+          chartType={chartType}
+          setChartType={setChartType}
+        />
       )}
     </div>
+  );
+};
+
+type StatsContentBodyProps = {
+  isEmbedded: boolean;
+  topPuzzles: TopPuzzleRow[];
+  topPuzzlesLoading: boolean;
+  summaryStats: ReturnType<typeof computeSummaryStats>;
+  chartData: ChartDataType;
+  chartType: ChartType;
+  setChartType: (chartType: ChartType) => void;
+};
+
+const StatsContentBody = ({
+  isEmbedded,
+  topPuzzles,
+  topPuzzlesLoading,
+  summaryStats,
+  chartData,
+  chartType,
+  setChartType
+}: StatsContentBodyProps) => {
+  if (!summaryStats) return null;
+
+  return (
+    <>
+      {!isEmbedded && <TopPuzzlesLeader puzzles={topPuzzles} isLoading={topPuzzlesLoading} />}
+      {/* Summary Cards */}
+      <SummaryCards summaryStats={summaryStats} />
+
+      {summaryStats.totalSessions === 0 ? (
+        <p className="py-4 text-center text-sm text-muted-foreground">
+          No data available for the selected time period
+        </p>
+      ) : (
+        <ChartsSection
+          chartData={chartData}
+          chartConfig={DEFAULT_CHART_CONFIG}
+          chartType={chartType}
+          setChartType={setChartType}
+        />
+      )}
+    </>
   );
 };
 

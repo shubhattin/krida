@@ -43,7 +43,14 @@ export function useMoreHints(
     return map;
   }, [query.data?.hints, entries]);
 
-  return { ...query, hintByEntryId };
+  return {
+    data: query.data,
+    error: query.error,
+    isLoading: query.isLoading,
+    isFetching: query.isFetching,
+    refetch: query.refetch,
+    hintByEntryId
+  };
 }
 
 export type MoreHintsQuery = ReturnType<typeof useMoreHints>;

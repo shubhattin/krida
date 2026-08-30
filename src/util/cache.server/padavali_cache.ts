@@ -4,6 +4,7 @@ import { z } from 'zod';
 import { image_schema, puzzle_schema } from '~/db/db_shared_vals';
 import { createCache, type CacheItem, type NoCacheParams } from '~/effect/cache';
 import { dbRun } from '~/effect/database';
+import type { RedisJsonValue } from '~/effect/redis';
 import { BadRequestError, CacheError } from '~/effect/errors';
 import {
   get_puzzle_word_meanings,
@@ -77,7 +78,7 @@ const toCacheError = (operation: string, key: string) => (cause: unknown) =>
 
 const parseScheduleSentinel =
   <T>(schema: z.ZodType<T>) =>
-  (raw: unknown): T | undefined | null => {
+  (raw: RedisJsonValue): T | undefined | null => {
     if (raw === 'undefined') return undefined;
     // Non-object payloads fail the object schema itself, mapping to a cache miss.
     const parsed = schema.safeParse(raw);

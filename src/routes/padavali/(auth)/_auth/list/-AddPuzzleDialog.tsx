@@ -59,6 +59,24 @@ const SlugStatusIcon = ({
   return null;
 };
 
+type SlugStatus = ReturnType<typeof useDebouncedSlugCheck>['status'];
+
+const SlugStatusHint = ({ status, normalizedSlug }: { status: SlugStatus; normalizedSlug: string }) => (
+  <p
+    className={cn(
+      'text-xs',
+      status === 'taken' || status === 'invalid' ? 'text-red-600' : 'text-muted-foreground'
+    )}
+  >
+    {status === 'invalid' &&
+      'Only lowercase letters, numbers, underscores, and dashes are allowed.'}
+    {status === 'taken' &&
+      'This slug is already used by another puzzle and cannot be reused.'}
+    {status === 'available' && `Available as "${normalizedSlug}".`}
+    {status === 'redirect_conflict' && `Slug "${normalizedSlug}" conflicts with an existing redirect.`}
+  </p>
+);
+
 const AddPuzzleDialog = () => {
   const navigate = useNavigate();
   const [open, setOpen] = useState(false);
@@ -197,22 +215,7 @@ const AddPuzzleDialog = () => {
                   <SlugStatusIcon status={slugStatus} />
                 </div>
               </div>
-              <p
-                className={cn(
-                  'text-xs',
-                  slugStatus === 'taken' || slugStatus === 'invalid'
-                    ? 'text-red-600'
-                    : 'text-muted-foreground'
-                )}
-              >
-                {slugStatus === 'invalid' &&
-                  'Only lowercase letters, numbers, underscores, and dashes are allowed.'}
-                {slugStatus === 'taken' &&
-                  'This slug is already used by another puzzle and cannot be reused.'}
-                {slugStatus === 'available' && `Available as "${normalizedSlug}".`}
-                {slugStatus === 'redirect_conflict' &&
-                  `Slug "${normalizedSlug}" conflicts with an existing redirect.`}
-              </p>
+              <SlugStatusHint status={slugStatus} normalizedSlug={normalizedSlug} />
               {slugStatus === 'redirect_conflict' && redirectConflict ? (
                 <SlugRedirectConflictPrompt
                   conflict={redirectConflict}

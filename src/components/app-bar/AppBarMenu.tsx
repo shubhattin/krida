@@ -154,6 +154,51 @@ function GameMenuNavigateBridge({
   );
 }
 
+function PwaControlsSection({
+  showPwaControls,
+  isInstalled,
+  installEventFired,
+  isIos,
+  onOpenChange
+}: {
+  showPwaControls: boolean;
+  isInstalled: boolean;
+  installEventFired: boolean;
+  isIos: boolean;
+  onOpenChange: (open: boolean) => void;
+}) {
+  const show = showPwaControls && (installEventFired || isInstalled || isIos);
+  if (!show) {
+    return null;
+  }
+
+  return (
+    <>
+      <div className="space-y-3">
+        <div className="flex items-center gap-2">
+          {isInstalled ? (
+            <>
+              <Check className="-mt-1 size-4 text-green-600 dark:text-green-400" />
+              <span className="text-sm font-medium text-slate-700 dark:text-slate-300">
+                App Installed
+              </span>
+            </>
+          ) : (
+            <>
+              <LogIn className="-mt-1 size-4 text-slate-600 dark:text-slate-400" />
+              <span className="text-sm font-medium text-slate-700 dark:text-slate-300">
+                App Installation
+              </span>
+            </>
+          )}
+        </div>
+        <PWAInstallButton setOpen={onOpenChange} />
+      </div>
+      <Separator className="my-4 bg-slate-200 dark:bg-slate-700" />
+    </>
+  );
+}
+
 export function MenuButton({
   showPwaControls = false,
   gameMenuItems
@@ -275,32 +320,13 @@ export function MenuButton({
             </>
           )}
 
-          {showPwaControls &&
-            (pwa_state.install_event_fired || pwa_state.is_installed || isIos) && (
-              <>
-                <div className="space-y-3">
-                  <div className="flex items-center gap-2">
-                    {pwa_state.is_installed ? (
-                      <>
-                        <Check className="-mt-1 size-4 text-green-600 dark:text-green-400" />
-                        <span className="text-sm font-medium text-slate-700 dark:text-slate-300">
-                          App Installed
-                        </span>
-                      </>
-                    ) : (
-                      <>
-                        <LogIn className="-mt-1 size-4 text-slate-600 dark:text-slate-400" />
-                        <span className="text-sm font-medium text-slate-700 dark:text-slate-300">
-                          App Installation
-                        </span>
-                      </>
-                    )}
-                  </div>
-                  <PWAInstallButton setOpen={setOpen} />
-                </div>
-                <Separator className="my-4 bg-slate-200 dark:bg-slate-700" />
-              </>
-            )}
+          <PwaControlsSection
+            showPwaControls={showPwaControls}
+            isInstalled={pwa_state.is_installed}
+            installEventFired={pwa_state.install_event_fired}
+            isIos={isIos}
+            onOpenChange={setOpen}
+          />
 
           <div className="space-y-3">
             <div className="flex items-center gap-2">

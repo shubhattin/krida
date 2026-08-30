@@ -60,6 +60,39 @@ const SlugStatusIcon = ({
   return null;
 };
 
+function SlugStatusHint({
+  slugStatus,
+  slugChanged,
+  currentSlug,
+  normalizedSlug
+}: {
+  slugStatus: ReturnType<typeof useDebouncedSlugCheck>['status'];
+  slugChanged: boolean;
+  currentSlug: string;
+  normalizedSlug: string;
+}) {
+  return (
+    <p
+      id="edit-slug-status"
+      className={cn(
+        'text-xs',
+        slugStatus === 'taken' || slugStatus === 'invalid'
+          ? 'text-red-600'
+          : 'text-muted-foreground'
+      )}
+    >
+      {slugStatus === 'invalid' &&
+        'Only lowercase letters, numbers, underscores, and dashes are allowed.'}
+      {slugStatus === 'taken' &&
+        'This slug is already used by another puzzle and cannot be reused.'}
+      {slugStatus === 'available' && slugChanged && `Available as "${normalizedSlug}".`}
+      {slugStatus === 'available' && !slugChanged && 'Enter a different slug to continue.'}
+      {slugStatus === 'redirect_conflict' &&
+        `Slug "${normalizedSlug}" conflicts with an existing redirect. Confirm below to use it anyway — "${currentSlug}" will still redirect to "${normalizedSlug}" after saving.`}
+    </p>
+  );
+}
+
 export const EditSlugDialog = ({ puzzleId, currentSlug, onSlugUpdated }: Props) => {
   const router = useRouter();
   const trpc = useTRPC();
@@ -180,24 +213,12 @@ export const EditSlugDialog = ({ puzzleId, currentSlug, onSlugUpdated }: Props) 
                 </p>
               </div>
             ) : null}
-            <p
-              id="edit-slug-status"
-              className={cn(
-                'text-xs',
-                slugStatus === 'taken' || slugStatus === 'invalid'
-                  ? 'text-red-600'
-                  : 'text-muted-foreground'
-              )}
-            >
-              {slugStatus === 'invalid' &&
-                'Only lowercase letters, numbers, underscores, and dashes are allowed.'}
-              {slugStatus === 'taken' &&
-                'This slug is already used by another puzzle and cannot be reused.'}
-              {slugStatus === 'available' && slugChanged && `Available as "${normalizedSlug}".`}
-              {slugStatus === 'available' && !slugChanged && 'Enter a different slug to continue.'}
-              {slugStatus === 'redirect_conflict' &&
-                `Slug "${normalizedSlug}" conflicts with an existing redirect. Confirm below to use it anyway — "${currentSlug}" will still redirect to "${normalizedSlug}" after saving.`}
-            </p>
+            <SlugStatusHint
+              slugStatus={slugStatus}
+              slugChanged={slugChanged}
+              currentSlug={currentSlug}
+              normalizedSlug={normalizedSlug}
+            />
             {slugStatus === 'redirect_conflict' && redirectConflict ? (
               <SlugRedirectConflictPrompt
                 conflict={redirectConflict}

@@ -100,6 +100,9 @@ export class QStashPublisher extends Context.Service<
 
 export const decodeQstashPayload = <S extends Schema.ConstraintDecoder<unknown>>(
   schema: S,
+  // SAFETY: this function is the QStash I/O boundary — its whole job is decoding the
+  // untrusted wire payload with the caller-supplied schema, so `input` is inherently unknown.
+  // oxlint-disable-next-line anti-slop/no-unknown-parameters
   input: unknown
 ): Effect.Effect<S['Type'], ValidationError> =>
   Effect.try({

@@ -35,6 +35,35 @@ function extractLetter(raw: string): string | null {
   return match[match.length - 1] ?? null;
 }
 
+/** Navigation/command keys that the bridge routes to the game handlers. */
+function isCommandKey(key: string) {
+  return (
+    key === 'Backspace' ||
+    key === 'Delete' ||
+    key === 'ArrowUp' ||
+    key === 'ArrowDown' ||
+    key === 'ArrowLeft' ||
+    key === 'ArrowRight' ||
+    key === 'Tab' ||
+    key === ' '
+  );
+}
+
+function isBackspaceOrDeleteKey(key: string) {
+  return key === 'Backspace' || key === 'Delete';
+}
+
+/** Desktop physical letter keydown (no ctrl/meta/alt modifiers). */
+function isLetterKeyDownEvent(event: ReactKeyboardEvent<HTMLInputElement>) {
+  return (
+    event.key.length === 1 &&
+    /[a-zA-Z]/.test(event.key) &&
+    !event.ctrlKey &&
+    !event.metaKey &&
+    !event.altKey
+  );
+}
+
 /**
  * Visually hidden but still focusable `<input>` that summons the OS soft keyboard
  * on mobile when the in-app virtual keyboard is disabled.
@@ -144,18 +173,9 @@ export const CrossWordKeyboardBridge = forwardRef<
 
     const key = event.key;
 
-    if (
-      key === 'Backspace' ||
-      key === 'Delete' ||
-      key === 'ArrowUp' ||
-      key === 'ArrowDown' ||
-      key === 'ArrowLeft' ||
-      key === 'ArrowRight' ||
-      key === 'Tab' ||
-      key === ' '
-    ) {
+    if (isCommandKey(key)) {
       event.preventDefault();
-      if (key === 'Backspace' || key === 'Delete') {
+      if (isBackspaceOrDeleteKey(key)) {
         onBackspace();
       } else {
         // Reuse the game's navigation handlers (arrows / Tab / Space toggle).
@@ -168,13 +188,7 @@ export const CrossWordKeyboardBridge = forwardRef<
     // Desktop physical keys while the bridge is focused: handle here and mark
     // the ref so a following `input` event does not type the same letter twice.
     // Mobile soft keyboards often skip usable keydown and rely on input events.
-    if (
-      key.length === 1 &&
-      /[a-zA-Z]/.test(key) &&
-      !event.ctrlKey &&
-      !event.metaKey &&
-      !event.altKey
-    ) {
+    if (isLetterKeyDownEvent(event)) {
       event.preventDefault();
       letterHandledByKeyDownRef.current = true;
       onTypeLetter(key);

@@ -8,7 +8,7 @@ import { waitUntil } from '@vercel/functions';
 export class BackgroundWork extends Context.Service<
   BackgroundWork,
   {
-    readonly enqueue: (work: () => Promise<unknown>) => Effect.Effect<void>;
+    readonly enqueue: (work: () => Promise<void>) => Effect.Effect<void>;
   }
 >()('BackgroundWork') {
   static readonly Live = Layer.succeed(BackgroundWork)({
@@ -37,7 +37,7 @@ export class BackgroundWork extends Context.Service<
   });
 }
 
-export const enqueueBackground = (work: () => Promise<unknown>) =>
+export const enqueueBackground = (work: () => Promise<void>) =>
   Effect.gen(function* () {
     const background = yield* BackgroundWork;
     yield* background.enqueue(work);

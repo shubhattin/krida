@@ -2,7 +2,7 @@ import { Effect, Duration } from 'effect';
 import ms from 'ms';
 import type { ZodType } from 'zod';
 import type { SetCommandOptions } from '@upstash/redis';
-import { RedisClient } from './redis';
+import { RedisClient, type RedisJsonValue } from './redis';
 import { CacheError } from './errors';
 import { BackgroundWork } from './background';
 import { AppConfig } from './config';
@@ -46,9 +46,9 @@ export type CreateCacheConfig<TParams, TCached, TData = TCached> = {
   /** Skip redis.set when false (e.g. null lookup results). */
   shouldCache?: (data: TCached) => boolean;
   /** Serialize value before writing to redis (e.g. undefined → sentinel string). */
-  toCacheValue?: (data: TCached) => unknown;
+  toCacheValue?: (data: TCached) => TCached | string;
   /** Deserialize from redis; return null to treat as cache miss. */
-  fromCacheValue?: (raw: unknown) => TCached | null;
+  fromCacheValue?: (raw: RedisJsonValue) => TCached | null;
   /**
    * When true, bump a per-key generation on delete and only SET after fetch if
    * the generation is unchanged — drops stale writes from overlapping refreshes.
@@ -97,7 +97,7 @@ const resolveSetOptions = <TCached>(
 };
 
 /** Match Upstash REST `set` JSON encoding so guarded Lua writes store the same wire shape. */
-const serializeCacheValue = (value: unknown): string => JSON.stringify(value);
+const serializeCacheValue = <T>(value: T): string => JSON.stringify(value);
 
 /** Wire `mode` tokens accepted by the guarded Lua set scripts. */
 type RedisSetMode = '' | 'EX' | 'PX' | 'EXAT' | 'PXAT' | 'KEEPTTL';
@@ -168,12 +168,12 @@ export function createCache<TParams, TCached, TData = TCached>(
 
   const redisActive = (isProd: boolean) => isProd || cacheOutsideProd;
 
-  const parseCached = (raw: unknown): TCached | null => {
+  const parseCached = (raw: RedisJsonValue): TCached | null => {
     try {
       if (config.fromCacheValue) {
         return config.fromCacheValue(raw);
       }
-      if (raw === null || raw === undefined) {
+      if (raw === null) {
         return null;
       }
       if (!config.schema) {
@@ -207,7 +207,7 @@ export function createCache<TParams, TCached, TData = TCached>(
 
   const writeWithGenerationSnapshot = (
     cacheKey: string,
-    value: unknown,
+    value: TCached | string,
     setOptions: SetCommandOptions | undefined,
     snapshot: GenerationSnapshot
   ) =>
@@ -295,9 +295,8 @@ export function createCache<TParams, TCached, TData = TCached>(
 
     if (useRedis) {
       const redis = yield* RedisClient;
-      // SAFETY: succeed<unknown> matches the get<unknown> success channel when redis errors
-      const cached = yield* redis.get<unknown>(cacheKey).pipe(
-        Effect.catch(() => Effect.succeed<unknown>(null)),
+      const cached = yield* redis.get<RedisJsonValue>(cacheKey).pipe(
+        Effect.catch(() => Effect.succeed<RedisJsonValue>(null)),
         Effect.annotateLogs({ category: 'cache', operation: 'get', key: cacheKey })
       );
       const parsed = parseCached(cached);
@@ -346,10 +345,10 @@ export function createCache<TParams, TCached, TData = TCached>(
 
         for (let poll = 0; poll < SINGLE_FLIGHT_MAX_POLLS; poll++) {
           yield* Effect.sleep(SINGLE_FLIGHT_POLL);
-          // SAFETY: succeed<unknown> matches the get<unknown> success channel when redis errors
+          // Upstash get can fail; treat failures as a cache miss.
           const cached = yield* redis
-            .get<unknown>(cacheKey)
-            .pipe(Effect.catch(() => Effect.succeed<unknown>(null)));
+            .get<RedisJsonValue>(cacheKey)
+            .pipe(Effect.catch(() => Effect.succeed<RedisJsonValue>(null)));
           const parsed = parseCached(cached);
           if (parsed !== null) return toReturnValue(parsed, config.transform);
 

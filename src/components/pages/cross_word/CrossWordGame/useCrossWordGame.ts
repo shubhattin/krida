@@ -63,6 +63,270 @@ function pickPreferredEntry(
   return covering[0] ?? null;
 }
 
+/** True when any solved entry passes through this cell (the cell is locked). */
+function isEntrySolvedAt(entries: NumberedEntry[], solvedIds: string[], row: number, col: number) {
+  return findEntriesAtCell(entries, row, col).some((e) => solvedIds.includes(e.id));
+}
+
+/**
+ * A cell that accepts input: editable template, (when `playerGrid` is given)
+ * no letter yet, and not part of a solved entry.
+ */
+function isCellEnterable(
+  grid: CrossWordGamePuzzle['grid'],
+  playerGrid: (string | null)[][] | null,
+  entries: NumberedEntry[],
+  solvedIds: string[],
+  row: number,
+  col: number
+) {
+  if (!isEditableCell(grid[row]?.[col] ?? null)) return false;
+  if (playerGrid && (playerGrid[row]?.[col] ?? '') !== '') return false;
+  return !isEntrySolvedAt(entries, solvedIds, row, col);
+}
+
+/**
+ * Advance from (startRow, startCol) to the first enterable cell in the entry.
+ * Returns null when the whole remaining entry is locked.
+ */
+function advanceToEnterableCell(
+  entry: CrossWordEntry,
+  grid: CrossWordGamePuzzle['grid'],
+  playerGrid: (string | null)[][] | null,
+  entries: NumberedEntry[],
+  solvedIds: string[],
+  startRow: number,
+  startCol: number
+) {
+  if (isCellEnterable(grid, playerGrid, entries, solvedIds, startRow, startCol)) {
+    return { row: startRow, col: startCol };
+  }
+  let cursor = nextCellInEntry(entry, startRow, startCol, 1);
+  while (cursor && !isCellEnterable(grid, playerGrid, entries, solvedIds, cursor.row, cursor.col)) {
+    cursor = nextCellInEntry(entry, cursor.row, cursor.col, 1);
+  }
+  return cursor;
+}
+
+/** Write an empty string into one grid cell and push the updated grid. */
+function clearCellLetter(
+  grid: (string | null)[][],
+  row: number,
+  col: number,
+  setPlayerGrid: (grid: (string | null)[][]) => void,
+  applyEvaluation: (grid: (string | null)[][]) => void
+) {
+  const nextGrid = grid.map((r) => [...r]);
+  nextGrid[row]![col] = '';
+  setPlayerGrid(nextGrid);
+  applyEvaluation(nextGrid);
+}
+
+/**
+ * Clear the letter at a cell when it is editable, actually filled, and not
+ * part of a solved entry. Returns true when the cell was cleared.
+ */
+function clearEditableUnlockedCell(
+  grid: (string | null)[][],
+  template: string | null | undefined,
+  row: number,
+  col: number,
+  isSolved: boolean,
+  setPlayerGrid: (grid: (string | null)[][]) => void,
+  applyEvaluation: (grid: (string | null)[][]) => void
+) {
+  if (!isEditableCell(template ?? null)) return false;
+  if ((grid[row]?.[col] ?? '') === '') return false;
+  if (isSolved) return false;
+  clearCellLetter(grid, row, col, setPlayerGrid, applyEvaluation);
+  return true;
+}
+
+/** Step back from (row, col) past fixed (prefilled) cells. Returns null at entry start. */
+function previousUnfixedCell(
+  entry: CrossWordEntry,
+  grid: CrossWordGamePuzzle['grid'],
+  row: number,
+  col: number
+) {
+  let prevCell = nextCellInEntry(entry, row, col, -1);
+  while (prevCell && isFixedCell(grid[prevCell.row]![prevCell.col]!)) {
+    prevCell = nextCellInEntry(entry, prevCell.row, prevCell.col, -1);
+  }
+  return prevCell;
+}
+
+/** Decide whether a tap should toggle the axis (double-tap / Space heuristics). */
+function isToggleAction(
+  options: { direction?: CrossWordDirection; toggle?: boolean } | undefined,
+  current: { row: number; col: number } | null,
+  row: number,
+  col: number,
+  clickedIsWritable: boolean,
+  currentEntryCoversClick: boolean
+) {
+  return !!(
+    options?.toggle ||
+    (current &&
+      !options?.direction &&
+      clickedIsWritable &&
+      current.row === row &&
+      current.col === col) ||
+    (current && !options?.direction && !clickedIsWritable && currentEntryCoversClick)
+  );
+}
+
+/**
+ * Resolve the preferred direction and entry ordering for a focus change.
+ * Toggles switch the axis; fresh taps at non-writable intersections prefer
+ * the shorter word first.
+ */
+function resolveFocusDirection(
+  options: { direction?: CrossWordDirection; toggle?: boolean } | undefined,
+  current: { direction: CrossWordDirection; entryId: string } | null,
+  covering: CrossWordEntry[],
+  isToggle: boolean,
+  clickedIsWritable: boolean
+) {
+  let preferred = options?.direction;
+
+  if (isToggle && current) {
+    const other = covering.find((entry) => entry.direction !== current.direction);
+    preferred = other?.direction ?? current.direction;
+    return { preferred, orderedCovering: covering };
+  }
+
+  if (!options?.direction && covering.length > 1 && !clickedIsWritable) {
+    const ordered = [...covering].toSorted((a, b) => a.answer.length - b.answer.length);
+    return { preferred: ordered[0]!.direction, orderedCovering: ordered };
+  }
+
+  return { preferred, orderedCovering: covering };
+}
+
+/** Count fully-filled, incorrect entries among the given entries. */
+function countFilledIncorrectEntries(
+  candidates: CrossWordEntry[],
+  nextGrid: (string | null)[][],
+  grid: CrossWordGamePuzzle['grid']
+) {
+  let delta = 0;
+  for (const entry of candidates) {
+    if (isEntryFilled(entry, nextGrid, grid) && !isEntryCorrect(entry, nextGrid, grid)) {
+      delta += 1;
+    }
+  }
+  return delta;
+}
+
+/** Advance past solved/fixed cells so the next typed letter lands on an input target. */
+function nextTypingTarget(
+  entry: CrossWordEntry,
+  grid: CrossWordGamePuzzle['grid'],
+  entries: NumberedEntry[],
+  solvedIds: string[],
+  fromRow: number,
+  fromCol: number
+) {
+  let next = nextCellInEntry(entry, fromRow, fromCol, 1);
+  while (next) {
+    const followingCell = nextCellInEntry(entry, next.row, next.col, 1);
+    const nextIsFixed = isFixedCell(grid[next.row]![next.col]!);
+
+    if (!isEntrySolvedAt(entries, solvedIds, next.row, next.col) && (!nextIsFixed || !followingCell)) {
+      break;
+    }
+
+    next = followingCell;
+  }
+  return next;
+}
+
+function arrowKeyDelta(key: 'ArrowUp' | 'ArrowDown' | 'ArrowLeft' | 'ArrowRight') {
+  switch (key) {
+    case 'ArrowUp':
+      return { dRow: -1, dCol: 0, direction: 'down' as const };
+    case 'ArrowDown':
+      return { dRow: 1, dCol: 0, direction: 'down' as const };
+    case 'ArrowLeft':
+      return { dRow: 0, dCol: -1, direction: 'across' as const };
+    default:
+      return { dRow: 0, dCol: 1, direction: 'across' as const };
+  }
+}
+
+function isArrowEventKey(key: string): key is 'ArrowUp' | 'ArrowDown' | 'ArrowLeft' | 'ArrowRight' {
+  return key === 'ArrowUp' || key === 'ArrowDown' || key === 'ArrowLeft' || key === 'ArrowRight';
+}
+
+function isLetterEventKey(event: KeyboardEvent) {
+  return (
+    event.key.length === 1 && /[a-zA-Z]/.test(event.key) && !event.ctrlKey && !event.metaKey
+  );
+}
+
+/** Longest contiguous correct prefix length from the start of the entry. */
+function longestCorrectPrefixLength(
+  cells: { row: number; col: number }[],
+  currentGrid: (string | null)[][],
+  grid: CrossWordGamePuzzle['grid'],
+  answer: string
+) {
+  let prefixLen = 0;
+  for (let i = 0; i < cells.length; i++) {
+    const cell = cells[i]!;
+    const letter = getCellLetter(currentGrid, grid, cell.row, cell.col).toUpperCase();
+    if (letter === answer[i]) {
+      prefixLen += 1;
+    } else {
+      break;
+    }
+  }
+  return prefixLen;
+}
+
+/** Trailing incorrect letters to erase (right→left), skipping protected cells. */
+function collectTrailingClears(
+  cells: { row: number; col: number }[],
+  currentGrid: (string | null)[][],
+  answer: string,
+  prefixLen: number,
+  isProtectedCell: (row: number, col: number) => boolean
+) {
+  const clears: { row: number; col: number }[] = [];
+  for (let i = cells.length - 1; i >= prefixLen; i--) {
+    const cell = cells[i]!;
+    if (isProtectedCell(cell.row, cell.col)) continue;
+    const current = (currentGrid[cell.row]?.[cell.col] ?? '').toUpperCase();
+    if (current === '' || current === answer[i]) continue;
+    clears.push({ row: cell.row, col: cell.col });
+  }
+  return clears;
+}
+
+/** First enterable cell after the revealed letter (editable, unsolved, empty). */
+function nextEnterableCellAfterReveal(
+  entry: CrossWordEntry,
+  grid: CrossWordGamePuzzle['grid'],
+  entries: NumberedEntry[],
+  solvedIds: string[],
+  nextGrid: (string | null)[][],
+  fromRow: number,
+  fromCol: number
+) {
+  const isEnterable = (row: number, col: number) => {
+    if (!isEditableCell(grid[row]![col]!)) return false;
+    if (isEntrySolvedAt(entries, solvedIds, row, col)) return false;
+    return (nextGrid[row]?.[col] ?? '') === '';
+  };
+
+  let next = nextCellInEntry(entry, fromRow, fromCol, 1);
+  while (next && !isEnterable(next.row, next.col)) {
+    next = nextCellInEntry(entry, next.row, next.col, 1);
+  }
+  return next;
+}
+
 function evaluateEntries(
   entries: NumberedEntry[],
   playerGrid: (string | null)[][],
@@ -159,78 +423,47 @@ export function useCrossWordGame(timerRef: RefObject<ReturnType<typeof setInterv
       if (covering.length === 0) return;
 
       const current = store.get(active_focus_atom);
-
-      // Helper to check if the clicked cell is writable
       const pg = store.get(player_grid_atom);
       const sids = store.get(solved_entry_ids_atom);
-      const clickedIsWritable =
-        isEditableCell(puzzle.grid[row]?.[col] ?? null) &&
-        (pg[row]?.[col] ?? '') === '' &&
-        !findEntriesAtCell(entries, row, col).some((e) => sids.includes(e.id));
 
-      const isCurrentEntryCoveringClick = current && covering.some((e) => e.id === current.entryId);
+      const clickedIsWritable = isCellEnterable(puzzle.grid, pg, entries, sids, row, col);
+      const currentEntryCoversClick = !!current && covering.some((e) => e.id === current.entryId);
 
-      // Determine if this is a toggle action:
-      // 1. Explicit toggle option is passed.
-      // 2. Or, the clicked cell is writable, no explicit direction is requested, and the cursor is already on it.
-      // 3. Or, the clicked cell is NOT writable, no explicit direction is requested, and it is part of the currently active entry.
-      const isToggle = !!(
-        options?.toggle ||
-        (current &&
-          !options?.direction &&
-          clickedIsWritable &&
-          current.row === row &&
-          current.col === col) ||
-        (current && !options?.direction && !clickedIsWritable && isCurrentEntryCoveringClick)
+      // Toggle: explicit option, re-tap of a writable cell, or re-tap of the
+      // active entry's non-writable cell.
+      const isToggle = isToggleAction(
+        options,
+        current,
+        row,
+        col,
+        clickedIsWritable,
+        currentEntryCoversClick
       );
 
-      let preferred = options?.direction;
-
-      // Toggle: switch axis (ACROSS ↔ DOWN)
-      if (isToggle && current) {
-        const other = covering.find((entry) => entry.direction !== current.direction);
-        preferred = other?.direction ?? current.direction;
-      }
-
-      // Intersection edge case for fresh clicks (non-toggles, no explicit direction):
-      // Prefer the shorter word first at non-writable intersections.
-      let orderedCovering = covering;
-      if (!isToggle && !options?.direction && covering.length > 1) {
-        if (!clickedIsWritable) {
-          orderedCovering = [...covering].sort((a, b) => a.answer.length - b.answer.length);
-          preferred = orderedCovering[0]!.direction;
-        }
-      }
+      const { preferred, orderedCovering } = resolveFocusDirection(
+        options,
+        current,
+        covering,
+        isToggle,
+        clickedIsWritable
+      );
 
       const entry = pickPreferredEntry(orderedCovering, preferred, current?.entryId);
       if (!entry) return;
 
-      // Snapshot mutable state once (avoids stale closure issues).
-      const currentPlayerGrid = store.get(player_grid_atom);
-      const solvedIds = store.get(solved_entry_ids_atom);
-
-      // A cell is writable if its template is editable, it holds no letter, and it is not
-      // part of an already-solved entry.
-      const isCellWritable = (r: number, c: number): boolean => {
-        if (!isEditableCell(puzzle.grid[r]?.[c] ?? null)) return false;
-        if ((currentPlayerGrid[r]?.[c] ?? '') !== '') return false;
-        return !findEntriesAtCell(entries, r, c).some((e) => solvedIds.includes(e.id));
-      };
-
       // Advance cursor to first writable cell starting from the tapped position.
-      let cursorRow = row;
-      let cursorCol = col;
-      if (!isCellWritable(row, col)) {
-        let cursor = nextCellInEntry(entry, row, col, 1);
-        while (cursor && !isCellWritable(cursor.row, cursor.col)) {
-          cursor = nextCellInEntry(entry, cursor.row, cursor.col, 1);
-        }
-        if (cursor) {
-          cursorRow = cursor.row;
-          cursorCol = cursor.col;
-        }
-        // cursor === null → whole word filled → stay on tapped cell (review mode)
-      }
+      // cursor === null → whole word filled → stay on tapped cell (review mode).
+      const cursor = advanceToEnterableCell(
+        entry,
+        puzzle.grid,
+        pg,
+        entries,
+        sids,
+        row,
+        col
+      );
+      const cursorRow = cursor?.row ?? row;
+      const cursorCol = cursor?.col ?? col;
 
       setFocus({ row: cursorRow, col: cursorCol, direction: entry.direction, entryId: entry.id });
     },
@@ -362,27 +595,21 @@ export function useCrossWordGame(timerRef: RefObject<ReturnType<typeof setInterv
       const entry = entries.find((e) => e.id === currentFocus.entryId);
       if (!entry) return;
 
-      // Helper: is a cell part of a solved entry (read-only at runtime)?
       const solvedIds = store.get(solved_entry_ids_atom);
-      const isCellSolvedNow = (row: number, col: number) =>
-        findEntriesAtCell(entries, row, col).some((e) => solvedIds.includes(e.id));
 
-      // Helper: is this cell writable — editable template AND not already solved
-      const isWritable = (row: number, col: number) =>
-        isEditableCell(puzzle.grid[row]![col]!) && !isCellSolvedNow(row, col);
-
-      // Advance from the current focus to the first writable cell in the entry
-      let targetRow = currentFocus.row;
-      let targetCol = currentFocus.col;
-      if (!isWritable(targetRow, targetCol)) {
-        let cursor = nextCellInEntry(entry, targetRow, targetCol, 1);
-        while (cursor && !isWritable(cursor.row, cursor.col)) {
-          cursor = nextCellInEntry(entry, cursor.row, cursor.col, 1);
-        }
-        if (!cursor) return; // whole entry is already solved/fixed — nothing to type
-        targetRow = cursor.row;
-        targetCol = cursor.col;
-      }
+      // Advance from the current focus to the first writable cell in the entry.
+      const target = advanceToEnterableCell(
+        entry,
+        puzzle.grid,
+        null,
+        entries,
+        solvedIds,
+        currentFocus.row,
+        currentFocus.col
+      );
+      if (!target) return; // whole entry is already solved/fixed — nothing to type
+      const targetRow = target.row;
+      const targetCol = target.col;
 
       setLetterInputs((n) => n + 1);
 
@@ -392,15 +619,7 @@ export function useCrossWordGame(timerRef: RefObject<ReturnType<typeof setInterv
 
       // Count incorrect full-entry evaluations for entries covering this cell.
       const affected = findEntriesAtCell(entries, targetRow, targetCol);
-      let incorrectDelta = 0;
-      for (const affectedEntry of affected) {
-        if (
-          isEntryFilled(affectedEntry, nextGrid, puzzle.grid) &&
-          !isEntryCorrect(affectedEntry, nextGrid, puzzle.grid)
-        ) {
-          incorrectDelta += 1;
-        }
-      }
+      const incorrectDelta = countFilledIncorrectEntries(affected, nextGrid, puzzle.grid);
       if (incorrectDelta > 0) {
         setIncorrectAttempts((n) => n + incorrectDelta);
       }
@@ -412,17 +631,14 @@ export function useCrossWordGame(timerRef: RefObject<ReturnType<typeof setInterv
       // middle of an entry is not an input target, so move past it to show
       // where the next typed letter will land. Keep a fixed final cell as the
       // cursor destination to preserve the existing end-of-word behavior.
-      let next = nextCellInEntry(entry, targetRow, targetCol, 1);
-      while (next) {
-        const followingCell = nextCellInEntry(entry, next.row, next.col, 1);
-        const nextIsFixed = isFixedCell(puzzle.grid[next.row]![next.col]!);
-
-        if (!isCellSolvedNow(next.row, next.col) && (!nextIsFixed || !followingCell)) {
-          break;
-        }
-
-        next = followingCell;
-      }
+      const next = nextTypingTarget(
+        entry,
+        puzzle.grid,
+        entries,
+        solvedIds,
+        targetRow,
+        targetCol
+      );
       setFocus({
         ...currentFocus,
         row: next?.row ?? targetRow,
@@ -449,22 +665,22 @@ export function useCrossWordGame(timerRef: RefObject<ReturnType<typeof setInterv
     if (store.get(revealing_entry_id_atom)) return;
     const template = puzzle.grid[currentFocus.row]?.[currentFocus.col];
     const currentGrid = store.get(player_grid_atom);
-    const currentValue = currentGrid[currentFocus.row]?.[currentFocus.col] ?? '';
     const solvedIds = store.get(solved_entry_ids_atom);
-    const isCellSolvedNow = (row: number, col: number) =>
-      findEntriesAtCell(entries, row, col).some((entry) => solvedIds.includes(entry.id));
+    const isCurrentCellSolved = isEntrySolvedAt(entries, solvedIds, currentFocus.row, currentFocus.col);
 
     // Solved entry cells are locked exactly like prefilled hint cells: they
     // remain visible but cannot be erased, even where entries intersect.
     if (
-      isEditableCell(template ?? null) &&
-      currentValue !== '' &&
-      !isCellSolvedNow(currentFocus.row, currentFocus.col)
+      clearEditableUnlockedCell(
+        currentGrid,
+        template,
+        currentFocus.row,
+        currentFocus.col,
+        isCurrentCellSolved,
+        setPlayerGrid,
+        applyEvaluation
+      )
     ) {
-      const nextGrid = currentGrid.map((row) => [...row]);
-      nextGrid[currentFocus.row]![currentFocus.col] = '';
-      setPlayerGrid(nextGrid);
-      applyEvaluation(nextGrid);
       return;
     }
 
@@ -472,22 +688,13 @@ export function useCrossWordGame(timerRef: RefObject<ReturnType<typeof setInterv
     if (!entry) return;
 
     // Step back past prefilled hints so backspace isn't blocked mid-word.
-    let prevCell = nextCellInEntry(entry, currentFocus.row, currentFocus.col, -1);
-    while (prevCell && isFixedCell(puzzle.grid[prevCell.row]![prevCell.col]!)) {
-      prevCell = nextCellInEntry(entry, prevCell.row, prevCell.col, -1);
-    }
+    const prevCell = previousUnfixedCell(entry, puzzle.grid, currentFocus.row, currentFocus.col);
     if (!prevCell) return;
 
     setFocus({ ...currentFocus, row: prevCell.row, col: prevCell.col });
 
-    if (
-      isEditableCell(puzzle.grid[prevCell.row]![prevCell.col]!) &&
-      !isCellSolvedNow(prevCell.row, prevCell.col)
-    ) {
-      const nextGrid = currentGrid.map((row) => [...row]);
-      nextGrid[prevCell.row]![prevCell.col] = '';
-      setPlayerGrid(nextGrid);
-      applyEvaluation(nextGrid);
+    if (isCellEnterable(puzzle.grid, null, entries, solvedIds, prevCell.row, prevCell.col)) {
+      clearCellLetter(currentGrid, prevCell.row, prevCell.col, setPlayerGrid, applyEvaluation);
     }
   }, [applyEvaluation, completed, entries, puzzle, setFocus, setPlayerGrid, started, store]);
 
@@ -496,14 +703,7 @@ export function useCrossWordGame(timerRef: RefObject<ReturnType<typeof setInterv
       const currentFocus = store.get(active_focus_atom);
       if (!puzzle || !started || completed || !currentFocus) return;
 
-      const delta =
-        key === 'ArrowUp'
-          ? { dRow: -1, dCol: 0, direction: 'down' as const }
-          : key === 'ArrowDown'
-            ? { dRow: 1, dCol: 0, direction: 'down' as const }
-            : key === 'ArrowLeft'
-              ? { dRow: 0, dCol: -1, direction: 'across' as const }
-              : { dRow: 0, dCol: 1, direction: 'across' as const };
+      const delta = arrowKeyDelta(key);
 
       const next = nextPlayableCell(
         puzzle.grid,
@@ -518,6 +718,25 @@ export function useCrossWordGame(timerRef: RefObject<ReturnType<typeof setInterv
     [completed, focusCell, puzzle, started, store]
   );
 
+  const moveToAdjacentEntry = useCallback(
+    (dir: -1 | 1) => {
+      if (!focus || entries.length === 0 || !puzzle) return;
+      const index = entries.findIndex((e) => e.id === focus.entryId);
+      const nextEntry = entries[(index + dir + entries.length) % entries.length]!;
+      // Prefer the first writable cell so Tab isn't stranded on a prefilled start.
+      const firstWritable = getEntryCells(nextEntry).find(({ row, col }) =>
+        isEditableCell(puzzle.grid[row]?.[col] ?? null)
+      );
+      setFocus({
+        row: firstWritable?.row ?? nextEntry.row,
+        col: firstWritable?.col ?? nextEntry.col,
+        direction: nextEntry.direction,
+        entryId: nextEntry.id
+      });
+    },
+    [entries, focus, puzzle, setFocus]
+  );
+
   const handleKeyDown = useCallback(
     (event: KeyboardEvent) => {
       if (!started || completed) return;
@@ -525,20 +744,7 @@ export function useCrossWordGame(timerRef: RefObject<ReturnType<typeof setInterv
 
       if (event.key === 'Tab') {
         event.preventDefault();
-        if (!focus || entries.length === 0 || !puzzle) return;
-        const index = entries.findIndex((e) => e.id === focus.entryId);
-        const dir = event.shiftKey ? -1 : 1;
-        const nextEntry = entries[(index + dir + entries.length) % entries.length]!;
-        // Prefer the first writable cell so Tab isn't stranded on a prefilled start.
-        const firstWritable = getEntryCells(nextEntry).find(({ row, col }) =>
-          isEditableCell(puzzle.grid[row]?.[col] ?? null)
-        );
-        setFocus({
-          row: firstWritable?.row ?? nextEntry.row,
-          col: firstWritable?.col ?? nextEntry.col,
-          direction: nextEntry.direction,
-          entryId: nextEntry.id
-        });
+        moveToAdjacentEntry(event.shiftKey ? -1 : 1);
         return;
       }
 
@@ -548,12 +754,7 @@ export function useCrossWordGame(timerRef: RefObject<ReturnType<typeof setInterv
         return;
       }
 
-      if (
-        event.key === 'ArrowUp' ||
-        event.key === 'ArrowDown' ||
-        event.key === 'ArrowLeft' ||
-        event.key === 'ArrowRight'
-      ) {
+      if (isArrowEventKey(event.key)) {
         event.preventDefault();
         moveWithArrow(event.key);
         return;
@@ -565,12 +766,7 @@ export function useCrossWordGame(timerRef: RefObject<ReturnType<typeof setInterv
         return;
       }
 
-      if (
-        event.key.length === 1 &&
-        /[a-zA-Z]/.test(event.key) &&
-        !event.ctrlKey &&
-        !event.metaKey
-      ) {
+      if (isLetterEventKey(event)) {
         event.preventDefault();
         typeLetter(event.key);
       }
@@ -578,12 +774,10 @@ export function useCrossWordGame(timerRef: RefObject<ReturnType<typeof setInterv
     [
       backspace,
       completed,
-      entries,
       focus,
       focusCell,
       moveWithArrow,
-      puzzle,
-      setFocus,
+      moveToAdjacentEntry,
       started,
       store,
       typeLetter
@@ -664,34 +858,16 @@ export function useCrossWordGame(timerRef: RefObject<ReturnType<typeof setInterv
       const answer = entry.answer.toUpperCase();
       const solvedIds = store.get(solved_entry_ids_atom);
 
-      const isProtectedCell = (row: number, col: number) => {
-        if (isFixedCell(puzzle.grid[row]?.[col] ?? null)) return true;
-        return findEntriesAtCell(entries, row, col).some((e) => solvedIds.includes(e.id));
-      };
+      const isProtectedCell = (row: number, col: number) =>
+        isFixedCell(puzzle.grid[row]?.[col] ?? null) ||
+        isEntrySolvedAt(entries, solvedIds, row, col);
 
-      // Longest contiguous correct prefix from the start of the word.
-      let prefixLen = 0;
-      for (let i = 0; i < cells.length; i++) {
-        const cell = cells[i]!;
-        const letter = getCellLetter(currentGrid, puzzle.grid, cell.row, cell.col).toUpperCase();
-        if (letter === answer[i]) {
-          prefixLen += 1;
-        } else {
-          break;
-        }
-      }
+      const prefixLen = longestCorrectPrefixLength(cells, currentGrid, puzzle.grid, answer);
 
       if (prefixLen >= answer.length) return;
 
       // Trailing incorrect letters to erase (right→left), skipping protected cells.
-      const clears: { row: number; col: number }[] = [];
-      for (let i = cells.length - 1; i >= prefixLen; i--) {
-        const cell = cells[i]!;
-        if (isProtectedCell(cell.row, cell.col)) continue;
-        const current = (currentGrid[cell.row]?.[cell.col] ?? '').toUpperCase();
-        if (current === '' || current === answer[i]) continue;
-        clears.push({ row: cell.row, col: cell.col });
-      }
+      const clears = collectTrailingClears(cells, currentGrid, answer, prefixLen, isProtectedCell);
 
       const revealCell = cells[prefixLen]!;
       const revealLetter = answer[prefixLen]!;
@@ -756,19 +932,15 @@ export function useCrossWordGame(timerRef: RefObject<ReturnType<typeof setInterv
         // Advance past the revealed letter so the next keystroke lands on the
         // following enterable cell instead of overwriting what we just filled.
         const freshSolved = store.get(solved_entry_ids_atom);
-        const isCellSolvedNow = (row: number, col: number) =>
-          findEntriesAtCell(entries, row, col).some((e) => freshSolved.includes(e.id));
-
-        const isEnterable = (row: number, col: number) => {
-          if (!isEditableCell(puzzle.grid[row]![col]!)) return false;
-          if (isCellSolvedNow(row, col)) return false;
-          return (nextGrid[row]?.[col] ?? '') === '';
-        };
-
-        let next = nextCellInEntry(entry, revealCell.row, revealCell.col, 1);
-        while (next && !isEnterable(next.row, next.col)) {
-          next = nextCellInEntry(entry, next.row, next.col, 1);
-        }
+        const next = nextEnterableCellAfterReveal(
+          entry,
+          puzzle.grid,
+          entries,
+          freshSolved,
+          nextGrid,
+          revealCell.row,
+          revealCell.col
+        );
         focusOn(next?.row ?? revealCell.row, next?.col ?? revealCell.col);
 
         const clearId = window.setTimeout(() => {

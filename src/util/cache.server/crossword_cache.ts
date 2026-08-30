@@ -9,6 +9,7 @@ import {
 } from '~/db/schema_zod';
 import { createCache, type CacheItem, type NoCacheParams } from '~/effect/cache';
 import { dbRun } from '~/effect/database';
+import type { RedisJsonValue } from '~/effect/redis';
 import { BadRequestError, CacheError } from '~/effect/errors';
 import {
   get_crossword_more_hints,
@@ -92,7 +93,7 @@ const toCacheError = (operation: string, key: string) => (cause: unknown) =>
 
 const parseScheduleSentinel =
   <T>(schema: z.ZodType<T>) =>
-  (raw: unknown): T | undefined | null => {
+  (raw: RedisJsonValue): T | undefined | null => {
     if (raw === 'undefined') return undefined;
     // Non-object payloads fail the object schema itself, mapping to a cache miss.
     const parsed = schema.safeParse(raw);

@@ -304,6 +304,10 @@ export const ai_batch_api_error_schema = z
   .passthrough();
 export type AiBatchApiError = z.infer<typeof ai_batch_api_error_schema>;
 
+const ai_batch_response_body_json = z.json();
+/** JSON-decoded body of a single OpenAI batch output line's response. */
+export type AiBatchResponseBody = z.output<typeof ai_batch_response_body_json>;
+
 export const ai_batch_raw_output_line_schema = z.object({
   id: z.string(),
   custom_id: z.string(),
@@ -311,7 +315,7 @@ export const ai_batch_raw_output_line_schema = z.object({
     .object({
       status_code: z.number(),
       request_id: z.string(),
-      body: z.unknown()
+      body: ai_batch_response_body_json
     })
     .nullable(),
   error: ai_batch_api_error_schema.nullable().optional()

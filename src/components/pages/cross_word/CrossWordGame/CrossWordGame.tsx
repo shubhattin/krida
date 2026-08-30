@@ -1,6 +1,6 @@
 'use client';
 
-import { useCallback, useEffect, useRef, useState } from 'react';
+import { type RefObject, useCallback, useEffect, useRef, useState } from 'react';
 import { useAtom, useAtomValue } from 'jotai';
 import { useNavigate } from '@tanstack/react-router';
 import { useQueryClient } from '@tanstack/react-query';
@@ -90,53 +90,271 @@ async function shareText(title: string, text: string, successToast: string) {
   }
 }
 
-export function CrossWordGame({
+/** Form targets that should swallow their own keys, not the crossword's. */
+function isEditableFormTarget(target: HTMLElement) {
+  return target.tagName === 'INPUT' || target.tagName === 'TEXTAREA' || target.isContentEditable;
+}
+
+/** The hidden bridge input is only active on the native-keyboard path mid-game. */
+function isBridgeKeyboardActive(useVirtualKeyboard: boolean, started: boolean, completed: boolean) {
+  return !useVirtualKeyboard && started && !completed;
+}
+
+function LeaveGameDialog({
+  pendingUrl,
+  onCancel,
+  onLeave
+}: {
+  pendingUrl: string | null;
+  onCancel: () => void;
+  onLeave: () => void;
+}) {
+  return (
+    <AlertDialog open={!!pendingUrl} onOpenChange={(open) => { if (!open) onCancel(); }}>
+      <AlertDialogContent>
+        <AlertDialogHeader>
+          <AlertDialogTitle>Are you sure you want to leave?</AlertDialogTitle>
+          <AlertDialogDescription>
+            Your current crossword progress will be lost.
+          </AlertDialogDescription>
+        </AlertDialogHeader>
+        <AlertDialogFooter>
+          <AlertDialogCancel onClick={onCancel}>Cancel</AlertDialogCancel>
+          <AlertDialogAction onClick={onLeave}>Leave Game</AlertDialogAction>
+        </AlertDialogFooter>
+      </AlertDialogContent>
+    </AlertDialog>
+  );
+}
+
+function CrosswordHeader({
+  puzzle,
+  listed,
+  puzzleSlug
+}: {
+  puzzle: NonNullable<ReturnType<typeof useCrossWordGame>['puzzle']>;
+  listed: boolean;
+  puzzleSlug: string | null;
+}) {
+  const handleShare = () => {
+    void shareText(
+      `${puzzle.title} - Padajāla`,
+      get_general_share_msg(puzzle.title, puzzleSlug!, puzzle.description),
+      'Puzzle link copied to clipboard'
+    );
+  };
+
+  return (
+    <motion.header
+      className="mb-3 flex items-center justify-center text-center sm:mb-4"
+      initial={{ opacity: 0, y: -20 }}
+      animate={{ opacity: 1, y: 0 }}
+      transition={{ duration: 0.5, ease: 'easeOut' }}
+    >
+      <h1
+        className={`inline text-2xl font-bold tracking-tight sm:text-3xl md:text-4xl ${titleStyles.titleGradient}`}
+      >
+        {puzzle.title}
+      </h1>
+      {puzzle.description.trim() ? (
+        <Popover>
+          <PopoverTrigger
+            render={
+              <button className="mt-2 ml-3 align-middle outline-none hover:brightness-75" />
+            }
+          >
+            <InfoIcon className="size-3 sm:size-4" />
+          </PopoverTrigger>
+          <PopoverContent
+            side="top"
+            align="center"
+            className="z-80 w-fit max-w-[calc(100vw-32px)] overflow-hidden rounded-xl border border-slate-200 bg-linear-to-r from-amber-50 to-orange-50 px-3 py-2 shadow-xl outline-none sm:max-w-md md:max-w-lg dark:border-slate-700 dark:from-teal-950/80 dark:to-green-950/80"
+          >
+            <div className="text-sm font-semibold wrap-break-word whitespace-normal text-stone-600 dark:text-stone-200">
+              {puzzle.description}
+            </div>
+          </PopoverContent>
+        </Popover>
+      ) : null}
+      {listed && puzzleSlug ? (
+        <button
+          type="button"
+          onClick={handleShare}
+          className="mt-2 ml-3 inline-flex items-center justify-center align-middle text-slate-500 outline-none hover:text-slate-700 hover:brightness-75 dark:text-slate-400 dark:hover:text-slate-200"
+          title="Share Puzzle"
+          aria-label="Share Puzzle"
+        >
+          <IoShareSocialOutline className="size-3.5 sm:size-4.5" />
+        </button>
+      ) : null}
+    </motion.header>
+  );
+}
+
+/** Reserve seam space for the floating toggle when the keyboard panel is closed. */
+function boardSeamClass(
+  useVirtualKeyboard: boolean,
+  started: boolean,
+  completed: boolean,
+  keyboardPanelOpen: boolean
+) {
+  return useVirtualKeyboard && started && !completed && !keyboardPanelOpen ? 'pb-4' : undefined;
+}
+
+function BoardColumn({
+  game,
+  moreHints,
+  boardAnchorRef,
+  keyboardRef,
+  useVirtualKeyboard,
+  started,
+  completed,
+  keyboardPanelOpen,
+  onKeyboardOpenChange,
+  requestKeyboard,
+  onAfterStart
+}: {
+  game: ReturnType<typeof useCrossWordGame>;
+  moreHints: ReturnType<typeof useMoreHints>;
+  boardAnchorRef: RefObject<HTMLDivElement | null>;
+  keyboardRef: RefObject<CrossWordKeyboardBridgeHandle | null>;
+  useVirtualKeyboard: boolean;
+  started: boolean;
+  completed: boolean;
+  keyboardPanelOpen: boolean;
+  onKeyboardOpenChange: (open: boolean) => void;
+  requestKeyboard: () => void;
+  onAfterStart: () => void;
+}) {
+  return (
+    <div className="order-1 flex w-full flex-col items-center gap-1 sm:gap-4 lg:order-2 lg:col-span-6">
+      <div
+        ref={boardAnchorRef}
+        className={cn(
+          'relative w-full max-w-[min(100%,24rem)] lg:max-w-100 xl:max-w-104 2xl:max-w-108',
+          boardSeamClass(useVirtualKeyboard, started, completed, keyboardPanelOpen)
+        )}
+      >
+        {!useVirtualKeyboard ? (
+          <CrossWordKeyboardBridge
+            ref={keyboardRef}
+            onKeyDown={game.handleKeyDown}
+            onTypeLetter={game.typeLetter}
+            onBackspace={game.backspace}
+          />
+        ) : null}
+        <CrossWordGrid
+          game={game}
+          onRequestKeyboard={useVirtualKeyboard ? undefined : requestKeyboard}
+        />
+        {!started ? (
+          <div className="absolute inset-0 flex items-center justify-center rounded-lg bg-background/25 backdrop-blur-[2px]">
+            <GameControls game={game} onAfterStart={onAfterStart} />
+          </div>
+        ) : null}
+        {/* Toggle sits on the grid/keyboard seam so it doesn't add a gap row. */}
+        {started && !completed ? (
+          <div className="absolute right-1 bottom-0 z-20 translate-y-1/2 sm:right-0">
+            <CrossWordOnScreenKeyboard
+              enabled={useVirtualKeyboard}
+              open={keyboardPanelOpen}
+              onOpenChange={onKeyboardOpenChange}
+              onTypeLetter={game.typeLetter}
+              onBackspace={game.backspace}
+              onToggleDirection={game.toggleDirection}
+              canToggleDirection={game.canToggleDirection}
+              toggleOnly
+            />
+          </div>
+        ) : null}
+      </div>
+
+      {started && !completed ? (
+        <CrossWordOnScreenKeyboard
+          enabled={useVirtualKeyboard}
+          open={keyboardPanelOpen}
+          onOpenChange={onKeyboardOpenChange}
+          onTypeLetter={game.typeLetter}
+          onBackspace={game.backspace}
+          onToggleDirection={game.toggleDirection}
+          canToggleDirection={game.canToggleDirection}
+          panelOnly
+        />
+      ) : null}
+
+      {/* Mobile: full clue list directly under the active clue / grid */}
+      <CluePanel
+        game={game}
+        moreHints={moreHints}
+        className="mt-2 max-h-72 w-full max-w-[min(100%,24rem)] sm:max-h-80 lg:hidden"
+      />
+
+      {started && completed ? (
+        <motion.div
+          className="flex justify-center"
+          initial={{ opacity: 0 }}
+          animate={{ opacity: 1 }}
+          transition={{ delay: 0.2, duration: 0.3 }}
+        >
+          <GameControls game={game} onAfterStart={onAfterStart} />
+        </motion.div>
+      ) : null}
+    </div>
+  );
+}
+
+function MediaSidebar({
   attachments,
-  listed = false,
-  puzzleSlug = null,
-  location = 'main_page'
+  started
 }: {
   attachments?: Attachment[];
-  listed?: boolean;
-  puzzleSlug?: string | null;
-  location?: location_list_type;
+  started: boolean;
 }) {
-  const timerRef = useRef<ReturnType<typeof setInterval> | null>(null);
-  const keyboardRef = useRef<CrossWordKeyboardBridgeHandle>(null);
-  const boardAnchorRef = useRef<HTMLDivElement>(null);
-  const game = useCrossWordGame(timerRef);
-  const puzzle = useAtomValue(puzzle_atom);
-  const started = useAtomValue(started_atom);
-  const completed = useAtomValue(completed_atom);
-  const [pendingUrl, setPendingUrl] = useAtom(pending_navigation_url_atom);
-  const navigate = useNavigate();
-  const queryClient = useQueryClient();
-  const trpc = useTRPC();
-  const [keyboardOpen, setKeyboardOpen] = useState(false);
-  const keyboardPanelOpen = keyboardOpen && started && !completed;
   const hasMedia = !!(attachments && attachments.length > 0);
-  const [useVirtualKeyboard] = useState(INPUT_VIRTUAL_KEYBOARD_ENABLED);
-  const moreHints = useMoreHints(puzzle?.id, puzzleSlug, puzzle?.entries);
 
-  const showAccordion = !completed && (location === 'main_page' || location === 'view_page');
-  const showCompletionCarousel = completed;
+  return (
+    <div
+      className={cn(
+        'order-2 flex min-w-0 items-center justify-center lg:order-1 lg:col-span-3',
+        !started && 'lg:mt-10'
+      )}
+    >
+      {hasMedia ? (
+        <div className="lg:sticky lg:top-6">
+          <MediaAttachments attachments={attachments!} className="max-w-md lg:max-w-sm" />
+        </div>
+      ) : null}
+    </div>
+  );
+}
 
-  useEffect(() => {
-    if (!puzzle) return;
-    queryClient.prefetchQuery({
-      queryKey: ['crossword_listed_puzzles_carousel', puzzleSlug ?? undefined, puzzle.id],
-      queryFn: getCrosswordCarouselPuzzlesQueryFn(puzzleSlug ?? undefined, puzzle.id)
-    });
-    if (puzzleSlug) {
-      void queryClient.prefetchQuery(
-        trpc.public_ai.get_crossword_more_hints.queryOptions({
-          puzzle_id: puzzle.id,
-          puzzle_slug: puzzleSlug
-        })
-      );
-    }
-  }, [puzzle, puzzleSlug, queryClient, trpc]);
+function ClueSidebar({
+  game,
+  moreHints,
+  started,
+  completed
+}: {
+  game: ReturnType<typeof useCrossWordGame>;
+  moreHints: ReturnType<typeof useMoreHints>;
+  started: boolean;
+  completed: boolean;
+}) {
+  return (
+    <div className="order-3 hidden min-w-0 lg:col-span-3 lg:block">
+      <div
+        className={cn(
+          'lg:sticky lg:top-4',
+          started && !completed ? 'lg:-mt-16' : 'lg:-mt-10'
+        )}
+      >
+        <CluePanel game={game} moreHints={moreHints} className="max-h-[min(70vh,36rem)]" />
+      </div>
+    </div>
+  );
+}
 
+/** Prompt before leaving (refresh / back) while a game is in progress. */
+function useLeaveGuard(started: boolean, completed: boolean) {
   useEffect(() => {
     if (!(started && !completed)) return;
 
@@ -163,81 +381,11 @@ export function CrossWordGame({
       window.removeEventListener('popstate', handlePopState);
     };
   }, [started, completed]);
+}
 
-  useEffect(() => {
-    const timer = timerRef;
-    return () => {
-      const timerId = timer.current;
-      if (timerId) clearInterval(timerId);
-    };
-  }, []);
-
-  /**
-   * Focus the hidden bridge input (native-keyboard experiment path only).
-   * Must run inside a user gesture (Start / cell tap) so mobile browsers allow
-   * the OS soft keyboard to open.
-   */
-  const requestKeyboard = useCallback(() => {
-    if (useVirtualKeyboard || completed) return;
-    keyboardRef.current?.focus();
-    const vv = window.visualViewport;
-    if (vv && boardAnchorRef.current) {
-      const rect = boardAnchorRef.current.getBoundingClientRect();
-      const visibleBottom = vv.offsetTop + vv.height;
-      if (rect.bottom > visibleBottom - 12) {
-        boardAnchorRef.current.scrollIntoView({ block: 'nearest', behavior: 'smooth' });
-      }
-    }
-  }, [completed, useVirtualKeyboard]);
-
-  const handleAfterStart = () => {
-    if (useVirtualKeyboard) {
-      // Auto-open only on touch-capable devices (phones, tablets, touch laptops).
-      // Desktop users keep a closed panel and can reveal it via the keyboard icon.
-      if (shouldAutoOpenOnScreenKeyboard()) {
-        setKeyboardOpen(true);
-      }
-      return;
-    }
-    // Native-input path: focus the bridge so the OS soft keyboard can appear.
-    requestKeyboard();
-  };
-
-  // Physical keyboard input while the game is active (and the bridge is NOT focused).
-  useEffect(() => {
-    if (!started) return;
-    const onKeyDown = (event: KeyboardEvent) => {
-      // SAFETY: keydown targets on document are DOM nodes
-      const target = event.target as HTMLElement | null;
-      if (!target) {
-        game.handleKeyDown(event);
-        return;
-      }
-
-      // Bridge owns its own key/input events — avoid double handling.
-      if (target.getAttribute(CROSSWORD_KB_ATTR) === 'true') return;
-
-      if (target.tagName === 'INPUT' || target.tagName === 'TEXTAREA' || target.isContentEditable) {
-        return;
-      }
-
-      game.handleKeyDown(event);
-    };
-    window.addEventListener('keydown', onKeyDown);
-    return () => window.removeEventListener('keydown', onKeyDown);
-  }, [game, started]);
-
-  /**
-   * Native soft-keyboard path: grow bottom padding by the keyboard inset so the
-   * clue list can be scrolled into the visible area above the OS keyboard.
-   *
-   * Only nudge the board into view when the keyboard is covering it. Do NOT
-   * listen to visualViewport `scroll` — that fights intentional scrolling toward
-   * the clues (the previous bug).
-   */
+/** Native soft-keyboard path: grow bottom padding by the keyboard inset. */
+function useKeyboardInset(keyboardInsetEnabled: boolean, boardAnchorRef: RefObject<HTMLDivElement | null>) {
   const [keyboardInset, setKeyboardInset] = useState(0);
-  const keyboardInsetEnabled = !useVirtualKeyboard && started && !completed;
-  const effectiveKeyboardInset = keyboardInsetEnabled ? keyboardInset : 0;
 
   useEffect(() => {
     if (!keyboardInsetEnabled) return;
@@ -278,35 +426,210 @@ export function CrossWordGame({
       document.removeEventListener('focusout', onFocusChange);
       setKeyboardInset(0);
     };
-  }, [keyboardInsetEnabled]);
+  }, [keyboardInsetEnabled, boardAnchorRef]);
 
-  // Click outside to deselect grid focus — keyboard panel buttons are excluded
-  // via the generic `button` check so typing never clears selection.
-  // Also active after completion so review selection can be cleared.
+  return keyboardInset;
+}
+
+/** Selectors that should never clear the crossword cell selection on click. */
+const CLICK_OUTSIDE_IGNORE_SELECTOR = [
+  '[role="grid"]',
+  'button',
+  '[data-slot="popover-content"]',
+  '[data-slot="alert-dialog-content"]',
+  '[data-slot="alert-dialog-overlay"]',
+  '[data-crossword-onscreen-kb="true"]',
+  `[${CROSSWORD_KB_ATTR}="true"]`
+];
+
+/** Click outside to deselect grid focus. Also active after completion (review mode). */
+function useClickOutsideClearsFocus(onClear: () => void, enabled: boolean) {
   useEffect(() => {
-    if (!started) return;
+    if (!enabled) return;
 
     const handleDocumentClick = (event: MouseEvent) => {
       // SAFETY: click targets on document are DOM nodes
       const target = event.target as HTMLElement | null;
       if (!target) return;
+      if (CLICK_OUTSIDE_IGNORE_SELECTOR.some((selector) => target.closest(selector))) return;
 
-      if (target.closest('[role="grid"]')) return;
-      if (target.closest('button')) return;
-      if (target.closest('[data-slot="popover-content"]')) return;
-      if (target.closest('[data-slot="alert-dialog-content"]')) return;
-      if (target.closest('[data-slot="alert-dialog-overlay"]')) return;
-      if (target.closest('[data-crossword-onscreen-kb="true"]')) return;
-      if (target.closest(`[${CROSSWORD_KB_ATTR}="true"]`)) return;
-
-      game.clearFocus();
+      onClear();
     };
 
     document.addEventListener('mousedown', handleDocumentClick);
     return () => {
       document.removeEventListener('mousedown', handleDocumentClick);
     };
-  }, [game, started]);
+  }, [onClear, enabled]);
+}
+
+/** Forward window keydown events to the game while it is active. */
+function useWindowKeyForwarder(handleKeyDown: (event: KeyboardEvent) => void, enabled: boolean) {
+  useEffect(() => {
+    if (!enabled) return;
+
+    const onKeyDown = (event: KeyboardEvent) => {
+      // SAFETY: keydown targets on document are DOM nodes
+      const target = event.target as HTMLElement | null;
+      if (!target) {
+        handleKeyDown(event);
+        return;
+      }
+
+      // Bridge owns its own key/input events — avoid double handling.
+      if (target.getAttribute(CROSSWORD_KB_ATTR) === 'true') return;
+
+      if (isEditableFormTarget(target)) {
+        return;
+      }
+
+      handleKeyDown(event);
+    };
+    window.addEventListener('keydown', onKeyDown);
+    return () => window.removeEventListener('keydown', onKeyDown);
+  }, [handleKeyDown, enabled]);
+}
+
+/** Clear a running interval timer when the component unmounts. */
+function useClearTimerOnUnmount(timerRef: RefObject<ReturnType<typeof setInterval> | null>) {
+  useEffect(() => {
+    const timer = timerRef;
+    return () => {
+      const timerId = timer.current;
+      if (timerId) clearInterval(timerId);
+    };
+  }, [timerRef]);
+}
+
+function shouldShowAccordion(completed: boolean, location: location_list_type) {
+  return !completed && (location === 'main_page' || location === 'view_page');
+}
+
+function isKeyboardPanelOpen(open: boolean, started: boolean, completed: boolean) {
+  return open && started && !completed;
+}
+
+function overscrollBehaviorFor(started: boolean, completed: boolean) {
+  return started && !completed ? 'contain' : 'auto';
+}
+
+/** Lift the board into view when the soft keyboard covers it. */
+function scrollBoardIntoViewIfCovered(
+  boardAnchorRef: RefObject<HTMLDivElement | null>,
+  vv: VisualViewport
+) {
+  const el = boardAnchorRef.current;
+  if (!el) return;
+  const rect = el.getBoundingClientRect();
+  const visibleBottom = vv.offsetTop + vv.height;
+  if (rect.bottom > visibleBottom - 12) {
+    el.scrollIntoView({ block: 'nearest', behavior: 'smooth' });
+  }
+}
+
+/** Prefetch carousel puzzles and (when a slug is given) more-hints data. */
+function useCrosswordPrefetch(
+  puzzle: ReturnType<typeof useCrossWordGame>['puzzle'],
+  puzzleSlug: string | null | undefined
+) {
+  const queryClient = useQueryClient();
+  const trpc = useTRPC();
+  const slug = puzzleSlug ?? undefined;
+
+  useEffect(() => {
+    if (!puzzle) return;
+    queryClient.prefetchQuery({
+      queryKey: ['crossword_listed_puzzles_carousel', slug, puzzle.id],
+      queryFn: getCrosswordCarouselPuzzlesQueryFn(slug, puzzle.id)
+    });
+    if (slug) {
+      void queryClient.prefetchQuery(
+        trpc.public_ai.get_crossword_more_hints.queryOptions({
+          puzzle_id: puzzle.id,
+          puzzle_slug: slug
+        })
+      );
+    }
+  }, [puzzle, slug, queryClient, trpc]);
+}
+
+export function CrossWordGame({
+  attachments,
+  listed = false,
+  puzzleSlug = null,
+  location = 'main_page'
+}: {
+  attachments?: Attachment[];
+  listed?: boolean;
+  puzzleSlug?: string | null;
+  location?: location_list_type;
+}) {
+  const timerRef = useRef<ReturnType<typeof setInterval> | null>(null);
+  const keyboardRef = useRef<CrossWordKeyboardBridgeHandle>(null);
+  const boardAnchorRef = useRef<HTMLDivElement>(null);
+  const game = useCrossWordGame(timerRef);
+  const puzzle = useAtomValue(puzzle_atom);
+  const started = useAtomValue(started_atom);
+  const completed = useAtomValue(completed_atom);
+  const [pendingUrl, setPendingUrl] = useAtom(pending_navigation_url_atom);
+  const navigate = useNavigate();
+  const [keyboardOpen, setKeyboardOpen] = useState(false);
+  const keyboardPanelOpen = isKeyboardPanelOpen(keyboardOpen, started, completed);
+  const [useVirtualKeyboard] = useState(INPUT_VIRTUAL_KEYBOARD_ENABLED);
+  const moreHints = useMoreHints(puzzle?.id, puzzleSlug, puzzle?.entries);
+
+  const showAccordion = shouldShowAccordion(completed, location);
+  const showCompletionCarousel = completed;
+  const carouselExcludeSlug = puzzleSlug ?? undefined;
+
+  useCrosswordPrefetch(puzzle, puzzleSlug);
+  useLeaveGuard(started, completed);
+  useClearTimerOnUnmount(timerRef);
+
+  /**
+   * Focus the hidden bridge input (native-keyboard experiment path only).
+   * Must run inside a user gesture (Start / cell tap) so mobile browsers allow
+   * the OS soft keyboard to open.
+   */
+  const requestKeyboard = useCallback(() => {
+    if (useVirtualKeyboard || completed) return;
+    keyboardRef.current?.focus();
+    const vv = window.visualViewport;
+    if (vv) scrollBoardIntoViewIfCovered(boardAnchorRef, vv);
+  }, [completed, useVirtualKeyboard]);
+
+  const handleAfterStart = () => {
+    if (useVirtualKeyboard) {
+      // Auto-open only on touch-capable devices (phones, tablets, touch laptops).
+      // Desktop users keep a closed panel and can reveal it via the keyboard icon.
+      if (shouldAutoOpenOnScreenKeyboard()) {
+        setKeyboardOpen(true);
+      }
+      return;
+    }
+    // Native-input path: focus the bridge so the OS soft keyboard can appear.
+    requestKeyboard();
+  };
+
+  // Physical keyboard input while the game is active (and the bridge is NOT focused).
+  useWindowKeyForwarder(game.handleKeyDown, started);
+
+  /**
+   * Native soft-keyboard path: grow bottom padding by the keyboard inset so the
+   * clue list can be scrolled into the visible area above the OS keyboard.
+   *
+   * Only nudge the board into view when the keyboard is covering it. Do NOT
+   * listen to visualViewport `scroll` — that fights intentional scrolling toward
+   * the clues (the previous bug).
+   */
+  const keyboardInsetEnabled = isBridgeKeyboardActive(useVirtualKeyboard, started, completed);
+  const keyboardInset = useKeyboardInset(keyboardInsetEnabled, boardAnchorRef);
+  const effectiveKeyboardInset = keyboardInsetEnabled ? keyboardInset : 0;
+
+  // Click outside to deselect grid focus — keyboard panel buttons are excluded
+  // via the generic `button` check so typing never clears selection.
+  // Also active after completion so review selection can be cleared.
+  useClickOutsideClearsFocus(game.clearFocus, started);
 
   if (!puzzle) return null;
 
@@ -318,107 +641,38 @@ export function CrossWordGame({
       )}
       style={{
         WebkitOverflowScrolling: 'touch',
-        overscrollBehavior: started && !completed ? 'contain' : 'auto',
+        overscrollBehavior: overscrollBehaviorFor(started, completed),
         // Extra scroll room while the OS keyboard is open (native-input path only).
-        ...(effectiveKeyboardInset > 0
-          ? { paddingBottom: `calc(${effectiveKeyboardInset}px + 1.5rem)` }
-          : {})
+        // React ignores `undefined` style values, so this matches conditional omission.
+        paddingBottom:
+          effectiveKeyboardInset > 0 ? `calc(${effectiveKeyboardInset}px + 1.5rem)` : undefined
       }}
     >
-      <AlertDialog
-        open={!!pendingUrl}
-        onOpenChange={(open) => {
-          if (!open) setPendingUrl(null);
+      <LeaveGameDialog
+        pendingUrl={pendingUrl}
+        onCancel={() => setPendingUrl(null)}
+        onLeave={() => {
+          if (pendingUrl) {
+            navigate({ href: pendingUrl });
+            setPendingUrl(null);
+          }
         }}
-      >
-        <AlertDialogContent>
-          <AlertDialogHeader>
-            <AlertDialogTitle>Are you sure you want to leave?</AlertDialogTitle>
-            <AlertDialogDescription>
-              Your current crossword progress will be lost.
-            </AlertDialogDescription>
-          </AlertDialogHeader>
-          <AlertDialogFooter>
-            <AlertDialogCancel onClick={() => setPendingUrl(null)}>Cancel</AlertDialogCancel>
-            <AlertDialogAction
-              onClick={() => {
-                if (pendingUrl) {
-                  navigate({ href: pendingUrl });
-                  setPendingUrl(null);
-                }
-              }}
-            >
-              Leave Game
-            </AlertDialogAction>
-          </AlertDialogFooter>
-        </AlertDialogContent>
-      </AlertDialog>
+      />
 
       {showCompletionCarousel ? (
         <div className="mb-3 sm:mb-4">
           <CompletionMoreCrosswordPuzzlesCarousel
-            excludeSlug={puzzleSlug ?? undefined}
+            excludeSlug={carouselExcludeSlug}
             excludeId={puzzle.id}
           />
         </div>
       ) : null}
 
-      <motion.header
-        className="mb-3 flex items-center justify-center text-center sm:mb-4"
-        initial={{ opacity: 0, y: -20 }}
-        animate={{ opacity: 1, y: 0 }}
-        transition={{ duration: 0.5, ease: 'easeOut' }}
-      >
-        <h1
-          className={`inline text-2xl font-bold tracking-tight sm:text-3xl md:text-4xl ${titleStyles.titleGradient}`}
-        >
-          {puzzle.title}
-        </h1>
-        {puzzle.description.trim() ? (
-          <Popover>
-            <PopoverTrigger
-              render={
-                <button className="mt-2 ml-3 align-middle outline-none hover:brightness-75" />
-              }
-            >
-              <InfoIcon className="size-3 sm:size-4" />
-            </PopoverTrigger>
-            <PopoverContent
-              side="top"
-              align="center"
-              className="z-80 w-fit max-w-[calc(100vw-32px)] overflow-hidden rounded-xl border border-slate-200 bg-linear-to-r from-amber-50 to-orange-50 px-3 py-2 shadow-xl outline-none sm:max-w-md md:max-w-lg dark:border-slate-700 dark:from-teal-950/80 dark:to-green-950/80"
-            >
-              <div className="text-sm font-semibold wrap-break-word whitespace-normal text-stone-600 dark:text-stone-200">
-                {puzzle.description}
-              </div>
-            </PopoverContent>
-          </Popover>
-        ) : null}
-        {listed && puzzleSlug ? (
-          <button
-            type="button"
-            onClick={() => {
-              void shareText(
-                `${puzzle.title} - Padajāla`,
-                get_general_share_msg(puzzle.title, puzzleSlug, puzzle.description),
-                'Puzzle link copied to clipboard'
-              );
-            }}
-            className="mt-2 ml-3 inline-flex items-center justify-center align-middle text-slate-500 outline-none hover:text-slate-700 hover:brightness-75 dark:text-slate-400 dark:hover:text-slate-200"
-            title="Share Puzzle"
-            aria-label="Share Puzzle"
-          >
-            <IoShareSocialOutline className="size-3.5 sm:size-4.5" />
-          </button>
-        ) : null}
-      </motion.header>
+      <CrosswordHeader puzzle={puzzle} listed={listed} puzzleSlug={puzzleSlug} />
 
       {showAccordion ? (
         <div className="mb-3 w-full sm:mb-4">
-          <MoreCrosswordPuzzlesAccordion
-            excludeSlug={puzzleSlug ?? undefined}
-            excludeId={puzzle.id}
-          />
+          <MoreCrosswordPuzzlesAccordion excludeSlug={carouselExcludeSlug} excludeId={puzzle.id} />
         </div>
       ) : null}
 
@@ -438,103 +692,30 @@ export function CrossWordGame({
         )}
       >
         {/* Left on desktop / below grid on mobile — matches padavali order */}
-        <div
-          className={cn(
-            'order-2 flex min-w-0 items-center justify-center lg:order-1 lg:col-span-3',
-            !started && 'lg:mt-10'
-          )}
-        >
-          {hasMedia ? (
-            <div className="lg:sticky lg:top-6">
-              <MediaAttachments attachments={attachments!} className="max-w-md lg:max-w-sm" />
-            </div>
-          ) : null}
-        </div>
+        <MediaSidebar attachments={attachments} started={started} />
 
         {/* Center: grid + keyboard + active clue + controls */}
-        <div className="order-1 flex w-full flex-col items-center gap-1 sm:gap-4 lg:order-2 lg:col-span-6">
-          <div
-            ref={boardAnchorRef}
-            className={cn(
-              'relative w-full max-w-[min(100%,24rem)] lg:max-w-100 xl:max-w-104 2xl:max-w-108',
-              // Reserve seam space for the floating toggle when the panel is closed.
-              useVirtualKeyboard && started && !completed && !keyboardPanelOpen && 'pb-4'
-            )}
-          >
-            {!useVirtualKeyboard ? (
-              <CrossWordKeyboardBridge
-                ref={keyboardRef}
-                onKeyDown={game.handleKeyDown}
-                onTypeLetter={game.typeLetter}
-                onBackspace={game.backspace}
-              />
-            ) : null}
-            <CrossWordGrid
-              game={game}
-              onRequestKeyboard={useVirtualKeyboard ? undefined : requestKeyboard}
-            />
-            {!started ? (
-              <div className="absolute inset-0 flex items-center justify-center rounded-lg bg-background/25 backdrop-blur-[2px]">
-                <GameControls game={game} onAfterStart={handleAfterStart} />
-              </div>
-            ) : null}
-            {/* Toggle sits on the grid/keyboard seam so it doesn't add a gap row. */}
-            {started && !completed ? (
-              <div className="absolute right-1 bottom-0 z-20 translate-y-1/2 sm:right-0">
-                <CrossWordOnScreenKeyboard
-                  enabled={useVirtualKeyboard}
-                  open={keyboardPanelOpen}
-                  onOpenChange={setKeyboardOpen}
-                  onTypeLetter={game.typeLetter}
-                  onBackspace={game.backspace}
-                  onToggleDirection={game.toggleDirection}
-                  canToggleDirection={game.canToggleDirection}
-                  toggleOnly
-                />
-              </div>
-            ) : null}
-          </div>
-
-          {started && !completed ? (
-            <CrossWordOnScreenKeyboard
-              enabled={useVirtualKeyboard}
-              open={keyboardPanelOpen}
-              onOpenChange={setKeyboardOpen}
-              onTypeLetter={game.typeLetter}
-              onBackspace={game.backspace}
-              onToggleDirection={game.toggleDirection}
-              canToggleDirection={game.canToggleDirection}
-              panelOnly
-            />
-          ) : null}
-
-          {/* Mobile: full clue list directly under the active clue / grid */}
-          <CluePanel
-            game={game}
-            moreHints={moreHints}
-            className="mt-2 max-h-72 w-full max-w-[min(100%,24rem)] sm:max-h-80 lg:hidden"
-          />
-
-          {started && completed ? (
-            <motion.div
-              className="flex justify-center"
-              initial={{ opacity: 0 }}
-              animate={{ opacity: 1 }}
-              transition={{ delay: 0.2, duration: 0.3 }}
-            >
-              <GameControls game={game} onAfterStart={handleAfterStart} />
-            </motion.div>
-          ) : null}
-        </div>
+        <BoardColumn
+          game={game}
+          moreHints={moreHints}
+          boardAnchorRef={boardAnchorRef}
+          keyboardRef={keyboardRef}
+          useVirtualKeyboard={useVirtualKeyboard}
+          started={started}
+          completed={completed}
+          keyboardPanelOpen={keyboardPanelOpen}
+          onKeyboardOpenChange={setKeyboardOpen}
+          requestKeyboard={requestKeyboard}
+          onAfterStart={handleAfterStart}
+        />
 
         {/* Desktop: clue list replaces the former game-help sidebar */}
-        <div className="order-3 hidden min-w-0 lg:col-span-3 lg:block">
-          <div
-            className={cn('lg:sticky lg:top-4', started && !completed ? 'lg:-mt-16' : 'lg:-mt-10')}
-          >
-            <CluePanel game={game} moreHints={moreHints} className="max-h-[min(70vh,36rem)]" />
-          </div>
-        </div>
+        <ClueSidebar
+          game={game}
+          moreHints={moreHints}
+          started={started}
+          completed={completed}
+        />
       </div>
 
       {/* On-screen keyboard toggle — hidden for now

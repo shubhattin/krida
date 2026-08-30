@@ -44,5 +44,12 @@ export function useWordMeanings(puzzle_id: number, puzzle_slug: string) {
     };
   }, [query.data, script]);
 
-  return { ...query, transliteratedWords, script };
+  return {
+    data: query.data,
+    error: query.error,
+    isLoading: query.isLoading,
+    refetch: query.refetch,
+    transliteratedWords,
+    script
+  };
 }
