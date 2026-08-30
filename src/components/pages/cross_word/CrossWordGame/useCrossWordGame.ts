@@ -233,7 +233,10 @@ function nextTypingTarget(
     const followingCell = nextCellInEntry(entry, next.row, next.col, 1);
     const nextIsFixed = isFixedCell(grid[next.row]![next.col]!);
 
-    if (!isEntrySolvedAt(entries, solvedIds, next.row, next.col) && (!nextIsFixed || !followingCell)) {
+    if (
+      !isEntrySolvedAt(entries, solvedIds, next.row, next.col) &&
+      (!nextIsFixed || !followingCell)
+    ) {
       break;
     }
 
@@ -260,9 +263,7 @@ function isArrowEventKey(key: string): key is 'ArrowUp' | 'ArrowDown' | 'ArrowLe
 }
 
 function isLetterEventKey(event: KeyboardEvent) {
-  return (
-    event.key.length === 1 && /[a-zA-Z]/.test(event.key) && !event.ctrlKey && !event.metaKey
-  );
+  return event.key.length === 1 && /[a-zA-Z]/.test(event.key) && !event.ctrlKey && !event.metaKey;
 }
 
 /** Longest contiguous correct prefix length from the start of the entry. */
@@ -453,15 +454,7 @@ export function useCrossWordGame(timerRef: RefObject<ReturnType<typeof setInterv
 
       // Advance cursor to first writable cell starting from the tapped position.
       // cursor === null → whole word filled → stay on tapped cell (review mode).
-      const cursor = advanceToEnterableCell(
-        entry,
-        puzzle.grid,
-        pg,
-        entries,
-        sids,
-        row,
-        col
-      );
+      const cursor = advanceToEnterableCell(entry, puzzle.grid, pg, entries, sids, row, col);
       const cursorRow = cursor?.row ?? row;
       const cursorCol = cursor?.col ?? col;
 
@@ -631,14 +624,7 @@ export function useCrossWordGame(timerRef: RefObject<ReturnType<typeof setInterv
       // middle of an entry is not an input target, so move past it to show
       // where the next typed letter will land. Keep a fixed final cell as the
       // cursor destination to preserve the existing end-of-word behavior.
-      const next = nextTypingTarget(
-        entry,
-        puzzle.grid,
-        entries,
-        solvedIds,
-        targetRow,
-        targetCol
-      );
+      const next = nextTypingTarget(entry, puzzle.grid, entries, solvedIds, targetRow, targetCol);
       setFocus({
         ...currentFocus,
         row: next?.row ?? targetRow,
@@ -666,7 +652,12 @@ export function useCrossWordGame(timerRef: RefObject<ReturnType<typeof setInterv
     const template = puzzle.grid[currentFocus.row]?.[currentFocus.col];
     const currentGrid = store.get(player_grid_atom);
     const solvedIds = store.get(solved_entry_ids_atom);
-    const isCurrentCellSolved = isEntrySolvedAt(entries, solvedIds, currentFocus.row, currentFocus.col);
+    const isCurrentCellSolved = isEntrySolvedAt(
+      entries,
+      solvedIds,
+      currentFocus.row,
+      currentFocus.col
+    );
 
     // Solved entry cells are locked exactly like prefilled hint cells: they
     // remain visible but cannot be erased, even where entries intersect.

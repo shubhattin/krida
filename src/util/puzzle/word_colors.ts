@@ -191,7 +191,9 @@ type CellWordTintAppearance = {
   style: CSSProperties | undefined;
 };
 
-export function cellWordTintAppearance(info: CellWordColorInfo | undefined): CellWordTintAppearance {
+export function cellWordTintAppearance(
+  info: CellWordColorInfo | undefined
+): CellWordTintAppearance {
   if (!info) {
     return { className: '', style: undefined };
   }

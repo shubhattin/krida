@@ -968,7 +968,13 @@ export const poll_batch_puzzle_image_gen = Effect.fn('poll_batch_puzzle_image_ge
     const output = output_by_custom_id.get(row.custom_id);
 
     if (!isSuccessfulImageOutput(output)) {
-      yield* markItemFailedAndCollect(batch_id, row.custom_id, metadata, batch_output_file_id, items);
+      yield* markItemFailedAndCollect(
+        batch_id,
+        row.custom_id,
+        metadata,
+        batch_output_file_id,
+        items
+      );
       continue;
     }
 
@@ -984,7 +990,13 @@ export const poll_batch_puzzle_image_gen = Effect.fn('poll_batch_puzzle_image_ge
     );
 
     if (!upload_result.success) {
-      yield* markItemFailedAndCollect(batch_id, row.custom_id, metadata, batch_output_file_id, items);
+      yield* markItemFailedAndCollect(
+        batch_id,
+        row.custom_id,
+        metadata,
+        batch_output_file_id,
+        items
+      );
       continue;
     }
 

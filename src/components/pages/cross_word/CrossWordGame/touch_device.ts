@@ -15,8 +15,7 @@ export function shouldAutoOpenOnScreenKeyboard(): boolean {
 
   const hasTouchPoints = navigator.maxTouchPoints > 0;
   const hasTouchStart = 'ontouchstart' in window;
-  const coarsePointer =
-    'matchMedia' in window && window.matchMedia('(pointer: coarse)').matches;
+  const coarsePointer = 'matchMedia' in window && window.matchMedia('(pointer: coarse)').matches;
 
   return hasTouchPoints || hasTouchStart || coarsePointer;
 }

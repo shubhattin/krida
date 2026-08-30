@@ -687,7 +687,14 @@ export function generatePadavaliLayouts({
       pathStyle,
       random
     );
-    addSearchedCandidate(best, prepared, attemptNeighborhood, dimensions, candidates, candidateKeys);
+    addSearchedCandidate(
+      best,
+      prepared,
+      attemptNeighborhood,
+      dimensions,
+      candidates,
+      candidateKeys
+    );
   }
 
   if (candidates.length === 0) {

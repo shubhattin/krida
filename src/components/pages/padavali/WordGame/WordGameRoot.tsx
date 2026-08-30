@@ -341,7 +341,12 @@ function LeaveGameDialog({
   onLeave: () => void;
 }) {
   return (
-    <AlertDialog open={!!pendingUrl} onOpenChange={(open) => { if (!open) onCancel(); }}>
+    <AlertDialog
+      open={!!pendingUrl}
+      onOpenChange={(open) => {
+        if (!open) onCancel();
+      }}
+    >
       <AlertDialogContent>
         <AlertDialogHeader>
           <AlertDialogTitle>Are you sure you want to leave?</AlertDialogTitle>
@@ -358,7 +363,11 @@ function LeaveGameDialog({
   );
 }
 
-function ScriptSelectorRow({ script, onScriptChange, fontInfo }: {
+function ScriptSelectorRow({
+  script,
+  onScriptChange,
+  fontInfo
+}: {
   script: ScriptType;
   onScriptChange: (script: ScriptType) => void;
   fontInfo: (typeof FONT_INFO)[ScriptType];
@@ -399,11 +408,7 @@ function WordGameHeader({
     <div className="relative mb-2 text-center sm:mb-3">
       {/* Desktop script selector — absolutely positioned right of the title */}
       <div className="absolute top-1/2 right-0 hidden -translate-y-1/2 items-center gap-1.5 rounded-full border border-slate-200/60 bg-white/75 px-3 py-1.5 shadow-md backdrop-blur-sm lg:flex dark:border-slate-700/60 dark:bg-slate-900/75">
-        <ScriptSelectorRow
-          script={script}
-          onScriptChange={onScriptChange}
-          fontInfo={fontInfo}
-        />
+        <ScriptSelectorRow script={script} onScriptChange={onScriptChange} fontInfo={fontInfo} />
       </div>
 
       {/* Puzzle title */}
@@ -551,15 +556,8 @@ function MediaSidebar({
   started: boolean;
 }) {
   return (
-    <div
-      className={cn(
-        'order-2 lg:order-1 lg:col-span-3',
-        !started && 'lg:mt-10 lg:items-start'
-      )}
-    >
-      <MediaAttachments
-        attachments={resolveAttachmentsWithDefaults(attachments.map((v) => v))}
-      />
+    <div className={cn('order-2 lg:order-1 lg:col-span-3', !started && 'lg:mt-10 lg:items-start')}>
+      <MediaAttachments attachments={resolveAttachmentsWithDefaults(attachments.map((v) => v))} />
     </div>
   );
 }

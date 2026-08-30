@@ -61,7 +61,13 @@ const SlugStatusIcon = ({
 
 type SlugStatus = ReturnType<typeof useDebouncedSlugCheck>['status'];
 
-const SlugStatusHint = ({ status, normalizedSlug }: { status: SlugStatus; normalizedSlug: string }) => (
+const SlugStatusHint = ({
+  status,
+  normalizedSlug
+}: {
+  status: SlugStatus;
+  normalizedSlug: string;
+}) => (
   <p
     className={cn(
       'text-xs',
@@ -70,10 +76,10 @@ const SlugStatusHint = ({ status, normalizedSlug }: { status: SlugStatus; normal
   >
     {status === 'invalid' &&
       'Only lowercase letters, numbers, underscores, and dashes are allowed.'}
-    {status === 'taken' &&
-      'This slug is already used by another puzzle and cannot be reused.'}
+    {status === 'taken' && 'This slug is already used by another puzzle and cannot be reused.'}
     {status === 'available' && `Available as "${normalizedSlug}".`}
-    {status === 'redirect_conflict' && `Slug "${normalizedSlug}" conflicts with an existing redirect.`}
+    {status === 'redirect_conflict' &&
+      `Slug "${normalizedSlug}" conflicts with an existing redirect.`}
   </p>
 );
 

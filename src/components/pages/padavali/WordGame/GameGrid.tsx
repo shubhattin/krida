@@ -683,11 +683,7 @@ export const GameGrid = ({ timerRef, original_grid_data }: Props) => {
 
             {/* Play Button Overlay - centered over the grid */}
             {!started ? (
-              <PlayOverlay
-                onStart={handleStart}
-                label={wordMsgs.play}
-                fontInfo={font_info}
-              />
+              <PlayOverlay onStart={handleStart} label={wordMsgs.play} fontInfo={font_info} />
             ) : null}
           </div>
         </div>

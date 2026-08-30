@@ -26,7 +26,9 @@ export const get_lang_from_cookie = (value?: string) => {
 type ScriptFontInfo = { className: string; fontSize: number; experimental?: boolean };
 
 /** Named owner contract: keeps the map exhaustive over ScriptType with the full value shape. */
-function defineFontInfo(map: Record<ScriptType, ScriptFontInfo>): Record<ScriptType, ScriptFontInfo> {
+function defineFontInfo(
+  map: Record<ScriptType, ScriptFontInfo>
+): Record<ScriptType, ScriptFontInfo> {
   return map;
 }
 

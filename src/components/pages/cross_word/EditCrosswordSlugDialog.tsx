@@ -63,7 +63,13 @@ const SlugStatusIcon = ({
 
 type SlugStatus = ReturnType<typeof useDebouncedSlugCheck>['status'];
 
-const SlugRedirectNote = ({ currentSlug, normalizedSlug }: { currentSlug: string; normalizedSlug: string }) => (
+const SlugRedirectNote = ({
+  currentSlug,
+  normalizedSlug
+}: {
+  currentSlug: string;
+  normalizedSlug: string;
+}) => (
   <div className="rounded-md border border-sky-200 bg-sky-50 px-3 py-2 dark:border-sky-900/50 dark:bg-sky-950/30">
     <Label
       id="edit-slug-redirect-note"
@@ -72,9 +78,8 @@ const SlugRedirectNote = ({ currentSlug, normalizedSlug }: { currentSlug: string
       Old URL stays valid
     </Label>
     <p className="mt-1 text-xs text-sky-800 dark:text-sky-300">
-      After saving, <span className="font-mono font-semibold">{currentSlug}</span> will
-      keep working and redirect visitors to{' '}
-      <span className="font-mono font-semibold">{normalizedSlug}</span>.
+      After saving, <span className="font-mono font-semibold">{currentSlug}</span> will keep working
+      and redirect visitors to <span className="font-mono font-semibold">{normalizedSlug}</span>.
     </p>
   </div>
 );
@@ -94,15 +99,12 @@ const SlugStatusHint = ({
     id="edit-slug-status"
     className={cn(
       'text-xs',
-      status === 'taken' || status === 'invalid'
-        ? 'text-red-600'
-        : 'text-muted-foreground'
+      status === 'taken' || status === 'invalid' ? 'text-red-600' : 'text-muted-foreground'
     )}
   >
     {status === 'invalid' &&
       'Only lowercase letters, numbers, underscores, and dashes are allowed.'}
-    {status === 'taken' &&
-      'This slug is already used by another puzzle and cannot be reused.'}
+    {status === 'taken' && 'This slug is already used by another puzzle and cannot be reused.'}
     {status === 'available' && slugChanged && `Available as "${normalizedSlug}".`}
     {status === 'available' && !slugChanged && 'Enter a different slug to continue.'}
     {status === 'redirect_conflict' &&
@@ -251,7 +253,9 @@ export const EditCrosswordSlugDialog = ({ puzzleId, currentSlug, onSlugUpdated }
               status={slugStatus}
               redirectConflict={redirectConflict}
               overrideConfirmed={overrideRedirectSlug}
-              onOverrideChange={(confirmed) => setOverrideForSlug(confirmed ? normalizedSlug : null)}
+              onOverrideChange={(confirmed) =>
+                setOverrideForSlug(confirmed ? normalizedSlug : null)
+              }
             />
           </div>
           <DialogFooter>

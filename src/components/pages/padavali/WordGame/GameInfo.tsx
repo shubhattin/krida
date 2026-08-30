@@ -354,9 +354,7 @@ export const GameInfo = () => {
 export const get_puzzle_share_url = (slug: string) => {
   const base =
     import.meta.env.VITE_SITE_URL ??
-    (import.meta.env.SSR
-      ? 'https://krida.thesanskritchannel.org'
-      : window.location.origin);
+    (import.meta.env.SSR ? 'https://krida.thesanskritchannel.org' : window.location.origin);
   return `${base.replace(/\/$/, '')}/padavali/${encodeURIComponent(slug)}`;
 };
 

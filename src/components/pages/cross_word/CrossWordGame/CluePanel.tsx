@@ -175,7 +175,9 @@ function clueRowClass(active: boolean, solved: boolean) {
     'relative flex items-start rounded-xl',
     // Reserve More-button lane on every row so activate/deactivate never reflows text.
     'pr-12',
-    active && !solved && 'bg-blue-500/10 shadow-[inset_3px_0_0_0] shadow-blue-400 dark:bg-blue-500/15',
+    active &&
+      !solved &&
+      'bg-blue-500/10 shadow-[inset_3px_0_0_0] shadow-blue-400 dark:bg-blue-500/15',
     active &&
       solved &&
       'bg-emerald-500/10 shadow-[inset_3px_0_0_0] shadow-emerald-400 dark:bg-emerald-500/15'

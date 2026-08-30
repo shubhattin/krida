@@ -170,7 +170,9 @@ function fitsPlacement(
       continue;
     }
 
-    if (hasFilledNeighbor(grid, perpendicularNeighbors(placement.direction, row, col), dimensions)) {
+    if (
+      hasFilledNeighbor(grid, perpendicularNeighbors(placement.direction, row, col), dimensions)
+    ) {
       return null;
     }
   }

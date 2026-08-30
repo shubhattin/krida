@@ -688,10 +688,7 @@ function addPlacementWarnings(
 }
 
 /** Count non-empty grid letters that no valid word traverses. */
-function countUncoveredLetters(
-  gridData: string[][],
-  occupiedCells: Set<Coordinate>
-) {
+function countUncoveredLetters(gridData: string[][], occupiedCells: Set<Coordinate>) {
   const occupiedKeys = new Set<string>();
   for (const [r, c] of occupiedCells) {
     occupiedKeys.add(`${r},${c}`);

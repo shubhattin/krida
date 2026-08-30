@@ -110,7 +110,12 @@ function LeaveGameDialog({
   onLeave: () => void;
 }) {
   return (
-    <AlertDialog open={!!pendingUrl} onOpenChange={(open) => { if (!open) onCancel(); }}>
+    <AlertDialog
+      open={!!pendingUrl}
+      onOpenChange={(open) => {
+        if (!open) onCancel();
+      }}
+    >
       <AlertDialogContent>
         <AlertDialogHeader>
           <AlertDialogTitle>Are you sure you want to leave?</AlertDialogTitle>
@@ -159,9 +164,7 @@ function CrosswordHeader({
       {puzzle.description.trim() ? (
         <Popover>
           <PopoverTrigger
-            render={
-              <button className="mt-2 ml-3 align-middle outline-none hover:brightness-75" />
-            }
+            render={<button className="mt-2 ml-3 align-middle outline-none hover:brightness-75" />}
           >
             <InfoIcon className="size-3 sm:size-4" />
           </PopoverTrigger>
@@ -303,13 +306,7 @@ function BoardColumn({
   );
 }
 
-function MediaSidebar({
-  attachments,
-  started
-}: {
-  attachments?: Attachment[];
-  started: boolean;
-}) {
+function MediaSidebar({ attachments, started }: { attachments?: Attachment[]; started: boolean }) {
   const hasMedia = !!(attachments && attachments.length > 0);
 
   return (
@@ -341,12 +338,7 @@ function ClueSidebar({
 }) {
   return (
     <div className="order-3 hidden min-w-0 lg:col-span-3 lg:block">
-      <div
-        className={cn(
-          'lg:sticky lg:top-4',
-          started && !completed ? 'lg:-mt-16' : 'lg:-mt-10'
-        )}
-      >
+      <div className={cn('lg:sticky lg:top-4', started && !completed ? 'lg:-mt-16' : 'lg:-mt-10')}>
         <CluePanel game={game} moreHints={moreHints} className="max-h-[min(70vh,36rem)]" />
       </div>
     </div>
@@ -384,7 +376,10 @@ function useLeaveGuard(started: boolean, completed: boolean) {
 }
 
 /** Native soft-keyboard path: grow bottom padding by the keyboard inset. */
-function useKeyboardInset(keyboardInsetEnabled: boolean, boardAnchorRef: RefObject<HTMLDivElement | null>) {
+function useKeyboardInset(
+  keyboardInsetEnabled: boolean,
+  boardAnchorRef: RefObject<HTMLDivElement | null>
+) {
   const [keyboardInset, setKeyboardInset] = useState(0);
 
   useEffect(() => {
@@ -710,12 +705,7 @@ export function CrossWordGame({
         />
 
         {/* Desktop: clue list replaces the former game-help sidebar */}
-        <ClueSidebar
-          game={game}
-          moreHints={moreHints}
-          started={started}
-          completed={completed}
-        />
+        <ClueSidebar game={game} moreHints={moreHints} started={started} completed={completed} />
       </div>
 
       {/* On-screen keyboard toggle — hidden for now

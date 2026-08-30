@@ -39,8 +39,17 @@ function cellClasses(props: {
   clearing: boolean;
   disabled: boolean;
 }) {
-  const { fixed, solved, inActiveWord, selected, incorrect, justSolved, revealed, clearing, disabled } =
-    props;
+  const {
+    fixed,
+    solved,
+    inActiveWord,
+    selected,
+    incorrect,
+    justSolved,
+    revealed,
+    clearing,
+    disabled
+  } = props;
   return cn(
     styles.playCell,
     fixed && styles.cellFixed,

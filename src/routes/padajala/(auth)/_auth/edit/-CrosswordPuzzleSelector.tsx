@@ -173,7 +173,9 @@ const CrosswordPickerPopover = ({
   return (
     <Popover open={open} onOpenChange={onOpenChange}>
       <PopoverTrigger
-        render={<Button type="button" variant="outline" size="sm" className="h-7 gap-1 px-2 text-xs" />}
+        render={
+          <Button type="button" variant="outline" size="sm" className="h-7 gap-1 px-2 text-xs" />
+        }
       >
         <ChevronDownIcon className="size-3.5" />
         Add puzzle

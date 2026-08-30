@@ -422,9 +422,7 @@ const StatsContentBody = ({
 
   return (
     <>
-      {!isEmbedded && (
-        <TopPuzzlesLeader puzzles={topPuzzles} isLoading={topPuzzlesLoading} />
-      )}
+      {!isEmbedded && <TopPuzzlesLeader puzzles={topPuzzles} isLoading={topPuzzlesLoading} />}
       {/* Summary Cards */}
       <SummaryCards summaryStats={summaryStats} />
 

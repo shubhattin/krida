@@ -431,7 +431,13 @@ const ScheduleConfirmDialog = ({
 }) => (
   <AlertDialog>
     <AlertDialogTrigger
-      render={<Button className="w-40 gap-1 font-bold text-amber-500" variant="outline" disabled={disabled} />}
+      render={
+        <Button
+          className="w-40 gap-1 font-bold text-amber-500"
+          variant="outline"
+          disabled={disabled}
+        />
+      }
     >
       <PlusIcon className="-mt-1 inline-block size-5" />
       {type === 'add'
@@ -444,9 +450,7 @@ const ScheduleConfirmDialog = ({
     </AlertDialogTrigger>
     <AlertDialogContent>
       <AlertDialogHeader>
-        <AlertDialogTitle>
-          {type === 'add' ? 'Add Schedule' : 'Update Schedule'}
-        </AlertDialogTitle>
+        <AlertDialogTitle>{type === 'add' ? 'Add Schedule' : 'Update Schedule'}</AlertDialogTitle>
         <AlertDialogDescription>
           {type === 'add'
             ? 'Are you sure you want to add this schedule?'
@@ -485,14 +489,15 @@ type Props =
 
 const AddSchedule = (props: Props) => {
   const { type } = props;
-  const init = type === 'edit'
-    ? props.init
-    : {
-        start_date: undefined,
-        end_date: undefined,
-        start_time_string: DEFAULT_START_END_TIME,
-        end_time_string: DEFAULT_START_END_TIME
-      };
+  const init =
+    type === 'edit'
+      ? props.init
+      : {
+          start_date: undefined,
+          end_date: undefined,
+          start_time_string: DEFAULT_START_END_TIME,
+          end_time_string: DEFAULT_START_END_TIME
+        };
   const [startDate, setStartDate] = useState<Date | undefined>(init.start_date);
   const [endDate, setEndDate] = useState<Date | undefined>(init.end_date);
   const [startTime, setStartTime] = useState<string>(init.start_time_string + ':00');
@@ -636,9 +641,7 @@ const AddSchedule = (props: Props) => {
       <ScheduleConfirmDialog
         type={type}
         disabled={
-          add_schedule_mut.isPending ||
-          update_schedule_mut.isPending ||
-          invalid_state_condition
+          add_schedule_mut.isPending || update_schedule_mut.isPending || invalid_state_condition
         }
         addPending={add_schedule_mut.isPending}
         updatePending={update_schedule_mut.isPending}
