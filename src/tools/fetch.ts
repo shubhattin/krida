@@ -19,7 +19,7 @@ type options = Parameters<typeof fetch>[1] & {
 const AharaNam = (url: string, op: options = {}) => {
   if (!op.headers) op.headers = {};
   if ('params' in op) {
-    const params = [] as string[];
+    const params: string[] = [];
     for (const prm in op.params) params.push(`${prm}=${encodeURIComponent(op.params[prm])}`);
     url += `?${params.join('&')}`;
     delete op.params;
@@ -35,6 +35,10 @@ const AharaNam = (url: string, op: options = {}) => {
     delete op.form;
     op.body = data;
   }
+  // SAFETY: this wrapper runs on both server and client; `document` only exists
+  // in the browser, and a runtime environment check for the DOM global is the
+  // right tool here.
+  // oxlint-disable-next-line anti-slop/no-runtime-typeof
   if (typeof document !== 'undefined') {
     const htmlID = document.querySelector('html')?.lang;
     if (!op.locale && htmlID) op.locale = htmlID;

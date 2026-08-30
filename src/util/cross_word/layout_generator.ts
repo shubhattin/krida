@@ -476,13 +476,14 @@ export function generateCrosswordLayouts({
       (left, right) => right.normalized.length - left.normalized.length
     );
     let searchNodes = 0;
-    const best: {
+    type BestCrosswordLayout = {
       current: {
         grid: GridCell[][];
         placements: InternalPlacement[];
         score: GeneratedLayoutScore;
       } | null;
-    } = {
+    };
+    const best: BestCrosswordLayout = {
       current: null
     };
 

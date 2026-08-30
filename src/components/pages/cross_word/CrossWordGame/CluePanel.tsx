@@ -44,31 +44,27 @@ function sortClues(entries: NumberedEntry[], solvedIds: string[]) {
 
 function SolvedRomanizedWord({ wordDev }: { wordDev: string }) {
   const trimmed = wordDev.trim();
-  const [romanized, setRomanized] = useState(() =>
-    trimmed ? (romanizedCache.get(trimmed) ?? null) : null
-  );
+  const [fetched, setFetched] = useState<{ word: string; result: string } | null>(null);
 
   useEffect(() => {
-    if (!trimmed) {
-      setRomanized(null);
-      return;
-    }
-    const cached = romanizedCache.get(trimmed);
-    if (cached) {
-      setRomanized(cached);
-      return;
-    }
+    if (!trimmed || romanizedCache.has(trimmed)) return;
 
     let active = true;
     void transliterate(trimmed, DEFAULT_DATA_SCRIPT, ROMANIZED_SCRIPT).then((result) => {
       if (!active) return;
       romanizedCache.set(trimmed, result);
-      setRomanized(result);
+      setFetched({ word: trimmed, result });
     });
     return () => {
       active = false;
     };
   }, [trimmed]);
+
+  // Derived during render: cache hit first, then the value fetched by this
+  // instance for the current word. No setState needed for cache hits or resets.
+  const romanized = trimmed
+    ? ((fetched?.word === trimmed ? fetched.result : null) ?? romanizedCache.get(trimmed) ?? null)
+    : null;
 
   if (!trimmed || !romanized) return null;
 

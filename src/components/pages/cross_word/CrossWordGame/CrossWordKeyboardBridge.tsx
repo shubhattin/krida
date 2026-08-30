@@ -70,7 +70,7 @@ export const CrossWordKeyboardBridge = forwardRef<
       focus() {
         const el = inputRef.current;
         if (!el) return;
-        const vv = typeof window !== 'undefined' ? window.visualViewport : null;
+        const vv = window.visualViewport;
         if (vv) {
           el.style.top = `${Math.max(0, vv.offsetTop)}px`;
           el.style.left = `${Math.max(0, vv.offsetLeft)}px`;
@@ -105,7 +105,7 @@ export const CrossWordKeyboardBridge = forwardRef<
    */
   useEffect(() => {
     const el = inputRef.current;
-    const vv = typeof window !== 'undefined' ? window.visualViewport : null;
+    const vv = window.visualViewport;
     if (!el || !vv) return;
 
     const placeInVisualViewport = () => {
@@ -245,6 +245,7 @@ export const CrossWordKeyboardBridge = forwardRef<
       inputMode="text"
       enterKeyHint="done"
       onKeyDown={handleKeyDown}
+      // SAFETY: native beforeinput always fires with an InputEvent; React only types it as FormEvent
       onBeforeInput={handleBeforeInput as (event: FormEvent<HTMLInputElement>) => void}
       onInput={handleInput}
       onCompositionEnd={handleCompositionEnd}

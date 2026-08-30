@@ -993,6 +993,7 @@ function AIImageDialogContent({
 
   const handleTabChange = (value: string | null) => {
     if (!value) return;
+    // SAFETY: dialog tab trigger values are exactly the ImageDialogTab values
     const tab = value as ImageDialogTab;
     setActiveTab(tab);
     if (tab === 'existing') {

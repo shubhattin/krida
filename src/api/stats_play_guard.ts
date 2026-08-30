@@ -1,5 +1,6 @@
 import { Duration, Effect } from 'effect';
 import ms from 'ms';
+import { z } from 'zod';
 import { RedisClient } from '~/effect/redis';
 
 /**
@@ -15,13 +16,14 @@ type PlayKind = 'padavali' | 'crossword';
 
 const keyFor = (kind: PlayKind, playId: string) => `stats:play:${kind}:${playId}`;
 
+/** Redis values arrive as JSON-decoded primitives; coerce number-ish raws to ids. */
+const stored_session_id_schema = z.coerce.number();
+
 const parseSessionId = (raw: unknown): number | null => {
-  if (typeof raw === 'number' && Number.isFinite(raw) && raw > 0) return raw;
-  if (typeof raw === 'string' && raw !== PENDING_VALUE) {
-    const n = Number(raw);
-    if (Number.isFinite(n) && n > 0) return n;
-  }
-  return null;
+  const parsed = stored_session_id_schema.safeParse(raw);
+  if (!parsed.success) return null;
+  const n = parsed.data;
+  return Number.isFinite(n) && n > 0 ? n : null;
 };
 
 export type PlayStartClaim = { status: 'existing'; sessionId: number } | { status: 'reserved' };

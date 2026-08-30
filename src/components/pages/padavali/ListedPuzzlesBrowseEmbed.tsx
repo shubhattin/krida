@@ -62,7 +62,7 @@ export const ListedPuzzlesBrowseEmbed = ({
   });
 
   const listed_puzzle_list_q = useQuery({
-    queryKey: ['listed_puzzle_list', 'v2', script],
+    queryKey: ['listed_puzzle_list', 'v2', script, listed_puzzles_org, normal_titles_q.data],
     queryFn: async () => {
       const puzzle_texts = listed_puzzles_org.flatMap((p) =>
         p.description ? [p.title, p.description] : [p.title]

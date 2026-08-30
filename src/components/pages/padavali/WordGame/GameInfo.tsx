@@ -50,8 +50,7 @@ export const GameInfo = () => {
     if (!completed) return;
 
     let rafId: number | null = null;
-    const isWideScreen =
-      typeof window !== 'undefined' && window.matchMedia('(min-width: 640px)').matches;
+    const isWideScreen = window.matchMedia('(min-width: 640px)').matches;
 
     if (isPerfect) {
       const colors = ['#4ade80', '#22d3ee', '#a78bfa', '#fb923c', '#f472b6'];
@@ -318,7 +317,7 @@ export const GameInfo = () => {
                     puzzleSlug
                   );
                   try {
-                    if (typeof navigator !== 'undefined' && navigator.share) {
+                    if (navigator.share) {
                       await navigator.share({
                         title: `${title} - पदावली-शब्द-क्रीडनम्`,
                         text
@@ -333,6 +332,7 @@ export const GameInfo = () => {
                       }
                     }
                   } catch (err) {
+                    // SAFETY: navigator.share rejections are DOMException errors carrying .name
                     if ((err as Error).name !== 'AbortError') {
                       console.log('Error sharing:', err);
                     }
@@ -354,9 +354,9 @@ export const GameInfo = () => {
 export const get_puzzle_share_url = (slug: string) => {
   const base =
     import.meta.env.VITE_SITE_URL ??
-    (typeof window !== 'undefined'
-      ? window.location.origin
-      : 'https://krida.thesanskritchannel.org');
+    (import.meta.env.SSR
+      ? 'https://krida.thesanskritchannel.org'
+      : window.location.origin);
   return `${base.replace(/\/$/, '')}/padavali/${encodeURIComponent(slug)}`;
 };
 

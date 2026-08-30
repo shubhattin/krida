@@ -837,6 +837,7 @@ const ChartsSection = ({
                 ) : (
                   <ChartTooltipContent
                     labelFormatter={(_, payload) => {
+                      // SAFETY: recharts tooltip payload entries carry the chart's DailyStatPoint
                       const point = payload?.[0]?.payload as DailyStatPoint | undefined;
                       return point?.tooltipLabel ?? '';
                     }}

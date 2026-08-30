@@ -11,7 +11,7 @@ export function useMoreHints(
   entries: CrossWordEntry[] | undefined
 ) {
   const trpc = useTRPC();
-  const enabled = typeof puzzle_id === 'number' && !!puzzle_slug;
+  const enabled = puzzle_id !== undefined && !!puzzle_slug;
 
   // Fetch as soon as the puzzle mounts — AI-generated hints can take a while on
   // first request, so we warm the cache early. UI components gate *display* only.
@@ -30,7 +30,10 @@ export function useMoreHints(
 
   const hintByEntryId = useMemo(() => {
     const hints = query.data?.hints;
-    if (!hints || !entries?.length) return {} as Record<string, string>;
+    if (!hints || !entries?.length) {
+      // SAFETY: empty map keeps the memo type uniform with the built map below
+      return {} as Record<string, string>;
+    }
 
     const map: Record<string, string> = {};
     for (let i = 0; i < entries.length; i++) {

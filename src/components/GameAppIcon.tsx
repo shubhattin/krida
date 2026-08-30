@@ -4,13 +4,13 @@ import { cn } from '@/lib/utils';
 
 export type GameAppIconId = 'padavali' | 'padajala';
 
-export const GAME_APP_ICON_SRC: Record<GameAppIconId, string> = {
+export const GAME_APP_ICON_SRC = {
   padavali: '/img/icon_128_no_pad.png',
   padajala: '/img/padajala_icons/icon_128_no_pad.png'
-};
+} satisfies Record<GameAppIconId, string>;
 
 /** Per-game plate — complements each mark (blue puzzle / amber crossword). */
-const GAME_APP_ICON_SHELL: Record<GameAppIconId, string> = {
+const GAME_APP_ICON_SHELL = {
   padavali: cn(
     'flex shrink-0 items-center justify-center rounded-2xl',
     'border border-blue-300/50 bg-linear-to-br from-blue-100 via-sky-50 to-indigo-200',
@@ -25,7 +25,7 @@ const GAME_APP_ICON_SHELL: Record<GameAppIconId, string> = {
     'dark:border-amber-500/40 dark:from-amber-950 dark:via-orange-950/80 dark:to-stone-950',
     'dark:shadow-amber-900/40'
   )
-};
+} satisfies Record<GameAppIconId, string>;
 
 const SIZE = {
   sm: { shell: 'size-11', img: 'size-7', px: 28 },

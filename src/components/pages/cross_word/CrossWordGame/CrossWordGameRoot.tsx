@@ -56,6 +56,7 @@ export default function CrossWordGameRoot({
   attachments: attachmentsProp,
   image
 }: CrossWordGameRootProps) {
+  // SAFETY: both db puzzle variants share the same grid_data/word_list schema the adapter reads
   const puzzle = isDbPuzzle(raw) ? toCrossWordGamePuzzle(raw as CrossordPuzzle) : raw;
 
   const listed = isDbPuzzle(raw) ? raw.listed : false;

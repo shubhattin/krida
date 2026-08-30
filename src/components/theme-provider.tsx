@@ -51,6 +51,9 @@ export function ThemeProvider({
   ...props
 }: ThemeProviderProps) {
   const [theme, setThemeState] = useState<Theme>(() =>
+    // SAFETY: the lazy initializer also runs during SSR, where browser globals
+    // like localStorage do not exist; typeof is the canonical environment check.
+    // oxlint-disable-next-line anti-slop/no-runtime-typeof
     typeof window !== 'undefined'
       ? parseStoredTheme(localStorage.getItem(storageKey), defaultTheme)
       : defaultTheme

@@ -54,13 +54,10 @@ export function CompletionCelebration({
     hasTriggeredRef.current = true;
     setFired(true);
 
-    const prefersReduced =
-      typeof window !== 'undefined' &&
-      window.matchMedia('(prefers-reduced-motion: reduce)').matches;
+    const prefersReduced = window.matchMedia('(prefers-reduced-motion: reduce)').matches;
     if (prefersReduced) return;
 
-    const isWideScreen =
-      typeof window !== 'undefined' && window.matchMedia('(min-width: 640px)').matches;
+    const isWideScreen = window.matchMedia('(min-width: 640px)').matches;
     let raf = 0;
 
     if (isPerfect) {
@@ -237,7 +234,7 @@ export function CompletionCelebration({
                     puzzleSlug
                   );
                   try {
-                    if (typeof navigator !== 'undefined' && navigator.share) {
+                    if (navigator.share) {
                       await navigator.share({
                         title: `${puzzle.title} - Padajāla`,
                         text
@@ -252,6 +249,7 @@ export function CompletionCelebration({
                       }
                     }
                   } catch (err) {
+                    // SAFETY: navigator.share rejections are DOMException errors carrying .name
                     if ((err as Error).name !== 'AbortError') {
                       console.log('Error sharing:', err);
                     }

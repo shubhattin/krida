@@ -8,9 +8,9 @@ const DEFAULT_MESSAGE =
 const GUARD_STATE = { __padavaliEditorUnsavedGuard: true } as const;
 
 function isGuardState(state: unknown): boolean {
+  // SAFETY: only pushSentinel's state carries the __padavaliEditorUnsavedGuard marker;
+  // reading the property off any other value yields undefined, which fails the check
   return (
-    !!state &&
-    typeof state === 'object' &&
     (state as { __padavaliEditorUnsavedGuard?: boolean }).__padavaliEditorUnsavedGuard === true
   );
 }

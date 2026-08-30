@@ -8,16 +8,7 @@ import { GAME_APP_ICON_SRC, type GameAppIconId } from '~/components/GameAppIcon'
 
 export type AppGame = 'padavali' | 'crossword';
 
-const GAME_DEFAULTS: Record<
-  AppGame,
-  {
-    title: string;
-    description: string;
-    href: string;
-    iconGame: GameAppIconId;
-    showPwaControls: boolean;
-  }
-> = {
+const GAME_DEFAULTS = {
   padavali: {
     title: 'Padāvalī',
     description: 'Sanskrit Word Puzzle',
@@ -32,7 +23,16 @@ const GAME_DEFAULTS: Record<
     iconGame: 'padajala',
     showPwaControls: false
   }
-};
+} satisfies Record<
+  AppGame,
+  {
+    title: string;
+    description: string;
+    href: string;
+    iconGame: GameAppIconId;
+    showPwaControls: boolean;
+  }
+>;
 
 export type AppBarProps = {
   game: AppGame;

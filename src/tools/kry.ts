@@ -80,6 +80,7 @@ export function dataURLToBlob(dataURL: string) {
 }
 
 export function copy_plain_object<T>(obj: T) {
+  // SAFETY: JSON round-trip preserves the plain-data shape of the input
   return JSON.parse(JSON.stringify(obj)) as T;
 }
 
@@ -104,7 +105,10 @@ export function get_permutations(range: [number, number], count: number = 1): nu
 /**
  * This replaces `{key}` with the corresponding value in `options`
  */
-export function format_string_text(text: string, options: Record<string, unknown>) {
+export function format_string_text(
+  text: string,
+  options: Record<string, string | number | boolean | null | undefined>
+) {
   return text.replace(/{(\w+)}/g, (match, key) => {
     const value = options[key];
     return value == null ? `{${key}}` : String(value);
@@ -156,19 +160,21 @@ export function mask_email(
  */
 export function deepCopy<T>(value: T): T {
   // Primitives (and functions) are returned directly
-  if (value === null || typeof value !== 'object') {
+  if (value === null || !(value instanceof Object)) {
     return value;
   }
   // Date
   if (value instanceof Date) {
+    // SAFETY: instanceof check proves the value is a Date, clone keeps that type
     return new Date(value.getTime()) as T;
   }
   // Array
   if (Array.isArray(value)) {
-    const arrCopy = [] as unknown[];
+    const arrCopy: unknown[] = [];
     for (const item of value) {
       arrCopy.push(deepCopy(item));
     }
+    // SAFETY: element-wise deepCopy preserves the array's runtime shape
     return arrCopy as T;
   }
   // Map
@@ -177,6 +183,7 @@ export function deepCopy<T>(value: T): T {
     for (const [k, v] of value.entries()) {
       mapCopy.set(deepCopy(k), deepCopy(v));
     }
+    // SAFETY: instanceof check proves the value is a Map, clone keeps that type
     return mapCopy as T;
   }
   // Set
@@ -185,14 +192,15 @@ export function deepCopy<T>(value: T): T {
     for (const v of value.values()) {
       setCopy.add(deepCopy(v));
     }
+    // SAFETY: instanceof check proves the value is a Set, clone keeps that type
     return setCopy as T;
   }
   // Plain Object
   if (Object.getPrototypeOf(value) === Object.prototype) {
-    const objCopy: Record<string, unknown> = {};
-    for (const [k, v] of Object.entries(value as Record<string, unknown>)) {
-      objCopy[k] = deepCopy(v);
-    }
+    const objCopy = Object.fromEntries(
+      Object.entries(value).map(([k, v]) => [k, deepCopy(v)] as const)
+    );
+    // SAFETY: key-wise deepCopy preserves the object's runtime shape
     return objCopy as T;
   }
   // Fallback: other object types (class instances, functions, etc.)

@@ -28,7 +28,7 @@ import {
   preloadScriptData
 } from 'lipilekhika';
 
-export const SCRIPT_AVATAR_MAP: Record<ScriptListType, string> = {
+export const SCRIPT_AVATAR_MAP = {
   Devanagari: 'अ',
   Telugu: 'అ',
   Tamil: 'அ',
@@ -49,7 +49,7 @@ export const SCRIPT_AVATAR_MAP: Record<ScriptListType, string> = {
   Granth: '𑌅',
   Modi: '𑘀',
   Sharada: '𑆃'
-};
+} satisfies Record<ScriptListType, string>;
 
 export const getScriptAvatar = (script: ScriptLangType) => {
   const normalizedScript = getNormalizedScriptName(script);

@@ -22,7 +22,7 @@ export function matchesWordSearch(fields: (string | null | undefined)[], query: 
   if (tokens.length === 0) return true;
 
   const searchable = fields
-    .filter((field): field is string => typeof field === 'string' && field.length > 0)
+    .filter((field): field is string => field != null && field.length > 0)
     .map((field) => field.toLowerCase());
 
   if (searchable.length === 0) return false;

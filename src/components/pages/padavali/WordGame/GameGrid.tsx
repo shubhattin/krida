@@ -38,7 +38,8 @@ type DragEventLike = {
 };
 
 const getPointerCoords = (e: unknown): { clientX: number; clientY: number } | null => {
-  if (!e || typeof e !== 'object') return null;
+  if (!(e instanceof Object)) return null;
+  // SAFETY: the object check above plus optional fields keeps every access guarded
   const ev = e as DragEventLike;
   const clientX = ev.clientX ?? ev.touches?.[0]?.clientX ?? ev.changedTouches?.[0]?.clientX;
   const clientY = ev.clientY ?? ev.touches?.[0]?.clientY ?? ev.changedTouches?.[0]?.clientY;
@@ -171,6 +172,7 @@ export const GameGrid = ({ timerRef, original_grid_data }: Props) => {
     const preventNavigation = (e: TouchEvent) => {
       // Prevent pull-to-refresh and navigation gestures
       if (e.touches.length === 1) {
+        // SAFETY: touch event targets on document are DOM nodes
         const target = e.target as Element;
 
         // Check if touch started on the game grid
@@ -186,6 +188,7 @@ export const GameGrid = ({ timerRef, original_grid_data }: Props) => {
     const preventOverscroll = (e: TouchEvent) => {
       // Prevent overscroll bounce that can trigger refresh
       if (e.touches.length === 1) {
+        // SAFETY: touch event targets on document are DOM nodes
         const target = e.target as Element;
         if (
           target &&
@@ -198,6 +201,7 @@ export const GameGrid = ({ timerRef, original_grid_data }: Props) => {
 
     const preventContextMenu = (e: Event) => {
       // Prevent long press context menu on mobile
+      // SAFETY: event targets on document are DOM nodes
       const target = e.target as Element;
       if (target && (target.closest('[data-game-grid]') || target.hasAttribute('data-game-grid'))) {
         e.preventDefault();
@@ -206,6 +210,7 @@ export const GameGrid = ({ timerRef, original_grid_data }: Props) => {
 
     const preventDoubleClick = (e: Event) => {
       // Prevent double-click zoom on mobile
+      // SAFETY: event targets on document are DOM nodes
       const target = e.target as Element;
       if (target && (target.closest('[data-game-grid]') || target.hasAttribute('data-game-grid'))) {
         e.preventDefault();

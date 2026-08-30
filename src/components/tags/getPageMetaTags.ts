@@ -20,7 +20,7 @@ export const DEFAULT_SHARE_IMAGE_INFO: ShareImageInfo = {
   height: 630
 };
 
-export const SHARE_IMAGE_INFO: Record<MetadataProject, ShareImageInfo> = {
+export const SHARE_IMAGE_INFO = {
   padavali: DEFAULT_SHARE_IMAGE_INFO,
   padajala: {
     url: 'https://cdn.jsdelivr.net/gh/shubhattin/padavali@latest/src/images/banner/padajala_project_banner.jpg',
@@ -32,7 +32,7 @@ export const SHARE_IMAGE_INFO: Record<MetadataProject, ShareImageInfo> = {
     width: 1200,
     height: 630
   }
-};
+} satisfies Record<MetadataProject, ShareImageInfo>;
 
 /** TanStack Router `head` meta entries. */
 export function routeHeadFromPageMeta({

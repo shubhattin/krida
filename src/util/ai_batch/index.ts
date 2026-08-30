@@ -264,7 +264,7 @@ function extractResponseText(body: unknown) {
 
   for (const output of parsed.output ?? []) {
     for (const content of output.content ?? []) {
-      if (typeof content.text === 'string') {
+      if (content.text !== undefined) {
         text_chunks.push(content.text);
       }
     }
@@ -330,6 +330,7 @@ function parseOutputLine(
   };
 
   if (!raw.response) {
+    // SAFETY: type is the expected variant tag; failure outputs omit the optional payload fields
     return {
       ...base,
       type,
@@ -338,6 +339,7 @@ function parseOutputLine(
   }
 
   if (raw.response.status_code >= 400) {
+    // SAFETY: type is the expected variant tag; failure outputs omit the optional payload fields
     return {
       ...base,
       type,

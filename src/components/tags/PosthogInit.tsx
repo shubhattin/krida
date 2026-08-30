@@ -4,8 +4,8 @@ import { type PostHog } from 'posthog-js';
 import { useEffect } from 'react';
 
 export const load_posthog = async (func?: (posthog: PostHog) => void) => {
+  // Callers are effects/async callbacks, so this always runs client-side.
   if (
-    typeof window === 'undefined' ||
     window.location.hostname === 'localhost' ||
     import.meta.env.DEV ||
     !import.meta.env.VITE_POSTHOG_KEY ||

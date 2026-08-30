@@ -361,6 +361,7 @@ function WordGame({
     );
   }, [puzzle_id, puzzle_slug, trpc, script, queryClient]);
 
+  // SAFETY: AppContext only ever stores valid ScriptType values in script
   const font_info = FONT_INFO[script as ScriptType];
   const gameInProgress = started && !completed;
   const hintHiddenInPractice = gameInProgress && practiceMode;
@@ -559,7 +560,7 @@ function WordGame({
                 onClick={async () => {
                   const text = get_general_share_msg(title, puzzle_slug, description);
                   try {
-                    if (typeof navigator !== 'undefined' && navigator.share) {
+                    if (navigator.share) {
                       await navigator.share({
                         title: `${title} - पदावली-शब्द-क्रीडनम्`,
                         text
@@ -574,6 +575,7 @@ function WordGame({
                       }
                     }
                   } catch (err) {
+                    // SAFETY: navigator.share rejections are DOMException errors carrying .name
                     if ((err as Error).name !== 'AbortError') {
                       console.log('Error sharing:', err);
                     }

@@ -1,9 +1,9 @@
 export const get_crossword_share_url = (slug: string) => {
   const base =
     import.meta.env.VITE_SITE_URL ??
-    (typeof window !== 'undefined'
-      ? window.location.origin
-      : 'https://krida.thesanskritchannel.org');
+    (import.meta.env.SSR
+      ? 'https://krida.thesanskritchannel.org'
+      : window.location.origin);
   return `${base.replace(/\/$/, '')}/padajala/${encodeURIComponent(slug)}`;
 };
 

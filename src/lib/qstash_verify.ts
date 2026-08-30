@@ -14,7 +14,7 @@ export async function verifyQstashRequest(request: Request): Promise<VerifyQstas
     const signature = request.headers.get('upstash-signature') ?? '';
     const body = await request.text();
     await receiver.verify({ signature, body });
-    return { ok: true, body: JSON.parse(body) as unknown };
+    return { ok: true, body: JSON.parse(body) };
   } catch (err) {
     console.error('[qstash] signature verification failed', err);
     return {

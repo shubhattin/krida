@@ -33,6 +33,7 @@ export default function CrosswordPublicClient({ puzzles, isAdmin }: CrosswordPub
   const selected = selectedId != null ? puzzles.find((p) => p.id === selectedId) : null;
 
   if (selected) {
+    // SAFETY: selected is a Pick of CrossordPuzzle with every field the game adapter reads
     return (
       <div className="relative">
         <div className="absolute top-2 left-2 z-20 flex flex-wrap items-center gap-2 sm:top-4 sm:left-4">
@@ -65,6 +66,7 @@ export default function CrosswordPublicClient({ puzzles, isAdmin }: CrosswordPub
             </Button>
           ) : null}
         </div>
+        {/* SAFETY: selected is a Pick of CrossordPuzzle with every field the game adapter reads */}
         <CrossWordGameRoot puzzle={selected as CrossordPuzzle} />
       </div>
     );

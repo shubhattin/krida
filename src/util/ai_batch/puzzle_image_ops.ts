@@ -1182,6 +1182,7 @@ export const get_batch_manager_groups = Effect.fn('batch_ai.get_batch_manager_gr
   const puzzle_id_list = [...puzzle_ids];
   const { puzzles, assets } = yield* Effect.all({
     puzzles:
+      // SAFETY: empty list stands in for the findMany rows (id + title) when there are none
       puzzle_id_list.length > 0
         ? dbRun('batch_ai.find_puzzles_for_manager', (client) =>
             game === 'crossword'
@@ -1210,6 +1211,7 @@ export const get_batch_manager_groups = Effect.fn('batch_ai.get_batch_manager_gr
             })
           )
         : Effect.succeed(
+            // SAFETY: empty list stands in for findMany rows with these exact columns
             [] as Array<{
               id: number;
               s3_key: string;

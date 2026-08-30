@@ -116,6 +116,7 @@ const update_puzzle_attachments = async (
         })()
       : Promise.resolve();
 
+  // SAFETY: empty-array branch stands in for insert().returning() rows we only need ids from
   const [new_attachments_inserted] = await Promise.all([
     new_attachments.length > 0
       ? tx
@@ -573,7 +574,7 @@ export const get_puzzle_list_page = Effect.fn('padavali.get_puzzle_list_page')(f
 
   const trimmedSearch = search_title?.trim();
   const conditions = [];
-  if (typeof listed_filter === 'boolean') {
+  if (listed_filter !== undefined) {
     conditions.push(eq(padavali_puzzles.listed, listed_filter));
   }
   if (trimmedSearch) {

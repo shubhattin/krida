@@ -88,7 +88,7 @@ export function isBlockedCell(template: CrossWordCell) {
 }
 
 export function isFixedCell(template: CrossWordCell) {
-  return typeof template === 'string' && template.length === 1;
+  return template !== null && template.length === 1;
 }
 
 export function getCellLetter(

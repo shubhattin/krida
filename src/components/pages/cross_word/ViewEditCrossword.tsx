@@ -41,7 +41,7 @@ import {
   type attachment_schema,
   type image_schema
 } from '~/db/db_shared_vals';
-import type { z } from 'zod';
+import { z } from 'zod';
 import { Button } from '~/components/ui/button';
 import {
   Dialog,
@@ -394,7 +394,10 @@ const SortableAttachmentItem = ({
             items={ATTACHMENT_TYPE_ITEMS}
             value={attachment.type}
             onValueChange={(value) => {
-              if (value) onUpdate('type', value as EditableAttachment['type']);
+              if (value) {
+                // SAFETY: select items are exactly the EditableAttachment type keys
+                onUpdate('type', value as EditableAttachment['type']);
+              }
             }}
           >
             <SelectTrigger className="w-40" aria-label={`Attachment ${index + 1} type`}>
@@ -649,6 +652,7 @@ const DimensionsField = () => {
                 const next: [number, number] = [clampDimension(rows), clampDimension(cols)];
                 setDimensions(next);
                 setGridData(createEmptyGridData(next));
+                // SAFETY: grid reset pins every word to the origin, horizontal
                 setWordList((prev) =>
                   prev.map((w) => ({
                     ...w,
@@ -899,7 +903,8 @@ const LAYOUT_DENSITY_ITEMS = [
 const LAYOUT_DENSITIES = ['balanced', 'center', 'left', 'right', 'top', 'bottom'] as const;
 
 function parseLayoutDensity(value: string | null | undefined): LayoutDensity | null {
-  return LAYOUT_DENSITIES.includes(value as LayoutDensity) ? (value as LayoutDensity) : null;
+  // SAFETY: find() over the literal tuple narrows the query param to a known density
+  return LAYOUT_DENSITIES.find((density) => density === value) ?? null;
 }
 
 const LAYOUT_CANDIDATE_LIMITS = [4, 8, 12, 16, 24, 32, 40] as const;
@@ -912,9 +917,8 @@ const LAYOUT_CANDIDATE_LIMIT_ITEMS = LAYOUT_CANDIDATE_LIMITS.map((limit) => ({
 
 function parseLayoutCandidateLimit(value: string | null | undefined): LayoutCandidateLimit | null {
   const parsed = Number(value);
-  return LAYOUT_CANDIDATE_LIMITS.includes(parsed as LayoutCandidateLimit)
-    ? (parsed as LayoutCandidateLimit)
-    : null;
+  // SAFETY: find() over the literal tuple narrows the parsed number to a known limit
+  return LAYOUT_CANDIDATE_LIMITS.find((limit) => limit === parsed) ?? null;
 }
 
 function layoutCandidateKey(candidate: GeneratedCrosswordLayout) {
@@ -2039,6 +2043,9 @@ const SaveControls = ({ puzzle }: { puzzle: ViewEditCrosswordProps['puzzle'] }) 
   } | null>(null);
 
   const update_mut = useMutation(
+    // SAFETY: the callbacks below only run after the mutation settles (async),
+    // never during render — the ref is read/written from mutation lifecycle code.
+    // oxlint-disable-next-line react/refs
     trpc.crossword.update_puzzle.mutationOptions({
       onSuccess: async (data) => {
         toast.success('Puzzle updated successfully');
@@ -2142,11 +2149,12 @@ const SaveControls = ({ puzzle }: { puzzle: ViewEditCrosswordProps['puzzle'] }) 
     if (!parse.success) {
       console.error(parse.error);
       const firstIssue = parse.error.issues[0];
+      const pathIndex = z.number().int().safeParse(firstIssue?.path[2]);
       const wordIndex =
         firstIssue?.path[0] === 'puzzle_data' &&
         firstIssue.path[1] === 'word_list' &&
-        typeof firstIssue.path[2] === 'number'
-          ? firstIssue.path[2]
+        pathIndex.success
+          ? pathIndex.data
           : null;
       const field = firstIssue?.path.at(-1);
       const wordLabel =

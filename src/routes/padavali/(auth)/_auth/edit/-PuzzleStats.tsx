@@ -176,11 +176,13 @@ type StatsCompletion = {
   total_attempts: number;
 };
 
+type ModeFilteredStats = { sessions: StatsSession[]; stats: StatsCompletion[] };
+
 function filterByGameplayMode(
   sessions: StatsSession[],
   stats: StatsCompletion[],
   mode: GameplayMode
-): { sessions: StatsSession[]; stats: StatsCompletion[] } {
+): ModeFilteredStats {
   if (mode === 'all') return { sessions, stats };
 
   const includedSessionIds = new Set(
@@ -917,6 +919,7 @@ const ChartsSection = ({
                 ) : (
                   <ChartTooltipContent
                     labelFormatter={(_, payload) => {
+                      // SAFETY: recharts tooltip payload entries carry the chart's DailyStatPoint
                       const point = payload?.[0]?.payload as DailyStatPoint | undefined;
                       return point?.tooltipLabel ?? '';
                     }}

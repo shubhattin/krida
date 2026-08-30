@@ -144,6 +144,7 @@ function GameMenuNavigateBridge({
     <div
       className="contents"
       onClick={(e) => {
+        // SAFETY: React event targets in this menu are real DOM elements
         const target = e.target as HTMLElement | null;
         if (target?.closest('a')) onNavigate();
       }}

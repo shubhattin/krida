@@ -572,6 +572,7 @@ function getUniqueWordTrails(
     const path = traversals[0];
     const slotIndex = slotIndices[validIdx];
     if (!path || path.length < 2 || slotIndex === undefined) continue;
+    // SAFETY: traversal paths are [row, col] pairs by the Traversal contract
     trails.push({ slotIndex, path: path.map(([r, c]) => [r, c] as Coordinate) });
   }
   return trails;
@@ -1352,6 +1353,9 @@ const SaveButton = ({ word_puzzle }: { word_puzzle: Puzzle }) => {
   const navigate = useNavigate();
 
   const update_word_puzzle_mut = useMutation(
+    // SAFETY: the callbacks below only run after the mutation settles (async),
+    // never during render — the ref is read/written from mutation lifecycle code.
+    // oxlint-disable-next-line react/refs
     trpc.puzzle.update_puzzle.mutationOptions({
       onSuccess: async (data) => {
         if (data.success) {

@@ -29,6 +29,9 @@ function isEditableTarget(target: EventTarget | null): boolean {
 }
 
 function isMacPlatform(): boolean {
+  // SAFETY: called during SSR render too, where `navigator` does not exist;
+  // a runtime environment check for the browser global is the right tool here.
+  // oxlint-disable-next-line anti-slop/no-runtime-typeof
   if (typeof navigator === 'undefined') return false;
   return /Mac|iPhone|iPad|iPod/i.test(navigator.platform || navigator.userAgent);
 }

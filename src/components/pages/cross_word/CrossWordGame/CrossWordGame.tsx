@@ -71,7 +71,7 @@ const INPUT_VIRTUAL_KEYBOARD_ENABLED = true;
 
 async function shareText(title: string, text: string, successToast: string) {
   try {
-    if (typeof navigator !== 'undefined' && navigator.share) {
+    if (navigator.share) {
       await navigator.share({ title, text });
     } else {
       try {
@@ -83,6 +83,7 @@ async function shareText(title: string, text: string, successToast: string) {
       }
     }
   } catch (err) {
+    // SAFETY: navigator.share rejections are DOMException errors carrying .name
     if ((err as Error).name !== 'AbortError') {
       console.log('Error sharing:', err);
     }
@@ -179,7 +180,7 @@ export function CrossWordGame({
   const requestKeyboard = useCallback(() => {
     if (useVirtualKeyboard || completed) return;
     keyboardRef.current?.focus();
-    const vv = typeof window !== 'undefined' ? window.visualViewport : null;
+    const vv = window.visualViewport;
     if (vv && boardAnchorRef.current) {
       const rect = boardAnchorRef.current.getBoundingClientRect();
       const visibleBottom = vv.offsetTop + vv.height;
@@ -206,6 +207,7 @@ export function CrossWordGame({
   useEffect(() => {
     if (!started) return;
     const onKeyDown = (event: KeyboardEvent) => {
+      // SAFETY: keydown targets on document are DOM nodes
       const target = event.target as HTMLElement | null;
       if (!target) {
         game.handleKeyDown(event);
@@ -285,6 +287,7 @@ export function CrossWordGame({
     if (!started) return;
 
     const handleDocumentClick = (event: MouseEvent) => {
+      // SAFETY: click targets on document are DOM nodes
       const target = event.target as HTMLElement | null;
       if (!target) return;
 

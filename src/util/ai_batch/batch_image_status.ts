@@ -6,22 +6,19 @@ export type PuzzleImageBatchUiStatus =
   | 'auto_applying'
   | 'failed';
 
-export const PUZZLE_IMAGE_BATCH_STATUS_LABELS: Record<PuzzleImageBatchUiStatus, string> = {
+export const PUZZLE_IMAGE_BATCH_STATUS_LABELS = {
   processing: 'Processing',
   ready_for_review: 'Ready for review',
   auto_applying: 'Auto-applying',
   failed: 'Failed'
-};
+} satisfies Record<PuzzleImageBatchUiStatus, string>;
 
-export const PUZZLE_IMAGE_BATCH_STATUS_VARIANTS: Record<
-  PuzzleImageBatchUiStatus,
-  'secondary' | 'default' | 'destructive'
-> = {
+export const PUZZLE_IMAGE_BATCH_STATUS_VARIANTS = {
   processing: 'secondary',
   ready_for_review: 'default',
   auto_applying: 'default',
   failed: 'destructive'
-};
+} satisfies Record<PuzzleImageBatchUiStatus, 'secondary' | 'default' | 'destructive'>;
 
 export function derivePuzzleImageBatchUiStatus(
   output_resolved: boolean,

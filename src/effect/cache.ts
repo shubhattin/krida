@@ -78,7 +78,13 @@ const redisGenerationKey = (cacheKey: string) => `${cacheKey}:gen`;
 const toReturnValue = <TCached, TData>(
   data: TCached,
   transform?: (data: TCached) => TData
-): TData => (transform ? transform(data) : (data as unknown as TData));
+): TData => {
+  if (transform) return transform(data);
+  // SAFETY: without a transform the cache config's TData defaults to TCached, so
+  // the cached value already satisfies the return type at every call site; the
+  // intersection assertion keeps the evidence without a double cast.
+  return data as TCached & TData;
+};
 
 const resolveSetOptions = <TCached>(
   data: TCached,
@@ -93,20 +99,22 @@ const resolveSetOptions = <TCached>(
 /** Match Upstash REST `set` JSON encoding so guarded Lua writes store the same wire shape. */
 const serializeCacheValue = (value: unknown): string => JSON.stringify(value);
 
-const encodeSetOptionsForScript = (
-  setOptions?: SetCommandOptions
-): { mode: string; arg: string } => {
+/** Wire `mode` tokens accepted by the guarded Lua set scripts. */
+type RedisSetMode = '' | 'EX' | 'PX' | 'EXAT' | 'PXAT' | 'KEEPTTL';
+type RedisSetOptionEncoding = { mode: RedisSetMode; arg: string };
+
+const encodeSetOptionsForScript = (setOptions?: SetCommandOptions): RedisSetOptionEncoding => {
   if (!setOptions) return { mode: '', arg: '' };
-  if ('ex' in setOptions && typeof setOptions.ex === 'number') {
+  if ('ex' in setOptions) {
     return { mode: 'EX', arg: String(setOptions.ex) };
   }
-  if ('px' in setOptions && typeof setOptions.px === 'number') {
+  if ('px' in setOptions) {
     return { mode: 'PX', arg: String(setOptions.px) };
   }
-  if ('exat' in setOptions && typeof setOptions.exat === 'number') {
+  if ('exat' in setOptions) {
     return { mode: 'EXAT', arg: String(setOptions.exat) };
   }
-  if ('pxat' in setOptions && typeof setOptions.pxat === 'number') {
+  if ('pxat' in setOptions) {
     return { mode: 'PXAT', arg: String(setOptions.pxat) };
   }
   if ('keepTtl' in setOptions && setOptions.keepTtl) {
@@ -165,8 +173,13 @@ export function createCache<TParams, TCached, TData = TCached>(
       if (config.fromCacheValue) {
         return config.fromCacheValue(raw);
       }
-      if (raw === null || raw === undefined) return null;
-      if (!config.schema) return raw as TCached;
+      if (raw === null || raw === undefined) {
+        return null;
+      }
+      if (!config.schema) {
+        // SAFETY: no schema configured means the cache stores/returns TCached verbatim
+        return raw as TCached;
+      }
       return config.schema.parse(raw);
     } catch {
       return null;
@@ -178,7 +191,8 @@ export function createCache<TParams, TCached, TData = TCached>(
       const redis = yield* RedisClient;
       const raw = yield* redis.get<number | string | null>(redisGenerationKey(cacheKey));
       if (raw === null || raw === undefined) return 0;
-      const n = typeof raw === 'number' ? raw : Number(raw);
+      // Number() is identity on numbers and parses the string form Redis may return.
+      const n = Number(raw);
       return Number.isFinite(n) ? n : 0;
     });
 
@@ -281,8 +295,9 @@ export function createCache<TParams, TCached, TData = TCached>(
 
     if (useRedis) {
       const redis = yield* RedisClient;
+      // SAFETY: succeed<unknown> matches the get<unknown> success channel when redis errors
       const cached = yield* redis.get<unknown>(cacheKey).pipe(
-        Effect.catch(() => Effect.succeed(null as unknown)),
+        Effect.catch(() => Effect.succeed<unknown>(null)),
         Effect.annotateLogs({ category: 'cache', operation: 'get', key: cacheKey })
       );
       const parsed = parseCached(cached);
@@ -331,9 +346,10 @@ export function createCache<TParams, TCached, TData = TCached>(
 
         for (let poll = 0; poll < SINGLE_FLIGHT_MAX_POLLS; poll++) {
           yield* Effect.sleep(SINGLE_FLIGHT_POLL);
+          // SAFETY: succeed<unknown> matches the get<unknown> success channel when redis errors
           const cached = yield* redis
             .get<unknown>(cacheKey)
-            .pipe(Effect.catch(() => Effect.succeed(null as unknown)));
+            .pipe(Effect.catch(() => Effect.succeed<unknown>(null)));
           const parsed = parseCached(cached);
           if (parsed !== null) return toReturnValue(parsed, config.transform);
 
@@ -463,4 +479,6 @@ export const invalidateAndRefreshCache = <TParams, TData>(
 /** No-arg cache loaders use an empty params object. */
 export type NoCacheParams = Record<string, never>;
 
-export const NO_CACHE_PARAMS = {} as NoCacheParams;
+export const NO_CACHE_PARAMS =
+  // SAFETY: an empty object trivially satisfies the empty-params record
+  {} as NoCacheParams;

@@ -151,17 +151,23 @@ const CrosswordListPage = () => {
     return () => clearTimeout(timeoutId);
   }, [search_title]);
 
+  const listed_filter = { all: undefined, listed: true, unlisted: false }[listed_filter_type];
+
   const puzzle_list_q = useQuery({
-    queryKey: ['crossword_list', page, debouncedSearchTitle, listed_filter_type, sort_by, order_by],
+    queryKey: [
+      'crossword_list',
+      page,
+      debouncedSearchTitle,
+      listed_filter_type,
+      listed_filter,
+      sort_by,
+      order_by
+    ],
     queryFn: async () => {
       return client.crossword.get_puzzle_list_page.query({
         page,
         size: PUZZLE_FETCH_LIMIT,
-        listed_filter: {
-          all: undefined,
-          listed: true,
-          unlisted: false
-        }[listed_filter_type],
+        listed_filter,
         sort_by,
         search_title: debouncedSearchTitle !== '' ? debouncedSearchTitle : undefined,
         order_by

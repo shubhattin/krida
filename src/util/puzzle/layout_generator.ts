@@ -572,13 +572,14 @@ export function generatePadavaliLayouts({
       (left, right) => right.syllables.length - left.syllables.length
     );
     let searchNodes = 0;
-    const best: {
+    type BestPadavaliLayout = {
       current: {
         grid: string[][];
         placements: InternalPlacement[];
         score: GeneratedLayoutScore;
       } | null;
-    } = { current: null };
+    };
+    const best: BestPadavaliLayout = { current: null };
 
     const search = (index: number, grid: string[][], placements: InternalPlacement[]) => {
       if (searchNodes >= DEFAULT_SEARCH_NODES) return;

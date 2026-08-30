@@ -161,8 +161,7 @@ const AddSchedule = (props: Props) => {
     (type === 'add' && !selectedPuzzle) ||
     !startDate ||
     !endDate ||
-    startDate > endDate ||
-    startDate === endDate;
+    startDate >= endDate;
 
   const handle_add_schedule = () => {
     if (type !== 'add') return;

@@ -79,6 +79,9 @@ export default function CrossWordMetricsCollector({
     isSuccess: submitStatsSuccess,
     isPending: submitStatsPending
   } = useMutation(
+    // SAFETY: the callbacks below only run after the mutation settles (async),
+    // never during render — the ref is read/written from mutation lifecycle code.
+    // oxlint-disable-next-line react/refs
     trpc.crossword.stats.submit_stats.mutationOptions({
       onSuccess() {
         setTurnstileToken(null);
@@ -101,6 +104,9 @@ export default function CrossWordMetricsCollector({
     isPending: gamesStartedPending,
     data: gamesStartedData
   } = useMutation(
+    // SAFETY: the callbacks below only run after the mutation settles (async),
+    // never during render — the ref is read/written from mutation lifecycle code.
+    // oxlint-disable-next-line react/refs
     trpc.crossword.stats.update_games_started.mutationOptions({
       onSuccess() {
         setTurnstileToken(null);

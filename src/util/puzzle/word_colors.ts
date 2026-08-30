@@ -164,6 +164,7 @@ export function buildCellWordColorMapFromPlacements(
   for (let index = 0; index < placements.length; index += 1) {
     const placement = placements[index]!;
     slotIndices.push(placement.slotIndex);
+    // SAFETY: path entries are [row, col] pairs by the placements contract
     const path = placement.path.map(([row, col]) => [row, col] as [number, number]);
     traversalsMap.set(index, [path]);
   }
@@ -172,6 +173,7 @@ export function buildCellWordColorMapFromPlacements(
 
 /** CSS custom properties so light/dark follow the `dark` class without JS theme reads. */
 export function wordColorCssVars(pair: WordColorPair): CSSProperties {
+  // SAFETY: CSS custom-property keys are valid inline styles React's CSSProperties can't type
   return {
     '--word-tint': pair.light.bg,
     '--word-tint-dark': pair.dark.bg,
@@ -184,10 +186,12 @@ export function wordColorCssVars(pair: WordColorPair): CSSProperties {
 export const wordColorTintClassName = '!bg-[var(--word-tint)] dark:!bg-[var(--word-tint-dark)]';
 
 /** Tint class + CSS vars for a grid cell, shared by the editor and layout previews. */
-export function cellWordTintAppearance(info: CellWordColorInfo | undefined): {
+type CellWordTintAppearance = {
   className: string;
   style: CSSProperties | undefined;
-} {
+};
+
+export function cellWordTintAppearance(info: CellWordColorInfo | undefined): CellWordTintAppearance {
   if (!info) {
     return { className: '', style: undefined };
   }

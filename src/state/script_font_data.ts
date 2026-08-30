@@ -18,17 +18,19 @@ import {
 import { SCRIPT_LIST, DEFAULT_DATA_SCRIPT, type ScriptType } from './script_list';
 
 export const get_lang_from_cookie = (value?: string) => {
-  if (value && SCRIPT_LIST.includes(value as ScriptType)) {
-    return value as ScriptType;
-  } else {
-    return DEFAULT_DATA_SCRIPT as ScriptType;
-  }
+  // SAFETY: find() over the literal SCRIPT_LIST tuple narrows the cookie value
+  const found = value ? SCRIPT_LIST.find((script) => script === value) : undefined;
+  return found ?? DEFAULT_DATA_SCRIPT;
 };
 
-export const FONT_INFO: Record<
-  ScriptType,
-  { className: string; fontSize: number; experimental?: boolean }
-> = {
+type ScriptFontInfo = { className: string; fontSize: number; experimental?: boolean };
+
+/** Named owner contract: keeps the map exhaustive over ScriptType with the full value shape. */
+function defineFontInfo(map: Record<ScriptType, ScriptFontInfo>): Record<ScriptType, ScriptFontInfo> {
+  return map;
+}
+
+export const FONT_INFO = defineFontInfo({
   Devanagari: {
     className: notoSansDevanagari.className,
     fontSize: 1.25
@@ -100,4 +102,4 @@ export const FONT_INFO: Record<
     fontSize: 0.82,
     experimental: true
   }
-};
+});

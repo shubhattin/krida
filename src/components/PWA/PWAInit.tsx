@@ -45,6 +45,7 @@ export default function PWAInit() {
     // Check if the app is installed (running in standalone mode)
     const checkInstallStatus = () => {
       const isStandalone = window.matchMedia('(display-mode: standalone)').matches;
+      // SAFETY: iOS Safari exposes a standalone flag on navigator that TS types lack
       const isWebAppCapable =
         'standalone' in window.navigator
           ? (window.navigator as Navigator & { standalone?: boolean }).standalone
@@ -70,6 +71,7 @@ export default function PWAInit() {
       event.preventDefault();
       setPwaState((prev) => ({
         ...prev,
+        // SAFETY: beforeinstallprompt always delivers a BeforeInstallPromptEvent
         event_triggerer: event as BeforeInstallPromptEvent,
         install_event_fired: true
       }));
