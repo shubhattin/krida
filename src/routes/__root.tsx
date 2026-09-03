@@ -1,7 +1,13 @@
 import { type QueryClient, useQueryClient } from '@tanstack/react-query';
 import { ReactQueryDevtoolsPanel } from '@tanstack/react-query-devtools';
 import { TanStackDevtools } from '@tanstack/react-devtools';
-import { HeadContent, Scripts, createRootRouteWithContext } from '@tanstack/react-router';
+import {
+  ClientOnly,
+  ErrorComponent,
+  HeadContent,
+  Scripts,
+  createRootRouteWithContext
+} from '@tanstack/react-router';
 import { TanStackRouterDevtoolsPanel } from '@tanstack/react-router-devtools';
 import { createTRPCClient, httpBatchLink } from '@trpc/client';
 import { useState } from 'react';
@@ -45,6 +51,7 @@ export const Route = createRootRouteWithContext<{ queryClient: QueryClient }>()(
     ]
   }),
   shellComponent: RootDocument,
+  errorComponent: ErrorComponent,
   notFoundComponent: NotFound
 });
 
@@ -96,15 +103,17 @@ function RootProviders({ children }: { children: React.ReactNode }) {
           <Toaster richColors={true} />
           {children}
         </div>
-        {import.meta.env.DEV && (
-          <TanStackDevtools
-            config={{ position: 'bottom-right' }}
-            plugins={[
-              { name: 'Tanstack Router', render: <TanStackRouterDevtoolsPanel /> },
-              { name: 'Tanstack Query', render: <ReactQueryDevtoolsPanel /> }
-            ]}
-          />
-        )}
+        {import.meta.env.DEV ? (
+          <ClientOnly>
+            <TanStackDevtools
+              config={{ position: 'bottom-right' }}
+              plugins={[
+                { name: 'Tanstack Router', render: <TanStackRouterDevtoolsPanel /> },
+                { name: 'Tanstack Query', render: <ReactQueryDevtoolsPanel /> }
+              ]}
+            />
+          </ClientOnly>
+        ) : null}
       </TRPCProvider>
     </ThemeProvider>
   );

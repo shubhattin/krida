@@ -37,14 +37,19 @@ export class ObjectStorage extends Context.Service<
   static readonly Live = Layer.effect(ObjectStorage)(
     Effect.gen(function* () {
       const config = yield* AppConfig;
-      const s3 = new S3Client({
-        region: config.awsRegion,
-        credentials: {
-          accessKeyId: config.awsAccessKeyId,
-          secretAccessKey: Redacted.value(config.awsSecretAccessKey)
-        }
-      });
       const bucket = config.awsS3BucketName;
+      // Construct on first upload/delete. `new S3Client()` loads the Node AWS
+      // runtime (`runtimeConfig.js`), whose named imports break under workerd's
+      // Vite module runner — and cache loaders do not need S3.
+      let s3: S3Client | undefined;
+      const getS3 = () =>
+        (s3 ??= new S3Client({
+          region: config.awsRegion,
+          credentials: {
+            accessKeyId: config.awsAccessKeyId,
+            secretAccessKey: Redacted.value(config.awsSecretAccessKey)
+          }
+        }));
 
       return {
         uploadAssetFile: (key, fileBuffer) =>
@@ -59,14 +64,14 @@ export class ObjectStorage extends Context.Service<
               ContentType: mime.lookup(key) || 'application/octet-stream',
               StorageClass: StorageClass.STANDARD
             };
-            return s3.send(new PutObjectCommand(uploadParams));
+            return getS3().send(new PutObjectCommand(uploadParams));
           }),
         deleteAssetFile: (key) =>
           tryStorage('deleteAssetFile', key, async () => {
             if (!ASSET_KEY_PATTERN.test(key)) {
               throw new Error(`Invalid asset key: ${key}`);
             }
-            return s3.send(
+            return getS3().send(
               new DeleteObjectCommand({
                 Bucket: bucket,
                 Key: key
