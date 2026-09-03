@@ -144,6 +144,9 @@ type GeneratedImageResolution =
   | { readonly ok: true; readonly value: GeneratedImageState }
   | { readonly ok: false; readonly value: FailedGeneratePuzzleImageOutput };
 
+const formatCause = (cause: unknown): string =>
+  cause instanceof Error ? `${cause.name}: ${cause.message}` : String(cause);
+
 const buildImagePromptUserPrompt = (
   title: string,
   description?: string,
@@ -314,14 +317,21 @@ export const generateSavePuzzleImage = Effect.fn('generateSavePuzzleImage')(func
     existing_file_name_description
   ).pipe(
     Effect.map((state): GeneratedImageResolution => ({ ok: true, value: state })),
-    Effect.catchTag('AiProviderError', () =>
-      Effect.succeed<GeneratedImageResolution>({
-        ok: false,
-        value: {
-          success: false,
-          err_code: 'image_generation_failed'
-        } satisfies FailedGeneratePuzzleImageOutput
-      })
+    Effect.catchTag('AiProviderError', (error) =>
+      Effect.logWarning('Puzzle image generation failed').pipe(
+        Effect.annotateLogs({
+          operation: error.operation,
+          provider: error.provider,
+          cause: formatCause(error.cause)
+        }),
+        Effect.as<GeneratedImageResolution>({
+          ok: false,
+          value: {
+            success: false,
+            err_code: 'image_generation_failed'
+          } satisfies FailedGeneratePuzzleImageOutput
+        })
+      )
     )
   );
 
@@ -341,14 +351,20 @@ export const generateSavePuzzleImage = Effect.fn('generateSavePuzzleImage')(func
     )
     .pipe(
       Effect.map((buffer) => ({ ok: true as const, buffer })),
-      Effect.catchTag('ImageProcessingError', () =>
-        Effect.succeed({
-          ok: false as const,
-          value: {
-            success: false,
-            err_code: 'image_generation_failed'
-          } satisfies FailedGeneratePuzzleImageOutput
-        })
+      Effect.catchTag('ImageProcessingError', (error) =>
+        Effect.logWarning('Puzzle image resize failed').pipe(
+          Effect.annotateLogs({
+            operation: error.operation,
+            cause: formatCause(error.cause)
+          }),
+          Effect.as({
+            ok: false as const,
+            value: {
+              success: false,
+              err_code: 'image_generation_failed'
+            } satisfies FailedGeneratePuzzleImageOutput
+          })
+        )
       )
     );
 
@@ -367,7 +383,8 @@ export const generateSavePuzzleImage = Effect.fn('generateSavePuzzleImage')(func
       Effect.logWarning('Failed to upload puzzle image to storage').pipe(
         Effect.annotateLogs({
           s3_key,
-          operation: error.operation
+          operation: error.operation,
+          cause: formatCause(error.cause)
         }),
         Effect.as(false as const)
       )

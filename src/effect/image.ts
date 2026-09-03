@@ -23,7 +23,8 @@ export const toImageBytes = (input: Buffer | Uint8Array | string): Uint8Array =>
 };
 
 export const toImageStream = (input: Buffer | Uint8Array | string): ReadableStream<Uint8Array> => {
-  const bytes = toImageBytes(input);
+  // Copy off Node Buffer — CF Images can reject Buffer-as-Uint8Array stream chunks.
+  const bytes = Uint8Array.from(toImageBytes(input));
   return new ReadableStream({
     start(controller) {
       controller.enqueue(bytes);

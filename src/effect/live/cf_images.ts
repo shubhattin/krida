@@ -31,8 +31,12 @@ export const ImageProcessorLive = Layer.succeed(ImageProcessor)({
           })
           .output({ format: 'image/webp', quality });
 
-        const buffer = await output.response().arrayBuffer();
-        return Buffer.from(buffer);
+        const response = output.response();
+        if (!response.ok) {
+          const errBody = await response.text();
+          throw new Error(`CF Images output ${response.status}: ${errBody.slice(0, 500)}`);
+        }
+        return Buffer.from(await response.arrayBuffer());
       },
       catch: (cause) => ImageProcessingError.make({ operation: 'resizeImage', cause })
     }).pipe(Effect.annotateLogs({ category: 'image', operation: 'resizeImage' }))
