@@ -15,6 +15,7 @@
 
 /.output/
 /out/
+/dist
 
 # production
 /build

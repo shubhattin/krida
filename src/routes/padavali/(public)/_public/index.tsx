@@ -1,6 +1,6 @@
 import { createFileRoute } from '@tanstack/react-router';
 import { createServerFn } from '@tanstack/react-start';
-import { transliterate_wasm } from 'lipilekhika';
+import { transliterate } from 'lipilekhika';
 import { DEFAULT_DATA_SCRIPT } from '~/state/script_list';
 import { get_transliterated_word_game_msgs } from '~/components/pages/padavali/WordGame/msgs';
 import { getScript$ } from '~/lib/cache_server_route_data';
@@ -24,8 +24,8 @@ const buildListedPuzzlesInit = async (script: Awaited<ReturnType<typeof getScrip
     p.description ? [p.title, p.description] : [p.title]
   );
   const [transliterated_texts, normal_titles] = await Promise.all([
-    transliterate_wasm(puzzle_texts, DEFAULT_DATA_SCRIPT, script),
-    transliterate_wasm(
+    transliterate(puzzle_texts, DEFAULT_DATA_SCRIPT, script),
+    transliterate(
       listed_puzzles.map((p) => p.title),
       DEFAULT_DATA_SCRIPT,
       NORMAL_TITLE_SCRIPT
@@ -62,12 +62,8 @@ const loader$ = createServerFn({ method: 'GET' }).handler(async () => {
 
   const word_puzzle = current_schedule.puzzle;
   const word_game_msgs = await get_transliterated_word_game_msgs(script);
-  const title = await transliterate_wasm(word_puzzle.title, DEFAULT_DATA_SCRIPT, script);
-  const grid_cells = await transliterate_wasm(
-    word_puzzle.grid_data.flat(),
-    DEFAULT_DATA_SCRIPT,
-    script
-  );
+  const title = await transliterate(word_puzzle.title, DEFAULT_DATA_SCRIPT, script);
+  const grid_cells = await transliterate(word_puzzle.grid_data.flat(), DEFAULT_DATA_SCRIPT, script);
   let cell_i = 0;
   const grid_data = word_puzzle.grid_data.map((row) => row.map(() => grid_cells[cell_i++]!));
 

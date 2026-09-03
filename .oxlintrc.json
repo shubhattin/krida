@@ -51,6 +51,7 @@
     "src/tools/lipi_lekhika/resources/**",
     "src/components/ui/**",
     ".output/**",
+    "dist/**",
     ".tanstack/**",
     ".agents/**",
     ".agent/**",

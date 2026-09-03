@@ -1,7 +1,7 @@
 import { createFileRoute, Link } from '@tanstack/react-router';
 import { createServerFn } from '@tanstack/react-start';
 import { ArrowLeftIcon } from 'lucide-react';
-import { transliterate_wasm } from 'lipilekhika';
+import { transliterate } from 'lipilekhika';
 import { z } from 'zod';
 import WordGame from '~/components/pages/padavali/WordGame/WordGameRoot';
 import { get_transliterated_word_game_msgs } from '~/components/pages/padavali/WordGame/msgs';
@@ -30,8 +30,8 @@ const loader$ = createServerFn({ method: 'GET' })
 
     const script = await getScript$();
     const word_game_msgs = await get_transliterated_word_game_msgs(script);
-    const title = await transliterate_wasm(word_puzzle.title, DEFAULT_DATA_SCRIPT, script);
-    const grid_cells = await transliterate_wasm(
+    const title = await transliterate(word_puzzle.title, DEFAULT_DATA_SCRIPT, script);
+    const grid_cells = await transliterate(
       word_puzzle.grid_data.flat(),
       DEFAULT_DATA_SCRIPT,
       script

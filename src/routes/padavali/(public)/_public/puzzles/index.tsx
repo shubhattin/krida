@@ -1,6 +1,6 @@
 import { createFileRoute } from '@tanstack/react-router';
 import { createServerFn } from '@tanstack/react-start';
-import { transliterate_wasm } from 'lipilekhika';
+import { transliterate } from 'lipilekhika';
 import { DEFAULT_DATA_SCRIPT } from '~/state/script_list';
 import { getScript$ } from '~/lib/cache_server_route_data';
 import { CACHE, NO_CACHE_PARAMS } from '~/util/cache.server/cache_loaders';
@@ -23,8 +23,8 @@ const loader$ = createServerFn({ method: 'GET' }).handler(async () => {
     p.description ? [p.title, p.description] : [p.title]
   );
   const [transliterated_texts, normal_titles] = await Promise.all([
-    transliterate_wasm(puzzle_texts, DEFAULT_DATA_SCRIPT, script),
-    transliterate_wasm(
+    transliterate(puzzle_texts, DEFAULT_DATA_SCRIPT, script),
+    transliterate(
       listed_puzzles.map((p) => p.title),
       DEFAULT_DATA_SCRIPT,
       NORMAL_TITLE_SCRIPT
