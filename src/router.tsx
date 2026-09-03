@@ -6,9 +6,11 @@ import { createQueryClient } from './state/queryClient';
 /** query-core ≥ 5.102.1 throws if hydrate() is called with undefined. */
 const EMPTY_DEHYDRATED_QUERY_STATE = { mutations: [], queries: [] };
 
+type QueryStreamCancelReason = string | Error | undefined;
+
 type QueryStreamReader = {
   closed: Promise<undefined>;
-  cancel: (reason?: unknown) => Promise<void>;
+  cancel: (reason?: QueryStreamCancelReason) => Promise<void>;
   releaseLock: () => void;
   read: () => Promise<ReadableStreamReadResult<unknown>>;
 };
@@ -33,7 +35,7 @@ const withSafeQueryStreamEnd = <T extends { queryStream?: QueryStreamLike }>(deh
         const reader = stream.getReader();
         return {
           closed: reader.closed,
-          cancel: (reason?: unknown) => reader.cancel(reason),
+          cancel: (reason?: QueryStreamCancelReason) => reader.cancel(reason),
           releaseLock: () => reader.releaseLock(),
           async read() {
             const result = await reader.read();
@@ -64,6 +66,7 @@ export function getRouter() {
   const hydrateQueries = router.options.hydrate;
   if (hydrateQueries) {
     router.options.hydrate = (dehydrated) =>
+      // SAFETY: hydrate receives the framework dehydrated payload; we only wrap it if queryStream is present
       hydrateQueries(withSafeQueryStreamEnd(dehydrated as { queryStream?: QueryStreamLike }));
   }
 
