@@ -9,7 +9,11 @@ export default defineConfig({
   resolve: {
     alias: [
       { find: /^~\//, replacement: `${src}/` },
-      { find: /^@\//, replacement: `${src}/` }
+      { find: /^@\//, replacement: `${src}/` },
+      {
+        find: 'cloudflare:workers',
+        replacement: path.resolve(src, 'effect/live/cloudflare_workers_stub.ts')
+      }
     ]
   },
   test: {

@@ -52,16 +52,14 @@ export type AppConfigService = Omit<AppConfigDecoded, RedactedConfigKeys> & {
 };
 
 /** Resolve Postgres URL from DB_MODE for app runtime and Drizzle Kit scripts. */
-export const resolveDbUrl = (env: NodeJS.ProcessEnv): string | undefined => {
+export const resolveDbUrl = (env: Record<string, string | undefined>): string | undefined => {
   if (env.DB_MODE === 'PROD') return env.PG_DATABASE_URL1;
   if (env.DB_MODE === 'PREVIEW') return env.PG_DATABASE_URL2;
   if (env.DB_MODE !== undefined && env.DB_MODE !== '') return undefined;
   return env.PG_DATABASE_URL;
 };
 
-const isProductionMode = (env: NodeJS.ProcessEnv): boolean =>
-  env.VERCEL_ENV === 'production' ||
-  (env.VERCEL_ENV === undefined && env.NODE_ENV === 'production');
+const isProductionMode = (): boolean => import.meta.env?.PROD === true;
 
 const loadConfig = Effect.fn('loadConfig')(function* () {
   const env = process.env;
@@ -84,7 +82,7 @@ const loadConfig = Effect.fn('loadConfig')(function* () {
     cloudfrontUrl: env.VITE_AWS_CLOUDFRONT_URL,
     isDev: import.meta.env?.DEV === true || env.NODE_ENV === 'development',
     isProd: import.meta.env?.PROD === true || env.NODE_ENV === 'production',
-    isQstashEnabled: isProductionMode(env)
+    isQstashEnabled: isProductionMode()
   });
 
   if (parsed._tag === 'Failure') {

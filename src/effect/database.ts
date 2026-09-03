@@ -11,7 +11,7 @@ import {
   type PostgresJsDatabase,
   type PostgresJsQueryResultHKT
 } from 'drizzle-orm/postgres-js';
-import { Pool } from '@neondatabase/serverless';
+import { neonConfig, Pool } from '@neondatabase/serverless';
 import postgres from 'postgres';
 import * as schema from '~/db/schema';
 import { AppConfig } from './config';
@@ -90,6 +90,50 @@ export class Database extends Context.Service<
         run: (operation, run) => tryDb(operation, () => run(owned.db)),
         transaction: (operation, run) =>
           tryDb(operation, () => owned.db.transaction(async (tx) => run(tx)))
+      };
+    })
+  );
+
+  /**
+   * Workers-safe driver for workerd (Miniflare / production Workers).
+   *
+   * Cloudflare isolates I/O objects (TCP/WebSocket) to the request that created
+   * them, so a singleton `postgres` / Neon `Pool` dies on the second request.
+   * Both local and prod open a fresh client per query and close it after.
+   *
+   * - Local (`isDev`): postgres.js against local Postgres
+   * - Prod: Neon WebSocket `Pool`
+   */
+  static readonly WorkersLive = Layer.effect(Database)(
+    Effect.gen(function* () {
+      const config = yield* AppConfig;
+      const url = Redacted.value(config.dbUrl);
+
+      const withClient = async <A>(run: (db: DbClient) => Promise<A>): Promise<A> => {
+        if (config.isDev) {
+          const sql = postgres(url, { max: 1, connect_timeout: 8, idle_timeout: 5 });
+          try {
+            return await run(drizzlePostgres(sql, { schema }));
+          } finally {
+            await sql.end({ timeout: 2 });
+          }
+        }
+
+        if (globalThis.WebSocket) {
+          neonConfig.webSocketConstructor = globalThis.WebSocket;
+        }
+        const pool = new Pool({ connectionString: url, max: 1 });
+        try {
+          return await run(drizzleNeon(pool, { schema }));
+        } finally {
+          await pool.end();
+        }
+      };
+
+      return {
+        run: (operation, run) => tryDb(operation, () => withClient(run)),
+        transaction: (operation, run) =>
+          tryDb(operation, () => withClient((db) => db.transaction(async (tx) => run(tx))))
       };
     })
   );

@@ -1,0 +1,49 @@
+name = "padavali"
+main = "./src/server.ts"
+compatibility_date = "2026-09-03"
+# Effect's fiber scheduler resolves Promises from whichever request is current.
+# handle_cross_request_promise_resolution (default since 2024-10-14) then drops
+# those continuations and the Worker hangs. Disable it so Effect can run.
+compatibility_flags = ["nodejs_compat", "no_handle_cross_request_promise_resolution"]
+workers_dev = false
+preview_urls = false
+
+# Preserve dashboard plaintext Variables & Secrets across deploys.
+# Without this, `wrangler deploy` treats this file as source of truth and can wipe
+# dashboard plaintext vars that are not listed under [vars].
+# Secrets are never deleted by deploy either way; keep_vars mainly protects plaintext vars.
+# Still: do NOT put real values in [vars] — those keys would overwrite dashboard values.
+keep_vars = true
+
+# Smart Placement: run near backends (Neon / Upstash) based on measured latency.
+[placement]
+mode = "smart"
+
+# Runtime env vars live in the Cloudflare dashboard only (Settings → Variables and Secrets).
+# Do NOT put [vars] here — even with keep_vars, keys present in [vars] overwrite dashboard.
+# See .env.example for the expected variable names.
+#
+# Build-time vs runtime (NOT like Vercel — two separate systems):
+#   - Runtime: Settings → Variables and Secrets
+#       Available to the running Worker only. keep_vars protects dashboard plaintext vars.
+#   - Build:   Settings → Build → Build variables and secrets
+#       Injected only into Workers Builds CI (during `bun run build`).
+#       NOT readable from this toml. There is no wrangler.toml field for CI build vars.
+
+[images]
+binding = "IMAGES"
+
+[observability]
+enabled = false
+head_sampling_rate = 1
+
+[observability.logs]
+enabled = true
+head_sampling_rate = 1
+persist = true
+invocation_logs = true
+
+[observability.traces]
+enabled = false
+persist = true
+head_sampling_rate = 1

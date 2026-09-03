@@ -11,7 +11,7 @@ import { ObjectStorage, type AssetLocation } from '~/effect/storage';
 import crypto from 'node:crypto';
 
 /**
- * Final stored dimensions after sharp resize/compress.
+ * Final stored dimensions after image resize/compress.
  * Keeps exact 3:2 ratio at a web-friendly resolution.
  * Width × Height in pixels → 768 × 512 px.
  */

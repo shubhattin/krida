@@ -1,15 +1,10 @@
 import { describe, expect, it } from 'vitest';
 import { resolveDbUrl } from './config';
 
-const env = (vars: Record<string, string | undefined>): NodeJS.ProcessEnv => {
-  const result: NodeJS.ProcessEnv = { NODE_ENV: 'test' };
-  for (const [key, value] of Object.entries(vars)) {
-    if (value !== undefined) {
-      result[key] = value;
-    }
-  }
-  return result;
-};
+const env = (vars: Record<string, string | undefined>) => ({
+  NODE_ENV: 'test',
+  ...vars
+});
 
 describe('resolveDbUrl', () => {
   it('uses PG_DATABASE_URL by default', () => {

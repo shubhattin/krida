@@ -1,6 +1,6 @@
 import { Cause, Effect, Exit } from 'effect';
 import { TRPCError } from '@trpc/server';
-import { appRuntime } from './runtime';
+import { getAppRuntime } from './runtime';
 import { isKnownError, type KnownError } from './errors';
 
 /** Domain / config errors with distinct tRPC codes; infra errors share the default. */
@@ -62,7 +62,7 @@ const httpStatusForError = (error: KnownError): number => {
  */
 export const runTrpcEffect = async <A, E, R>(effect: Effect.Effect<A, E, R>): Promise<A> => {
   // SAFETY: boundary effects reach here with R = never; annotateLogs adds no requirements
-  const exit = await appRuntime.runPromiseExit(
+  const exit = await getAppRuntime().runPromiseExit(
     effect.pipe(Effect.annotateLogs({ boundary: 'trpc' })) as Effect.Effect<A, E>
   );
 
@@ -88,7 +88,7 @@ export const runTrpcEffect = async <A, E, R>(effect: Effect.Effect<A, E, R>): Pr
  */
 export const runLoaderEffect = <A, E, R>(effect: Effect.Effect<A, E, R>): Promise<A> =>
   // SAFETY: boundary effects reach here with R = never; annotateLogs adds no requirements
-  appRuntime.runPromise(
+  getAppRuntime().runPromise(
     effect.pipe(Effect.annotateLogs({ boundary: 'loader' })) as Effect.Effect<A, E>
   );
 
@@ -96,7 +96,7 @@ export const runLoaderEffect = <A, E, R>(effect: Effect.Effect<A, E, R>): Promis
 export const runServerEffect = runLoaderEffect;
 
 /**
- * Run an Effect at a Next.js route-handler boundary and map known errors to Response.
+ * Run an Effect at a route-handler boundary and map known errors to Response.
  */
 export const runRouteEffect = async <A, E, R>(
   effect: Effect.Effect<A, E, R>,
@@ -105,7 +105,7 @@ export const runRouteEffect = async <A, E, R>(
   }
 ): Promise<Response> => {
   // SAFETY: boundary effects reach here with R = never; annotateLogs adds no requirements
-  const exit = await appRuntime.runPromiseExit(
+  const exit = await getAppRuntime().runPromiseExit(
     effect.pipe(Effect.annotateLogs({ boundary: 'route' })) as Effect.Effect<A, E>
   );
 
@@ -137,7 +137,7 @@ export const runQstashEffect = async <A, E, R>(
   }
 ): Promise<Response> => {
   // SAFETY: boundary effects reach here with R = never; annotateLogs adds no requirements
-  const exit = await appRuntime.runPromiseExit(
+  const exit = await getAppRuntime().runPromiseExit(
     effect.pipe(Effect.annotateLogs({ boundary: 'qstash' })) as Effect.Effect<A, E>
   );
 

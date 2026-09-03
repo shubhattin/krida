@@ -64,6 +64,7 @@
     ".roo/**",
     ".windsurf/**",
     "tools/oxlint/anti-slop/**",
-    ".vercel/**"
+    "worker-configuration.d.ts",
+    ".wrangler/**"
   ]
 }

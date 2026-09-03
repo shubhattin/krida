@@ -37,6 +37,7 @@
     "src/db/scripts/out/",
     "src/db/scripts/backup/",
     "src/tools/lipi_lekhika/resources",
-    "src/components/ui"
+    "src/components/ui",
+    "worker-configuration.d.ts"
   ]
 }

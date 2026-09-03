@@ -9,5 +9,6 @@ export * from './background';
 export * from './qstash';
 export * from './notifications';
 export * from './cache';
+export * from './platform';
 export * from './runtime';
 export * from './run';

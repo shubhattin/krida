@@ -8,9 +8,11 @@
   },
   "scripts": {
     "dev": "vite dev --port 3000",
-    "build": "vite build",
+    "build": "wrangler types --include-runtime false && vite build",
     "preview": "vite preview",
-    "start": "node .output/server/index.mjs",
+    "start": "vite preview",
+    "deploy": "wrangler deploy --keep-vars",
+    "cf-typegen": "wrangler types --include-runtime false",
     "check": "tsc --noEmit",
     "test": "vitest",
     "format": "oxfmt --write",
@@ -64,7 +66,6 @@
     "@upstash/qstash": "^2.11.1",
     "@upstash/redis": "^1.38.0",
     "@use-gesture/react": "^10.3.1",
-    "@vercel/functions": "^3.7.4",
     "ai": "^6.0.214",
     "better-auth": "^1.6.22",
     "buffer": "^6.0.3",
@@ -85,6 +86,7 @@
     "lucide-react": "^0.510.0",
     "ms": "^2.1.3",
     "openai": "^6.45.0",
+    "postgres": "^3.4.9",
     "posthog-js": "^1.395.0",
     "pretty-ms": "^9.3.0",
     "qrcode": "^1.5.4",
@@ -111,7 +113,9 @@
   },
   "devDependencies": {
     "@aws-sdk/client-s3": "^3.1075.0",
+    "@cloudflare/vite-plugin": "^1.54.2",
     "@effect/vitest": "4.0.0-rc.111",
+    "@oxlint/plugins": "1.80.0",
     "@tanstack/devtools-vite": "0.6.0",
     "@tanstack/react-query-devtools": "^5.101.4",
     "@types/canvas-confetti": "^1.9.0",
@@ -126,7 +130,6 @@
     "babel-plugin-react-compiler": "^1.0.0",
     "chalk": "^5.6.2",
     "dotenv": "^16.6.1",
-    "@oxlint/plugins": "1.80.0",
     "drizzle-kit": "^0.31.10",
     "mime-types": "^3.0.2",
     "nitro": "^3.0.260610-beta",
@@ -134,12 +137,12 @@
     "oxlint": "^1.80.0",
     "oxlint-plugin-query": "^0.1.1",
     "oxlint-plugin-router": "^0.1.1",
-    "postgres": "^3.4.9",
     "sass": "^1.101.0",
     "tsx": "^4.22.4",
     "typescript": "^5.9.3",
     "vite": "^8.2.1",
     "vite-node": "^3.2.4",
-    "vitest": "^4.1.9"
+    "vitest": "^4.1.9",
+    "wrangler": "^4.127.1"
   }
 }

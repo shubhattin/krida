@@ -9,10 +9,13 @@ process.env.AWS_S3_FILES_BUCKET_NAME = 'test-bucket';
 process.env.UPSTASH_REDIS_REST_URL = 'https://example.upstash.io';
 process.env.UPSTASH_REDIS_REST_TOKEN = 'token-test';
 process.env.VITE_SITE_URL = 'http://localhost:3000';
+process.env.VITE_BETTER_AUTH_URL = 'http://localhost:3000';
+process.env.VITE_AWS_CLOUDFRONT_URL = 'https://example.cloudfront.net';
+process.env.QSTASH_TOKEN = 'qstash-test';
 
 import { afterAll } from 'vitest';
 
 afterAll(async () => {
-  const { appRuntime } = await import('./runtime');
-  await appRuntime.dispose();
+  const { disposeFallbackRuntime } = await import('./runtime');
+  await disposeFallbackRuntime();
 });
