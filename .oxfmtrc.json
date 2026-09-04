@@ -9,7 +9,7 @@
   "sortPackageJson": false,
   "sortTailwindcss": {
     "stylesheet": "./src/styles.css",
-    "functions": ["clsx", "cn", "cva"]
+    "functions": ["cn", "cva"]
   },
   "ignorePatterns": [
     "node_modules",
