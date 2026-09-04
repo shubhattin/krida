@@ -1,4 +1,4 @@
-name = "padavali"
+name = "krida"
 main = "./src/server.ts"
 compatibility_date = "2026-09-03"
 # Effect's fiber scheduler resolves Promises from whichever request is current.
@@ -29,6 +29,25 @@ mode = "smart"
 #   - Build:   Settings → Build → Build variables and secrets
 #       Injected only into Workers Builds CI (during `bun run build`).
 #       NOT readable from this toml. There is no wrangler.toml field for CI build vars.
+# Workers Builds (configure in the Cloudflare dashboard, not here):
+#   Build command:  bun install --frozen-lockfile && bun run build
+#   Deploy command: bunx wrangler deploy --keep-vars
+#   Non-prod:       bunx wrangler versions upload --keep-vars
+#   Root directory: /
+# Needed envs for build :-
+# BUILD_MODE=cloudflare
+# BUN_VERSION=1.3
+# SKIP_DEPENDENCY_INSTALL=true
+# // others
+# VITE_BETTER_AUTH_URL = <public_url>
+# VITE_TURNSTILE_SITE_KEY = <key>
+# VITE_ONESIGNAL_APP_ID="xxxxxxxx-xxxx-xxxx-xxxx-xxxxxxxxxxxx"
+# VITE_ONESIGNAL_SAFARI_WEB_ID="web.onesignal.auto.xxxx-xxxx-xxxx-xxxxxxxxxxxx"
+# VITE_SITE_URL="http://localhost:3000"
+# VITE_AWS_CLOUDFRONT_URL="https://d1234example.cloudfront.net"
+# VITE_POSTHOG_KEY="phc_example_posthog_key"
+# VITE_POSTHOG_URL="https://us.i.posthog.com"
+ 
 
 [images]
 binding = "IMAGES"
