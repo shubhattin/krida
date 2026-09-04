@@ -15,9 +15,8 @@ preview_urls = false
 # Still: do NOT put real values in [vars] — those keys would overwrite dashboard values.
 keep_vars = true
 
-# Smart Placement: run near backends (Neon / Upstash) based on measured latency.
 [placement]
-mode = "smart"
+region = "aws:ap-south-1"
 
 # Runtime env vars live in the Cloudflare dashboard only (Settings → Variables and Secrets).
 # Do NOT put [vars] here — even with keep_vars, keys present in [vars] overwrite dashboard.
