@@ -313,6 +313,17 @@ function toImageInfo(
   };
 }
 
+/** Short locale date for the image info popover; tolerates string dates. */
+function formatImageCreatedAt(created_at: Date | string): string {
+  const date = created_at instanceof Date ? created_at : new Date(created_at);
+  if (Number.isNaN(date.getTime())) return 'Unknown date';
+  return date.toLocaleDateString(undefined, {
+    year: 'numeric',
+    month: 'short',
+    day: 'numeric'
+  });
+}
+
 /** Linear progress from 0→90 over the timeout duration, then frozen at 90 until done */
 const useGenerationProgress = (active: boolean) => {
   const [progress, setProgress] = useState(0);
@@ -376,6 +387,8 @@ const ExistingImageCard = ({
       <button
         type="button"
         onClick={() => onSelect(selected ? null : toImageInfo(image))}
+        aria-label={image.description ? `Select image: ${image.description}` : 'Select image'}
+        title={image.description ?? undefined}
         className={cn(
           'relative w-full overflow-hidden rounded-lg border bg-card text-left shadow-sm transition-colors',
           selected ? 'border-primary ring-2 ring-primary' : 'border-border hover:border-primary/50'
@@ -390,7 +403,12 @@ const ExistingImageCard = ({
           className="block w-full object-cover"
         />
         {image.description ? (
-          <p className="truncate px-2 py-1.5 text-xs text-muted-foreground">{image.description}</p>
+          <p
+            className="truncate px-2 py-1.5 text-sm font-medium"
+            title={image.description}
+          >
+            {image.description}
+          </p>
         ) : null}
       </button>
 
@@ -401,25 +419,42 @@ const ExistingImageCard = ({
               variant="secondary"
               size="icon-sm"
               className="absolute top-1.5 right-1.5 size-7 bg-background/90 shadow-sm"
-              aria-label="Image actions"
+              aria-label={`Image actions for ${image.description ?? `image ${image.id}`}`}
             />
           }
         >
           <MoreVertical className="size-4" />
         </PopoverTrigger>
-        <PopoverContent className="w-36 p-1" align="end">
-          <Button
-            variant="ghost"
-            size="sm"
-            className="w-full justify-start text-destructive hover:text-destructive"
-            onClick={() => {
-              setMenuOpen(false);
-              setDeleteOpen(true);
-            }}
-          >
-            <MdDeleteOutline className="size-4" />
-            Delete
-          </Button>
+        <PopoverContent className="w-56 p-2" align="end">
+          <div className="space-y-1 px-1.5 py-1 text-xs">
+            {image.description ? (
+              <p className="font-medium break-words" title={image.description}>
+                {image.description}
+              </p>
+            ) : (
+              <p className="text-muted-foreground italic">No description</p>
+            )}
+            <p className="text-muted-foreground tabular-nums">
+              {image.width} × {image.height}
+            </p>
+            <p className="text-muted-foreground">
+              Created {formatImageCreatedAt(image.created_at)}
+            </p>
+          </div>
+          <div className="mt-1 border-t border-border pt-1">
+            <Button
+              variant="ghost"
+              size="sm"
+              className="w-full justify-start text-destructive hover:text-destructive"
+              onClick={() => {
+                setMenuOpen(false);
+                setDeleteOpen(true);
+              }}
+            >
+              <MdDeleteOutline className="size-4" />
+              Delete
+            </Button>
+          </div>
         </PopoverContent>
       </Popover>
 
@@ -641,16 +676,24 @@ const ExistingImageTab = ({
 
   const image_assets_q = useQuery({
     queryKey: [IMAGE_ASSETS_LIST_QUERY_KEY, page, debounced_search, order_by],
-    queryFn: async () =>
-      client.image_assets.get_image_assets_page.query({
-        page,
-        size: IMAGE_ASSETS_PAGE_SIZE,
-        search_description: debounced_search || undefined,
-        order_by
-      }),
+    // The signal cancels the in-flight request when the user keeps typing,
+    // so slow earlier keystrokes can't pile up or resolve out of order.
+    queryFn: ({ signal }) =>
+      client.image_assets.get_image_assets_page.query(
+        {
+          page,
+          size: IMAGE_ASSETS_PAGE_SIZE,
+          search_description: debounced_search || undefined,
+          order_by
+        },
+        { signal }
+      ),
     enabled,
     placeholderData: (prev) => prev,
-    refetchOnWindowFocus: false
+    refetchOnWindowFocus: false,
+    staleTime: 30_000,
+    gcTime: 5 * 60_000,
+    retry: false
   });
 
   const images = image_assets_q.data?.list ?? [];

@@ -8,19 +8,31 @@ import {
   pgEnum,
   jsonb,
   boolean,
-  primaryKey
+  primaryKey,
+  index
 } from 'drizzle-orm/pg-core';
 import { ATTACHMENT_TYPE_LIST } from '../db_shared_vals';
 import type { BatchMetadata } from '~/util/types/ai_batch_metadata';
 
-export const image_assets = pgTable('image_assets', {
-  id: serial().primaryKey(),
-  description: varchar('description', { length: 150 }),
-  width: smallint().notNull(),
-  height: smallint().notNull(),
-  s3_key: text().notNull(),
-  created_at: timestamp({ withTimezone: true }).notNull().defaultNow()
-});
+export const image_assets = pgTable(
+  'image_assets',
+  {
+    id: serial().primaryKey(),
+    description: varchar('description', { length: 150 }),
+    width: smallint().notNull(),
+    height: smallint().notNull(),
+    s3_key: text().notNull(),
+    created_at: timestamp({ withTimezone: true }).notNull().defaultNow()
+  },
+  (table) => [
+    index('image_assets_created_at_id_idx').on(table.created_at, table.id),
+    // GIN trigram index so LIKE/ILIKE '%…%' substring search on description
+    // uses an index scan instead of a sequential scan. Requires the pg_trgm
+    // extension (add `CREATE EXTENSION IF NOT EXISTS "pg_trgm";` manually to
+    // the generated migration — drizzle-kit does not manage extensions).
+    index('image_assets_description_trgm_idx').using('gin', table.description.op('gin_trgm_ops'))
+  ]
+);
 
 export const attachment_type_enum = pgEnum('attachment_type', ATTACHMENT_TYPE_LIST);
 
