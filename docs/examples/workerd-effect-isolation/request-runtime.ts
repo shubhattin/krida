@@ -23,7 +23,7 @@ export const runWithRequestRuntime = <T>(fn: () => Promise<T>): Promise<T> =>
 
 const getScope = (): RequestScope => requestScope.getStore() ?? createScope();
 
-export const runServerEffect = <A, E>(effect: Parameters<AppRuntime['runPromise']>[0]) =>
+export const runServerEffect = (effect: Parameters<AppRuntime['runPromise']>[0]) =>
   getScope().runtime.runPromise(effect);
 
 /*

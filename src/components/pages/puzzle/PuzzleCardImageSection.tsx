@@ -403,10 +403,7 @@ const ExistingImageCard = ({
           className="block w-full object-cover"
         />
         {image.description ? (
-          <p
-            className="truncate px-2 py-1.5 text-sm font-medium"
-            title={image.description}
-          >
+          <p className="truncate px-2 py-1.5 text-sm font-medium" title={image.description}>
             {image.description}
           </p>
         ) : null}
@@ -428,7 +425,7 @@ const ExistingImageCard = ({
         <PopoverContent className="w-56 p-2" align="end">
           <div className="space-y-1 px-1.5 py-1 text-xs">
             {image.description ? (
-              <p className="font-medium break-words" title={image.description}>
+              <p className="font-medium wrap-break-word" title={image.description}>
                 {image.description}
               </p>
             ) : (

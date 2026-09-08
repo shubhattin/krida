@@ -6,16 +6,18 @@ import { canShareInFlightFibers } from './platform';
 
 type Result = { ok: true };
 
-const memory: {
+type InFlightMemory = {
   value: Result | null;
   inFlight: Effect.Effect<Result> | null;
-} = { value: null, inFlight: null };
+};
+
+const memory: InFlightMemory = { value: null, inFlight: null };
 
 export const getCached = Effect.fn('getCached')(function* () {
   if (memory.value) return memory.value;
 
   const load = Effect.sync((): Result => {
-    const value = { ok: true };
+    const value: Result = { ok: true };
     memory.value = value;
     memory.inFlight = null;
     return value;

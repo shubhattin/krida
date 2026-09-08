@@ -5,7 +5,8 @@ import { image_assets } from '~/db/schema';
 import { dbRun } from '~/effect/database';
 import { ObjectStorage } from '~/effect/storage';
 import { runTrpcEffect } from '~/effect/run';
-import { and, asc, count, desc, eq, ilike } from 'drizzle-orm';
+import { and, asc, desc, eq, ilike } from 'drizzle-orm';
+import { sql } from 'drizzle-orm';
 import { escapeIlikeToken, tokenizeSearchQuery } from '~/util/puzzle/search';
 
 const get_image_assets_page_input_schema = z.object({
@@ -14,6 +15,9 @@ const get_image_assets_page_input_schema = z.object({
   search_description: z.string().max(150).optional(),
   order_by: z.enum(['asc', 'desc']).optional().default('desc')
 });
+
+/** Upper bound on ANDed ILIKE terms per query — see search handler below. */
+const MAX_SEARCH_TOKENS = 6;
 
 const s3DeleteRetrySchedule = Schedule.recurs(2).pipe(
   Schedule.addDelay(() => Effect.succeed('1 second'))
@@ -26,12 +30,15 @@ export const get_image_assets_page = Effect.fn('image_assets.get_page')(function
     get_image_assets_page_input_schema.parse(input);
 
   const trimmedSearch = search_description?.trim();
+  // Cap tokens so a pasted paragraph can't generate dozens of ANDed ILIKEs,
+  // each of which forces its own scan over the table.
+  const searchTokens = trimmedSearch
+    ? tokenizeSearchQuery(trimmedSearch).slice(0, MAX_SEARCH_TOKENS)
+    : [];
   const conditions = [];
-  if (trimmedSearch) {
-    for (const token of tokenizeSearchQuery(trimmedSearch)) {
-      const pattern = `%${escapeIlikeToken(token)}%`;
-      conditions.push(ilike(image_assets.description, pattern));
-    }
+  for (const token of searchTokens) {
+    const pattern = `%${escapeIlikeToken(token)}%`;
+    conditions.push(ilike(image_assets.description, pattern));
   }
   const whereClause = conditions.length > 0 ? and(...conditions) : undefined;
 
@@ -40,30 +47,30 @@ export const get_image_assets_page = Effect.fn('image_assets.get_page')(function
   const orderTiebreaker = order_by === 'desc' ? desc(image_assets.id) : asc(image_assets.id);
   const offset = (page - 1) * size;
 
-  const { countResult, list } = yield* Effect.all({
-    countResult: dbRun('image_assets.count_page', (client) =>
-      client.select({ count: count() }).from(image_assets).where(whereClause)
-    ),
-    list: dbRun('image_assets.select_page', (client) =>
-      client
-        .select({
-          id: image_assets.id,
-          description: image_assets.description,
-          s3_key: image_assets.s3_key,
-          width: image_assets.width,
-          height: image_assets.height,
-          created_at: image_assets.created_at
-        })
-        .from(image_assets)
-        .where(whereClause)
-        .orderBy(orderPrimary, orderTiebreaker)
-        .limit(size)
-        .offset(offset)
-    )
-  });
+  // Single round-trip: COUNT(*) OVER() returns the filtered total alongside the
+  // page rows. Previously count + page ran as two parallel queries, i.e. two
+  // full scans per keystroke competing for pool connections.
+  const rows = yield* dbRun('image_assets.select_page', (client) =>
+    client
+      .select({
+        id: image_assets.id,
+        description: image_assets.description,
+        s3_key: image_assets.s3_key,
+        width: image_assets.width,
+        height: image_assets.height,
+        created_at: image_assets.created_at,
+        total_count: sql<number>`count(*) over()`
+      })
+      .from(image_assets)
+      .where(whereClause)
+      .orderBy(orderPrimary, orderTiebreaker)
+      .limit(size)
+      .offset(offset)
+  );
 
-  const total = Number(countResult[0]?.count ?? 0);
+  const total = Number(rows[0]?.total_count ?? 0);
   const pageCount = Math.max(1, Math.ceil(total / size));
+  const list = rows.map(({ total_count: _total_count, ...asset }) => asset);
 
   return {
     list,

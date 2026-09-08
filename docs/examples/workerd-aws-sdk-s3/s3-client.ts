@@ -16,17 +16,26 @@ const concatBytes = (chunks: Uint8Array[]): Uint8Array => {
   return out;
 };
 
+/** Shapes a Smithy response body can take in workerd / Node. */
+type S3ResponseBody = Uint8Array | Blob | ReadableStream<Uint8Array> | AsyncIterable<unknown>;
+
 /** workerd fetch bodies are Node Readables; Smithy browser collector calls getReader(). */
-const collectS3ResponseBody = async (stream: unknown): Promise<Uint8Array> => {
+const collectS3ResponseBody = async (
+  stream: S3ResponseBody | null | undefined
+): Promise<Uint8Array> => {
   if (stream == null) return new Uint8Array();
   if (stream instanceof Uint8Array) return stream;
-  if (typeof Blob === 'function' && stream instanceof Blob) {
+  // globalThis access avoids a ReferenceError where the Blob global is absent.
+  if (globalThis.Blob && stream instanceof Blob) {
     return new Uint8Array(await stream.arrayBuffer());
   }
-  if (typeof (stream as ReadableStream<Uint8Array>).getReader === 'function') {
+  if (globalThis.ReadableStream && stream instanceof ReadableStream) {
+    // SAFETY: instanceof ReadableStream narrows stream to a byte stream here.
     return new Uint8Array(await new Response(stream as ReadableStream<Uint8Array>).arrayBuffer());
   }
   const chunks: Uint8Array[] = [];
+  // SAFETY: Uint8Array, Blob and ReadableStream bodies return above; whatever
+  // reaches here is chunked (async-iterable) in every runtime we target.
   for await (const chunk of stream as AsyncIterable<unknown>) {
     if (chunk instanceof Uint8Array) chunks.push(chunk);
     else if (chunk instanceof ArrayBuffer) chunks.push(new Uint8Array(chunk));

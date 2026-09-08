@@ -43,6 +43,7 @@ export const dbRun = <A>(fn: () => Promise<A>) =>
   });
 
 // Stubs for the sketch.
-declare function openPool(): { end(): Promise<void> };
-declare function openClient(): { end(): Promise<void> };
-declare function fnWith<A>(client: unknown, fn: () => Promise<A>): Promise<A>;
+type DbClientHandle = { end(): Promise<void> };
+declare function openPool(): DbClientHandle;
+declare function openClient(): DbClientHandle;
+declare function fnWith<A>(client: DbClientHandle, fn: () => Promise<A>): Promise<A>;
