@@ -53,9 +53,7 @@ const config = defineConfig({
     tanstackStart(),
     // nitro(),
     viteReact({
-      babel: {
-        plugins: ['babel-plugin-react-compiler']
-      }
+      compiler: true
     }),
     // After Start + React so console piping cannot sit between the Cloudflare
     // worker environment and the TanStack plugin.

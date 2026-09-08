@@ -12,11 +12,11 @@ Illustrative snippets live in [`examples/workerd-aws-sdk-s3/`](./examples/worker
 
 ## Wrong docs, right docs
 
-| What you read | What it actually is |
-| --- | --- |
-| [R2 + `@aws-sdk/client-s3`](https://developers.cloudflare.com/r2/examples/aws/aws-sdk-js-v3/) | Node client → R2 S3 API. Default Node `S3Client` is fine. |
-| [R2 from Workers](https://developers.cloudflare.com/r2/api/workers/workers-api-usage/) | `env.MY_BUCKET.put()` — no AWS SDK. |
-| This app | workerd + Vite + `nodejs_compat` → **AWS S3** with access keys |
+| What you read                                                                                 | What it actually is                                            |
+| --------------------------------------------------------------------------------------------- | -------------------------------------------------------------- |
+| [R2 + `@aws-sdk/client-s3`](https://developers.cloudflare.com/r2/examples/aws/aws-sdk-js-v3/) | Node client → R2 S3 API. Default Node `S3Client` is fine.      |
+| [R2 from Workers](https://developers.cloudflare.com/r2/api/workers/workers-api-usage/)        | `env.MY_BUCKET.put()` — no AWS SDK.                            |
+| This app                                                                                      | workerd + Vite + `nodejs_compat` → **AWS S3** with access keys |
 
 From a Worker, Cloudflare’s own upload examples use the **R2 binding** or [`aws4fetch`](https://developers.cloudflare.com/r2/objects/upload-objects/#presigned-urls-workers). They do not run Smithy’s Node HTTP handler or its browser `getReader()` collector.
 
@@ -82,7 +82,7 @@ R2 users hit this too; it is an AWS SDK default, not an S3-vs-R2 quirk. The R2 N
 Send a plain `Uint8Array`, not a Node `Buffer` subclass:
 
 ```ts
-Body: Uint8Array.from(fileBuffer)
+Body: Uint8Array.from(fileBuffer);
 ```
 
 The fetch handler’s body-length / signing path is built for web bytes.
@@ -91,10 +91,10 @@ The fetch handler’s body-length / signing path is built for web bytes.
 
 ## What to use instead (when you can)
 
-| Approach | When |
-| --- | --- |
-| **R2 binding** `env.BUCKET.put(key, bytes)` | Object is on R2 and the Worker owns the write |
-| **`aws4fetch`** | You need signed HTTP to S3 or R2 from a Worker without Smithy |
+| Approach                                    | When                                                                      |
+| ------------------------------------------- | ------------------------------------------------------------------------- |
+| **R2 binding** `env.BUCKET.put(key, bytes)` | Object is on R2 and the Worker owns the write                             |
+| **`aws4fetch`**                             | You need signed HTTP to S3 or R2 from a Worker without Smithy             |
 | **`@aws-sdk/client-s3` + the remaps below** | Existing AWS S3 bucket, keys, CloudFront, SDK commands already in the app |
 
 `padavali` is the third row: real S3 (`AKIA…`, regional bucket), not R2.

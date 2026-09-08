@@ -523,21 +523,17 @@ const PuzzleTableView = ({
   isInitialLoading,
   layout,
   columns,
-  data,
-  tableKey
+  data
 }: {
   isSuccess: boolean;
   isInitialLoading: boolean;
   layout: ListLayout;
   columns: ReturnType<typeof createListTableColumns>;
   data: PuzzleListItem[];
-  tableKey: string;
 }) => {
   if (!isSuccess || isInitialLoading || layout !== 'table' || data.length === 0) return null;
 
-  return (
-    <DataTable key={tableKey} columns={columns} data={data} getRowId={(row) => String(row.id)} />
-  );
+  return <DataTable columns={columns} data={data} getRowId={(row) => String(row.id)} />;
 };
 
 const ListEmptyState = ({
@@ -702,7 +698,6 @@ const ListPage = () => {
       }),
     [selected_ids, page_ids]
   );
-  const displayedTableKey = puzzle_list.map((item) => item.id).join(',');
 
   function handle_listed_filter_change(value: 'all' | 'listed' | 'unlisted') {
     setListedFilterType(value);
@@ -771,7 +766,6 @@ const ListPage = () => {
         layout={layout}
         columns={table_columns}
         data={puzzle_list}
-        tableKey={displayedTableKey}
       />
       <ListEmptyState
         isEmpty={puzzle_list.length === 0}

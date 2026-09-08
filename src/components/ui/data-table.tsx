@@ -1,6 +1,6 @@
 'use client';
 
-import { type ColumnDef, flexRender, getCoreRowModel, useReactTable } from '@tanstack/react-table';
+import { type ColumnDef, type RowData, tableFeatures, useTable } from '@tanstack/react-table';
 
 import {
   Table,
@@ -11,24 +11,25 @@ import {
   TableRow
 } from '~/components/ui/table';
 
-interface DataTableProps<TData, TValue> {
-  columns: ColumnDef<TData, TValue>[];
+export const dataTableFeatures = tableFeatures({});
+
+export type DataTableFeatures = typeof dataTableFeatures;
+
+interface DataTableProps<TData extends RowData> {
+  columns: ColumnDef<DataTableFeatures, TData, unknown>[];
   data: TData[];
   getRowId?: (row: TData) => string;
 }
 
-export function DataTable<TData, TValue>({
+export function DataTable<TData extends RowData>({
   columns,
   data,
   getRowId
-}: DataTableProps<TData, TValue>) {
-  'use no memo';
-
-  // eslint-disable-next-line react-hooks/incompatible-library -- TanStack Table returns non-memoizable functions
-  const table = useReactTable({
+}: DataTableProps<TData>) {
+  const table = useTable({
+    features: dataTableFeatures,
     data,
     columns,
-    getCoreRowModel: getCoreRowModel(),
     getRowId: (originalRow, index) => getRowId?.(originalRow) ?? String(index)
   });
 
@@ -43,9 +44,7 @@ export function DataTable<TData, TValue>({
             <TableRow key={headerGroup.id}>
               {headerGroup.headers.map((header) => (
                 <TableHead key={header.id}>
-                  {header.isPlaceholder
-                    ? null
-                    : flexRender(header.column.columnDef.header, header.getContext())}
+                  {header.isPlaceholder ? null : <table.FlexRender header={header} />}
                 </TableHead>
               ))}
             </TableRow>
@@ -55,9 +54,9 @@ export function DataTable<TData, TValue>({
           {rows.length ? (
             rows.map((row) => (
               <TableRow key={row.id}>
-                {row.getVisibleCells().map((cell) => (
+                {row.getAllCells().map((cell) => (
                   <TableCell key={cell.id}>
-                    {flexRender(cell.column.columnDef.cell, cell.getContext())}
+                    <table.FlexRender cell={cell} />
                   </TableCell>
                 ))}
               </TableRow>

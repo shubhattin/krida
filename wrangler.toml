@@ -46,7 +46,6 @@ region = "aws:ap-south-1"
 # VITE_AWS_CLOUDFRONT_URL="https://d1234example.cloudfront.net"
 # VITE_POSTHOG_KEY="phc_example_posthog_key"
 # VITE_POSTHOG_URL="https://us.i.posthog.com"
- 
 
 [images]
 binding = "IMAGES"

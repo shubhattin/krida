@@ -1,6 +1,6 @@
 # Isolated resources on workerd (Effect)
 
-Cloudflare does **not** give each request its own JavaScript heap. One Worker isolate handles many concurrent requests. What it *does* isolate is **I/O**: a TCP socket, WebSocket, or stream created during request A must not be used from request B.
+Cloudflare does **not** give each request its own JavaScript heap. One Worker isolate handles many concurrent requests. What it _does_ isolate is **I/O**: a TCP socket, WebSocket, or stream created during request A must not be used from request B.
 
 That rule is a property of **workerd**, not of production. `bun run dev` with a Cloudflare adapter (Astro, SvelteKit, TanStack Start) also runs in workerd (Miniflare). A Node-style singleton Postgres pool will fail locally the same way it fails after deploy. Effect scoping exists so our resources follow the same request boundary the runtime already enforces for sockets.
 
@@ -12,13 +12,13 @@ Illustrative snippets live in [`examples/workerd-effect-isolation/`](./examples/
 
 ## What workerd isolates vs what it does not
 
-| Isolated by workerd (IoContext) | Shared across the isolate (your problem) |
-| --- | --- |
-| TCP (`postgres.js`), WebSocket (Neon `Pool`) | `let pool` / `ManagedRuntime` at module scope |
-| Streams, request-created Promises | Effect’s default fiber scheduler |
-| Bindings handed to *this* `fetch` (`env`, `ctx`) | `Effect.cached`, in-flight `Map`s, module caches of **Effects** |
+| Isolated by workerd (IoContext)                  | Shared across the isolate (your problem)                        |
+| ------------------------------------------------ | --------------------------------------------------------------- |
+| TCP (`postgres.js`), WebSocket (Neon `Pool`)     | `let pool` / `ManagedRuntime` at module scope                   |
+| Streams, request-created Promises                | Effect’s default fiber scheduler                                |
+| Bindings handed to _this_ `fetch` (`env`, `ctx`) | `Effect.cached`, in-flight `Map`s, module caches of **Effects** |
 
-If request B uses a socket opened in request A, workerd throws (*I/O on behalf of a different request*) or hangs (*Worker’s code had hung*). If an Effect Latch created in A is opened from B after A has ended, continuations are dropped — same hang, stack in `Latch.flushWaiters`.
+If request B uses a socket opened in request A, workerd throws (_I/O on behalf of a different request_) or hangs (_Worker’s code had hung_). If an Effect Latch created in A is opened from B after A has ended, continuations are dropped — same hang, stack in `Latch.flushWaiters`.
 
 HTTP `fetch` (Upstash REST, most APIs) is not a sticky socket. Reusing those clients is fine. Plain JSON in a module-level cache is fine. A **running fiber** or **open connection** is not.
 
@@ -73,7 +73,7 @@ On workerd:
 Detect workerd with the official UA check ([`platform.ts`](./examples/workerd-effect-isolation/platform.ts)):
 
 ```ts
-globalThis.navigator?.userAgent === 'Cloudflare-Workers'
+globalThis.navigator?.userAgent === 'Cloudflare-Workers';
 ```
 
 Node / Vitest → share in-flight fibers as today. workerd → fetch independently, then store the **result**.
@@ -84,7 +84,7 @@ Node / Vitest → share in-flight fibers as today. workerd → fetch independent
 
 Do not fire a naked Promise after the response. Use the platform `waitUntil` (Cloudflare: `import { waitUntil } from 'cloudflare:workers'`).
 
-The thunk should `Effect.runPromise` with **captured services** (`provideService(RedisClient, redis)`, same for `Database`), not the request `ManagedRuntime`. The runtime may already be gone; the HTTP Redis client and a *new* per-query DB client are still valid if `waitUntil` kept the IoContext alive.
+The thunk should `Effect.runPromise` with **captured services** (`provideService(RedisClient, redis)`, same for `Database`), not the request `ManagedRuntime`. The runtime may already be gone; the HTTP Redis client and a _new_ per-query DB client are still valid if `waitUntil` kept the IoContext alive.
 
 API (`BackgroundWork`) stays in shared code. Each app provides its own Live (Vercel vs Cloudflare).
 

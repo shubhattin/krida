@@ -5,6 +5,7 @@ import { Link } from '@tanstack/react-router';
 import dayjs from 'dayjs';
 import relativeTime from 'dayjs/plugin/relativeTime';
 import { Checkbox } from '~/components/ui/checkbox';
+import { type DataTableFeatures } from '~/components/ui/data-table';
 
 dayjs.extend(relativeTime);
 
@@ -31,7 +32,7 @@ export function createListTableColumns({
   onToggle,
   onToggleAll,
   page_ids
-}: ListTableSelectionOptions): ColumnDef<PuzzleListItem>[] {
+}: ListTableSelectionOptions): ColumnDef<DataTableFeatures, PuzzleListItem>[] {
   const all_selected = page_ids.length > 0 && page_ids.every((id) => selected_ids.has(id));
 
   return [
@@ -54,9 +55,7 @@ export function createListTableColumns({
             onClick={(e) => e.stopPropagation()}
           />
         );
-      },
-      enableSorting: false,
-      enableHiding: false
+      }
     },
     {
       accessorKey: 'id',
@@ -110,9 +109,10 @@ export function createListTableColumns({
 }
 
 /** @deprecated Use createListTableColumns for selection support */
-export const listTableColumns: ColumnDef<PuzzleListItem>[] = createListTableColumns({
-  selected_ids: new Set(),
-  onToggle: () => {},
-  onToggleAll: () => {},
-  page_ids: []
-});
+export const listTableColumns: ColumnDef<DataTableFeatures, PuzzleListItem>[] =
+  createListTableColumns({
+    selected_ids: new Set(),
+    onToggle: () => {},
+    onToggleAll: () => {},
+    page_ids: []
+  });
