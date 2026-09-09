@@ -806,7 +806,8 @@ function CrosswordWordRow({
     const atEnd = start === input.value.length && end === input.value.length;
 
     const moveTo = (row: number, nextField: WordListField) => {
-      if (focusWordListInput(container, row, nextField)) {
+      // oxlint-disable-next-line anti-slop/require-safety-comment-for-type-assertion
+      if (focusWordListInput(container as ParentNode, row, nextField)) {
         event.preventDefault();
       }
     };

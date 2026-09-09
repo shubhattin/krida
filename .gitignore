@@ -40,6 +40,10 @@ yarn-error.log*
 *.tsbuildinfo
 next-env.d.ts
 
+# cloudflare
+.wrangler
+worker-configuration.d.ts
+dist/
 
 src/db/scripts/out/
 src/db/scripts/backup/
