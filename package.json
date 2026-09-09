@@ -13,7 +13,7 @@
     "start": "vite preview",
     "deploy": "wrangler deploy --keep-vars",
     "cf-typegen": "wrangler types",
-    "check": "wrangler types && tsc --noEmit",
+    "check": "tsc --noEmit",
     "test": "vitest",
     "format": "oxfmt --write",
     "lint": "oxlint",
