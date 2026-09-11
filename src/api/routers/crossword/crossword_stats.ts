@@ -7,7 +7,7 @@ import {
 } from '../../trpc_init';
 import { z } from 'zod';
 import { crossword_sessions, crossword_gameplay_stats, crossword_puzzles } from '~/db/schema';
-import { dbRun } from '~/effect/database';
+import { dbRunHttp } from '~/effect/database';
 import { and, count, desc, eq, gte, inArray, lte } from 'drizzle-orm';
 import {
   crossword_submit_stats_input_schema,
@@ -53,7 +53,7 @@ const submit_stats_route = publicProcedure
           session_id
         } = info;
 
-        const session = yield* dbRun('crossword_stats.find_session', (client) =>
+        const session = yield* dbRunHttp('crossword_stats.find_session', (client) =>
           client.query.crossword_sessions.findFirst({
             columns: { id: true },
             where: (tbl, { and: andFn, eq: eqFn }) =>
@@ -68,7 +68,7 @@ const submit_stats_route = publicProcedure
           );
         }
 
-        yield* dbRun('crossword_stats.insert_gameplay_stat', async (client) => {
+        yield* dbRunHttp('crossword_stats.insert_gameplay_stat', async (client) => {
           await client
             .insert(crossword_gameplay_stats)
             .values({
@@ -104,7 +104,7 @@ const update_games_started_route = publicProcedure
           Effect.tapError(() => releasePlaySessionClaim('crossword', client_play_id))
         );
 
-        const inserted_sessions = yield* dbRun('crossword_stats.create_session', (client) =>
+        const inserted_sessions = yield* dbRunHttp('crossword_stats.create_session', (client) =>
           client
             .insert(crossword_sessions)
             .values({
@@ -159,7 +159,7 @@ const get_stats_data_route = protectedAdminProcedure
     runTrpcEffect(
       Effect.gen(function* () {
         const { sessions, stats, puzzles } = yield* Effect.all({
-          sessions: dbRun('crossword_stats.list_sessions', (client) =>
+          sessions: dbRunHttp('crossword_stats.list_sessions', (client) =>
             client.query.crossword_sessions.findMany({
               columns: {
                 id: true,
@@ -179,7 +179,7 @@ const get_stats_data_route = protectedAdminProcedure
               }
             })
           ),
-          stats: dbRun('crossword_stats.list_gameplay_stats', (client) =>
+          stats: dbRunHttp('crossword_stats.list_gameplay_stats', (client) =>
             client.query.crossword_gameplay_stats.findMany({
               columns: {
                 id: true,
@@ -206,7 +206,7 @@ const get_stats_data_route = protectedAdminProcedure
               }
             })
           ),
-          puzzles: dbRun('crossword_stats.list_puzzles_for_word_count', (client) =>
+          puzzles: dbRunHttp('crossword_stats.list_puzzles_for_word_count', (client) =>
             client.query.crossword_puzzles.findMany({
               columns: { word_list: true },
               where:
@@ -264,7 +264,7 @@ const get_top_puzzles_route = protectedAdminProcedure
               ]
             : [];
 
-        const topSessions = yield* dbRun('crossword_stats.get_top_sessions', (client) =>
+        const topSessions = yield* dbRunHttp('crossword_stats.get_top_sessions', (client) =>
           client
             .select({
               puzzle_id: crossword_sessions.puzzle_id,
@@ -300,20 +300,22 @@ const get_top_puzzles_route = protectedAdminProcedure
               ]
             : [];
 
-        const completionRows = yield* dbRun('crossword_stats.get_top_completion_counts', (client) =>
-          client
-            .select({
-              puzzle_id: crossword_gameplay_stats.puzzle_id,
-              completed: count()
-            })
-            .from(crossword_gameplay_stats)
-            .where(
-              and(
-                inArray(crossword_gameplay_stats.puzzle_id, puzzleIds),
-                ...(statsDateConditions.length > 0 ? statsDateConditions : [])
+        const completionRows = yield* dbRunHttp(
+          'crossword_stats.get_top_completion_counts',
+          (client) =>
+            client
+              .select({
+                puzzle_id: crossword_gameplay_stats.puzzle_id,
+                completed: count()
+              })
+              .from(crossword_gameplay_stats)
+              .where(
+                and(
+                  inArray(crossword_gameplay_stats.puzzle_id, puzzleIds),
+                  ...(statsDateConditions.length > 0 ? statsDateConditions : [])
+                )
               )
-            )
-            .groupBy(crossword_gameplay_stats.puzzle_id)
+              .groupBy(crossword_gameplay_stats.puzzle_id)
         );
 
         const completedByPuzzle = new Map(

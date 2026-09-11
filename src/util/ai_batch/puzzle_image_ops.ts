@@ -1,5 +1,5 @@
 import { Effect, Schedule } from 'effect';
-import { dbRun, dbTransaction, type DbTransaction } from '~/effect/database';
+import { dbRunHttp, dbTransaction, type DbTransaction } from '~/effect/database';
 import {
   generateImagePrompt,
   generateFileNameAndDescription,
@@ -123,7 +123,7 @@ export function isPollClaimActive(
 export const deleteImageAssetById = Effect.fn('batch_ai.deleteImageAssetById')(function* (
   image_id: number
 ) {
-  const asset = yield* dbRun('batch_ai.find_image_asset_for_delete', (client) =>
+  const asset = yield* dbRunHttp('batch_ai.find_image_asset_for_delete', (client) =>
     client.query.image_assets.findFirst({
       columns: { id: true, s3_key: true },
       where: eq(image_assets.id, image_id)
@@ -133,7 +133,7 @@ export const deleteImageAssetById = Effect.fn('batch_ai.deleteImageAssetById')(f
     return { deleted: false };
   }
 
-  const deleted = yield* dbRun('batch_ai.delete_image_asset_row', (client) =>
+  const deleted = yield* dbRunHttp('batch_ai.delete_image_asset_row', (client) =>
     client.delete(image_assets).where(eq(image_assets.id, image_id)).returning()
   );
   if (deleted[0] === undefined) {
@@ -190,7 +190,7 @@ export const scheduleOpenAiBatchCleanup = Effect.fn('batch_ai.scheduleOpenAiBatc
     yield* enqueueBackground(() =>
       runServerEffect(
         Effect.gen(function* () {
-          const remaining = yield* dbRun('batch_ai.cleanup.find_remaining_response', (client) =>
+          const remaining = yield* dbRunHttp('batch_ai.cleanup.find_remaining_response', (client) =>
             client.query.ai_batch_responses.findFirst({
               columns: { batch_id: true },
               where: eq(ai_batch_responses.batch_id, batch_id)
@@ -198,7 +198,7 @@ export const scheduleOpenAiBatchCleanup = Effect.fn('batch_ai.scheduleOpenAiBatc
           );
           if (remaining) return;
 
-          const batch = yield* dbRun('batch_ai.cleanup.find_batch', (client) =>
+          const batch = yield* dbRunHttp('batch_ai.cleanup.find_batch', (client) =>
             client.query.ai_batches.findFirst({
               columns: { input_file_id: true, output_file_id: true },
               where: eq(ai_batches.batch_id, batch_id)
@@ -206,7 +206,7 @@ export const scheduleOpenAiBatchCleanup = Effect.fn('batch_ai.scheduleOpenAiBatc
           );
           if (!batch) return;
 
-          yield* dbRun('batch_ai.cleanup.delete_batch', async (client) => {
+          yield* dbRunHttp('batch_ai.cleanup.delete_batch', async (client) => {
             await client.delete(ai_batches).where(eq(ai_batches.batch_id, batch_id));
           });
           yield* deleteOpenAiFiles([batch.input_file_id, batch.output_file_id]);
@@ -279,7 +279,7 @@ export const trigger_batch_puzzle_image_gen = Effect.fn('batch_ai.trigger_batch_
     const { game, auto_approved, puzzles: puzzle_inputs } = input;
     const puzzle_ids = puzzle_inputs.map((puzzle) => puzzle.puzzle_id);
 
-    const db_puzzles = yield* dbRun('batch_ai.find_puzzles_for_trigger', (client) =>
+    const db_puzzles = yield* dbRunHttp('batch_ai.find_puzzles_for_trigger', (client) =>
       game === 'crossword'
         ? client.query.crossword_puzzles.findMany({
             columns: {
@@ -691,7 +691,7 @@ const autoApproveEligibleRows = Effect.fn('batch_ai.autoApproveEligibleRows')(fu
   batch_id: string,
   items: PollBatchPuzzleImageGenItem[]
 ) {
-  const rows = yield* dbRun('batch_ai.find_auto_approve_rows', (client) =>
+  const rows = yield* dbRunHttp('batch_ai.find_auto_approve_rows', (client) =>
     client.query.ai_batch_responses.findMany({
       where: eq(ai_batch_responses.batch_id, batch_id),
       columns: { custom_id: true, auto_approved: true }
@@ -750,7 +750,7 @@ const loadResolvedPollItem = Effect.fn('batch_ai.loadResolvedPollItem')(function
   batch_id: string,
   custom_id: string
 ) {
-  const resolved_row = yield* dbRun('batch_ai.find_resolved_response', (client) =>
+  const resolved_row = yield* dbRunHttp('batch_ai.find_resolved_response', (client) =>
     client.query.ai_batch_responses.findFirst({
       where: and(
         eq(ai_batch_responses.batch_id, batch_id),
@@ -792,7 +792,7 @@ const findResolvedRowItem = Effect.fn('batch_ai.findResolvedRowItem')(function* 
   batch_id: string,
   custom_id: string
 ) {
-  const resolved_row = yield* dbRun(db_span, (client) =>
+  const resolved_row = yield* dbRunHttp(db_span, (client) =>
     client.query.ai_batch_responses.findFirst({
       where: and(
         eq(ai_batch_responses.batch_id, batch_id),
@@ -885,7 +885,7 @@ const cleanupLostUpload = Effect.fn('batch_ai.cleanupLostUpload')(function* (
 export const poll_batch_puzzle_image_gen = Effect.fn('poll_batch_puzzle_image_gen')(function* (
   batch_id: string
 ) {
-  const ai_batch = yield* dbRun('batch_ai.find_batch_with_responses', (client) =>
+  const ai_batch = yield* dbRunHttp('batch_ai.find_batch_with_responses', (client) =>
     client.query.ai_batches.findFirst({
       where: eq(ai_batches.batch_id, batch_id),
       with: { responses: true }
@@ -1082,7 +1082,7 @@ const enrichBatchRowWithAssetAndPuzzle = Effect.fn('batch_ai.enrichBatchRowWithA
     const game = resolveBatchGame(metadata, row.custom_id);
     let puzzle_title: string | null = null;
     if (game === 'crossword') {
-      const puzzle = yield* dbRun('batch_ai.find_crossword_title', (client) =>
+      const puzzle = yield* dbRunHttp('batch_ai.find_crossword_title', (client) =>
         client.query.crossword_puzzles.findFirst({
           columns: { title: true },
           where: eq(crossword_puzzles.id, puzzle_id)
@@ -1090,7 +1090,7 @@ const enrichBatchRowWithAssetAndPuzzle = Effect.fn('batch_ai.enrichBatchRowWithA
       );
       puzzle_title = puzzle?.title ?? null;
     } else {
-      const puzzle = yield* dbRun('batch_ai.find_padavali_title', (client) =>
+      const puzzle = yield* dbRunHttp('batch_ai.find_padavali_title', (client) =>
         client.query.padavali_puzzles.findFirst({
           columns: { title: true },
           where: eq(padavali_puzzles.id, puzzle_id)
@@ -1103,7 +1103,7 @@ const enrichBatchRowWithAssetAndPuzzle = Effect.fn('batch_ai.enrichBatchRowWithA
 
     const uploaded_image_id = metadata.uploaded_image_id;
     if (uploaded_image_id !== undefined) {
-      const asset = yield* dbRun('batch_ai.find_image_asset_for_enrich', (client) =>
+      const asset = yield* dbRunHttp('batch_ai.find_image_asset_for_enrich', (client) =>
         client.query.image_assets.findFirst({
           columns: {
             id: true,
@@ -1138,7 +1138,7 @@ const enrichBatchRowWithAssetAndPuzzle = Effect.fn('batch_ai.enrichBatchRowWithA
 export const get_puzzle_image_batch_status = Effect.fn('batch_ai.get_puzzle_image_batch_status')(
   function* (puzzle_id: number, game: PuzzleImageGame) {
     const custom_id = getPuzzleImageBatchCustomId(puzzle_id, game);
-    const rows = yield* dbRun('batch_ai.select_puzzle_image_batch_status', (client) =>
+    const rows = yield* dbRunHttp('batch_ai.select_puzzle_image_batch_status', (client) =>
       client
         .select({
           batch_id: ai_batch_responses.batch_id,
@@ -1230,7 +1230,7 @@ function countGroupItems(items: EnrichedBatchRow[]): BatchGroupCounts {
 export const get_batch_manager_groups = Effect.fn('batch_ai.get_batch_manager_groups')(function* (
   game: PuzzleImageGame
 ) {
-  const batches = yield* dbRun('batch_ai.list_image_batches', (client) =>
+  const batches = yield* dbRunHttp('batch_ai.list_image_batches', (client) =>
     client.query.ai_batches.findMany({
       where: eq(ai_batches.type, 'image'),
       orderBy: [desc(ai_batches.batch_id)],
@@ -1262,7 +1262,7 @@ export const get_batch_manager_groups = Effect.fn('batch_ai.get_batch_manager_gr
     puzzles:
       // SAFETY: empty list stands in for the findMany rows (id + title) when there are none
       puzzle_id_list.length > 0
-        ? dbRun('batch_ai.find_puzzles_for_manager', (client) =>
+        ? dbRunHttp('batch_ai.find_puzzles_for_manager', (client) =>
             game === 'crossword'
               ? client.query.crossword_puzzles.findMany({
                   columns: { id: true, title: true },
@@ -1276,7 +1276,7 @@ export const get_batch_manager_groups = Effect.fn('batch_ai.get_batch_manager_gr
         : Effect.succeed([] as Array<{ id: number; title: string }>),
     assets:
       image_ids.size > 0
-        ? dbRun('batch_ai.find_assets_for_manager', (client) =>
+        ? dbRunHttp('batch_ai.find_assets_for_manager', (client) =>
             client.query.image_assets.findMany({
               columns: {
                 id: true,
@@ -1343,7 +1343,7 @@ export const get_batch_manager_groups = Effect.fn('batch_ai.get_batch_manager_gr
 export const discard_puzzle_image_batch_response = Effect.fn(
   'batch_ai.discard_puzzle_image_batch_response'
 )(function* (batch_id: string, custom_id: string, delete_image_asset = false) {
-  const row = yield* dbRun('batch_ai.find_response_for_discard', (client) =>
+  const row = yield* dbRunHttp('batch_ai.find_response_for_discard', (client) =>
     client.query.ai_batch_responses.findFirst({
       where: and(
         eq(ai_batch_responses.batch_id, batch_id),
@@ -1367,7 +1367,7 @@ export const discard_puzzle_image_batch_response = Effect.fn(
     deleted_image_id = metadata.uploaded_image_id;
   }
 
-  yield* dbRun('batch_ai.delete_batch_response', async (client) => {
+  yield* dbRunHttp('batch_ai.delete_batch_response', async (client) => {
     await client
       .delete(ai_batch_responses)
       .where(

@@ -6,7 +6,7 @@ import CrossWordGameRoot from '~/components/pages/cross_word/CrossWordGame/Cross
 import { routeHeadFromPageMeta } from '~/components/tags/getPageMetaTags';
 import { CACHE, NO_CACHE_PARAMS } from '~/util/cache.server/cache_loaders';
 import type { CrosswordPuzzleType } from '~/util/cache.server/crossword_cache';
-import { dbRun } from '~/effect/database';
+import { dbRunHttp } from '~/effect/database';
 import { runLoaderEffect } from '~/effect/run';
 
 type SlugResolution =
@@ -21,7 +21,7 @@ const resolve_puzzle_slug = async (slug: string): Promise<SlugResolution> => {
   }
 
   const redirect_entry = await runLoaderEffect(
-    dbRun('crossword.resolve_puzzle_slug_redirect', (client) =>
+    dbRunHttp('crossword.resolve_puzzle_slug_redirect', (client) =>
       client.query.crossword_redirects.findFirst({
         where: (tbl, { eq }) => eq(tbl.slug, slug),
         with: {

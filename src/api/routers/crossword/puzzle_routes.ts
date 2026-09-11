@@ -1,7 +1,7 @@
 import { Effect } from 'effect';
 import { z } from 'zod';
 import { protectedAdminProcedure, publicProcedure, t } from '../../trpc_init';
-import { dbRun, dbTransaction, type DbTransaction } from '~/effect/database';
+import { dbRunHttp, dbTransaction, type DbTransaction } from '~/effect/database';
 import {
   crossword_attachments,
   crossword_puzzles,
@@ -155,7 +155,7 @@ const check_slug_availability_route = protectedAdminProcedure
 
 const get_listed_puzzles_route = publicProcedure.query(() =>
   runTrpcEffect(
-    dbRun('crossword.listed_puzzles', (client) =>
+    dbRunHttp('crossword.listed_puzzles', (client) =>
       client
         .select({
           id: crossword_puzzles.id,
@@ -191,7 +191,7 @@ const get_puzzle_by_id_route = protectedAdminProcedure
   .input(z.object({ id: z.number().int() }))
   .query(({ input: { id } }) =>
     runTrpcEffect(
-      dbRun('crossword.get_puzzle_by_id', (client) =>
+      dbRunHttp('crossword.get_puzzle_by_id', (client) =>
         client.query.crossword_puzzles.findFirst({
           where: (tbl, { eq: eqFn }) => eqFn(tbl.id, id),
           with: {
@@ -255,10 +255,10 @@ const get_puzzle_list_page_route = protectedAdminProcedure
         const offset = (page - 1) * size;
 
         const { countResult, rows } = yield* Effect.all({
-          countResult: dbRun('crossword.count_puzzle_list_page', (client) =>
+          countResult: dbRunHttp('crossword.count_puzzle_list_page', (client) =>
             client.select({ count: count() }).from(crossword_puzzles).where(whereClause)
           ),
-          rows: dbRun('crossword.select_puzzle_list_page', (client) =>
+          rows: dbRunHttp('crossword.select_puzzle_list_page', (client) =>
             client
               .select({
                 id: crossword_puzzles.id,
@@ -346,7 +346,7 @@ const update_puzzle_route = protectedAdminProcedure
   .mutation(({ input: { puzzle_id, puzzle_data, puzzle_slug, image_id } }) =>
     runTrpcEffect(
       Effect.gen(function* () {
-        const existing = yield* dbRun('crossword.find_puzzle_for_update', (client) =>
+        const existing = yield* dbRunHttp('crossword.find_puzzle_for_update', (client) =>
           client.query.crossword_puzzles.findFirst({
             columns: {
               id: true,
@@ -472,7 +472,7 @@ const update_puzzle_slug_route = protectedAdminProcedure
           return { success: true as const, slug: new_slug };
         }
 
-        const puzzle = yield* dbRun('crossword.find_puzzle_for_slug_update', (client) =>
+        const puzzle = yield* dbRunHttp('crossword.find_puzzle_for_slug_update', (client) =>
           client.query.crossword_puzzles.findFirst({
             columns: { id: true, listed: true },
             where: (tbl, { and: andFn, eq: eqFn }) =>
@@ -558,7 +558,7 @@ const set_listed_route = protectedAdminProcedure
   .mutation(({ input: { puzzle_id, listed } }) =>
     runTrpcEffect(
       Effect.gen(function* () {
-        const existing = yield* dbRun('crossword.find_puzzle_for_set_listed', (client) =>
+        const existing = yield* dbRunHttp('crossword.find_puzzle_for_set_listed', (client) =>
           client.query.crossword_puzzles.findFirst({
             where: (tbl, { eq: eqFn }) => eqFn(tbl.id, puzzle_id)
           })
@@ -589,7 +589,7 @@ const set_listed_route = protectedAdminProcedure
         const updates: Partial<typeof crossword_puzzles.$inferInsert> = { listed };
         if (becomingListed) updates.last_listed_at = new Date();
 
-        yield* dbRun('crossword.set_listed', async (client) => {
+        yield* dbRunHttp('crossword.set_listed', async (client) => {
           await client
             .update(crossword_puzzles)
             .set(updates)
@@ -609,7 +609,7 @@ const delete_puzzle_route = protectedAdminProcedure
     runTrpcEffect(
       Effect.gen(function* () {
         const normalizedSlug = normalizeSlug(slug);
-        const puzzle = yield* dbRun('crossword.find_puzzle_for_delete', (client) =>
+        const puzzle = yield* dbRunHttp('crossword.find_puzzle_for_delete', (client) =>
           client.query.crossword_puzzles.findFirst({
             columns: { listed: true },
             where: (tbl, { and: andFn, eq: eqFn }) =>
@@ -661,7 +661,7 @@ const get_puzzle_slugs_route = protectedAdminProcedure
   .query(({ input: { puzzle_id } }) =>
     runTrpcEffect(
       Effect.gen(function* () {
-        const puzzle = yield* dbRun('crossword.get_puzzle_slugs', (client) =>
+        const puzzle = yield* dbRunHttp('crossword.get_puzzle_slugs', (client) =>
           client.query.crossword_puzzles.findFirst({
             columns: { slug: true },
             where: (tbl, { eq: eqFn }) => eqFn(tbl.id, puzzle_id),
@@ -708,7 +708,7 @@ const delete_redirect_slug_route = protectedAdminProcedure
   .mutation(({ input: { puzzle_id, redirect_slug } }) =>
     runTrpcEffect(
       Effect.gen(function* () {
-        const puzzle = yield* dbRun('crossword.find_puzzle_for_redirect_delete', (client) =>
+        const puzzle = yield* dbRunHttp('crossword.find_puzzle_for_redirect_delete', (client) =>
           client.query.crossword_puzzles.findFirst({
             columns: { id: true, slug: true },
             where: (tbl, { eq: eqFn }) => eqFn(tbl.id, puzzle_id)
@@ -730,7 +730,7 @@ const delete_redirect_slug_route = protectedAdminProcedure
           );
         }
 
-        const redirect = yield* dbRun('crossword.find_redirect_for_delete', (client) =>
+        const redirect = yield* dbRunHttp('crossword.find_redirect_for_delete', (client) =>
           client.query.crossword_redirects.findFirst({
             columns: { id: true },
             where: (tbl, { and: andFn, eq: eqFn }) =>
@@ -746,7 +746,7 @@ const delete_redirect_slug_route = protectedAdminProcedure
           );
         }
 
-        yield* dbRun('crossword.delete_redirect', async (client) => {
+        yield* dbRunHttp('crossword.delete_redirect', async (client) => {
           await client
             .delete(crossword_redirects)
             .where(

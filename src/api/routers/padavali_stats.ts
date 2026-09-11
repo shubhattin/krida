@@ -7,7 +7,7 @@ import {
 } from '../trpc_init';
 import { z } from 'zod';
 import { padavali_sessions, padavali_gameplay_stats, padavali_puzzles } from '~/db/schema';
-import { dbRun } from '~/effect/database';
+import { dbRunHttp } from '~/effect/database';
 import { location_list_enum } from '~/db/types';
 import { script_list_enum } from '~/state/script_list';
 import { and, count, desc, eq, gte, inArray, lte } from 'drizzle-orm';
@@ -62,7 +62,7 @@ const submit_stats_route = publicProcedure
           practice_mode
         } = info;
 
-        const session = yield* dbRun('padavali_stats.find_session', (client) =>
+        const session = yield* dbRunHttp('padavali_stats.find_session', (client) =>
           client.query.padavali_sessions.findFirst({
             columns: { id: true },
             where: (tbl, { and: andFn, eq: eqFn }) =>
@@ -78,7 +78,7 @@ const submit_stats_route = publicProcedure
         }
 
         if (practice_mode) {
-          yield* dbRun('padavali_stats.mark_practice_session', async (client) => {
+          yield* dbRunHttp('padavali_stats.mark_practice_session', async (client) => {
             await client
               .update(padavali_sessions)
               .set({ practice_mode: true })
@@ -86,7 +86,7 @@ const submit_stats_route = publicProcedure
           });
         }
 
-        yield* dbRun('padavali_stats.insert_gameplay_stat', async (client) => {
+        yield* dbRunHttp('padavali_stats.insert_gameplay_stat', async (client) => {
           await client
             .insert(padavali_gameplay_stats)
             .values({
@@ -131,7 +131,7 @@ const update_games_started_route = publicProcedure
           Effect.tapError(() => releasePlaySessionClaim('padavali', client_play_id))
         );
 
-        const inserted_sessions = yield* dbRun('padavali_stats.create_session', (client) =>
+        const inserted_sessions = yield* dbRunHttp('padavali_stats.create_session', (client) =>
           client
             .insert(padavali_sessions)
             .values({
@@ -171,7 +171,7 @@ const update_session_practice_mode_route = publicProcedure
       Effect.gen(function* () {
         yield* verifyTurnstile(turnstile_token);
 
-        yield* dbRun('padavali_stats.update_session_practice_mode', async (client) => {
+        yield* dbRunHttp('padavali_stats.update_session_practice_mode', async (client) => {
           await client
             .update(padavali_sessions)
             .set({ practice_mode })
@@ -213,7 +213,7 @@ const get_stats_data_route = protectedAdminProcedure
     runTrpcEffect(
       Effect.gen(function* () {
         const { sessions, stats, puzzles } = yield* Effect.all({
-          sessions: dbRun('padavali_stats.list_sessions', (client) =>
+          sessions: dbRunHttp('padavali_stats.list_sessions', (client) =>
             client.query.padavali_sessions.findMany({
               columns: {
                 id: true,
@@ -235,7 +235,7 @@ const get_stats_data_route = protectedAdminProcedure
               }
             })
           ),
-          stats: dbRun('padavali_stats.list_gameplay_stats', (client) =>
+          stats: dbRunHttp('padavali_stats.list_gameplay_stats', (client) =>
             client.query.padavali_gameplay_stats.findMany({
               columns: {
                 id: true,
@@ -259,7 +259,7 @@ const get_stats_data_route = protectedAdminProcedure
               }
             })
           ),
-          puzzles: dbRun('padavali_stats.list_puzzles_for_word_count', (client) =>
+          puzzles: dbRunHttp('padavali_stats.list_puzzles_for_word_count', (client) =>
             client.query.padavali_puzzles.findMany({
               columns: { word_list: true },
               where:
@@ -318,7 +318,7 @@ const get_top_puzzles_route = protectedAdminProcedure
               ]
             : [];
 
-        const topSessions = yield* dbRun('padavali_stats.get_top_sessions', (client) =>
+        const topSessions = yield* dbRunHttp('padavali_stats.get_top_sessions', (client) =>
           client
             .select({
               puzzle_id: padavali_sessions.puzzle_id,
@@ -354,20 +354,22 @@ const get_top_puzzles_route = protectedAdminProcedure
               ]
             : [];
 
-        const completionRows = yield* dbRun('padavali_stats.get_top_completion_counts', (client) =>
-          client
-            .select({
-              puzzle_id: padavali_gameplay_stats.puzzle_id,
-              completed: count()
-            })
-            .from(padavali_gameplay_stats)
-            .where(
-              and(
-                inArray(padavali_gameplay_stats.puzzle_id, puzzleIds),
-                ...(statsDateConditions.length > 0 ? statsDateConditions : [])
+        const completionRows = yield* dbRunHttp(
+          'padavali_stats.get_top_completion_counts',
+          (client) =>
+            client
+              .select({
+                puzzle_id: padavali_gameplay_stats.puzzle_id,
+                completed: count()
+              })
+              .from(padavali_gameplay_stats)
+              .where(
+                and(
+                  inArray(padavali_gameplay_stats.puzzle_id, puzzleIds),
+                  ...(statsDateConditions.length > 0 ? statsDateConditions : [])
+                )
               )
-            )
-            .groupBy(padavali_gameplay_stats.puzzle_id)
+              .groupBy(padavali_gameplay_stats.puzzle_id)
         );
 
         const completedByPuzzle = new Map(

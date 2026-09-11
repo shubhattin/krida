@@ -6,7 +6,7 @@ import { RedisClient, type RedisJsonValue } from './redis';
 import { CacheError } from './errors';
 import { BackgroundWork } from './background';
 import { AppConfig } from './config';
-import { Database } from './database';
+import { DatabaseHttp } from './database';
 import { AiProvider } from './ai';
 
 const DEFAULT_TTL_S = ms('60days') / 1000;
@@ -15,7 +15,7 @@ const SINGLE_FLIGHT_LOCK_TTL_MS = ms('5m');
 const SINGLE_FLIGHT_POLL = Duration.millis(250);
 const SINGLE_FLIGHT_MAX_POLLS = 120;
 
-type CacheServices = RedisClient | BackgroundWork | AppConfig | Database | AiProvider;
+type CacheServices = RedisClient | BackgroundWork | AppConfig | DatabaseHttp | AiProvider;
 
 export type CacheRefreshOptions = {
   /** Delete the redis key before fetching fresh data. Default true. */
@@ -265,13 +265,13 @@ export function createCache<TParams, TCached, TData = TCached>(
           yield* write;
         } else {
           const redis = yield* RedisClient;
-          const database = yield* Database;
+          const database = yield* DatabaseHttp;
           const ai = yield* AiProvider;
           yield* background.enqueue(() =>
             Effect.runPromise(
               write.pipe(
                 Effect.provideService(RedisClient, redis),
-                Effect.provideService(Database, database),
+                Effect.provideService(DatabaseHttp, database),
                 Effect.provideService(AiProvider, ai),
                 Effect.provideService(AppConfig, appConfig),
                 Effect.catch((error) =>
@@ -409,7 +409,7 @@ export function createCache<TParams, TCached, TData = TCached>(
     const cacheKey = config.getKey(params);
     const genSnapshot = yield* snapshotGeneration(cacheKey);
     const redis = yield* RedisClient;
-    const database = yield* Database;
+    const database = yield* DatabaseHttp;
     const ai = yield* AiProvider;
     const background = yield* BackgroundWork;
 
@@ -439,7 +439,7 @@ export function createCache<TParams, TCached, TData = TCached>(
       Effect.runPromise(
         repopulate.pipe(
           Effect.provideService(RedisClient, redis),
-          Effect.provideService(Database, database),
+          Effect.provideService(DatabaseHttp, database),
           Effect.provideService(AiProvider, ai),
           Effect.provideService(AppConfig, appConfig),
           Effect.provideService(BackgroundWork, background),

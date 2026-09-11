@@ -7,7 +7,7 @@ import { z } from 'zod';
 import { CrossordPuzzleSchemaZod, CrosswordAttachmentSchemaZod } from '~/db/schema_zod';
 import { adminServerFnMiddleware } from '~/lib/adminServerFn';
 import { routeHeadFromPageMeta } from '~/components/tags/getPageMetaTags';
-import { dbRun } from '~/effect/database';
+import { dbRunHttp } from '~/effect/database';
 import { runLoaderEffect } from '~/effect/run';
 import MainEditPage from './-MainEditPage';
 
@@ -19,7 +19,7 @@ const loader$ = createServerFn({ method: 'GET' })
     if (!parsed.success) return { puzzle: null };
 
     const row = await runLoaderEffect(
-      dbRun('crossword.admin.get_edit_puzzle', (client) =>
+      dbRunHttp('crossword.admin.get_edit_puzzle', (client) =>
         client.query.crossword_puzzles.findFirst({
           where: (tbl, { eq }) => eq(tbl.id, parsed.data),
           with: {
