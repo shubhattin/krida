@@ -1,6 +1,6 @@
 import { Effect } from 'effect';
 import { eq } from 'drizzle-orm';
-import { dbRun, type DbTransaction } from '~/effect/database';
+import { dbRunHttp, type DbTransaction } from '~/effect/database';
 import { BadRequestError, ConflictError } from '~/effect/errors';
 import { crossword_redirects } from '~/db/schema';
 import { isValidCrosswordSlug, normalizeSlug } from '~/util/puzzle/slug';
@@ -18,13 +18,13 @@ export const resolve_slug_availability = Effect.fn('crossword.resolve_slug_avail
     }
 
     const { existing_puzzle, existing_redirect } = yield* Effect.all({
-      existing_puzzle: dbRun('crossword_slug.find_puzzle_by_slug', (client) =>
+      existing_puzzle: dbRunHttp('crossword_slug.find_puzzle_by_slug', (client) =>
         client.query.crossword_puzzles.findFirst({
           where: (tbl, { eq: eqFn }) => eqFn(tbl.slug, normalized),
           columns: { id: true, slug: true, title: true }
         })
       ),
-      existing_redirect: dbRun('crossword_slug.find_redirect_by_slug', (client) =>
+      existing_redirect: dbRunHttp('crossword_slug.find_redirect_by_slug', (client) =>
         client.query.crossword_redirects.findFirst({
           where: (tbl, { eq: eqFn }) => eqFn(tbl.slug, normalized),
           with: {

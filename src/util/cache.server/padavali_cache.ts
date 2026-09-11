@@ -3,7 +3,7 @@ import { sql } from 'drizzle-orm';
 import { z } from 'zod';
 import { image_schema, puzzle_schema } from '~/db/db_shared_vals';
 import { createCache, type CacheItem, type NoCacheParams } from '~/effect/cache';
-import { dbRun } from '~/effect/database';
+import { dbRunHttp } from '~/effect/database';
 import type { RedisJsonValue } from '~/effect/redis';
 import { BadRequestError, CacheError } from '~/effect/errors';
 import {
@@ -98,7 +98,7 @@ const load_current_schedule: CacheItem<NoCacheParams, PadavaliCurrentScheduleTyp
       : undefined,
   fetch: () => {
     const currentTime = new Date();
-    return dbRun('padavali.current_schedule', (client) =>
+    return dbRunHttp('padavali.current_schedule', (client) =>
       client.query.padavali_schedules.findFirst({
         columns: {
           id: true,
@@ -156,7 +156,7 @@ const load_next_schedule: CacheItem<NoCacheParams, PadavaliNextScheduleType> = c
     data ? { exat: Math.floor(data.start_time.getTime() / 1000) } : undefined,
   fetch: () => {
     const currentTime = new Date();
-    return dbRun('padavali.next_schedule', (client) =>
+    return dbRunHttp('padavali.next_schedule', (client) =>
       client.query.padavali_schedules.findFirst({
         columns: {
           id: true,
@@ -180,7 +180,7 @@ const load_listed_puzzle_list: CacheItem<NoCacheParams, PadavaliListedPuzzlesTyp
   getKey: () => LISTED_PUZZLE_LIST_KEY,
   schema: listed_puzzle_schema.array(),
   fetch: () =>
-    dbRun('padavali.listed_puzzle_list', (client) =>
+    dbRunHttp('padavali.listed_puzzle_list', (client) =>
       client.query.padavali_puzzles.findMany({
         columns: {
           id: true,
@@ -213,7 +213,7 @@ const load_word_puzzle: CacheItem<PadavaliPuzzleParams, PadavaliPuzzleType | und
     schema: puzzle_schema,
     shouldCache: (data) => data !== undefined,
     fetch: ({ slug }) =>
-      dbRun('padavali.word_puzzle', (client) =>
+      dbRunHttp('padavali.word_puzzle', (client) =>
         client.query.padavali_puzzles.findFirst({
           where: (tbl, { eq }) => eq(tbl.slug, slug),
           with: {

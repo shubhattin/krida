@@ -1,6 +1,6 @@
 import { Layer, ManagedRuntime } from 'effect';
 import { AppConfig } from './config';
-import { Database } from './database';
+import { Database, DatabaseHttp } from './database';
 import { RedisClient } from './redis';
 import { ObjectStorage } from './storage';
 import { AiProvider, OpenAiBatchClient } from './ai';
@@ -12,7 +12,8 @@ import { NotificationService } from './notifications';
 const InfrastructureLayer = Layer.mergeAll(ImageProcessor.Live, BackgroundWork.Live);
 
 const ConfigDependentLayer = Layer.mergeAll(
-  // db pool is released on scope end of the layer
+  // HTTP is stateless; WS/TCP pool still opens lazily on first session query
+  DatabaseHttp.Live,
   Database.Live,
   RedisClient.Live,
   ObjectStorage.Live,

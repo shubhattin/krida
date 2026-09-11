@@ -4,7 +4,7 @@ import { eq } from 'drizzle-orm';
 import { z } from 'zod';
 import { crossword_puzzles } from '~/db/schema';
 import { parseIdSlugParam } from '~/util/puzzle/slug';
-import { dbRun } from '~/effect/database';
+import { dbRunHttp } from '~/effect/database';
 import { runLoaderEffect } from '~/effect/run';
 
 const loader$ = createServerFn({ method: 'GET' })
@@ -14,7 +14,7 @@ const loader$ = createServerFn({ method: 'GET' })
     if (!parsed) return { slug: null };
 
     const puzzle = await runLoaderEffect(
-      dbRun('crossword.archived.resolve_slug', (client) =>
+      dbRunHttp('crossword.archived.resolve_slug', (client) =>
         client.query.crossword_puzzles.findFirst({
           where: eq(crossword_puzzles.id, parsed.id),
           columns: { slug: true }

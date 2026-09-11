@@ -6,7 +6,7 @@ import { Button } from '~/components/ui/button';
 import { Card, CardContent } from '~/components/ui/card';
 import { routeHeadFromPageMeta } from '~/components/tags/getPageMetaTags';
 import { adminServerFnMiddleware } from '~/lib/adminServerFn';
-import { dbRun } from '~/effect/database';
+import { dbRunHttp } from '~/effect/database';
 import { runLoaderEffect } from '~/effect/run';
 import ListSchedules, { PastSchedules } from './-ListSchedules';
 
@@ -15,7 +15,7 @@ const loader$ = createServerFn({ method: 'GET' })
   .handler(async () => {
     const current_time = new Date();
     const upcomming_schedules = await runLoaderEffect(
-      dbRun('crossword.admin.list_upcoming_schedules', (client) =>
+      dbRunHttp('crossword.admin.list_upcoming_schedules', (client) =>
         client.query.crossword_schedules.findMany({
           columns: {
             id: true,

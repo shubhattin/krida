@@ -1,7 +1,7 @@
 import { protectedAdminProcedure, t } from '~/api/trpc_init';
 import { Effect } from 'effect';
 import { z } from 'zod';
-import { dbRun, dbTransaction, type DbTransaction } from '~/effect/database';
+import { dbRunHttp, dbTransaction, type DbTransaction } from '~/effect/database';
 import { padavali_schedules } from '~/db/schema';
 import { and, eq } from 'drizzle-orm';
 import {
@@ -79,7 +79,7 @@ const notify_new_puzzle = Effect.fn('padavaliSchedules.notify_new_puzzle')(funct
     return 'scheduled';
   }
 
-  const prev_schedule = yield* dbRun('padavali_schedules.find_current_schedule', (client) =>
+  const prev_schedule = yield* dbRunHttp('padavali_schedules.find_current_schedule', (client) =>
     client.query.padavali_schedules.findFirst({
       where: (table, { eq, and }) => and(eq(table.id, schedule_id), eq(table.puzzle_id, puzzle_id)),
       columns: {
@@ -89,7 +89,7 @@ const notify_new_puzzle = Effect.fn('padavaliSchedules.notify_new_puzzle')(funct
   );
   if (!prev_schedule || current_time >= prev_schedule.start_time) return 'skipped';
 
-  const puzzle = yield* dbRun('padavali_schedules.find_puzzle_title', (client) =>
+  const puzzle = yield* dbRunHttp('padavali_schedules.find_puzzle_title', (client) =>
     client.query.padavali_puzzles.findFirst({
       where: (table, { eq }) => eq(table.id, puzzle_id),
       columns: {
@@ -135,7 +135,7 @@ const add_puzzle_schedule_route = protectedAdminProcedure
     runTrpcEffect(
       Effect.gen(function* () {
         const { puzzle_id, start_time, end_time } = input;
-        const existing_schedule = yield* dbRun(
+        const existing_schedule = yield* dbRunHttp(
           'padavali_schedules.find_overlapping_schedule',
           (client) =>
             client.query.padavali_schedules.findFirst({
@@ -261,7 +261,7 @@ const get_past_schedules_route = protectedAdminProcedure.query(() =>
     Effect.gen(function* () {
       yield* Effect.sleep('500 millis');
       const current_time = new Date();
-      const past_schedules = yield* dbRun('padavali_schedules.list_past_schedules', (client) =>
+      const past_schedules = yield* dbRunHttp('padavali_schedules.list_past_schedules', (client) =>
         client.query.padavali_schedules.findMany({
           columns: {
             id: true,

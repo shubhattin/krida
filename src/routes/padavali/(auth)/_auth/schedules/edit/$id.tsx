@@ -4,7 +4,7 @@ import { IoMdArrowRoundBack } from 'react-icons/io';
 import { z } from 'zod';
 import { adminServerFnMiddleware } from '~/lib/adminServerFn';
 import { routeHeadFromPageMeta } from '~/components/tags/getPageMetaTags';
-import { dbRun } from '~/effect/database';
+import { dbRunHttp } from '~/effect/database';
 import { runLoaderEffect } from '~/effect/run';
 import AddSchedule from '../add/-AddSchedule';
 
@@ -16,7 +16,7 @@ const loader$ = createServerFn({ method: 'GET' })
     if (!parsed.success) return { schedule: null };
 
     const schedule = await runLoaderEffect(
-      dbRun('padavali.admin.get_schedule_for_edit', (client) =>
+      dbRunHttp('padavali.admin.get_schedule_for_edit', (client) =>
         client.query.padavali_schedules.findFirst({
           where: (tbl, { eq }) => eq(tbl.id, parsed.data),
           with: {
