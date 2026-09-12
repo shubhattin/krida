@@ -6,7 +6,7 @@ import { Button } from '~/components/ui/button';
 import { Card, CardContent } from '~/components/ui/card';
 import { routeHeadFromPageMeta } from '~/components/tags/getPageMetaTags';
 import { adminServerFnMiddleware } from '~/lib/adminServerFn';
-import { dbRun } from '~/effect/database';
+import { dbRunHttp } from '~/effect/database';
 import { runLoaderEffect } from '~/effect/run';
 import ListSchedules, { PastSchedules } from './-ListSchedules';
 
@@ -15,7 +15,7 @@ const loader$ = createServerFn({ method: 'GET' })
   .handler(async () => {
     const current_time = new Date();
     const upcomming_schedules = await runLoaderEffect(
-      dbRun('padavali.admin.list_upcoming_schedules', (client) =>
+      dbRunHttp('padavali.admin.list_upcoming_schedules', (client) =>
         client.query.padavali_schedules.findMany({
           columns: {
             id: true,

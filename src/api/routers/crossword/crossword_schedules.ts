@@ -1,7 +1,7 @@
 import { protectedAdminProcedure, t } from '~/api/trpc_init';
 import { Effect } from 'effect';
 import { z } from 'zod';
-import { dbRun, dbTransaction } from '~/effect/database';
+import { dbRunHttp, dbTransaction } from '~/effect/database';
 import { crossword_schedules } from '~/db/schema';
 import { and, eq } from 'drizzle-orm';
 import {
@@ -63,7 +63,7 @@ const add_puzzle_schedule_route = protectedAdminProcedure
     runTrpcEffect(
       Effect.gen(function* () {
         const { puzzle_id, start_time, end_time } = input;
-        const existing_schedule = yield* dbRun(
+        const existing_schedule = yield* dbRunHttp(
           'crossword_schedules.find_overlapping_schedule',
           (client) =>
             client.query.crossword_schedules.findFirst({
@@ -197,7 +197,7 @@ const get_past_schedules_route = protectedAdminProcedure.query(() =>
     Effect.gen(function* () {
       yield* Effect.sleep('500 millis');
       const current_time = new Date();
-      const past_schedules = yield* dbRun('crossword_schedules.list_past_schedules', (client) =>
+      const past_schedules = yield* dbRunHttp('crossword_schedules.list_past_schedules', (client) =>
         client.query.crossword_schedules.findMany({
           columns: {
             id: true,

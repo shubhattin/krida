@@ -8,7 +8,7 @@ import {
   type CrossWordPuzzleWord
 } from '~/db/schema_zod';
 import { createCache, type CacheItem, type NoCacheParams } from '~/effect/cache';
-import { dbRun } from '~/effect/database';
+import { dbRunHttp } from '~/effect/database';
 import type { RedisJsonValue } from '~/effect/redis';
 import { BadRequestError, CacheError } from '~/effect/errors';
 import {
@@ -113,7 +113,7 @@ const load_current_schedule: CacheItem<NoCacheParams, CrosswordCurrentScheduleTy
       : undefined,
   fetch: () => {
     const currentTime = new Date();
-    return dbRun('crossword.current_schedule', (client) =>
+    return dbRunHttp('crossword.current_schedule', (client) =>
       client.query.crossword_schedules.findFirst({
         columns: {
           id: true,
@@ -170,7 +170,7 @@ const load_next_schedule: CacheItem<NoCacheParams, CrosswordNextScheduleType> = 
     data ? { exat: Math.floor(data.start_time.getTime() / 1000) } : undefined,
   fetch: () => {
     const currentTime = new Date();
-    return dbRun('crossword.next_schedule', (client) =>
+    return dbRunHttp('crossword.next_schedule', (client) =>
       client.query.crossword_schedules.findFirst({
         columns: {
           id: true,
@@ -194,7 +194,7 @@ const load_listed_puzzle_list: CacheItem<NoCacheParams, CrosswordListedPuzzlesTy
   getKey: () => LISTED_PUZZLE_LIST_KEY,
   schema: listed_puzzle_schema.array(),
   fetch: () =>
-    dbRun('crossword.listed_puzzle_list', (client) =>
+    dbRunHttp('crossword.listed_puzzle_list', (client) =>
       client.query.crossword_puzzles.findMany({
         columns: {
           id: true,
@@ -227,7 +227,7 @@ const load_word_puzzle: CacheItem<CrosswordPuzzleParams, CrosswordPuzzleType | u
     schema: crossword_puzzle_schema,
     shouldCache: (data) => data !== undefined,
     fetch: ({ slug }) =>
-      dbRun('crossword.word_puzzle', (client) =>
+      dbRunHttp('crossword.word_puzzle', (client) =>
         client.query.crossword_puzzles.findFirst({
           where: (tbl, { eq }) => eq(tbl.slug, slug),
           with: {

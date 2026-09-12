@@ -9,7 +9,7 @@
 import { AsyncLocalStorage } from 'node:async_hooks';
 import { Layer, ManagedRuntime } from 'effect';
 import { AppConfig } from './config';
-import { Database } from './database';
+import { Database, DatabaseHttp } from './database';
 import { RedisClient } from './redis';
 import { ObjectStorage } from './storage';
 import { AiProvider, OpenAiBatchClient } from './ai';
@@ -22,6 +22,8 @@ import { isCloudflareWorker } from './platform';
 const InfrastructureLayer = Layer.mergeAll(ImageProcessorLive, BackgroundWorkLive);
 
 const ConfigDependentLayer = Layer.mergeAll(
+  // HTTP is stateless fetch in prod — ideal for isolates; session pool kept for transactions
+  DatabaseHttp.WorkersLive,
   Database.WorkersLive,
   RedisClient.Live,
   ObjectStorage.Live,

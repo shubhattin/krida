@@ -9,7 +9,7 @@ import { padavali_schedules, padavali_puzzles } from '~/db/schema';
 import { and, eq } from 'drizzle-orm';
 import { notify_for_listed_puzzle } from '~/api/routers/puzzle';
 import { scheduleListingPayloadSchema, decodeQstashPayload } from '~/effect/qstash';
-import { dbRun, dbTransaction } from '~/effect/database';
+import { dbRunHttp, dbTransaction } from '~/effect/database';
 import { runQstashEffect } from '~/effect/run';
 import { BadRequestError } from '~/effect/errors';
 import { verifyQstashRequest } from '~/lib/qstash_verify';
@@ -33,7 +33,7 @@ export const Route = createFileRoute('/api/qstash/schedule_listing')({
               body
             );
 
-            const schedule = yield* dbRun(
+            const schedule = yield* dbRunHttp(
               'qstash.padavali_schedule_listing.find_schedule',
               (client) =>
                 client.query.padavali_schedules.findFirst({

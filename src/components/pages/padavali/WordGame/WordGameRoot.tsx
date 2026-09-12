@@ -365,22 +365,15 @@ function LeaveGameDialog({
 
 function ScriptSelectorRow({
   script,
-  onScriptChange,
-  fontInfo
+  onScriptChange
 }: {
   script: ScriptType;
   onScriptChange: (script: ScriptType) => void;
-  fontInfo: (typeof FONT_INFO)[ScriptType];
 }) {
   return (
     <>
       <Icon className="size-5" src={LanguageIcon} />
-      <ScriptSelector script={script} onScriptChange={onScriptChange} />
-      {fontInfo.experimental && (
-        <span className="inline-flex items-center rounded-full bg-orange-100 px-1.5 py-0.5 text-xs font-medium text-orange-800 dark:bg-orange-900/20 dark:text-orange-400">
-          Beta
-        </span>
-      )}
+      <ScriptSelector script={script} onScriptChange={onScriptChange} showBetaBadge />
     </>
   );
 }
@@ -408,7 +401,7 @@ function WordGameHeader({
     <div className="relative mb-2 text-center sm:mb-3">
       {/* Desktop script selector — absolutely positioned right of the title */}
       <div className="absolute top-1/2 right-0 hidden -translate-y-1/2 items-center gap-1.5 rounded-full border border-slate-200/60 bg-white/75 px-3 py-1.5 shadow-md backdrop-blur-sm lg:flex dark:border-slate-700/60 dark:bg-slate-900/75">
-        <ScriptSelectorRow script={script} onScriptChange={onScriptChange} fontInfo={fontInfo} />
+        <ScriptSelectorRow script={script} onScriptChange={onScriptChange} />
       </div>
 
       {/* Puzzle title */}
@@ -447,12 +440,7 @@ function WordGameHeader({
       {/* Script selector — mobile only, centered below title */}
       <div className="mt-2 flex items-center justify-center gap-1.5 lg:hidden">
         <Icon className="size-6" src={LanguageIcon} />
-        <ScriptSelector script={script} onScriptChange={onScriptChange} />
-        {fontInfo.experimental && (
-          <span className="inline-flex items-center rounded-full bg-orange-100 px-1.5 py-0.5 text-xs font-medium text-orange-800 dark:bg-orange-900/20 dark:text-orange-400">
-            Beta
-          </span>
-        )}
+        <ScriptSelector script={script} onScriptChange={onScriptChange} showBetaBadge />
       </div>
     </div>
   );

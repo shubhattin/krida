@@ -2,7 +2,7 @@ import { Effect } from 'effect';
 import { z } from 'zod';
 import { image_assets } from '~/db/schema';
 import { ImageAssetSchemaZod } from '~/db/schema_zod';
-import { dbRun, type TxOrDb } from '~/effect/database';
+import { dbRunHttp, type TxOrDb } from '~/effect/database';
 import { PROJECT_S3_ALIAS, KRIDAS } from '~/constants';
 import { AiProvider } from '~/effect/ai';
 import { ImageProcessor } from '~/effect/image';
@@ -252,7 +252,7 @@ const insertImageAssetRecord = Effect.fn('insertImageAssetRecord')(function* (
         try: () => db_instance.insert(image_assets).values(values).returning(),
         catch: (cause) => DatabaseError.make({ operation: 'insertImageAssetRecord', cause })
       })
-    : yield* dbRun('insertImageAssetRecord', (client) =>
+    : yield* dbRunHttp('insertImageAssetRecord', (client) =>
         client.insert(image_assets).values(values).returning()
       );
 

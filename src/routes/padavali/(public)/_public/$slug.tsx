@@ -10,7 +10,7 @@ import { getScript$ } from '~/lib/cache_server_route_data';
 import { DEFAULT_DATA_SCRIPT } from '~/state/script_list';
 import { CACHE, NO_CACHE_PARAMS } from '~/util/cache.server/cache_loaders';
 import type { PadavaliPuzzleType } from '~/util/cache.server/padavali_cache';
-import { dbRun } from '~/effect/database';
+import { dbRunHttp } from '~/effect/database';
 import { runLoaderEffect } from '~/effect/run';
 
 type SlugResolution =
@@ -25,7 +25,7 @@ const resolve_puzzle_slug = async (slug: string): Promise<SlugResolution> => {
   }
 
   const redirect_entry = await runLoaderEffect(
-    dbRun('padavali.resolve_puzzle_slug_redirect', (client) =>
+    dbRunHttp('padavali.resolve_puzzle_slug_redirect', (client) =>
       client.query.padavali_redirects.findFirst({
         where: (tbl, { eq }) => eq(tbl.slug, slug),
         with: {
