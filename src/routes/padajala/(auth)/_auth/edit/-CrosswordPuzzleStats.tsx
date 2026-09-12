@@ -643,29 +643,77 @@ const PuzzleStats = ({ puzzleId, puzzleTitle }: PuzzleStatsProps) => {
       {period === 'custom' && (
         <CustomDateRangeRow dateRange={dateRange} setDateRange={setDateRange} />
       )}
-      {statsQuery.isLoading && <StatsLoadingSkeleton />}
-      {statsQuery.isError && (
+      <StatsQueryPanel
+        isEmbedded={isEmbedded}
+        isLoading={statsQuery.isLoading}
+        isError={statsQuery.isError}
+        isSuccess={statsQuery.isSuccess}
+        topPuzzles={topPuzzlesQuery.data?.puzzles ?? []}
+        topPuzzlesLoading={topPuzzlesQuery.isLoading}
+        topUsers={topUsersQuery.data?.users ?? []}
+        topUsersLoading={topUsersQuery.isLoading}
+        summaryStats={summaryStats}
+        chartData={chartData}
+        chartType={chartType}
+        setChartType={setChartType}
+      />
+    </div>
+  );
+};
+
+type StatsQueryPanelProps = {
+  isEmbedded: boolean;
+  isLoading: boolean;
+  isError: boolean;
+  isSuccess: boolean;
+  topPuzzles: TopPuzzleRow[];
+  topPuzzlesLoading: boolean;
+  topUsers: TopUserRow[];
+  topUsersLoading: boolean;
+  summaryStats: ReturnType<typeof computeSummaryStats>;
+  chartData: ChartDataType;
+  chartType: ChartType;
+  setChartType: (chartType: ChartType) => void;
+};
+
+function StatsQueryPanel({
+  isEmbedded,
+  isLoading,
+  isError,
+  isSuccess,
+  topPuzzles,
+  topPuzzlesLoading,
+  topUsers,
+  topUsersLoading,
+  summaryStats,
+  chartData,
+  chartType,
+  setChartType
+}: StatsQueryPanelProps) {
+  return (
+    <>
+      {isLoading ? <StatsLoadingSkeleton /> : null}
+      {isError ? (
         <div className="py-8 text-center">
           <div className="text-destructive">Failed to load statistics</div>
         </div>
-      )}
-      {/* Stats Content */}
-      {!statsQuery.isLoading && statsQuery.isSuccess && (
+      ) : null}
+      {isSuccess ? (
         <StatsContentBody
           isEmbedded={isEmbedded}
-          topPuzzles={topPuzzlesQuery.data?.puzzles ?? []}
-          topPuzzlesLoading={topPuzzlesQuery.isLoading}
-          topUsers={topUsersQuery.data?.users ?? []}
-          topUsersLoading={topUsersQuery.isLoading}
+          topPuzzles={topPuzzles}
+          topPuzzlesLoading={topPuzzlesLoading}
+          topUsers={topUsers}
+          topUsersLoading={topUsersLoading}
           summaryStats={summaryStats}
           chartData={chartData}
           chartType={chartType}
           setChartType={setChartType}
         />
-      )}
-    </div>
+      ) : null}
+    </>
   );
-};
+}
 
 type StatsContentBodyProps = {
   isEmbedded: boolean;

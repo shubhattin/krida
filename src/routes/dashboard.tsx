@@ -4,12 +4,6 @@ import { routeHeadFromPageMeta } from '~/components/tags/getPageMetaTags';
 import DashboardPage from './-DashboardPage';
 
 export const Route = createFileRoute('/dashboard')({
-  head: () =>
-    routeHeadFromPageMeta({
-      title: 'Dashboard | Sanskrit Games',
-      project: 'landing_page',
-      description: 'Your Padāvalī and Padajāla play stats, best scores, and recent puzzles.'
-    }),
   beforeLoad: async () => {
     const session = await getUserSession$();
     if (!session?.user) {
@@ -17,5 +11,11 @@ export const Route = createFileRoute('/dashboard')({
     }
     return { session };
   },
+  head: () =>
+    routeHeadFromPageMeta({
+      title: 'Dashboard | Sanskrit Games',
+      project: 'landing_page',
+      description: 'Your Padāvalī and Padajāla play stats, best scores, and recent puzzles.'
+    }),
   component: DashboardPage
 });

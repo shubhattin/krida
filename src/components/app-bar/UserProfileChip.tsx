@@ -292,7 +292,7 @@ function SignedInCard({
                 iconClass="from-sky-500 to-blue-600 shadow-sky-500/25"
               />
               <StatTile
-                label="Finished"
+                label="Completed"
                 value={String(stats.completed)}
                 icon={<CheckCircle2 className="size-3.5" />}
                 iconClass="from-emerald-500 to-teal-600 shadow-emerald-500/25"
