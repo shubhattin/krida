@@ -84,11 +84,16 @@ export const crossword_sessions = pgTable(
       .references(() => crossword_puzzles.id, { onDelete: 'cascade' }),
     created_at: timestamp({ withTimezone: true }).notNull().defaultNow(),
     location: varchar({ length: 25 }).$type<location_list_type>(),
-    /** Better Auth User ID (External) */
-    user_id: text()
+    /** Better Auth user id; null for anonymous plays */
+    user_id: text(),
+    /** Display-name snapshot at play time (auth lives on a separate service) */
+    user_name: text()
   },
   (table) => [
-    index('crossword_sessions_puzzle_id_created_at_idx').on(table.puzzle_id, table.created_at)
+    index('crossword_sessions_puzzle_id_created_at_idx').on(table.puzzle_id, table.created_at),
+    index('crossword_sessions_user_id_created_at_idx').on(table.user_id, table.created_at),
+    index('crossword_sessions_user_id_puzzle_id_idx').on(table.user_id, table.puzzle_id),
+    index('crossword_sessions_puzzle_id_user_id_idx').on(table.puzzle_id, table.user_id)
   ]
 );
 

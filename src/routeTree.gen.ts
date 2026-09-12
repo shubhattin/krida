@@ -10,6 +10,7 @@
 
 import { Route as rootRouteImport } from './routes/__root'
 import { Route as IndexRouteImport } from './routes/index'
+import { Route as DashboardRouteImport } from './routes/dashboard'
 import { Route as PadajalaRouteRouteImport } from './routes/padajala/route'
 import { Route as PadavaliRouteRouteImport } from './routes/padavali/route'
 import { Route as CrosswordSplatRouteImport } from './routes/crossword.$'
@@ -52,6 +53,11 @@ import { Route as PadavaliauthAuthSchedulesEditIdRouteImport } from './routes/pa
 const IndexRoute = IndexRouteImport.update({
   id: '/',
   path: '/',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const DashboardRoute = DashboardRouteImport.update({
+  id: '/dashboard',
+  path: '/dashboard',
   getParentRoute: () => rootRouteImport,
 } as any)
 const PadajalaRouteRoute = PadajalaRouteRouteImport.update({
@@ -273,6 +279,7 @@ export interface FileRoutesByFullPath {
   '/': typeof IndexRoute
   '/padajala': typeof PadajalaRouteRouteWithChildren
   '/padavali': typeof PadavaliRouteRouteWithChildren
+  '/dashboard': typeof DashboardRoute
   '/crossword/$': typeof CrosswordSplatRoute
   '/api/qstash/new_puzzle_notification': typeof ApiQstashNew_puzzle_notificationRoute
   '/api/qstash/save_ai_batch_results': typeof ApiQstashSave_ai_batch_resultsRoute
@@ -310,6 +317,7 @@ export interface FileRoutesByTo {
   '/': typeof IndexRoute
   '/padajala': typeof PadajalapublicPublicIndexRoute
   '/padavali': typeof PadavalipublicPublicIndexRoute
+  '/dashboard': typeof DashboardRoute
   '/crossword/$': typeof CrosswordSplatRoute
   '/api/qstash/new_puzzle_notification': typeof ApiQstashNew_puzzle_notificationRoute
   '/api/qstash/save_ai_batch_results': typeof ApiQstashSave_ai_batch_resultsRoute
@@ -346,6 +354,7 @@ export interface FileRoutesById {
   '/': typeof IndexRoute
   '/padajala': typeof PadajalaRouteRouteWithChildren
   '/padavali': typeof PadavaliRouteRouteWithChildren
+  '/dashboard': typeof DashboardRoute
   '/crossword/$': typeof CrosswordSplatRoute
   '/api/qstash/new_puzzle_notification': typeof ApiQstashNew_puzzle_notificationRoute
   '/api/qstash/save_ai_batch_results': typeof ApiQstashSave_ai_batch_resultsRoute
@@ -389,6 +398,7 @@ export interface FileRouteTypes {
     | '/'
     | '/padajala'
     | '/padavali'
+    | '/dashboard'
     | '/crossword/$'
     | '/api/qstash/new_puzzle_notification'
     | '/api/qstash/save_ai_batch_results'
@@ -426,6 +436,7 @@ export interface FileRouteTypes {
     | '/'
     | '/padajala'
     | '/padavali'
+    | '/dashboard'
     | '/crossword/$'
     | '/api/qstash/new_puzzle_notification'
     | '/api/qstash/save_ai_batch_results'
@@ -461,6 +472,7 @@ export interface FileRouteTypes {
     | '/'
     | '/padajala'
     | '/padavali'
+    | '/dashboard'
     | '/crossword/$'
     | '/api/qstash/new_puzzle_notification'
     | '/api/qstash/save_ai_batch_results'
@@ -503,6 +515,7 @@ export interface RootRouteChildren {
   IndexRoute: typeof IndexRoute
   PadajalaRouteRoute: typeof PadajalaRouteRouteWithChildren
   PadavaliRouteRoute: typeof PadavaliRouteRouteWithChildren
+  DashboardRoute: typeof DashboardRoute
   CrosswordSplatRoute: typeof CrosswordSplatRoute
   ApiQstashNew_puzzle_notificationRoute: typeof ApiQstashNew_puzzle_notificationRoute
   ApiQstashSave_ai_batch_resultsRoute: typeof ApiQstashSave_ai_batch_resultsRoute
@@ -518,6 +531,13 @@ declare module '@tanstack/react-router' {
       path: '/'
       fullPath: '/'
       preLoaderRoute: typeof IndexRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/dashboard': {
+      id: '/dashboard'
+      path: '/dashboard'
+      fullPath: '/dashboard'
+      preLoaderRoute: typeof DashboardRouteImport
       parentRoute: typeof rootRouteImport
     }
     '/padajala': {
@@ -915,6 +935,7 @@ const rootRouteChildren: RootRouteChildren = {
   IndexRoute: IndexRoute,
   PadajalaRouteRoute: PadajalaRouteRouteWithChildren,
   PadavaliRouteRoute: PadavaliRouteRouteWithChildren,
+  DashboardRoute: DashboardRoute,
   CrosswordSplatRoute: CrosswordSplatRoute,
   ApiQstashNew_puzzle_notificationRoute: ApiQstashNew_puzzle_notificationRoute,
   ApiQstashSave_ai_batch_resultsRoute: ApiQstashSave_ai_batch_resultsRoute,
@@ -926,12 +947,3 @@ const rootRouteChildren: RootRouteChildren = {
 export const routeTree = rootRouteImport
   ._addFileChildren(rootRouteChildren)
   ._addFileTypes<FileRouteTypes>()
-
-import type { getRouter } from './router.tsx'
-import type { createStart } from '@tanstack/react-start'
-declare module '@tanstack/react-start' {
-  interface Register {
-    ssr: true
-    router: Awaited<ReturnType<typeof getRouter>>
-  }
-}

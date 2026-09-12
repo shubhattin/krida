@@ -148,6 +148,13 @@
       "when": 1788879068687,
       "tag": "0020_regular_johnny_blaze",
       "breakpoints": true
+    },
+    {
+      "idx": 21,
+      "version": "7",
+      "when": 1789217899704,
+      "tag": "0021_pale_lyja",
+      "breakpoints": true
     }
   ]
 }
