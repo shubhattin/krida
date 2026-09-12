@@ -18,6 +18,7 @@ import type { location_list_type } from '~/db/types';
 import TurnstileWidget from '~/components/Turnstile';
 import { AppContext } from '~/components/AppDataContext';
 import { load_posthog } from '~/components/tags/PosthogInit';
+import { requestGuestAuthPrompt } from '~/lib/guest_auth_prompt';
 
 /**
  * Pre-eslint (#45) this effect intentionally omitted the mutation object from deps.
@@ -57,6 +58,8 @@ const GameMetricsCollector = ({
   const statsSubmittedForNonceRef = useRef<number | null>(null);
   /** One-shot per session+auth-or-token so practice sync cannot loop on error. */
   const practiceSyncAttemptKeyRef = useRef<string | null>(null);
+  const guestStartPromptedForNonceRef = useRef<number | null>(null);
+  const guestCompletePromptedForNonceRef = useRef<number | null>(null);
   const clientPlayIdRef = useRef(crypto.randomUUID());
   const turnstile = useTurnstile();
   const turnstileRef = useRef(turnstile);
@@ -150,6 +153,8 @@ const GameMetricsCollector = ({
     startAttemptedForNonceRef.current = null;
     statsSubmittedForNonceRef.current = null;
     practiceSyncAttemptKeyRef.current = null;
+    guestStartPromptedForNonceRef.current = null;
+    guestCompletePromptedForNonceRef.current = null;
     clientPlayIdRef.current = crypto.randomUUID();
     setTurnstileToken(null);
     setPracticeModeSyncedSessionId(null);
@@ -179,6 +184,30 @@ const GameMetricsCollector = ({
     if (!canSubmitPlayMetrics(authReady, isAuthed, turnstileToken)) return;
     reportGameplayStarted(playMetricsToken(isAuthed, turnstileToken));
   }, [started, completed, authReady, isAuthed, turnstileToken]);
+
+  const promptGuestOnStart = useEffectEvent(() => {
+    requestGuestAuthPrompt('play_start');
+  });
+
+  useEffect(() => {
+    if (!authReady || isAuthed) return;
+    if (!started || completed || practiceMode) return;
+    if (guestStartPromptedForNonceRef.current === gameSessionNonce) return;
+    guestStartPromptedForNonceRef.current = gameSessionNonce;
+    promptGuestOnStart();
+  }, [authReady, isAuthed, started, completed, practiceMode, gameSessionNonce]);
+
+  const promptGuestOnComplete = useEffectEvent(() => {
+    requestGuestAuthPrompt('complete');
+  });
+
+  useEffect(() => {
+    if (!authReady || isAuthed) return;
+    if (!completed || practiceMode) return;
+    if (guestCompletePromptedForNonceRef.current === gameSessionNonce) return;
+    guestCompletePromptedForNonceRef.current = gameSessionNonce;
+    promptGuestOnComplete();
+  }, [authReady, isAuthed, completed, practiceMode, gameSessionNonce]);
 
   const sessionId = gamesStartedData?.session_id;
 

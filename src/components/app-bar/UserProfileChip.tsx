@@ -40,7 +40,10 @@ import { Skeleton } from '~/components/ui/skeleton';
 import { GoogleIcon } from '~/components/icons';
 import Icon from '~/tools/Icon';
 import { signIn, signOut, useSession } from '~/lib/auth-client';
+import type { GuestAuthPromptTrigger } from '~/lib/guest_auth_prompt';
 import { cn } from '~/lib/utils';
+import { useGuestAuthPrompt } from '~/components/app-bar/useGuestAuthPrompt';
+import chipStyles from '~/components/app-bar/user-profile-chip.module.css';
 
 const chipButtonClass =
   'relative size-8 shrink-0 overflow-hidden rounded-full border-slate-300/60 bg-white/80 p-0 shadow-sm backdrop-blur-sm transition-all duration-200 hover:scale-105 hover:bg-slate-100/80 aria-expanded:bg-slate-100/80 active:scale-95 dark:border-slate-600/60 dark:bg-slate-800/80 dark:hover:bg-slate-700/80 dark:aria-expanded:bg-slate-700/80';
@@ -78,14 +81,14 @@ export function UserProfileChip({
 }) {
   const { data: session, isPending } = useSession();
   const user = session?.user;
-  const [open, setOpen] = useState(false);
   const [logoutOpen, setLogoutOpen] = useState(false);
   const dashboardGame = dashboardGameId(game);
   const trpc = useTRPC();
+  const prompt = useGuestAuthPrompt(!!user, !isPending);
   const statsQuery = useQuery({
     ...trpc.user.get_dashboard.queryOptions({ game: dashboardGame }),
     // Fetch only when the popover opens. Gameplay mutations mark this stale.
-    enabled: open && !!user
+    enabled: prompt.open && !!user
   });
 
   if (isPending) {
@@ -101,8 +104,15 @@ export function UserProfileChip({
 
   return (
     <>
-      <div className="size-8 shrink-0">
-        <Popover open={open} onOpenChange={setOpen}>
+      <div
+        className={cn(
+          'size-8 shrink-0',
+          prompt.pulsing && chipStyles.pulse,
+          prompt.pulsing &&
+            (game === 'padavali' ? chipStyles.pulsePadavali : chipStyles.pulseCrossword)
+        )}
+      >
+        <Popover open={prompt.open} onOpenChange={prompt.onOpenChange}>
           <PopoverTrigger
             render={
               <Button
@@ -131,7 +141,15 @@ export function UserProfileChip({
               <User className="text-slate-600 dark:text-slate-300" />
             )}
           </PopoverTrigger>
-          <PopoverContent align="end" className={popoverClass}>
+          <PopoverContent
+            align="end"
+            className={cn(
+              popoverClass,
+              prompt.autoOpen && chipStyles.glow,
+              prompt.autoOpen &&
+                (game === 'padavali' ? chipStyles.glowPadavali : chipStyles.glowCrossword)
+            )}
+          >
             {user ? (
               <SignedInCard
                 game={game}
@@ -141,14 +159,14 @@ export function UserProfileChip({
                 stats={stats}
                 loading={statsQuery.isLoading}
                 error={statsQuery.isError}
-                onNavigate={() => setOpen(false)}
+                onNavigate={() => prompt.onOpenChange(false)}
                 onLogout={() => {
-                  setOpen(false);
+                  prompt.onOpenChange(false);
                   setLogoutOpen(true);
                 }}
               />
             ) : (
-              <GuestCard game={game} onSignedIn={() => setOpen(false)} />
+              <GuestCard game={game} trigger={prompt.trigger} onSignedIn={prompt.onSignIn} />
             )}
           </PopoverContent>
         </Popover>
@@ -173,13 +191,29 @@ export function UserProfileChip({
   );
 }
 
+function guestCopy(trigger: GuestAuthPromptTrigger | null) {
+  if (trigger === 'play_start' || trigger === 'complete') {
+    return {
+      title: 'Save this score',
+      description: 'Continue with Google to keep this score and unlock more features.'
+    };
+  }
+  return {
+    title: 'Save your progress',
+    description: 'Continue with Google to keep scores and unlock more features.'
+  };
+}
+
 function GuestCard({
   game,
+  trigger,
   onSignedIn
 }: {
   game: 'padavali' | 'crossword';
+  trigger: GuestAuthPromptTrigger | null;
   onSignedIn: () => void;
 }) {
+  const copy = guestCopy(trigger);
   return (
     <div className="flex flex-col items-center gap-4 p-5 text-center">
       <div
@@ -193,10 +227,8 @@ function GuestCard({
         <User className="size-5" />
       </div>
       <PopoverHeader className="items-center gap-1">
-        <PopoverTitle className="text-base">Save your progress</PopoverTitle>
-        <PopoverDescription>
-          Continue with Google to keep scores and unlock more features.
-        </PopoverDescription>
+        <PopoverTitle className="text-base">{copy.title}</PopoverTitle>
+        <PopoverDescription>{copy.description}</PopoverDescription>
       </PopoverHeader>
       <Button
         variant="outline"

@@ -1,0 +1,49 @@
+.pulse {
+  border-radius: 9999px;
+  animation: guestAuthChipPulse 0.45s ease-in-out 2;
+  transform-origin: center;
+}
+
+.pulsePadavali,
+.glowPadavali {
+  --guest-auth-pulse: rgb(59 130 246 / 0.45);
+}
+
+.pulseCrossword,
+.glowCrossword {
+  --guest-auth-pulse: rgb(245 158 11 / 0.5);
+}
+
+.glow {
+  animation: guestAuthPopoverGlow 0.8s ease-out;
+}
+
+@keyframes guestAuthChipPulse {
+  0%,
+  100% {
+    box-shadow: 0 0 0 0 var(--guest-auth-pulse);
+    transform: scale(1);
+  }
+  50% {
+    box-shadow: 0 0 0 8px transparent;
+    transform: scale(1.08);
+  }
+}
+
+@keyframes guestAuthPopoverGlow {
+  from {
+    box-shadow:
+      0 0 0 4px var(--guest-auth-pulse),
+      0 25px 50px -12px rgb(0 0 0 / 0.25);
+  }
+  to {
+    box-shadow: 0 25px 50px -12px rgb(0 0 0 / 0.25);
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .pulse,
+  .glow {
+    animation: none;
+  }
+}

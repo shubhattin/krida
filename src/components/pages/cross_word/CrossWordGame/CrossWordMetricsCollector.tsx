@@ -10,6 +10,7 @@ import { canSubmitPlayMetrics, playMetricsToken, usePlayAuth } from '~/lib/play_
 import type { location_list_type } from '~/db/types';
 import TurnstileWidget from '~/components/Turnstile';
 import { load_posthog } from '~/components/tags/PosthogInit';
+import { requestGuestAuthPrompt } from '~/lib/guest_auth_prompt';
 import { isFixedCell } from '~/util/cross_word/game_model';
 import {
   active_crossword_id_atom,
@@ -70,6 +71,8 @@ export default function CrossWordMetricsCollector({
   /** Nonce for which start was already attempted — never cleared on error. */
   const startAttemptedForNonceRef = useRef<number | null>(null);
   const statsSubmittedForNonceRef = useRef<number | null>(null);
+  const guestStartPromptedForNonceRef = useRef<number | null>(null);
+  const guestCompletePromptedForNonceRef = useRef<number | null>(null);
   const clientPlayIdRef = useRef(crypto.randomUUID());
   const turnstile = useTurnstile();
   const turnstileRef = useRef(turnstile);
@@ -141,6 +144,8 @@ export default function CrossWordMetricsCollector({
 
     startAttemptedForNonceRef.current = null;
     statsSubmittedForNonceRef.current = null;
+    guestStartPromptedForNonceRef.current = null;
+    guestCompletePromptedForNonceRef.current = null;
     clientPlayIdRef.current = crypto.randomUUID();
     setTurnstileToken(null);
     resetGamesStarted();
@@ -166,6 +171,30 @@ export default function CrossWordMetricsCollector({
     if (!canSubmitPlayMetrics(authReady, isAuthed, turnstileToken)) return;
     reportGameplayStarted(playMetricsToken(isAuthed, turnstileToken));
   }, [started, completed, authReady, isAuthed, turnstileToken]);
+
+  const promptGuestOnStart = useEffectEvent(() => {
+    requestGuestAuthPrompt('play_start');
+  });
+
+  useEffect(() => {
+    if (!authReady || isAuthed) return;
+    if (!started || completed) return;
+    if (guestStartPromptedForNonceRef.current === gameSessionNonce) return;
+    guestStartPromptedForNonceRef.current = gameSessionNonce;
+    promptGuestOnStart();
+  }, [authReady, isAuthed, started, completed, gameSessionNonce]);
+
+  const promptGuestOnComplete = useEffectEvent(() => {
+    requestGuestAuthPrompt('complete');
+  });
+
+  useEffect(() => {
+    if (!authReady || isAuthed) return;
+    if (!completed) return;
+    if (guestCompletePromptedForNonceRef.current === gameSessionNonce) return;
+    guestCompletePromptedForNonceRef.current = gameSessionNonce;
+    promptGuestOnComplete();
+  }, [authReady, isAuthed, completed, gameSessionNonce]);
 
   const reportGameplayCompleted = useEffectEvent((token: string | null) => {
     if (statsSubmittedForNonceRef.current === gameSessionNonce) return;
