@@ -14,6 +14,7 @@ import {
 import type { location_list_type } from '../types';
 import { type ScriptType } from '~/state/script_list';
 import { image_assets, attachment_type_enum } from './common_schema';
+import { relations } from 'drizzle-orm';
 
 export const padavali_puzzles = pgTable(
   'padavali_puzzles',
@@ -85,11 +86,18 @@ export const padavali_sessions = pgTable(
     created_at: timestamp({ withTimezone: true }).notNull().defaultNow(),
     practice_mode: boolean().notNull().default(false),
     location: varchar({ length: 25 }).$type<location_list_type>(),
-    script: text().$type<ScriptType>()
+    script: text().$type<ScriptType>(),
     // as the script field was added late, we have handle it accordingly in th code
+    /** Better Auth user id; null for anonymous plays */
+    user_id: text(),
+    /** Display-name snapshot at play time (auth lives on a separate service) */
+    user_name: text()
   },
   (table) => [
-    index('padavali_sessions_puzzle_id_created_at_idx').on(table.puzzle_id, table.created_at)
+    index('padavali_sessions_puzzle_id_created_at_idx').on(table.puzzle_id, table.created_at),
+    index('padavali_sessions_user_id_created_at_idx').on(table.user_id, table.created_at),
+    index('padavali_sessions_user_id_puzzle_id_idx').on(table.user_id, table.puzzle_id),
+    index('padavali_sessions_puzzle_id_user_id_idx').on(table.puzzle_id, table.user_id)
   ]
 );
 
@@ -136,3 +144,63 @@ export const padavali_schedules = pgTable(
     index('padavali_schedules_created_at_idx').on(table.created_at)
   ]
 );
+
+/* Relations */
+
+export const padavali_puzzlesRelations = relations(padavali_puzzles, ({ many, one }) => ({
+  stats: many(padavali_gameplay_stats),
+  schedules: many(padavali_schedules),
+  sessions: many(padavali_sessions),
+  attachments: many(padavali_attachments),
+  image: one(image_assets, {
+    fields: [padavali_puzzles.image_id],
+    references: [image_assets.id]
+  }),
+  redirects: many(padavali_redirects)
+}));
+
+export const padavali_puzzle_redirectsRelations = relations(padavali_redirects, ({ one }) => ({
+  puzzle: one(padavali_puzzles, {
+    fields: [padavali_redirects.puzzle_id],
+    references: [padavali_puzzles.id]
+  })
+}));
+
+export const padavali_puzzle_attachmentsRelations = relations(padavali_attachments, ({ one }) => ({
+  puzzle: one(padavali_puzzles, {
+    fields: [padavali_attachments.puzzle_id],
+    references: [padavali_puzzles.id]
+  })
+}));
+
+export const padavali_puzzle_gameplay_sessionsRelations = relations(
+  padavali_sessions,
+  ({ one }) => ({
+    puzzle: one(padavali_puzzles, {
+      fields: [padavali_sessions.puzzle_id],
+      references: [padavali_puzzles.id]
+    }),
+    stats: one(padavali_gameplay_stats)
+  })
+);
+
+export const padavali_puzzle_gameplay_statsRelations = relations(
+  padavali_gameplay_stats,
+  ({ one }) => ({
+    puzzle: one(padavali_puzzles, {
+      fields: [padavali_gameplay_stats.puzzle_id],
+      references: [padavali_puzzles.id]
+    }),
+    session: one(padavali_sessions, {
+      fields: [padavali_gameplay_stats.session_id],
+      references: [padavali_sessions.id]
+    })
+  })
+);
+
+export const padavali_puzzle_game_schedulesRelations = relations(padavali_schedules, ({ one }) => ({
+  puzzle: one(padavali_puzzles, {
+    fields: [padavali_schedules.puzzle_id],
+    references: [padavali_puzzles.id]
+  })
+}));

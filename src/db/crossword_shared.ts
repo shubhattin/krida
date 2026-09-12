@@ -64,7 +64,7 @@ export const crossword_update_slug_input_schema = z.object({
 });
 
 export const crossword_submit_stats_input_schema = z.object({
-  turnstile_token: z.string(),
+  turnstile_token: z.string().min(1).nullable().optional(),
   info: z
     .object({
       puzzle_id: z.number().int().positive(),
@@ -88,7 +88,7 @@ export const crossword_submit_stats_input_schema = z.object({
 });
 
 export const crossword_update_games_started_input_schema = z.object({
-  turnstile_token: z.string(),
+  turnstile_token: z.string().min(1).nullable().optional(),
   id: z.number().int(),
   location: location_list_enum,
   /** Stable per browser play attempt — dedupes spammy start calls. */

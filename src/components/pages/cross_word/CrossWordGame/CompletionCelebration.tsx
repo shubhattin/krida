@@ -284,7 +284,7 @@ export function CompletionCelebration({
                 {isPerfect ? '⭐ Perfect Score!' : 'Puzzle Complete!'}
               </p>
               <p className="text-sm text-muted-foreground">
-                Finished in {formatElapsed(seconds)} ·{' '}
+                Completed in {formatElapsed(seconds)} ·{' '}
                 <span
                   className={cn(isPerfect && 'font-semibold text-yellow-600 dark:text-yellow-300')}
                 >

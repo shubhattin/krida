@@ -23,19 +23,14 @@ import {
   UsersIcon,
   ClockIcon,
   CheckCircle2Icon,
-  CrosshairIcon,
-  TrophyIcon
+  CrosshairIcon
 } from 'lucide-react';
 import { cn } from '~/lib/utils';
 import { format, parseISO, subMonths, subWeeks, startOfDay, endOfDay } from 'date-fns';
 import pretty_ms from 'pretty-ms';
 import CrosswordPuzzleSelector, { type SelectedPuzzle } from './-CrosswordPuzzleSelector';
-import {
-  Accordion,
-  AccordionContent,
-  AccordionItem,
-  AccordionTrigger
-} from '~/components/ui/accordion';
+import { UserSelector, type SelectedUser } from '~/components/analytics/UserSelector';
+import { TopPlayedLeader } from '~/components/analytics/TopPlayedLeader';
 
 type DateRange = {
   from: Date | undefined;
@@ -381,10 +376,20 @@ function statsRangeEnabled(allTime: boolean, range: ResolvedRange): boolean {
   return allTime || !!(range?.from && range?.to);
 }
 
-function selectionLabel(selectedPuzzles: SelectedPuzzle[]): string {
-  if (selectedPuzzles.length === 0) return 'Analytics across all puzzles';
-  if (selectedPuzzles.length === 1) return `Analytics for ${selectedPuzzles[0].title}`;
-  return `Analytics for ${selectedPuzzles.length} selected puzzles`;
+function selectionLabel(selectedPuzzles: SelectedPuzzle[], selectedUsers: SelectedUser[]): string {
+  const puzzlePart =
+    selectedPuzzles.length === 0
+      ? 'all puzzles'
+      : selectedPuzzles.length === 1
+        ? selectedPuzzles[0]!.title
+        : `${selectedPuzzles.length} puzzles`;
+  const userPart =
+    selectedUsers.length === 0
+      ? 'all users'
+      : selectedUsers.length === 1
+        ? selectedUsers[0]!.name
+        : `${selectedUsers.length} users`;
+  return `Analytics for ${puzzlePart} · ${userPart}`;
 }
 
 type DailyBucketTotals = {
@@ -542,6 +547,7 @@ const PuzzleStats = ({ puzzleId, puzzleTitle }: PuzzleStatsProps) => {
   const [selectedPuzzles, setSelectedPuzzles] = useState<SelectedPuzzle[]>(() =>
     initialSelectedPuzzles(puzzleId, puzzleTitle)
   );
+  const [selectedUsers, setSelectedUsers] = useState<SelectedUser[]>([]);
   const [dateRange, setDateRange] = useState<DateRange>(defaultDateRange);
 
   const effectiveDateRange = useMemo(
@@ -550,6 +556,7 @@ const PuzzleStats = ({ puzzleId, puzzleTitle }: PuzzleStatsProps) => {
   );
 
   const puzzleIds = selectedPuzzles.length > 0 ? selectedPuzzles.map((p) => p.id) : undefined;
+  const userIds = selectedUsers.length > 0 ? selectedUsers.map((user) => user.id) : undefined;
   const allTime = period === 'all_time';
 
   const statsQueryEnabled = statsRangeEnabled(allTime, effectiveDateRange);
@@ -560,6 +567,7 @@ const PuzzleStats = ({ puzzleId, puzzleTitle }: PuzzleStatsProps) => {
     trpc.crossword.stats.get_stats_data.queryOptions(
       {
         puzzle_ids: puzzleIds,
+        user_ids: userIds,
         all_time: allTime,
         start_date: effectiveDateRange?.from,
         end_date: effectiveDateRange?.to
@@ -584,6 +592,21 @@ const PuzzleStats = ({ puzzleId, puzzleTitle }: PuzzleStatsProps) => {
     )
   );
 
+  const topUsersQuery = useQuery(
+    trpc.crossword.stats.get_top_users.queryOptions(
+      {
+        all_time: allTime,
+        start_date: effectiveDateRange?.from,
+        end_date: effectiveDateRange?.to,
+        limit: 10,
+        puzzle_ids: puzzleIds
+      },
+      {
+        enabled: !isEmbedded && statsQueryEnabled
+      }
+    )
+  );
+
   const filteredStatsData = statsQuery.data ?? null;
 
   // Process data for charts
@@ -599,7 +622,9 @@ const PuzzleStats = ({ puzzleId, puzzleTitle }: PuzzleStatsProps) => {
       <div className="flex flex-col gap-2 sm:flex-row sm:items-start sm:justify-between">
         <div className="min-w-0">
           <h2 className="text-xl font-bold tracking-tight">Puzzle Statistics</h2>
-          <p className="text-sm text-muted-foreground">{selectionLabel(selectedPuzzles)}</p>
+          <p className="text-sm text-muted-foreground">
+            {selectionLabel(selectedPuzzles, selectedUsers)}
+          </p>
         </div>
         <StatsFilterControls period={period} setPeriod={setPeriod} />
       </div>
@@ -609,36 +634,93 @@ const PuzzleStats = ({ puzzleId, puzzleTitle }: PuzzleStatsProps) => {
         onSelectedPuzzlesChange={setSelectedPuzzles}
         locked={isEmbedded}
       />
+      <UserSelector
+        game="padajala"
+        selectedUsers={selectedUsers}
+        onSelectedUsersChange={setSelectedUsers}
+      />
 
       {period === 'custom' && (
         <CustomDateRangeRow dateRange={dateRange} setDateRange={setDateRange} />
       )}
-      {statsQuery.isLoading && <StatsLoadingSkeleton />}
-      {statsQuery.isError && (
+      <StatsQueryPanel
+        isEmbedded={isEmbedded}
+        isLoading={statsQuery.isLoading}
+        isError={statsQuery.isError}
+        isSuccess={statsQuery.isSuccess}
+        topPuzzles={topPuzzlesQuery.data?.puzzles ?? []}
+        topPuzzlesLoading={topPuzzlesQuery.isLoading}
+        topUsers={topUsersQuery.data?.users ?? []}
+        topUsersLoading={topUsersQuery.isLoading}
+        summaryStats={summaryStats}
+        chartData={chartData}
+        chartType={chartType}
+        setChartType={setChartType}
+      />
+    </div>
+  );
+};
+
+type StatsQueryPanelProps = {
+  isEmbedded: boolean;
+  isLoading: boolean;
+  isError: boolean;
+  isSuccess: boolean;
+  topPuzzles: TopPuzzleRow[];
+  topPuzzlesLoading: boolean;
+  topUsers: TopUserRow[];
+  topUsersLoading: boolean;
+  summaryStats: ReturnType<typeof computeSummaryStats>;
+  chartData: ChartDataType;
+  chartType: ChartType;
+  setChartType: (chartType: ChartType) => void;
+};
+
+function StatsQueryPanel({
+  isEmbedded,
+  isLoading,
+  isError,
+  isSuccess,
+  topPuzzles,
+  topPuzzlesLoading,
+  topUsers,
+  topUsersLoading,
+  summaryStats,
+  chartData,
+  chartType,
+  setChartType
+}: StatsQueryPanelProps) {
+  return (
+    <>
+      {isLoading ? <StatsLoadingSkeleton /> : null}
+      {isError ? (
         <div className="py-8 text-center">
           <div className="text-destructive">Failed to load statistics</div>
         </div>
-      )}
-      {/* Stats Content */}
-      {!statsQuery.isLoading && statsQuery.isSuccess && (
+      ) : null}
+      {isSuccess ? (
         <StatsContentBody
           isEmbedded={isEmbedded}
-          topPuzzles={topPuzzlesQuery.data?.puzzles ?? []}
-          topPuzzlesLoading={topPuzzlesQuery.isLoading}
+          topPuzzles={topPuzzles}
+          topPuzzlesLoading={topPuzzlesLoading}
+          topUsers={topUsers}
+          topUsersLoading={topUsersLoading}
           summaryStats={summaryStats}
           chartData={chartData}
           chartType={chartType}
           setChartType={setChartType}
         />
-      )}
-    </div>
+      ) : null}
+    </>
   );
-};
+}
 
 type StatsContentBodyProps = {
   isEmbedded: boolean;
   topPuzzles: TopPuzzleRow[];
   topPuzzlesLoading: boolean;
+  topUsers: TopUserRow[];
+  topUsersLoading: boolean;
   summaryStats: ReturnType<typeof computeSummaryStats>;
   chartData: ChartDataType;
   chartType: ChartType;
@@ -649,6 +731,8 @@ const StatsContentBody = ({
   isEmbedded,
   topPuzzles,
   topPuzzlesLoading,
+  topUsers,
+  topUsersLoading,
   summaryStats,
   chartData,
   chartType,
@@ -658,7 +742,38 @@ const StatsContentBody = ({
 
   return (
     <>
-      {!isEmbedded && <TopPuzzlesLeader puzzles={topPuzzles} isLoading={topPuzzlesLoading} />}
+      {!isEmbedded && (
+        <div className="flex flex-col gap-3">
+          <TopPlayedLeader
+            variant="puzzles"
+            accordionValue="top-puzzles"
+            title="Top Played Puzzles"
+            subtitle="Top 10 by plays"
+            emptyMessage="No puzzle plays in this period"
+            isLoading={topPuzzlesLoading}
+            items={topPuzzles.map((puzzle) => ({
+              id: String(puzzle.puzzle_id),
+              title: puzzle.title,
+              started: puzzle.started,
+              completed: puzzle.completed
+            }))}
+          />
+          <TopPlayedLeader
+            variant="users"
+            accordionValue="top-users"
+            title="Top Players"
+            subtitle="Top 10 by plays"
+            emptyMessage="No signed-in plays in this period"
+            isLoading={topUsersLoading}
+            items={topUsers.map((user) => ({
+              id: user.user_id,
+              title: user.name,
+              started: user.started,
+              completed: user.completed
+            }))}
+          />
+        </div>
+      )}
       {/* Summary Cards */}
       <SummaryCards summaryStats={summaryStats} />
 
@@ -680,9 +795,6 @@ const StatsContentBody = ({
 
 export default PuzzleStats;
 
-const STARTED_BAR_COLOR = 'hsl(210, 100%, 45%)';
-const COMPLETED_BAR_COLOR = 'hsl(140, 70%, 40%)';
-
 type TopPuzzleRow = {
   puzzle_id: number;
   title: string;
@@ -690,112 +802,11 @@ type TopPuzzleRow = {
   completed: number;
 };
 
-const TopPuzzlesLeader = ({
-  puzzles,
-  isLoading
-}: {
-  puzzles: TopPuzzleRow[];
-  isLoading: boolean;
-}) => {
-  const maxStarted = puzzles.reduce((max, p) => Math.max(max, p.started), 0);
-
-  return (
-    <Accordion defaultValue={[]} className="w-full">
-      <AccordionItem
-        value="top-puzzles"
-        className="overflow-hidden rounded-xl border border-slate-200/50 bg-linear-to-br from-white/80 to-slate-50/40 dark:border-slate-700/50 dark:from-slate-900/80 dark:to-slate-800/40"
-      >
-        <AccordionTrigger className="px-4 py-3 hover:no-underline">
-          <div className="flex items-center gap-2.5">
-            <div className="flex size-8 shrink-0 items-center justify-center rounded-lg bg-amber-500/10 ring-1 ring-black/5 ring-inset dark:ring-white/10">
-              <TrophyIcon className="size-3.5 text-amber-600 dark:text-amber-400" />
-            </div>
-            <div className="min-w-0 text-left">
-              <p className="text-sm font-semibold tracking-tight">Top Played Puzzles</p>
-              <p className="text-xs font-normal text-muted-foreground">Top 10 by plays</p>
-            </div>
-          </div>
-        </AccordionTrigger>
-        <AccordionContent className="px-4 pb-4">
-          {isLoading ? (
-            <div className="grid grid-cols-1 gap-3 sm:grid-cols-2">
-              {Array.from({ length: 4 }).map((_, i) => (
-                <Skeleton key={i} className="h-16 w-full" />
-              ))}
-            </div>
-          ) : puzzles.length === 0 ? (
-            <p className="py-2 text-center text-sm text-muted-foreground">
-              No puzzle plays in this period
-            </p>
-          ) : (
-            <div className="space-y-3">
-              <div className="flex items-center gap-3 text-[0.65rem] text-muted-foreground">
-                <span className="inline-flex items-center gap-1">
-                  <span
-                    className="size-1.5 rounded-full"
-                    style={{ backgroundColor: STARTED_BAR_COLOR }}
-                  />
-                  Started
-                </span>
-                <span className="inline-flex items-center gap-1">
-                  <span
-                    className="size-1.5 rounded-full"
-                    style={{ backgroundColor: COMPLETED_BAR_COLOR }}
-                  />
-                  Completed
-                </span>
-              </div>
-              <div className="grid grid-cols-1 gap-3 sm:grid-cols-2">
-                {puzzles.map((puzzle, index) => {
-                  const barWidthPct = maxStarted > 0 ? (puzzle.started / maxStarted) * 100 : 0;
-                  const completedPct =
-                    puzzle.started > 0
-                      ? Math.min(100, (puzzle.completed / puzzle.started) * 100)
-                      : 0;
-
-                  return (
-                    <div
-                      key={puzzle.puzzle_id}
-                      className="min-w-0 space-y-1.5 rounded-lg border border-slate-200/40 bg-white/50 px-3 py-2.5 dark:border-slate-700/40 dark:bg-slate-950/30"
-                    >
-                      <div className="flex items-baseline justify-between gap-2">
-                        <p className="min-w-0 truncate text-sm font-medium">
-                          <span className="mr-1.5 text-muted-foreground tabular-nums">
-                            #{index + 1}
-                          </span>
-                          {puzzle.title}
-                        </p>
-                        <p className="shrink-0 text-[0.7rem] text-muted-foreground tabular-nums">
-                          {puzzle.completed}/{puzzle.started}
-                        </p>
-                      </div>
-                      <div className="h-2 w-full overflow-hidden rounded-full bg-muted/60">
-                        <div
-                          className="relative h-full overflow-hidden rounded-full transition-[width] duration-300"
-                          style={{
-                            width: `${barWidthPct}%`,
-                            backgroundColor: STARTED_BAR_COLOR
-                          }}
-                        >
-                          <div
-                            className="absolute inset-y-0 left-0 rounded-full transition-[width] duration-300"
-                            style={{
-                              width: `${completedPct}%`,
-                              backgroundColor: COMPLETED_BAR_COLOR
-                            }}
-                          />
-                        </div>
-                      </div>
-                    </div>
-                  );
-                })}
-              </div>
-            </div>
-          )}
-        </AccordionContent>
-      </AccordionItem>
-    </Accordion>
-  );
+type TopUserRow = {
+  user_id: string;
+  name: string;
+  started: number;
+  completed: number;
 };
 
 // Charts section component

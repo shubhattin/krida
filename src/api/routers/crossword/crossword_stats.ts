@@ -1,14 +1,21 @@
 import { Effect } from 'effect';
-import {
-  protectedAdminProcedure,
-  publicProcedure,
-  t,
-  verify_cloudflare_turnstile_token
-} from '../../trpc_init';
-import { z } from 'zod';
+import { protectedAdminProcedure, publicProcedure, t } from '../../trpc_init';
 import { crossword_sessions, crossword_gameplay_stats, crossword_puzzles } from '~/db/schema';
 import { dbRunHttp } from '~/effect/database';
-import { and, count, desc, eq, gte, inArray, lte } from 'drizzle-orm';
+import {
+  and,
+  count,
+  desc,
+  eq,
+  gte,
+  ilike,
+  inArray,
+  isNotNull,
+  lte,
+  max,
+  or,
+  sql
+} from 'drizzle-orm';
 import {
   crossword_submit_stats_input_schema,
   crossword_update_games_started_input_schema
@@ -21,25 +28,23 @@ import {
   completePlaySession,
   releasePlaySessionClaim
 } from '~/api/stats_play_guard';
-
-const verifyTurnstile = Effect.fn('crosswordStats.verifyTurnstile')(function* (token: string) {
-  const is_valid = yield* verify_cloudflare_turnstile_token(token);
-  if (!is_valid) {
-    return yield* Effect.fail(
-      BadRequestError.make({
-        message: 'Invalid turnstile token'
-      })
-    );
-  }
-});
+import { displayUserName, sessionUserFields } from '~/api/session_user';
+import { requireTurnstileIfGuest } from '~/api/turnstile_guard';
+import {
+  get_stats_data_input_schema,
+  get_top_puzzles_input_schema,
+  get_top_users_input_schema,
+  get_user_list_input_schema
+} from '~/api/stats_query_schema';
+import { escapeIlikeToken } from '~/util/puzzle/search';
 
 const submit_stats_route = publicProcedure
   .input(crossword_submit_stats_input_schema)
-  .mutation(({ input }) =>
+  .mutation(({ input, ctx }) =>
     runTrpcEffect(
       Effect.gen(function* () {
         const { turnstile_token, info } = input;
-        yield* verifyTurnstile(turnstile_token);
+        yield* requireTurnstileIfGuest(turnstile_token, ctx.user);
 
         const {
           puzzle_id,
@@ -92,7 +97,7 @@ const submit_stats_route = publicProcedure
 
 const update_games_started_route = publicProcedure
   .input(crossword_update_games_started_input_schema)
-  .mutation(({ input: { turnstile_token, id, location, client_play_id } }) =>
+  .mutation(({ input: { turnstile_token, id, location, client_play_id }, ctx }) =>
     runTrpcEffect(
       Effect.gen(function* () {
         const claim = yield* claimPlaySession('crossword', client_play_id);
@@ -100,16 +105,19 @@ const update_games_started_route = publicProcedure
           return { success: true, session_id: claim.sessionId };
         }
 
-        yield* verifyTurnstile(turnstile_token).pipe(
+        yield* requireTurnstileIfGuest(turnstile_token, ctx.user).pipe(
           Effect.tapError(() => releasePlaySessionClaim('crossword', client_play_id))
         );
 
+        const userFields = sessionUserFields(ctx.user);
         const inserted_sessions = yield* dbRunHttp('crossword_stats.create_session', (client) =>
           client
             .insert(crossword_sessions)
             .values({
               puzzle_id: id,
-              location
+              location,
+              user_id: userFields.user_id,
+              user_name: userFields.user_name
             })
             .returning()
         ).pipe(Effect.tapError(() => releasePlaySessionClaim('crossword', client_play_id)));
@@ -129,47 +137,29 @@ const update_games_started_route = publicProcedure
     )
   );
 
-const get_stats_data_input_schema = z
-  .object({
-    puzzle_ids: z.array(z.number().int()).optional(),
-    all_time: z.boolean(),
-    start_date: z.date().optional(),
-    end_date: z.date().optional()
-  })
-  .superRefine((data, ctx) => {
-    if (!data.all_time && (!data.start_date || !data.end_date)) {
-      ctx.addIssue({
-        code: 'custom',
-        message: 'start_date and end_date are required when all_time is false',
-        path: ['start_date']
-      });
-    }
-    if (!data.all_time && data.start_date && data.end_date && data.start_date > data.end_date) {
-      ctx.addIssue({
-        code: 'custom',
-        message: 'start_date must be before end_date',
-        path: ['end_date']
-      });
-    }
-  });
-
 const get_stats_data_route = protectedAdminProcedure
   .input(get_stats_data_input_schema)
-  .query(({ input: { puzzle_ids, all_time, start_date, end_date } }) =>
+  .query(({ input: { puzzle_ids, user_ids, all_time, start_date, end_date } }) =>
     runTrpcEffect(
       Effect.gen(function* () {
+        const selectedUserIds = user_ids ?? [];
+        const filterByUsers = selectedUserIds.length > 0;
         const { sessions, stats, puzzles } = yield* Effect.all({
           sessions: dbRunHttp('crossword_stats.list_sessions', (client) =>
             client.query.crossword_sessions.findMany({
               columns: {
                 id: true,
                 created_at: true,
-                location: true
+                location: true,
+                user_id: true
               },
               where: (tbl, { and: andFn, gte: gteFn, lte: lteFn, inArray: inArrayFn }) => {
                 const conditions = [];
                 if (puzzle_ids && puzzle_ids.length > 0) {
                   conditions.push(inArrayFn(tbl.puzzle_id, puzzle_ids));
+                }
+                if (filterByUsers) {
+                  conditions.push(inArrayFn(tbl.user_id, selectedUserIds));
                 }
                 if (!all_time && start_date && end_date) {
                   conditions.push(gteFn(tbl.created_at, start_date));
@@ -179,8 +169,38 @@ const get_stats_data_route = protectedAdminProcedure
               }
             })
           ),
-          stats: dbRunHttp('crossword_stats.list_gameplay_stats', (client) =>
-            client.query.crossword_gameplay_stats.findMany({
+          stats: dbRunHttp('crossword_stats.list_gameplay_stats', async (client) => {
+            if (filterByUsers) {
+              const conditions = [inArray(crossword_sessions.user_id, selectedUserIds)];
+              if (puzzle_ids && puzzle_ids.length > 0) {
+                conditions.push(inArray(crossword_gameplay_stats.puzzle_id, puzzle_ids));
+              }
+              if (!all_time && start_date && end_date) {
+                conditions.push(gte(crossword_gameplay_stats.created_at, start_date));
+                conditions.push(lte(crossword_gameplay_stats.created_at, end_date));
+              }
+              return client
+                .select({
+                  id: crossword_gameplay_stats.id,
+                  created_at: crossword_gameplay_stats.created_at,
+                  session_id: crossword_gameplay_stats.session_id,
+                  time_taken: crossword_gameplay_stats.time_taken,
+                  accuracy: crossword_gameplay_stats.accuracy,
+                  total_entries: crossword_gameplay_stats.total_entries,
+                  total_cells: crossword_gameplay_stats.total_cells,
+                  prefilled_cells: crossword_gameplay_stats.prefilled_cells,
+                  letter_inputs: crossword_gameplay_stats.letter_inputs,
+                  incorrect_entry_attempts: crossword_gameplay_stats.incorrect_entry_attempts
+                })
+                .from(crossword_gameplay_stats)
+                .innerJoin(
+                  crossword_sessions,
+                  eq(crossword_gameplay_stats.session_id, crossword_sessions.id)
+                )
+                .where(and(...conditions));
+            }
+
+            return client.query.crossword_gameplay_stats.findMany({
               columns: {
                 id: true,
                 created_at: true,
@@ -204,8 +224,8 @@ const get_stats_data_route = protectedAdminProcedure
                 }
                 return conditions.length > 0 ? andFn(...conditions) : undefined;
               }
-            })
-          ),
+            });
+          }),
           puzzles: dbRunHttp('crossword_stats.list_puzzles_for_word_count', (client) =>
             client.query.crossword_puzzles.findMany({
               columns: { word_list: true },
@@ -226,30 +246,6 @@ const get_stats_data_route = protectedAdminProcedure
       })
     )
   );
-
-const get_top_puzzles_input_schema = z
-  .object({
-    all_time: z.boolean(),
-    start_date: z.date().optional(),
-    end_date: z.date().optional(),
-    limit: z.number().int().min(1).max(50).default(10)
-  })
-  .superRefine((data, ctx) => {
-    if (!data.all_time && (!data.start_date || !data.end_date)) {
-      ctx.addIssue({
-        code: 'custom',
-        message: 'start_date and end_date are required when all_time is false',
-        path: ['start_date']
-      });
-    }
-    if (!data.all_time && data.start_date && data.end_date && data.start_date > data.end_date) {
-      ctx.addIssue({
-        code: 'custom',
-        message: 'start_date must be before end_date',
-        path: ['end_date']
-      });
-    }
-  });
 
 const get_top_puzzles_route = protectedAdminProcedure
   .input(get_top_puzzles_input_schema)
@@ -334,9 +330,168 @@ const get_top_puzzles_route = protectedAdminProcedure
     )
   );
 
+const get_top_users_route = protectedAdminProcedure
+  .input(get_top_users_input_schema)
+  .query(({ input: { all_time, start_date, end_date, limit, puzzle_ids } }) =>
+    runTrpcEffect(
+      Effect.gen(function* () {
+        const conditions = [isNotNull(crossword_sessions.user_id)];
+        if (!all_time && start_date && end_date) {
+          conditions.push(gte(crossword_sessions.created_at, start_date));
+          conditions.push(lte(crossword_sessions.created_at, end_date));
+        }
+        if (puzzle_ids && puzzle_ids.length > 0) {
+          conditions.push(inArray(crossword_sessions.puzzle_id, puzzle_ids));
+        }
+
+        const topSessions = yield* dbRunHttp('crossword_stats.get_top_users', (client) =>
+          client
+            .select({
+              user_id: crossword_sessions.user_id,
+              name: max(crossword_sessions.user_name),
+              started: count()
+            })
+            .from(crossword_sessions)
+            .where(and(...conditions))
+            .groupBy(crossword_sessions.user_id)
+            .orderBy(desc(count()))
+            .limit(limit)
+        );
+
+        const users = topSessions.flatMap((row) => {
+          if (!row.user_id) return [];
+          return [
+            {
+              user_id: row.user_id,
+              name: displayUserName(row.user_id, row.name),
+              started: Number(row.started),
+              completed: 0
+            }
+          ];
+        });
+
+        if (users.length === 0) {
+          return { users };
+        }
+
+        const userIds = users.map((row) => row.user_id);
+        const statsConditions = [inArray(crossword_sessions.user_id, userIds)];
+        if (!all_time && start_date && end_date) {
+          statsConditions.push(gte(crossword_gameplay_stats.created_at, start_date));
+          statsConditions.push(lte(crossword_gameplay_stats.created_at, end_date));
+        }
+        if (puzzle_ids && puzzle_ids.length > 0) {
+          statsConditions.push(inArray(crossword_gameplay_stats.puzzle_id, puzzle_ids));
+        }
+
+        const completionRows = yield* dbRunHttp(
+          'crossword_stats.get_top_user_completions',
+          (client) =>
+            client
+              .select({
+                user_id: crossword_sessions.user_id,
+                completed: count()
+              })
+              .from(crossword_gameplay_stats)
+              .innerJoin(
+                crossword_sessions,
+                eq(crossword_gameplay_stats.session_id, crossword_sessions.id)
+              )
+              .where(and(...statsConditions))
+              .groupBy(crossword_sessions.user_id)
+        );
+
+        const completedByUser = new Map(
+          completionRows.flatMap((row) =>
+            row.user_id ? [[row.user_id, Number(row.completed)] as const] : []
+          )
+        );
+
+        return {
+          users: users.map((row) => ({
+            ...row,
+            completed: completedByUser.get(row.user_id) ?? 0
+          }))
+        };
+      })
+    )
+  );
+
+const get_user_list_page_route = protectedAdminProcedure
+  .input(get_user_list_input_schema)
+  .query(({ input: { page, size, search } }) =>
+    runTrpcEffect(
+      Effect.gen(function* () {
+        const trimmedSearch = search?.trim();
+        const conditions = [isNotNull(crossword_sessions.user_id)];
+        if (trimmedSearch) {
+          const pattern = `%${escapeIlikeToken(trimmedSearch)}%`;
+          conditions.push(
+            or(
+              ilike(crossword_sessions.user_name, pattern),
+              ilike(crossword_sessions.user_id, pattern)
+            )!
+          );
+        }
+        const whereClause = and(...conditions);
+        const offset = (page - 1) * size;
+
+        const { countResult, rows } = yield* Effect.all({
+          countResult: dbRunHttp('crossword_stats.count_users', (client) =>
+            client
+              .select({
+                count: sql<number>`cast(count(distinct ${crossword_sessions.user_id}) as int)`
+              })
+              .from(crossword_sessions)
+              .where(whereClause)
+          ),
+          rows: dbRunHttp('crossword_stats.list_users', (client) =>
+            client
+              .select({
+                user_id: crossword_sessions.user_id,
+                name: max(crossword_sessions.user_name),
+                plays: count()
+              })
+              .from(crossword_sessions)
+              .where(whereClause)
+              .groupBy(crossword_sessions.user_id)
+              .orderBy(desc(count()))
+              .limit(size)
+              .offset(offset)
+          )
+        });
+
+        const list = rows.flatMap((row) => {
+          if (!row.user_id) return [];
+          return [
+            {
+              id: row.user_id,
+              name: displayUserName(row.user_id, row.name),
+              plays: Number(row.plays)
+            }
+          ];
+        });
+
+        const total = Number(countResult[0]?.count ?? 0);
+        const pageCount = Math.max(1, Math.ceil(total / size));
+
+        return {
+          list,
+          total,
+          page,
+          pageCount,
+          hasPrev: page > 1,
+          hasNext: page < pageCount
+        };
+      })
+    )
+  );
+
 export const crossword_stats_router = t.router({
   submit_stats: submit_stats_route,
   update_games_started: update_games_started_route,
   get_stats_data: get_stats_data_route,
-  get_top_puzzles: get_top_puzzles_route
+  get_top_puzzles: get_top_puzzles_route,
+  get_top_users: get_top_users_route,
+  get_user_list_page: get_user_list_page_route
 });

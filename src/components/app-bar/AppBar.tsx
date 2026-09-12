@@ -2,6 +2,7 @@ import { Image } from '@unpic/react';
 import { Link } from '@tanstack/react-router';
 import type { ReactNode } from 'react';
 import { MenuButton } from '~/components/app-bar/AppBarMenu';
+import { UserProfileChip } from '~/components/app-bar/UserProfileChip';
 import { robotoSans } from '../fonts';
 import SupportOptions from '~/components/app-bar/SupportOptions';
 import { GAME_APP_ICON_SRC, type GameAppIconId } from '~/components/GameAppIcon';
@@ -74,8 +75,9 @@ export default function AppBar({ game, title, description, gameMenuItems }: AppB
         </Link>
 
         {/* Actions Section */}
-        <div className="flex shrink-0 items-center space-x-2">
+        <div className="flex shrink-0 items-center gap-2">
           <SupportOptions />
+          <UserProfileChip game={game} gameLabel={resolvedTitle} />
           <div className="size-8 shrink-0">
             <MenuButton showPwaControls={defaults.showPwaControls} gameMenuItems={gameMenuItems} />
           </div>

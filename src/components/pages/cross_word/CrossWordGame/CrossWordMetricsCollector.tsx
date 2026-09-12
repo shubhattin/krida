@@ -5,6 +5,8 @@ import { useEffect, useEffectEvent, useRef, useState } from 'react';
 import { useTurnstile } from 'react-turnstile';
 import { useMutation } from '@tanstack/react-query';
 import { useTRPC } from '~/api/client';
+import { useInvalidateUserDashboard } from '~/api/invalidate_user_dashboard';
+import { canSubmitPlayMetrics, playMetricsToken, usePlayAuth } from '~/lib/play_metrics_auth';
 import type { location_list_type } from '~/db/types';
 import TurnstileWidget from '~/components/Turnstile';
 import { load_posthog } from '~/components/tags/PosthogInit';
@@ -40,6 +42,9 @@ export function ActiveCrosswordRegistrar({ puzzleId }: { puzzleId: number }) {
  * Pre-eslint (#45) start effect deps omitted the mutation object. Exhaustive-deps
  * added it and caused games_started spam. Mutate stays behind useEffectEvent +
  * a per-nonce lock so status changes cannot re-fire start.
+ *
+ * Complete must depend on `gamesStartedSuccess`: signed-in players have no Turnstile
+ * token refresh to retry after start, and guests locally never get a token at all.
  */
 export default function CrossWordMetricsCollector({
   puzzle_id,
@@ -49,6 +54,7 @@ export default function CrossWordMetricsCollector({
   location: location_list_type;
 }) {
   const trpc = useTRPC();
+  const invalidateUserDashboard = useInvalidateUserDashboard();
   const [started] = useAtom(started_atom);
   const [completed] = useAtom(completed_atom);
   const [seconds] = useAtom(seconds_atom);
@@ -57,6 +63,7 @@ export default function CrossWordMetricsCollector({
   const incorrectEntryAttempts = useAtomValue(incorrect_entry_attempts_atom);
   const puzzle = useAtomValue(puzzle_atom);
   const entries = useAtomValue(numbered_entries_atom);
+  const { authReady, isAuthed } = usePlayAuth();
 
   const [turnstileToken, setTurnstileToken] = useState<string | null>(null);
   const previousGameSessionNonceRef = useRef(gameSessionNonce);
@@ -88,6 +95,7 @@ export default function CrossWordMetricsCollector({
         resetTurnstile();
         resetGamesStarted();
         resetSubmitStats();
+        invalidateUserDashboard();
       },
       onError() {
         statsSubmittedForNonceRef.current = null;
@@ -111,6 +119,7 @@ export default function CrossWordMetricsCollector({
       onSuccess() {
         setTurnstileToken(null);
         resetTurnstile();
+        invalidateUserDashboard();
         load_posthog((posthog) => {
           posthog.capture('gameplay_started', {
             puzzle_id,
@@ -139,7 +148,7 @@ export default function CrossWordMetricsCollector({
     resetTurnstile();
   }, [gameSessionNonce, resetGamesStarted, resetSubmitStats]);
 
-  const reportGameplayStarted = useEffectEvent((token: string) => {
+  const reportGameplayStarted = useEffectEvent((token: string | null) => {
     if (startAttemptedForNonceRef.current === gameSessionNonce) return;
     if (gamesStartedSuccess || gamesStartedPending) return;
 
@@ -153,12 +162,12 @@ export default function CrossWordMetricsCollector({
   });
 
   useEffect(() => {
-    if (started && !completed && turnstileToken) {
-      reportGameplayStarted(turnstileToken);
-    }
-  }, [started, turnstileToken, completed]);
+    if (!started || completed) return;
+    if (!canSubmitPlayMetrics(authReady, isAuthed, turnstileToken)) return;
+    reportGameplayStarted(playMetricsToken(isAuthed, turnstileToken));
+  }, [started, completed, authReady, isAuthed, turnstileToken]);
 
-  const reportGameplayCompleted = useEffectEvent((token: string) => {
+  const reportGameplayCompleted = useEffectEvent((token: string | null) => {
     if (statsSubmittedForNonceRef.current === gameSessionNonce) return;
     if (submitStatsPending || submitStatsSuccess) return;
     if (!gamesStartedSuccess || gamesStartedPending) return;
@@ -219,10 +228,11 @@ export default function CrossWordMetricsCollector({
   });
 
   useEffect(() => {
-    if (completed && turnstileToken) {
-      reportGameplayCompleted(turnstileToken);
-    }
-  }, [completed, turnstileToken]);
+    if (!completed || !gamesStartedSuccess) return;
+    if (!canSubmitPlayMetrics(authReady, isAuthed, turnstileToken)) return;
+    reportGameplayCompleted(playMetricsToken(isAuthed, turnstileToken));
+  }, [completed, gamesStartedSuccess, authReady, isAuthed, turnstileToken]);
 
+  if (!authReady || isAuthed) return null;
   return <TurnstileWidget setToken={setTurnstileToken} />;
 }

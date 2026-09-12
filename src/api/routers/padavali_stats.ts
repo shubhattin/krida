@@ -1,16 +1,24 @@
 import { Effect } from 'effect';
-import {
-  protectedAdminProcedure,
-  publicProcedure,
-  t,
-  verify_cloudflare_turnstile_token
-} from '../trpc_init';
+import { protectedAdminProcedure, publicProcedure, t } from '../trpc_init';
 import { z } from 'zod';
 import { padavali_sessions, padavali_gameplay_stats, padavali_puzzles } from '~/db/schema';
 import { dbRunHttp } from '~/effect/database';
 import { location_list_enum } from '~/db/types';
 import { script_list_enum } from '~/state/script_list';
-import { and, count, desc, eq, gte, inArray, lte } from 'drizzle-orm';
+import {
+  and,
+  count,
+  desc,
+  eq,
+  gte,
+  ilike,
+  inArray,
+  isNotNull,
+  lte,
+  max,
+  or,
+  sql
+} from 'drizzle-orm';
 import { BadRequestError } from '~/effect/errors';
 import { runTrpcEffect } from '~/effect/run';
 import { padavaliActiveWords } from '~/util/puzzle/word_list';
@@ -19,22 +27,20 @@ import {
   completePlaySession,
   releasePlaySessionClaim
 } from '~/api/stats_play_guard';
-
-const verifyTurnstile = Effect.fn('padavaliStats.verifyTurnstile')(function* (token: string) {
-  const is_valid = yield* verify_cloudflare_turnstile_token(token);
-  if (!is_valid) {
-    return yield* Effect.fail(
-      BadRequestError.make({
-        message: 'Invalid turnstile token'
-      })
-    );
-  }
-});
+import { displayUserName, sessionUserFields } from '~/api/session_user';
+import { optional_turnstile_token_schema, requireTurnstileIfGuest } from '~/api/turnstile_guard';
+import {
+  get_stats_data_input_schema,
+  get_top_puzzles_input_schema,
+  get_top_users_input_schema,
+  get_user_list_input_schema
+} from '~/api/stats_query_schema';
+import { escapeIlikeToken } from '~/util/puzzle/search';
 
 const submit_stats_route = publicProcedure
   .input(
     z.object({
-      turnstile_token: z.string(),
+      turnstile_token: optional_turnstile_token_schema,
       info: z.object({
         puzzle_id: z.number().int(),
         time_taken: z.number().int(),
@@ -46,11 +52,11 @@ const submit_stats_route = publicProcedure
       })
     })
   )
-  .mutation(({ input }) =>
+  .mutation(({ input, ctx }) =>
     runTrpcEffect(
       Effect.gen(function* () {
         const { turnstile_token, info } = input;
-        yield* verifyTurnstile(turnstile_token);
+        yield* requireTurnstileIfGuest(turnstile_token, ctx.user);
 
         const {
           puzzle_id,
@@ -110,7 +116,7 @@ const submit_stats_route = publicProcedure
 const update_games_started_route = publicProcedure
   .input(
     z.object({
-      turnstile_token: z.string(),
+      turnstile_token: optional_turnstile_token_schema,
       id: z.number().int(),
       location: location_list_enum,
       script: script_list_enum,
@@ -119,57 +125,61 @@ const update_games_started_route = publicProcedure
       client_play_id: z.string().uuid()
     })
   )
-  .mutation(({ input: { turnstile_token, id, location, script, practice_mode, client_play_id } }) =>
-    runTrpcEffect(
-      Effect.gen(function* () {
-        const claim = yield* claimPlaySession('padavali', client_play_id);
-        if (claim.status === 'existing') {
-          return { success: true, session_id: claim.sessionId };
-        }
+  .mutation(
+    ({ input: { turnstile_token, id, location, script, practice_mode, client_play_id }, ctx }) =>
+      runTrpcEffect(
+        Effect.gen(function* () {
+          const claim = yield* claimPlaySession('padavali', client_play_id);
+          if (claim.status === 'existing') {
+            return { success: true, session_id: claim.sessionId };
+          }
 
-        yield* verifyTurnstile(turnstile_token).pipe(
-          Effect.tapError(() => releasePlaySessionClaim('padavali', client_play_id))
-        );
-
-        const inserted_sessions = yield* dbRunHttp('padavali_stats.create_session', (client) =>
-          client
-            .insert(padavali_sessions)
-            .values({
-              puzzle_id: id,
-              location,
-              script,
-              practice_mode
-            })
-            .returning()
-        ).pipe(Effect.tapError(() => releasePlaySessionClaim('padavali', client_play_id)));
-        const session = inserted_sessions[0];
-        if (!session) {
-          yield* releasePlaySessionClaim('padavali', client_play_id);
-          return yield* Effect.fail(
-            BadRequestError.make({
-              message: 'Failed to create session'
-            })
+          yield* requireTurnstileIfGuest(turnstile_token, ctx.user).pipe(
+            Effect.tapError(() => releasePlaySessionClaim('padavali', client_play_id))
           );
-        }
 
-        yield* completePlaySession('padavali', client_play_id, session.id);
-        return { success: true, session_id: session.id };
-      })
-    )
+          const userFields = sessionUserFields(ctx.user);
+          const inserted_sessions = yield* dbRunHttp('padavali_stats.create_session', (client) =>
+            client
+              .insert(padavali_sessions)
+              .values({
+                puzzle_id: id,
+                location,
+                script,
+                practice_mode,
+                user_id: userFields.user_id,
+                user_name: userFields.user_name
+              })
+              .returning()
+          ).pipe(Effect.tapError(() => releasePlaySessionClaim('padavali', client_play_id)));
+          const session = inserted_sessions[0];
+          if (!session) {
+            yield* releasePlaySessionClaim('padavali', client_play_id);
+            return yield* Effect.fail(
+              BadRequestError.make({
+                message: 'Failed to create session'
+              })
+            );
+          }
+
+          yield* completePlaySession('padavali', client_play_id, session.id);
+          return { success: true, session_id: session.id };
+        })
+      )
   );
 
 const update_session_practice_mode_route = publicProcedure
   .input(
     z.object({
-      turnstile_token: z.string(),
+      turnstile_token: optional_turnstile_token_schema,
       session_id: z.number().int(),
       practice_mode: z.boolean()
     })
   )
-  .mutation(({ input: { turnstile_token, session_id, practice_mode } }) =>
+  .mutation(({ input: { turnstile_token, session_id, practice_mode }, ctx }) =>
     runTrpcEffect(
       Effect.gen(function* () {
-        yield* verifyTurnstile(turnstile_token);
+        yield* requireTurnstileIfGuest(turnstile_token, ctx.user);
 
         yield* dbRunHttp('padavali_stats.update_session_practice_mode', async (client) => {
           await client
@@ -183,35 +193,13 @@ const update_session_practice_mode_route = publicProcedure
     )
   );
 
-const get_stats_data_input_schema = z
-  .object({
-    puzzle_ids: z.array(z.number().int()).optional(),
-    all_time: z.boolean(),
-    start_date: z.date().optional(),
-    end_date: z.date().optional()
-  })
-  .superRefine((data, ctx) => {
-    if (!data.all_time && (!data.start_date || !data.end_date)) {
-      ctx.addIssue({
-        code: 'custom',
-        message: 'start_date and end_date are required when all_time is false',
-        path: ['start_date']
-      });
-    }
-    if (!data.all_time && data.start_date && data.end_date && data.start_date > data.end_date) {
-      ctx.addIssue({
-        code: 'custom',
-        message: 'start_date must be before end_date',
-        path: ['end_date']
-      });
-    }
-  });
-
 const get_stats_data_route = protectedAdminProcedure
   .input(get_stats_data_input_schema)
-  .query(({ input: { puzzle_ids, all_time, start_date, end_date } }) =>
+  .query(({ input: { puzzle_ids, user_ids, all_time, start_date, end_date } }) =>
     runTrpcEffect(
       Effect.gen(function* () {
+        const selectedUserIds = user_ids ?? [];
+        const filterByUsers = selectedUserIds.length > 0;
         const { sessions, stats, puzzles } = yield* Effect.all({
           sessions: dbRunHttp('padavali_stats.list_sessions', (client) =>
             client.query.padavali_sessions.findMany({
@@ -220,12 +208,16 @@ const get_stats_data_route = protectedAdminProcedure
                 created_at: true,
                 practice_mode: true,
                 location: true,
-                script: true
+                script: true,
+                user_id: true
               },
               where: (tbl, { and: andFn, gte: gteFn, lte: lteFn, inArray: inArrayFn }) => {
                 const conditions = [];
                 if (puzzle_ids && puzzle_ids.length > 0) {
                   conditions.push(inArrayFn(tbl.puzzle_id, puzzle_ids));
+                }
+                if (filterByUsers) {
+                  conditions.push(inArrayFn(tbl.user_id, selectedUserIds));
                 }
                 if (!all_time && start_date && end_date) {
                   conditions.push(gteFn(tbl.created_at, start_date));
@@ -235,8 +227,35 @@ const get_stats_data_route = protectedAdminProcedure
               }
             })
           ),
-          stats: dbRunHttp('padavali_stats.list_gameplay_stats', (client) =>
-            client.query.padavali_gameplay_stats.findMany({
+          stats: dbRunHttp('padavali_stats.list_gameplay_stats', async (client) => {
+            if (filterByUsers) {
+              const conditions = [inArray(padavali_sessions.user_id, selectedUserIds)];
+              if (puzzle_ids && puzzle_ids.length > 0) {
+                conditions.push(inArray(padavali_gameplay_stats.puzzle_id, puzzle_ids));
+              }
+              if (!all_time && start_date && end_date) {
+                conditions.push(gte(padavali_gameplay_stats.created_at, start_date));
+                conditions.push(lte(padavali_gameplay_stats.created_at, end_date));
+              }
+              return client
+                .select({
+                  id: padavali_gameplay_stats.id,
+                  created_at: padavali_gameplay_stats.created_at,
+                  session_id: padavali_gameplay_stats.session_id,
+                  time_taken: padavali_gameplay_stats.time_taken,
+                  accuracy: padavali_gameplay_stats.accuracy,
+                  correct_attempts: padavali_gameplay_stats.correct_attempts,
+                  total_attempts: padavali_gameplay_stats.total_attempts
+                })
+                .from(padavali_gameplay_stats)
+                .innerJoin(
+                  padavali_sessions,
+                  eq(padavali_gameplay_stats.session_id, padavali_sessions.id)
+                )
+                .where(and(...conditions));
+            }
+
+            return client.query.padavali_gameplay_stats.findMany({
               columns: {
                 id: true,
                 created_at: true,
@@ -257,8 +276,8 @@ const get_stats_data_route = protectedAdminProcedure
                 }
                 return conditions.length > 0 ? andFn(...conditions) : undefined;
               }
-            })
-          ),
+            });
+          }),
           puzzles: dbRunHttp('padavali_stats.list_puzzles_for_word_count', (client) =>
             client.query.padavali_puzzles.findMany({
               columns: { word_list: true },
@@ -280,31 +299,6 @@ const get_stats_data_route = protectedAdminProcedure
     )
   );
 
-const get_top_puzzles_input_schema = z
-  .object({
-    all_time: z.boolean(),
-    start_date: z.date().optional(),
-    end_date: z.date().optional(),
-    limit: z.number().int().min(1).max(50).default(10)
-  })
-  .superRefine((data, ctx) => {
-    if (!data.all_time && (!data.start_date || !data.end_date)) {
-      ctx.addIssue({
-        code: 'custom',
-        message: 'start_date and end_date are required when all_time is false',
-        path: ['start_date']
-      });
-    }
-    if (!data.all_time && data.start_date && data.end_date && data.start_date > data.end_date) {
-      ctx.addIssue({
-        code: 'custom',
-        message: 'start_date must be before end_date',
-        path: ['end_date']
-      });
-    }
-  });
-
-/** Top puzzles by plays — totals both practice and no-hint sessions. */
 const get_top_puzzles_route = protectedAdminProcedure
   .input(get_top_puzzles_input_schema)
   .query(({ input: { all_time, start_date, end_date, limit } }) =>
@@ -388,10 +382,169 @@ const get_top_puzzles_route = protectedAdminProcedure
     )
   );
 
+const get_top_users_route = protectedAdminProcedure
+  .input(get_top_users_input_schema)
+  .query(({ input: { all_time, start_date, end_date, limit, puzzle_ids } }) =>
+    runTrpcEffect(
+      Effect.gen(function* () {
+        const conditions = [isNotNull(padavali_sessions.user_id)];
+        if (!all_time && start_date && end_date) {
+          conditions.push(gte(padavali_sessions.created_at, start_date));
+          conditions.push(lte(padavali_sessions.created_at, end_date));
+        }
+        if (puzzle_ids && puzzle_ids.length > 0) {
+          conditions.push(inArray(padavali_sessions.puzzle_id, puzzle_ids));
+        }
+
+        const topSessions = yield* dbRunHttp('padavali_stats.get_top_users', (client) =>
+          client
+            .select({
+              user_id: padavali_sessions.user_id,
+              name: max(padavali_sessions.user_name),
+              started: count()
+            })
+            .from(padavali_sessions)
+            .where(and(...conditions))
+            .groupBy(padavali_sessions.user_id)
+            .orderBy(desc(count()))
+            .limit(limit)
+        );
+
+        const users = topSessions.flatMap((row) => {
+          if (!row.user_id) return [];
+          return [
+            {
+              user_id: row.user_id,
+              name: displayUserName(row.user_id, row.name),
+              started: Number(row.started),
+              completed: 0
+            }
+          ];
+        });
+
+        if (users.length === 0) {
+          return { users };
+        }
+
+        const userIds = users.map((row) => row.user_id);
+        const statsConditions = [inArray(padavali_sessions.user_id, userIds)];
+        if (!all_time && start_date && end_date) {
+          statsConditions.push(gte(padavali_gameplay_stats.created_at, start_date));
+          statsConditions.push(lte(padavali_gameplay_stats.created_at, end_date));
+        }
+        if (puzzle_ids && puzzle_ids.length > 0) {
+          statsConditions.push(inArray(padavali_gameplay_stats.puzzle_id, puzzle_ids));
+        }
+
+        const completionRows = yield* dbRunHttp(
+          'padavali_stats.get_top_user_completions',
+          (client) =>
+            client
+              .select({
+                user_id: padavali_sessions.user_id,
+                completed: count()
+              })
+              .from(padavali_gameplay_stats)
+              .innerJoin(
+                padavali_sessions,
+                eq(padavali_gameplay_stats.session_id, padavali_sessions.id)
+              )
+              .where(and(...statsConditions))
+              .groupBy(padavali_sessions.user_id)
+        );
+
+        const completedByUser = new Map(
+          completionRows.flatMap((row) =>
+            row.user_id ? [[row.user_id, Number(row.completed)] as const] : []
+          )
+        );
+
+        return {
+          users: users.map((row) => ({
+            ...row,
+            completed: completedByUser.get(row.user_id) ?? 0
+          }))
+        };
+      })
+    )
+  );
+
+const get_user_list_page_route = protectedAdminProcedure
+  .input(get_user_list_input_schema)
+  .query(({ input: { page, size, search } }) =>
+    runTrpcEffect(
+      Effect.gen(function* () {
+        const trimmedSearch = search?.trim();
+        const conditions = [isNotNull(padavali_sessions.user_id)];
+        if (trimmedSearch) {
+          const pattern = `%${escapeIlikeToken(trimmedSearch)}%`;
+          conditions.push(
+            or(
+              ilike(padavali_sessions.user_name, pattern),
+              ilike(padavali_sessions.user_id, pattern)
+            )!
+          );
+        }
+        const whereClause = and(...conditions);
+        const offset = (page - 1) * size;
+
+        const { countResult, rows } = yield* Effect.all({
+          countResult: dbRunHttp('padavali_stats.count_users', (client) =>
+            client
+              .select({
+                count: sql<number>`cast(count(distinct ${padavali_sessions.user_id}) as int)`
+              })
+              .from(padavali_sessions)
+              .where(whereClause)
+          ),
+          rows: dbRunHttp('padavali_stats.list_users', (client) =>
+            client
+              .select({
+                user_id: padavali_sessions.user_id,
+                name: max(padavali_sessions.user_name),
+                plays: count()
+              })
+              .from(padavali_sessions)
+              .where(whereClause)
+              .groupBy(padavali_sessions.user_id)
+              .orderBy(desc(count()))
+              .limit(size)
+              .offset(offset)
+          )
+        });
+
+        const list = rows.flatMap((row) => {
+          if (!row.user_id) return [];
+          return [
+            {
+              id: row.user_id,
+              name: displayUserName(row.user_id, row.name),
+              plays: Number(row.plays)
+            }
+          ];
+        });
+
+        const total = Number(countResult[0]?.count ?? 0);
+        const pageCount = Math.max(1, Math.ceil(total / size));
+
+        return {
+          list,
+          total,
+          page,
+          pageCount,
+          hasPrev: page > 1,
+          hasNext: page < pageCount
+        };
+      })
+    )
+  );
+
 export const padavali_stats_router = t.router({
   submit_stats: submit_stats_route,
   update_games_started: update_games_started_route,
   update_session_practice_mode: update_session_practice_mode_route,
   get_stats_data: get_stats_data_route,
-  get_top_puzzles: get_top_puzzles_route
+  get_top_puzzles: get_top_puzzles_route,
+  get_top_users: get_top_users_route,
+  get_user_list_page: get_user_list_page_route
 });
