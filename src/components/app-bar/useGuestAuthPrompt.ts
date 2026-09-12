@@ -20,7 +20,7 @@ export function useGuestAuthPrompt(isSignedIn: boolean, authReady: boolean) {
   const [trigger, setTrigger] = useState<GuestAuthPromptTrigger | null>(null);
   const signingInRef = useRef(false);
   const pulseTimerRef = useRef(0);
-  const open = !isSignedIn && (manualOpen || autoOpen);
+  const open = manualOpen || (!isSignedIn && autoOpen);
 
   useEffect(() => {
     const onPrompt = (event: Event) => {
