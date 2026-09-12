@@ -1,15 +1,24 @@
 import { Effect } from 'effect';
-import {
-  protectedAdminProcedure,
-  publicProcedure,
-  t
-} from '../trpc_init';
+import { protectedAdminProcedure, publicProcedure, t } from '../trpc_init';
 import { z } from 'zod';
 import { padavali_sessions, padavali_gameplay_stats, padavali_puzzles } from '~/db/schema';
 import { dbRunHttp } from '~/effect/database';
 import { location_list_enum } from '~/db/types';
 import { script_list_enum } from '~/state/script_list';
-import { and, count, desc, eq, gte, ilike, inArray, isNotNull, lte, max, or, sql } from 'drizzle-orm';
+import {
+  and,
+  count,
+  desc,
+  eq,
+  gte,
+  ilike,
+  inArray,
+  isNotNull,
+  lte,
+  max,
+  or,
+  sql
+} from 'drizzle-orm';
 import { BadRequestError } from '~/effect/errors';
 import { runTrpcEffect } from '~/effect/run';
 import { padavaliActiveWords } from '~/util/puzzle/word_list';
@@ -143,20 +152,20 @@ const update_games_started_route = publicProcedure
               })
               .returning()
           ).pipe(Effect.tapError(() => releasePlaySessionClaim('padavali', client_play_id)));
-        const session = inserted_sessions[0];
-        if (!session) {
-          yield* releasePlaySessionClaim('padavali', client_play_id);
-          return yield* Effect.fail(
-            BadRequestError.make({
-              message: 'Failed to create session'
-            })
-          );
-        }
+          const session = inserted_sessions[0];
+          if (!session) {
+            yield* releasePlaySessionClaim('padavali', client_play_id);
+            return yield* Effect.fail(
+              BadRequestError.make({
+                message: 'Failed to create session'
+              })
+            );
+          }
 
-        yield* completePlaySession('padavali', client_play_id, session.id);
-        return { success: true, session_id: session.id };
-      })
-    )
+          yield* completePlaySession('padavali', client_play_id, session.id);
+          return { success: true, session_id: session.id };
+        })
+      )
   );
 
 const update_session_practice_mode_route = publicProcedure
@@ -427,19 +436,21 @@ const get_top_users_route = protectedAdminProcedure
           statsConditions.push(inArray(padavali_gameplay_stats.puzzle_id, puzzle_ids));
         }
 
-        const completionRows = yield* dbRunHttp('padavali_stats.get_top_user_completions', (client) =>
-          client
-            .select({
-              user_id: padavali_sessions.user_id,
-              completed: count()
-            })
-            .from(padavali_gameplay_stats)
-            .innerJoin(
-              padavali_sessions,
-              eq(padavali_gameplay_stats.session_id, padavali_sessions.id)
-            )
-            .where(and(...statsConditions))
-            .groupBy(padavali_sessions.user_id)
+        const completionRows = yield* dbRunHttp(
+          'padavali_stats.get_top_user_completions',
+          (client) =>
+            client
+              .select({
+                user_id: padavali_sessions.user_id,
+                completed: count()
+              })
+              .from(padavali_gameplay_stats)
+              .innerJoin(
+                padavali_sessions,
+                eq(padavali_gameplay_stats.session_id, padavali_sessions.id)
+              )
+              .where(and(...statsConditions))
+              .groupBy(padavali_sessions.user_id)
         );
 
         const completedByUser = new Map(
@@ -468,7 +479,10 @@ const get_user_list_page_route = protectedAdminProcedure
         if (trimmedSearch) {
           const pattern = `%${escapeIlikeToken(trimmedSearch)}%`;
           conditions.push(
-            or(ilike(padavali_sessions.user_name, pattern), ilike(padavali_sessions.user_id, pattern))!
+            or(
+              ilike(padavali_sessions.user_name, pattern),
+              ilike(padavali_sessions.user_id, pattern)
+            )!
           );
         }
         const whereClause = and(...conditions);

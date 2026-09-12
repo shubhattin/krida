@@ -39,11 +39,8 @@ export function TopPlayedLeader({
   const maxStarted = items.reduce((max, item) => Math.max(max, item.started), 0);
   const Icon = variant === 'users' ? UsersIcon : TrophyIcon;
   const iconClass =
-    variant === 'users'
-      ? 'text-sky-600 dark:text-sky-400'
-      : 'text-amber-600 dark:text-amber-400';
-  const iconWrapClass =
-    variant === 'users' ? 'bg-sky-500/10' : 'bg-amber-500/10';
+    variant === 'users' ? 'text-sky-600 dark:text-sky-400' : 'text-amber-600 dark:text-amber-400';
+  const iconWrapClass = variant === 'users' ? 'bg-sky-500/10' : 'bg-amber-500/10';
 
   return (
     <Accordion defaultValue={[]} className="w-full">

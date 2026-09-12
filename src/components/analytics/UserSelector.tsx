@@ -204,7 +204,9 @@ const UserPickerPopover = ({
           <div className="max-h-52 overflow-y-auto">
             <div className="flex flex-col gap-1">
               {isLoading &&
-                Array.from({ length: 4 }).map((_, i) => <Skeleton key={i} className="h-9 w-full" />)}
+                Array.from({ length: 4 }).map((_, i) => (
+                  <Skeleton key={i} className="h-9 w-full" />
+                ))}
               {isSuccess &&
                 userList.map((item) => {
                   const isSelected = selectedIds.has(item.id);

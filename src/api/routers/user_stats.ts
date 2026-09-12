@@ -67,10 +67,7 @@ const loadPadavaliDashboard = Effect.fn('user_stats.padavali_dashboard')(functio
           avg_accuracy: avg(padavali_gameplay_stats.accuracy)
         })
         .from(padavali_gameplay_stats)
-        .innerJoin(
-          padavali_sessions,
-          eq(padavali_gameplay_stats.session_id, padavali_sessions.id)
-        )
+        .innerJoin(padavali_sessions, eq(padavali_gameplay_stats.session_id, padavali_sessions.id))
         .where(eq(padavali_sessions.user_id, userId))
     ),
     topStarted: dbRunHttp('user_stats.padavali_top_started', (client) =>
@@ -99,10 +96,7 @@ const loadPadavaliDashboard = Effect.fn('user_stats.padavali_dashboard')(functio
           created_at: padavali_gameplay_stats.created_at
         })
         .from(padavali_gameplay_stats)
-        .innerJoin(
-          padavali_sessions,
-          eq(padavali_gameplay_stats.session_id, padavali_sessions.id)
-        )
+        .innerJoin(padavali_sessions, eq(padavali_gameplay_stats.session_id, padavali_sessions.id))
         .innerJoin(padavali_puzzles, eq(padavali_gameplay_stats.puzzle_id, padavali_puzzles.id))
         .where(eq(padavali_sessions.user_id, userId))
         .orderBy(desc(padavali_gameplay_stats.created_at))
@@ -132,10 +126,7 @@ const loadPadavaliDashboard = Effect.fn('user_stats.padavali_dashboard')(functio
           best_accuracy: max(padavali_gameplay_stats.accuracy)
         })
         .from(padavali_gameplay_stats)
-        .innerJoin(
-          padavali_sessions,
-          eq(padavali_gameplay_stats.session_id, padavali_sessions.id)
-        )
+        .innerJoin(padavali_sessions, eq(padavali_gameplay_stats.session_id, padavali_sessions.id))
         .where(
           and(
             eq(padavali_sessions.user_id, userId),

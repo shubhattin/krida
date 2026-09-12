@@ -3,6 +3,7 @@ import { useContext, useEffect, useEffectEvent, useRef, useState } from 'react';
 import { useTurnstile } from 'react-turnstile';
 import { useMutation } from '@tanstack/react-query';
 import { useTRPC } from '~/api/client';
+import { useInvalidateUserDashboard } from '~/api/invalidate_user_dashboard';
 import { canSubmitPlayMetrics, playMetricsToken, usePlayAuth } from '~/lib/play_metrics_auth';
 import {
   completed_atom,
@@ -35,6 +36,7 @@ const GameMetricsCollector = ({
   location: location_list_type;
 }) => {
   const trpc = useTRPC();
+  const invalidateUserDashboard = useInvalidateUserDashboard();
   const [started] = useAtom(started_atom);
   const [completed] = useAtom(completed_atom);
   const [totalAttempts] = useAtom(total_attempts_atom);
@@ -78,6 +80,7 @@ const GameMetricsCollector = ({
         resetTurnstile();
         resetGamesStarted();
         resetSubmitStats();
+        invalidateUserDashboard();
       },
       onError() {
         statsSubmittedForNonceRef.current = null;
@@ -102,6 +105,7 @@ const GameMetricsCollector = ({
         setPracticeModeSyncedSessionId(variables.practice_mode ? data.session_id : null);
         setTurnstileToken(null);
         resetTurnstile();
+        invalidateUserDashboard();
         load_posthog((posthog) => {
           posthog.capture('gameplay_started', {
             puzzle_id,

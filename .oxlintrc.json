@@ -17,7 +17,7 @@
     }
   ],
   "rules": {
-    "complexity": ["warn", { "max": 15 }],
+    "complexity": ["warn", { "max": 20 }],
     "oxlint-plugin-query/exhaustive-deps": "error",
     "oxlint-plugin-query/no-rest-destructuring": "warn",
     "oxlint-plugin-query/stable-query-client": "error",

@@ -62,7 +62,9 @@ function DashboardPage() {
               >
                 Dashboard
               </h1>
-              <p className="text-xs font-medium text-slate-500 dark:text-slate-400">Your play stats</p>
+              <p className="text-xs font-medium text-slate-500 dark:text-slate-400">
+                Your play stats
+              </p>
             </div>
           </Link>
           <MenuButton />
@@ -98,7 +100,9 @@ function DashboardPage() {
 
         {dashboardQuery.isLoading ? <DashboardSkeleton /> : null}
         {dashboardQuery.isError ? (
-          <p className="py-8 text-center text-sm text-destructive">Failed to load dashboard stats</p>
+          <p className="py-8 text-center text-sm text-destructive">
+            Failed to load dashboard stats
+          </p>
         ) : null}
         {dashboardQuery.data ? (
           <div className="flex flex-col gap-6">
@@ -174,7 +178,9 @@ function GameLinkCard({
       </div>
       <div className="flex items-center gap-2">
         <Button
-          render={<Link to={playTo} className="inline-flex flex-1 items-center justify-center gap-1.5" />}
+          render={
+            <Link to={playTo} className="inline-flex flex-1 items-center justify-center gap-1.5" />
+          }
           nativeButton={false}
           size="sm"
           className="flex-1"
@@ -185,7 +191,10 @@ function GameLinkCard({
         </Button>
         <Button
           render={
-            <Link to={puzzlesTo} className="inline-flex flex-1 items-center justify-center gap-1.5" />
+            <Link
+              to={puzzlesTo}
+              className="inline-flex flex-1 items-center justify-center gap-1.5"
+            />
           }
           nativeButton={false}
           size="sm"
@@ -255,7 +264,9 @@ function GameStatsCard({ game, stats }: { game: DashboardGameId; stats: GameDash
         <div className="grid grid-cols-2 gap-3 text-sm">
           <div className="flex flex-col gap-0.5">
             <span className="text-muted-foreground">Avg time</span>
-            <span className="font-medium tabular-nums">{formatSeconds(stats.avg_time_seconds)}</span>
+            <span className="font-medium tabular-nums">
+              {formatSeconds(stats.avg_time_seconds)}
+            </span>
           </div>
           <div className="flex flex-col gap-0.5">
             <span className="text-muted-foreground">Avg accuracy</span>
@@ -316,7 +327,9 @@ function PuzzleList({
             <li key={item.key}>
               <PuzzleTitleLink game={item.game} slug={item.slug}>
                 <span className="truncate font-medium">{item.title}</span>
-                <span className="shrink-0 text-xs text-muted-foreground tabular-nums">{item.meta}</span>
+                <span className="shrink-0 text-xs text-muted-foreground tabular-nums">
+                  {item.meta}
+                </span>
               </PuzzleTitleLink>
             </li>
           ))}
