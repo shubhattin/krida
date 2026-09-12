@@ -3,6 +3,7 @@ import { useContext, useEffect, useEffectEvent, useRef, useState } from 'react';
 import { useTurnstile } from 'react-turnstile';
 import { useMutation } from '@tanstack/react-query';
 import { useTRPC } from '~/api/client';
+import { canSubmitPlayMetrics, playMetricsToken, usePlayAuth } from '~/lib/play_metrics_auth';
 import {
   completed_atom,
   original_word_list_atom,
@@ -22,6 +23,9 @@ import { load_posthog } from '~/components/tags/PosthogInit';
  * Exhaustive-deps added `update_games_started_mut`, which re-fired mutate on every
  * status change and caused the games_started spam. Keep mutate behind useEffectEvent
  * + a per-nonce lock so that cannot happen again.
+ *
+ * Complete must depend on `gamesStartedSuccess`: signed-in players have no Turnstile
+ * token refresh to retry after start, and guests locally never get a token at all.
  */
 const GameMetricsCollector = ({
   puzzle_id,
@@ -39,6 +43,7 @@ const GameMetricsCollector = ({
   const [practiceMode] = useAtom(practice_mode_atom);
   const [gameSessionNonce] = useAtom(game_session_nonce_atom);
   const { script } = useContext(AppContext);
+  const { authReady, isAuthed } = usePlayAuth();
 
   const [turnstileToken, setTurnstileToken] = useState<string | null>(null);
   const [practiceModeSyncedSessionId, setPracticeModeSyncedSessionId] = useState<number | null>(
@@ -48,6 +53,8 @@ const GameMetricsCollector = ({
   /** Nonce for which start was already attempted — never cleared on error. */
   const startAttemptedForNonceRef = useRef<number | null>(null);
   const statsSubmittedForNonceRef = useRef<number | null>(null);
+  /** One-shot per session+auth-or-token so practice sync cannot loop on error. */
+  const practiceSyncAttemptKeyRef = useRef<string | null>(null);
   const clientPlayIdRef = useRef(crypto.randomUUID());
   const turnstile = useTurnstile();
   const turnstileRef = useRef(turnstile);
@@ -138,6 +145,7 @@ const GameMetricsCollector = ({
 
     startAttemptedForNonceRef.current = null;
     statsSubmittedForNonceRef.current = null;
+    practiceSyncAttemptKeyRef.current = null;
     clientPlayIdRef.current = crypto.randomUUID();
     setTurnstileToken(null);
     setPracticeModeSyncedSessionId(null);
@@ -147,7 +155,7 @@ const GameMetricsCollector = ({
     resetTurnstile();
   }, [gameSessionNonce, resetGamesStarted, resetSubmitStats, resetSessionPracticeModeSync]);
 
-  const reportGameplayStarted = useEffectEvent((token: string) => {
+  const reportGameplayStarted = useEffectEvent((token: string | null) => {
     if (startAttemptedForNonceRef.current === gameSessionNonce) return;
     if (gamesStartedSuccess || gamesStartedPending) return;
 
@@ -163,41 +171,44 @@ const GameMetricsCollector = ({
   });
 
   useEffect(() => {
-    if (started && !completed && turnstileToken) {
-      reportGameplayStarted(turnstileToken);
-    }
-  }, [started, turnstileToken, completed]);
+    if (!started || completed) return;
+    if (!canSubmitPlayMetrics(authReady, isAuthed, turnstileToken)) return;
+    reportGameplayStarted(playMetricsToken(isAuthed, turnstileToken));
+  }, [started, completed, authReady, isAuthed, turnstileToken]);
 
   const sessionId = gamesStartedData?.session_id;
 
-  useEffect(() => {
-    if (
-      !practiceMode ||
-      !turnstileToken ||
-      !sessionId ||
-      !gamesStartedSuccess ||
-      practiceModeSyncedSessionId === sessionId ||
-      isSyncingSessionPracticeMode
-    ) {
-      return;
-    }
+  const reportPracticeModeSync = useEffectEvent((token: string | null) => {
+    if (!sessionId || practiceModeSyncedSessionId === sessionId) return;
+    if (isSyncingSessionPracticeMode) return;
+
+    const attemptKey = isAuthed ? `auth:${sessionId}` : `guest:${sessionId}:${token}`;
+    if (practiceSyncAttemptKeyRef.current === attemptKey) return;
+    practiceSyncAttemptKeyRef.current = attemptKey;
 
     syncSessionPracticeMode({
-      turnstile_token: turnstileToken,
+      turnstile_token: token,
       session_id: sessionId,
       practice_mode: true
     });
+  });
+
+  useEffect(() => {
+    if (!practiceMode || !sessionId || !gamesStartedSuccess) return;
+    if (practiceModeSyncedSessionId === sessionId) return;
+    if (!canSubmitPlayMetrics(authReady, isAuthed, turnstileToken)) return;
+    reportPracticeModeSync(playMetricsToken(isAuthed, turnstileToken));
   }, [
     practiceMode,
-    turnstileToken,
     sessionId,
     gamesStartedSuccess,
     practiceModeSyncedSessionId,
-    isSyncingSessionPracticeMode,
-    syncSessionPracticeMode
+    authReady,
+    isAuthed,
+    turnstileToken
   ]);
 
-  const reportGameplayCompleted = useEffectEvent((token: string) => {
+  const reportGameplayCompleted = useEffectEvent((token: string | null) => {
     if (statsSubmittedForNonceRef.current === gameSessionNonce) return;
     if (submitStatsPending || submitStatsSuccess) return;
     if (!gamesStartedSuccess || gamesStartedPending) return;
@@ -240,11 +251,12 @@ const GameMetricsCollector = ({
   });
 
   useEffect(() => {
-    if (completed && turnstileToken) {
-      reportGameplayCompleted(turnstileToken);
-    }
-  }, [completed, turnstileToken]);
+    if (!completed || !gamesStartedSuccess) return;
+    if (!canSubmitPlayMetrics(authReady, isAuthed, turnstileToken)) return;
+    reportGameplayCompleted(playMetricsToken(isAuthed, turnstileToken));
+  }, [completed, gamesStartedSuccess, authReady, isAuthed, turnstileToken]);
 
+  if (!authReady || isAuthed) return null;
   return <TurnstileWidget setToken={setTurnstileToken} />;
 };
 

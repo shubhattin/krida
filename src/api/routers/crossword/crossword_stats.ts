@@ -2,8 +2,7 @@ import { Effect } from 'effect';
 import {
   protectedAdminProcedure,
   publicProcedure,
-  t,
-  verify_cloudflare_turnstile_token
+  t
 } from '../../trpc_init';
 import { crossword_sessions, crossword_gameplay_stats, crossword_puzzles } from '~/db/schema';
 import { dbRunHttp } from '~/effect/database';
@@ -21,6 +20,7 @@ import {
   releasePlaySessionClaim
 } from '~/api/stats_play_guard';
 import { displayUserName, sessionUserFields } from '~/api/session_user';
+import { requireTurnstileIfGuest } from '~/api/turnstile_guard';
 import {
   get_stats_data_input_schema,
   get_top_puzzles_input_schema,
@@ -29,24 +29,13 @@ import {
 } from '~/api/stats_query_schema';
 import { escapeIlikeToken } from '~/util/puzzle/search';
 
-const verifyTurnstile = Effect.fn('crosswordStats.verifyTurnstile')(function* (token: string) {
-  const is_valid = yield* verify_cloudflare_turnstile_token(token);
-  if (!is_valid) {
-    return yield* Effect.fail(
-      BadRequestError.make({
-        message: 'Invalid turnstile token'
-      })
-    );
-  }
-});
-
 const submit_stats_route = publicProcedure
   .input(crossword_submit_stats_input_schema)
-  .mutation(({ input }) =>
+  .mutation(({ input, ctx }) =>
     runTrpcEffect(
       Effect.gen(function* () {
         const { turnstile_token, info } = input;
-        yield* verifyTurnstile(turnstile_token);
+        yield* requireTurnstileIfGuest(turnstile_token, ctx.user);
 
         const {
           puzzle_id,
@@ -107,7 +96,7 @@ const update_games_started_route = publicProcedure
           return { success: true, session_id: claim.sessionId };
         }
 
-        yield* verifyTurnstile(turnstile_token).pipe(
+        yield* requireTurnstileIfGuest(turnstile_token, ctx.user).pipe(
           Effect.tapError(() => releasePlaySessionClaim('crossword', client_play_id))
         );
 
