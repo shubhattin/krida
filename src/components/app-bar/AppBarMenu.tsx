@@ -14,8 +14,10 @@ import {
   Book,
   Music,
   Check,
-  User
+  User,
+  LayoutDashboard
 } from 'lucide-react';
+import { Link } from '@tanstack/react-router';
 import { SiGithub } from 'react-icons/si';
 import { FaYoutube, FaInstagram } from 'react-icons/fa';
 import { useTheme, type Theme } from '~/components/theme-provider';
@@ -82,6 +84,13 @@ function LoggedInAccountMenu({
           <span className="truncate">Profile</span>
         </a>
 
+        <Link to="/dashboard" onClick={onNavigate} className={accountMenuLinkClass}>
+          <div className={`${accountMenuIconClass} from-violet-500 to-indigo-600`}>
+            <LayoutDashboard className="size-3 text-white" />
+          </div>
+          <span className="truncate">Dashboard</span>
+        </Link>
+
         <button
           type="button"
           onClick={() => {
@@ -99,17 +108,6 @@ function LoggedInAccountMenu({
           <span className="truncate">Log out</span>
         </button>
       </div>
-
-      {user_info.role !== 'admin' && (
-        <div className="rounded-md border border-orange-200 bg-orange-50 px-2.5 py-1.5 dark:border-orange-800 dark:bg-orange-950/30">
-          <div className="text-xs font-medium text-orange-800 dark:text-orange-300">
-            Unauthorized
-          </div>
-          <div className="text-[11px] text-orange-600 dark:text-orange-400">
-            Contact admin for approval
-          </div>
-        </div>
-      )}
     </div>
   );
 }

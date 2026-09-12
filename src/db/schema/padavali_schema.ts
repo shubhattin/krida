@@ -85,11 +85,18 @@ export const padavali_sessions = pgTable(
     created_at: timestamp({ withTimezone: true }).notNull().defaultNow(),
     practice_mode: boolean().notNull().default(false),
     location: varchar({ length: 25 }).$type<location_list_type>(),
-    script: text().$type<ScriptType>()
+    script: text().$type<ScriptType>(),
     // as the script field was added late, we have handle it accordingly in th code
+    /** Better Auth user id; null for anonymous plays */
+    user_id: text(),
+    /** Display-name snapshot at play time (auth lives on a separate service) */
+    user_name: text()
   },
   (table) => [
-    index('padavali_sessions_puzzle_id_created_at_idx').on(table.puzzle_id, table.created_at)
+    index('padavali_sessions_puzzle_id_created_at_idx').on(table.puzzle_id, table.created_at),
+    index('padavali_sessions_user_id_created_at_idx').on(table.user_id, table.created_at),
+    index('padavali_sessions_user_id_puzzle_id_idx').on(table.user_id, table.puzzle_id),
+    index('padavali_sessions_puzzle_id_user_id_idx').on(table.puzzle_id, table.user_id)
   ]
 );
 
