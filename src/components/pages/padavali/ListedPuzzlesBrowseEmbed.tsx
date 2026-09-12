@@ -9,7 +9,6 @@ import { ScriptSelector } from '~/components/pages/padavali/ScriptSelector';
 import Icon from '~/tools/Icon';
 import { LanguageIcon } from '~/components/icons';
 import { AppContext } from '~/components/AppDataContext';
-import { FONT_INFO } from '~/state/script_font_data';
 import type { PadavaliListedPuzzlesType } from '~/util/cache.server/padavali_cache';
 import { InputGroup, InputGroupAddon, InputGroupInput } from '~/components/ui/input-group';
 import { Switch } from '~/components/ui/switch';
@@ -98,7 +97,6 @@ export const ListedPuzzlesBrowseEmbed = ({
 
 const BrowseEmbedView = ({ puzzles }: { puzzles: DisplayPuzzle[] }) => {
   const { script, setScript } = useContext(AppContext);
-  const font_info = FONT_INFO[script!];
   const [searchQuery, setSearchQuery] = useState('');
   const [lipi_lekhika_typing, setLipiLekhikaTyping] = useState(false);
 
@@ -171,11 +169,6 @@ const BrowseEmbedView = ({ puzzles }: { puzzles: DisplayPuzzle[] }) => {
         </Label>
         <div className="flex shrink-0 items-center justify-center gap-2 sm:justify-end">
           <ScriptSelector script={script} onScriptChange={setScript} />
-          {font_info.experimental && (
-            <span className="inline-flex items-center rounded-full bg-orange-100 px-1 py-0.5 text-xs font-medium text-orange-800 dark:bg-orange-900/20 dark:text-orange-400">
-              Beta
-            </span>
-          )}
         </div>
       </div>
 

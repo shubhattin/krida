@@ -27,6 +27,7 @@ import {
   getNormalizedScriptName,
   preloadScriptData
 } from 'lipilekhika';
+import { FONT_INFO } from '~/state/script_font_data';
 
 export const SCRIPT_AVATAR_MAP = {
   Devanagari: 'अ',
@@ -98,9 +99,16 @@ const SCRIPT_ITEMS = [
 type Props = {
   script: ScriptType;
   onScriptChange: (script: ScriptType) => void;
+  showBetaBadge?: boolean;
 };
 
-export const ScriptSelector = ({ script, onScriptChange }: Props) => {
+export const ScriptBetaBadge = () => (
+  <span className="inline-flex items-center rounded-full bg-orange-100 px-1.5 py-0.5 text-xs font-medium text-orange-800 dark:bg-orange-900/20 dark:text-orange-400">
+    Beta
+  </span>
+);
+
+export const ScriptSelector = ({ script, onScriptChange, showBetaBadge = false }: Props) => {
   useEffect(() => {
     prefetchScript(script);
   }, [script]);
@@ -126,32 +134,35 @@ export const ScriptSelector = ({ script, onScriptChange }: Props) => {
   };
 
   return (
-    <Select
-      items={SCRIPT_ITEMS}
-      value={script}
-      onValueChange={handleScriptChange}
-      onOpenChange={handleOpenChange}
-    >
-      <SelectTrigger
-        className="h-8 w-46 gap-2 border-border/50 bg-background/50 text-sm"
-        onPointerEnter={() => prefetchScript(script)}
-        onFocus={() => prefetchScript(script)}
+    <>
+      <Select
+        items={SCRIPT_ITEMS}
+        value={script}
+        onValueChange={handleScriptChange}
+        onOpenChange={handleOpenChange}
       >
-        <ScriptAvatar script={script} />
-        <SelectValue />
-      </SelectTrigger>
-      <SelectContent alignItemWithTrigger={false} className="max-h-96">
-        {SCRIPT_LIST_MAIN.map((scriptKey) => (
-          <ScriptSelectItem key={scriptKey} scriptKey={scriptKey} />
-        ))}
-        <SelectSeparator />
-        <SelectGroup>
-          <SelectLabel>Ancient Scripts</SelectLabel>
-          {SCRIPT_LIST_ANCIENT.map((scriptKey) => (
+        <SelectTrigger
+          className="h-8 w-46 gap-2 border-border/50 bg-background/50 text-sm"
+          onPointerEnter={() => prefetchScript(script)}
+          onFocus={() => prefetchScript(script)}
+        >
+          <ScriptAvatar script={script} />
+          <SelectValue />
+        </SelectTrigger>
+        <SelectContent alignItemWithTrigger={false} className="max-h-96">
+          {SCRIPT_LIST_MAIN.map((scriptKey) => (
             <ScriptSelectItem key={scriptKey} scriptKey={scriptKey} />
           ))}
-        </SelectGroup>
-      </SelectContent>
-    </Select>
+          <SelectSeparator />
+          <SelectGroup>
+            <SelectLabel>Ancient Scripts</SelectLabel>
+            {SCRIPT_LIST_ANCIENT.map((scriptKey) => (
+              <ScriptSelectItem key={scriptKey} scriptKey={scriptKey} />
+            ))}
+          </SelectGroup>
+        </SelectContent>
+      </Select>
+      {showBetaBadge && FONT_INFO[script]?.experimental && <ScriptBetaBadge />}
+    </>
   );
 };
