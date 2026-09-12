@@ -13,6 +13,7 @@ import {
 } from 'drizzle-orm/pg-core';
 import { ATTACHMENT_TYPE_LIST } from '../db_shared_vals';
 import type { BatchMetadata } from '~/util/types/ai_batch_metadata';
+import { relations } from 'drizzle-orm';
 
 export const image_assets = pgTable(
   'image_assets',
@@ -64,3 +65,16 @@ export const ai_batch_responses = pgTable(
   },
   (table) => [primaryKey({ columns: [table.batch_id, table.custom_id] })]
 );
+
+/** Relations */
+
+export const ai_batchesRelations = relations(ai_batches, ({ many }) => ({
+  responses: many(ai_batch_responses)
+}));
+
+export const ai_batch_responsesRelations = relations(ai_batch_responses, ({ one }) => ({
+  batch: one(ai_batches, {
+    fields: [ai_batch_responses.batch_id],
+    references: [ai_batches.batch_id]
+  })
+}));

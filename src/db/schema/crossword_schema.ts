@@ -14,6 +14,7 @@ import {
 import type { CrossordPuzzleGridCell, CrossWordPuzzleWord } from '~/db/schema_zod';
 import type { location_list_type } from '../types';
 import { image_assets, attachment_type_enum } from './common_schema';
+import { relations } from 'drizzle-orm';
 
 export const crossword_puzzles = pgTable(
   'crossword_puzzles',
@@ -82,7 +83,9 @@ export const crossword_sessions = pgTable(
       .notNull()
       .references(() => crossword_puzzles.id, { onDelete: 'cascade' }),
     created_at: timestamp({ withTimezone: true }).notNull().defaultNow(),
-    location: varchar({ length: 25 }).$type<location_list_type>()
+    location: varchar({ length: 25 }).$type<location_list_type>(),
+    /** Better Auth User ID (External) */
+    user_id: text()
   },
   (table) => [
     index('crossword_sessions_puzzle_id_created_at_idx').on(table.puzzle_id, table.created_at)
@@ -137,4 +140,70 @@ export const crossword_schedules = pgTable(
     index('crossword_schedules_puzzle_id_created_at_idx').on(table.puzzle_id, table.created_at),
     index('crossword_schedules_created_at_idx').on(table.created_at)
   ]
+);
+
+/** Relations */
+
+export const crossword_puzzlesRelations = relations(crossword_puzzles, ({ many, one }) => ({
+  stats: many(crossword_gameplay_stats),
+  schedules: many(crossword_schedules),
+  sessions: many(crossword_sessions),
+  attachments: many(crossword_attachments),
+  image: one(image_assets, {
+    fields: [crossword_puzzles.image_id],
+    references: [image_assets.id]
+  }),
+  redirects: many(crossword_redirects)
+}));
+
+export const crossword_puzzle_redirectsRelations = relations(crossword_redirects, ({ one }) => ({
+  puzzle: one(crossword_puzzles, {
+    fields: [crossword_redirects.puzzle_id],
+    references: [crossword_puzzles.id]
+  })
+}));
+
+export const crossword_puzzle_attachmentsRelations = relations(
+  crossword_attachments,
+  ({ one }) => ({
+    puzzle: one(crossword_puzzles, {
+      fields: [crossword_attachments.puzzle_id],
+      references: [crossword_puzzles.id]
+    })
+  })
+);
+
+export const crossword_puzzle_gameplay_sessionsRelations = relations(
+  crossword_sessions,
+  ({ one }) => ({
+    puzzle: one(crossword_puzzles, {
+      fields: [crossword_sessions.puzzle_id],
+      references: [crossword_puzzles.id]
+    }),
+    stats: one(crossword_gameplay_stats)
+  })
+);
+
+export const crossword_puzzle_gameplay_statsRelations = relations(
+  crossword_gameplay_stats,
+  ({ one }) => ({
+    puzzle: one(crossword_puzzles, {
+      fields: [crossword_gameplay_stats.puzzle_id],
+      references: [crossword_puzzles.id]
+    }),
+    session: one(crossword_sessions, {
+      fields: [crossword_gameplay_stats.session_id],
+      references: [crossword_sessions.id]
+    })
+  })
+);
+
+export const crossword_puzzle_game_schedulesRelations = relations(
+  crossword_schedules,
+  ({ one }) => ({
+    puzzle: one(crossword_puzzles, {
+      fields: [crossword_schedules.puzzle_id],
+      references: [crossword_puzzles.id]
+    })
+  })
 );
