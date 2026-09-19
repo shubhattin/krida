@@ -9,13 +9,15 @@ import { InputGroup, InputGroupAddon, InputGroupInput } from '~/components/ui/in
 import type { CrosswordListedPuzzlesType } from '~/util/cache.server/crossword_cache';
 import { CrosswordPreviewCard } from '~/components/pages/cross_word/CrosswordPreviewCard';
 import { GameCrossPromo } from '~/components/GameCrossPromo';
+import { useCrosswordListedPuzzles } from '~/components/pages/cross_word/useCrosswordListedPuzzles';
 
 type Props = {
   listed_puzzles: CrosswordListedPuzzlesType;
 };
 
-export function ListedCrosswordPuzzles({ listed_puzzles }: Props) {
+export function ListedCrosswordPuzzles({ listed_puzzles: listed_puzzles_init }: Props) {
   const [query, setQuery] = useState('');
+  const listed_puzzles = useCrosswordListedPuzzles(listed_puzzles_init);
 
   const fuse = useMemo(
     () =>

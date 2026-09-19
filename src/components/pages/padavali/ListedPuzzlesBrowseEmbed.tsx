@@ -1,8 +1,6 @@
 'use client';
 
-import { useQuery } from '@tanstack/react-query';
 import { useContext, useEffect, useMemo, useState } from 'react';
-import { transliterate } from 'lipilekhika';
 import { Link } from '@tanstack/react-router';
 import { SearchIcon, ExternalLinkIcon } from 'lucide-react';
 import { ScriptSelector } from '~/components/pages/padavali/ScriptSelector';
@@ -18,15 +16,10 @@ import {
   clearTypingContextOnKeyDown,
   handleTypingBeforeInputEvent
 } from 'lipilekhika/typing';
-import { DEFAULT_DATA_SCRIPT } from '~/state/script_list';
 import { motion } from 'framer-motion';
 import { PuzzlePreviewCard } from '~/components/pages/padavali/PuzzlePreviewCard';
-import {
-  mergeDisplayPuzzles,
-  mapListedPuzzlesForDisplay,
-  NORMAL_TITLE_SCRIPT,
-  type DisplayPuzzle
-} from '~/components/pages/padavali/listed_puzzle_display';
+import type { DisplayPuzzle } from '~/components/pages/padavali/listed_puzzle_display';
+import { useListedPuzzlesDisplay } from '~/components/pages/padavali/useListedPuzzlesDisplay';
 import { matchesPuzzleWordSearch } from '~/util/puzzle/search';
 
 const EMBED_PAGE_LIMIT = 12;
@@ -37,59 +30,12 @@ type Props = {
 };
 
 export const ListedPuzzlesBrowseEmbed = ({
-  listed_puzzles: listed_puzzles_org,
+  listed_puzzles,
   listed_puzzles_init_transliterated
 }: Props) => {
-  const { script } = useContext(AppContext);
-
-  const normal_titles_q = useQuery({
-    queryKey: ['listed_puzzle_title_normal', listed_puzzles_org.map((p) => `${p.id}:${p.title}`)],
-    queryFn: async () =>
-      transliterate(
-        listed_puzzles_org.map((p) => p.title),
-        DEFAULT_DATA_SCRIPT,
-        NORMAL_TITLE_SCRIPT,
-        {
-          'all_to_normal:replace_avagraha_with_a': true,
-          'all_to_normal:replace_pancham_varga_varna_with_n': true
-        }
-      ),
-    initialData: listed_puzzles_init_transliterated.every((p) => p.title_normal != null)
-      ? listed_puzzles_init_transliterated.map((p) => p.title_normal)
-      : undefined,
-    staleTime: Infinity
-  });
-
-  const listed_puzzle_list_q = useQuery({
-    queryKey: ['listed_puzzle_list', 'v2', script, listed_puzzles_org, normal_titles_q.data],
-    queryFn: async () => {
-      const puzzle_texts = listed_puzzles_org.flatMap((p) =>
-        p.description ? [p.title, p.description] : [p.title]
-      );
-      const transliterated_texts = await transliterate(puzzle_texts, DEFAULT_DATA_SCRIPT, script);
-      return mapListedPuzzlesForDisplay(
-        listed_puzzles_org,
-        transliterated_texts,
-        normal_titles_q.data!
-      );
-    },
-    placeholderData: listed_puzzles_init_transliterated,
-    enabled: normal_titles_q.data !== undefined
-  });
-
-  const display_puzzles = useMemo(
-    (): DisplayPuzzle[] =>
-      mergeDisplayPuzzles(
-        listed_puzzle_list_q.data ?? listed_puzzles_init_transliterated,
-        listed_puzzles_org,
-        normal_titles_q.data
-      ),
-    [
-      listed_puzzle_list_q.data,
-      listed_puzzles_init_transliterated,
-      listed_puzzles_org,
-      normal_titles_q.data
-    ]
+  const display_puzzles = useListedPuzzlesDisplay(
+    listed_puzzles,
+    listed_puzzles_init_transliterated
   );
 
   return <BrowseEmbedView puzzles={display_puzzles} />;

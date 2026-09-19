@@ -11,6 +11,7 @@ import { client, useTRPC } from '~/api/client';
 import { toast } from 'sonner';
 import { useNavigate, useRouter } from '@tanstack/react-router';
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
+import { invalidatePadajalaListedPuzzleQueries } from '~/components/pages/cross_word/useCrosswordListedPuzzles';
 import {
   AlertDialog,
   AlertDialogAction,
@@ -135,8 +136,8 @@ function useScheduleMutations() {
       onSuccess: async (data) => {
         if (data.success) {
           toast.success('Schedule added successfully');
-          void queryClient.invalidateQueries({ queryKey: ['crossword_listed_carousel'] });
           await router.invalidate();
+          invalidatePadajalaListedPuzzleQueries(queryClient);
           navigate({ href: `/padajala/schedules` });
         } else if (data.error_code === 'already_exists_in_time_range') {
           toast.error('A schedule already exists in the time range');
@@ -153,8 +154,8 @@ function useScheduleMutations() {
       onSuccess: async (data) => {
         if (data.success) {
           toast.success('Schedule updated successfully');
-          void queryClient.invalidateQueries({ queryKey: ['crossword_listed_carousel'] });
           await router.invalidate();
+          invalidatePadajalaListedPuzzleQueries(queryClient);
           navigate({ href: `/padajala/schedules` });
         }
       },

@@ -1,12 +1,13 @@
 import { t } from './trpc_init';
-import { puzzle_router } from './routers/puzzle';
-import { schedules_router } from './routers/schedules';
-import { ai_image_assets_router } from './routers/ai_image_gen';
-import { image_assets_router } from './routers/image_assets';
-import { public_ai_router } from './routers/public_ai';
-import { batch_ai_router } from './routers/batch_ai';
+import { puzzle_router, schedules_router } from './routers/padavali';
+import {
+  ai_image_assets_router,
+  batch_ai_router,
+  image_assets_router,
+  public_ai_router
+} from './routers/ai';
 import { crossword_router } from './routers/crossword';
-import { user_stats_router } from './routers/user_stats';
+import { user_stats_router } from './routers/user';
 
 export const appRouter = t.router({
   puzzle: puzzle_router,

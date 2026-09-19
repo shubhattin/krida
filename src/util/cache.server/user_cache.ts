@@ -1,6 +1,5 @@
 import { Effect } from 'effect';
-import { and, avg, count, desc, eq, inArray, min, max } from 'drizzle-orm';
-import { protectedProcedure, t } from '../trpc_init';
+import { and, avg, count, desc, eq, inArray, max, min } from 'drizzle-orm';
 import {
   crossword_gameplay_stats,
   crossword_puzzles,
@@ -9,19 +8,32 @@ import {
   padavali_puzzles,
   padavali_sessions
 } from '~/db/schema';
-import { dbRunHttp } from '~/effect/database';
-import { runTrpcEffect } from '~/effect/run';
-import { get_user_dashboard_input_schema } from '~/api/stats_query_schema';
 import {
-  combineDashboardTotals,
-  type DashboardGameId,
+  game_dashboard_stats_schema,
   type DashboardPuzzleRow,
   type DashboardRecentRow,
   type GameDashboardStats
-} from '~/api/user_dashboard';
+} from '~/api/routers/user/user_dashboard';
+import { createCache, type CacheItem } from '~/effect/cache';
+import { dbRunHttp } from '~/effect/database';
+import { CacheError } from '~/effect/errors';
 
 const TOP_PUZZLE_LIMIT = 5;
 const RECENT_LIMIT = 5;
+
+export type UserDashboardParams = { userId: string };
+
+const padavaliDashboardKey = ({ userId }: UserDashboardParams) => `user:${userId}:padavali`;
+const padajalaDashboardKey = ({ userId }: UserDashboardParams) => `user:${userId}:padajala`;
+
+/** Exported for tests — must stay aligned with createCache getKey builders below. */
+export const userCacheKeys = {
+  padavali_dashboard: padavaliDashboardKey,
+  padajala_dashboard: padajalaDashboardKey
+} as const;
+
+const toCacheError = (operation: string, key: string) => (cause: unknown) =>
+  CacheError.make({ operation, key, cause });
 
 function toCount(value: number | string | null | undefined): number {
   const n = Number(value ?? 0);
@@ -34,30 +46,17 @@ function toNullableNumber(value: number | string | null | undefined): number | n
   return Number.isFinite(n) ? n : null;
 }
 
-const emptyGameStats = (game: DashboardGameId): GameDashboardStats => ({
-  game,
-  started: 0,
-  completed: 0,
-  best_time_seconds: null,
-  best_accuracy: null,
-  avg_time_seconds: null,
-  avg_accuracy: null,
-  top_puzzles: [],
-  recent: []
-});
-
-const loadPadavaliDashboard = Effect.fn('user_stats.padavali_dashboard')(function* (
+const fetchPadavaliDashboard = Effect.fn('user_cache.padavali_dashboard')(function* (
   userId: string
 ) {
-  // TODO: implement caching patterns for user dashboard stats
   const { startedRows, completionRows, topStarted, recentRows } = yield* Effect.all({
-    startedRows: dbRunHttp('user_stats.padavali_started', (client) =>
+    startedRows: dbRunHttp('user_cache.padavali_started', (client) =>
       client
         .select({ started: count() })
         .from(padavali_sessions)
         .where(eq(padavali_sessions.user_id, userId))
     ),
-    completionRows: dbRunHttp('user_stats.padavali_completions', (client) =>
+    completionRows: dbRunHttp('user_cache.padavali_completions', (client) =>
       client
         .select({
           completed: count(),
@@ -70,7 +69,7 @@ const loadPadavaliDashboard = Effect.fn('user_stats.padavali_dashboard')(functio
         .innerJoin(padavali_sessions, eq(padavali_gameplay_stats.session_id, padavali_sessions.id))
         .where(eq(padavali_sessions.user_id, userId))
     ),
-    topStarted: dbRunHttp('user_stats.padavali_top_started', (client) =>
+    topStarted: dbRunHttp('user_cache.padavali_top_started', (client) =>
       client
         .select({
           puzzle_id: padavali_sessions.puzzle_id,
@@ -85,7 +84,7 @@ const loadPadavaliDashboard = Effect.fn('user_stats.padavali_dashboard')(functio
         .orderBy(desc(count()))
         .limit(TOP_PUZZLE_LIMIT)
     ),
-    recentRows: dbRunHttp('user_stats.padavali_recent', (client) =>
+    recentRows: dbRunHttp('user_cache.padavali_recent', (client) =>
       client
         .select({
           puzzle_id: padavali_puzzles.id,
@@ -117,7 +116,7 @@ const loadPadavaliDashboard = Effect.fn('user_stats.padavali_dashboard')(functio
 
   if (top_puzzles.length > 0) {
     const puzzleIds = top_puzzles.map((row) => row.puzzle_id);
-    const completionByPuzzle = yield* dbRunHttp('user_stats.padavali_top_completed', (client) =>
+    const completionByPuzzle = yield* dbRunHttp('user_cache.padavali_top_completed', (client) =>
       client
         .select({
           puzzle_id: padavali_gameplay_stats.puzzle_id,
@@ -176,18 +175,17 @@ const loadPadavaliDashboard = Effect.fn('user_stats.padavali_dashboard')(functio
   };
 });
 
-const loadCrosswordDashboard = Effect.fn('user_stats.crossword_dashboard')(function* (
+const fetchPadajalaDashboard = Effect.fn('user_cache.padajala_dashboard')(function* (
   userId: string
 ) {
-  // TODO: implement caching patterns for user dashboard stats
   const { startedRows, completionRows, topStarted, recentRows } = yield* Effect.all({
-    startedRows: dbRunHttp('user_stats.crossword_started', (client) =>
+    startedRows: dbRunHttp('user_cache.padajala_started', (client) =>
       client
         .select({ started: count() })
         .from(crossword_sessions)
         .where(eq(crossword_sessions.user_id, userId))
     ),
-    completionRows: dbRunHttp('user_stats.crossword_completions', (client) =>
+    completionRows: dbRunHttp('user_cache.padajala_completions', (client) =>
       client
         .select({
           completed: count(),
@@ -203,7 +201,7 @@ const loadCrosswordDashboard = Effect.fn('user_stats.crossword_dashboard')(funct
         )
         .where(eq(crossword_sessions.user_id, userId))
     ),
-    topStarted: dbRunHttp('user_stats.crossword_top_started', (client) =>
+    topStarted: dbRunHttp('user_cache.padajala_top_started', (client) =>
       client
         .select({
           puzzle_id: crossword_sessions.puzzle_id,
@@ -218,7 +216,7 @@ const loadCrosswordDashboard = Effect.fn('user_stats.crossword_dashboard')(funct
         .orderBy(desc(count()))
         .limit(TOP_PUZZLE_LIMIT)
     ),
-    recentRows: dbRunHttp('user_stats.crossword_recent', (client) =>
+    recentRows: dbRunHttp('user_cache.padajala_recent', (client) =>
       client
         .select({
           puzzle_id: crossword_puzzles.id,
@@ -253,7 +251,7 @@ const loadCrosswordDashboard = Effect.fn('user_stats.crossword_dashboard')(funct
 
   if (top_puzzles.length > 0) {
     const puzzleIds = top_puzzles.map((row) => row.puzzle_id);
-    const completionByPuzzle = yield* dbRunHttp('user_stats.crossword_top_completed', (client) =>
+    const completionByPuzzle = yield* dbRunHttp('user_cache.padajala_top_completed', (client) =>
       client
         .select({
           puzzle_id: crossword_gameplay_stats.puzzle_id,
@@ -315,39 +313,34 @@ const loadCrosswordDashboard = Effect.fn('user_stats.crossword_dashboard')(funct
   };
 });
 
-const get_dashboard_route = protectedProcedure
-  .input(get_user_dashboard_input_schema)
-  .query(({ input: { game }, ctx }) =>
-    runTrpcEffect(
-      Effect.gen(function* () {
-        // TODO: implement caching patterns for user dashboard stats
-        const userId = ctx.user.id;
-        const includePadavali = game === 'all' || game === 'padavali';
-        const includePadajala = game === 'all' || game === 'padajala';
-
-        const [padavali, padajala] = yield* Effect.all([
-          includePadavali
-            ? loadPadavaliDashboard(userId)
-            : Effect.succeed(emptyGameStats('padavali')),
-          includePadajala
-            ? loadCrosswordDashboard(userId)
-            : Effect.succeed(emptyGameStats('padajala'))
-        ]);
-
-        const games = [padavali, padajala].filter((item) => {
-          if (game === 'all') return true;
-          return item.game === game;
-        });
-
-        return {
-          totals: combineDashboardTotals(games),
-          padavali,
-          padajala
-        };
-      })
-    )
-  );
-
-export const user_stats_router = t.router({
-  get_dashboard: get_dashboard_route
+const load_padavali_dashboard: CacheItem<UserDashboardParams, GameDashboardStats> = createCache({
+  getKey: padavaliDashboardKey,
+  schema: game_dashboard_stats_schema,
+  fetch: ({ userId }) => {
+    const key = padavaliDashboardKey({ userId });
+    return fetchPadavaliDashboard(userId).pipe(
+      Effect.mapError(toCacheError('fetchPadavaliDashboard', key))
+    );
+  }
 });
+
+const load_padajala_dashboard: CacheItem<UserDashboardParams, GameDashboardStats> = createCache({
+  getKey: padajalaDashboardKey,
+  schema: game_dashboard_stats_schema,
+  fetch: ({ userId }) => {
+    const key = padajalaDashboardKey({ userId });
+    return fetchPadajalaDashboard(userId).pipe(
+      Effect.mapError(toCacheError('fetchPadajalaDashboard', key))
+    );
+  }
+});
+
+export type UserCacheLoaders = {
+  padavali_dashboard: CacheItem<UserDashboardParams, GameDashboardStats>;
+  padajala_dashboard: CacheItem<UserDashboardParams, GameDashboardStats>;
+};
+
+export const user_cache_loaders: UserCacheLoaders = {
+  padavali_dashboard: load_padavali_dashboard,
+  padajala_dashboard: load_padajala_dashboard
+};

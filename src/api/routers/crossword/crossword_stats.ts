@@ -27,16 +27,20 @@ import {
   claimPlaySession,
   completePlaySession,
   releasePlaySessionClaim
-} from '~/api/stats_play_guard';
-import { displayUserName, sessionUserFields } from '~/api/session_user';
-import { requireTurnstileIfGuest } from '~/api/turnstile_guard';
+} from '~/api/routers/stats_play_guard';
+import { displayUserName, sessionUserFields } from '~/api/routers/user/session_user';
+import { requireTurnstileIfGuest } from '~/api/routers/turnstile_guard';
 import {
   get_stats_data_input_schema,
   get_top_puzzles_input_schema,
   get_top_users_input_schema,
   get_user_list_input_schema
-} from '~/api/stats_query_schema';
+} from '~/api/routers/stats_query_schema';
 import { escapeIlikeToken } from '~/util/puzzle/search';
+import { CACHE, invalidate_and_refresh_cache } from '~/util/cache.server/cache_loaders';
+
+const settle = <A, E, R>(effect: Effect.Effect<A, E, R>) =>
+  effect.pipe(Effect.catch(() => Effect.void));
 
 const submit_stats_route = publicProcedure
   .input(crossword_submit_stats_input_schema)
@@ -90,6 +94,14 @@ const submit_stats_route = publicProcedure
             .onConflictDoNothing({ target: crossword_gameplay_stats.session_id });
         });
 
+        if (ctx.user?.id) {
+          yield* settle(
+            invalidate_and_refresh_cache(CACHE.user.padajala_dashboard, {
+              userId: ctx.user.id
+            })
+          );
+        }
+
         return { submitted: true };
       })
     )
@@ -132,6 +144,15 @@ const update_games_started_route = publicProcedure
         }
 
         yield* completePlaySession('crossword', client_play_id, session.id);
+
+        if (userFields.user_id) {
+          yield* settle(
+            invalidate_and_refresh_cache(CACHE.user.padajala_dashboard, {
+              userId: userFields.user_id
+            })
+          );
+        }
+
         return { success: true, session_id: session.id };
       })
     )

@@ -7,7 +7,7 @@ import {
 } from '~/util/cache.server/cache_loaders';
 import { padavali_schedules, padavali_puzzles } from '~/db/schema';
 import { and, eq } from 'drizzle-orm';
-import { notify_for_listed_puzzle } from '~/api/routers/puzzle';
+import { notify_for_listed_puzzle } from '~/api/routers/padavali';
 import { scheduleListingPayloadSchema, decodeQstashPayload } from '~/effect/qstash';
 import { dbRunHttp, dbTransaction } from '~/effect/database';
 import { runQstashEffect } from '~/effect/run';

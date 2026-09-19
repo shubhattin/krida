@@ -3,7 +3,7 @@ import { useContext, useEffect, useEffectEvent, useRef, useState } from 'react';
 import { useTurnstile } from 'react-turnstile';
 import { useMutation } from '@tanstack/react-query';
 import { useTRPC } from '~/api/client';
-import { useInvalidateUserDashboard } from '~/api/invalidate_user_dashboard';
+import { useInvalidateUserDashboard } from '~/api/routers/user/invalidate_user_dashboard';
 import { canSubmitPlayMetrics, playMetricsToken, usePlayAuth } from '~/lib/play_metrics_auth';
 import {
   completed_atom,

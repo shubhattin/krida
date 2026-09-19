@@ -11,6 +11,7 @@ import { client, useTRPC } from '~/api/client';
 import { toast } from 'sonner';
 import { useNavigate, useRouter } from '@tanstack/react-router';
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
+import { invalidatePadavaliListedPuzzleQueries } from '~/components/pages/padavali/useListedPuzzlesDisplay';
 import {
   AlertDialog,
   AlertDialogAction,
@@ -137,8 +138,8 @@ function useScheduleMutations() {
       onSuccess: async (data) => {
         if (data.success) {
           toast.success('Schedule added successfully');
-          void queryClient.invalidateQueries({ queryKey: ['listed_puzzles_carousel'] });
           await router.invalidate();
+          invalidatePadavaliListedPuzzleQueries(queryClient);
           navigate({ href: `/padavali/schedules` });
         } else if (data.error_code === 'already_exists_in_time_range') {
           toast.error('A schedule already exists in the time range');
@@ -155,8 +156,8 @@ function useScheduleMutations() {
       onSuccess: async (data) => {
         if (data.success) {
           toast.success('Schedule updated successfully');
-          void queryClient.invalidateQueries({ queryKey: ['listed_puzzles_carousel'] });
           await router.invalidate();
+          invalidatePadavaliListedPuzzleQueries(queryClient);
           navigate({ href: `/padavali/schedules` });
         }
       },

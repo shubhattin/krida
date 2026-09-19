@@ -1,6 +1,6 @@
 import { Effect } from 'effect';
 import { z } from 'zod';
-import { protectedAdminProcedure, publicProcedure, t } from '../trpc_init';
+import { protectedAdminProcedure, publicProcedure, t } from '~/api/trpc_init';
 import { dbRunHttp, dbTransaction, type DbTransaction } from '~/effect/database';
 import {
   padavali_attachments,

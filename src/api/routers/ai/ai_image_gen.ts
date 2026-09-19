@@ -1,4 +1,4 @@
-import { t, protectedAdminProcedure } from '../trpc_init';
+import { t, protectedAdminProcedure } from '~/api/trpc_init';
 import { generateSavePuzzleImage } from '~/util/ai/image_gen';
 import {
   generate_puzzle_image_input_schema,

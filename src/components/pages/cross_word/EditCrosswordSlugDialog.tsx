@@ -5,6 +5,7 @@ import { useRouter } from '@tanstack/react-router';
 import { CheckIcon, Loader2Icon, PencilIcon, Trash2Icon, XIcon } from 'lucide-react';
 import { client, useTRPC } from '~/api/client';
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
+import { invalidatePadajalaListedPuzzleQueries } from '~/components/pages/cross_word/useCrosswordListedPuzzles';
 import { Button } from '~/components/ui/button';
 import {
   Dialog,
@@ -159,11 +160,11 @@ export const EditCrosswordSlugDialog = ({ puzzleId, currentSlug, onSlugUpdated }
       onSuccess: async (data) => {
         toast.success('Slug updated successfully');
 
-        void queryClient.invalidateQueries({ queryKey: ['crossword_list'] });
         void queryClient.invalidateQueries(
           trpc.crossword.get_puzzle_slugs.queryFilter({ puzzle_id: puzzleId })
         );
         await router.invalidate();
+        invalidatePadajalaListedPuzzleQueries(queryClient);
 
         onSlugUpdated(data.slug);
         setOpen(false);
