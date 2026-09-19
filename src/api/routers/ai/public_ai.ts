@@ -1,5 +1,5 @@
 import { Effect } from 'effect';
-import { t, publicProcedure } from '../trpc_init';
+import { t, publicProcedure } from '~/api/trpc_init';
 import { z } from 'zod';
 import { CACHE } from '~/util/cache.server/cache_loaders';
 import { NotFoundError } from '~/effect/errors';

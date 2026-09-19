@@ -1,6 +1,6 @@
 import { Effect } from 'effect';
 import { z } from 'zod';
-import { verify_cloudflare_turnstile_token } from './trpc_init';
+import { verify_cloudflare_turnstile_token } from '~/api/trpc_init';
 import { BadRequestError } from '~/effect/errors';
 
 /** Present for guests; omitted or null when the caller is signed in. */

@@ -1,5 +1,5 @@
 import { z } from 'zod';
-import { t, protectedAdminProcedure } from '../trpc_init';
+import { t, protectedAdminProcedure } from '~/api/trpc_init';
 import { puzzle_image_game_enum } from '~/util/types/ai_batch_metadata';
 import { runTrpcEffect } from '~/effect/run';
 import {

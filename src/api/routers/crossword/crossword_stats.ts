@@ -27,15 +27,15 @@ import {
   claimPlaySession,
   completePlaySession,
   releasePlaySessionClaim
-} from '~/api/stats_play_guard';
-import { displayUserName, sessionUserFields } from '~/api/session_user';
-import { requireTurnstileIfGuest } from '~/api/turnstile_guard';
+} from '~/api/routers/stats_play_guard';
+import { displayUserName, sessionUserFields } from '~/api/routers/user/session_user';
+import { requireTurnstileIfGuest } from '~/api/routers/turnstile_guard';
 import {
   get_stats_data_input_schema,
   get_top_puzzles_input_schema,
   get_top_users_input_schema,
   get_user_list_input_schema
-} from '~/api/stats_query_schema';
+} from '~/api/routers/stats_query_schema';
 import { escapeIlikeToken } from '~/util/puzzle/search';
 import { CACHE, invalidate_and_refresh_cache } from '~/util/cache.server/cache_loaders';
 

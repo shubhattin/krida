@@ -13,7 +13,7 @@ import {
   type DashboardPuzzleRow,
   type DashboardRecentRow,
   type GameDashboardStats
-} from '~/api/user_dashboard';
+} from '~/api/routers/user/user_dashboard';
 import { createCache, type CacheItem } from '~/effect/cache';
 import { dbRunHttp } from '~/effect/database';
 import { CacheError } from '~/effect/errors';

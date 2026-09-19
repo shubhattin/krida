@@ -15,7 +15,7 @@ import {
 } from 'lucide-react';
 import pretty_ms from 'pretty-ms';
 import { useTRPC } from '~/api/client';
-import type { DashboardGameId, GameDashboardStats } from '~/api/user_dashboard';
+import type { DashboardGameId, GameDashboardStats } from '~/api/routers/user/user_dashboard';
 import { MenuButton } from '~/components/app-bar/AppBarMenu';
 import { GameAppIcon } from '~/components/GameAppIcon';
 import { Button } from '~/components/ui/button';

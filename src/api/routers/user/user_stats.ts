@@ -1,8 +1,8 @@
 import { Effect } from 'effect';
-import { protectedProcedure, t } from '../trpc_init';
+import { protectedProcedure, t } from '~/api/trpc_init';
 import { runTrpcEffect } from '~/effect/run';
-import { get_user_dashboard_input_schema } from '~/api/stats_query_schema';
-import { combineDashboardTotals, emptyGameStats } from '~/api/user_dashboard';
+import { get_user_dashboard_input_schema } from '~/api/routers/stats_query_schema';
+import { combineDashboardTotals, emptyGameStats } from '~/api/routers/user/user_dashboard';
 import { CACHE } from '~/util/cache.server/cache_loaders';
 
 const get_dashboard_route = protectedProcedure

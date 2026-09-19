@@ -1,5 +1,5 @@
 import { Effect, Schedule } from 'effect';
-import { t, protectedAdminProcedure } from '../trpc_init';
+import { t, protectedAdminProcedure } from '~/api/trpc_init';
 import { z } from 'zod';
 import { image_assets } from '~/db/schema';
 import { dbRunHttp } from '~/effect/database';

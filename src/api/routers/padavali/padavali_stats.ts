@@ -1,5 +1,5 @@
 import { Effect } from 'effect';
-import { protectedAdminProcedure, publicProcedure, t } from '../trpc_init';
+import { protectedAdminProcedure, publicProcedure, t } from '~/api/trpc_init';
 import { z } from 'zod';
 import { padavali_sessions, padavali_gameplay_stats, padavali_puzzles } from '~/db/schema';
 import { dbRunHttp } from '~/effect/database';
@@ -26,15 +26,18 @@ import {
   claimPlaySession,
   completePlaySession,
   releasePlaySessionClaim
-} from '~/api/stats_play_guard';
-import { displayUserName, sessionUserFields } from '~/api/session_user';
-import { optional_turnstile_token_schema, requireTurnstileIfGuest } from '~/api/turnstile_guard';
+} from '~/api/routers/stats_play_guard';
+import { displayUserName, sessionUserFields } from '~/api/routers/user/session_user';
+import {
+  optional_turnstile_token_schema,
+  requireTurnstileIfGuest
+} from '~/api/routers/turnstile_guard';
 import {
   get_stats_data_input_schema,
   get_top_puzzles_input_schema,
   get_top_users_input_schema,
   get_user_list_input_schema
-} from '~/api/stats_query_schema';
+} from '~/api/routers/stats_query_schema';
 import { escapeIlikeToken } from '~/util/puzzle/search';
 import { CACHE, invalidate_and_refresh_cache } from '~/util/cache.server/cache_loaders';
 
