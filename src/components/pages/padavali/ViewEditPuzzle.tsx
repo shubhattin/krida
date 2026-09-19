@@ -84,6 +84,7 @@ import {
   SelectContent
 } from '~/components/ui/select';
 import { useMutation, useQueryClient } from '@tanstack/react-query';
+import { invalidatePadavaliListedPuzzleQueries } from '~/components/pages/padavali/useListedPuzzlesDisplay';
 import {
   EditorHistoryProvider,
   useEditorHistoryActions,
@@ -1427,8 +1428,8 @@ const SaveButton = ({ word_puzzle }: { word_puzzle: Puzzle }) => {
           );
           saveSnapRef.current = null;
 
-          void queryClient.invalidateQueries({ queryKey: ['listed_puzzles_carousel'] });
           await router.invalidate();
+          invalidatePadavaliListedPuzzleQueries(queryClient);
         }
       },
       onError() {
@@ -1443,8 +1444,8 @@ const SaveButton = ({ word_puzzle }: { word_puzzle: Puzzle }) => {
       onSuccess: async () => {
         toast.success('Puzzle deleted successfully');
 
-        void queryClient.invalidateQueries({ queryKey: ['listed_puzzles_carousel'] });
         await router.invalidate();
+        invalidatePadavaliListedPuzzleQueries(queryClient);
 
         navigate({ href: '/padavali/list' });
       },

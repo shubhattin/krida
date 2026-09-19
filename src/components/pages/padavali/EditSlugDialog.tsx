@@ -5,6 +5,7 @@ import { useRouter } from '@tanstack/react-router';
 import { CheckIcon, Loader2Icon, PencilIcon, Trash2Icon, XIcon } from 'lucide-react';
 import { useTRPC } from '~/api/client';
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
+import { invalidatePadavaliListedPuzzleQueries } from '~/components/pages/padavali/useListedPuzzlesDisplay';
 import { Button } from '~/components/ui/button';
 import {
   Dialog,
@@ -117,11 +118,11 @@ export const EditSlugDialog = ({ puzzleId, currentSlug, onSlugUpdated }: Props) 
       onSuccess: async (data) => {
         toast.success('Slug updated successfully');
 
-        void queryClient.invalidateQueries({ queryKey: ['listed_puzzles_carousel'] });
         void queryClient.invalidateQueries(
           trpc.puzzle.get_puzzle_slugs.queryFilter({ puzzle_id: puzzleId })
         );
         await router.invalidate();
+        invalidatePadavaliListedPuzzleQueries(queryClient);
 
         onSlugUpdated(data.slug);
         setOpen(false);

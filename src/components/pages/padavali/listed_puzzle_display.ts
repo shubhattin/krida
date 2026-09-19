@@ -43,12 +43,16 @@ export function mergeDisplayPuzzles(
   org: PadavaliListedPuzzlesType,
   normal_titles: string[] | undefined
 ): DisplayPuzzle[] {
-  return rows.map((puzzle, index) => ({
-    ...puzzle,
-    description_original:
-      'description_original' in puzzle
-        ? puzzle.description_original
-        : (org[index]?.description ?? ''),
-    title_normal: puzzle.title_normal ?? normal_titles?.[index] ?? ''
-  }));
+  const byId = new Map(rows.map((row) => [row.id, row]));
+
+  return org.map((puzzle, index) => {
+    const row = byId.get(puzzle.id) ?? rows[index];
+    return {
+      ...puzzle,
+      title: row?.title ?? puzzle.title,
+      description: row?.description ?? puzzle.description ?? '',
+      description_original: puzzle.description,
+      title_normal: row?.title_normal ?? normal_titles?.[index] ?? ''
+    };
+  });
 }
