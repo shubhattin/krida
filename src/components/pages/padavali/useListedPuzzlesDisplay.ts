@@ -38,6 +38,8 @@ export function useListedPuzzlesDisplay(
   const { script } = useContext(AppContext);
 
   const normal_titles_q = useQuery({
+    // List text refreshed via invalidatePadavaliListedPuzzleQueries — keep keys lean.
+    // oxlint-disable-next-line query/exhaustive-deps
     queryKey: [...listedPuzzleQueryKey, 'normal'],
     queryFn: () =>
       transliterate(
@@ -56,6 +58,8 @@ export function useListedPuzzlesDisplay(
   });
 
   const script_display_q = useQuery({
+    // List/titles refreshed via invalidatePadavaliListedPuzzleQueries — keep keys lean.
+    // oxlint-disable-next-line query/exhaustive-deps
     queryKey: [...listedPuzzleQueryKey, script],
     queryFn: async () => {
       const puzzle_texts = listed_puzzles.flatMap((p) =>

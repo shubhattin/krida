@@ -19,7 +19,6 @@ import {
   crossword_update_slug_input_schema
 } from '~/db/crossword_shared';
 import { crossword_slug_schema } from '~/util/puzzle/slug';
-import { CrossordPuzzleSchemaZod } from '~/db/schema_zod';
 import {
   CACHE,
   invalidate_and_refresh_cache,
@@ -38,7 +37,6 @@ import { crossword_schedules_router } from './crossword_schedules';
 import { more_hints_inputs_equal } from '~/util/ai/more_hints';
 import { BadRequestError, NotFoundError } from '~/effect/errors';
 import { runTrpcEffect } from '~/effect/run';
-import { crosswordActiveWordList } from '~/util/puzzle/word_list';
 
 type AttachmentInput = z.infer<typeof CrosswordUpdateInputSchema>['puzzle_data']['attachments'];
 
