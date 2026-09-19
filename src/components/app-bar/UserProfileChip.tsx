@@ -1,6 +1,6 @@
 'use client';
 
-import { useState, type ReactNode } from 'react';
+import { useState, useSyncExternalStore, type ReactNode } from 'react';
 import { useQuery } from '@tanstack/react-query';
 import { Link } from '@tanstack/react-router';
 import {
@@ -51,6 +51,17 @@ const chipButtonClass =
 const popoverClass =
   'w-80 overflow-hidden border-slate-200/80 bg-white/95 p-0 shadow-xl backdrop-blur-md dark:border-slate-700/80 dark:bg-slate-800/95';
 
+const emptySubscribe = () => () => {};
+
+/** false during SSR + hydration; true after client commit — avoids session pending mismatch. */
+function useIsClient() {
+  return useSyncExternalStore(
+    emptySubscribe,
+    () => true,
+    () => false
+  );
+}
+
 function dashboardGameId(game: 'padavali' | 'crossword'): DashboardGameId {
   return game === 'padavali' ? 'padavali' : 'padajala';
 }
@@ -72,6 +83,14 @@ function initialsFromName(name: string | null | undefined): string {
   return `${parts[0]![0]!}${parts[parts.length - 1]![0]!}`.toUpperCase();
 }
 
+function ProfileChipSkeleton() {
+  return (
+    <div className="size-8 shrink-0">
+      <Skeleton className="size-8 rounded-full" />
+    </div>
+  );
+}
+
 export function UserProfileChip({
   game,
   gameLabel
@@ -82,21 +101,18 @@ export function UserProfileChip({
   const { data: session, isPending } = useSession();
   const user = session?.user;
   const [logoutOpen, setLogoutOpen] = useState(false);
+  const isClient = useIsClient();
   const dashboardGame = dashboardGameId(game);
   const trpc = useTRPC();
-  const prompt = useGuestAuthPrompt(!!user, !isPending);
+  const prompt = useGuestAuthPrompt(!!user, isClient && !isPending);
   const statsQuery = useQuery({
     ...trpc.user.get_dashboard.queryOptions({ game: dashboardGame }),
     // Fetch only when the popover opens. Gameplay mutations mark this stale.
     enabled: prompt.open && !!user
   });
 
-  if (isPending) {
-    return (
-      <div className="size-8 shrink-0">
-        <Skeleton className="size-8 rounded-full" />
-      </div>
-    );
+  if (!isClient || isPending) {
+    return <ProfileChipSkeleton />;
   }
 
   const stats =

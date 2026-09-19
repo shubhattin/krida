@@ -35,8 +35,9 @@ type DragEventLike = PointerEvent | MouseEvent | TouchEvent | KeyboardEvent;
 
 const getPointerCoords = (e: DragEventLike): { clientX: number; clientY: number } | null => {
   // Keyboard-driven drags carry no pointer position.
-  if (e instanceof KeyboardEvent) return null;
-  if (e instanceof TouchEvent) {
+  if ('key' in e) return null;
+  // Firefox desktop does not define TouchEvent — never reference it directly.
+  if ('touches' in e) {
     const touch = e.touches[0] ?? e.changedTouches[0];
     return touch ? { clientX: touch.clientX, clientY: touch.clientY } : null;
   }
