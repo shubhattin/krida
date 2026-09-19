@@ -2,14 +2,13 @@ import { describe, expect, it } from 'vitest';
 import { displayUserName, sessionUserFields } from './session_user';
 
 describe('sessionUserFields', () => {
-  it('returns nulls when there is no signed-in user', () => {
-    expect(sessionUserFields(undefined)).toEqual({ user_id: null, user_name: null });
+  it('returns null when there is no signed-in user', () => {
+    expect(sessionUserFields(undefined)).toEqual({ user_id: null });
   });
 
-  it('snapshots id and name from the auth user', () => {
+  it('snapshots id from the auth user', () => {
     expect(sessionUserFields({ id: 'user_abc', name: 'Ada' })).toEqual({
-      user_id: 'user_abc',
-      user_name: 'Ada'
+      user_id: 'user_abc'
     });
   });
 });

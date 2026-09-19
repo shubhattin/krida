@@ -85,9 +85,7 @@ export const crossword_sessions = pgTable(
     created_at: timestamp({ withTimezone: true }).notNull().defaultNow(),
     location: varchar({ length: 25 }).$type<location_list_type>(),
     /** Better Auth user id; null for anonymous plays */
-    user_id: text(),
-    /** Display-name snapshot at play time (auth lives on a separate service) */
-    user_name: text()
+    user_id: text()
   },
   (table) => [
     index('crossword_sessions_puzzle_id_created_at_idx').on(table.puzzle_id, table.created_at),

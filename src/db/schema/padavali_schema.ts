@@ -89,9 +89,7 @@ export const padavali_sessions = pgTable(
     script: text().$type<ScriptType>(),
     // as the script field was added late, we have handle it accordingly in th code
     /** Better Auth user id; null for anonymous plays */
-    user_id: text(),
-    /** Display-name snapshot at play time (auth lives on a separate service) */
-    user_name: text()
+    user_id: text()
   },
   (table) => [
     index('padavali_sessions_puzzle_id_created_at_idx').on(table.puzzle_id, table.created_at),

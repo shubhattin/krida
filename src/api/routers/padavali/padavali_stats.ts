@@ -15,8 +15,6 @@ import {
   inArray,
   isNotNull,
   lte,
-  max,
-  or,
   sql
 } from 'drizzle-orm';
 import { BadRequestError } from '~/effect/errors';
@@ -28,6 +26,7 @@ import {
   releasePlaySessionClaim
 } from '~/api/routers/stats_play_guard';
 import { displayUserName, sessionUserFields } from '~/api/routers/user/session_user';
+import { resolveAuthUserNames, searchAuthUsers } from '~/lib/auth_users.server';
 import {
   optional_turnstile_token_schema,
   requireTurnstileIfGuest
@@ -162,8 +161,7 @@ const update_games_started_route = publicProcedure
                 location,
                 script,
                 practice_mode,
-                user_id: userFields.user_id,
-                user_name: userFields.user_name
+                user_id: userFields.user_id
               })
               .returning()
           ).pipe(Effect.tapError(() => releasePlaySessionClaim('padavali', client_play_id)));
@@ -424,7 +422,6 @@ const get_top_users_route = protectedAdminProcedure
           client
             .select({
               user_id: padavali_sessions.user_id,
-              name: max(padavali_sessions.user_name),
               started: count()
             })
             .from(padavali_sessions)
@@ -434,12 +431,15 @@ const get_top_users_route = protectedAdminProcedure
             .limit(limit)
         );
 
+        const userIds = topSessions.flatMap((row) => (row.user_id ? [row.user_id] : []));
+        const namesById = yield* resolveAuthUserNames(userIds);
+
         const users = topSessions.flatMap((row) => {
           if (!row.user_id) return [];
           return [
             {
               user_id: row.user_id,
-              name: displayUserName(row.user_id, row.name),
+              name: namesById.get(row.user_id) ?? displayUserName(row.user_id, null),
               started: Number(row.started),
               completed: 0
             }
@@ -450,7 +450,6 @@ const get_top_users_route = protectedAdminProcedure
           return { users };
         }
 
-        const userIds = users.map((row) => row.user_id);
         const statsConditions = [inArray(padavali_sessions.user_id, userIds)];
         if (!all_time && start_date && end_date) {
           statsConditions.push(gte(padavali_gameplay_stats.created_at, start_date));
@@ -499,18 +498,87 @@ const get_user_list_page_route = protectedAdminProcedure
     runTrpcEffect(
       Effect.gen(function* () {
         const trimmedSearch = search?.trim();
-        const conditions = [isNotNull(padavali_sessions.user_id)];
-        if (trimmedSearch) {
-          const pattern = `%${escapeIlikeToken(trimmedSearch)}%`;
-          conditions.push(
-            or(
-              ilike(padavali_sessions.user_name, pattern),
-              ilike(padavali_sessions.user_id, pattern)
-            )!
-          );
-        }
-        const whereClause = and(...conditions);
         const offset = (page - 1) * size;
+
+        if (trimmedSearch) {
+          const authMatches = yield* searchAuthUsers(trimmedSearch, 50);
+          const idPattern = `%${escapeIlikeToken(trimmedSearch)}%`;
+          const localIdRows = yield* dbRunHttp('padavali_stats.search_user_ids', (client) =>
+            client
+              .selectDistinct({ user_id: padavali_sessions.user_id })
+              .from(padavali_sessions)
+              .where(
+                and(isNotNull(padavali_sessions.user_id), ilike(padavali_sessions.user_id, idPattern))
+              )
+              .limit(50)
+          );
+
+          const matchedIds = [
+            ...new Set([
+              ...authMatches.map((u) => u.id),
+              ...localIdRows.flatMap((row) => (row.user_id ? [row.user_id] : []))
+            ])
+          ];
+
+          if (matchedIds.length === 0) {
+            return {
+              list: [],
+              total: 0,
+              page,
+              pageCount: 1,
+              hasPrev: false,
+              hasNext: false
+            };
+          }
+
+          const playRows = yield* dbRunHttp('padavali_stats.list_users_filtered', (client) =>
+            client
+              .select({
+                user_id: padavali_sessions.user_id,
+                plays: count()
+              })
+              .from(padavali_sessions)
+              .where(inArray(padavali_sessions.user_id, matchedIds))
+              .groupBy(padavali_sessions.user_id)
+              .orderBy(desc(count()))
+          );
+
+          const namesById = new Map(authMatches.map((u) => [u.id, u.name] as const));
+          const missingIds = playRows.flatMap((row) =>
+            row.user_id && !namesById.has(row.user_id) ? [row.user_id] : []
+          );
+          if (missingIds.length > 0) {
+            const resolved = yield* resolveAuthUserNames(missingIds);
+            for (const [id, name] of resolved) namesById.set(id, name);
+          }
+
+          const sorted = playRows.flatMap((row) => {
+            if (!row.user_id) return [];
+            return [
+              {
+                id: row.user_id,
+                name: namesById.get(row.user_id) ?? displayUserName(row.user_id, null),
+                plays: Number(row.plays)
+              }
+            ];
+          });
+
+          const total = sorted.length;
+          const pageCount = Math.max(1, Math.ceil(total / size));
+          const list = sorted.slice(offset, offset + size);
+
+          return {
+            list,
+            total,
+            page,
+            pageCount,
+            hasPrev: page > 1,
+            hasNext: page < pageCount
+          };
+        }
+
+        const conditions = [isNotNull(padavali_sessions.user_id)];
+        const whereClause = and(...conditions);
 
         const { countResult, rows } = yield* Effect.all({
           countResult: dbRunHttp('padavali_stats.count_users', (client) =>
@@ -525,7 +593,6 @@ const get_user_list_page_route = protectedAdminProcedure
             client
               .select({
                 user_id: padavali_sessions.user_id,
-                name: max(padavali_sessions.user_name),
                 plays: count()
               })
               .from(padavali_sessions)
@@ -537,12 +604,15 @@ const get_user_list_page_route = protectedAdminProcedure
           )
         });
 
+        const pageIds = rows.flatMap((row) => (row.user_id ? [row.user_id] : []));
+        const namesById = yield* resolveAuthUserNames(pageIds);
+
         const list = rows.flatMap((row) => {
           if (!row.user_id) return [];
           return [
             {
               id: row.user_id,
-              name: displayUserName(row.user_id, row.name),
+              name: namesById.get(row.user_id) ?? displayUserName(row.user_id, null),
               plays: Number(row.plays)
             }
           ];
