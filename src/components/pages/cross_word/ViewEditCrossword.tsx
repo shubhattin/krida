@@ -5,6 +5,7 @@ import { atom, useAtom } from 'jotai';
 import { useHydrateAtoms } from 'jotai/utils';
 import { useNavigate, useRouter } from '@tanstack/react-router';
 import { useMutation, useQueryClient } from '@tanstack/react-query';
+import { invalidatePadajalaListedPuzzleQueries } from '~/components/pages/cross_word/useCrosswordListedPuzzles';
 import { AnimatePresence, motion } from 'framer-motion';
 import useEmblaCarousel from 'embla-carousel-react';
 import { ArrowRight, ChevronLeft, ChevronRight, Info, Pencil, WandSparkles } from 'lucide-react';
@@ -2132,8 +2133,8 @@ const SaveControls = ({ puzzle }: { puzzle: ViewEditCrosswordProps['puzzle'] }) 
         );
         saveSnapRef.current = null;
 
-        void queryClient.invalidateQueries({ queryKey: ['crossword_list'] });
         await router.invalidate();
+        invalidatePadajalaListedPuzzleQueries(queryClient);
       },
       onError(err) {
         saveSnapRef.current = null;
@@ -2146,8 +2147,8 @@ const SaveControls = ({ puzzle }: { puzzle: ViewEditCrosswordProps['puzzle'] }) 
     trpc.crossword.delete_puzzle.mutationOptions({
       onSuccess: async () => {
         toast.success('Puzzle deleted');
-        void queryClient.invalidateQueries({ queryKey: ['crossword_list'] });
         await router.invalidate();
+        invalidatePadajalaListedPuzzleQueries(queryClient);
         navigate({ href: '/padajala/list' });
       },
       onError() {

@@ -154,37 +154,7 @@ const check_slug_availability_route = protectedAdminProcedure
   );
 
 const get_listed_puzzles_route = publicProcedure.query(() =>
-  runTrpcEffect(
-    dbRunHttp('crossword.listed_puzzles', (client) =>
-      client
-        .select({
-          id: crossword_puzzles.id,
-          title: crossword_puzzles.title,
-          description: crossword_puzzles.description,
-          grid_dimensions: crossword_puzzles.grid_dimensions,
-          grid_data: crossword_puzzles.grid_data,
-          word_list: crossword_puzzles.word_list,
-          listed: crossword_puzzles.listed,
-          last_listed_at: crossword_puzzles.last_listed_at,
-          created_at: crossword_puzzles.created_at,
-          updated_at: crossword_puzzles.updated_at,
-          slug: crossword_puzzles.slug,
-          image_id: crossword_puzzles.image_id
-        })
-        .from(crossword_puzzles)
-        .where(eq(crossword_puzzles.listed, true))
-        .orderBy(desc(crossword_puzzles.last_listed_at), desc(crossword_puzzles.created_at))
-    ).pipe(
-      Effect.map((rows) =>
-        rows.map((row) =>
-          CrossordPuzzleSchemaZod.parse({
-            ...row,
-            word_list: crosswordActiveWordList(row.word_list)
-          })
-        )
-      )
-    )
-  )
+  runTrpcEffect(CACHE.crossword.listed_puzzle_list.get(NO_CACHE_PARAMS))
 );
 
 const get_puzzle_by_id_route = protectedAdminProcedure
