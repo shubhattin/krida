@@ -2,18 +2,7 @@ import { Effect } from 'effect';
 import { protectedAdminProcedure, publicProcedure, t } from '../../trpc_init';
 import { crossword_sessions, crossword_gameplay_stats, crossword_puzzles } from '~/db/schema';
 import { dbRunHttp } from '~/effect/database';
-import {
-  and,
-  count,
-  desc,
-  eq,
-  gte,
-  ilike,
-  inArray,
-  isNotNull,
-  lte,
-  sql
-} from 'drizzle-orm';
+import { and, count, desc, eq, gte, ilike, inArray, isNotNull, lte, sql } from 'drizzle-orm';
 import {
   crossword_submit_stats_input_schema,
   crossword_update_games_started_input_schema

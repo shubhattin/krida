@@ -5,18 +5,7 @@ import { padavali_sessions, padavali_gameplay_stats, padavali_puzzles } from '~/
 import { dbRunHttp } from '~/effect/database';
 import { location_list_enum } from '~/db/types';
 import { script_list_enum } from '~/state/script_list';
-import {
-  and,
-  count,
-  desc,
-  eq,
-  gte,
-  ilike,
-  inArray,
-  isNotNull,
-  lte,
-  sql
-} from 'drizzle-orm';
+import { and, count, desc, eq, gte, ilike, inArray, isNotNull, lte, sql } from 'drizzle-orm';
 import { BadRequestError } from '~/effect/errors';
 import { runTrpcEffect } from '~/effect/run';
 import { padavaliActiveWords } from '~/util/puzzle/word_list';
@@ -508,7 +497,10 @@ const get_user_list_page_route = protectedAdminProcedure
               .selectDistinct({ user_id: padavali_sessions.user_id })
               .from(padavali_sessions)
               .where(
-                and(isNotNull(padavali_sessions.user_id), ilike(padavali_sessions.user_id, idPattern))
+                and(
+                  isNotNull(padavali_sessions.user_id),
+                  ilike(padavali_sessions.user_id, idPattern)
+                )
               )
               .limit(50)
           );

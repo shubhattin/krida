@@ -65,27 +65,28 @@ export const fetchAuthUsersByIds = Effect.fn('auth_users.by_ids')(function* (ids
     catch: (cause) => AuthError.make({ operation: 'by_ids_json', cause })
   });
 
-  const parsed = yield* Schema.decodeUnknown(ByIdsResponse)(json).pipe(
+  const parsed = yield* Schema.decodeUnknownEffect(ByIdsResponse)(json).pipe(
     Effect.mapError((cause) => AuthError.make({ operation: 'by_ids_decode', cause }))
   );
 
-  return new Map(parsed.users.map((row) => [row.id, row.name] as const));
+  return new Map<string, string>(parsed.users.map((row) => [row.id, row.name]));
 });
 
-/** Resolve display names for ids; missing users fall back to Player &lt;id&gt;. */
+/** Resolve display names for ids; missing users fall back to Player {id prefix}. */
 export const resolveAuthUserNames = Effect.fn('auth_users.resolve_names')(function* (
   ids: string[]
 ) {
   const byId = yield* fetchAuthUsersByIds(ids);
-  return new Map(
-    ids.filter(Boolean).map((id) => [id, displayUserName(id, byId.get(id))] as const)
+  return new Map<string, string>(
+    ids.filter(Boolean).map((id) => [id, displayUserName(id, byId.get(id))])
   );
 });
 
 export const searchAuthUsers = Effect.fn('auth_users.search')(function* (q: string, limit = 20) {
   const trimmed = q.trim();
   if (!trimmed) {
-    return [] as AuthUserDisplay[];
+    const empty: AuthUserDisplay[] = [];
+    return empty;
   }
 
   const config = yield* AppConfig;
@@ -117,12 +118,13 @@ export const searchAuthUsers = Effect.fn('auth_users.search')(function* (q: stri
     catch: (cause) => AuthError.make({ operation: 'search_json', cause })
   });
 
-  const parsed = yield* Schema.decodeUnknown(SearchResponse)(json).pipe(
+  const parsed = yield* Schema.decodeUnknownEffect(SearchResponse)(json).pipe(
     Effect.mapError((cause) => AuthError.make({ operation: 'search_decode', cause }))
   );
 
-  return parsed.users.map((row) => ({
+  const users: AuthUserDisplay[] = parsed.users.map((row) => ({
     id: row.id,
     name: displayUserName(row.id, row.name)
   }));
+  return users;
 });
