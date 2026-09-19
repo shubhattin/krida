@@ -1,35 +1,53 @@
+import { z } from 'zod';
+
 export type DashboardGameId = 'padavali' | 'padajala';
 
-export type DashboardPuzzleRow = {
-  puzzle_id: number;
-  title: string;
-  slug: string;
-  started: number;
-  completed: number;
-  best_time_seconds: number | null;
-  best_accuracy: number | null;
-};
+export const dashboard_puzzle_row_schema = z.object({
+  puzzle_id: z.number().int(),
+  title: z.string(),
+  slug: z.string(),
+  started: z.number(),
+  completed: z.number(),
+  best_time_seconds: z.number().nullable(),
+  best_accuracy: z.number().nullable()
+});
 
-export type DashboardRecentRow = {
-  puzzle_id: number;
-  title: string;
-  slug: string;
-  time_taken: number;
-  accuracy: number;
-  created_at: Date;
-};
+export const dashboard_recent_row_schema = z.object({
+  puzzle_id: z.number().int(),
+  title: z.string(),
+  slug: z.string(),
+  time_taken: z.number(),
+  accuracy: z.number(),
+  created_at: z.coerce.date()
+});
 
-export type GameDashboardStats = {
-  game: DashboardGameId;
-  started: number;
-  completed: number;
-  best_time_seconds: number | null;
-  best_accuracy: number | null;
-  avg_time_seconds: number | null;
-  avg_accuracy: number | null;
-  top_puzzles: DashboardPuzzleRow[];
-  recent: DashboardRecentRow[];
-};
+export const game_dashboard_stats_schema = z.object({
+  game: z.enum(['padavali', 'padajala']),
+  started: z.number(),
+  completed: z.number(),
+  best_time_seconds: z.number().nullable(),
+  best_accuracy: z.number().nullable(),
+  avg_time_seconds: z.number().nullable(),
+  avg_accuracy: z.number().nullable(),
+  top_puzzles: dashboard_puzzle_row_schema.array(),
+  recent: dashboard_recent_row_schema.array()
+});
+
+export type DashboardPuzzleRow = z.infer<typeof dashboard_puzzle_row_schema>;
+export type DashboardRecentRow = z.infer<typeof dashboard_recent_row_schema>;
+export type GameDashboardStats = z.infer<typeof game_dashboard_stats_schema>;
+
+export const emptyGameStats = (game: DashboardGameId): GameDashboardStats => ({
+  game,
+  started: 0,
+  completed: 0,
+  best_time_seconds: null,
+  best_accuracy: null,
+  avg_time_seconds: null,
+  avg_accuracy: null,
+  top_puzzles: [],
+  recent: []
+});
 
 export type CombinedDashboardTotals = {
   started: number;

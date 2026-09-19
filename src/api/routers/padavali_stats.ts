@@ -36,6 +36,10 @@ import {
   get_user_list_input_schema
 } from '~/api/stats_query_schema';
 import { escapeIlikeToken } from '~/util/puzzle/search';
+import { CACHE, invalidate_and_refresh_cache } from '~/util/cache.server/cache_loaders';
+
+const settle = <A, E, R>(effect: Effect.Effect<A, E, R>) =>
+  effect.pipe(Effect.catch(() => Effect.void));
 
 const submit_stats_route = publicProcedure
   .input(
@@ -106,6 +110,14 @@ const submit_stats_route = publicProcedure
             .onConflictDoNothing({ target: padavali_gameplay_stats.session_id });
         });
 
+        if (ctx.user?.id) {
+          yield* settle(
+            invalidate_and_refresh_cache(CACHE.user.padavali_dashboard, {
+              userId: ctx.user.id
+            })
+          );
+        }
+
         return {
           submitted: true
         };
@@ -163,6 +175,15 @@ const update_games_started_route = publicProcedure
           }
 
           yield* completePlaySession('padavali', client_play_id, session.id);
+
+          if (userFields.user_id) {
+            yield* settle(
+              invalidate_and_refresh_cache(CACHE.user.padavali_dashboard, {
+                userId: userFields.user_id
+              })
+            );
+          }
+
           return { success: true, session_id: session.id };
         })
       )

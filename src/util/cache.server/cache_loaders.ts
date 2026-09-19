@@ -2,6 +2,8 @@ import type { CrosswordCacheLoaders } from './crossword_cache';
 import { crossword_cache_loaders } from './crossword_cache';
 import type { PadavaliCacheLoaders } from './padavali_cache';
 import { padavali_cache_loaders } from './padavali_cache';
+import type { UserCacheLoaders } from './user_cache';
+import { user_cache_loaders } from './user_cache';
 
 export {
   NO_CACHE_PARAMS,
@@ -14,9 +16,11 @@ export { CACHE_AI_OUTSIDE_PROD } from './ai_cache_options';
 export type CacheLoaderRegistry = {
   padavali: PadavaliCacheLoaders;
   crossword: CrosswordCacheLoaders;
+  user: UserCacheLoaders;
 };
 
 export const CACHE: CacheLoaderRegistry = {
   padavali: padavali_cache_loaders,
-  crossword: crossword_cache_loaders
+  crossword: crossword_cache_loaders,
+  user: user_cache_loaders
 };
