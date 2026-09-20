@@ -6,7 +6,7 @@ import { AppConfig } from '~/effect/config';
 import { dbRunHttp } from '~/effect/database';
 import { CacheError } from '~/effect/errors';
 
-const SITEMAP_TTL_SECONDS = ms('1 week') / 1000;
+const SITEMAP_TTL_SECONDS = ms('4 days') / 1000;
 
 const PADAVALI_SITEMAP_KEY = 'sitemap:padavali';
 const PADAJALA_SITEMAP_KEY = 'sitemap:padajala';
