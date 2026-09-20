@@ -13,6 +13,8 @@ import { Route as IndexRouteImport } from './routes/index'
 import { Route as DashboardRouteImport } from './routes/dashboard'
 import { Route as PadajalaRouteRouteImport } from './routes/padajala/route'
 import { Route as PadavaliRouteRouteImport } from './routes/padavali/route'
+import { Route as Sitemap0DotxmlRouteImport } from './routes/sitemap-0[.]xml'
+import { Route as Sitemap1DotxmlRouteImport } from './routes/sitemap-1[.]xml'
 import { Route as CrosswordSplatRouteImport } from './routes/crossword.$'
 import { Route as ApiQstashNew_puzzle_notificationRouteImport } from './routes/api/qstash/new_puzzle_notification'
 import { Route as ApiQstashSave_ai_batch_resultsRouteImport } from './routes/api/qstash/save_ai_batch_results'
@@ -68,6 +70,16 @@ const PadajalaRouteRoute = PadajalaRouteRouteImport.update({
 const PadavaliRouteRoute = PadavaliRouteRouteImport.update({
   id: '/padavali',
   path: '/padavali',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const Sitemap0DotxmlRoute = Sitemap0DotxmlRouteImport.update({
+  id: '/sitemap-0.xml',
+  path: '/sitemap-0.xml',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const Sitemap1DotxmlRoute = Sitemap1DotxmlRouteImport.update({
+  id: '/sitemap-1.xml',
+  path: '/sitemap-1.xml',
   getParentRoute: () => rootRouteImport,
 } as any)
 const CrosswordSplatRoute = CrosswordSplatRouteImport.update({
@@ -280,6 +292,8 @@ export interface FileRoutesByFullPath {
   '/padajala': typeof PadajalaRouteRouteWithChildren
   '/padavali': typeof PadavaliRouteRouteWithChildren
   '/dashboard': typeof DashboardRoute
+  '/sitemap-0.xml': typeof Sitemap0DotxmlRoute
+  '/sitemap-1.xml': typeof Sitemap1DotxmlRoute
   '/crossword/$': typeof CrosswordSplatRoute
   '/api/qstash/new_puzzle_notification': typeof ApiQstashNew_puzzle_notificationRoute
   '/api/qstash/save_ai_batch_results': typeof ApiQstashSave_ai_batch_resultsRoute
@@ -318,6 +332,8 @@ export interface FileRoutesByTo {
   '/padajala': typeof PadajalapublicPublicIndexRoute
   '/padavali': typeof PadavalipublicPublicIndexRoute
   '/dashboard': typeof DashboardRoute
+  '/sitemap-0.xml': typeof Sitemap0DotxmlRoute
+  '/sitemap-1.xml': typeof Sitemap1DotxmlRoute
   '/crossword/$': typeof CrosswordSplatRoute
   '/api/qstash/new_puzzle_notification': typeof ApiQstashNew_puzzle_notificationRoute
   '/api/qstash/save_ai_batch_results': typeof ApiQstashSave_ai_batch_resultsRoute
@@ -355,6 +371,8 @@ export interface FileRoutesById {
   '/padajala': typeof PadajalaRouteRouteWithChildren
   '/padavali': typeof PadavaliRouteRouteWithChildren
   '/dashboard': typeof DashboardRoute
+  '/sitemap-0.xml': typeof Sitemap0DotxmlRoute
+  '/sitemap-1.xml': typeof Sitemap1DotxmlRoute
   '/crossword/$': typeof CrosswordSplatRoute
   '/api/qstash/new_puzzle_notification': typeof ApiQstashNew_puzzle_notificationRoute
   '/api/qstash/save_ai_batch_results': typeof ApiQstashSave_ai_batch_resultsRoute
@@ -399,6 +417,8 @@ export interface FileRouteTypes {
     | '/padajala'
     | '/padavali'
     | '/dashboard'
+    | '/sitemap-0.xml'
+    | '/sitemap-1.xml'
     | '/crossword/$'
     | '/api/qstash/new_puzzle_notification'
     | '/api/qstash/save_ai_batch_results'
@@ -437,6 +457,8 @@ export interface FileRouteTypes {
     | '/padajala'
     | '/padavali'
     | '/dashboard'
+    | '/sitemap-0.xml'
+    | '/sitemap-1.xml'
     | '/crossword/$'
     | '/api/qstash/new_puzzle_notification'
     | '/api/qstash/save_ai_batch_results'
@@ -473,6 +495,8 @@ export interface FileRouteTypes {
     | '/padajala'
     | '/padavali'
     | '/dashboard'
+    | '/sitemap-0.xml'
+    | '/sitemap-1.xml'
     | '/crossword/$'
     | '/api/qstash/new_puzzle_notification'
     | '/api/qstash/save_ai_batch_results'
@@ -516,6 +540,8 @@ export interface RootRouteChildren {
   PadajalaRouteRoute: typeof PadajalaRouteRouteWithChildren
   PadavaliRouteRoute: typeof PadavaliRouteRouteWithChildren
   DashboardRoute: typeof DashboardRoute
+  Sitemap0DotxmlRoute: typeof Sitemap0DotxmlRoute
+  Sitemap1DotxmlRoute: typeof Sitemap1DotxmlRoute
   CrosswordSplatRoute: typeof CrosswordSplatRoute
   ApiQstashNew_puzzle_notificationRoute: typeof ApiQstashNew_puzzle_notificationRoute
   ApiQstashSave_ai_batch_resultsRoute: typeof ApiQstashSave_ai_batch_resultsRoute
@@ -552,6 +578,20 @@ declare module '@tanstack/react-router' {
       path: '/padavali'
       fullPath: '/padavali'
       preLoaderRoute: typeof PadavaliRouteRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/sitemap-0.xml': {
+      id: '/sitemap-0.xml'
+      path: '/sitemap-0.xml'
+      fullPath: '/sitemap-0.xml'
+      preLoaderRoute: typeof Sitemap0DotxmlRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/sitemap-1.xml': {
+      id: '/sitemap-1.xml'
+      path: '/sitemap-1.xml'
+      fullPath: '/sitemap-1.xml'
+      preLoaderRoute: typeof Sitemap1DotxmlRouteImport
       parentRoute: typeof rootRouteImport
     }
     '/crossword/$': {
@@ -936,6 +976,8 @@ const rootRouteChildren: RootRouteChildren = {
   PadajalaRouteRoute: PadajalaRouteRouteWithChildren,
   PadavaliRouteRoute: PadavaliRouteRouteWithChildren,
   DashboardRoute: DashboardRoute,
+  Sitemap0DotxmlRoute: Sitemap0DotxmlRoute,
+  Sitemap1DotxmlRoute: Sitemap1DotxmlRoute,
   CrosswordSplatRoute: CrosswordSplatRoute,
   ApiQstashNew_puzzle_notificationRoute: ApiQstashNew_puzzle_notificationRoute,
   ApiQstashSave_ai_batch_resultsRoute: ApiQstashSave_ai_batch_resultsRoute,

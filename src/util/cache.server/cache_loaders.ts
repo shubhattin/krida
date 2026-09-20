@@ -2,6 +2,8 @@ import type { CrosswordCacheLoaders } from './crossword_cache';
 import { crossword_cache_loaders } from './crossword_cache';
 import type { PadavaliCacheLoaders } from './padavali_cache';
 import { padavali_cache_loaders } from './padavali_cache';
+import type { SitemapCacheLoaders } from './sitemap_cache';
+import { sitemap_cache_loaders } from './sitemap_cache';
 import type { UserCacheLoaders } from './user_cache';
 import { user_cache_loaders } from './user_cache';
 
@@ -10,6 +12,8 @@ export {
   invalidateAndRefreshCache as invalidate_and_refresh_cache
 } from '~/effect/cache';
 
+export { invalidate_padavali_sitemap, invalidate_padajala_sitemap } from './sitemap_cache';
+
 /** Toggle Redis caching for AI word meanings / more hints outside production. */
 export { CACHE_AI_OUTSIDE_PROD } from './ai_cache_options';
 
@@ -17,10 +21,12 @@ export type CacheLoaderRegistry = {
   padavali: PadavaliCacheLoaders;
   crossword: CrosswordCacheLoaders;
   user: UserCacheLoaders;
+  sitemap: SitemapCacheLoaders;
 };
 
 export const CACHE: CacheLoaderRegistry = {
   padavali: padavali_cache_loaders,
   crossword: crossword_cache_loaders,
-  user: user_cache_loaders
+  user: user_cache_loaders,
+  sitemap: sitemap_cache_loaders
 };

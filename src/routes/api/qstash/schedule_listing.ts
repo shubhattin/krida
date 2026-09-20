@@ -3,6 +3,7 @@ import { Effect } from 'effect';
 import {
   CACHE,
   invalidate_and_refresh_cache,
+  invalidate_padavali_sitemap,
   NO_CACHE_PARAMS
 } from '~/util/cache.server/cache_loaders';
 import { padavali_schedules, padavali_puzzles } from '~/db/schema';
@@ -97,6 +98,7 @@ export const Route = createFileRoute('/api/qstash/schedule_listing')({
                     slug: schedule.puzzle.slug
                   })
                 ),
+                ignoreFailure(invalidate_padavali_sitemap()),
                 ignoreFailure(notify_for_listed_puzzle(schedule.puzzle.title, schedule.puzzle.slug))
               ],
               { discard: true }

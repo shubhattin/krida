@@ -13,6 +13,7 @@ import { padavali_stats_router } from './padavali_stats';
 import {
   CACHE,
   invalidate_and_refresh_cache,
+  invalidate_padavali_sitemap,
   NO_CACHE_PARAMS
 } from '~/util/cache.server/cache_loaders';
 import {
@@ -354,6 +355,7 @@ const update_puzzle_route = protectedAdminProcedure
           yield* settle(
             invalidate_and_refresh_cache(CACHE.padavali.listed_puzzle_list, NO_CACHE_PARAMS)
           );
+          yield* settle(invalidate_padavali_sitemap());
         }
         yield* settle(
           invalidate_and_refresh_cache(CACHE.padavali.word_puzzle, { slug: puzzle_slug })
@@ -445,6 +447,7 @@ const update_puzzle_slug_route = protectedAdminProcedure
           yield* settle(
             invalidate_and_refresh_cache(CACHE.padavali.listed_puzzle_list, NO_CACHE_PARAMS)
           );
+          yield* settle(invalidate_padavali_sitemap());
         }
         if (yield* puzzle_in_current_schedule(puzzle_id)) {
           yield* settle(
@@ -533,6 +536,7 @@ const delete_puzzle_route = protectedAdminProcedure
           yield* settle(
             invalidate_and_refresh_cache(CACHE.padavali.listed_puzzle_list, NO_CACHE_PARAMS)
           );
+          yield* settle(invalidate_padavali_sitemap());
         }
         yield* settle(
           invalidate_and_refresh_cache(CACHE.padavali.word_puzzle, {

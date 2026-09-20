@@ -3,6 +3,7 @@ import { z } from 'zod';
 import type { RedisJsonValue } from '~/effect/redis';
 import { crosswordCacheKeys } from '~/util/cache.server/crossword_cache';
 import { padavaliCacheKeys } from '~/util/cache.server/padavali_cache';
+import { sitemapCacheKeys } from '~/util/cache.server/sitemap_cache';
 
 const redisGenerationKey = (cacheKey: string) => `${cacheKey}:gen`;
 
@@ -22,6 +23,11 @@ describe('cache keys', () => {
     expect(crosswordCacheKeys.word_puzzle('xyz')).toBe('crossword:word_puzzle:xyz');
     expect(crosswordCacheKeys.more_hints('xyz')).toBe('crossword:puzzle_more_hints:xyz');
     expect(crosswordCacheKeys).not.toHaveProperty('word_meanings');
+  });
+
+  it('uses sitemap keys for padavali and padajala', () => {
+    expect(sitemapCacheKeys.padavali()).toBe('sitemap:padavali');
+    expect(sitemapCacheKeys.padajala()).toBe('sitemap:padajala');
   });
 
   it('derives generation keys with :gen suffix', () => {

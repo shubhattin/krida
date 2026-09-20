@@ -3,6 +3,7 @@ import { Effect } from 'effect';
 import {
   CACHE,
   invalidate_and_refresh_cache,
+  invalidate_padajala_sitemap,
   NO_CACHE_PARAMS
 } from '~/util/cache.server/cache_loaders';
 import { crossword_schedules, crossword_puzzles } from '~/db/schema';
@@ -112,7 +113,8 @@ export const Route = createFileRoute('/api/qstash/crossword/schedule_listing')({
                 ),
                 ignoreFailure(
                   invalidate_and_refresh_cache(CACHE.crossword.current_schedule, NO_CACHE_PARAMS)
-                )
+                ),
+                ignoreFailure(invalidate_padajala_sitemap())
               ],
               { discard: true }
             );

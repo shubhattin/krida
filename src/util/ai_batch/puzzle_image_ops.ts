@@ -31,6 +31,8 @@ import { derivePuzzleImageBatchUiStatus } from '~/util/ai_batch/batch_image_stat
 import {
   CACHE,
   invalidate_and_refresh_cache,
+  invalidate_padavali_sitemap,
+  invalidate_padajala_sitemap,
   NO_CACHE_PARAMS
 } from '~/util/cache.server/cache_loaders';
 import ms from 'ms';
@@ -657,7 +659,8 @@ export const approve_connect_puzzle_image_id = Effect.fn(
         invalidate_and_refresh_cache(CACHE.crossword.word_puzzle, { slug: result.slug }),
         result.listed
           ? invalidate_and_refresh_cache(CACHE.crossword.listed_puzzle_list, NO_CACHE_PARAMS)
-          : Effect.void
+          : Effect.void,
+        result.listed ? invalidate_padajala_sitemap() : Effect.void
       ],
       { concurrency: 'unbounded' }
     );
@@ -671,7 +674,8 @@ export const approve_connect_puzzle_image_id = Effect.fn(
         invalidate_and_refresh_cache(CACHE.padavali.word_puzzle, { slug: result.slug }),
         result.listed
           ? invalidate_and_refresh_cache(CACHE.padavali.listed_puzzle_list, NO_CACHE_PARAMS)
-          : Effect.void
+          : Effect.void,
+        result.listed ? invalidate_padavali_sitemap() : Effect.void
       ],
       { concurrency: 'unbounded' }
     );
