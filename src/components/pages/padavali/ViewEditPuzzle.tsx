@@ -1,7 +1,7 @@
 'use client';
 
 import { z } from 'zod';
-import { useEffect, useRef, useState, type FormEvent, type KeyboardEvent } from 'react';
+import { useEffect, useMemo, useRef, useState, type KeyboardEvent } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { Card, CardContent } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
@@ -214,7 +214,7 @@ const ViewEditPuzzle = ({ word_puzzle: initialWordPuzzle }: ViewEditProps) => {
 };
 
 const Title = () => {
-  const ctx = createTypingContext(BASE_SCRIPT);
+  const ctx = useMemo(() => createTypingContext(BASE_SCRIPT), []);
   const [title, setTitle] = useAtom(title_atom);
   const [lipi_lekhika_active] = useAtom(lipi_lekhika_active_atom);
   const historyField = useHistoryTextField();
@@ -261,7 +261,7 @@ const SortableAttachmentItem = ({
 }: {
   attachment: Puzzle['attachments'][0];
   index: number;
-  onUpdate: (field: string, value: string, event: FormEvent<HTMLInputElement> | null) => void;
+  onUpdate: (field: string, value: string) => void;
   onRemove: () => void;
 }) => {
   const { attributes, listeners, setNodeRef, transform, transition, isDragging } = useSortable({
@@ -274,9 +274,13 @@ const SortableAttachmentItem = ({
     opacity: isDragging ? 0.5 : 1
   };
 
-  const ctx = createTypingContext(BASE_SCRIPT);
+  const ctx = useMemo(() => createTypingContext(BASE_SCRIPT), []);
   const [lipi_lekhika_active] = useAtom(lipi_lekhika_active_atom);
   const historyField = useHistoryTextField();
+
+  useEffect(() => {
+    void ctx.ready;
+  }, [ctx]);
 
   return (
     <div
@@ -316,7 +320,7 @@ const SortableAttachmentItem = ({
             items={ATTACHMENT_TYPE_ITEMS}
             value={attachment.type}
             onValueChange={(value) => {
-              if (value) onUpdate('type', value, null);
+              if (value) onUpdate('type', value);
             }}
           >
             <SelectTrigger className="w-40">
@@ -337,7 +341,7 @@ const SortableAttachmentItem = ({
             type="text"
             className="w-64 text-sm"
             value={attachment.url}
-            onInput={(e) => onUpdate('url', e.currentTarget.value, null)}
+            onInput={(e) => onUpdate('url', e.currentTarget.value)}
             onFocus={historyField.onFocus}
             onBlur={historyField.onBlur}
           />
@@ -351,12 +355,12 @@ const SortableAttachmentItem = ({
           type="text"
           className="w-full text-sm"
           value={attachment.title ?? ''}
-          onChange={(e) => onUpdate('title', e.currentTarget.value, e)}
+          onChange={(e) => onUpdate('title', e.currentTarget.value)}
           onBeforeInput={(e) =>
             handleTypingBeforeInputEvent(
               ctx,
               e,
-              (newValue) => onUpdate('title', newValue, e),
+              (newValue) => onUpdate('title', newValue),
               lipi_lekhika_active
             )
           }
@@ -572,7 +576,8 @@ function getUniqueWordTrails(
   for (const [validIdx, traversals] of uniqueTraversalsMap) {
     const path = traversals[0];
     const slotIndex = slotIndices[validIdx];
-    if (!path || path.length < 2 || slotIndex === undefined) continue;
+    // Single-akṣara words are valid (path length 1)
+    if (!path || path.length < 1 || slotIndex === undefined) continue;
     // SAFETY: traversal paths are [row, col] pairs by the Traversal contract
     trails.push({ slotIndex, path: path.map(([r, c]) => [r, c] as Coordinate) });
   }
@@ -1142,7 +1147,12 @@ const GridData = ({
     });
   };
 
-  const ctx = createTypingContext(BASE_SCRIPT);
+  // Stable across cell edits — recreating on each keystroke breaks LipiLekhika composition.
+  const ctx = useMemo(() => createTypingContext(BASE_SCRIPT), []);
+
+  useEffect(() => {
+    void ctx.ready;
+  }, [ctx]);
 
   const focusCellInput = (r: number, c: number) => {
     const el = gridRef.current?.querySelector<HTMLInputElement>(
@@ -1166,15 +1176,19 @@ const GridData = ({
     clearTypingContextOnKeyDown(e, ctx);
     if (e.key === 'ArrowLeft') {
       e.preventDefault();
+      ctx.clearContext();
       moveFocus(r, c, 0, -1);
     } else if (e.key === 'ArrowRight') {
       e.preventDefault();
+      ctx.clearContext();
       moveFocus(r, c, 0, 1);
     } else if (e.key === 'ArrowUp') {
       e.preventDefault();
+      ctx.clearContext();
       moveFocus(r, c, -1, 0);
     } else if (e.key === 'ArrowDown') {
       e.preventDefault();
+      ctx.clearContext();
       moveFocus(r, c, 1, 0);
     }
   };
@@ -1245,11 +1259,40 @@ const GridData = ({
           aria-hidden
         >
           {wordTrails.map(({ slotIndex, path }) => {
+            const pair = getWordColorPair(slotIndex);
+            const trailKey = `trail-${slotIndex}-${path.map(([r, c]) => `${r},${c}`).join('|')}`;
+
+            // Single-akṣara word — mark the cell center with a soft dot
+            if (path.length === 1) {
+              const [r, c] = path[0]!;
+              const center = cellCenters[`${r}-${c}`];
+              if (!center) return null;
+              return (
+                <g key={trailKey}>
+                  <circle
+                    cx={center.x}
+                    cy={center.y}
+                    r={5}
+                    fill={pair.light.swatch}
+                    fillOpacity={0.22}
+                    className="dark:hidden"
+                  />
+                  <circle
+                    cx={center.x}
+                    cy={center.y}
+                    r={5}
+                    fill={pair.dark.swatch}
+                    fillOpacity={0.28}
+                    className="hidden dark:block"
+                  />
+                </g>
+              );
+            }
+
             const points = buildPoints(path);
             if (!points || points.split(' ').length < 2) return null;
-            const pair = getWordColorPair(slotIndex);
             return (
-              <g key={`trail-${slotIndex}-${path.map(([r, c]) => `${r},${c}`).join('|')}`}>
+              <g key={trailKey}>
                 <polyline
                   points={points}
                   fill="none"
@@ -1342,7 +1385,11 @@ const Description = () => {
   const [lipi_lekhika_active] = useAtom(lipi_lekhika_active_atom);
   const historyField = useHistoryTextField();
 
-  const ctx = createTypingContext(BASE_SCRIPT);
+  const ctx = useMemo(() => createTypingContext(BASE_SCRIPT), []);
+
+  useEffect(() => {
+    void ctx.ready;
+  }, [ctx]);
 
   return (
     <div>

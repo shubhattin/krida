@@ -201,11 +201,39 @@ function GeneratedLayoutPreview({
           aria-hidden
         >
           {candidate.placements.map(({ slotIndex, path }) => {
+            const pair = getWordColorPair(slotIndex);
+            const trailKey = `preview-trail-${slotIndex}-${path.map(([r, c]) => `${r},${c}`).join('|')}`;
+
+            if (path.length === 1) {
+              const [row, col] = path[0]!;
+              const { x, y } = cellCenter(row, col);
+              const dotR = Math.max(2, Math.min(4, cellPx * 0.18));
+              return (
+                <g key={trailKey}>
+                  <circle
+                    cx={x}
+                    cy={y}
+                    r={dotR}
+                    fill={pair.light.swatch}
+                    fillOpacity={0.22}
+                    className="dark:hidden"
+                  />
+                  <circle
+                    cx={x}
+                    cy={y}
+                    r={dotR}
+                    fill={pair.dark.swatch}
+                    fillOpacity={0.28}
+                    className="hidden dark:block"
+                  />
+                </g>
+              );
+            }
+
             if (path.length < 2) return null;
             const points = buildPoints(path);
-            const pair = getWordColorPair(slotIndex);
             return (
-              <g key={`preview-trail-${slotIndex}-${path.map(([r, c]) => `${r},${c}`).join('|')}`}>
+              <g key={trailKey}>
                 <polyline
                   points={points}
                   fill="none"

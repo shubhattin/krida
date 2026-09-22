@@ -505,16 +505,18 @@ export const GameGrid = ({ timerRef, original_grid_data }: Props) => {
     // Use the ref (always up-to-date) instead of the stale closure value
     const finalSelection = selectionRef.current;
     const word = getWordFromSelection(finalSelection);
+    const isMatch = finalSelection.length > 0 && wordList.includes(word);
 
-    if (finalSelection.length >= 2) {
-      // Track attempt only if selection has at least 2 cells
+    // Multi-cell swipes always count; single-cell taps count only when they match a word
+    // (so accidental one-letter taps don't inflate attempts).
+    if (finalSelection.length >= 2 || isMatch) {
       setTotalAttempts((prev) => prev + 1);
+    }
 
-      if (wordList.includes(word)) {
-        setFoundWords((prev) => [...prev, { cells: [...finalSelection], word }]);
-        if (revealedWord?.word === word) {
-          setRevealedWord(null);
-        }
+    if (isMatch) {
+      setFoundWords((prev) => [...prev, { cells: [...finalSelection], word }]);
+      if (revealedWord?.word === word) {
+        setRevealedWord(null);
       }
     }
     selectionRef.current = [];
@@ -680,6 +682,7 @@ export const GameGrid = ({ timerRef, original_grid_data }: Props) => {
               started={started}
               completed={completed}
               buildPoints={buildPoints}
+              getCenter={getCenter}
             />
 
             {/* Play Button Overlay - centered over the grid */}
@@ -759,6 +762,47 @@ function TrailPolyline({
   );
 }
 
+/** Polyline for multi-cell paths; soft dot for single-akṣara words. */
+function TrailMark({
+  cells,
+  buildPoints,
+  getCenter,
+  strokeClassName,
+  fillClassName,
+  strokeWidth,
+  opacity
+}: {
+  cells: CellPosition[];
+  buildPoints: (cells: CellPosition[]) => string;
+  getCenter: (cell: CellPosition) => { x: number; y: number };
+  strokeClassName: string;
+  fillClassName: string;
+  strokeWidth: number;
+  opacity?: number;
+}) {
+  if (cells.length === 0) return null;
+  if (cells.length === 1) {
+    const { x, y } = getCenter(cells[0]!);
+    return (
+      <circle
+        cx={x}
+        cy={y}
+        r={strokeWidth * 0.55}
+        className={fillClassName}
+        opacity={opacity ?? 1}
+      />
+    );
+  }
+  return (
+    <TrailPolyline
+      points={buildPoints(cells)}
+      className={strokeClassName}
+      strokeWidth={strokeWidth}
+      opacity={opacity}
+    />
+  );
+}
+
 function TrailsOverlay({
   foundWords,
   currentSelection,
@@ -767,7 +811,8 @@ function TrailsOverlay({
   revealPath,
   started,
   completed,
-  buildPoints
+  buildPoints,
+  getCenter
 }: {
   foundWords: { cells: CellPosition[] }[];
   currentSelection: CellPosition[];
@@ -777,6 +822,7 @@ function TrailsOverlay({
   started: boolean;
   completed: boolean;
   buildPoints: (cells: CellPosition[]) => string;
+  getCenter: (cell: CellPosition) => { x: number; y: number };
 }) {
   const demoTrail = DEMO_TRAIL_CLASSES[demoState];
 
@@ -788,53 +834,67 @@ function TrailsOverlay({
       {/* Found words trails in green with glow effect */}
       {foundWords.map((sel, i) => (
         <g key={i}>
-          {/* Glow effect */}
-          <TrailPolyline
-            points={buildPoints(sel.cells)}
-            className="stroke-emerald-300 dark:stroke-emerald-400"
+          <TrailMark
+            cells={sel.cells}
+            buildPoints={buildPoints}
+            getCenter={getCenter}
+            strokeClassName="stroke-emerald-300 dark:stroke-emerald-400"
+            fillClassName="fill-emerald-300 dark:fill-emerald-400"
             strokeWidth={12}
             opacity={0.3}
           />
-          {/* Main line */}
-          <TrailPolyline
-            points={buildPoints(sel.cells)}
-            className="stroke-emerald-500 dark:stroke-emerald-400"
+          <TrailMark
+            cells={sel.cells}
+            buildPoints={buildPoints}
+            getCenter={getCenter}
+            strokeClassName="stroke-emerald-500 dark:stroke-emerald-400"
+            fillClassName="fill-emerald-500 dark:fill-emerald-400"
             strokeWidth={6}
           />
         </g>
       ))}
 
-      {/* Revealed word trail — grows with the hand */}
-      {started && !completed && revealPath.length > 1 ? (
+      {/* Revealed word trail — grows with the hand (includes single-akṣara) */}
+      {started && !completed && revealPath.length >= 1 ? (
         <g>
-          <TrailPolyline
-            points={buildPoints(revealPath)}
-            className="stroke-orange-300 dark:stroke-orange-400"
+          <TrailMark
+            cells={revealPath}
+            buildPoints={buildPoints}
+            getCenter={getCenter}
+            strokeClassName="stroke-orange-300 dark:stroke-orange-400"
+            fillClassName="fill-orange-300 dark:fill-orange-400"
             strokeWidth={12}
             opacity={0.35}
           />
-          <TrailPolyline
-            points={buildPoints(revealPath)}
-            className="stroke-orange-500 dark:stroke-orange-400"
+          <TrailMark
+            cells={revealPath}
+            buildPoints={buildPoints}
+            getCenter={getCenter}
+            strokeClassName="stroke-orange-500 dark:stroke-orange-400"
+            fillClassName="fill-orange-500 dark:fill-orange-400"
             strokeWidth={6}
           />
         </g>
       ) : null}
 
       {/* Current selection trail in blue with glow effect */}
-      {currentSelection.length > 1 ? (
+      {currentSelection.length >= 1 ? (
         <g>
-          {/* Glow effect */}
-          <TrailPolyline
-            points={buildPoints(currentSelection)}
-            className="stroke-blue-300 dark:stroke-blue-400"
+          <TrailMark
+            cells={currentSelection}
+            buildPoints={buildPoints}
+            getCenter={getCenter}
+            strokeClassName="stroke-blue-300 dark:stroke-blue-400"
+            fillClassName="fill-blue-300 dark:fill-blue-400"
             strokeWidth={12}
             opacity={0.3}
           />
-          {/* Main line */}
-          <TrailPolyline
-            points={buildPoints(currentSelection)}
-            className="stroke-blue-500 dark:stroke-blue-400"
+          <TrailMark
+            cells={currentSelection}
+            buildPoints={buildPoints}
+            getCenter={getCenter}
+            strokeClassName="stroke-blue-500 dark:stroke-blue-400"
+            fillClassName="fill-blue-500 dark:fill-blue-400"
             strokeWidth={6}
           />
         </g>
@@ -843,14 +903,12 @@ function TrailsOverlay({
       {/* Demo path trail */}
       {!started && demoPath.length > 1 ? (
         <g>
-          {/* Glow effect */}
           <TrailPolyline
             points={buildPoints(demoPath)}
             className={demoTrail.glow}
             strokeWidth={12}
             opacity={0.3}
           />
-          {/* Main line */}
           <TrailPolyline
             points={buildPoints(demoPath)}
             className={demoTrail.main}
