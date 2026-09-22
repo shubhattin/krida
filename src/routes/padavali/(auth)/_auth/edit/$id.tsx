@@ -75,8 +75,8 @@ function PadavaliEditRoute() {
           Main List
         </Link>
         <Link
-          to="/padavali/view/$id_slug"
-          params={{ id_slug: `${word_puzzle.id}:${word_puzzle.slug}` }}
+          to="/padavali/view/$nano_id"
+          params={{ nano_id: word_puzzle.uid }}
           target="_blank"
           className="inline-flex items-center gap-2 text-lg font-semibold"
           title="For sharing unlisted puzzles and internal testing. This page is not the public listed URL."

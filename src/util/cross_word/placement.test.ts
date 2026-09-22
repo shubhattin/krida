@@ -291,6 +291,7 @@ describe('adapter and game model', () => {
   it('toCrossWordGamePuzzle adapts DB puzzle', () => {
     const puzzle: CrossordPuzzle = {
       id: 1,
+      uid: 'k7Qm2',
       slug: 'test',
       title: 'Test',
       description: 'Desc',

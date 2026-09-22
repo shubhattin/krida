@@ -9,6 +9,7 @@ dayjs.extend(relativeTime);
 
 export type PuzzleListItem = {
   id: number;
+  uid: string;
   slug: string;
   title: string;
   description: string;
@@ -70,6 +71,14 @@ export const listTableColumns: DataTableColumnDef<PuzzleListItem>[] = [
       <span className="max-w-48 truncate font-mono text-xs text-muted-foreground sm:max-w-xs">
         {row.getValue('slug')}
       </span>
+    )
+  },
+  {
+    accessorKey: 'uid',
+    header: 'UID',
+    meta: { className: 'w-20' },
+    cell: ({ row }) => (
+      <span className="font-mono text-xs text-muted-foreground">{row.getValue('uid')}</span>
     )
   },
   {

@@ -23,6 +23,7 @@ import {
   slug_schema
 } from '~/db/db_shared_vals';
 import { NotificationService } from '~/effect/notifications';
+import { insertWithUniqueUid } from '~/util/puzzle/nano_id';
 import {
   createEmptyGridData,
   DEFAULT_GRID_DIMENSIONS,
@@ -479,18 +480,21 @@ const add_puzzle_route = protectedAdminProcedure
             await delete_redirect_for_slug(tx, input.slug);
           }
 
-          return tx
-            .insert(padavali_puzzles)
-            .values({
-              title: input.title,
-              slug: input.slug,
-              description: input.description?.trim() ?? '',
-              word_list: [],
-              grid_data: createEmptyGridData(DEFAULT_GRID_DIMENSIONS),
-              grid_dimensions: DEFAULT_GRID_DIMENSIONS,
-              listed: false
-            })
-            .returning();
+          return insertWithUniqueUid(tx, padavali_puzzles, (scoped, uid) =>
+            scoped
+              .insert(padavali_puzzles)
+              .values({
+                uid,
+                title: input.title,
+                slug: input.slug,
+                description: input.description?.trim() ?? '',
+                word_list: [],
+                grid_data: createEmptyGridData(DEFAULT_GRID_DIMENSIONS),
+                grid_dimensions: DEFAULT_GRID_DIMENSIONS,
+                listed: false
+              })
+              .returning()
+          );
         });
         const inserted = inserted_puzzles[0];
         if (!inserted) {
@@ -608,6 +612,7 @@ export const get_puzzle_list_page = Effect.fn('padavali.get_puzzle_list_page')(f
       client
         .select({
           id: padavali_puzzles.id,
+          uid: padavali_puzzles.uid,
           slug: padavali_puzzles.slug,
           title: padavali_puzzles.title,
           description: padavali_puzzles.description,

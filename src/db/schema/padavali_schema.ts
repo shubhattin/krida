@@ -20,6 +20,8 @@ export const padavali_puzzles = pgTable(
   'padavali_puzzles',
   {
     id: serial().primaryKey(),
+    /** Short unique nano-ids */
+    uid: text().notNull().unique(),
     slug: text().notNull(),
     title: text().notNull(),
     description: text().notNull().default(''),

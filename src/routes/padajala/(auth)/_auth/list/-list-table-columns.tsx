@@ -9,6 +9,7 @@ dayjs.extend(relativeTime);
 
 export type CrosswordListItem = {
   id: number;
+  uid: string;
   slug: string;
   title: string;
   description: string;
@@ -85,6 +86,14 @@ export const crosswordListTableColumns: DataTableColumnDef<CrosswordListItem>[] 
         </span>
       );
     }
+  },
+  {
+    accessorKey: 'uid',
+    header: 'UID',
+    meta: { className: 'w-20' },
+    cell: ({ row }) => (
+      <span className="font-mono text-xs text-muted-foreground">{row.getValue('uid')}</span>
+    )
   },
   {
     id: 'updated_at',

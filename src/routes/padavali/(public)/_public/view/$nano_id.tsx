@@ -1,32 +1,40 @@
 import { createFileRoute, Link } from '@tanstack/react-router';
 import { createServerFn } from '@tanstack/react-start';
+import { eq } from 'drizzle-orm';
 import { ArrowLeftIcon } from 'lucide-react';
 import { transliterate_wasm } from 'lipilekhika';
 import { z } from 'zod';
 import WordGame from '~/components/pages/padavali/WordGame/WordGameRoot';
 import { get_transliterated_word_game_msgs } from '~/components/pages/padavali/WordGame/msgs';
 import { routeHeadFromPageMeta } from '~/components/tags/getPageMetaTags';
+import { padavali_puzzles } from '~/db/schema';
+import { dbRunHttp } from '~/effect/database';
 import { getScript$ } from '~/lib/cache_server_route_data';
 import { DEFAULT_DATA_SCRIPT } from '~/state/script_list';
 import { CACHE, NO_CACHE_PARAMS } from '~/util/cache.server/cache_loaders';
-import { parseIdSlugParam } from '~/util/puzzle/slug';
 import { runLoaderEffect } from '~/effect/run';
 import { PreviewWarningBanner } from './-PreviewWarningBanner';
 
 const loader$ = createServerFn({ method: 'GET' })
-  .validator(z.object({ id_slug: z.string() }))
+  .validator(z.object({ nano_id: z.string() }))
   .handler(async ({ data }) => {
-    const routeParams = parseIdSlugParam(data.id_slug);
-    if (!routeParams) return { valid: false as const };
-
-    const { id, slug } = routeParams;
+    const nextSchedulePromise = runLoaderEffect(CACHE.padavali.next_schedule.get(NO_CACHE_PARAMS));
+    const row = await runLoaderEffect(
+      dbRunHttp('padavali.view.resolve_uid', (client) =>
+        client.query.padavali_puzzles.findFirst({
+          columns: { slug: true },
+          where: eq(padavali_puzzles.uid, data.nano_id)
+        })
+      )
+    );
+    if (!row) return { valid: false as const };
 
     const [word_puzzle, next_schedule] = await Promise.all([
-      runLoaderEffect(CACHE.padavali.word_puzzle.get({ slug })),
-      runLoaderEffect(CACHE.padavali.next_schedule.get(NO_CACHE_PARAMS))
+      runLoaderEffect(CACHE.padavali.word_puzzle.get({ slug: row.slug })),
+      nextSchedulePromise
     ]);
 
-    if (!word_puzzle || word_puzzle.id !== id) return { valid: false as const };
+    if (!word_puzzle) return { valid: false as const };
 
     const script = await getScript$();
     const word_game_msgs = await get_transliterated_word_game_msgs(script);
@@ -48,8 +56,8 @@ const loader$ = createServerFn({ method: 'GET' })
     };
   });
 
-export const Route = createFileRoute('/padavali/(public)/_public/view/$id_slug')({
-  loader: ({ params }) => loader$({ data: { id_slug: params.id_slug } }),
+export const Route = createFileRoute('/padavali/(public)/_public/view/$nano_id')({
+  loader: ({ params }) => loader$({ data: { nano_id: params.nano_id } }),
   head: ({ loaderData }) =>
     routeHeadFromPageMeta({
       title: loaderData?.valid ? `${loaderData.word_puzzle.title} | पदावली` : 'Not Found',

@@ -20,6 +20,8 @@ export const crossword_puzzles = pgTable(
   'crossword_puzzles',
   {
     id: serial().primaryKey(),
+    /** Short unique nano-ids */
+    uid: text().notNull().unique(),
     slug: text().notNull(),
     /** Short English title */
     title: text().notNull(),
