@@ -22,6 +22,7 @@ export const listTableColumns: DataTableColumnDef<PuzzleListItem>[] = [
   {
     accessorKey: 'id',
     header: 'ID',
+    meta: { className: 'w-14' },
     cell: ({ row }) => (
       <span className="font-mono text-xs text-muted-foreground tabular-nums">
         {row.getValue('id')}
@@ -31,6 +32,7 @@ export const listTableColumns: DataTableColumnDef<PuzzleListItem>[] = [
   {
     accessorKey: 'title',
     header: 'Title',
+    meta: { className: 'w-[22%]' },
     cell: ({ row }) => {
       const item = row.original;
       return (
@@ -45,8 +47,25 @@ export const listTableColumns: DataTableColumnDef<PuzzleListItem>[] = [
     }
   },
   {
+    accessorKey: 'description',
+    header: 'Description',
+    meta: { className: 'overflow-hidden' },
+    cell: ({ row }) => {
+      const description = row.original.description;
+      if (!description) {
+        return <span className="text-muted-foreground">—</span>;
+      }
+      return (
+        <span className="block truncate text-sm text-muted-foreground" title={description}>
+          {description}
+        </span>
+      );
+    }
+  },
+  {
     accessorKey: 'slug',
     header: 'Slug',
+    meta: { className: 'w-52' },
     cell: ({ row }) => (
       <span className="max-w-48 truncate font-mono text-xs text-muted-foreground sm:max-w-xs">
         {row.getValue('slug')}
@@ -57,6 +76,7 @@ export const listTableColumns: DataTableColumnDef<PuzzleListItem>[] = [
     id: 'updated_at',
     accessorFn: (row) => row.updated_at ?? row.created_at,
     header: 'Updated',
+    meta: { className: 'w-32' },
     cell: ({ row }) => {
       const item = row.original;
       const date = item.updated_at ?? item.created_at;

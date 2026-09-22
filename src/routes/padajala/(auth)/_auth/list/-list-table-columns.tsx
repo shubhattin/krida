@@ -23,6 +23,7 @@ export const crosswordListTableColumns: DataTableColumnDef<CrosswordListItem>[] 
   {
     accessorKey: 'id',
     header: 'ID',
+    meta: { className: 'w-14' },
     cell: ({ row }) => (
       <span className="font-mono text-xs text-muted-foreground tabular-nums">
         {row.getValue('id')}
@@ -32,6 +33,7 @@ export const crosswordListTableColumns: DataTableColumnDef<CrosswordListItem>[] 
   {
     accessorKey: 'title',
     header: 'Title',
+    meta: { className: 'w-[22%]' },
     cell: ({ row }) => {
       const item = row.original;
       return (
@@ -46,8 +48,25 @@ export const crosswordListTableColumns: DataTableColumnDef<CrosswordListItem>[] 
     }
   },
   {
+    accessorKey: 'description',
+    header: 'Description',
+    meta: { className: 'overflow-hidden' },
+    cell: ({ row }) => {
+      const description = row.original.description;
+      if (!description) {
+        return <span className="text-muted-foreground">—</span>;
+      }
+      return (
+        <span className="block truncate text-sm text-muted-foreground" title={description}>
+          {description}
+        </span>
+      );
+    }
+  },
+  {
     accessorKey: 'slug',
     header: 'Slug',
+    meta: { className: 'w-52' },
     cell: ({ row }) => (
       <span className="max-w-48 truncate font-mono text-xs text-muted-foreground sm:max-w-xs">
         {row.getValue('slug')}
@@ -57,6 +76,7 @@ export const crosswordListTableColumns: DataTableColumnDef<CrosswordListItem>[] 
   {
     id: 'grid',
     header: 'Grid',
+    meta: { className: 'w-24' },
     cell: ({ row }) => {
       const [cols, rows] = row.original.grid_dimensions;
       return (
@@ -70,6 +90,7 @@ export const crosswordListTableColumns: DataTableColumnDef<CrosswordListItem>[] 
     id: 'updated_at',
     accessorFn: (row) => row.updated_at ?? row.created_at,
     header: 'Updated',
+    meta: { className: 'w-32' },
     cell: ({ row }) => {
       const item = row.original;
       const date = item.updated_at ?? item.created_at;

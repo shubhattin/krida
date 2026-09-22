@@ -8,7 +8,8 @@ import {
   FilterIcon,
   ArrowUpDownIcon,
   LayoutGridIcon,
-  TableIcon
+  TableIcon,
+  Link2Icon
 } from 'lucide-react';
 import { Image } from '@unpic/react';
 import { Link } from '@tanstack/react-router';
@@ -41,10 +42,13 @@ import { Button } from '~/components/ui/button';
 import { DataTable } from '~/components/ui/data-table';
 import { getCDNUrl } from '~/constants';
 import { crosswordListTableColumns, type CrosswordListItem } from './-list-table-columns';
+import { fetchEveryListPage } from '~/components/pages/fetch-every-list-page';
 
 dayjs.extend(relativeTime);
 
-type ListLayout = 'cards' | 'table';
+type ListLayout = 'cards' | 'table' | 'links';
+
+const ALL_LINKS_PAGE_SIZE = 50;
 
 const PUZZLE_FETCH_LIMIT = 12;
 
@@ -143,11 +147,12 @@ const fetchCrosswordListPage = async (
   search_title: string,
   listed_filter: boolean | undefined,
   sort_by: 'created_at' | 'updated_at',
-  order_by: 'asc' | 'desc'
+  order_by: 'asc' | 'desc',
+  size = PUZZLE_FETCH_LIMIT
 ) =>
   client.crossword.get_puzzle_list_page.query({
     page,
-    size: PUZZLE_FETCH_LIMIT,
+    size,
     listed_filter,
     sort_by,
     search_title: search_title !== '' ? search_title : undefined,
@@ -307,6 +312,16 @@ const ListFilterBar = ({
             onClick={() => onLayoutChange('table')}
           >
             <TableIcon />
+          </Button>
+          <Button
+            type="button"
+            variant={layout === 'links' ? 'secondary' : 'ghost'}
+            size="icon-sm"
+            aria-label="All puzzle links"
+            aria-pressed={layout === 'links'}
+            onClick={() => onLayoutChange('links')}
+          >
+            <Link2Icon />
           </Button>
         </div>
       </div>
@@ -521,6 +536,25 @@ const CrosswordListPage = () => {
     order_by
   );
 
+  const all_links_q = useQuery({
+    queryKey: [
+      'crossword_list_links',
+      debouncedSearchTitle,
+      listed_filter_type,
+      listed_filter,
+      sort_by,
+      order_by
+    ],
+    enabled: layout === 'links',
+    queryFn: () =>
+      fetchEveryListPage(
+        (page, size) =>
+          fetchCrosswordListPage(page, debouncedSearchTitle, listed_filter, sort_by, order_by, size),
+        ALL_LINKS_PAGE_SIZE
+      ),
+    refetchOnWindowFocus: false
+  });
+
   function handle_listed_filter_change(value: 'all' | 'listed' | 'unlisted') {
     setListedFilterType(value);
     setPage(1);
@@ -554,7 +588,18 @@ const CrosswordListPage = () => {
         layout={layout}
         onLayoutChange={setLayout}
       />
-      <ListLoadingSkeleton show={isInitialLoading} layout={layout} />
+      <ListLoadingSkeleton show={isInitialLoading && layout !== 'links'} layout={layout} />
+      {layout === 'links' && all_links_q.isLoading ? (
+        <ListLoadingSkeleton show layout="table" />
+      ) : null}
+      {layout === 'links' && !all_links_q.isLoading && (all_links_q.data?.length ?? 0) > 0 ? (
+        <DataTable
+          scrollable
+          columns={crosswordListTableColumns}
+          data={all_links_q.data ?? []}
+          getRowId={(row) => String(row.id)}
+        />
+      ) : null}
       <CrosswordCardGrid
         isSuccess={isSuccess}
         isInitialLoading={isInitialLoading}
@@ -569,10 +614,15 @@ const CrosswordListPage = () => {
         data={puzzle_list}
       />
       <ListEmptyState
-        isEmpty={puzzle_list.length === 0}
-        isInitialLoading={isInitialLoading}
-        isFetching={isFetching}
+        isEmpty={
+          layout === 'links'
+            ? !all_links_q.isLoading && (all_links_q.data?.length ?? 0) === 0
+            : puzzle_list.length === 0
+        }
+        isInitialLoading={layout === 'links' ? false : isInitialLoading}
+        isFetching={layout === 'links' ? all_links_q.isFetching : isFetching}
       />
+      {layout === 'links' ? null : (
       <ListPagination
         page={page}
         pageCount={pageCount}
@@ -582,6 +632,7 @@ const CrosswordListPage = () => {
         total={total}
         onPageChange={setPage}
       />
+      )}
     </div>
   );
 };
