@@ -15,7 +15,7 @@ import { Link } from '@tanstack/react-router';
 import dayjs from 'dayjs';
 import relativeTime from 'dayjs/plugin/relativeTime';
 import { useEffect, useMemo, useSyncExternalStore, useState } from 'react';
-import { client, useTRPC } from '~/api/client';
+import { client } from '~/api/client';
 import { Skeleton } from '~/components/ui/skeleton';
 import { Label } from '~/components/ui/label';
 import {
@@ -44,14 +44,10 @@ import {
   clearTypingContextOnKeyDown,
   handleTypingBeforeInputEvent
 } from 'lipilekhika/typing';
-import { useMutation, useQuery } from '@tanstack/react-query';
+import { useQuery } from '@tanstack/react-query';
 import { Button } from '~/components/ui/button';
-import { Checkbox } from '~/components/ui/checkbox';
 import { DataTable } from '~/components/ui/data-table';
-import { createListTableColumns, type PuzzleListItem } from './-list-table-columns';
-import { BatchPuzzleImageCostNote } from '~/components/pages/padavali/batch-image/BatchPuzzleImageCostNote';
-import { useInvalidatePuzzleImageBatchQueries } from '~/components/pages/padavali/batch-image/usePuzzleImageBatchStatus';
-import { toast } from 'sonner';
+import { listTableColumns, type PuzzleListItem } from './-list-table-columns';
 import { getCDNUrl } from '~/constants';
 
 dayjs.extend(relativeTime);
@@ -208,71 +204,6 @@ function usePuzzleListQuery(
     isInitialLoading: puzzle_list_q.isLoading && !puzzle_list_q.data
   };
 }
-
-function useBatchImageTrigger(onCleared: () => void) {
-  const { invalidateBatchManager, invalidatePuzzleStatus } =
-    useInvalidatePuzzleImageBatchQueries('padavali');
-
-  return useMutation(
-    useTRPC().batch_ai.trigger_batch_puzzle_image_gen.mutationOptions({
-      onSuccess: async (data, variables) => {
-        await Promise.all([
-          invalidateBatchManager(),
-          ...variables.puzzles.map((puzzle) => invalidatePuzzleStatus(puzzle.puzzle_id))
-        ]);
-        toast.success(
-          `Queued background image generation for ${data.puzzle_count} puzzle${data.puzzle_count === 1 ? '' : 's'}.`
-        );
-        onCleared();
-      },
-      onError: (err) => {
-        toast.error(err.message || 'Failed to queue background image generation');
-      }
-    })
-  );
-}
-
-type PuzzleSelectionBannerProps = {
-  selectedCount: number;
-  auto_approved: boolean;
-  onAutoApprovedChange: (checked: boolean) => void;
-  onTrigger: () => void;
-  onClear: () => void;
-  isPending: boolean;
-};
-
-const PuzzleSelectionBanner = ({
-  selectedCount,
-  auto_approved,
-  onAutoApprovedChange,
-  onTrigger,
-  onClear,
-  isPending
-}: PuzzleSelectionBannerProps) => (
-  <div className="flex flex-col gap-3 rounded-xl border border-blue-200/70 bg-blue-50/60 p-3 shadow-sm sm:flex-row sm:items-center sm:justify-between dark:border-blue-900/50 dark:bg-blue-950/20">
-    <div className="space-y-1">
-      <p className="text-sm font-semibold">{selectedCount} puzzle(s) selected</p>
-      <BatchPuzzleImageCostNote />
-    </div>
-    <div className="flex flex-col gap-2 sm:items-end">
-      <label className="flex items-center gap-2 text-sm">
-        <Checkbox checked={auto_approved} onCheckedChange={onAutoApprovedChange} />
-        Auto apply generated images to puzzles
-      </label>
-      <div className="flex flex-wrap items-center gap-2">
-        <Button type="button" disabled={isPending} onClick={onTrigger}>
-          Generate batch images
-        </Button>
-        <Button type="button" variant="outline" onClick={onClear} disabled={isPending}>
-          Clear selection
-        </Button>
-        <Button render={<Link to="/padavali/batch_manager" />} nativeButton={false} variant="ghost">
-          Batch Manager
-        </Button>
-      </div>
-    </div>
-  </div>
-);
 
 const ListSearchBox = ({
   search_title,
@@ -444,16 +375,12 @@ const PuzzleCardGrid = ({
   isSuccess,
   isInitialLoading,
   layout,
-  puzzle_list,
-  selected_ids,
-  onToggle
+  puzzle_list
 }: {
   isSuccess: boolean;
   isInitialLoading: boolean;
   layout: ListLayout;
   puzzle_list: PuzzleListItem[];
-  selected_ids: Set<number>;
-  onToggle: (id: number, checked: boolean) => void;
 }) => {
   if (!isSuccess || isInitialLoading || layout !== 'cards' || puzzle_list.length === 0) {
     return null;
@@ -463,14 +390,6 @@ const PuzzleCardGrid = ({
     <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4">
       {puzzle_list.map((item) => (
         <div key={item.id} className="relative">
-          <div className="absolute top-3 left-3 z-10">
-            <Checkbox
-              checked={selected_ids.has(item.id)}
-              onCheckedChange={(checked) => onToggle(item.id, checked === true)}
-              aria-label={`Select puzzle ${item.title}`}
-              onClick={(e) => e.stopPropagation()}
-            />
-          </div>
           {item.image?.s3_key ? (
             <div className="pointer-events-none absolute top-3 right-3 z-10 size-14 overflow-hidden rounded-md border border-border/80 bg-muted shadow-sm">
               <Image
@@ -485,7 +404,7 @@ const PuzzleCardGrid = ({
           <Link to="/padavali/edit/$id" params={{ id: String(item.id) }}>
             <Card
               className={cn(
-                'group border-l-3 border-l-blue-500/40 p-2 pl-10 shadow-sm transition-all duration-200 hover:translate-x-0.5 hover:border-l-blue-500 hover:bg-slate-50 hover:shadow-md dark:border-l-blue-400/40 dark:hover:border-l-blue-400 dark:hover:bg-slate-800/60',
+                'group border-l-3 border-l-blue-500/40 p-2 shadow-sm transition-all duration-200 hover:translate-x-0.5 hover:border-l-blue-500 hover:bg-slate-50 hover:shadow-md dark:border-l-blue-400/40 dark:hover:border-l-blue-400 dark:hover:bg-slate-800/60',
                 item.image?.s3_key && 'pr-20'
               )}
             >
@@ -528,7 +447,7 @@ const PuzzleTableView = ({
   isSuccess: boolean;
   isInitialLoading: boolean;
   layout: ListLayout;
-  columns: ReturnType<typeof createListTableColumns>;
+  columns: typeof listTableColumns;
   data: PuzzleListItem[];
 }) => {
   if (!isSuccess || isInitialLoading || layout !== 'table' || data.length === 0) return null;
@@ -639,12 +558,9 @@ const ListPage = () => {
   const [sort_by, setSortBy] = useState<'created_at' | 'updated_at'>('created_at');
   const [order_by, setOrderBy] = useState<'asc' | 'desc'>('desc');
   const [layout, setLayout] = useState<ListLayout>('cards');
-  const [selected_ids, setSelectedIds] = useState<Set<number>>(() => new Set());
-  const [auto_approved, setAutoApproved] = useState(true);
 
   const debouncedSearchTitle = useDebouncedSearch(search_title);
   const ctx = useDevanagariTyping();
-  const batch_trigger_mut = useBatchImageTrigger(() => setSelectedIds(new Set()));
 
   const listed_filter = { all: undefined, listed: true, unlisted: false }[listed_filter_type];
 
@@ -666,38 +582,6 @@ const ListPage = () => {
     order_by
   );
 
-  const page_ids = useMemo(() => puzzle_list.map((item) => item.id), [puzzle_list]);
-
-  function toggleSelection(id: number, checked: boolean) {
-    setSelectedIds((prev) => {
-      const next = new Set(prev);
-      if (checked) next.add(id);
-      else next.delete(id);
-      return next;
-    });
-  }
-
-  function toggleAllOnPage(ids: number[], checked: boolean) {
-    setSelectedIds((prev) => {
-      const next = new Set(prev);
-      for (const id of ids) {
-        if (checked) next.add(id);
-        else next.delete(id);
-      }
-      return next;
-    });
-  }
-
-  const table_columns = useMemo(
-    () =>
-      createListTableColumns({
-        selected_ids,
-        onToggle: toggleSelection,
-        onToggleAll: toggleAllOnPage,
-        page_ids
-      }),
-    [selected_ids, page_ids]
-  );
   function handle_listed_filter_change(value: 'all' | 'listed' | 'unlisted') {
     setListedFilterType(value);
     setPage(1);
@@ -719,22 +603,6 @@ const ListPage = () => {
 
   return (
     <div className="space-y-4">
-      {selected_ids.size > 0 ? (
-        <PuzzleSelectionBanner
-          selectedCount={selected_ids.size}
-          auto_approved={auto_approved}
-          onAutoApprovedChange={(checked) => setAutoApproved(checked === true)}
-          onTrigger={() =>
-            batch_trigger_mut.mutate({
-              game: 'padavali',
-              auto_approved,
-              puzzles: [...selected_ids].map((puzzle_id) => ({ puzzle_id }))
-            })
-          }
-          onClear={() => setSelectedIds(new Set())}
-          isPending={batch_trigger_mut.isPending}
-        />
-      ) : null}
       <ListFilterBar
         search_title={search_title}
         onSearchChange={setSearchTitle}
@@ -756,14 +624,12 @@ const ListPage = () => {
         isInitialLoading={isInitialLoading}
         layout={layout}
         puzzle_list={puzzle_list}
-        selected_ids={selected_ids}
-        onToggle={toggleSelection}
       />
       <PuzzleTableView
         isSuccess={isSuccess}
         isInitialLoading={isInitialLoading}
         layout={layout}
-        columns={table_columns}
+        columns={listTableColumns}
         data={puzzle_list}
       />
       <ListEmptyState

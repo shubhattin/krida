@@ -1,12 +1,21 @@
 'use client';
 
 import { Card, CardDescription, CardHeader, CardTitle } from '~/components/ui/card';
-import { CalendarIcon, SearchIcon, List, FilterIcon, ArrowUpDownIcon } from 'lucide-react';
+import {
+  CalendarIcon,
+  SearchIcon,
+  List,
+  FilterIcon,
+  ArrowUpDownIcon,
+  LayoutGridIcon,
+  TableIcon
+} from 'lucide-react';
+import { Image } from '@unpic/react';
 import { Link } from '@tanstack/react-router';
 import dayjs from 'dayjs';
 import relativeTime from 'dayjs/plugin/relativeTime';
 import { useEffect, useSyncExternalStore, useState } from 'react';
-import { client, useTRPC } from '~/api/client';
+import { client } from '~/api/client';
 import { Skeleton } from '~/components/ui/skeleton';
 import { Label } from '~/components/ui/label';
 import {
@@ -27,15 +36,15 @@ import {
   SelectValue
 } from '~/components/ui/select';
 import { InputGroup, InputGroupAddon, InputGroupInput } from '~/components/ui/input-group';
-import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
-import { Switch } from '~/components/ui/switch';
-import { toast } from 'sonner';
+import { useQuery } from '@tanstack/react-query';
 import { Button } from '~/components/ui/button';
-import { Checkbox } from '~/components/ui/checkbox';
-import { BatchPuzzleImageCostNote } from '~/components/pages/padavali/batch-image/BatchPuzzleImageCostNote';
-import { useInvalidatePuzzleImageBatchQueries } from '~/components/pages/padavali/batch-image/usePuzzleImageBatchStatus';
+import { DataTable } from '~/components/ui/data-table';
+import { getCDNUrl } from '~/constants';
+import { crosswordListTableColumns, type CrosswordListItem } from './-list-table-columns';
 
 dayjs.extend(relativeTime);
+
+type ListLayout = 'cards' | 'table';
 
 const PUZZLE_FETCH_LIMIT = 12;
 
@@ -81,28 +90,28 @@ const PUZZLE_LIST_SKELETON_COUNT = PUZZLE_FETCH_LIMIT;
 
 type ListLoadingSkeletonProps = {
   show: boolean;
+  layout: ListLayout;
 };
 
-const ListLoadingSkeleton = ({ show }: ListLoadingSkeletonProps) => (
+const ListLoadingSkeleton = ({ show, layout }: ListLoadingSkeletonProps) => (
   <>
     {show ? (
-      <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4">
-        {Array.from({ length: PUZZLE_LIST_SKELETON_COUNT }).map((_, index) => (
-          <Skeleton key={index} className="h-24 w-full" />
-        ))}
-      </div>
+      layout === 'cards' ? (
+        <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4">
+          {Array.from({ length: PUZZLE_LIST_SKELETON_COUNT }).map((_, index) => (
+            <Skeleton key={index} className="h-24 w-full" />
+          ))}
+        </div>
+      ) : (
+        <div className="flex flex-col gap-2 rounded-xl border border-slate-200/60 p-2 dark:border-slate-700/40">
+          {Array.from({ length: PUZZLE_LIST_SKELETON_COUNT }).map((_, index) => (
+            <Skeleton key={index} className="h-10 w-full" />
+          ))}
+        </div>
+      )
     ) : null}
   </>
 );
-
-type CrosswordListItem = {
-  id: number;
-  title: string;
-  listed: boolean;
-  created_at: Date;
-  updated_at: Date | null;
-  grid_dimensions: number[];
-};
 
 /** SSR-safe "has mounted" flag so the list only renders after hydration. */
 function useIsMounted() {
@@ -180,86 +189,6 @@ function useCrosswordListQuery(
   };
 }
 
-function useBatchImageTrigger(onCleared: () => void) {
-  const { invalidateBatchManager, invalidatePuzzleStatus } =
-    useInvalidatePuzzleImageBatchQueries('crossword');
-
-  return useMutation(
-    useTRPC().batch_ai.trigger_batch_puzzle_image_gen.mutationOptions({
-      onSuccess: async (data, variables) => {
-        await Promise.all([
-          invalidateBatchManager(),
-          ...variables.puzzles.map((puzzle) => invalidatePuzzleStatus(puzzle.puzzle_id))
-        ]);
-        toast.success(
-          `Queued background image generation for ${data.puzzle_count} puzzle${data.puzzle_count === 1 ? '' : 's'}.`
-        );
-        onCleared();
-      },
-      onError: (err) => {
-        toast.error(err.message || 'Failed to queue background image generation');
-      }
-    })
-  );
-}
-
-function useSetListedMutation() {
-  const queryClient = useQueryClient();
-  const trpc = useTRPC();
-
-  return useMutation(
-    trpc.crossword.set_listed.mutationOptions({
-      onSuccess: async () => {
-        await queryClient.invalidateQueries({ queryKey: ['crossword_list'] });
-        toast.success('Listing updated');
-      },
-      onError: (err) => {
-        toast.error(err.message || 'Failed to update listing');
-      }
-    })
-  );
-}
-
-const PuzzleSelectionBanner = ({
-  selectedCount,
-  auto_approved,
-  onAutoApprovedChange,
-  onTrigger,
-  onClear,
-  isPending
-}: {
-  selectedCount: number;
-  auto_approved: boolean;
-  onAutoApprovedChange: (checked: boolean) => void;
-  onTrigger: () => void;
-  onClear: () => void;
-  isPending: boolean;
-}) => (
-  <div className="flex flex-col gap-3 rounded-xl border border-blue-200/70 bg-blue-50/60 p-3 shadow-sm sm:flex-row sm:items-center sm:justify-between dark:border-blue-900/50 dark:bg-blue-950/20">
-    <div className="space-y-1">
-      <p className="text-sm font-semibold">{selectedCount} puzzle(s) selected</p>
-      <BatchPuzzleImageCostNote />
-    </div>
-    <div className="flex flex-col gap-2 sm:items-end">
-      <label className="flex items-center gap-2 text-sm">
-        <Checkbox checked={auto_approved} onCheckedChange={onAutoApprovedChange} />
-        Auto apply generated images to puzzles
-      </label>
-      <div className="flex flex-wrap items-center gap-2">
-        <Button type="button" disabled={isPending} onClick={onTrigger}>
-          Generate batch images
-        </Button>
-        <Button type="button" variant="outline" onClick={onClear} disabled={isPending}>
-          Clear selection
-        </Button>
-        <Button render={<Link to="/padajala/batch_manager" />} nativeButton={false} variant="ghost">
-          Batch Manager
-        </Button>
-      </div>
-    </div>
-  </div>
-);
-
 const SelectDropdown = ({ items }: { items: { label: string; value: string }[] }) => (
   <SelectContent alignItemWithTrigger={false}>
     {items.map((item) => (
@@ -278,7 +207,9 @@ const ListFilterBar = ({
   sort_by,
   onSortByChange,
   order_by,
-  onOrderByChange
+  onOrderByChange,
+  layout,
+  onLayoutChange
 }: {
   search_title: string;
   onSearchChange: (value: string) => void;
@@ -288,6 +219,8 @@ const ListFilterBar = ({
   onSortByChange: (value: 'created_at' | 'updated_at') => void;
   order_by: 'asc' | 'desc';
   onOrderByChange: (value: 'asc' | 'desc') => void;
+  layout: ListLayout;
+  onLayoutChange: (layout: ListLayout) => void;
 }) => (
   <div className="rounded-xl border border-slate-200/60 bg-white/50 p-3 shadow-sm backdrop-blur-sm sm:p-4 dark:border-slate-700/40 dark:bg-slate-800/30">
     <div className="flex flex-col items-center gap-3">
@@ -354,6 +287,28 @@ const ListFilterBar = ({
             <SelectDropdown items={ORDER_BY_ITEMS} />
           </Select>
         </div>
+        <div className="flex items-center gap-1 rounded-lg border border-slate-200/60 p-0.5 dark:border-slate-700/40">
+          <Button
+            type="button"
+            variant={layout === 'cards' ? 'secondary' : 'ghost'}
+            size="icon-sm"
+            aria-label="Card layout"
+            aria-pressed={layout === 'cards'}
+            onClick={() => onLayoutChange('cards')}
+          >
+            <LayoutGridIcon />
+          </Button>
+          <Button
+            type="button"
+            variant={layout === 'table' ? 'secondary' : 'ghost'}
+            size="icon-sm"
+            aria-label="Table layout"
+            aria-pressed={layout === 'table'}
+            onClick={() => onLayoutChange('table')}
+          >
+            <TableIcon />
+          </Button>
+        </div>
       </div>
     </div>
   </div>
@@ -362,47 +317,38 @@ const ListFilterBar = ({
 const CrosswordCardGrid = ({
   isSuccess,
   isInitialLoading,
-  puzzle_list,
-  selected_ids,
-  onToggle,
-  onSetListed,
-  setListedPending
+  layout,
+  puzzle_list
 }: {
   isSuccess: boolean;
   isInitialLoading: boolean;
+  layout: ListLayout;
   puzzle_list: CrosswordListItem[];
-  selected_ids: Set<number>;
-  onToggle: (id: number, checked: boolean) => void;
-  onSetListed: (puzzle_id: number, listed: boolean) => void;
-  setListedPending: boolean;
 }) => {
-  if (!isSuccess || isInitialLoading || puzzle_list.length === 0) return null;
+  if (!isSuccess || isInitialLoading || layout !== 'cards' || puzzle_list.length === 0) return null;
 
   return (
     <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4">
       {puzzle_list.map((item) => (
         <div key={item.id} className="relative">
-          <div className="absolute top-3 left-3 z-10">
-            <Checkbox
-              checked={selected_ids.has(item.id)}
-              onCheckedChange={(checked) => onToggle(item.id, checked === true)}
-              aria-label={`Select puzzle ${item.title}`}
-              onClick={(e) => e.stopPropagation()}
-            />
-          </div>
-          <div className="absolute top-3 right-3 z-10 flex items-center gap-2">
-            <Label className="inline-flex items-center gap-1.5 text-xs font-medium">
-              <Switch
-                checked={item.listed}
-                disabled={setListedPending}
-                onCheckedChange={(checked) => onSetListed(item.id, checked)}
-                onClick={(e) => e.stopPropagation()}
+          {item.image?.s3_key ? (
+            <div className="pointer-events-none absolute top-3 right-3 z-10 size-14 overflow-hidden rounded-md border border-border/80 bg-muted shadow-sm">
+              <Image
+                src={getCDNUrl(item.image.s3_key)}
+                alt=""
+                width={56}
+                height={56}
+                className="size-full object-cover"
               />
-              Listed
-            </Label>
-          </div>
+            </div>
+          ) : null}
           <Link to="/padajala/edit/$id" params={{ id: String(item.id) }}>
-            <Card className="group border-l-3 border-l-blue-500/40 p-2 pr-24 pl-10 shadow-sm transition-all duration-200 hover:translate-x-0.5 hover:border-l-blue-500 hover:bg-slate-50 hover:shadow-md dark:border-l-blue-400/40 dark:hover:border-l-blue-400 dark:hover:bg-slate-800/60">
+            <Card
+              className={cn(
+                'group border-l-3 border-l-blue-500/40 p-2 shadow-sm transition-all duration-200 hover:translate-x-0.5 hover:border-l-blue-500 hover:bg-slate-50 hover:shadow-md dark:border-l-blue-400/40 dark:hover:border-l-blue-400 dark:hover:bg-slate-800/60',
+                item.image?.s3_key && 'pr-20'
+              )}
+            >
               <CardHeader>
                 <CardTitle>{item.title}</CardTitle>
                 <CardDescription className="flex flex-col gap-1">
@@ -430,6 +376,24 @@ const CrosswordCardGrid = ({
       ))}
     </div>
   );
+};
+
+const CrosswordTableView = ({
+  isSuccess,
+  isInitialLoading,
+  layout,
+  columns,
+  data
+}: {
+  isSuccess: boolean;
+  isInitialLoading: boolean;
+  layout: ListLayout;
+  columns: typeof crosswordListTableColumns;
+  data: CrosswordListItem[];
+}) => {
+  if (!isSuccess || isInitialLoading || layout !== 'table' || data.length === 0) return null;
+
+  return <DataTable columns={columns} data={data} getRowId={(row) => String(row.id)} />;
 };
 
 const ListEmptyState = ({
@@ -533,12 +497,9 @@ const CrosswordListPage = () => {
   const [listed_filter_type, setListedFilterType] = useState<'all' | 'listed' | 'unlisted'>('all');
   const [sort_by, setSortBy] = useState<'created_at' | 'updated_at'>('created_at');
   const [order_by, setOrderBy] = useState<'asc' | 'desc'>('desc');
-  const [selected_ids, setSelectedIds] = useState<Set<number>>(() => new Set());
-  const [auto_approved, setAutoApproved] = useState(true);
+  const [layout, setLayout] = useState<ListLayout>('cards');
 
   const debouncedSearchTitle = useDebouncedSearch(search_title);
-  const batch_trigger_mut = useBatchImageTrigger(() => setSelectedIds(new Set()));
-  const set_listed_mut = useSetListedMutation();
 
   const listed_filter = { all: undefined, listed: true, unlisted: false }[listed_filter_type];
 
@@ -560,15 +521,6 @@ const CrosswordListPage = () => {
     order_by
   );
 
-  function toggleSelection(id: number, checked: boolean) {
-    setSelectedIds((prev) => {
-      const next = new Set(prev);
-      if (checked) next.add(id);
-      else next.delete(id);
-      return next;
-    });
-  }
-
   function handle_listed_filter_change(value: 'all' | 'listed' | 'unlisted') {
     setListedFilterType(value);
     setPage(1);
@@ -585,27 +537,11 @@ const CrosswordListPage = () => {
   }
 
   if (!mounted) {
-    return <ListLoadingSkeleton show />;
+    return <ListLoadingSkeleton show layout="cards" />;
   }
 
   return (
     <div className="flex flex-col gap-4">
-      {selected_ids.size > 0 ? (
-        <PuzzleSelectionBanner
-          selectedCount={selected_ids.size}
-          auto_approved={auto_approved}
-          onAutoApprovedChange={(checked) => setAutoApproved(checked === true)}
-          onTrigger={() =>
-            batch_trigger_mut.mutate({
-              game: 'crossword',
-              auto_approved,
-              puzzles: [...selected_ids].map((puzzle_id) => ({ puzzle_id }))
-            })
-          }
-          onClear={() => setSelectedIds(new Set())}
-          isPending={batch_trigger_mut.isPending}
-        />
-      ) : null}
       <ListFilterBar
         search_title={search_title}
         onSearchChange={setSearchTitle}
@@ -615,16 +551,22 @@ const CrosswordListPage = () => {
         onSortByChange={handle_sort_by_change}
         order_by={order_by}
         onOrderByChange={handle_order_by_change}
+        layout={layout}
+        onLayoutChange={setLayout}
       />
-      <ListLoadingSkeleton show={isInitialLoading} />
+      <ListLoadingSkeleton show={isInitialLoading} layout={layout} />
       <CrosswordCardGrid
         isSuccess={isSuccess}
         isInitialLoading={isInitialLoading}
+        layout={layout}
         puzzle_list={puzzle_list}
-        selected_ids={selected_ids}
-        onToggle={toggleSelection}
-        onSetListed={(puzzle_id, listed) => set_listed_mut.mutate({ puzzle_id, listed })}
-        setListedPending={set_listed_mut.isPending}
+      />
+      <CrosswordTableView
+        isSuccess={isSuccess}
+        isInitialLoading={isInitialLoading}
+        layout={layout}
+        columns={crosswordListTableColumns}
+        data={puzzle_list}
       />
       <ListEmptyState
         isEmpty={puzzle_list.length === 0}

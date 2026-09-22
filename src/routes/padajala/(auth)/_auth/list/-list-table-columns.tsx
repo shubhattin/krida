@@ -7,7 +7,7 @@ import { type DataTableColumnDef } from '~/components/ui/data-table';
 
 dayjs.extend(relativeTime);
 
-export type PuzzleListItem = {
+export type CrosswordListItem = {
   id: number;
   slug: string;
   title: string;
@@ -15,10 +15,11 @@ export type PuzzleListItem = {
   listed: boolean;
   created_at: Date;
   updated_at: Date | null;
+  grid_dimensions: number[];
   image: { s3_key: string } | null;
 };
 
-export const listTableColumns: DataTableColumnDef<PuzzleListItem>[] = [
+export const crosswordListTableColumns: DataTableColumnDef<CrosswordListItem>[] = [
   {
     accessorKey: 'id',
     header: 'ID',
@@ -35,7 +36,7 @@ export const listTableColumns: DataTableColumnDef<PuzzleListItem>[] = [
       const item = row.original;
       return (
         <Link
-          to="/padavali/edit/$id"
+          to="/padajala/edit/$id"
           params={{ id: String(item.id) }}
           className="font-medium hover:underline"
         >
@@ -52,6 +53,18 @@ export const listTableColumns: DataTableColumnDef<PuzzleListItem>[] = [
         {row.getValue('slug')}
       </span>
     )
+  },
+  {
+    id: 'grid',
+    header: 'Grid',
+    cell: ({ row }) => {
+      const [cols, rows] = row.original.grid_dimensions;
+      return (
+        <span className="text-muted-foreground tabular-nums">
+          {cols}×{rows}
+        </span>
+      );
+    }
   },
   {
     id: 'updated_at',
