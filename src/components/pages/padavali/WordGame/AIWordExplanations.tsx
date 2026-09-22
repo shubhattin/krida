@@ -130,8 +130,8 @@ export const AIWordExplanations = ({ puzzle_id, puzzle_slug }: Props) => {
           >
             <div className="pointer-events-none absolute inset-0 bg-linear-to-r from-transparent via-white/10 to-transparent dark:via-white/3" />
 
-            <div className="relative flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
-              <div className="flex items-center gap-2.5">
+            <div className="relative flex items-center gap-2.5 sm:gap-3">
+              <div className="flex min-w-0 flex-1 items-center gap-2.5">
                 <div
                   className={cn(
                     'flex size-8 shrink-0 items-center justify-center rounded-xl sm:size-9',
@@ -139,16 +139,16 @@ export const AIWordExplanations = ({ puzzle_id, puzzle_slug }: Props) => {
                     'shadow-sm shadow-violet-500/25 dark:shadow-violet-500/15'
                   )}
                 >
-                  <BookOpen className="size-4 text-white sm:size-[18px]" />
+                  <BookOpen className="size-4 text-white sm:size-4.5" />
                 </div>
-                <div className="text-left">
-                  <div className="flex items-center gap-x-2">
-                    <h3 className="text-sm font-bold tracking-tight text-slate-800 sm:text-[15px] dark:text-slate-100">
+                <div className="min-w-0 text-left">
+                  <div className="flex items-center gap-1.5">
+                    <h3 className="truncate text-sm font-bold tracking-tight text-slate-800 sm:text-[15px] dark:text-slate-100">
                       Word Meanings
                     </h3>
                     <span
                       className={cn(
-                        'inline-flex items-center gap-1 rounded-full px-2 py-0.5',
+                        'inline-flex shrink-0 items-center gap-1 rounded-full px-2 py-0.5',
                         'bg-linear-to-r from-violet-100 to-fuchsia-100',
                         'dark:from-violet-900/50 dark:to-fuchsia-900/40',
                         'text-[9px] font-bold tracking-wide text-violet-600 uppercase sm:text-[10px]',
@@ -159,15 +159,20 @@ export const AIWordExplanations = ({ puzzle_id, puzzle_slug }: Props) => {
                       AI
                     </span>
                   </div>
-                  <p className="mt-0.5 text-[10px] text-slate-500 sm:text-[11px] dark:text-slate-400">
+                  <p className="mt-0.5 truncate text-[10px] text-slate-500 sm:text-[11px] dark:text-slate-400">
                     Cultural context & word origins
                   </p>
                 </div>
               </div>
 
-              <div className="flex items-center gap-2 rounded-xl border border-violet-100/50 bg-violet-50/50 px-3 py-1.5 dark:border-violet-900/30 dark:bg-violet-950/20">
-                <span className="text-xs font-semibold text-violet-700 dark:text-violet-300">
-                  Complete puzzle to unlock!
+              <div className="flex shrink-0 items-center gap-1.5 rounded-xl border border-violet-100/50 bg-violet-50/50 px-2 py-1.5 sm:gap-2 sm:px-3 dark:border-violet-900/30 dark:bg-violet-950/20">
+                <span className="text-right text-[11px] leading-tight font-semibold text-violet-700 sm:text-left sm:text-xs dark:text-violet-300">
+                  <span className="sm:hidden">
+                    Complete puzzle
+                    <br />
+                    to unlock!
+                  </span>
+                  <span className="hidden sm:inline">Complete puzzle to unlock!</span>
                 </span>
                 <Sparkles className="size-3.5 shrink-0 animate-pulse text-amber-500/80 dark:text-amber-400/70" />
               </div>
