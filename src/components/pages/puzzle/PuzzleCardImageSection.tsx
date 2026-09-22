@@ -1,7 +1,7 @@
 'use client';
 
 import { Image } from '@unpic/react';
-import { useEffect, useState } from 'react';
+import { useEffect, useRef, useState } from 'react';
 import { toast } from 'sonner';
 import {
   ImageIcon,
@@ -60,6 +60,7 @@ import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import { client, useTRPC } from '~/api/client';
 import { getCDNUrl } from '~/constants';
 import { cn } from '~/lib/utils';
+import { withPaginationListScroll } from '~/lib/pagination-scroll';
 import { BatchPuzzleImageCostNote } from '~/components/pages/padavali/batch-image/BatchPuzzleImageCostNote';
 import { BatchPuzzleImageReviewDialog } from '~/components/pages/padavali/batch-image/BatchPuzzleImageReviewDialog';
 import { BatchPuzzleImageStatus } from '~/components/pages/padavali/batch-image/BatchPuzzleImageStatus';
@@ -661,6 +662,7 @@ const ExistingImageTab = ({
   onSelect: (info: ImageInfo | null) => void;
   onImageDeleted: (id: number) => void;
 }) => {
+  const listRef = useRef<HTMLDivElement>(null);
   const [page, setPage] = useState(1);
   const [search_description, setSearchDescription] = useState('');
   const [debounced_search, setDebouncedSearch] = useState('');
@@ -722,14 +724,18 @@ const ExistingImageTab = ({
       {isInitialLoading ? (
         <ImageGridSkeleton />
       ) : images.length > 0 ? (
-        <ExistingImageGrid
-          images={images}
-          selected_image_id={selected_image_id}
-          onSelect={onSelect}
-          onDeleted={handleDeleted}
-        />
+        <div ref={listRef}>
+          <ExistingImageGrid
+            images={images}
+            selected_image_id={selected_image_id}
+            onSelect={onSelect}
+            onDeleted={handleDeleted}
+          />
+        </div>
       ) : (
-        <EmptyImageState isFetching={image_assets_q.isFetching} />
+        <div ref={listRef}>
+          <EmptyImageState isFetching={image_assets_q.isFetching} />
+        </div>
       )}
 
       <ImagePagination
@@ -739,7 +745,7 @@ const ExistingImageTab = ({
         hasPrev={hasPrev}
         hasNext={hasNext}
         isFetching={image_assets_q.isFetching}
-        onPageChange={setPage}
+        onPageChange={withPaginationListScroll(setPage, listRef)}
       />
     </div>
   );

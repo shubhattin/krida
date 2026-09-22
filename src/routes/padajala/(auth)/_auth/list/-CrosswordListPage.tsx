@@ -15,7 +15,7 @@ import { Image } from '@unpic/react';
 import { Link } from '@tanstack/react-router';
 import dayjs from 'dayjs';
 import relativeTime from 'dayjs/plugin/relativeTime';
-import { useEffect, useSyncExternalStore, useState } from 'react';
+import { useEffect, useRef, useSyncExternalStore, useState } from 'react';
 import { client } from '~/api/client';
 import { Skeleton } from '~/components/ui/skeleton';
 import { Label } from '~/components/ui/label';
@@ -29,6 +29,7 @@ import {
   PaginationPrevious
 } from '~/components/ui/pagination';
 import { cn } from '@/lib/utils';
+import { withPaginationListScroll } from '~/lib/pagination-scroll';
 import {
   Select,
   SelectContent,
@@ -507,6 +508,7 @@ const ListPagination = ({
 
 const CrosswordListPage = () => {
   const mounted = useIsMounted();
+  const listRef = useRef<HTMLDivElement>(null);
   const [page, setPage] = useState(1);
   const [search_title, setSearchTitle] = useState('');
   const [listed_filter_type, setListedFilterType] = useState<'all' | 'listed' | 'unlisted'>('all');
@@ -599,41 +601,43 @@ const CrosswordListPage = () => {
       {layout === 'links' && all_links_q.isLoading ? (
         <ListLoadingSkeleton show layout="table" />
       ) : null}
-      {layout === 'links' && !all_links_q.isLoading && (all_links_q.data?.length ?? 0) > 0 ? (
-        <>
-          <p className="text-center text-sm text-muted-foreground">
-            {all_links_q.data?.length} puzzle{all_links_q.data?.length === 1 ? '' : 's'}
-          </p>
-          <DataTable
-            scrollable
-            columns={crosswordListTableColumns}
-            data={all_links_q.data ?? []}
-            getRowId={(row) => String(row.id)}
-          />
-        </>
-      ) : null}
-      <CrosswordCardGrid
-        isSuccess={isSuccess}
-        isInitialLoading={isInitialLoading}
-        layout={layout}
-        puzzle_list={puzzle_list}
-      />
-      <CrosswordTableView
-        isSuccess={isSuccess}
-        isInitialLoading={isInitialLoading}
-        layout={layout}
-        columns={crosswordListTableColumns}
-        data={puzzle_list}
-      />
-      <ListEmptyState
-        isEmpty={
-          layout === 'links'
-            ? !all_links_q.isLoading && (all_links_q.data?.length ?? 0) === 0
-            : puzzle_list.length === 0
-        }
-        isInitialLoading={layout === 'links' ? false : isInitialLoading}
-        isFetching={layout === 'links' ? all_links_q.isFetching : isFetching}
-      />
+      <div ref={listRef} className="flex flex-col gap-4">
+        {layout === 'links' && !all_links_q.isLoading && (all_links_q.data?.length ?? 0) > 0 ? (
+          <>
+            <p className="text-center text-sm text-muted-foreground">
+              {all_links_q.data?.length} puzzle{all_links_q.data?.length === 1 ? '' : 's'}
+            </p>
+            <DataTable
+              scrollable
+              columns={crosswordListTableColumns}
+              data={all_links_q.data ?? []}
+              getRowId={(row) => String(row.id)}
+            />
+          </>
+        ) : null}
+        <CrosswordCardGrid
+          isSuccess={isSuccess}
+          isInitialLoading={isInitialLoading}
+          layout={layout}
+          puzzle_list={puzzle_list}
+        />
+        <CrosswordTableView
+          isSuccess={isSuccess}
+          isInitialLoading={isInitialLoading}
+          layout={layout}
+          columns={crosswordListTableColumns}
+          data={puzzle_list}
+        />
+        <ListEmptyState
+          isEmpty={
+            layout === 'links'
+              ? !all_links_q.isLoading && (all_links_q.data?.length ?? 0) === 0
+              : puzzle_list.length === 0
+          }
+          isInitialLoading={layout === 'links' ? false : isInitialLoading}
+          isFetching={layout === 'links' ? all_links_q.isFetching : isFetching}
+        />
+      </div>
       {layout === 'links' ? null : (
         <ListPagination
           page={page}
@@ -642,7 +646,7 @@ const CrosswordListPage = () => {
           hasNext={hasNext}
           isFetching={isFetching}
           total={total}
-          onPageChange={setPage}
+          onPageChange={withPaginationListScroll(setPage, listRef)}
         />
       )}
     </div>

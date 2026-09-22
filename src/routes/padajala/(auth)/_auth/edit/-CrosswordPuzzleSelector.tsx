@@ -1,6 +1,6 @@
 'use client';
 
-import { useEffect, useState } from 'react';
+import { useEffect, useRef, useState } from 'react';
 import { useQuery } from '@tanstack/react-query';
 import { ChevronDownIcon, SearchIcon, XIcon } from 'lucide-react';
 import { client } from '~/api/client';
@@ -16,6 +16,7 @@ import {
   PaginationPrevious
 } from '~/components/ui/pagination';
 import { cn } from '~/lib/utils';
+import { withPaginationListScroll } from '~/lib/pagination-scroll';
 
 export type SelectedPuzzle = {
   id: number;
@@ -164,6 +165,7 @@ const CrosswordPickerPopover = ({
   selectedIds: Set<number>;
   onAdd: (puzzle: SelectedPuzzle) => void;
 }) => {
+  const listRef = useRef<HTMLDivElement>(null);
   const [searchTitle, setSearchTitle] = useState('');
   const { debouncedSearchTitle, page, setPage } = useDebouncedSearchPager(searchTitle);
 
@@ -194,7 +196,7 @@ const CrosswordPickerPopover = ({
             />
           </InputGroup>
 
-          <div className="max-h-52 space-y-1 overflow-y-auto">
+          <div ref={listRef} className="max-h-52 space-y-1 overflow-y-auto">
             {isLoading && (
               <div className="space-y-1">
                 {Array.from({ length: 4 }).map((_, i) => (
@@ -235,7 +237,7 @@ const CrosswordPickerPopover = ({
             hasPrev={hasPrev}
             hasNext={hasNext}
             isFetching={isFetching}
-            onPageChange={setPage}
+            onPageChange={withPaginationListScroll(setPage, listRef)}
           />
         </div>
       </PopoverContent>

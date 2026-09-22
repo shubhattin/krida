@@ -1,6 +1,6 @@
 'use client';
 
-import { useEffect, useState } from 'react';
+import { useEffect, useRef, useState } from 'react';
 import { useQuery } from '@tanstack/react-query';
 import { ChevronDownIcon, SearchIcon, XIcon } from 'lucide-react';
 import { client } from '~/api/client';
@@ -16,6 +16,7 @@ import {
   PaginationPrevious
 } from '~/components/ui/pagination';
 import { cn } from '~/lib/utils';
+import { withPaginationListScroll } from '~/lib/pagination-scroll';
 
 export type SelectedUser = {
   id: string;
@@ -168,6 +169,7 @@ const UserPickerPopover = ({
   selectedIds: Set<string>;
   onAdd: (user: SelectedUser) => void;
 }) => {
+  const listRef = useRef<HTMLDivElement>(null);
   const [search, setSearch] = useState('');
   const { debouncedSearch, page, setPage } = useDebouncedSearchPager(search);
   const { isLoading, isSuccess, isFetching, userList, hasPrev, hasNext } = useUserSelectorListQuery(
@@ -201,7 +203,7 @@ const UserPickerPopover = ({
             />
           </InputGroup>
 
-          <div className="max-h-52 overflow-y-auto">
+          <div ref={listRef} className="max-h-52 overflow-y-auto">
             <div className="flex flex-col gap-1">
               {isLoading &&
                 Array.from({ length: 4 }).map((_, i) => (
@@ -241,7 +243,7 @@ const UserPickerPopover = ({
             hasPrev={hasPrev}
             hasNext={hasNext}
             isFetching={isFetching}
-            onPageChange={setPage}
+            onPageChange={withPaginationListScroll(setPage, listRef)}
           />
         </div>
       </PopoverContent>

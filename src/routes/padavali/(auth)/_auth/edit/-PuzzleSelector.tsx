@@ -1,6 +1,6 @@
 'use client';
 
-import { useEffect, useMemo, useState } from 'react';
+import { useEffect, useMemo, useRef, useState } from 'react';
 import { useQuery } from '@tanstack/react-query';
 import { ChevronDownIcon, SearchIcon, XIcon } from 'lucide-react';
 import { client } from '~/api/client';
@@ -18,6 +18,7 @@ import {
   PaginationPrevious
 } from '~/components/ui/pagination';
 import { cn } from '~/lib/utils';
+import { withPaginationListScroll } from '~/lib/pagination-scroll';
 import Icon from '~/tools/Icon';
 import { LanguageIcon } from '~/components/icons';
 import {
@@ -183,6 +184,7 @@ const PuzzlePickerPopover = ({
   selectedIds: Set<number>;
   onAdd: (puzzle: SelectedPuzzle) => void;
 }) => {
+  const listRef = useRef<HTMLDivElement>(null);
   const [searchTitle, setSearchTitle] = useState('');
   const [lipiLekhikaTyping, setLipiLekhikaTyping] = useState(true);
   const { debouncedSearchTitle, page, setPage } = useDebouncedSearchPager(searchTitle);
@@ -231,7 +233,7 @@ const PuzzlePickerPopover = ({
             </Label>
           </div>
 
-          <div className="max-h-52 space-y-1 overflow-y-auto">
+          <div ref={listRef} className="max-h-52 space-y-1 overflow-y-auto">
             {isLoading && (
               <div className="space-y-1">
                 {Array.from({ length: 4 }).map((_, i) => (
@@ -272,7 +274,7 @@ const PuzzlePickerPopover = ({
             hasPrev={hasPrev}
             hasNext={hasNext}
             isFetching={isFetching}
-            onPageChange={setPage}
+            onPageChange={withPaginationListScroll(setPage, listRef)}
           />
         </div>
       </PopoverContent>

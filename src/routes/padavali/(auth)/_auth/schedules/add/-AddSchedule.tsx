@@ -1,6 +1,6 @@
 'use client';
 
-import { useEffect, useState } from 'react';
+import { useEffect, useRef, useState } from 'react';
 import { Popover, PopoverContent, PopoverTrigger } from '~/components/ui/popover';
 import { Button } from '~/components/ui/button';
 import { Calendar } from '~/components/ui/calendar';
@@ -25,6 +25,7 @@ import {
 } from '~/components/ui/alert-dialog';
 import { Skeleton } from '@/components/ui/skeleton';
 import { cn } from '~/lib/utils';
+import { withPaginationListScroll } from '~/lib/pagination-scroll';
 import {
   Pagination,
   PaginationContent,
@@ -342,80 +343,87 @@ const PuzzleSelectSection = ({
   hasNext: boolean;
   total?: number;
   onPageChange: (page: number) => void;
-}) => (
-  <div className="flex flex-col gap-3">
-    <div className="px-1 text-lg font-bold">Select Puzzle</div>
+}) => {
+  const listRef = useRef<HTMLDivElement>(null);
+
+  return (
     <div className="flex flex-col gap-3">
-      <Label className="px-1 font-semibold">Search Puzzle</Label>
-      <div className="flex items-center gap-4">
-        <SearchIcon className="size-5 text-muted-foreground" />
-        <Input
-          value={search_title}
-          onChange={(e) => onSearchChange(e.currentTarget.value)}
-          onBeforeInput={(e) =>
-            handleTypingBeforeInputEvent(ctx, e, onSearchChange, lipi_lekhika_typing)
-          }
-          onBlur={() => ctx.clearContext()}
-          onKeyDown={(e) => clearTypingContextOnKeyDown(e, ctx)}
-          placeholder="Search puzzle by title"
-          className="w-2/3 sm:w-1/2 lg:w-1/3"
-        />
-        <div className="flex justify-center">
-          <Label className="inline-flex items-center justify-center gap-2 font-medium">
-            <Switch
-              checked={lipi_lekhika_typing}
-              onCheckedChange={onToggleTyping}
-              className="-mt-1"
-            />
-            <Icon src={LanguageIcon} className="-mt-1 size-6.5" />
-            <span className="text-base font-bold">देवनागरी</span>
-          </Label>
-        </div>
-      </div>
-    </div>
-    {isInitialLoading && <Skeleton className="h-52 w-full" />}
-    {!isInitialLoading && (
-      <div className="space-y-3">
-        {selectedPuzzle && (
-          <p className="flex items-center gap-1.5 px-1 text-xs text-muted-foreground">
-            <span className="size-1.5 shrink-0 rounded-full bg-blue-500" aria-hidden />
-            Selected: <span className="font-medium text-foreground">{selectedPuzzle.title}</span>
-          </p>
-        )}
-        <div className="grid max-h-52 grid-cols-2 gap-2 overflow-y-scroll rounded-md border border-gray-200 bg-gray-50/50 p-3 sm:grid-cols-3 lg:grid-cols-4 dark:border-gray-700 dark:bg-gray-800/50">
-          {puzzle_list.length > 0 ? (
-            puzzle_list.map((puzzle) => (
-              <PuzzleOptionButton
-                key={puzzle.id}
-                puzzle={puzzle}
-                selected={selectedPuzzle?.id === puzzle.id}
-                disabled={isFetching}
-                onToggle={onTogglePuzzle}
+      <div className="px-1 text-lg font-bold">Select Puzzle</div>
+      <div className="flex flex-col gap-3">
+        <Label className="px-1 font-semibold">Search Puzzle</Label>
+        <div className="flex items-center gap-4">
+          <SearchIcon className="size-5 text-muted-foreground" />
+          <Input
+            value={search_title}
+            onChange={(e) => onSearchChange(e.currentTarget.value)}
+            onBeforeInput={(e) =>
+              handleTypingBeforeInputEvent(ctx, e, onSearchChange, lipi_lekhika_typing)
+            }
+            onBlur={() => ctx.clearContext()}
+            onKeyDown={(e) => clearTypingContextOnKeyDown(e, ctx)}
+            placeholder="Search puzzle by title"
+            className="w-2/3 sm:w-1/2 lg:w-1/3"
+          />
+          <div className="flex justify-center">
+            <Label className="inline-flex items-center justify-center gap-2 font-medium">
+              <Switch
+                checked={lipi_lekhika_typing}
+                onCheckedChange={onToggleTyping}
+                className="-mt-1"
               />
-            ))
-          ) : (
-            <div className="col-span-full flex items-center justify-center py-6">
-              {!isFetching ? (
-                <p className="text-sm text-gray-500">No puzzles found</p>
-              ) : (
-                <p className="text-sm text-gray-500">Loading...</p>
-              )}
-            </div>
-          )}
+              <Icon src={LanguageIcon} className="-mt-1 size-6.5" />
+              <span className="text-base font-bold">देवनागरी</span>
+            </Label>
+          </div>
         </div>
-        <PuzzlePagination
-          page={page}
-          pageCount={pageCount}
-          hasPrev={hasPrev}
-          hasNext={hasNext}
-          isFetching={isFetching}
-          total={total}
-          onPageChange={onPageChange}
-        />
       </div>
-    )}
-  </div>
-);
+      {isInitialLoading && <Skeleton className="h-52 w-full" />}
+      {!isInitialLoading && (
+        <div className="space-y-3">
+          {selectedPuzzle && (
+            <p className="flex items-center gap-1.5 px-1 text-xs text-muted-foreground">
+              <span className="size-1.5 shrink-0 rounded-full bg-blue-500" aria-hidden />
+              Selected: <span className="font-medium text-foreground">{selectedPuzzle.title}</span>
+            </p>
+          )}
+          <div
+            ref={listRef}
+            className="grid max-h-52 grid-cols-2 gap-2 overflow-y-scroll rounded-md border border-gray-200 bg-gray-50/50 p-3 sm:grid-cols-3 lg:grid-cols-4 dark:border-gray-700 dark:bg-gray-800/50"
+          >
+            {puzzle_list.length > 0 ? (
+              puzzle_list.map((puzzle) => (
+                <PuzzleOptionButton
+                  key={puzzle.id}
+                  puzzle={puzzle}
+                  selected={selectedPuzzle?.id === puzzle.id}
+                  disabled={isFetching}
+                  onToggle={onTogglePuzzle}
+                />
+              ))
+            ) : (
+              <div className="col-span-full flex items-center justify-center py-6">
+                {!isFetching ? (
+                  <p className="text-sm text-gray-500">No puzzles found</p>
+                ) : (
+                  <p className="text-sm text-gray-500">Loading...</p>
+                )}
+              </div>
+            )}
+          </div>
+          <PuzzlePagination
+            page={page}
+            pageCount={pageCount}
+            hasPrev={hasPrev}
+            hasNext={hasNext}
+            isFetching={isFetching}
+            total={total}
+            onPageChange={withPaginationListScroll(onPageChange, listRef)}
+          />
+        </div>
+      )}
+    </div>
+  );
+};
 
 const ScheduleConfirmDialog = ({
   type,

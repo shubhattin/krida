@@ -15,7 +15,7 @@ import { Image } from '@unpic/react';
 import { Link } from '@tanstack/react-router';
 import dayjs from 'dayjs';
 import relativeTime from 'dayjs/plugin/relativeTime';
-import { useEffect, useMemo, useSyncExternalStore, useState } from 'react';
+import { useEffect, useMemo, useRef, useSyncExternalStore, useState } from 'react';
 import { client } from '~/api/client';
 import { Skeleton } from '~/components/ui/skeleton';
 import { Label } from '~/components/ui/label';
@@ -29,6 +29,7 @@ import {
   PaginationPrevious
 } from '~/components/ui/pagination';
 import { cn } from '@/lib/utils';
+import { withPaginationListScroll } from '~/lib/pagination-scroll';
 import { Switch } from '~/components/ui/switch';
 import {
   Select,
@@ -566,6 +567,7 @@ const ListPagination = ({
 
 const ListPage = () => {
   const mounted = useIsMounted();
+  const listRef = useRef<HTMLDivElement>(null);
   const [page, setPage] = useState(1);
   const [search_title, setSearchTitle] = useState('');
   const [lipi_lekhika_typing, setLipiLekhikaTyping] = useState(true);
@@ -656,41 +658,43 @@ const ListPage = () => {
       {layout === 'links' && all_links_q.isLoading ? (
         <ListLoadingSkeleton show layout="table" />
       ) : null}
-      {layout === 'links' && !all_links_q.isLoading && (all_links_q.data?.length ?? 0) > 0 ? (
-        <>
-          <p className="text-center text-sm text-muted-foreground">
-            {all_links_q.data?.length} puzzle{all_links_q.data?.length === 1 ? '' : 's'}
-          </p>
-          <DataTable
-            scrollable
-            columns={listTableColumns}
-            data={all_links_q.data ?? []}
-            getRowId={(row) => String(row.id)}
-          />
-        </>
-      ) : null}
-      <PuzzleCardGrid
-        isSuccess={isSuccess}
-        isInitialLoading={isInitialLoading}
-        layout={layout}
-        puzzle_list={puzzle_list}
-      />
-      <PuzzleTableView
-        isSuccess={isSuccess}
-        isInitialLoading={isInitialLoading}
-        layout={layout}
-        columns={listTableColumns}
-        data={puzzle_list}
-      />
-      <ListEmptyState
-        isEmpty={
-          layout === 'links'
-            ? !all_links_q.isLoading && (all_links_q.data?.length ?? 0) === 0
-            : puzzle_list.length === 0
-        }
-        isInitialLoading={layout === 'links' ? false : isInitialLoading}
-        isFetching={layout === 'links' ? all_links_q.isFetching : isFetching}
-      />
+      <div ref={listRef} className="space-y-4">
+        {layout === 'links' && !all_links_q.isLoading && (all_links_q.data?.length ?? 0) > 0 ? (
+          <>
+            <p className="text-center text-sm text-muted-foreground">
+              {all_links_q.data?.length} puzzle{all_links_q.data?.length === 1 ? '' : 's'}
+            </p>
+            <DataTable
+              scrollable
+              columns={listTableColumns}
+              data={all_links_q.data ?? []}
+              getRowId={(row) => String(row.id)}
+            />
+          </>
+        ) : null}
+        <PuzzleCardGrid
+          isSuccess={isSuccess}
+          isInitialLoading={isInitialLoading}
+          layout={layout}
+          puzzle_list={puzzle_list}
+        />
+        <PuzzleTableView
+          isSuccess={isSuccess}
+          isInitialLoading={isInitialLoading}
+          layout={layout}
+          columns={listTableColumns}
+          data={puzzle_list}
+        />
+        <ListEmptyState
+          isEmpty={
+            layout === 'links'
+              ? !all_links_q.isLoading && (all_links_q.data?.length ?? 0) === 0
+              : puzzle_list.length === 0
+          }
+          isInitialLoading={layout === 'links' ? false : isInitialLoading}
+          isFetching={layout === 'links' ? all_links_q.isFetching : isFetching}
+        />
+      </div>
       {layout === 'links' ? null : (
         <ListPagination
           page={page}
@@ -699,7 +703,7 @@ const ListPage = () => {
           hasNext={hasNext}
           isFetching={isFetching}
           total={total}
-          onPageChange={setPage}
+          onPageChange={withPaginationListScroll(setPage, listRef)}
         />
       )}
     </div>

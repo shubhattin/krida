@@ -1,7 +1,7 @@
 'use client';
 
 import { GameCrossPromo } from '~/components/GameCrossPromo';
-import { useContext, useEffect, useMemo, useState } from 'react';
+import { useContext, useEffect, useMemo, useRef, useState } from 'react';
 import type { ScriptType } from '~/state/script_list';
 import { motion } from 'framer-motion';
 import { Button } from '~/components/ui/button';
@@ -13,6 +13,7 @@ import Icon from '~/tools/Icon';
 import { LanguageIcon } from '~/components/icons';
 import { AppContext } from '~/components/AppDataContext';
 import { cn } from '~/lib/utils';
+import { withPaginationListScroll } from '~/lib/pagination-scroll';
 import type { PadavaliListedPuzzlesType } from '~/util/cache.server/padavali_cache';
 import type { DisplayPuzzle } from '~/components/pages/padavali/listed_puzzle_display';
 import { useListedPuzzlesDisplay } from '~/components/pages/padavali/useListedPuzzlesDisplay';
@@ -77,6 +78,7 @@ export const ListedPuzzles = ({ listed_puzzles, listed_puzzles_init_transliterat
 
 const PuzzleListView = ({ puzzles }: { puzzles: DisplayPuzzle[] }) => {
   const { script, setScript } = useContext(AppContext);
+  const listRef = useRef<HTMLDivElement>(null);
   const [searchQuery, setSearchQuery] = useState('');
   const [page, setPage] = useState(1);
   const [lipi_lekhika_typing, setLipiLekhikaTyping] = useState(false);
@@ -101,6 +103,7 @@ const PuzzleListView = ({ puzzles }: { puzzles: DisplayPuzzle[] }) => {
 
   const hasPrev = safePage > 1;
   const hasNext = safePage < pageCount;
+  const goToPage = withPaginationListScroll(setPage, listRef);
 
   if (puzzles.length === 0) {
     return <EmptyPuzzleList />;
@@ -253,7 +256,10 @@ const PuzzleListView = ({ puzzles }: { puzzles: DisplayPuzzle[] }) => {
           </div>
         ) : (
           <>
-            <div className="grid grid-cols-2 gap-3 sm:gap-4 lg:grid-cols-3 xl:grid-cols-4">
+            <div
+              ref={listRef}
+              className="grid grid-cols-2 gap-3 sm:gap-4 lg:grid-cols-3 xl:grid-cols-4"
+            >
               {paginatedPuzzles.map((puzzle, index) => (
                 <motion.div
                   key={puzzle.id}
@@ -276,7 +282,7 @@ const PuzzleListView = ({ puzzles }: { puzzles: DisplayPuzzle[] }) => {
                         text="Prev"
                         onClick={(e) => {
                           e.preventDefault();
-                          if (hasPrev) setPage((p) => p - 1);
+                          if (hasPrev) goToPage(safePage - 1);
                         }}
                         aria-disabled={!hasPrev}
                         className={cn(!hasPrev && 'pointer-events-none opacity-50')}
@@ -294,7 +300,7 @@ const PuzzleListView = ({ puzzles }: { puzzles: DisplayPuzzle[] }) => {
                             isActive={pageNumber === safePage}
                             onClick={(e) => {
                               e.preventDefault();
-                              setPage(pageNumber);
+                              goToPage(pageNumber);
                             }}
                           >
                             {pageNumber}
@@ -307,7 +313,7 @@ const PuzzleListView = ({ puzzles }: { puzzles: DisplayPuzzle[] }) => {
                         href="#"
                         onClick={(e) => {
                           e.preventDefault();
-                          if (hasNext) setPage((p) => p + 1);
+                          if (hasNext) goToPage(safePage + 1);
                         }}
                         aria-disabled={!hasNext}
                         className={cn(!hasNext && 'pointer-events-none opacity-50')}
