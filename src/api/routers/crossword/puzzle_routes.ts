@@ -18,6 +18,7 @@ import {
   crossword_update_input_schema,
   crossword_update_slug_input_schema
 } from '~/db/crossword_shared';
+import { insertWithUniqueUid } from '~/util/puzzle/nano_id';
 import { crossword_slug_schema } from '~/util/puzzle/slug';
 import {
   CACHE,
@@ -231,6 +232,7 @@ const get_puzzle_list_page_route = protectedAdminProcedure
             client
               .select({
                 id: crossword_puzzles.id,
+                uid: crossword_puzzles.uid,
                 slug: crossword_puzzles.slug,
                 title: crossword_puzzles.title,
                 description: crossword_puzzles.description,
@@ -284,18 +286,21 @@ const add_puzzle_route = protectedAdminProcedure
             await delete_redirect_for_slug(tx, input.slug);
           }
 
-          return tx
-            .insert(crossword_puzzles)
-            .values({
-              slug: input.slug,
-              title: input.title.trim(),
-              description: input.description?.trim() ?? '',
-              grid_dimensions: dimensions,
-              grid_data: createEmptyGridData(dimensions),
-              word_list: [],
-              listed: false
-            })
-            .returning();
+          return insertWithUniqueUid(tx, crossword_puzzles, (scoped, uid) =>
+            scoped
+              .insert(crossword_puzzles)
+              .values({
+                uid,
+                slug: input.slug,
+                title: input.title.trim(),
+                description: input.description?.trim() ?? '',
+                grid_dimensions: dimensions,
+                grid_data: createEmptyGridData(dimensions),
+                word_list: [],
+                listed: false
+              })
+              .returning()
+          );
         });
         const inserted = inserted_puzzles[0];
         if (!inserted) {

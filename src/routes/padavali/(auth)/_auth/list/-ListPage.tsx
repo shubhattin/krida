@@ -610,14 +610,7 @@ const ListPage = () => {
     queryFn: () =>
       fetchEveryListPage(
         (page, size) =>
-          fetchPuzzleListPage(
-            page,
-            debouncedSearchTitle,
-            listed_filter,
-            sort_by,
-            order_by,
-            size
-          ),
+          fetchPuzzleListPage(page, debouncedSearchTitle, listed_filter, sort_by, order_by, size),
         ALL_LINKS_PAGE_SIZE
       ),
     refetchOnWindowFocus: false
@@ -664,12 +657,17 @@ const ListPage = () => {
         <ListLoadingSkeleton show layout="table" />
       ) : null}
       {layout === 'links' && !all_links_q.isLoading && (all_links_q.data?.length ?? 0) > 0 ? (
-        <DataTable
-          scrollable
-          columns={listTableColumns}
-          data={all_links_q.data ?? []}
-          getRowId={(row) => String(row.id)}
-        />
+        <>
+          <p className="text-center text-sm text-muted-foreground">
+            {all_links_q.data?.length} puzzle{all_links_q.data?.length === 1 ? '' : 's'}
+          </p>
+          <DataTable
+            scrollable
+            columns={listTableColumns}
+            data={all_links_q.data ?? []}
+            getRowId={(row) => String(row.id)}
+          />
+        </>
       ) : null}
       <PuzzleCardGrid
         isSuccess={isSuccess}
@@ -694,15 +692,15 @@ const ListPage = () => {
         isFetching={layout === 'links' ? all_links_q.isFetching : isFetching}
       />
       {layout === 'links' ? null : (
-      <ListPagination
-        page={page}
-        pageCount={pageCount}
-        hasPrev={hasPrev}
-        hasNext={hasNext}
-        isFetching={isFetching}
-        total={total}
-        onPageChange={setPage}
-      />
+        <ListPagination
+          page={page}
+          pageCount={pageCount}
+          hasPrev={hasPrev}
+          hasNext={hasNext}
+          isFetching={isFetching}
+          total={total}
+          onPageChange={setPage}
+        />
       )}
     </div>
   );

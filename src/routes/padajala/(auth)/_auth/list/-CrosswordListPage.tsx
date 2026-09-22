@@ -549,7 +549,14 @@ const CrosswordListPage = () => {
     queryFn: () =>
       fetchEveryListPage(
         (page, size) =>
-          fetchCrosswordListPage(page, debouncedSearchTitle, listed_filter, sort_by, order_by, size),
+          fetchCrosswordListPage(
+            page,
+            debouncedSearchTitle,
+            listed_filter,
+            sort_by,
+            order_by,
+            size
+          ),
         ALL_LINKS_PAGE_SIZE
       ),
     refetchOnWindowFocus: false
@@ -593,12 +600,17 @@ const CrosswordListPage = () => {
         <ListLoadingSkeleton show layout="table" />
       ) : null}
       {layout === 'links' && !all_links_q.isLoading && (all_links_q.data?.length ?? 0) > 0 ? (
-        <DataTable
-          scrollable
-          columns={crosswordListTableColumns}
-          data={all_links_q.data ?? []}
-          getRowId={(row) => String(row.id)}
-        />
+        <>
+          <p className="text-center text-sm text-muted-foreground">
+            {all_links_q.data?.length} puzzle{all_links_q.data?.length === 1 ? '' : 's'}
+          </p>
+          <DataTable
+            scrollable
+            columns={crosswordListTableColumns}
+            data={all_links_q.data ?? []}
+            getRowId={(row) => String(row.id)}
+          />
+        </>
       ) : null}
       <CrosswordCardGrid
         isSuccess={isSuccess}
@@ -623,15 +635,15 @@ const CrosswordListPage = () => {
         isFetching={layout === 'links' ? all_links_q.isFetching : isFetching}
       />
       {layout === 'links' ? null : (
-      <ListPagination
-        page={page}
-        pageCount={pageCount}
-        hasPrev={hasPrev}
-        hasNext={hasNext}
-        isFetching={isFetching}
-        total={total}
-        onPageChange={setPage}
-      />
+        <ListPagination
+          page={page}
+          pageCount={pageCount}
+          hasPrev={hasPrev}
+          hasNext={hasNext}
+          isFetching={isFetching}
+          total={total}
+          onPageChange={setPage}
+        />
       )}
     </div>
   );

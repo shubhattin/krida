@@ -1,31 +1,38 @@
 import { createFileRoute, Link, notFound } from '@tanstack/react-router';
 import { createServerFn } from '@tanstack/react-start';
+import { eq } from 'drizzle-orm';
 import { ArrowLeftIcon } from 'lucide-react';
 import { z } from 'zod';
 import CrossWordGameRoot from '~/components/pages/cross_word/CrossWordGame/CrossWordGameRoot';
 import { routeHeadFromPageMeta } from '~/components/tags/getPageMetaTags';
+import { crossword_puzzles } from '~/db/schema';
+import { dbRunHttp } from '~/effect/database';
 import { CACHE } from '~/util/cache.server/cache_loaders';
-import { parseIdSlugParam } from '~/util/puzzle/slug';
 import { runLoaderEffect } from '~/effect/run';
 import { PreviewWarningBanner } from './-PreviewWarningBanner';
 
 const loader$ = createServerFn({ method: 'GET' })
-  .validator(z.object({ id_slug: z.string() }))
+  .validator(z.object({ nano_id: z.string() }))
   .handler(async ({ data }) => {
-    const routeParams = parseIdSlugParam(data.id_slug);
-    if (!routeParams) return { word_puzzle: null };
-
-    const word_puzzle = await runLoaderEffect(
-      CACHE.crossword.word_puzzle.get({ slug: routeParams.slug })
+    const row = await runLoaderEffect(
+      dbRunHttp('crossword.view.resolve_uid', (client) =>
+        client.query.crossword_puzzles.findFirst({
+          columns: { slug: true },
+          where: eq(crossword_puzzles.uid, data.nano_id)
+        })
+      )
     );
-    if (!word_puzzle || word_puzzle.id !== routeParams.id) return { word_puzzle: null };
+    if (!row) return { word_puzzle: null };
+
+    const word_puzzle = await runLoaderEffect(CACHE.crossword.word_puzzle.get({ slug: row.slug }));
+    if (!word_puzzle) return { word_puzzle: null };
 
     return { word_puzzle };
   });
 
-export const Route = createFileRoute('/padajala/(public)/_public/view/$id_slug')({
+export const Route = createFileRoute('/padajala/(public)/_public/view/$nano_id')({
   loader: async ({ params }) => {
-    const { word_puzzle } = await loader$({ data: { id_slug: params.id_slug } });
+    const { word_puzzle } = await loader$({ data: { nano_id: params.nano_id } });
     if (!word_puzzle) throw notFound();
     return { word_puzzle };
   },
