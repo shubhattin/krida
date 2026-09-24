@@ -114,7 +114,7 @@ export const Route = createFileRoute('/padavali/(public)/_public/$slug')({
   head: ({ loaderData }) =>
     routeHeadFromPageMeta({
       title: loaderData
-        ? `${loaderData.kind === 'puzzle' ? loaderData.word_puzzle.title : loaderData.title} - Padavali Puzzle | Fun Sanskrit Puzzle`
+        ? `${loaderData.kind === 'puzzle' ? loaderData.word_puzzle.title : loaderData.title} - Padavali | Fun Sanskrit Puzzle`
         : 'Not Found',
       description: loaderData
         ? loaderData.kind === 'puzzle'
