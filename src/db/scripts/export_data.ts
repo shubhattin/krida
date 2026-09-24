@@ -1,4 +1,4 @@
-import { dbClient_ext, queryClient } from './client';
+import { dbClient_ext, dbDataFileName, queryClient } from './client';
 import { readFile } from 'fs/promises';
 import { dbMode, take_input } from '~/tools/kry.server';
 import {
@@ -302,11 +302,7 @@ const main = async () => {
 
   console.log(`Insering Data into ${dbMode} Database...`);
 
-  const in_file_name = {
-    PROD: 'db_data_prod.json',
-    PREVIEW: 'db_data_preview.json',
-    LOCAL: 'db_data.json'
-  }[dbMode];
+  const in_file_name = dbDataFileName;
 
   const data = ExportDataSchema.parse(
     JSON.parse((await readFile(`./out/${in_file_name}`)).toString())
