@@ -1,7 +1,21 @@
+import { getCDNUrl } from '~/constants';
+
 interface ShareImageInfo {
   url: string;
   width: number;
   height: number;
+}
+
+/** Stored puzzle thumbnail → `og:image` / `twitter:image`. Falls back to the project banner when absent. */
+export function shareImageInfoFromAsset(
+  image: { s3_key: string; width: number; height: number } | null | undefined
+): ShareImageInfo | undefined {
+  if (!image) return undefined;
+  return {
+    url: getCDNUrl(image.s3_key),
+    width: image.width,
+    height: image.height
+  };
 }
 
 export type MetadataProject = 'padavali' | 'padajala' | 'landing_page';

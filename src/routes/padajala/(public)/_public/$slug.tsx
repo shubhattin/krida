@@ -3,7 +3,7 @@ import { createServerFn } from '@tanstack/react-start';
 import { ArrowLeftIcon } from 'lucide-react';
 import { z } from 'zod';
 import CrossWordGameRoot from '~/components/pages/cross_word/CrossWordGame/CrossWordGameRoot';
-import { routeHeadFromPageMeta } from '~/components/tags/getPageMetaTags';
+import { routeHeadFromPageMeta, shareImageInfoFromAsset } from '~/components/tags/getPageMetaTags';
 import { CACHE, NO_CACHE_PARAMS } from '~/util/cache.server/cache_loaders';
 import type { CrosswordPuzzleType } from '~/util/cache.server/crossword_cache';
 import { dbRunHttp } from '~/effect/database';
@@ -66,7 +66,8 @@ const loader$ = createServerFn({ method: 'GET' })
       return {
         kind: 'unavailable' as const,
         title: word_puzzle.title,
-        description: word_puzzle.description
+        description: word_puzzle.description,
+        image: word_puzzle.image
       };
     }
 
@@ -98,7 +99,14 @@ export const Route = createFileRoute('/padajala/(public)/_public/$slug')({
           ? loaderData.word_puzzle.description
           : loaderData.description
         : null,
-      project: 'padajala'
+      project: 'padajala',
+      share_image_info: shareImageInfoFromAsset(
+        loaderData?.kind === 'puzzle'
+          ? loaderData.word_puzzle.image
+          : loaderData?.kind === 'unavailable'
+            ? loaderData.image
+            : null
+      )
     }),
   component: CrosswordSlugPage
 });

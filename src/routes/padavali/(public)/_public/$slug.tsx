@@ -5,7 +5,7 @@ import { transliterate_wasm } from 'lipilekhika';
 import { z } from 'zod';
 import WordGame from '~/components/pages/padavali/WordGame/WordGameRoot';
 import { get_transliterated_word_game_msgs } from '~/components/pages/padavali/WordGame/msgs';
-import { routeHeadFromPageMeta } from '~/components/tags/getPageMetaTags';
+import { routeHeadFromPageMeta, shareImageInfoFromAsset } from '~/components/tags/getPageMetaTags';
 import { getScript$ } from '~/lib/cache_server_route_data';
 import { DEFAULT_DATA_SCRIPT } from '~/state/script_list';
 import { CACHE, NO_CACHE_PARAMS } from '~/util/cache.server/cache_loaders';
@@ -71,7 +71,8 @@ const loader$ = createServerFn({ method: 'GET' })
       return {
         kind: 'unavailable' as const,
         title: word_puzzle.title,
-        description: word_puzzle.description
+        description: word_puzzle.description,
+        image: word_puzzle.image
       };
     }
 
@@ -119,7 +120,14 @@ export const Route = createFileRoute('/padavali/(public)/_public/$slug')({
         ? loaderData.kind === 'puzzle'
           ? loaderData.word_puzzle.description
           : loaderData.description
-        : null
+        : null,
+      share_image_info: shareImageInfoFromAsset(
+        loaderData?.kind === 'puzzle'
+          ? loaderData.word_puzzle.image
+          : loaderData?.kind === 'unavailable'
+            ? loaderData.image
+            : null
+      )
     }),
   component: PadavaliSlugRoute
 });
