@@ -1,6 +1,5 @@
 import { Cause, Effect, Exit } from 'effect';
 import { TRPCError } from '@trpc/server';
-import { captureEffectFailure } from '~/lib/posthog-server';
 import { httpStatusForKnownError, markReported } from '~/lib/posthog-error';
 import { appRuntime } from './runtime';
 import { isKnownError, type KnownError } from './errors';
@@ -48,6 +47,9 @@ const reportFailure = async (cause: Cause.Cause<unknown>, source: string): Promi
     failure._tag === 'Some' && isKnownError(failure.value)
       ? httpStatusForError(failure.value)
       : 500;
+  // Loaded on demand so route modules can import these runners without pulling
+  // node:async_hooks into the browser bundle.
+  const { captureEffectFailure } = await import('~/lib/posthog-server');
   const captured = await captureEffectFailure(cause, { source, status });
   markReported(captured);
   return captured;

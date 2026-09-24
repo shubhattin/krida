@@ -1,6 +1,8 @@
 import { Context, Effect, Layer } from 'effect';
 import { waitUntil } from '@vercel/functions';
-import { captureThrownError } from '~/lib/posthog-server';
+
+const reportBackgroundFailure = (cause: unknown) =>
+  import('~/lib/posthog-server').then((mod) => mod.captureThrownError(cause, 'background'));
 
 /**
  * Background work that preserves Vercel `waitUntil` semantics.
@@ -20,7 +22,7 @@ export class BackgroundWork extends Context.Service<
             .then(work)
             .catch((cause: unknown) => {
               console.error('[background] work failed', cause);
-              return captureThrownError(cause, 'background');
+              return reportBackgroundFailure(cause);
             })
         );
       })
@@ -34,7 +36,7 @@ export class BackgroundWork extends Context.Service<
           .then(work)
           .catch((cause: unknown) => {
             console.error('[background] work failed', cause);
-            return captureThrownError(cause, 'background');
+            return reportBackgroundFailure(cause);
           })
       )
   });

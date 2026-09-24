@@ -1,9 +1,11 @@
 import { Cause, Effect, Exit } from 'effect';
-import { captureEffectFailure } from '~/lib/posthog-server';
+
+const captureFailure = (cause: Cause.Cause<unknown>, source: string) =>
+  import('~/lib/posthog-server').then((mod) => mod.captureEffectFailure(cause, { source }));
 
 /** Report a swallowed failure, then let the caller log and continue. */
 export const reportSwallowedError = (source: string) => (cause: unknown) =>
-  Effect.promise(() => captureEffectFailure(Cause.fail(cause), { source })).pipe(Effect.asVoid);
+  Effect.promise(() => captureFailure(Cause.fail(cause), source)).pipe(Effect.asVoid);
 
 /**
  * Run an effect, report its failure, and continue.
@@ -14,6 +16,6 @@ export const ignoreReportedFailure = <A, E, R>(effect: Effect.Effect<A, E, R>, s
     Effect.flatMap((exit) =>
       Exit.isSuccess(exit)
         ? Effect.void
-        : Effect.promise(() => captureEffectFailure(exit.cause, { source })).pipe(Effect.asVoid)
+        : Effect.promise(() => captureFailure(exit.cause, source)).pipe(Effect.asVoid)
     )
   );

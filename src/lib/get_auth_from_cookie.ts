@@ -1,7 +1,6 @@
 import { authClient } from '@/lib/auth-client';
 import { createIsomorphicFn, createServerOnlyFn } from '@tanstack/react-start';
 import { getRequestHeader } from '@tanstack/react-start/server';
-import { setRequestUserId } from '~/lib/request-context';
 
 /** Server-side session lookup from raw `Cookie` header (e.g. tRPC `createContext`). */
 async function getSessionFromCookie(cookie: string) {
@@ -17,7 +16,10 @@ async function getSessionFromCookie(cookie: string) {
     }
     // SAFETY: /api/auth/get-session returns the Better Auth session shape
     const session = (await res.json()) as typeof authClient.$Infer.Session;
-    if (session?.user?.id) setRequestUserId(session.user.id);
+    if (session?.user?.id) {
+      const { setRequestUserId } = await import('~/lib/request-context');
+      setRequestUserId(session.user.id);
+    }
     return session;
   } catch {
     return null;
