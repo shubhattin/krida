@@ -43,7 +43,7 @@ export const Route = createFileRoute('/padavali/(public)/_public/puzzles/')({
   loader: () => loader$(),
   head: () =>
     routeHeadFromPageMeta({
-      title: 'Padavali Puzzles',
+      title: 'Padavali Puzzles | Fun Sanskrit Puzzle',
       description: 'Browse and play all available Padavali word puzzles'
     }),
   component: PadavaliPuzzlesRoute

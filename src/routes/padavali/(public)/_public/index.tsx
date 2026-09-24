@@ -84,7 +84,7 @@ export const Route = createFileRoute('/padavali/(public)/_public/')({
   loader: () => loader$(),
   head: () =>
     routeHeadFromPageMeta({
-      title: 'Padāvalī',
+      title: 'Padāvalī | Fun Sanskrit Puzzle',
       description:
         'Padavali is a fun, interactive Sanskrit Jumbled Words Puzzle that tests your creativity, expands your vocabulary, ' +
         'and lets you challenge your friends to try and beat your score.'
