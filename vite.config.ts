@@ -15,7 +15,10 @@ const config = defineConfig({
     devtools(),
     tailwindcss(),
     tanstackStart(),
-    nitro(),
+    // Vite 8.2 + Nitro splits the SSR service into a chunk that re-exports
+    // an undeclared `ssr_exports`, which 500s every request.
+    // https://github.com/TanStack/router/issues/8031
+    nitro({ inlineDynamicImports: true }),
     viteReact({
       babel: {
         plugins: ['babel-plugin-react-compiler']
