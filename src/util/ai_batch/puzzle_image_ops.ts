@@ -41,6 +41,7 @@ import { OpenAiBatchClient } from '~/effect/ai';
 import { QStashPublisher } from '~/effect/qstash';
 import { ObjectStorage } from '~/effect/storage';
 import { enqueueBackground } from '~/effect/background';
+import { reportSwallowedError } from '~/effect/report';
 import { BadRequestError, BatchError, NotFoundError, isKnownError } from '~/effect/errors';
 
 /** Cap concurrent Effect fan-outs for prompt/upload/approve work. */
@@ -146,11 +147,15 @@ export const deleteImageAssetById = Effect.fn('batch_ai.deleteImageAssetById')(f
   yield* storage.deleteAssetFile(asset.s3_key).pipe(
     Effect.retry(s3DeleteRetrySchedule),
     Effect.catchTag('StorageError', (error) =>
-      Effect.logWarning('Failed to delete image asset from storage after DB delete').pipe(
-        Effect.annotateLogs({
-          s3_key: asset.s3_key,
-          operation: error.operation
-        })
+      reportSwallowedError('batch_ai.delete_image')(error).pipe(
+        Effect.andThen(
+          Effect.logWarning('Failed to delete image asset from storage after DB delete').pipe(
+            Effect.annotateLogs({
+              s3_key: asset.s3_key,
+              operation: error.operation
+            })
+          )
+        )
       )
     )
   );
@@ -174,9 +179,13 @@ const deleteOpenAiFiles = Effect.fn('batch_ai.deleteOpenAiFiles')(function* (
         catch: (cause) => BatchError.make({ operation: 'delete_file', cause })
       }).pipe(
         Effect.catch((error) =>
-          Effect.sync(() => {
-            console.error(`Failed to delete OpenAI file ${file_id}:`, error);
-          })
+          reportSwallowedError('batch_ai.delete_file')(error).pipe(
+            Effect.andThen(
+              Effect.sync(() => {
+                console.error(`Failed to delete OpenAI file ${file_id}:`, error);
+              })
+            )
+          )
         )
       ),
     { concurrency: 'unbounded', discard: true }
@@ -214,9 +223,13 @@ export const scheduleOpenAiBatchCleanup = Effect.fn('batch_ai.scheduleOpenAiBatc
           yield* deleteOpenAiFiles([batch.input_file_id, batch.output_file_id]);
         }).pipe(
           Effect.catch((err) =>
-            Effect.sync(() => {
-              console.error(`Failed OpenAI batch file cleanup for batch ${batch_id}:`, err);
-            })
+            reportSwallowedError('batch_ai.cleanup')(err).pipe(
+              Effect.andThen(
+                Effect.sync(() => {
+                  console.error(`Failed OpenAI batch file cleanup for batch ${batch_id}:`, err);
+                })
+              )
+            )
           )
         )
       )
@@ -400,9 +413,16 @@ export const trigger_batch_puzzle_image_gen = Effect.fn('batch_ai.trigger_batch_
               BatchError.make({ operation: 'cancel_batch', batchId: batch_id, cause })
           }).pipe(
             Effect.catch((cancel_err) =>
-              Effect.sync(() => {
-                console.error(`Failed to cancel orphaned OpenAI batch ${batch_id}:`, cancel_err);
-              })
+              reportSwallowedError('batch_ai.cancel')(cancel_err).pipe(
+                Effect.andThen(
+                  Effect.sync(() => {
+                    console.error(
+                      `Failed to cancel orphaned OpenAI batch ${batch_id}:`,
+                      cancel_err
+                    );
+                  })
+                )
+              )
             )
           );
           return yield* Effect.fail(err);
@@ -719,14 +739,16 @@ const autoApproveEligibleRows = Effect.fn('batch_ai.autoApproveEligibleRows')(fu
             message: `Auto-connected image ${result.uploaded_image_id} to puzzle ${result.puzzle_id}`
           })),
           Effect.catch((err) =>
-            Effect.succeed({
-              ...item,
-              message:
-                isKnownError(err) &&
-                (err._tag === 'NotFoundError' || err._tag === 'BadRequestError')
-                  ? err.message
-                  : 'Auto-approve failed to connect puzzle image'
-            })
+            reportSwallowedError('batch_ai.auto_approve')(err).pipe(
+              Effect.as({
+                ...item,
+                message:
+                  isKnownError(err) &&
+                  (err._tag === 'NotFoundError' || err._tag === 'BadRequestError')
+                    ? err.message
+                    : 'Auto-approve failed to connect puzzle image'
+              })
+            )
           )
         );
       }),
@@ -878,9 +900,16 @@ const cleanupLostUpload = Effect.fn('batch_ai.cleanupLostUpload')(function* (
 ) {
   yield* deleteImageAssetById(upload_image_id).pipe(
     Effect.catch((err) =>
-      Effect.sync(() => {
-        console.error(`Failed to clean up duplicate batch upload image ${upload_image_id}:`, err);
-      })
+      reportSwallowedError('batch_ai.cleanup_upload')(err).pipe(
+        Effect.andThen(
+          Effect.sync(() => {
+            console.error(
+              `Failed to clean up duplicate batch upload image ${upload_image_id}:`,
+              err
+            );
+          })
+        )
+      )
     )
   );
   return yield* findResolvedRowItem('batch_ai.find_row_after_cas_loss', batch_id, custom_id);

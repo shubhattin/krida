@@ -14,9 +14,10 @@ import { dbRunHttp, dbTransaction } from '~/effect/database';
 import { runQstashEffect } from '~/effect/run';
 import { BadRequestError } from '~/effect/errors';
 import { verifyQstashRequest } from '~/lib/qstash_verify';
+import { ignoreReportedFailure } from '~/effect/report';
 
 const ignoreFailure = <A, E, R>(effect: Effect.Effect<A, E, R>) =>
-  Effect.exit(effect).pipe(Effect.asVoid);
+  ignoreReportedFailure(effect, 'qstash.padavali.side_effect');
 
 export const Route = createFileRoute('/api/qstash/schedule_listing')({
   server: {

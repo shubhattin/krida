@@ -60,7 +60,7 @@ import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import { client, useTRPC } from '~/api/client';
 import { getCDNUrl } from '~/constants';
 import { cn } from '~/lib/utils';
-import { withPaginationListScroll } from '~/lib/pagination-scroll';
+import { scrollPaginationListToStart } from '~/lib/pagination-scroll';
 import { BatchPuzzleImageCostNote } from '~/components/pages/padavali/batch-image/BatchPuzzleImageCostNote';
 import { BatchPuzzleImageReviewDialog } from '~/components/pages/padavali/batch-image/BatchPuzzleImageReviewDialog';
 import { BatchPuzzleImageStatus } from '~/components/pages/padavali/batch-image/BatchPuzzleImageStatus';
@@ -745,7 +745,10 @@ const ExistingImageTab = ({
         hasPrev={hasPrev}
         hasNext={hasNext}
         isFetching={image_assets_q.isFetching}
-        onPageChange={withPaginationListScroll(setPage, listRef)}
+        onPageChange={(nextPage) => {
+          setPage(nextPage);
+          scrollPaginationListToStart(listRef.current);
+        }}
       />
     </div>
   );

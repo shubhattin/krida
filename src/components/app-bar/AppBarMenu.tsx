@@ -31,6 +31,7 @@ import { useAtom } from 'jotai';
 import { PWAInstallButton } from '../PWA/PWAInit';
 import { BsVectorPen } from 'react-icons/bs';
 import { signIn, signOut, useSession } from '~/lib/auth-client';
+import { resetPosthog } from '~/components/tags/PosthogInit';
 import { accountMenuIconClass, accountMenuLinkClass } from '~/components/app-bar/GameMenuItems';
 
 function SignInMenuButton({ onNavigate }: { onNavigate?: () => void }) {
@@ -95,7 +96,7 @@ function LoggedInAccountMenu({
           type="button"
           onClick={() => {
             onNavigate?.();
-            signOut();
+            void resetPosthog().then(() => signOut());
           }}
           className={cn(
             accountMenuLinkClass,

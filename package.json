@@ -87,6 +87,7 @@
     "nanoid": "^6.0.1",
     "openai": "^6.45.0",
     "posthog-js": "^1.395.0",
+    "posthog-node": "^5.52.4",
     "pretty-ms": "^9.3.0",
     "qrcode": "^1.5.4",
     "react": "^19.2.7",

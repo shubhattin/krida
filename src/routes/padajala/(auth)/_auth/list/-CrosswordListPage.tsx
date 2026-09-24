@@ -29,7 +29,7 @@ import {
   PaginationPrevious
 } from '~/components/ui/pagination';
 import { cn } from '@/lib/utils';
-import { withPaginationListScroll } from '~/lib/pagination-scroll';
+import { scrollPaginationListToStart } from '~/lib/pagination-scroll';
 import {
   Select,
   SelectContent,
@@ -646,7 +646,10 @@ const CrosswordListPage = () => {
           hasNext={hasNext}
           isFetching={isFetching}
           total={total}
-          onPageChange={withPaginationListScroll(setPage, listRef)}
+          onPageChange={(nextPage) => {
+            setPage(nextPage);
+            scrollPaginationListToStart(listRef.current);
+          }}
         />
       )}
     </div>

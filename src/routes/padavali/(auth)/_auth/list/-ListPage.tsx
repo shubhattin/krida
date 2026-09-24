@@ -29,7 +29,7 @@ import {
   PaginationPrevious
 } from '~/components/ui/pagination';
 import { cn } from '@/lib/utils';
-import { withPaginationListScroll } from '~/lib/pagination-scroll';
+import { scrollPaginationListToStart } from '~/lib/pagination-scroll';
 import { Switch } from '~/components/ui/switch';
 import {
   Select,
@@ -703,7 +703,10 @@ const ListPage = () => {
           hasNext={hasNext}
           isFetching={isFetching}
           total={total}
-          onPageChange={withPaginationListScroll(setPage, listRef)}
+          onPageChange={(nextPage) => {
+            setPage(nextPage);
+            scrollPaginationListToStart(listRef.current);
+          }}
         />
       )}
     </div>

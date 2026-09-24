@@ -5,6 +5,7 @@ import { image_assets } from '~/db/schema';
 import { dbRunHttp } from '~/effect/database';
 import { ObjectStorage } from '~/effect/storage';
 import { runTrpcEffect } from '~/effect/run';
+import { reportSwallowedError } from '~/effect/report';
 import { and, asc, desc, eq, ilike } from 'drizzle-orm';
 import { sql } from 'drizzle-orm';
 import { escapeIlikeToken, tokenizeSearchQuery } from '~/util/puzzle/search';
@@ -114,11 +115,15 @@ const delete_image_asset_route = protectedAdminProcedure
         yield* storage.deleteAssetFile(asset.s3_key).pipe(
           Effect.retry(s3DeleteRetrySchedule),
           Effect.catchTag('StorageError', (error) =>
-            Effect.logWarning('Failed to delete image asset from storage after DB delete').pipe(
-              Effect.annotateLogs({
-                s3_key: asset.s3_key,
-                operation: error.operation
-              })
+            reportSwallowedError('image_assets.delete')(error).pipe(
+              Effect.andThen(
+                Effect.logWarning('Failed to delete image asset from storage after DB delete').pipe(
+                  Effect.annotateLogs({
+                    s3_key: asset.s3_key,
+                    operation: error.operation
+                  })
+                )
+              )
             )
           )
         );

@@ -13,7 +13,7 @@ import Icon from '~/tools/Icon';
 import { LanguageIcon } from '~/components/icons';
 import { AppContext } from '~/components/AppDataContext';
 import { cn } from '~/lib/utils';
-import { withPaginationListScroll } from '~/lib/pagination-scroll';
+import { scrollPaginationListToStart } from '~/lib/pagination-scroll';
 import type { PadavaliListedPuzzlesType } from '~/util/cache.server/padavali_cache';
 import type { DisplayPuzzle } from '~/components/pages/padavali/listed_puzzle_display';
 import { useListedPuzzlesDisplay } from '~/components/pages/padavali/useListedPuzzlesDisplay';
@@ -103,7 +103,10 @@ const PuzzleListView = ({ puzzles }: { puzzles: DisplayPuzzle[] }) => {
 
   const hasPrev = safePage > 1;
   const hasNext = safePage < pageCount;
-  const goToPage = withPaginationListScroll(setPage, listRef);
+  const goToPage = (nextPage: number) => {
+    setPage(nextPage);
+    scrollPaginationListToStart(listRef.current);
+  };
 
   if (puzzles.length === 0) {
     return <EmptyPuzzleList />;

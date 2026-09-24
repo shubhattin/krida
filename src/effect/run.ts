@@ -1,5 +1,7 @@
 import { Cause, Effect, Exit } from 'effect';
 import { TRPCError } from '@trpc/server';
+import { captureEffectFailure } from '~/lib/posthog-server';
+import { httpStatusForKnownError, markReported } from '~/lib/posthog-error';
 import { appRuntime } from './runtime';
 import { isKnownError, type KnownError } from './errors';
 
@@ -38,22 +40,17 @@ const toTrpcError = (error: KnownError): TRPCError =>
     cause: error
   });
 
-const httpStatusForError = (error: KnownError): number => {
-  switch (error._tag) {
-    case 'NotFoundError':
-      return 404;
-    case 'BadRequestError':
-    case 'ValidationError':
-      return 400;
-    case 'ConflictError':
-      return 409;
-    case 'UnauthorizedError':
-      return 401;
-    case 'ForbiddenError':
-      return 403;
-    default:
-      return 500;
-  }
+const httpStatusForError = httpStatusForKnownError;
+
+const reportFailure = async (cause: Cause.Cause<unknown>, source: string): Promise<Error> => {
+  const failure = Cause.findErrorOption(cause);
+  const status =
+    failure._tag === 'Some' && isKnownError(failure.value)
+      ? httpStatusForError(failure.value)
+      : 500;
+  const captured = await captureEffectFailure(cause, { source, status });
+  markReported(captured);
+  return captured;
 };
 
 /**
@@ -72,25 +69,51 @@ export const runTrpcEffect = async <A, E, R>(effect: Effect.Effect<A, E, R>): Pr
 
   const failure = Cause.findErrorOption(exit.cause);
   if (failure._tag === 'Some' && isKnownError(failure.value)) {
+    const status = httpStatusForError(failure.value);
+    if (status >= 500) {
+      const captured = await reportFailure(exit.cause, 'trpc');
+      const thrown = new TRPCError({
+        code: TRPC_CODE_BY_TAG.get(failure.value._tag) ?? 'INTERNAL_SERVER_ERROR',
+        message: toTrpcMessage(failure.value),
+        cause: captured
+      });
+      markReported(thrown);
+      throw thrown;
+    }
     throw toTrpcError(failure.value);
   }
 
   console.error('[trpc] unexpected effect defect', Cause.pretty(exit.cause));
-  throw new TRPCError({
+  const captured = await reportFailure(exit.cause, 'trpc');
+  const thrown = new TRPCError({
     code: 'INTERNAL_SERVER_ERROR',
     message: 'Unexpected server error',
-    cause: exit.cause
+    cause: captured
   });
+  markReported(thrown);
+  throw thrown;
 };
 
 /**
  * Run an Effect at the route-loader / server-fn boundary.
  */
-export const runLoaderEffect = <A, E, R>(effect: Effect.Effect<A, E, R>): Promise<A> =>
+export const runLoaderEffect = async <A, E, R>(effect: Effect.Effect<A, E, R>): Promise<A> => {
   // SAFETY: boundary effects reach here with R = never; annotateLogs adds no requirements
-  appRuntime.runPromise(
+  const exit = await appRuntime.runPromiseExit(
     effect.pipe(Effect.annotateLogs({ boundary: 'loader' })) as Effect.Effect<A, E>
   );
+  if (Exit.isSuccess(exit)) return exit.value;
+
+  const failure = Cause.findErrorOption(exit.cause);
+  if (failure._tag === 'Some' && isKnownError(failure.value)) {
+    if (httpStatusForError(failure.value) < 500) throw failure.value;
+    const captured = await reportFailure(exit.cause, 'loader');
+    throw captured;
+  }
+
+  console.error('[loader] unexpected effect defect', Cause.pretty(exit.cause));
+  throw await reportFailure(exit.cause, 'loader');
+};
 
 /** @deprecated Prefer runLoaderEffect */
 export const runServerEffect = runLoaderEffect;
@@ -116,6 +139,7 @@ export const runRouteEffect = async <A, E, R>(
   const failure = Cause.findErrorOption(exit.cause);
   if (failure._tag === 'Some' && isKnownError(failure.value)) {
     const status = httpStatusForError(failure.value);
+    if (status >= 500) await reportFailure(exit.cause, 'route');
     return Response.json(
       { error: toTrpcMessage(failure.value), tag: failure.value._tag },
       { status }
@@ -123,6 +147,7 @@ export const runRouteEffect = async <A, E, R>(
   }
 
   console.error('[route] unexpected effect defect', Cause.pretty(exit.cause));
+  await reportFailure(exit.cause, 'route');
   return Response.json({ error: 'Unexpected server error' }, { status: 500 });
 };
 
@@ -149,6 +174,7 @@ export const runQstashEffect = async <A, E, R>(
   if (failure._tag === 'Some' && isKnownError(failure.value)) {
     const status = httpStatusForError(failure.value);
     // 4xx tells QStash not to retry forever on permanent failures
+    if (status >= 500) await reportFailure(exit.cause, 'qstash');
     return Response.json(
       { error: toTrpcMessage(failure.value), tag: failure.value._tag },
       { status }
@@ -156,6 +182,7 @@ export const runQstashEffect = async <A, E, R>(
   }
 
   console.error('[qstash] unexpected effect defect', Cause.pretty(exit.cause));
+  await reportFailure(exit.cause, 'qstash');
   // 500 lets QStash retry transient defects
   return Response.json({ error: 'Unexpected server error' }, { status: 500 });
 };

@@ -15,14 +15,3 @@ export function scrollPaginationListToStart(target: HTMLElement | null | undefin
   const top = target.getBoundingClientRect().top + window.scrollY - PAGE_SCROLL_OFFSET_PX;
   window.scrollTo({ top: Math.max(0, top), behavior: 'smooth' });
 }
-
-/** Wrap a page setter so it also scrolls the list to the start. */
-export function withPaginationListScroll(
-  onPageChange: (page: number) => void,
-  listRef: { current: HTMLElement | null }
-) {
-  return (page: number) => {
-    onPageChange(page);
-    scrollPaginationListToStart(listRef.current);
-  };
-}

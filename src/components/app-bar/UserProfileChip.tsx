@@ -40,6 +40,7 @@ import { Skeleton } from '~/components/ui/skeleton';
 import { GoogleIcon } from '~/components/icons';
 import Icon from '~/tools/Icon';
 import { signIn, signOut, useSession } from '~/lib/auth-client';
+import { resetPosthog } from '~/components/tags/PosthogInit';
 import type { GuestAuthPromptTrigger } from '~/lib/guest_auth_prompt';
 import { cn } from '~/lib/utils';
 import { useGuestAuthPrompt } from '~/components/app-bar/useGuestAuthPrompt';
@@ -197,7 +198,12 @@ export function UserProfileChip({
           </AlertDialogHeader>
           <AlertDialogFooter>
             <AlertDialogCancel>Cancel</AlertDialogCancel>
-            <AlertDialogAction variant="destructive" onClick={() => void signOut()}>
+            <AlertDialogAction
+              variant="destructive"
+              onClick={() => {
+                void resetPosthog().then(() => signOut());
+              }}
+            >
               Log out
             </AlertDialogAction>
           </AlertDialogFooter>

@@ -12,14 +12,19 @@ import {
 import { QStashPublisher, qstashDelaySeconds } from '~/effect/qstash';
 import { generateRandomAlphanumeric } from '~/tools/kry';
 import { DatabaseError, NotFoundError } from '~/effect/errors';
+import { reportSwallowedError } from '~/effect/report';
 import { runTrpcEffect } from '~/effect/run';
 
 const settle = <A, E, R>(effect: Effect.Effect<A, E, R>) =>
   effect.pipe(
     Effect.catch((error) =>
-      Effect.logWarning('Crossword schedule post-commit side effect failed').pipe(
-        Effect.annotateLogs({ error }),
-        Effect.asVoid
+      reportSwallowedError('crossword.schedule.side_effect')(error).pipe(
+        Effect.andThen(
+          Effect.logWarning('Crossword schedule post-commit side effect failed').pipe(
+            Effect.annotateLogs({ error }),
+            Effect.asVoid
+          )
+        )
       )
     )
   );

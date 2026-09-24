@@ -25,7 +25,7 @@ import {
 } from '~/components/ui/alert-dialog';
 import { Skeleton } from '@/components/ui/skeleton';
 import { cn } from '~/lib/utils';
-import { withPaginationListScroll } from '~/lib/pagination-scroll';
+import { scrollPaginationListToStart } from '~/lib/pagination-scroll';
 import {
   Pagination,
   PaginationContent,
@@ -393,7 +393,10 @@ const PuzzleSelectSection = ({
             hasNext={hasNext}
             isFetching={isFetching}
             total={total}
-            onPageChange={withPaginationListScroll(onPageChange, listRef)}
+            onPageChange={(nextPage) => {
+              onPageChange(nextPage);
+              scrollPaginationListToStart(listRef.current);
+            }}
           />
         </div>
       )}

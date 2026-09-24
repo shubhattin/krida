@@ -2,6 +2,7 @@ import type { Context } from './context';
 import { TRPCError, initTRPC } from '@trpc/server';
 import { Effect, Redacted, Schema } from 'effect';
 import { AppConfig } from '~/effect/config';
+import { reportSwallowedError } from '~/effect/report';
 import transformer from './transformer';
 
 export const t = initTRPC.context<Context>().create({
@@ -69,10 +70,14 @@ export const verify_cloudflare_turnstile_token = Effect.fn('verify_cloudflare_tu
       catch: (cause) => cause
     }).pipe(
       Effect.catch((error) =>
-        Effect.sync(() => {
-          console.error(error);
-          return null;
-        })
+        reportSwallowedError('turnstile.siteverify')(error).pipe(
+          Effect.andThen(
+            Effect.sync(() => {
+              console.error(error);
+              return null;
+            })
+          )
+        )
       )
     );
 

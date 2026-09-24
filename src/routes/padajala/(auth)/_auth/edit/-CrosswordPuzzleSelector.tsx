@@ -16,7 +16,7 @@ import {
   PaginationPrevious
 } from '~/components/ui/pagination';
 import { cn } from '~/lib/utils';
-import { withPaginationListScroll } from '~/lib/pagination-scroll';
+import { scrollPaginationListToStart } from '~/lib/pagination-scroll';
 
 export type SelectedPuzzle = {
   id: number;
@@ -237,7 +237,10 @@ const CrosswordPickerPopover = ({
             hasPrev={hasPrev}
             hasNext={hasNext}
             isFetching={isFetching}
-            onPageChange={withPaginationListScroll(setPage, listRef)}
+            onPageChange={(nextPage) => {
+              setPage(nextPage);
+              scrollPaginationListToStart(listRef.current);
+            }}
           />
         </div>
       </PopoverContent>

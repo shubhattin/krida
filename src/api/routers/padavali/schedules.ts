@@ -16,13 +16,18 @@ import { DEFAULT_SHARE_IMAGE_INFO } from '~/components/tags/getPageMetaTags';
 import { runTrpcEffect } from '~/effect/run';
 import { AppConfig } from '~/effect/config';
 import { DatabaseError } from '~/effect/errors';
+import { reportSwallowedError } from '~/effect/report';
 
 const settle = <A, E, R>(effect: Effect.Effect<A, E, R>) =>
   effect.pipe(
     Effect.catch((error) =>
-      Effect.logWarning('Schedule post-commit side effect failed').pipe(
-        Effect.annotateLogs({ error }),
-        Effect.asVoid
+      reportSwallowedError('padavali.schedule.side_effect')(error).pipe(
+        Effect.andThen(
+          Effect.logWarning('Schedule post-commit side effect failed').pipe(
+            Effect.annotateLogs({ error }),
+            Effect.asVoid
+          )
+        )
       )
     )
   );

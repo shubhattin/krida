@@ -18,7 +18,7 @@ import {
   PaginationPrevious
 } from '~/components/ui/pagination';
 import { cn } from '~/lib/utils';
-import { withPaginationListScroll } from '~/lib/pagination-scroll';
+import { scrollPaginationListToStart } from '~/lib/pagination-scroll';
 import Icon from '~/tools/Icon';
 import { LanguageIcon } from '~/components/icons';
 import {
@@ -274,7 +274,10 @@ const PuzzlePickerPopover = ({
             hasPrev={hasPrev}
             hasNext={hasNext}
             isFetching={isFetching}
-            onPageChange={withPaginationListScroll(setPage, listRef)}
+            onPageChange={(nextPage) => {
+              setPage(nextPage);
+              scrollPaginationListToStart(listRef.current);
+            }}
           />
         </div>
       </PopoverContent>

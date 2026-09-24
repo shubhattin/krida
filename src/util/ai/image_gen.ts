@@ -7,6 +7,7 @@ import { PROJECT_S3_ALIAS, KRIDAS } from '~/constants';
 import { AiProvider } from '~/effect/ai';
 import { ImageProcessor } from '~/effect/image';
 import { DatabaseError } from '~/effect/errors';
+import { reportSwallowedError } from '~/effect/report';
 import { ObjectStorage, type AssetLocation } from '~/effect/storage';
 import crypto from 'node:crypto';
 
@@ -364,12 +365,16 @@ export const generateSavePuzzleImage = Effect.fn('generateSavePuzzleImage')(func
   const uploaded = yield* storage.uploadAssetFile(s3_key, compressed_result.buffer).pipe(
     Effect.as(true as const),
     Effect.catchTag('StorageError', (error) =>
-      Effect.logWarning('Failed to upload puzzle image to storage').pipe(
-        Effect.annotateLogs({
-          s3_key,
-          operation: error.operation
-        }),
-        Effect.as(false as const)
+      reportSwallowedError('image_gen.upload')(error).pipe(
+        Effect.andThen(
+          Effect.logWarning('Failed to upload puzzle image to storage').pipe(
+            Effect.annotateLogs({
+              s3_key,
+              operation: error.operation
+            }),
+            Effect.as(false as const)
+          )
+        )
       )
     )
   );
@@ -388,12 +393,16 @@ export const generateSavePuzzleImage = Effect.fn('generateSavePuzzleImage')(func
     Effect.catchTag('DatabaseError', (db_error) =>
       storage.deleteAssetFile(s3_key).pipe(
         Effect.catchTag('StorageError', (cleanup_error) =>
-          Effect.logWarning('Failed to cleanup uploaded image after DB insert failure').pipe(
-            Effect.annotateLogs({
-              s3_key,
-              dbOperation: db_error.operation,
-              cleanupOperation: cleanup_error.operation
-            })
+          reportSwallowedError('image_gen.cleanup')(cleanup_error).pipe(
+            Effect.andThen(
+              Effect.logWarning('Failed to cleanup uploaded image after DB insert failure').pipe(
+                Effect.annotateLogs({
+                  s3_key,
+                  dbOperation: db_error.operation,
+                  cleanupOperation: cleanup_error.operation
+                })
+              )
+            )
           )
         ),
         Effect.flatMap(() => Effect.fail(db_error))

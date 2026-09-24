@@ -8,6 +8,7 @@ import { BackgroundWork } from './background';
 import { AppConfig } from './config';
 import { DatabaseHttp } from './database';
 import { AiProvider } from './ai';
+import { reportSwallowedError } from './report';
 
 const DEFAULT_TTL_S = ms('60days') / 1000;
 const DEV_DELAY = Duration.millis(350);
@@ -275,8 +276,12 @@ export function createCache<TParams, TCached, TData = TCached>(
                 Effect.provideService(AiProvider, ai),
                 Effect.provideService(AppConfig, appConfig),
                 Effect.catch((error) =>
-                  Effect.logWarning('cache set failed', { key: cacheKey, error }).pipe(
-                    Effect.asVoid
+                  reportSwallowedError('cache.set')(error).pipe(
+                    Effect.andThen(
+                      Effect.logWarning('cache set failed', { key: cacheKey, error }).pipe(
+                        Effect.asVoid
+                      )
+                    )
                   )
                 )
               )
@@ -444,7 +449,13 @@ export function createCache<TParams, TCached, TData = TCached>(
           Effect.provideService(AppConfig, appConfig),
           Effect.provideService(BackgroundWork, background),
           Effect.catch((error) =>
-            Effect.logWarning('cache refresh failed', { key: cacheKey, error }).pipe(Effect.asVoid)
+            reportSwallowedError('cache.refresh')(error).pipe(
+              Effect.andThen(
+                Effect.logWarning('cache refresh failed', { key: cacheKey, error }).pipe(
+                  Effect.asVoid
+                )
+              )
+            )
           )
         )
       )
@@ -469,7 +480,11 @@ export const invalidateAndRefreshCache = <TParams, TData>(
       .delete(params)
       .pipe(
         Effect.catch((error) =>
-          Effect.logWarning('cache invalidate failed', { error }).pipe(Effect.asVoid)
+          reportSwallowedError('cache.invalidate')(error).pipe(
+            Effect.andThen(
+              Effect.logWarning('cache invalidate failed', { error }).pipe(Effect.asVoid)
+            )
+          )
         )
       );
     yield* cache.refresh(params, { deleteFirst: false });
