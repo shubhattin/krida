@@ -31,7 +31,7 @@ export const OPENROUTER_MODELS = {
 } as const;
 
 export const OPENAI_MODELS = {
-  image_generation: 'gpt-image-2'
+  image_generation: 'gpt-image-2.5-sunburst'
 } as const;
 
 const IMAGE_PROMPT_SYSTEM = `
