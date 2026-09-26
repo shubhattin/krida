@@ -20,6 +20,7 @@ import {
 } from '~/components/theme-provider';
 import { Toaster } from '@/components/ui/sonner';
 import { cn } from '~/lib/utils';
+import { RouteProgress } from '~/components/RouteProgress';
 import PosthogInit from '~/components/tags/PosthogInit';
 import NotFound from './-NotFound';
 
@@ -68,6 +69,7 @@ function RootDocument({ children }: { children: React.ReactNode }) {
           'overflow-y-scroll sm:px-2 lg:px-3 xl:px-4 2xl:px-4'
         )}
       >
+        <RouteProgress />
         <RootProviders>{children}</RootProviders>
         <PosthogInit />
         <Scripts />
