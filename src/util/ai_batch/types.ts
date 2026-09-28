@@ -171,7 +171,7 @@ export const ai_batch_gpt_image_2_input_schema = z
     type: z.literal('image'),
     custom_id: z.string().min(1),
     prompt: z.string().min(1),
-    model: z.literal('gpt-image-2').default('gpt-image-2'),
+    model: z.literal('gpt-image-2.5-sunburst').default('gpt-image-2.5-sunburst'),
     quality: ai_batch_gpt_image_2_quality_schema.default('medium'),
     size: ai_batch_gpt_image_2_size_schema.default('1536x1024'),
     background: ai_batch_gpt_image_2_background_schema.optional(),
@@ -262,7 +262,7 @@ const ai_batch_image_line_body_schema = z.discriminatedUnion('model', [
       quality: ai_batch_gpt_image_1_quality_schema,
       size: ai_batch_gpt_image_1_size_schema
     })
-    .passthrough(),
+    .loose(),
   z
     .object({
       model: z.literal('gpt-image-2'),
@@ -270,7 +270,15 @@ const ai_batch_image_line_body_schema = z.discriminatedUnion('model', [
       quality: ai_batch_gpt_image_2_quality_schema,
       size: ai_batch_gpt_image_2_size_schema
     })
-    .passthrough()
+    .loose(),
+  z
+    .object({
+      model: z.literal('gpt-image-2-sunburst'),
+      prompt: z.string().min(1),
+      quality: ai_batch_gpt_image_2_quality_schema,
+      size: ai_batch_gpt_image_2_size_schema
+    })
+    .loose()
 ]);
 
 export const ai_batch_line_schema = z.discriminatedUnion('url', [
