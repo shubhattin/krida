@@ -17,18 +17,26 @@ import ImageSpan from '../ImageSpan';
 import { DialogTitle } from '~/components/ui/dialog';
 
 // Main component
-const SupportOptions = () => {
+const SupportOptions = ({
+  onMedia = false,
+  shortLabel = false
+}: {
+  onMedia?: boolean;
+  shortLabel?: boolean;
+} = {}) => {
   return (
     <Dialog>
       <DialogTrigger>
         <span
           className={cn(
-            '-mt-1 rounded-md px-1 py-2 font-semibold outline-hidden select-none hover:bg-gray-200 sm:px-2 dark:hover:bg-gray-700',
-            'mr-3 space-x-1.5 sm:mr-3'
+            '-mt-1 inline-flex items-center gap-1.5 rounded-md px-1 py-2 font-semibold outline-hidden select-none sm:px-2',
+            onMedia ? 'text-white hover:bg-white/15' : 'hover:bg-gray-200 dark:hover:bg-gray-700'
           )}
         >
           <Icon src={ContributeIcon} className="text-3xl text-rose-500 dark:text-rose-300" />
-          <span className="hidden text-sm font-semibold sm:inline">Support Our Projects</span>
+          <span className="hidden text-sm font-semibold sm:inline">
+            {shortLabel ? 'Support' : 'Support Our Projects'}
+          </span>
         </span>
       </DialogTrigger>
       <DialogContent className="w-80 bg-slate-200 p-3 dark:bg-gray-900">
