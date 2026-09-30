@@ -18,6 +18,7 @@ export type CrosswordListItem = {
   updated_at: Date | null;
   grid_dimensions: number[];
   image: { s3_key: string } | null;
+  tags?: { id: number; slug: string; name: string }[];
 };
 
 export const crosswordListTableColumns: DataTableColumnDef<CrosswordListItem>[] = [

@@ -10,6 +10,7 @@ import {
 } from '~/db/schema';
 import { and, asc, count, desc, eq, ilike, inArray, or, sql } from 'drizzle-orm';
 import { escapeIlikeToken, tokenizeSearchQuery } from '~/util/puzzle/search';
+import { puzzleHasTag, puzzleInCollection, tagsForPuzzleIds } from '~/util/catalog/list_query';
 import { createEmptyGridData } from '~/util/cross_word/grid';
 import { analyzeWordPlacements, resolveWordListForSave } from '~/util/cross_word/placement';
 import {
@@ -194,8 +195,16 @@ const get_puzzle_list_page_route = protectedAdminProcedure
   .query(({ input }) =>
     runTrpcEffect(
       Effect.gen(function* () {
-        const { page, size, search_title, listed_filter, sort_by, order_by } =
-          crossword_list_input_schema.parse(input);
+        const {
+          page,
+          size,
+          search_title,
+          listed_filter,
+          sort_by,
+          order_by,
+          tag_slug,
+          collection_id
+        } = crossword_list_input_schema.parse(input);
 
         const trimmedSearch = search_title?.trim();
         const conditions = [];
@@ -212,6 +221,10 @@ const get_puzzle_list_page_route = protectedAdminProcedure
               )!
             );
           }
+        }
+        if (tag_slug) conditions.push(puzzleHasTag(crossword_puzzles.id, 'crossword', tag_slug));
+        if (collection_id !== undefined) {
+          conditions.push(puzzleInCollection(crossword_puzzles.id, 'crossword', collection_id));
         }
         const whereClause = conditions.length > 0 ? and(...conditions) : undefined;
 
@@ -251,9 +264,14 @@ const get_puzzle_list_page_route = protectedAdminProcedure
           )
         });
 
+        const tagsByPuzzle = yield* tagsForPuzzleIds(
+          'crossword',
+          rows.map((row) => row.id)
+        );
         const list = rows.map(({ image_s3_key, ...puzzle }) => ({
           ...puzzle,
-          image: image_s3_key ? { s3_key: image_s3_key } : null
+          image: image_s3_key ? { s3_key: image_s3_key } : null,
+          tags: tagsByPuzzle.get(puzzle.id) ?? []
         }));
 
         const total = Number(countResult[0]?.count ?? 0);

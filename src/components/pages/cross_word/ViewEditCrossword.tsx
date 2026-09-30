@@ -103,6 +103,14 @@ import {
   colIndexToNumberLabel
 } from '~/util/cross_word/grid';
 import { CrosswordSlugField } from '~/components/pages/cross_word/EditCrosswordSlugDialog';
+import {
+  PuzzleCatalogFields,
+  puzzle_collections_atom,
+  puzzle_tags_atom,
+  type EditorCollectionLink,
+  type EditorTag
+} from '~/components/pages/catalog/PuzzleCatalogFields';
+import { invalidateCatalogQueries } from '~/components/pages/catalog/invalidateCatalogQueries';
 import { PuzzleCardImageSection } from '~/components/pages/puzzle/PuzzleCardImageSection';
 import { EditorActionDock } from '~/components/pages/puzzle/EditorActionDock';
 import {
@@ -161,13 +169,19 @@ const CROSSWORD_HISTORY_ATOMS = {
   word_list: word_list_atom,
   attachments: attachments_atom,
   image_id: image_id_atom,
-  image_info: image_info_atom
+  image_info: image_info_atom,
+  tags: puzzle_tags_atom,
+  collections: puzzle_collections_atom
 };
 
 export type ViewEditCrosswordProps = {
   puzzle: CrossordPuzzle & {
     attachments: z.infer<typeof attachment_schema>[];
     image?: z.infer<typeof image_schema> | null;
+  };
+  catalog: {
+    tags: EditorTag[];
+    collections: EditorCollectionLink[];
   };
 };
 
@@ -208,6 +222,8 @@ function crosswordHistoryComparable(snapshot: {
   attachments: EditableAttachment[];
   image_id: number | null;
   image_info: { id: number; s3_key: string; width: number; height: number } | null;
+  tags: EditorTag[];
+  collections: EditorCollectionLink[];
 }) {
   return {
     ...snapshot,
@@ -215,7 +231,10 @@ function crosswordHistoryComparable(snapshot: {
   };
 }
 
-export default function ViewEditCrossword({ puzzle: initialPuzzle }: ViewEditCrosswordProps) {
+export default function ViewEditCrossword({
+  puzzle: initialPuzzle,
+  catalog
+}: ViewEditCrosswordProps) {
   const [puzzle, setPuzzle] = useState(initialPuzzle);
 
   useHydrateAtoms([
@@ -228,7 +247,9 @@ export default function ViewEditCrossword({ puzzle: initialPuzzle }: ViewEditCro
     [attachments_atom, puzzle.attachments],
     [image_id_atom, puzzle.image?.id ?? puzzle.image_id ?? null],
     [image_baseline_atom, puzzle.image?.id ?? puzzle.image_id ?? null],
-    [image_info_atom, puzzle.image ?? null]
+    [image_info_atom, puzzle.image ?? null],
+    [puzzle_tags_atom, catalog.tags],
+    [puzzle_collections_atom, catalog.collections]
   ]);
 
   return (
@@ -241,6 +262,7 @@ export default function ViewEditCrossword({ puzzle: initialPuzzle }: ViewEditCro
         />
         <TitleField />
         <DescriptionField />
+        <PuzzleCatalogFields />
         <div className="flex flex-wrap items-center gap-6">
           <ListedSwitch />
           <DimensionsField />
@@ -2096,11 +2118,16 @@ const SaveControls = ({ puzzle }: { puzzle: ViewEditCrosswordProps['puzzle'] }) 
   const [attachments, setAttachments] = useAtom(attachments_atom);
   const [image_id, setImageId] = useAtom(image_id_atom);
   const [, setImageBaseline] = useAtom(image_baseline_atom);
+  const [tags] = useAtom(puzzle_tags_atom);
+  const [collections] = useAtom(puzzle_collections_atom);
   const { beginSave, markSaved } = useEditorHistoryActions();
   const saveSnapRef = useRef<{
     attachments: EditableAttachment[];
     image_id: number | null;
+    tags: EditorTag[];
+    collections: EditorCollectionLink[];
   } | null>(null);
+  const sync_catalog_mut = useMutation(trpc.catalog.set_puzzle_links.mutationOptions());
 
   const update_mut = useMutation(
     // SAFETY: the callbacks below only run after the mutation settles (async),
@@ -2108,9 +2135,26 @@ const SaveControls = ({ puzzle }: { puzzle: ViewEditCrosswordProps['puzzle'] }) 
     // oxlint-disable-next-line react/refs
     trpc.crossword.update_puzzle.mutationOptions({
       onSuccess: async (data) => {
+        const submitted = saveSnapRef.current;
+        try {
+          await sync_catalog_mut.mutateAsync({
+            game: 'crossword',
+            puzzle_id: puzzle.id,
+            tag_slugs: (submitted?.tags ?? tags).map((tag) => tag.slug),
+            collection_uids: (submitted?.collections ?? collections).map((link) => link.uid)
+          });
+        } catch (error) {
+          saveSnapRef.current = null;
+          toast.error(
+            error instanceof Error
+              ? error.message
+              : 'Puzzle saved, but tags and collections were not. Save again to retry them.'
+          );
+          return;
+        }
+
         toast.success('Puzzle updated successfully');
 
-        const submitted = saveSnapRef.current;
         const baseAttachments = submitted?.attachments ?? attachments;
         const savedImageId = submitted?.image_id ?? image_id;
 
@@ -2135,6 +2179,7 @@ const SaveControls = ({ puzzle }: { puzzle: ViewEditCrosswordProps['puzzle'] }) 
 
         await router.invalidate();
         invalidatePadajalaListedPuzzleQueries(queryClient);
+        invalidateCatalogQueries(queryClient);
       },
       onError(err) {
         saveSnapRef.current = null;
@@ -2212,7 +2257,7 @@ const SaveControls = ({ puzzle }: { puzzle: ViewEditCrosswordProps['puzzle'] }) 
     }
 
     beginSave();
-    saveSnapRef.current = { attachments, image_id };
+    saveSnapRef.current = { attachments, image_id, tags, collections };
     update_mut.mutate(parse.data);
   };
 

@@ -16,7 +16,7 @@ const loader$ = createServerFn({ method: 'GET' })
   .validator(z.object({ rawId: z.string().min(1) }))
   .handler(async ({ data }) => {
     const parsed = z.coerce.number().int().safeParse(data.rawId);
-    if (!parsed.success) return { puzzle: null };
+    if (!parsed.success) return { puzzle: null, catalog: { tags: [], collections: [] } };
 
     const row = await runLoaderEffect(
       dbRunHttp('crossword.admin.get_edit_puzzle', (client) =>
@@ -40,15 +40,27 @@ const loader$ = createServerFn({ method: 'GET' })
                 width: true,
                 height: true
               }
+            },
+            puzzle_tags: {
+              with: {
+                tag: { columns: { id: true, slug: true, name: true } }
+              }
+            },
+            collection_items: {
+              with: {
+                collection: { columns: { id: true, uid: true, slug: true, title: true } }
+              }
             }
           }
         })
       )
     );
 
-    if (!row) return { puzzle: null };
+    if (!row) return { puzzle: null, catalog: { tags: [], collections: [] } };
 
-    const puzzle = CrossordPuzzleSchemaZod.parse(row);
+    const { puzzle_tags, collection_items, ...rest } = row;
+
+    const puzzle = CrossordPuzzleSchemaZod.parse(rest);
     const attachments = row.attachments.map((a) =>
       CrosswordAttachmentSchemaZod.pick({
         id: true,
@@ -64,15 +76,21 @@ const loader$ = createServerFn({ method: 'GET' })
         ...puzzle,
         attachments,
         image: row.image
+      },
+      catalog: {
+        tags: puzzle_tags.map((link) => link.tag).sort((a, b) => a.slug.localeCompare(b.slug)),
+        collections: collection_items
+          .map((item) => item.collection)
+          .sort((a, b) => a.title.localeCompare(b.title))
       }
     };
   });
 
 export const Route = createFileRoute('/padajala/(auth)/_auth/edit/$id')({
   loader: async ({ params }) => {
-    const { puzzle } = await loader$({ data: { rawId: params.id } });
+    const { puzzle, catalog } = await loader$({ data: { rawId: params.id } });
     if (!puzzle) throw notFound();
-    return { puzzle };
+    return { puzzle, catalog };
   },
   head: ({ loaderData }) =>
     routeHeadFromPageMeta({
@@ -83,7 +101,7 @@ export const Route = createFileRoute('/padajala/(auth)/_auth/edit/$id')({
 });
 
 function CrosswordEditRoute() {
-  const { puzzle } = Route.useLoaderData();
+  const { puzzle, catalog } = Route.useLoaderData();
 
   return (
     <>
@@ -107,7 +125,7 @@ function CrosswordEditRoute() {
         </Link>
       </div>
       <JotaiProvider key={`crossword_edit_${puzzle.id}`}>
-        <MainEditPage puzzle={puzzle} key={puzzle.id} />
+        <MainEditPage puzzle={puzzle} catalog={catalog} key={puzzle.id} />
       </JotaiProvider>
     </>
   );

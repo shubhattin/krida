@@ -3,6 +3,13 @@
 import { z } from 'zod';
 import { useEffect, useMemo, useRef, useState, type KeyboardEvent } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
+import {
+  PuzzleCatalogFields,
+  puzzle_collections_atom,
+  puzzle_tags_atom,
+  type EditorCollectionLink,
+  type EditorTag
+} from '~/components/pages/catalog/PuzzleCatalogFields';
 import { Card, CardContent } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Label } from '@/components/ui/label';
@@ -85,6 +92,7 @@ import {
 } from '~/components/ui/select';
 import { useMutation, useQueryClient } from '@tanstack/react-query';
 import { invalidatePadavaliListedPuzzleQueries } from '~/components/pages/padavali/useListedPuzzlesDisplay';
+import { invalidateCatalogQueries } from '~/components/pages/catalog/invalidateCatalogQueries';
 import {
   EditorHistoryProvider,
   useEditorHistoryActions,
@@ -158,14 +166,20 @@ const PADAVALI_HISTORY_ATOMS = {
   grid_data: grid_data_atom,
   attachments: attachments_atom,
   image_id: image_id_atom,
-  image_info: image_info_atom
+  image_info: image_info_atom,
+  tags: puzzle_tags_atom,
+  collections: puzzle_collections_atom
 };
 
 export type ViewEditProps = {
   word_puzzle: Puzzle;
+  catalog: {
+    tags: EditorTag[];
+    collections: EditorCollectionLink[];
+  };
 };
 
-const ViewEditPuzzle = ({ word_puzzle: initialWordPuzzle }: ViewEditProps) => {
+const ViewEditPuzzle = ({ word_puzzle: initialWordPuzzle, catalog }: ViewEditProps) => {
   const [word_puzzle, setWordPuzzle] = useState(initialWordPuzzle);
 
   useHydrateAtoms([
@@ -184,7 +198,9 @@ const ViewEditPuzzle = ({ word_puzzle: initialWordPuzzle }: ViewEditProps) => {
     [attachments_atom, word_puzzle.attachments],
     [image_id_atom, word_puzzle.image?.id ?? null],
     [image_baseline_atom, word_puzzle.image?.id ?? null],
-    [image_info_atom, word_puzzle.image ?? null]
+    [image_info_atom, word_puzzle.image ?? null],
+    [puzzle_tags_atom, catalog.tags],
+    [puzzle_collections_atom, catalog.collections]
   ]);
 
   return (
@@ -201,6 +217,7 @@ const ViewEditPuzzle = ({ word_puzzle: initialWordPuzzle }: ViewEditProps) => {
             <Title />
             <ListedSwitch slug={word_puzzle.slug} />
             <Description />
+            <PuzzleCatalogFields />
             <Attachments />
             <WordList gridDimensions={word_puzzle.grid_dimensions} />
             <TraversalAndGridData grid_dimensions={word_puzzle.grid_dimensions} />
@@ -1433,11 +1450,16 @@ const SaveButton = ({ word_puzzle }: { word_puzzle: Puzzle }) => {
   const [, setImageBaseline] = useAtom(image_baseline_atom);
   const [listed] = useAtom(listed_atom);
   const [description] = useAtom(description_atom);
+  const [tags] = useAtom(puzzle_tags_atom);
+  const [collections] = useAtom(puzzle_collections_atom);
   const { beginSave, markSaved } = useEditorHistoryActions();
   const saveSnapRef = useRef<{
     attachments: Puzzle['attachments'];
     image_id: number | null;
+    tags: EditorTag[];
+    collections: EditorCollectionLink[];
   } | null>(null);
+  const sync_catalog_mut = useMutation(trpc.catalog.set_puzzle_links.mutationOptions());
 
   const navigate = useNavigate();
 
@@ -1448,9 +1470,26 @@ const SaveButton = ({ word_puzzle }: { word_puzzle: Puzzle }) => {
     trpc.puzzle.update_puzzle.mutationOptions({
       onSuccess: async (data) => {
         if (data.success) {
+          const submitted = saveSnapRef.current;
+          try {
+            await sync_catalog_mut.mutateAsync({
+              game: 'padavali',
+              puzzle_id: word_puzzle.id,
+              tag_slugs: (submitted?.tags ?? tags).map((tag) => tag.slug),
+              collection_uids: (submitted?.collections ?? collections).map((link) => link.uid)
+            });
+          } catch (error) {
+            saveSnapRef.current = null;
+            toast.error(
+              error instanceof Error
+                ? error.message
+                : 'Puzzle saved, but tags and collections were not. Save again to retry them.'
+            );
+            return;
+          }
+
           toast.success('Puzzle updated successfully');
 
-          const submitted = saveSnapRef.current;
           const baseAttachments = submitted?.attachments ?? attachments;
           const savedImageId = submitted?.image_id ?? image_id;
 
@@ -1477,6 +1516,7 @@ const SaveButton = ({ word_puzzle }: { word_puzzle: Puzzle }) => {
 
           await router.invalidate();
           invalidatePadavaliListedPuzzleQueries(queryClient);
+          invalidateCatalogQueries(queryClient);
         }
       },
       onError() {
@@ -1524,7 +1564,7 @@ const SaveButton = ({ word_puzzle }: { word_puzzle: Puzzle }) => {
     const parse = puzzle_update_input_schema.safeParse(data);
     if (parse.success) {
       beginSave();
-      saveSnapRef.current = { attachments, image_id };
+      saveSnapRef.current = { attachments, image_id, tags, collections };
       update_word_puzzle_mut.mutate(parse.data);
     } else {
       console.log(parse.error);

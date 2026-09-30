@@ -27,6 +27,14 @@ import {
   clearTypingContextOnKeyDown,
   handleTypingBeforeInputEvent
 } from 'lipilekhika/typing';
+import type { ListedCollectionsType } from '~/util/cache.server/collection_cache';
+import {
+  BrowseModeSwitch,
+  matchesSelectedTags,
+  PublicCollections,
+  TagFilterPopover,
+  uniqueTags
+} from '~/components/pages/catalog/PublicCatalog';
 import {
   Pagination,
   PaginationContent,
@@ -39,6 +47,7 @@ import {
 
 type Props = {
   listed_puzzles: PadavaliListedPuzzlesType;
+  listed_collections: ListedCollectionsType;
   script: ScriptType;
   listed_puzzles_init_transliterated: DisplayPuzzle[];
 };
@@ -67,21 +76,33 @@ function getVisiblePages(current: number, total: number): (number | 'ellipsis')[
   return result;
 }
 
-export const ListedPuzzles = ({ listed_puzzles, listed_puzzles_init_transliterated }: Props) => {
+export const ListedPuzzles = ({
+  listed_puzzles,
+  listed_collections,
+  listed_puzzles_init_transliterated
+}: Props) => {
   const display_puzzles = useListedPuzzlesDisplay(
     listed_puzzles,
     listed_puzzles_init_transliterated
   );
 
-  return <PuzzleListView puzzles={display_puzzles} />;
+  return <PuzzleListView puzzles={display_puzzles} collections={listed_collections} />;
 };
 
-const PuzzleListView = ({ puzzles }: { puzzles: DisplayPuzzle[] }) => {
+const PuzzleListView = ({
+  puzzles,
+  collections
+}: {
+  puzzles: DisplayPuzzle[];
+  collections: ListedCollectionsType;
+}) => {
   const { script, setScript } = useContext(AppContext);
   const listRef = useRef<HTMLDivElement>(null);
   const [searchQuery, setSearchQuery] = useState('');
   const [page, setPage] = useState(1);
   const [lipi_lekhika_typing, setLipiLekhikaTyping] = useState(false);
+  const [browseMode, setBrowseMode] = useState<'puzzles' | 'collections'>('puzzles');
+  const [selectedTags, setSelectedTags] = useState<string[]>([]);
 
   const typing_ctx = useMemo(() => createTypingContext(script!), [script]);
   useEffect(() => {
@@ -89,8 +110,23 @@ const PuzzleListView = ({ puzzles }: { puzzles: DisplayPuzzle[] }) => {
   }, [typing_ctx]);
 
   const filteredPuzzles = useMemo(
-    () => puzzles.filter((puzzle) => matchesPuzzleWordSearch(puzzle, searchQuery)),
-    [puzzles, searchQuery]
+    () =>
+      puzzles.filter(
+        (puzzle) =>
+          matchesPuzzleWordSearch(puzzle, searchQuery) &&
+          matchesSelectedTags(puzzle.tags, selectedTags)
+      ),
+    [puzzles, searchQuery, selectedTags]
+  );
+  const titlesByPuzzleId = useMemo(
+    () =>
+      new Map(
+        puzzles.map((puzzle) => [
+          puzzle.id,
+          { title: puzzle.title, description: puzzle.description }
+        ])
+      ),
+    [puzzles]
   );
 
   const pageCount = Math.max(1, Math.ceil(filteredPuzzles.length / PAGE_LIMIT));
@@ -108,7 +144,7 @@ const PuzzleListView = ({ puzzles }: { puzzles: DisplayPuzzle[] }) => {
     scrollPaginationListToStart(listRef.current);
   };
 
-  if (puzzles.length === 0) {
+  if (puzzles.length === 0 && collections.length === 0) {
     return <EmptyPuzzleList />;
   }
 
@@ -234,6 +270,15 @@ const PuzzleListView = ({ puzzles }: { puzzles: DisplayPuzzle[] }) => {
               aria-label="Search puzzles"
             />
           </InputGroup>
+          <BrowseModeSwitch mode={browseMode} onChange={setBrowseMode} />
+          <TagFilterPopover
+            tags={uniqueTags(puzzles)}
+            selected={selectedTags}
+            onChange={(slugs) => {
+              setSelectedTags(slugs);
+              setPage(1);
+            }}
+          />
           <Label className="inline-flex shrink-0 items-center justify-center gap-2 font-medium">
             <Switch
               checked={lipi_lekhika_typing}
@@ -248,7 +293,9 @@ const PuzzleListView = ({ puzzles }: { puzzles: DisplayPuzzle[] }) => {
           </div>
         </div>
 
-        {filteredPuzzles.length === 0 ? (
+        {browseMode === 'collections' ? (
+          <PublicCollections collections={collections} titlesByPuzzleId={titlesByPuzzleId} />
+        ) : filteredPuzzles.length === 0 ? (
           <div className="py-16 text-center">
             <p className="text-lg font-medium text-slate-600 dark:text-slate-400">
               No puzzles match your search

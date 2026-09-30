@@ -18,6 +18,7 @@ import {
 } from '~/util/ai/more_hints';
 import { crosswordActiveWordList } from '~/util/puzzle/word_list';
 import { CACHE_AI_OUTSIDE_PROD } from './ai_cache_options';
+import { public_tag_schema } from '~/util/catalog/tags';
 
 const crossword_puzzle_schema = z.object({
   id: z.number().int(),
@@ -65,7 +66,8 @@ const listed_puzzle_schema = z.object({
   slug: z.string(),
   title: z.string(),
   description: z.string(),
-  image: image_schema.nullable()
+  image: image_schema.nullable(),
+  tags: public_tag_schema.array()
 });
 
 export type CrosswordListedPuzzlesType = z.infer<typeof listed_puzzle_schema>[];
@@ -210,6 +212,18 @@ const load_listed_puzzle_list: CacheItem<NoCacheParams, CrosswordListedPuzzlesTy
               width: true,
               height: true
             }
+          },
+          puzzle_tags: {
+            columns: { puzzle_id: true, tag_id: true },
+            with: {
+              tag: {
+                columns: {
+                  id: true,
+                  slug: true,
+                  name: true
+                }
+              }
+            }
           }
         },
         where: ({ listed }, { eq }) => eq(listed, true),
@@ -218,7 +232,15 @@ const load_listed_puzzle_list: CacheItem<NoCacheParams, CrosswordListedPuzzlesTy
           desc(created_at)
         ]
       })
-    ).pipe(Effect.mapError(toCacheError('fetchListedPuzzleList', LISTED_PUZZLE_LIST_KEY)))
+    ).pipe(
+      Effect.map((rows) =>
+        rows.map(({ puzzle_tags, ...puzzle }) => ({
+          ...puzzle,
+          tags: puzzle_tags.map((link) => link.tag).sort((a, b) => a.slug.localeCompare(b.slug))
+        }))
+      ),
+      Effect.mapError(toCacheError('fetchListedPuzzleList', LISTED_PUZZLE_LIST_KEY))
+    )
 });
 
 const load_word_puzzle: CacheItem<CrosswordPuzzleParams, CrosswordPuzzleType | undefined> =

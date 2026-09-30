@@ -101,7 +101,9 @@ export const crossword_list_input_schema = z.object({
   search_title: z.string().optional(),
   listed_filter: z.boolean().optional(),
   sort_by: z.enum(['created_at', 'updated_at']).default('created_at'),
-  order_by: z.enum(['asc', 'desc']).default('desc')
+  order_by: z.enum(['asc', 'desc']).default('desc'),
+  tag_slug: z.string().min(1).max(80).optional(),
+  collection_id: z.number().int().optional()
 });
 
 export type CrosswordAddInput = z.infer<typeof crossword_add_input_schema>;
