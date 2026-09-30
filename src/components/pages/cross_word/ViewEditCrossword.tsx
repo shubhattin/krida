@@ -2120,7 +2120,7 @@ const SaveControls = ({ puzzle }: { puzzle: ViewEditCrosswordProps['puzzle'] }) 
   const [, setImageBaseline] = useAtom(image_baseline_atom);
   const [tags] = useAtom(puzzle_tags_atom);
   const [collections] = useAtom(puzzle_collections_atom);
-  const { beginSave, markSaved } = useEditorHistoryActions();
+  const { beginSave, markSaved, acceptKeysAsSaved } = useEditorHistoryActions();
   const saveSnapRef = useRef<{
     attachments: EditableAttachment[];
     image_id: number | null;
@@ -2136,6 +2136,7 @@ const SaveControls = ({ puzzle }: { puzzle: ViewEditCrosswordProps['puzzle'] }) 
     trpc.crossword.update_puzzle.mutationOptions({
       onSuccess: async (data) => {
         const submitted = saveSnapRef.current;
+        let catalogOk = true;
         try {
           await sync_catalog_mut.mutateAsync({
             game: 'crossword',
@@ -2144,16 +2145,13 @@ const SaveControls = ({ puzzle }: { puzzle: ViewEditCrosswordProps['puzzle'] }) 
             collection_uids: (submitted?.collections ?? collections).map((link) => link.uid)
           });
         } catch (error) {
-          saveSnapRef.current = null;
+          catalogOk = false;
           toast.error(
             error instanceof Error
               ? error.message
               : 'Puzzle saved, but tags and collections were not. Save again to retry them.'
           );
-          return;
         }
-
-        toast.success('Puzzle updated successfully');
 
         const baseAttachments = submitted?.attachments ?? attachments;
         const savedImageId = submitted?.image_id ?? image_id;
@@ -2172,10 +2170,27 @@ const SaveControls = ({ puzzle }: { puzzle: ViewEditCrosswordProps['puzzle'] }) 
 
         setImageBaseline(savedImageId);
         setImageId(savedImageId);
-        markSaved(
-          data.newly_added_index_ids.length > 0 ? { attachments: updatedAttachments } : undefined
-        );
-        saveSnapRef.current = null;
+
+        if (catalogOk) {
+          toast.success('Puzzle updated successfully');
+          markSaved(
+            data.newly_added_index_ids.length > 0 ? { attachments: updatedAttachments } : undefined
+          );
+          saveSnapRef.current = null;
+        } else {
+          // Puzzle fields persisted; keep tags/collections dirty for retry.
+          acceptKeysAsSaved(
+            'title',
+            'description',
+            'listed',
+            'grid_dimensions',
+            'grid_data',
+            'word_list',
+            'attachments',
+            'image_id',
+            'image_info'
+          );
+        }
 
         await router.invalidate();
         invalidatePadajalaListedPuzzleQueries(queryClient);

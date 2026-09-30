@@ -1452,7 +1452,7 @@ const SaveButton = ({ word_puzzle }: { word_puzzle: Puzzle }) => {
   const [description] = useAtom(description_atom);
   const [tags] = useAtom(puzzle_tags_atom);
   const [collections] = useAtom(puzzle_collections_atom);
-  const { beginSave, markSaved } = useEditorHistoryActions();
+  const { beginSave, markSaved, acceptKeysAsSaved } = useEditorHistoryActions();
   const saveSnapRef = useRef<{
     attachments: Puzzle['attachments'];
     image_id: number | null;
@@ -1469,55 +1469,65 @@ const SaveButton = ({ word_puzzle }: { word_puzzle: Puzzle }) => {
     // oxlint-disable-next-line react/refs
     trpc.puzzle.update_puzzle.mutationOptions({
       onSuccess: async (data) => {
-        if (data.success) {
-          const submitted = saveSnapRef.current;
-          try {
-            await sync_catalog_mut.mutateAsync({
-              game: 'padavali',
-              puzzle_id: word_puzzle.id,
-              tag_slugs: (submitted?.tags ?? tags).map((tag) => tag.slug),
-              collection_uids: (submitted?.collections ?? collections).map((link) => link.uid)
-            });
-          } catch (error) {
-            saveSnapRef.current = null;
-            toast.error(
-              error instanceof Error
-                ? error.message
-                : 'Puzzle saved, but tags and collections were not. Save again to retry them.'
-            );
-            return;
-          }
+        if (!data.success) return;
 
+        const submitted = saveSnapRef.current;
+        let catalogOk = true;
+        try {
+          await sync_catalog_mut.mutateAsync({
+            game: 'padavali',
+            puzzle_id: word_puzzle.id,
+            tag_slugs: (submitted?.tags ?? tags).map((tag) => tag.slug),
+            collection_uids: (submitted?.collections ?? collections).map((link) => link.uid)
+          });
+        } catch (error) {
+          catalogOk = false;
+          toast.error(
+            error instanceof Error
+              ? error.message
+              : 'Puzzle saved, but tags and collections were not. Save again to retry them.'
+          );
+        }
+
+        const baseAttachments = submitted?.attachments ?? attachments;
+        const savedImageId = submitted?.image_id ?? image_id;
+        const { newly_added_index_ids } = data;
+        const updatedAttachments =
+          newly_added_index_ids.length > 0
+            ? baseAttachments.map((val, i) => {
+                const elm = newly_added_index_ids.find(({ index }) => index === i);
+                return elm ? { ...val, id: elm.id } : val;
+              })
+            : baseAttachments;
+
+        if (newly_added_index_ids.length > 0) {
+          setAttachments(updatedAttachments);
+        }
+        setImageBaseline(savedImageId);
+
+        if (catalogOk) {
           toast.success('Puzzle updated successfully');
-
-          const baseAttachments = submitted?.attachments ?? attachments;
-          const savedImageId = submitted?.image_id ?? image_id;
-
-          const { newly_added_index_ids } = data;
-          const updatedAttachments =
-            newly_added_index_ids.length > 0
-              ? baseAttachments.map((val, i) => {
-                  const elm = newly_added_index_ids.find(({ index }) => index === i);
-                  return elm ? { ...val, id: elm.id } : val;
-                })
-              : baseAttachments;
-
-          if (newly_added_index_ids.length > 0) {
-            // after update for the newly added attachemnts filling
-            // in the null values for thier ids
-            setAttachments(updatedAttachments);
-          }
-
-          setImageBaseline(savedImageId);
           markSaved(
             newly_added_index_ids.length > 0 ? { attachments: updatedAttachments } : undefined
           );
           saveSnapRef.current = null;
-
-          await router.invalidate();
-          invalidatePadavaliListedPuzzleQueries(queryClient);
-          invalidateCatalogQueries(queryClient, trpc);
+        } else {
+          // Puzzle fields persisted; keep tags/collections dirty for retry.
+          acceptKeysAsSaved(
+            'title',
+            'description',
+            'listed',
+            'word_list',
+            'grid_data',
+            'attachments',
+            'image_id',
+            'image_info'
+          );
         }
+
+        await router.invalidate();
+        invalidatePadavaliListedPuzzleQueries(queryClient);
+        invalidateCatalogQueries(queryClient, trpc);
       },
       onError() {
         saveSnapRef.current = null;

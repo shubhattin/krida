@@ -360,6 +360,9 @@ const update_puzzle_route = protectedAdminProcedure
           yield* settle(invalidate_padavali_sitemap());
         }
         yield* settle(
+          invalidate_and_refresh_cache(CACHE.catalog.listed_collections, NO_CACHE_PARAMS)
+        );
+        yield* settle(
           invalidate_and_refresh_cache(CACHE.padavali.word_puzzle, { slug: puzzle_slug })
         );
         if (meanings_input_changed) {
@@ -451,6 +454,9 @@ const update_puzzle_slug_route = protectedAdminProcedure
           );
           yield* settle(invalidate_padavali_sitemap());
         }
+        yield* settle(
+          invalidate_and_refresh_cache(CACHE.catalog.listed_collections, NO_CACHE_PARAMS)
+        );
         if (yield* puzzle_in_current_schedule(puzzle_id)) {
           yield* settle(
             invalidate_and_refresh_cache(CACHE.padavali.current_schedule, NO_CACHE_PARAMS)
@@ -543,6 +549,9 @@ const delete_puzzle_route = protectedAdminProcedure
           );
           yield* settle(invalidate_padavali_sitemap());
         }
+        yield* settle(
+          invalidate_and_refresh_cache(CACHE.catalog.listed_collections, NO_CACHE_PARAMS)
+        );
         yield* settle(
           invalidate_and_refresh_cache(CACHE.padavali.word_puzzle, {
             slug: normalizedSlug

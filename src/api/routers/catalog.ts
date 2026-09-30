@@ -90,6 +90,22 @@ const findCollectionByUid = (uid: string) =>
     })
   );
 
+/** Insert missing tag slugs without racing; always reselect by slug for authoritative IDs. */
+const ensureTagsBySlugs = async (tx: DbTransaction, slugs: string[]) => {
+  const unique = [...new Set(slugs)];
+  if (unique.length === 0) {
+    return [];
+  }
+  await tx
+    .insert(tags)
+    .values(unique.map((slug) => ({ slug, name: slug })))
+    .onConflictDoNothing({ target: tags.slug });
+  return tx
+    .select({ id: tags.id, slug: tags.slug, name: tags.name })
+    .from(tags)
+    .where(inArray(tags.slug, unique));
+};
+
 const list_tags_route = protectedAdminProcedure
   .input(
     z.object({
@@ -249,15 +265,8 @@ const attach_tag_route = protectedAdminProcedure
         }
 
         const tag = yield* dbTransaction('catalog.attach_tag', async (tx) => {
-          const existing = await tx
-            .select({ id: tags.id, slug: tags.slug, name: tags.name })
-            .from(tags)
-            .where(eq(tags.slug, input.slug))
-            .limit(1);
-          const inserted = existing[0]
-            ? []
-            : await tx.insert(tags).values({ slug: input.slug, name: input.slug }).returning();
-          const row = existing[0] ?? inserted[0];
+          const rows = await ensureTagsBySlugs(tx, [input.slug]);
+          const row = rows[0];
           if (!row) throw new Error('Failed to create tag');
           if (input.game === 'padavali') {
             await tx
@@ -704,23 +713,8 @@ const set_puzzle_links_route = protectedAdminProcedure
         const collectionUids = [...new Set(input.collection_uids)];
 
         const linked = yield* dbTransaction('catalog.set_puzzle_links', async (tx) => {
-          const existingTags =
-            tagSlugs.length === 0
-              ? []
-              : await tx
-                  .select({ id: tags.id, slug: tags.slug })
-                  .from(tags)
-                  .where(inArray(tags.slug, tagSlugs));
-          const have = new Set(existingTags.map((tag) => tag.slug));
-          const missing = tagSlugs.filter((slug) => !have.has(slug));
-          const created =
-            missing.length === 0
-              ? []
-              : await tx
-                  .insert(tags)
-                  .values(missing.map((slug) => ({ slug, name: slug })))
-                  .returning();
-          const tagIds = [...existingTags, ...created].map((tag) => tag.id);
+          const resolvedTags = await ensureTagsBySlugs(tx, tagSlugs);
+          const tagIds = resolvedTags.map((tag) => tag.id);
 
           const foundCollections =
             collectionUids.length === 0

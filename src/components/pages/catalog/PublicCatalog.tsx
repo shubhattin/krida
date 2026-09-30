@@ -62,6 +62,7 @@ export function TagFilterPopover({
               <button
                 key={tag.id}
                 type="button"
+                aria-pressed={active}
                 onClick={() => toggle(tag.slug)}
                 className={cn(
                   'block w-full rounded px-2 py-1 text-left text-sm',
@@ -314,6 +315,7 @@ export function BrowseModeSwitch({
           type="button"
           size="sm"
           variant={mode === value ? 'secondary' : 'ghost'}
+          aria-pressed={mode === value}
           onClick={() => onChange(value)}
         >
           {value === 'puzzles' ? 'Puzzles' : 'Collections'}
