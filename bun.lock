@@ -27,6 +27,7 @@
         "@fontsource/noto-sans-sharada": "^5.2.5",
         "@fontsource/noto-sans-siddham": "^5.2.5",
         "@fontsource/roboto": "^5.3.0",
+        "@fontsource/source-serif-4": "^5.3.0",
         "@neondatabase/serverless": "^1.1.0",
         "@openrouter/ai-sdk-provider": "^2.10.0",
         "@tailwindcss/vite": "^4.3.3",
@@ -390,6 +391,8 @@
     "@fontsource/noto-sans-siddham": ["@fontsource/noto-sans-siddham@5.3.0", "", {}, "sha512-FW9M1l8Mt8wmXm02l+r+VJwPU7MfcGReOXg6qlAIgdBFJ13qux8oOZX0uZ7k2NwVMZKHNhJlGWtY83UHZl81gw=="],
 
     "@fontsource/roboto": ["@fontsource/roboto@5.3.0", "", {}, "sha512-BapRJOWYP+LZ21zp+wBQjfpPYKRoxc4LspJ/RLuI+HSMBD5u/X4O+ESDrSvEqDSy0rAl7GwBJ+09mdc16cVQ1Q=="],
+
+    "@fontsource/source-serif-4": ["@fontsource/source-serif-4@5.3.0", "", {}, "sha512-yQz8xmIgMzks8zQbpuca3UYtjxK798XCyQAGdDXmzBgvV7sdoK6d0YvE9F9kiYxORCEMRBgGZDZsSYcXj5KvwA=="],
 
     "@hono/node-server": ["@hono/node-server@1.19.14", "", { "peerDependencies": { "hono": "^4" } }, "sha512-GwtvgtXxnWsucXvbQXkRgqksiH2Qed37H9xHZocE5sA3N8O8O8/8FA3uclQXxXVzc9XBZuEOMK7+r02FmSpHtw=="],
 

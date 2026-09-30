@@ -46,6 +46,7 @@
     "@fontsource/noto-sans-sharada": "^5.2.5",
     "@fontsource/noto-sans-siddham": "^5.2.5",
     "@fontsource/roboto": "^5.3.0",
+    "@fontsource/source-serif-4": "^5.3.0",
     "@neondatabase/serverless": "^1.1.0",
     "@openrouter/ai-sdk-provider": "^2.10.0",
     "@tailwindcss/vite": "^4.3.3",
