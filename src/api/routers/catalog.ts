@@ -478,17 +478,38 @@ const get_collection_route = protectedAdminProcedure
     )
   );
 
+const collection_meta_input = z.object({
+  uid: z.string().min(1),
+  title: z.string().trim().min(1).max(200),
+  slug: catalog_slug_schema,
+  description: z.string().trim().max(2000),
+  listed: z.boolean(),
+  image_id: z.number().int().nullable()
+});
+
+const collection_item_input = z.object({
+  game: z.enum(GAME_KINDS),
+  puzzle_id: z.number().int()
+});
+
+const assertCollectionSlugAvailable = (collectionId: number, slug: string) =>
+  Effect.gen(function* () {
+    const slugOwner = yield* dbRunHttp('catalog.slug_owner', (client) =>
+      client
+        .select({ id: collections.id })
+        .from(collections)
+        .where(eq(collections.slug, slug))
+        .limit(1)
+    );
+    if (slugOwner[0] && slugOwner[0].id !== collectionId) {
+      return yield* Effect.fail(
+        ConflictError.make({ message: 'A collection with this slug already exists' })
+      );
+    }
+  });
+
 const update_collection_route = protectedAdminProcedure
-  .input(
-    z.object({
-      uid: z.string().min(1),
-      title: z.string().trim().min(1).max(200),
-      slug: catalog_slug_schema,
-      description: z.string().trim().max(2000),
-      listed: z.boolean(),
-      image_id: z.number().int().nullable()
-    })
-  )
+  .input(collection_meta_input)
   .mutation(({ input }) =>
     runTrpcEffect(
       Effect.gen(function* () {
@@ -498,18 +519,7 @@ const update_collection_route = protectedAdminProcedure
             NotFoundError.make({ resource: 'collection', message: 'Collection not found' })
           );
         }
-        const slugOwner = yield* dbRunHttp('catalog.slug_owner', (client) =>
-          client
-            .select({ id: collections.id })
-            .from(collections)
-            .where(eq(collections.slug, input.slug))
-            .limit(1)
-        );
-        if (slugOwner[0] && slugOwner[0].id !== existing.id) {
-          return yield* Effect.fail(
-            ConflictError.make({ message: 'A collection with this slug already exists' })
-          );
-        }
+        yield* assertCollectionSlugAvailable(existing.id, input.slug);
 
         yield* dbRunHttp('catalog.update_collection', async (client) => {
           await client
@@ -525,7 +535,102 @@ const update_collection_route = protectedAdminProcedure
             .where(eq(collections.id, existing.id));
         });
         yield* refreshListedCollections();
-        return { success: true };
+        return { success: true as const };
+      })
+    )
+  );
+
+/** Persist collection metadata and full membership/order in one transaction. */
+const save_collection_route = protectedAdminProcedure
+  .input(
+    collection_meta_input.extend({
+      items: z.array(collection_item_input).max(500)
+    })
+  )
+  .mutation(({ input }) =>
+    runTrpcEffect(
+      Effect.gen(function* () {
+        const existing = yield* findCollectionByUid(input.uid);
+        if (!existing) {
+          return yield* Effect.fail(
+            NotFoundError.make({ resource: 'collection', message: 'Collection not found' })
+          );
+        }
+        yield* assertCollectionSlugAvailable(existing.id, input.slug);
+
+        const unique = [
+          ...new Map(input.items.map((item) => [`${item.game}:${item.puzzle_id}`, item])).values()
+        ];
+        if (unique.length !== input.items.length) {
+          return yield* Effect.fail(
+            BadRequestError.make({ message: 'Duplicate games in collection order' })
+          );
+        }
+
+        const saved = yield* dbTransaction('catalog.save_collection', async (tx) => {
+          for (const item of unique) {
+            const puzzles = puzzleTable[item.game];
+            const puzzle = await tx
+              .select({ id: puzzles.id })
+              .from(puzzles)
+              .where(eq(puzzles.id, item.puzzle_id))
+              .limit(1);
+            if (!puzzle[0]) {
+              return { ok: false as const, missing: item };
+            }
+          }
+
+          await tx
+            .update(collections)
+            .set({
+              title: input.title,
+              slug: input.slug,
+              description: input.description,
+              listed: input.listed,
+              image_id: input.image_id,
+              updated_at: new Date()
+            })
+            .where(eq(collections.id, existing.id));
+
+          await tx
+            .delete(padavali_collection_items)
+            .where(eq(padavali_collection_items.collection_id, existing.id));
+          await tx
+            .delete(crossword_collection_items)
+            .where(eq(crossword_collection_items.collection_id, existing.id));
+
+          for (let i = 0; i < unique.length; i++) {
+            const item = unique[i]!;
+            const order_index = i + 1;
+            if (item.game === 'padavali') {
+              await tx.insert(padavali_collection_items).values({
+                collection_id: existing.id,
+                puzzle_id: item.puzzle_id,
+                order_index
+              });
+            } else {
+              await tx.insert(crossword_collection_items).values({
+                collection_id: existing.id,
+                puzzle_id: item.puzzle_id,
+                order_index
+              });
+            }
+          }
+
+          return { ok: true as const };
+        });
+
+        if (!saved.ok) {
+          return yield* Effect.fail(
+            NotFoundError.make({
+              resource: 'puzzle',
+              message: `Puzzle not found (${saved.missing.game}:${saved.missing.puzzle_id})`
+            })
+          );
+        }
+
+        yield* refreshListedCollections();
+        return { success: true as const };
       })
     )
   );
@@ -1034,6 +1139,7 @@ export const catalog_router = t.router({
   create_collection: create_collection_route,
   get_collection: get_collection_route,
   update_collection: update_collection_route,
+  save_collection: save_collection_route,
   set_puzzle_links: set_puzzle_links_route,
   add_items: add_items_route,
   add_item: add_item_route,

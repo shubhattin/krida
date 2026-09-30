@@ -96,7 +96,11 @@ export function ListedCrosswordPuzzles({
       </InputGroup>
 
       {browseMode === 'collections' ? (
-        <PublicCollections collections={listed_collections} />
+        <PublicCollections
+          collections={listed_collections}
+          game="crossword"
+          puzzles={listed_puzzles}
+        />
       ) : filtered.length === 0 ? (
         <p className="py-12 text-center text-muted-foreground">
           {listed_puzzles.length === 0 ? 'No listed puzzles yet.' : 'No puzzles match your search.'}

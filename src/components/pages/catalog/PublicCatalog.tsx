@@ -2,16 +2,21 @@
 
 import { useMemo, useState } from 'react';
 import { Image } from '@unpic/react';
-import { Link } from '@tanstack/react-router';
 import { SearchIcon } from 'lucide-react';
-import { GameKindIcon, gameKindLabel } from '~/components/pages/catalog/GameKindIcon';
+import { CrosswordPreviewCard } from '~/components/pages/cross_word/CrosswordPreviewCard';
+import type { CrosswordListedPuzzle } from '~/components/pages/cross_word/CrosswordPreviewCard';
+import { PuzzlePreviewCard } from '~/components/pages/padavali/PuzzlePreviewCard';
+import type { DisplayPuzzle } from '~/components/pages/padavali/listed_puzzle_display';
 import { Button } from '~/components/ui/button';
 import { Input } from '~/components/ui/input';
 import { Popover, PopoverContent, PopoverTrigger } from '~/components/ui/popover';
 import { getCDNUrl } from '~/constants';
 import { cn } from '~/lib/utils';
-import type { ListedCollectionsType } from '~/util/cache.server/collection_cache';
-import type { PublicTag } from '~/util/catalog/tags';
+import type {
+  ListedCollectionItem,
+  ListedCollectionsType
+} from '~/util/cache.server/collection_cache';
+import type { GameKind, PublicTag } from '~/util/catalog/tags';
 
 export function TagFilterPopover({
   tags,
@@ -101,29 +106,88 @@ export function uniqueTags(groups: { tags?: PublicTag[] }[]): PublicTag[] {
   return [...bySlug.values()].sort((a, b) => a.slug.localeCompare(b.slug));
 }
 
-export function PublicCollections({
-  collections,
-  titlesByPuzzleId
-}: {
-  collections: ListedCollectionsType;
-  titlesByPuzzleId?: Map<number, { title: string; description: string }>;
-}) {
-  const [selectedUid, setSelectedUid] = useState<string | null>(null);
-  const selected = collections.find((collection) => collection.uid === selectedUid) ?? null;
+type FilteredCollection = {
+  uid: string;
+  slug: string;
+  title: string;
+  description: string;
+  image: ListedCollectionsType[number]['image'];
+  items: ListedCollectionItem[];
+};
 
-  if (collections.length === 0) {
+function filterCollectionsForGame(
+  collections: ListedCollectionsType,
+  game: GameKind
+): FilteredCollection[] {
+  return collections.flatMap((collection) => {
+    const items = collection.items
+      .filter((item) => item.game === game)
+      .toSorted((a, b) => a.order_index - b.order_index || a.puzzle_id - b.puzzle_id);
+    if (items.length === 0) return [];
+    return [
+      {
+        uid: collection.uid,
+        slug: collection.slug,
+        title: collection.title,
+        description: collection.description,
+        image: collection.image,
+        items
+      }
+    ];
+  });
+}
+
+type PublicCollectionsProps =
+  | {
+      game: 'padavali';
+      collections: ListedCollectionsType;
+      puzzles: DisplayPuzzle[];
+    }
+  | {
+      game: 'crossword';
+      collections: ListedCollectionsType;
+      puzzles: CrosswordListedPuzzle[];
+    };
+
+export function PublicCollections(props: PublicCollectionsProps) {
+  if (props.game === 'padavali') {
+    return (
+      <PublicCollectionsView
+        game="padavali"
+        collections={props.collections}
+        puzzles={props.puzzles}
+      />
+    );
+  }
+  return (
+    <PublicCollectionsView
+      game="crossword"
+      collections={props.collections}
+      puzzles={props.puzzles}
+    />
+  );
+}
+
+function PublicCollectionsView(props: PublicCollectionsProps) {
+  const { collections, game } = props;
+  const [selectedUid, setSelectedUid] = useState<string | null>(null);
+
+  const filtered = useMemo(() => filterCollectionsForGame(collections, game), [collections, game]);
+  const selected = filtered.find((collection) => collection.uid === selectedUid) ?? null;
+
+  if (filtered.length === 0) {
     return <p className="py-12 text-center text-muted-foreground">No collections yet.</p>;
   }
 
   if (!selected) {
     return (
       <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-3">
-        {collections.map((collection) => (
+        {filtered.map((collection) => (
           <button
             key={collection.uid}
             type="button"
             onClick={() => setSelectedUid(collection.uid)}
-            className="overflow-hidden rounded-xl border border-border/70 bg-card text-left"
+            className="overflow-hidden rounded-xl border border-border/70 bg-card text-left shadow-sm transition-shadow hover:shadow-md"
           >
             <div className="aspect-3/2 bg-muted">
               {collection.image ? (
@@ -139,7 +203,9 @@ export function PublicCollections({
             <div className="space-y-1 p-3">
               <p className="font-semibold">{collection.title}</p>
               <p className="line-clamp-2 text-sm text-muted-foreground">{collection.description}</p>
-              <p className="text-xs text-muted-foreground">{collection.items.length} games</p>
+              <p className="text-xs text-muted-foreground">
+                {collection.items.length} puzzle{collection.items.length === 1 ? '' : 's'}
+              </p>
             </div>
           </button>
         ))}
@@ -158,41 +224,77 @@ export function PublicCollections({
           <p className="mt-1 text-sm text-muted-foreground">{selected.description}</p>
         ) : null}
       </div>
-      <div className="grid grid-cols-1 gap-3 sm:grid-cols-2">
-        {selected.items.map((item) => {
-          const display =
-            item.game === 'padavali' ? titlesByPuzzleId?.get(item.puzzle_id) : undefined;
-          const title = display?.title ?? item.title;
-          const description = display?.description ?? item.description;
-          const to = item.game === 'padavali' ? '/padavali/$slug' : '/padajala/$slug';
-          return (
-            <Link
-              key={`${item.game}-${item.puzzle_id}`}
-              to={to}
-              params={{ slug: item.slug }}
-              className="flex gap-3 rounded-xl border border-border/70 p-3 no-underline"
-            >
-              <GameKindIcon game={item.game} />
-              {item.image ? (
-                <Image
-                  src={getCDNUrl(item.image.s3_key)}
-                  alt=""
-                  width={item.image.width}
-                  height={item.image.height}
-                  className="h-12 w-[4.5rem] shrink-0 rounded object-cover"
-                />
-              ) : null}
-              <span className="min-w-0">
-                <span className="block truncate font-medium text-foreground">{title}</span>
-                <span className="line-clamp-2 text-xs text-muted-foreground">
-                  {gameKindLabel(item.game)}
-                  {description ? ` · ${description}` : ''}
-                </span>
-              </span>
-            </Link>
-          );
-        })}
-      </div>
+      {selected.items.length === 0 ? (
+        <p className="py-12 text-center text-muted-foreground">No puzzles in this collection.</p>
+      ) : game === 'padavali' ? (
+        <PadavaliCollectionItems items={selected.items} puzzles={props.puzzles} />
+      ) : (
+        <CrosswordCollectionItems items={selected.items} puzzles={props.puzzles} />
+      )}
+    </div>
+  );
+}
+
+function PadavaliCollectionItems({
+  items,
+  puzzles
+}: {
+  items: ListedCollectionItem[];
+  puzzles: DisplayPuzzle[];
+}) {
+  const puzzlesById = useMemo(
+    () => new Map(puzzles.map((puzzle) => [puzzle.id, puzzle])),
+    [puzzles]
+  );
+
+  return (
+    <div className="grid grid-cols-2 gap-3 sm:gap-4 lg:grid-cols-3 xl:grid-cols-4">
+      {items.map((item) => {
+        const puzzle =
+          puzzlesById.get(item.puzzle_id) ??
+          ({
+            id: item.puzzle_id,
+            slug: item.slug,
+            title: item.title,
+            description: item.description,
+            description_original: item.description,
+            title_normal: item.title,
+            image: item.image,
+            tags: []
+          } satisfies DisplayPuzzle);
+        return <PuzzlePreviewCard key={`padavali-${item.puzzle_id}`} puzzle={puzzle} />;
+      })}
+    </div>
+  );
+}
+
+function CrosswordCollectionItems({
+  items,
+  puzzles
+}: {
+  items: ListedCollectionItem[];
+  puzzles: CrosswordListedPuzzle[];
+}) {
+  const puzzlesById = useMemo(
+    () => new Map(puzzles.map((puzzle) => [puzzle.id, puzzle])),
+    [puzzles]
+  );
+
+  return (
+    <div className="grid grid-cols-2 gap-3 sm:gap-4 lg:grid-cols-3 xl:grid-cols-4">
+      {items.map((item) => {
+        const puzzle =
+          puzzlesById.get(item.puzzle_id) ??
+          ({
+            id: item.puzzle_id,
+            slug: item.slug,
+            title: item.title,
+            description: item.description,
+            image: item.image,
+            tags: []
+          } satisfies CrosswordListedPuzzle);
+        return <CrosswordPreviewCard key={`crossword-${item.puzzle_id}`} puzzle={puzzle} />;
+      })}
     </div>
   );
 }

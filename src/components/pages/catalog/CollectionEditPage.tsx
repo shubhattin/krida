@@ -1,6 +1,6 @@
 'use client';
 
-import { useMemo, useState } from 'react';
+import { useEffect, useMemo, useState } from 'react';
 import { Image } from '@unpic/react';
 import { Link, useRouter } from '@tanstack/react-router';
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
@@ -21,18 +21,22 @@ import {
   verticalListSortingStrategy
 } from '@dnd-kit/sortable';
 import { CSS } from '@dnd-kit/utilities';
-import { ArrowLeftIcon, GripVerticalIcon, SearchIcon, XIcon } from 'lucide-react';
+import { atom, createStore, Provider, useAtom } from 'jotai';
+import { ArrowLeftIcon, GripVerticalIcon, ImageIcon, SearchIcon, XIcon } from 'lucide-react';
 import { toast } from 'sonner';
 import { useTRPC } from '~/api/client';
 import { GameKindIcon, gameKindLabel } from '~/components/pages/catalog/GameKindIcon';
 import { invalidateCatalogQueries } from '~/components/pages/catalog/invalidateCatalogQueries';
+import { EditorActionDock } from '~/components/pages/puzzle/EditorActionDock';
 import { Button } from '~/components/ui/button';
 import {
   Dialog,
   DialogContent,
+  DialogDescription,
   DialogFooter,
   DialogHeader,
-  DialogTitle
+  DialogTitle,
+  DialogTrigger
 } from '~/components/ui/dialog';
 import { Input } from '~/components/ui/input';
 import { InputGroup, InputGroupAddon, InputGroupInput } from '~/components/ui/input-group';
@@ -40,6 +44,11 @@ import { Label } from '~/components/ui/label';
 import { Switch } from '~/components/ui/switch';
 import { Textarea } from '~/components/ui/textarea';
 import { getCDNUrl, KRIDAS } from '~/constants';
+import {
+  EditorHistoryProvider,
+  useEditorHistoryActions,
+  useHistoryTextField
+} from '~/hooks/useEditorHistory';
 import { cn } from '~/lib/utils';
 import { normalizeTagSlug, type GameKind } from '~/util/catalog/tags';
 import {
@@ -50,6 +59,8 @@ import {
 import Icon from '~/tools/Icon';
 import { LanguageIcon } from '~/components/icons';
 
+const BASE_SCRIPT = 'Devanagari';
+
 type Props = {
   uid: string;
   backTo: '/padavali/list' | '/padajala/list';
@@ -57,7 +68,6 @@ type Props = {
 
 type CollectionItem = {
   game: GameKind;
-  order_index: number;
   puzzle: {
     id: number;
     slug: string;
@@ -68,20 +78,66 @@ type CollectionItem = {
   };
 };
 
+type CollectionImageInfo = {
+  id: number;
+  s3_key: string;
+  width: number;
+  height: number;
+} | null;
+
+type CollectionData = {
+  id: number;
+  uid: string;
+  slug: string;
+  title: string;
+  description: string;
+  listed: boolean;
+  image: CollectionImageInfo;
+  items: Array<CollectionItem & { order_index: number }>;
+};
+
 const itemKey = (item: { game: GameKind; puzzle: { id: number } }) =>
   `${item.game}:${item.puzzle.id}`;
 
+const title_atom = atom('');
+const slug_atom = atom('');
+const description_atom = atom('');
+const listed_atom = atom(false);
+const lipi_lekhika_atom = atom(false);
+const image_id_atom = atom<number | null>(null);
+const image_info_atom = atom<CollectionImageInfo>(null);
+const items_atom = atom<CollectionItem[]>([]);
+
+const COLLECTION_HISTORY_ATOMS = {
+  title: title_atom,
+  slug: slug_atom,
+  description: description_atom,
+  listed: listed_atom,
+  image_id: image_id_atom,
+  image_info: image_info_atom,
+  items: items_atom
+};
+
+function createCollectionStore(collection: CollectionData) {
+  const store = createStore();
+  store.set(title_atom, collection.title);
+  store.set(slug_atom, collection.slug);
+  store.set(description_atom, collection.description);
+  store.set(listed_atom, collection.listed);
+  store.set(lipi_lekhika_atom, false);
+  store.set(image_id_atom, collection.image?.id ?? null);
+  store.set(image_info_atom, collection.image);
+  store.set(
+    items_atom,
+    collection.items.map(({ game, puzzle }) => ({ game, puzzle }))
+  );
+  return store;
+}
+
 export function CollectionEditPage({ uid, backTo }: Props) {
   const trpc = useTRPC();
-  const router = useRouter();
-  const queryClient = useQueryClient();
   const collection_q = useQuery(trpc.catalog.get_collection.queryOptions({ uid }));
   const collection = collection_q.data;
-
-  const refresh = async () => {
-    invalidateCatalogQueries(queryClient);
-    await router.invalidate();
-  };
 
   if (collection_q.isLoading) {
     return <p className="p-4 text-sm text-muted-foreground">Loading collection…</p>;
@@ -90,230 +146,342 @@ export function CollectionEditPage({ uid, backTo }: Props) {
     return <p className="p-4 text-sm text-muted-foreground">Collection not found.</p>;
   }
 
+  return <CollectionEditorShell key={collection.uid} collection={collection} backTo={backTo} />;
+}
+
+function CollectionEditorShell({
+  collection,
+  backTo
+}: {
+  collection: CollectionData;
+  backTo: Props['backTo'];
+}) {
+  const [store] = useState(() => createCollectionStore(collection));
+
   return (
-    <div className="mx-auto flex w-full max-w-4xl flex-col gap-6 px-4 py-6">
+    <Provider store={store}>
+      <EditorHistoryProvider atoms={COLLECTION_HISTORY_ATOMS}>
+        <CollectionEditorBody collection={collection} backTo={backTo} />
+      </EditorHistoryProvider>
+    </Provider>
+  );
+}
+
+function CollectionEditorBody({
+  collection,
+  backTo
+}: {
+  collection: CollectionData;
+  backTo: Props['backTo'];
+}) {
+  return (
+    <div className="mx-auto flex w-full max-w-4xl flex-col gap-6 px-4 py-6 pb-28">
       <Link to={backTo} className="inline-flex items-center gap-2 text-sm text-muted-foreground">
         <ArrowLeftIcon className="size-4" />
         Back to list
       </Link>
-      <CollectionForm
-        key={`${collection.uid}:${collection.slug}:${collection.title}:${collection.description}:${collection.listed}`}
-        collection={collection}
-        onSaved={refresh}
-      />
-      <CollectionImage collection={collection} onSaved={refresh} />
-      <CollectionItems collection={collection} onChanged={refresh} />
+      <CollectionMetaFields />
+      <CollectionImageSection />
+      <CollectionItemsSection />
+      <CollectionSaveDock uid={collection.uid} />
     </div>
   );
 }
 
-function CollectionForm({
-  collection,
-  onSaved
-}: {
-  collection: {
-    uid: string;
-    title: string;
-    slug: string;
-    description: string;
-    listed: boolean;
-    image: { id: number } | null;
-  };
-  onSaved: () => Promise<void>;
-}) {
-  const trpc = useTRPC();
-  const [title, setTitle] = useState(collection.title);
-  const [slug, setSlug] = useState(collection.slug);
-  const [description, setDescription] = useState(collection.description);
-  const [listed, setListed] = useState(collection.listed);
-
-  const save_mut = useMutation(
-    trpc.catalog.update_collection.mutationOptions({
-      onSuccess: async () => {
-        toast.success('Collection saved');
-        await onSaved();
-      },
-      onError: (error) => toast.error(error.message || 'Could not save collection')
-    })
-  );
+function CollectionLipiSwitch() {
+  const [lipi, setLipi] = useAtom(lipi_lekhika_atom);
 
   return (
-    <form
-      className="space-y-3"
-      onSubmit={(event) => {
-        event.preventDefault();
-        save_mut.mutate({
-          uid: collection.uid,
-          title: title.trim(),
-          slug,
-          description: description.trim(),
-          listed,
-          image_id: collection.image?.id ?? null
-        });
-      }}
-    >
+    <div className="flex justify-center sm:justify-start">
+      <Label className="inline-flex items-center gap-2 font-medium">
+        <Switch checked={lipi} onCheckedChange={setLipi} className="-mt-1" />
+        <Icon src={LanguageIcon} className="-mt-1 size-6.5" />
+        <span className="text-base font-bold">Devanagari</span>
+      </Label>
+    </div>
+  );
+}
+
+function CollectionMetaFields() {
+  const [title, setTitle] = useAtom(title_atom);
+  const [slug, setSlug] = useAtom(slug_atom);
+  const [description, setDescription] = useAtom(description_atom);
+  const [listed, setListed] = useAtom(listed_atom);
+  const [lipi, setLipi] = useAtom(lipi_lekhika_atom);
+  const titleHistory = useHistoryTextField();
+  const slugHistory = useHistoryTextField();
+  const descriptionHistory = useHistoryTextField();
+  const { commit } = useEditorHistoryActions();
+
+  const titleCtx = useMemo(() => createTypingContext(BASE_SCRIPT), []);
+  const descriptionCtx = useMemo(() => createTypingContext(BASE_SCRIPT), []);
+
+  useEffect(() => {
+    void titleCtx.ready;
+  }, [titleCtx]);
+  useEffect(() => {
+    void descriptionCtx.ready;
+  }, [descriptionCtx]);
+
+  const toggleLipiOnShortcut = (e: React.KeyboardEvent) => {
+    if (e.altKey && (e.key === 'x' || e.key === 'X' || e.key === 'c' || e.key === 'C')) {
+      e.preventDefault();
+      setLipi((prev) => !prev);
+      return true;
+    }
+    return false;
+  };
+
+  return (
+    <div className="space-y-4">
+      <CollectionLipiSwitch />
+
       <div className="space-y-1">
         <Label htmlFor="edit-collection-title">Title</Label>
         <Input
           id="edit-collection-title"
           value={title}
           onChange={(e) => setTitle(e.currentTarget.value)}
+          onBeforeInput={(e) =>
+            handleTypingBeforeInputEvent(titleCtx, e, (next) => setTitle(next), lipi)
+          }
+          onFocus={titleHistory.onFocus}
+          onBlur={() => {
+            titleCtx.clearContext();
+            titleHistory.onBlur();
+          }}
+          onKeyDown={(e) => {
+            if (toggleLipiOnShortcut(e)) return;
+            clearTypingContextOnKeyDown(e, titleCtx);
+          }}
         />
       </div>
+
       <div className="space-y-1">
         <Label htmlFor="edit-collection-slug">Slug</Label>
         <Input
           id="edit-collection-slug"
           value={slug}
           onChange={(e) => setSlug(normalizeTagSlug(e.currentTarget.value))}
+          onFocus={slugHistory.onFocus}
+          onBlur={slugHistory.onBlur}
         />
       </div>
+
       <div className="space-y-1">
         <Label htmlFor="edit-collection-description">Description</Label>
         <Textarea
           id="edit-collection-description"
           value={description}
           onChange={(e) => setDescription(e.currentTarget.value)}
+          onBeforeInput={(e) =>
+            handleTypingBeforeInputEvent(descriptionCtx, e, (next) => setDescription(next), lipi)
+          }
+          onFocus={descriptionHistory.onFocus}
+          onBlur={() => {
+            descriptionCtx.clearContext();
+            descriptionHistory.onBlur();
+          }}
+          onKeyDown={(e) => {
+            if (toggleLipiOnShortcut(e)) return;
+            clearTypingContextOnKeyDown(e, descriptionCtx);
+          }}
         />
       </div>
+
       <Label className="inline-flex items-center gap-2">
-        <Switch checked={listed} onCheckedChange={setListed} />
+        <Switch
+          checked={listed}
+          onCheckedChange={(next) => {
+            setListed(next);
+            commit();
+          }}
+        />
         Listed publicly
       </Label>
-      <div>
-        <Button type="submit" disabled={save_mut.isPending || !title.trim() || !slug}>
-          Save
-        </Button>
-      </div>
-    </form>
+    </div>
   );
 }
 
-function CollectionImage({
-  collection,
-  onSaved
-}: {
-  collection: {
-    uid: string;
-    title: string;
-    slug: string;
-    description: string;
-    listed: boolean;
-    image: { id: number; s3_key: string; width: number; height: number } | null;
+function CollectionImageSection() {
+  const [title] = useAtom(title_atom);
+  const [description] = useAtom(description_atom);
+  const [, setImageId] = useAtom(image_id_atom);
+  const [imageInfo, setImageInfo] = useAtom(image_info_atom);
+  const [dialogOpen, setDialogOpen] = useState(false);
+  const { commit } = useEditorHistoryActions();
+
+  const clearImage = () => {
+    setImageId(null);
+    setImageInfo(null);
+    commit();
   };
-  onSaved: () => Promise<void>;
+
+  return (
+    <div className="space-y-3">
+      <span className="text-lg font-bold">Cover</span>
+
+      {imageInfo ? (
+        <div className="flex flex-col items-start gap-3">
+          <div className="aspect-3/2 w-full max-w-md overflow-hidden rounded-xl border border-border bg-muted">
+            <Image
+              src={getCDNUrl(imageInfo.s3_key)}
+              alt=""
+              width={imageInfo.width}
+              height={imageInfo.height}
+              className="size-full object-cover"
+            />
+          </div>
+          <div className="flex flex-wrap items-center gap-2">
+            <GenerateCoverDialog
+              open={dialogOpen}
+              onOpenChange={setDialogOpen}
+              title={title}
+              description={description}
+              triggerLabel="Manage cover"
+              onGenerated={(next) => {
+                setImageId(next.id);
+                setImageInfo(next);
+                commit();
+                setDialogOpen(false);
+              }}
+            />
+            <Button
+              type="button"
+              variant="ghost"
+              size="sm"
+              className="text-destructive hover:text-destructive"
+              onClick={clearImage}
+            >
+              <XIcon className="size-4" />
+              Remove image
+            </Button>
+          </div>
+        </div>
+      ) : (
+        <div className="space-y-3">
+          <div className="flex aspect-3/2 w-full max-w-md items-center justify-center rounded-xl border border-dashed border-border bg-muted/40 text-sm text-muted-foreground">
+            No image
+          </div>
+          <GenerateCoverDialog
+            open={dialogOpen}
+            onOpenChange={setDialogOpen}
+            title={title}
+            description={description}
+            triggerLabel="Generate image"
+            onGenerated={(next) => {
+              setImageId(next.id);
+              setImageInfo(next);
+              commit();
+              setDialogOpen(false);
+            }}
+          />
+        </div>
+      )}
+    </div>
+  );
+}
+
+function GenerateCoverDialog({
+  open,
+  onOpenChange,
+  title,
+  description,
+  triggerLabel,
+  onGenerated
+}: {
+  open: boolean;
+  onOpenChange: (open: boolean) => void;
+  title: string;
+  description: string;
+  triggerLabel: string;
+  onGenerated: (info: { id: number; s3_key: string; width: number; height: number }) => void;
 }) {
   const trpc = useTRPC();
   const [extra, setExtra] = useState('');
-  const save_mut = useMutation(trpc.catalog.update_collection.mutationOptions());
+
   const generate_mut = useMutation(
     trpc.ai_image_gen.generate_puzzle_card_image.mutationOptions({
-      onSuccess: async (data) => {
+      onSuccess: (data) => {
         if (!data.success) {
           toast.error(`Image generation failed: ${data.err_code}`);
           return;
         }
-        await save_mut.mutateAsync({
-          uid: collection.uid,
-          title: collection.title,
-          slug: collection.slug,
-          description: collection.description,
-          listed: collection.listed,
-          image_id: data.id
+        onGenerated({
+          id: data.id,
+          s3_key: data.s3_key,
+          width: 768,
+          height: 512
         });
-        toast.success('Cover image saved');
-        await onSaved();
+        setExtra('');
+        toast.success('Cover image staged — save to apply');
       },
       onError: () => toast.error('Image generation failed')
     })
   );
 
   return (
-    <div className="space-y-2">
-      <Label>Cover</Label>
-      <div className="aspect-3/2 w-full max-w-md overflow-hidden rounded-xl border border-border bg-muted">
-        {collection.image ? (
-          <Image
-            src={getCDNUrl(collection.image.s3_key)}
-            alt=""
-            width={collection.image.width}
-            height={collection.image.height}
-            className="size-full object-cover"
+    <Dialog
+      open={open}
+      onOpenChange={(next) => {
+        if (!next) setExtra('');
+        onOpenChange(next);
+      }}
+    >
+      <DialogTrigger render={<Button type="button" variant="outline" size="sm" />}>
+        <ImageIcon className="size-4" />
+        {triggerLabel}
+      </DialogTrigger>
+      <DialogContent className="sm:max-w-md">
+        <DialogHeader>
+          <DialogTitle>Generate cover image</DialogTitle>
+          <DialogDescription>
+            Uses the collection title and description. Add optional instructions below.
+          </DialogDescription>
+        </DialogHeader>
+        <div className="space-y-2">
+          <Label htmlFor="collection-cover-extra">Extra instructions</Label>
+          <Textarea
+            id="collection-cover-extra"
+            value={extra}
+            onChange={(event) => setExtra(event.currentTarget.value)}
+            placeholder="Optional guidance for the cover image"
+            className="min-h-24"
           />
-        ) : (
-          <div className="flex size-full items-center justify-center text-sm text-muted-foreground">
-            No image
-          </div>
-        )}
-      </div>
-      <Textarea
-        value={extra}
-        onChange={(event) => setExtra(event.currentTarget.value)}
-        placeholder="Extra instructions for the cover image"
-      />
-      <div className="flex gap-2">
-        <Button
-          type="button"
-          variant="outline"
-          disabled={generate_mut.isPending || !collection.title.trim()}
-          onClick={() =>
-            generate_mut.mutate({
-              title: collection.title,
-              description: collection.description,
-              game: KRIDAS[0],
-              subject: 'collection',
-              extra_instructions: extra.trim() || undefined
-            })
-          }
-        >
-          {generate_mut.isPending ? 'Generating…' : 'Generate image'}
-        </Button>
-        {collection.image ? (
+        </div>
+        <DialogFooter>
           <Button
             type="button"
-            variant="ghost"
+            disabled={generate_mut.isPending || !title.trim()}
             onClick={() =>
-              save_mut.mutate(
-                {
-                  uid: collection.uid,
-                  title: collection.title,
-                  slug: collection.slug,
-                  description: collection.description,
-                  listed: collection.listed,
-                  image_id: null
-                },
-                { onSuccess: () => void onSaved() }
-              )
+              generate_mut.mutate({
+                title: title.trim(),
+                description: description.trim(),
+                game: KRIDAS[0],
+                subject: 'collection',
+                extra_instructions: extra.trim() || undefined
+              })
             }
           >
-            Remove image
+            {generate_mut.isPending ? 'Generating…' : 'Generate'}
           </Button>
-        ) : null}
-      </div>
-    </div>
+        </DialogFooter>
+      </DialogContent>
+    </Dialog>
   );
 }
 
-function CollectionItems({
-  collection,
-  onChanged
-}: {
-  collection: { uid: string; id: number; items: CollectionItem[] };
-  onChanged: () => Promise<void>;
-}) {
-  const trpc = useTRPC();
+function CollectionItemsSection() {
+  const [items, setItems] = useAtom(items_atom);
   const [addOpen, setAddOpen] = useState(false);
   const [reorderOpen, setReorderOpen] = useState(false);
   const [reorderSession, setReorderSession] = useState(0);
-  const remove_mut = useMutation(
-    trpc.catalog.remove_item.mutationOptions({
-      onSuccess: async () => {
-        toast.success('Removed from collection');
-        await onChanged();
-      },
-      onError: (error) => toast.error(error.message || 'Could not remove game')
-    })
-  );
+  const { commit } = useEditorHistoryActions();
+
+  const removeItem = (key: string) => {
+    setItems((current) => current.filter((item) => itemKey(item) !== key));
+    commit();
+  };
 
   return (
     <div className="space-y-3">
@@ -323,6 +491,7 @@ function CollectionItems({
           <Button
             type="button"
             variant="outline"
+            disabled={items.length < 2}
             onClick={() => {
               setReorderSession((session) => session + 1);
               setReorderOpen(true);
@@ -336,7 +505,7 @@ function CollectionItems({
         </div>
       </div>
       <div className="grid grid-cols-1 gap-3 sm:grid-cols-2">
-        {collection.items.map((item) => (
+        {items.map((item) => (
           <div
             key={itemKey(item)}
             className="flex items-center gap-2.5 rounded-lg border border-border/70 px-2.5 py-2"
@@ -363,55 +532,125 @@ function CollectionItems({
               size="icon-sm"
               variant="ghost"
               aria-label={`Remove ${item.puzzle.title}`}
-              onClick={() =>
-                remove_mut.mutate({
-                  uid: collection.uid,
-                  game: item.game,
-                  puzzle_id: item.puzzle.id
-                })
-              }
+              onClick={() => removeItem(itemKey(item))}
             >
               <XIcon />
             </Button>
           </div>
         ))}
       </div>
-      {collection.items.length === 0 ? (
+      {items.length === 0 ? (
         <p className="text-sm text-muted-foreground">This collection has no games yet.</p>
       ) : null}
       <AddGamesDialog
         open={addOpen}
         onOpenChange={setAddOpen}
-        collectionId={collection.id}
-        uid={collection.uid}
-        onAdded={onChanged}
+        existingKeys={new Set(items.map(itemKey))}
+        onAdd={(picked) => {
+          setItems((current) => {
+            const have = new Set(current.map(itemKey));
+            const next = [...current];
+            for (const puzzle of picked) {
+              const key = `${puzzle.game}:${puzzle.id}`;
+              if (have.has(key)) continue;
+              have.add(key);
+              next.push({
+                game: puzzle.game,
+                puzzle: {
+                  id: puzzle.id,
+                  slug: puzzle.slug,
+                  title: puzzle.title,
+                  description: puzzle.description,
+                  listed: puzzle.listed,
+                  image: puzzle.image
+                }
+              });
+            }
+            return next;
+          });
+          commit();
+        }}
       />
       <ReorderDialog
         key={reorderSession}
         open={reorderOpen}
         onOpenChange={setReorderOpen}
-        uid={collection.uid}
-        items={collection.items}
-        onSaved={onChanged}
+        items={items}
+        onApply={(ordered) => {
+          setItems(ordered);
+          commit();
+        }}
       />
     </div>
   );
 }
 
-type PickedGame = { game: GameKind; id: number; title: string };
+function CollectionSaveDock({ uid }: { uid: string }) {
+  const trpc = useTRPC();
+  const router = useRouter();
+  const queryClient = useQueryClient();
+  const [title] = useAtom(title_atom);
+  const [slug] = useAtom(slug_atom);
+  const [description] = useAtom(description_atom);
+  const [listed] = useAtom(listed_atom);
+  const [image_id] = useAtom(image_id_atom);
+  const [items] = useAtom(items_atom);
+  const { beginSave, markSaved } = useEditorHistoryActions();
+
+  const save_mut = useMutation(
+    trpc.catalog.save_collection.mutationOptions({
+      onSuccess: async () => {
+        markSaved();
+        toast.success('Collection saved');
+        invalidateCatalogQueries(queryClient, trpc);
+        await router.invalidate();
+      },
+      onError: (error) => toast.error(error.message || 'Could not save collection')
+    })
+  );
+
+  const handleSave = () => {
+    const trimmedTitle = title.trim();
+    const trimmedSlug = slug.trim();
+    if (!trimmedTitle || !trimmedSlug) {
+      toast.error('Title and slug are required');
+      return;
+    }
+    beginSave();
+    save_mut.mutate({
+      uid,
+      title: trimmedTitle,
+      slug: trimmedSlug,
+      description: description.trim(),
+      listed,
+      image_id,
+      items: items.map((item) => ({ game: item.game, puzzle_id: item.puzzle.id }))
+    });
+  };
+
+  return <EditorActionDock onSave={handleSave} isSaving={save_mut.isPending} />;
+}
+
+type PickedGame = {
+  game: GameKind;
+  id: number;
+  slug: string;
+  title: string;
+  description: string;
+  listed: boolean;
+  image: { s3_key: string } | null;
+};
 
 function AddGamesDialog({
   open,
   onOpenChange,
-  collectionId,
-  uid,
-  onAdded
+  existingKeys,
+  onAdd
 }: {
   open: boolean;
   onOpenChange: (open: boolean) => void;
-  collectionId: number;
-  uid: string;
-  onAdded: () => Promise<void>;
+  existingKeys: Set<string>;
+  onAdd: (picked: PickedGame[]) => void;
 }) {
   const trpc = useTRPC();
   const [query, setQuery] = useState('');
@@ -426,34 +665,23 @@ function AddGamesDialog({
       query,
       tag_slug: tagSlug || undefined,
       game,
-      exclude_collection_id: collectionId,
       limit: 40
-    })
-  );
-  const add_mut = useMutation(
-    trpc.catalog.add_items.mutationOptions({
-      onSuccess: async (result) => {
-        toast.success(result.added === 1 ? 'Added 1 game' : `Added ${result.added} games`);
-        setPicked([]);
-        onOpenChange(false);
-        await onAdded();
-      },
-      onError: (error) => toast.error(error.message || 'Could not add games')
     })
   );
 
   const pickedKeys = new Set(picked.map((item) => `${item.game}:${item.id}`));
-  const results = (results_q.data ?? []).filter(
-    (puzzle) => !pickedKeys.has(`${puzzle.game}:${puzzle.id}`)
-  );
+  const results = (results_q.data ?? []).filter((puzzle) => {
+    const key = `${puzzle.game}:${puzzle.id}`;
+    return !existingKeys.has(key) && !pickedKeys.has(key);
+  });
 
-  const toggle = (puzzle: { game: GameKind; id: number; title: string }) => {
+  const toggle = (puzzle: PickedGame) => {
     setPicked((current) => {
       const key = `${puzzle.game}:${puzzle.id}`;
       if (current.some((item) => `${item.game}:${item.id}` === key)) {
         return current.filter((item) => `${item.game}:${item.id}` !== key);
       }
-      return [...current, { game: puzzle.game, id: puzzle.id, title: puzzle.title }];
+      return [...current, puzzle];
     });
   };
 
@@ -487,7 +715,13 @@ function AddGamesDialog({
                     type="button"
                     className="text-muted-foreground hover:text-foreground"
                     aria-label={`Remove ${item.title} from selection`}
-                    onClick={() => toggle(item)}
+                    onClick={() =>
+                      setPicked((current) =>
+                        current.filter(
+                          (row) => `${row.game}:${row.id}` !== `${item.game}:${item.id}`
+                        )
+                      )
+                    }
                   >
                     <XIcon className="size-3" />
                   </button>
@@ -496,7 +730,7 @@ function AddGamesDialog({
             </div>
           )}
         </div>
-        <div className="flex items-center gap-2">
+        <div className="flex flex-wrap items-center gap-2">
           <InputGroup className="flex-1">
             <InputGroupAddon>
               <SearchIcon className="size-4" />
@@ -547,7 +781,17 @@ function AddGamesDialog({
               key={`${puzzle.game}-${puzzle.id}`}
               type="button"
               className="flex w-full items-center gap-2 rounded-lg px-2 py-1.5 text-left hover:bg-muted"
-              onClick={() => toggle(puzzle)}
+              onClick={() =>
+                toggle({
+                  game: puzzle.game,
+                  id: puzzle.id,
+                  slug: puzzle.slug,
+                  title: puzzle.title,
+                  description: puzzle.description,
+                  listed: puzzle.listed,
+                  image: puzzle.image
+                })
+              }
             >
               <GameKindIcon game={puzzle.game} />
               <span className="min-w-0 flex-1">
@@ -567,13 +811,15 @@ function AddGamesDialog({
         <DialogFooter>
           <Button
             type="button"
-            disabled={picked.length === 0 || add_mut.isPending}
-            onClick={() =>
-              add_mut.mutate({
-                uid,
-                items: picked.map((item) => ({ game: item.game, puzzle_id: item.id }))
-              })
-            }
+            disabled={picked.length === 0}
+            onClick={() => {
+              onAdd(picked);
+              setPicked([]);
+              onOpenChange(false);
+              toast.success(
+                picked.length === 1 ? 'Staged 1 game' : `Staged ${picked.length} games`
+              );
+            }}
           >
             {picked.length === 0 ? 'Add games' : `Add ${picked.length}`}
           </Button>
@@ -586,32 +832,19 @@ function AddGamesDialog({
 function ReorderDialog({
   open,
   onOpenChange,
-  uid,
   items,
-  onSaved
+  onApply
 }: {
   open: boolean;
   onOpenChange: (open: boolean) => void;
-  uid: string;
   items: CollectionItem[];
-  onSaved: () => Promise<void>;
+  onApply: (items: CollectionItem[]) => void;
 }) {
-  const trpc = useTRPC();
   const [order, setOrder] = useState(items);
 
   const sensors = useSensors(
     useSensor(PointerSensor),
     useSensor(KeyboardSensor, { coordinateGetter: sortableKeyboardCoordinates })
-  );
-  const save_mut = useMutation(
-    trpc.catalog.reorder.mutationOptions({
-      onSuccess: async () => {
-        toast.success('Order saved');
-        onOpenChange(false);
-        await onSaved();
-      },
-      onError: (error) => toast.error(error.message || 'Could not save order')
-    })
   );
 
   const onDragEnd = (event: DragEndEvent) => {
@@ -642,15 +875,12 @@ function ReorderDialog({
         <DialogFooter>
           <Button
             type="button"
-            disabled={save_mut.isPending}
-            onClick={() =>
-              save_mut.mutate({
-                uid,
-                items: order.map((item) => ({ game: item.game, puzzle_id: item.puzzle.id }))
-              })
-            }
+            onClick={() => {
+              onApply(order);
+              onOpenChange(false);
+            }}
           >
-            Save order
+            Apply order
           </Button>
         </DialogFooter>
       </DialogContent>
@@ -678,7 +908,7 @@ function SortableRow({ item }: { item: CollectionItem }) {
       >
         <GripVerticalIcon className="size-4" />
       </button>
-      <GameKindIcon game={item.game} />
+      <GameKindIcon game={item.game} className="size-5" />
       <span className="truncate text-sm">{item.puzzle.title}</span>
     </div>
   );

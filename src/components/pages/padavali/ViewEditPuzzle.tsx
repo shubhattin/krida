@@ -1516,7 +1516,7 @@ const SaveButton = ({ word_puzzle }: { word_puzzle: Puzzle }) => {
 
           await router.invalidate();
           invalidatePadavaliListedPuzzleQueries(queryClient);
-          invalidateCatalogQueries(queryClient);
+          invalidateCatalogQueries(queryClient, trpc);
         }
       },
       onError() {

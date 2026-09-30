@@ -54,7 +54,7 @@ export function CollectionsPanel({ game }: { game: GameKind }) {
         setTitle('');
         setSlug('');
         setDescription('');
-        invalidateCatalogQueries(queryClient);
+        invalidateCatalogQueries(queryClient, trpc);
         await router.invalidate();
         const to =
           game === 'padavali' ? '/padavali/collections/$uid' : '/padajala/collections/$uid';

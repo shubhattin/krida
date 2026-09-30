@@ -118,16 +118,6 @@ const PuzzleListView = ({
       ),
     [puzzles, searchQuery, selectedTags]
   );
-  const titlesByPuzzleId = useMemo(
-    () =>
-      new Map(
-        puzzles.map((puzzle) => [
-          puzzle.id,
-          { title: puzzle.title, description: puzzle.description }
-        ])
-      ),
-    [puzzles]
-  );
 
   const pageCount = Math.max(1, Math.ceil(filteredPuzzles.length / PAGE_LIMIT));
   const safePage = Math.min(page, pageCount);
@@ -294,7 +284,7 @@ const PuzzleListView = ({
         </div>
 
         {browseMode === 'collections' ? (
-          <PublicCollections collections={collections} titlesByPuzzleId={titlesByPuzzleId} />
+          <PublicCollections collections={collections} game="padavali" puzzles={puzzles} />
         ) : filteredPuzzles.length === 0 ? (
           <div className="py-16 text-center">
             <p className="text-lg font-medium text-slate-600 dark:text-slate-400">

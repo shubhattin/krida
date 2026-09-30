@@ -2179,7 +2179,7 @@ const SaveControls = ({ puzzle }: { puzzle: ViewEditCrosswordProps['puzzle'] }) 
 
         await router.invalidate();
         invalidatePadajalaListedPuzzleQueries(queryClient);
-        invalidateCatalogQueries(queryClient);
+        invalidateCatalogQueries(queryClient, trpc);
       },
       onError(err) {
         saveSnapRef.current = null;
