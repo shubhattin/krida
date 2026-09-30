@@ -1,4 +1,6 @@
 import { createFileRoute, Outlet, redirect } from '@tanstack/react-router';
+import AppBar from '~/components/app-bar/AppBar';
+import { PadavaliMenuItems } from '~/components/app-bar/GameMenuItems';
 import { getUserSession$ } from '~/lib/get_auth_from_cookie';
 
 export const Route = createFileRoute('/padavali/(auth)/_auth')({
@@ -14,5 +16,12 @@ export const Route = createFileRoute('/padavali/(auth)/_auth')({
 });
 
 function AuthLayout() {
-  return <Outlet />;
+  return (
+    <>
+      <AppBar game="padavali" gameMenuItems={<PadavaliMenuItems />} />
+      <div className="mx-2">
+        <Outlet />
+      </div>
+    </>
+  );
 }

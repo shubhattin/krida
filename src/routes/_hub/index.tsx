@@ -1,8 +1,12 @@
-import { createFileRoute } from '@tanstack/react-router';
+import { createFileRoute, getRouteApi } from '@tanstack/react-router';
 import { routeHeadFromPageMeta } from '~/components/tags/getPageMetaTags';
-import LandingPage from './-Landing';
+import HubHome from '~/components/hub/HubHome';
+import { librarySearchSchema } from '~/components/hub/library_search';
 
-export const Route = createFileRoute('/')({
+const hubRoute = getRouteApi('/_hub');
+
+export const Route = createFileRoute('/_hub/')({
+  validateSearch: librarySearchSchema,
   head: () =>
     routeHeadFromPageMeta({
       title: 'Sanskrit Games | Play, Learn, Grow',
@@ -14,5 +18,6 @@ export const Route = createFileRoute('/')({
 });
 
 function Home() {
-  return <LandingPage />;
+  const data = hubRoute.useLoaderData();
+  return <HubHome data={data} />;
 }
