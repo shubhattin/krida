@@ -15,7 +15,7 @@ const loader$ = createServerFn({ method: 'GET' })
   .validator(z.object({ rawId: z.string().min(1) }))
   .handler(async ({ data }) => {
     const parsed = z.coerce.number().int().safeParse(data.rawId);
-    if (!parsed.success) return { word_puzzle: null };
+    if (!parsed.success) return { word_puzzle: null, catalog: { tags: [], collections: [] } };
 
     const word_puzzle = await runLoaderEffect(
       dbRunHttp('padavali.admin.get_edit_puzzle', (client) =>
@@ -39,20 +39,41 @@ const loader$ = createServerFn({ method: 'GET' })
                 width: true,
                 height: true
               }
+            },
+            puzzle_tags: {
+              with: {
+                tag: { columns: { id: true, slug: true, name: true } }
+              }
+            },
+            collection_items: {
+              with: {
+                collection: { columns: { id: true, uid: true, slug: true, title: true } }
+              }
             }
           }
         })
       )
     );
 
-    return { word_puzzle: word_puzzle ?? null };
+    if (!word_puzzle) return { word_puzzle: null, catalog: { tags: [], collections: [] } };
+
+    const { puzzle_tags, collection_items, ...puzzle } = word_puzzle;
+    return {
+      word_puzzle: puzzle,
+      catalog: {
+        tags: puzzle_tags.map((link) => link.tag).sort((a, b) => a.slug.localeCompare(b.slug)),
+        collections: collection_items
+          .map((item) => item.collection)
+          .sort((a, b) => a.title.localeCompare(b.title))
+      }
+    };
   });
 
 export const Route = createFileRoute('/padavali/(auth)/_auth/edit/$id')({
   loader: async ({ params }) => {
-    const { word_puzzle } = await loader$({ data: { rawId: params.id } });
+    const { word_puzzle, catalog } = await loader$({ data: { rawId: params.id } });
     if (!word_puzzle) throw notFound();
-    return { word_puzzle };
+    return { word_puzzle, catalog };
   },
   head: ({ loaderData }) =>
     routeHeadFromPageMeta({
@@ -62,7 +83,7 @@ export const Route = createFileRoute('/padavali/(auth)/_auth/edit/$id')({
 });
 
 function PadavaliEditRoute() {
-  const { word_puzzle } = Route.useLoaderData();
+  const { word_puzzle, catalog } = Route.useLoaderData();
 
   return (
     <>
@@ -86,7 +107,7 @@ function PadavaliEditRoute() {
         </Link>
       </div>
       <JotaiProvider key={`edit_${word_puzzle.id}`}>
-        <MainEditPage word_puzzle={word_puzzle} key={word_puzzle.id} />
+        <MainEditPage word_puzzle={word_puzzle} catalog={catalog} key={word_puzzle.id} />
       </JotaiProvider>
     </>
   );

@@ -13,9 +13,10 @@ import { runLoaderEffect } from '~/effect/run';
 import { ListedPuzzles } from './-ListedPuzzles';
 
 const loader$ = createServerFn({ method: 'GET' }).handler(async () => {
-  const listed_puzzles = await runLoaderEffect(
-    CACHE.padavali.listed_puzzle_list.get(NO_CACHE_PARAMS)
-  );
+  const [listed_puzzles, listed_collections] = await Promise.all([
+    runLoaderEffect(CACHE.padavali.listed_puzzle_list.get(NO_CACHE_PARAMS)),
+    runLoaderEffect(CACHE.catalog.listed_collections.get(NO_CACHE_PARAMS))
+  ]);
 
   const script = await getScript$();
 
@@ -36,7 +37,7 @@ const loader$ = createServerFn({ method: 'GET' }).handler(async () => {
     normal_titles
   );
 
-  return { listed_puzzles, script, listed_puzzles_init_transliterated };
+  return { listed_puzzles, listed_collections, script, listed_puzzles_init_transliterated };
 });
 
 export const Route = createFileRoute('/padavali/(public)/_public/puzzles/')({
@@ -50,11 +51,13 @@ export const Route = createFileRoute('/padavali/(public)/_public/puzzles/')({
 });
 
 function PadavaliPuzzlesRoute() {
-  const { listed_puzzles, script, listed_puzzles_init_transliterated } = Route.useLoaderData();
+  const { listed_puzzles, listed_collections, script, listed_puzzles_init_transliterated } =
+    Route.useLoaderData();
 
   return (
     <ListedPuzzles
       listed_puzzles={listed_puzzles}
+      listed_collections={listed_collections}
       script={script}
       listed_puzzles_init_transliterated={listed_puzzles_init_transliterated}
     />

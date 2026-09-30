@@ -11,11 +11,13 @@ import { KRIDAS, PROJECT_S3_ALIAS } from '~/constants';
 import { AppConfig } from './config';
 import { StorageError } from './errors';
 
+const ASSET_ROOTS = [...KRIDAS, 'collections'] as const;
+
 export type AssetLocation =
-  `${typeof PROJECT_S3_ALIAS}/${(typeof KRIDAS)[number]}/image_assets/${string}.webp`;
+  `${typeof PROJECT_S3_ALIAS}/${(typeof ASSET_ROOTS)[number]}/image_assets/${string}.webp`;
 
 const ASSET_KEY_PATTERN = new RegExp(
-  `^${PROJECT_S3_ALIAS}/(?:${KRIDAS.join('|')})/image_assets/[\\w.-]+\\.webp$`
+  `^${PROJECT_S3_ALIAS}/(?:${ASSET_ROOTS.join('|')})/image_assets/[\\w.-]+\\.webp$`
 );
 
 const tryStorage = <A>(operation: string, key: string | undefined, run: () => Promise<A>) =>

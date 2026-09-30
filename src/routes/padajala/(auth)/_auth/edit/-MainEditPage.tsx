@@ -8,7 +8,13 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from '~/components/ui/tabs';
 
 const CrosswordPuzzleStats = lazy(() => import('./-CrosswordPuzzleStats'));
 
-const MainEditPage = ({ puzzle }: { puzzle: ViewEditCrosswordProps['puzzle'] }) => {
+const MainEditPage = ({
+  puzzle,
+  catalog
+}: {
+  puzzle: ViewEditCrosswordProps['puzzle'];
+  catalog: ViewEditCrosswordProps['catalog'];
+}) => {
   return (
     <Tabs defaultValue="edit">
       <TabsList>
@@ -16,7 +22,7 @@ const MainEditPage = ({ puzzle }: { puzzle: ViewEditCrosswordProps['puzzle'] }) 
         <TabsTrigger value="stats">Puzzle Stats</TabsTrigger>
       </TabsList>
       <TabsContent value="edit">
-        <ViewEditCrossword puzzle={puzzle} key={puzzle.id} />
+        <ViewEditCrossword puzzle={puzzle} catalog={catalog} key={puzzle.id} />
       </TabsContent>
       <TabsContent value="stats">
         <Suspense fallback={<div></div>}>

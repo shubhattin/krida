@@ -52,6 +52,8 @@ import { DataTable } from '~/components/ui/data-table';
 import { listTableColumns, type PuzzleListItem } from './-list-table-columns';
 import { getCDNUrl } from '~/constants';
 import { fetchEveryListPage } from '~/components/pages/fetch-every-list-page';
+import { AdminCatalogFilters } from '~/components/pages/catalog/AdminCatalogFilters';
+import { AdminCatalogTabs } from '~/components/pages/catalog/AdminCatalogPanels';
 
 dayjs.extend(relativeTime);
 
@@ -165,7 +167,9 @@ const fetchPuzzleListPage = async (
   listed_filter: boolean | undefined,
   sort_by: 'created_at' | 'updated_at',
   order_by: 'asc' | 'desc',
-  size = PUZZLE_FETCH_LIMIT
+  size = PUZZLE_FETCH_LIMIT,
+  tag_slug?: string,
+  collection_id?: number
 ) =>
   client.puzzle.get_puzzle_list_page.query({
     page,
@@ -173,7 +177,9 @@ const fetchPuzzleListPage = async (
     listed_filter,
     sort_by,
     search_title: search_title !== '' ? search_title : undefined,
-    order_by
+    order_by,
+    tag_slug,
+    collection_id
   });
 
 function usePuzzleListQuery(
@@ -182,7 +188,9 @@ function usePuzzleListQuery(
   listed_filter_type: 'all' | 'listed' | 'unlisted',
   listed_filter: boolean | undefined,
   sort_by: 'created_at' | 'updated_at',
-  order_by: 'asc' | 'desc'
+  order_by: 'asc' | 'desc',
+  tag_slug?: string,
+  collection_id?: number
 ) {
   const puzzle_list_q = useQuery({
     queryKey: [
@@ -192,9 +200,21 @@ function usePuzzleListQuery(
       listed_filter_type,
       listed_filter,
       sort_by,
-      order_by
+      order_by,
+      tag_slug,
+      collection_id
     ],
-    queryFn: () => fetchPuzzleListPage(page, search_title, listed_filter, sort_by, order_by),
+    queryFn: () =>
+      fetchPuzzleListPage(
+        page,
+        search_title,
+        listed_filter,
+        sort_by,
+        order_by,
+        PUZZLE_FETCH_LIMIT,
+        tag_slug,
+        collection_id
+      ),
     placeholderData: (prev) => prev,
     refetchOnWindowFocus: false
   });
@@ -273,7 +293,11 @@ const ListFilterBar = ({
   order_by,
   onOrderByChange,
   layout,
-  onLayoutChange
+  onLayoutChange,
+  tag_slug,
+  onTagSlugChange,
+  collection_id,
+  onCollectionIdChange
 }: {
   search_title: string;
   onSearchChange: (value: string) => void;
@@ -288,6 +312,10 @@ const ListFilterBar = ({
   onOrderByChange: (value: 'asc' | 'desc') => void;
   layout: ListLayout;
   onLayoutChange: (layout: ListLayout) => void;
+  tag_slug: string;
+  onTagSlugChange: (value: string) => void;
+  collection_id: string;
+  onCollectionIdChange: (value: string) => void;
 }) => (
   <div className="rounded-xl border border-slate-200/60 bg-white/50 p-3 shadow-sm backdrop-blur-sm sm:p-4 dark:border-slate-700/40 dark:bg-slate-800/30">
     <div className="flex flex-col items-center space-y-3">
@@ -350,6 +378,12 @@ const ListFilterBar = ({
             <SelectDropdown items={ORDER_BY_ITEMS} />
           </Select>
         </div>
+        <AdminCatalogFilters
+          tagSlug={tag_slug}
+          collectionId={collection_id}
+          onTagSlugChange={onTagSlugChange}
+          onCollectionIdChange={onCollectionIdChange}
+        />
         <div className="flex items-center gap-1 rounded-lg border border-slate-200/60 p-0.5 dark:border-slate-700/40">
           <Button
             type="button"
@@ -575,11 +609,15 @@ const ListPage = () => {
   const [sort_by, setSortBy] = useState<'created_at' | 'updated_at'>('created_at');
   const [order_by, setOrderBy] = useState<'asc' | 'desc'>('desc');
   const [layout, setLayout] = useState<ListLayout>('cards');
+  const [tag_slug, setTagSlug] = useState('all');
+  const [collection_id, setCollectionId] = useState('all');
 
   const debouncedSearchTitle = useDebouncedSearch(search_title);
   const ctx = useDevanagariTyping();
 
   const listed_filter = { all: undefined, listed: true, unlisted: false }[listed_filter_type];
+  const tagSlugFilter = tag_slug === 'all' ? undefined : tag_slug;
+  const collectionIdFilter = collection_id === 'all' ? undefined : Number(collection_id);
 
   const {
     isSuccess,
@@ -596,7 +634,9 @@ const ListPage = () => {
     listed_filter_type,
     listed_filter,
     sort_by,
-    order_by
+    order_by,
+    tagSlugFilter,
+    collectionIdFilter
   );
 
   const all_links_q = useQuery({
@@ -606,13 +646,24 @@ const ListPage = () => {
       listed_filter_type,
       listed_filter,
       sort_by,
-      order_by
+      order_by,
+      tagSlugFilter,
+      collectionIdFilter
     ],
     enabled: layout === 'links',
     queryFn: () =>
       fetchEveryListPage(
         (page, size) =>
-          fetchPuzzleListPage(page, debouncedSearchTitle, listed_filter, sort_by, order_by, size),
+          fetchPuzzleListPage(
+            page,
+            debouncedSearchTitle,
+            listed_filter,
+            sort_by,
+            order_by,
+            size,
+            tagSlugFilter,
+            collectionIdFilter
+          ),
         ALL_LINKS_PAGE_SIZE
       ),
     refetchOnWindowFocus: false
@@ -638,78 +689,90 @@ const ListPage = () => {
   }
 
   return (
-    <div className="space-y-4">
-      <ListFilterBar
-        search_title={search_title}
-        onSearchChange={setSearchTitle}
-        ctx={ctx}
-        lipi_lekhika_typing={lipi_lekhika_typing}
-        onToggleTyping={setLipiLekhikaTyping}
-        listed_filter_type={listed_filter_type}
-        onListedFilterChange={handle_listed_filter_change}
-        sort_by={sort_by}
-        onSortByChange={handle_sort_by_change}
-        order_by={order_by}
-        onOrderByChange={handle_order_by_change}
-        layout={layout}
-        onLayoutChange={setLayout}
-      />
-      <ListLoadingSkeleton show={isInitialLoading && layout !== 'links'} layout={layout} />
-      {layout === 'links' && all_links_q.isLoading ? (
-        <ListLoadingSkeleton show layout="table" />
-      ) : null}
-      <div ref={listRef} className="space-y-4">
-        {layout === 'links' && !all_links_q.isLoading && (all_links_q.data?.length ?? 0) > 0 ? (
-          <>
-            <p className="text-center text-sm text-muted-foreground">
-              {all_links_q.data?.length} puzzle{all_links_q.data?.length === 1 ? '' : 's'}
-            </p>
-            <DataTable
-              scrollable
-              columns={listTableColumns}
-              data={all_links_q.data ?? []}
-              getRowId={(row) => String(row.id)}
-            />
-          </>
-        ) : null}
-        <PuzzleCardGrid
-          isSuccess={isSuccess}
-          isInitialLoading={isInitialLoading}
+    <AdminCatalogTabs game="padavali">
+      <div className="space-y-4">
+        <ListFilterBar
+          search_title={search_title}
+          onSearchChange={setSearchTitle}
+          ctx={ctx}
+          lipi_lekhika_typing={lipi_lekhika_typing}
+          onToggleTyping={setLipiLekhikaTyping}
+          listed_filter_type={listed_filter_type}
+          onListedFilterChange={handle_listed_filter_change}
+          sort_by={sort_by}
+          onSortByChange={handle_sort_by_change}
+          order_by={order_by}
+          onOrderByChange={handle_order_by_change}
           layout={layout}
-          puzzle_list={puzzle_list}
-        />
-        <PuzzleTableView
-          isSuccess={isSuccess}
-          isInitialLoading={isInitialLoading}
-          layout={layout}
-          columns={listTableColumns}
-          data={puzzle_list}
-        />
-        <ListEmptyState
-          isEmpty={
-            layout === 'links'
-              ? !all_links_q.isLoading && (all_links_q.data?.length ?? 0) === 0
-              : puzzle_list.length === 0
-          }
-          isInitialLoading={layout === 'links' ? false : isInitialLoading}
-          isFetching={layout === 'links' ? all_links_q.isFetching : isFetching}
-        />
-      </div>
-      {layout === 'links' ? null : (
-        <ListPagination
-          page={page}
-          pageCount={pageCount}
-          hasPrev={hasPrev}
-          hasNext={hasNext}
-          isFetching={isFetching}
-          total={total}
-          onPageChange={(nextPage) => {
-            setPage(nextPage);
-            scrollPaginationListToStart(listRef.current);
+          onLayoutChange={setLayout}
+          tag_slug={tag_slug}
+          onTagSlugChange={(value) => {
+            setTagSlug(value);
+            setPage(1);
+          }}
+          collection_id={collection_id}
+          onCollectionIdChange={(value) => {
+            setCollectionId(value);
+            setPage(1);
           }}
         />
-      )}
-    </div>
+        <ListLoadingSkeleton show={isInitialLoading && layout !== 'links'} layout={layout} />
+        {layout === 'links' && all_links_q.isLoading ? (
+          <ListLoadingSkeleton show layout="table" />
+        ) : null}
+        <div ref={listRef} className="space-y-4">
+          {layout === 'links' && !all_links_q.isLoading && (all_links_q.data?.length ?? 0) > 0 ? (
+            <>
+              <p className="text-center text-sm text-muted-foreground">
+                {all_links_q.data?.length} puzzle{all_links_q.data?.length === 1 ? '' : 's'}
+              </p>
+              <DataTable
+                scrollable
+                columns={listTableColumns}
+                data={all_links_q.data ?? []}
+                getRowId={(row) => String(row.id)}
+              />
+            </>
+          ) : null}
+          <PuzzleCardGrid
+            isSuccess={isSuccess}
+            isInitialLoading={isInitialLoading}
+            layout={layout}
+            puzzle_list={puzzle_list}
+          />
+          <PuzzleTableView
+            isSuccess={isSuccess}
+            isInitialLoading={isInitialLoading}
+            layout={layout}
+            columns={listTableColumns}
+            data={puzzle_list}
+          />
+          <ListEmptyState
+            isEmpty={
+              layout === 'links'
+                ? !all_links_q.isLoading && (all_links_q.data?.length ?? 0) === 0
+                : puzzle_list.length === 0
+            }
+            isInitialLoading={layout === 'links' ? false : isInitialLoading}
+            isFetching={layout === 'links' ? all_links_q.isFetching : isFetching}
+          />
+        </div>
+        {layout === 'links' ? null : (
+          <ListPagination
+            page={page}
+            pageCount={pageCount}
+            hasPrev={hasPrev}
+            hasNext={hasNext}
+            isFetching={isFetching}
+            total={total}
+            onPageChange={(nextPage) => {
+              setPage(nextPage);
+              scrollPaginationListToStart(listRef.current);
+            }}
+          />
+        )}
+      </div>
+    </AdminCatalogTabs>
   );
 };
 

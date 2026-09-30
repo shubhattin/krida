@@ -31,6 +31,7 @@ import {
   normalizeSlug
 } from '~/util/puzzle/slug';
 import { escapeIlikeToken, tokenizeSearchQuery } from '~/util/puzzle/search';
+import { puzzleHasTag, puzzleInCollection, tagsForPuzzleIds } from '~/util/catalog/list_query';
 import { BadRequestError, ConflictError, NotFoundError } from '~/effect/errors';
 import { AppConfig } from '~/effect/config';
 import { runTrpcEffect } from '~/effect/run';
@@ -359,6 +360,9 @@ const update_puzzle_route = protectedAdminProcedure
           yield* settle(invalidate_padavali_sitemap());
         }
         yield* settle(
+          invalidate_and_refresh_cache(CACHE.catalog.listed_collections, NO_CACHE_PARAMS)
+        );
+        yield* settle(
           invalidate_and_refresh_cache(CACHE.padavali.word_puzzle, { slug: puzzle_slug })
         );
         if (meanings_input_changed) {
@@ -450,6 +454,9 @@ const update_puzzle_slug_route = protectedAdminProcedure
           );
           yield* settle(invalidate_padavali_sitemap());
         }
+        yield* settle(
+          invalidate_and_refresh_cache(CACHE.catalog.listed_collections, NO_CACHE_PARAMS)
+        );
         if (yield* puzzle_in_current_schedule(puzzle_id)) {
           yield* settle(
             invalidate_and_refresh_cache(CACHE.padavali.current_schedule, NO_CACHE_PARAMS)
@@ -543,6 +550,9 @@ const delete_puzzle_route = protectedAdminProcedure
           yield* settle(invalidate_padavali_sitemap());
         }
         yield* settle(
+          invalidate_and_refresh_cache(CACHE.catalog.listed_collections, NO_CACHE_PARAMS)
+        );
+        yield* settle(
           invalidate_and_refresh_cache(CACHE.padavali.word_puzzle, {
             slug: normalizedSlug
           })
@@ -571,13 +581,15 @@ const get_puzzle_list_input_schema = z.object({
   search_title: z.string().max(500).optional(),
   listed_filter: z.boolean().optional(),
   sort_by: z.enum(['created_at', 'updated_at']).optional().default('created_at'),
-  order_by: z.enum(['asc', 'desc']).optional().default('desc')
+  order_by: z.enum(['asc', 'desc']).optional().default('desc'),
+  tag_slug: z.string().min(1).max(80).optional(),
+  collection_id: z.number().int().optional()
 });
 
 export const get_puzzle_list_page = Effect.fn('padavali.get_puzzle_list_page')(function* (
   input: z.input<typeof get_puzzle_list_input_schema>
 ) {
-  const { page, size, search_title, listed_filter, sort_by, order_by } =
+  const { page, size, search_title, listed_filter, sort_by, order_by, tag_slug, collection_id } =
     get_puzzle_list_input_schema.parse(input);
 
   const trimmedSearch = search_title?.trim();
@@ -592,6 +604,10 @@ export const get_puzzle_list_page = Effect.fn('padavali.get_puzzle_list_page')(f
         or(ilike(padavali_puzzles.title, pattern), ilike(padavali_puzzles.description, pattern))!
       );
     }
+  }
+  if (tag_slug) conditions.push(puzzleHasTag(padavali_puzzles.id, 'padavali', tag_slug));
+  if (collection_id !== undefined) {
+    conditions.push(puzzleInCollection(padavali_puzzles.id, 'padavali', collection_id));
   }
   const whereClause = conditions.length > 0 ? and(...conditions) : undefined;
 
@@ -630,9 +646,14 @@ export const get_puzzle_list_page = Effect.fn('padavali.get_puzzle_list_page')(f
     )
   });
 
+  const tagsByPuzzle = yield* tagsForPuzzleIds(
+    'padavali',
+    rows.map((row) => row.id)
+  );
   const list = rows.map(({ image_s3_key, ...puzzle }) => ({
     ...puzzle,
-    image: image_s3_key ? { s3_key: image_s3_key } : null
+    image: image_s3_key ? { s3_key: image_s3_key } : null,
+    tags: tagsByPuzzle.get(puzzle.id) ?? []
   }));
 
   const total = Number(countResult[0]?.count ?? 0);

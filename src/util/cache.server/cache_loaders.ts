@@ -6,6 +6,8 @@ import type { SitemapCacheLoaders } from './sitemap_cache';
 import { sitemap_cache_loaders } from './sitemap_cache';
 import type { UserCacheLoaders } from './user_cache';
 import { user_cache_loaders } from './user_cache';
+import type { CollectionCacheLoaders } from './collection_cache';
+import { collection_cache_loaders } from './collection_cache';
 
 export {
   NO_CACHE_PARAMS,
@@ -22,11 +24,13 @@ export type CacheLoaderRegistry = {
   crossword: CrosswordCacheLoaders;
   user: UserCacheLoaders;
   sitemap: SitemapCacheLoaders;
+  catalog: CollectionCacheLoaders;
 };
 
 export const CACHE: CacheLoaderRegistry = {
   padavali: padavali_cache_loaders,
   crossword: crossword_cache_loaders,
   user: user_cache_loaders,
-  sitemap: sitemap_cache_loaders
+  sitemap: sitemap_cache_loaders,
+  catalog: collection_cache_loaders
 };

@@ -6,11 +6,12 @@ import { runLoaderEffect } from '~/effect/run';
 import { ListedCrosswordPuzzles } from './-ListedCrosswordPuzzles';
 
 const loader$ = createServerFn({ method: 'GET' }).handler(async () => {
-  const listed_puzzles = await runLoaderEffect(
-    CACHE.crossword.listed_puzzle_list.get(NO_CACHE_PARAMS)
-  );
+  const [listed_puzzles, listed_collections] = await Promise.all([
+    runLoaderEffect(CACHE.crossword.listed_puzzle_list.get(NO_CACHE_PARAMS)),
+    runLoaderEffect(CACHE.catalog.listed_collections.get(NO_CACHE_PARAMS))
+  ]);
 
-  return { listed_puzzles };
+  return { listed_puzzles, listed_collections };
 });
 
 export const Route = createFileRoute('/padajala/(public)/_public/puzzles/')({
@@ -25,7 +26,7 @@ export const Route = createFileRoute('/padajala/(public)/_public/puzzles/')({
 });
 
 function CrosswordPuzzlesPage() {
-  const { listed_puzzles } = Route.useLoaderData();
+  const { listed_puzzles, listed_collections } = Route.useLoaderData();
 
   return (
     <main className="relative min-h-dvh overflow-x-clip">
@@ -36,7 +37,10 @@ function CrosswordPuzzlesPage() {
           background: 'radial-gradient(ellipse at center, hsl(var(--primary)), transparent 70%)'
         }}
       />
-      <ListedCrosswordPuzzles listed_puzzles={listed_puzzles} />
+      <ListedCrosswordPuzzles
+        listed_puzzles={listed_puzzles}
+        listed_collections={listed_collections}
+      />
     </main>
   );
 }

@@ -1,7 +1,7 @@
 import { eq } from 'drizzle-orm';
 import { customAlphabet } from 'nanoid';
 import { z } from 'zod';
-import { crossword_puzzles, padavali_puzzles } from '~/db/schema';
+import { collections, crossword_puzzles, padavali_puzzles } from '~/db/schema';
 import type { DbTransaction } from '~/effect/database';
 
 const UID_LENGTH = 5;
@@ -12,10 +12,11 @@ const createUid = customAlphabet(UID_ALPHABET, UID_LENGTH);
 
 const UID_UNIQUE_CONSTRAINTS = new Set([
   'padavali_puzzles_uid_unique',
-  'crossword_puzzles_uid_unique'
+  'crossword_puzzles_uid_unique',
+  'collections_uid_unique'
 ]);
 
-type PuzzleTable = typeof padavali_puzzles | typeof crossword_puzzles;
+type PuzzleTable = typeof padavali_puzzles | typeof crossword_puzzles | typeof collections;
 
 const driverErrorSchema = z
   .object({

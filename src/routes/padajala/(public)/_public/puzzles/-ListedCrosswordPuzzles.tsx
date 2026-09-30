@@ -10,13 +10,27 @@ import type { CrosswordListedPuzzlesType } from '~/util/cache.server/crossword_c
 import { CrosswordPreviewCard } from '~/components/pages/cross_word/CrosswordPreviewCard';
 import { GameCrossPromo } from '~/components/GameCrossPromo';
 import { useCrosswordListedPuzzles } from '~/components/pages/cross_word/useCrosswordListedPuzzles';
+import type { ListedCollectionsType } from '~/util/cache.server/collection_cache';
+import {
+  BrowseModeSwitch,
+  matchesSelectedTags,
+  PublicCollections,
+  TagFilterPopover,
+  uniqueTags
+} from '~/components/pages/catalog/PublicCatalog';
 
 type Props = {
   listed_puzzles: CrosswordListedPuzzlesType;
+  listed_collections: ListedCollectionsType;
 };
 
-export function ListedCrosswordPuzzles({ listed_puzzles: listed_puzzles_init }: Props) {
+export function ListedCrosswordPuzzles({
+  listed_puzzles: listed_puzzles_init,
+  listed_collections
+}: Props) {
   const [query, setQuery] = useState('');
+  const [browseMode, setBrowseMode] = useState<'puzzles' | 'collections'>('puzzles');
+  const [selectedTags, setSelectedTags] = useState<string[]>([]);
   const listed_puzzles = useCrosswordListedPuzzles(listed_puzzles_init);
 
   const fuse = useMemo(
@@ -29,11 +43,15 @@ export function ListedCrosswordPuzzles({ listed_puzzles: listed_puzzles_init }: 
     [listed_puzzles]
   );
 
-  const filtered = useMemo(() => {
+  const searched = useMemo(() => {
     const trimmed = query.trim();
     if (!trimmed) return listed_puzzles;
     return fuse.search(trimmed).map((result) => result.item);
   }, [fuse, listed_puzzles, query]);
+  const filtered = useMemo(
+    () => searched.filter((puzzle) => matchesSelectedTags(puzzle.tags, selectedTags)),
+    [searched, selectedTags]
+  );
 
   return (
     <div className="relative mx-auto flex w-full max-w-6xl flex-col gap-6 px-4 py-8 sm:px-6">
@@ -56,6 +74,15 @@ export function ListedCrosswordPuzzles({ listed_puzzles: listed_puzzles_init }: 
       {/* Cross-promote Padavali */}
       <GameCrossPromo promote="padavali" toPuzzles />
 
+      <div className="flex flex-wrap items-center gap-2">
+        <BrowseModeSwitch mode={browseMode} onChange={setBrowseMode} />
+        <TagFilterPopover
+          tags={uniqueTags(listed_puzzles)}
+          selected={selectedTags}
+          onChange={setSelectedTags}
+        />
+      </div>
+
       <InputGroup>
         <InputGroupAddon>
           <SearchIcon className="size-4 text-muted-foreground" />
@@ -68,7 +95,13 @@ export function ListedCrosswordPuzzles({ listed_puzzles: listed_puzzles_init }: 
         />
       </InputGroup>
 
-      {filtered.length === 0 ? (
+      {browseMode === 'collections' ? (
+        <PublicCollections
+          collections={listed_collections}
+          game="crossword"
+          puzzles={listed_puzzles}
+        />
+      ) : filtered.length === 0 ? (
         <p className="py-12 text-center text-muted-foreground">
           {listed_puzzles.length === 0 ? 'No listed puzzles yet.' : 'No puzzles match your search.'}
         </p>

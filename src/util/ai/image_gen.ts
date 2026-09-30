@@ -65,8 +65,43 @@ Your task is to create a detailed, vivid image prompt for a given Sanskrit puzzl
 - image_prompt: A single, detailed English paragraph (≤ 150 words) suitable for direct use in an image model.
 `.trim();
 
+const COLLECTION_IMAGE_PROMPT_SYSTEM = `
+You are an expert at crafting image generation prompts for covers of curated Sanskrit puzzle collections.
+
+Your task is to create a detailed, vivid image prompt for a collection title and description. The image represents the collection as a whole, not one puzzle.
+
+**Art style rules:**
+- Modern flat-illustration style with rich, warm color palettes (saffron, ochre, deep teal, ivory, crimson, gold).
+- Inspired by Indian miniature painting aesthetics combined with clean modern graphic design.
+- Picture-book illustration quality — bold outlines, no photo-realism.
+- NO text, letters, or inscriptions anywhere in the image.
+- NO borders, frames, or decorative margins.
+- Do not mess up the gender of the subject (devi, deva, etc.).
+- Include the central subject, not only symbols that stand in for it.
+- Include a temple in the background only when it fits the theme.
+
+**Composition rules:**
+- LANDSCAPE orientation (wider than tall, 3:2 aspect ratio).
+- Primary subject must be strongly centered — both vertically and horizontally — so it remains prominent even if the image is cropped to a square.
+- The composition should still use the full width: flanking elements can extend to the edges, but must not compete with the center subject.
+
+**Indian-context guardrails:**
+- All visual references must be drawn from Indian/Hindu Dharma traditions.
+- Avoid any Western, Chinese, or non-Indian cultural symbols.
+
+**Output schema:**
+- image_prompt: A single, detailed English paragraph (≤ 150 words) suitable for direct use in an image model.
+`.trim();
+
 const IMAGE_PROMPT_USER = `
 Generate an image prompt for the following Sanskrit puzzle:
+
+Title: "{title}"
+Description: "{description}"
+`.trim();
+
+const COLLECTION_IMAGE_PROMPT_USER = `
+Generate an image prompt for the following curated Sanskrit puzzle collection:
 
 Title: "{title}"
 Description: "{description}"
@@ -93,8 +128,10 @@ export const generate_puzzle_image_input_schema = z.object({
   extra_instructions: z.string().optional(),
   /** Supply a pre-written image prompt to skip the prompt-generation step */
   existing_image_prompt: z.string().optional(),
-  /** Which game the image belongs to — controls the S3 subdirectory. Defaults to padavali for back-compat. */
-  game: z.enum(KRIDAS)
+  /** Which game the image belongs to — controls the S3 subdirectory for puzzle images. */
+  game: z.enum(KRIDAS),
+  /** Collection covers use a different prompt and the `collections` S3 folder. */
+  subject: z.enum(['puzzle', 'collection']).optional()
 });
 export type GeneratePuzzleImageInput = z.infer<typeof generate_puzzle_image_input_schema>;
 export const generate_puzzle_image_output_schema = z.discriminatedUnion('success', [
@@ -149,12 +186,11 @@ const buildImagePromptUserPrompt = (
   title: string,
   description?: string,
   words?: string[],
-  extra_instructions?: string
+  extra_instructions?: string,
+  subject: 'puzzle' | 'collection' = 'puzzle'
 ): string => {
-  let user_prompt = IMAGE_PROMPT_USER.replace('{title}', title).replace(
-    '{description}',
-    description ?? ''
-  );
+  const template = subject === 'collection' ? COLLECTION_IMAGE_PROMPT_USER : IMAGE_PROMPT_USER;
+  let user_prompt = template.replace('{title}', title).replace('{description}', description ?? '');
 
   const trimmed_words = words?.map((w) => w.trim()).filter((w) => w.length > 0);
   if (trimmed_words && trimmed_words.length > 0) {
@@ -187,15 +223,16 @@ export const generateImagePrompt = Effect.fn('generateImagePrompt')(function* (
   title: string,
   description?: string,
   words?: string[],
-  extra_instructions?: string
+  extra_instructions?: string,
+  subject: 'puzzle' | 'collection' = 'puzzle'
 ) {
   const ai = yield* AiProvider;
   const response = yield* ai.generateObject({
     operation: 'generate_image_prompt',
     provider: 'openrouter',
     model: ai.openrouterModel(OPENROUTER_MODELS.image_prompt),
-    system: IMAGE_PROMPT_SYSTEM,
-    prompt: buildImagePromptUserPrompt(title, description, words, extra_instructions),
+    system: subject === 'collection' ? COLLECTION_IMAGE_PROMPT_SYSTEM : IMAGE_PROMPT_SYSTEM,
+    prompt: buildImagePromptUserPrompt(title, description, words, extra_instructions, subject),
     schema: image_prompt_response_schema
   });
   return response.image_prompt;
@@ -227,9 +264,12 @@ const sanitizeAssetFileName = (file_name: string): string => {
 const createAssetLocation = (
   game: GeneratePuzzleImageInput['game'],
   file_name: string,
-  suffix: string
-): AssetLocation =>
-  `${PROJECT_S3_ALIAS}/${game}/image_assets/${sanitizeAssetFileName(file_name)}_${suffix}.webp`;
+  suffix: string,
+  subject: GeneratePuzzleImageInput['subject']
+): AssetLocation => {
+  const folder = subject === 'collection' ? 'collections' : game;
+  return `${PROJECT_S3_ALIAS}/${folder}/image_assets/${sanitizeAssetFileName(file_name)}_${suffix}.webp`;
+};
 
 const insertImageAssetRecord = Effect.fn('insertImageAssetRecord')(function* (
   db_instance: TxOrDb | undefined,
@@ -273,6 +313,7 @@ const resolveGeneratedImageState = Effect.fn('resolveGeneratedImageState')(funct
   existing_file_name_description?: FileNameDescription
 ) {
   const { title, description, words, extra_instructions, existing_image_prompt } = input;
+  const subject = input.subject ?? 'puzzle';
 
   if (existing_image_b64 && existing_image_b64.length > 0) {
     return {
@@ -285,7 +326,7 @@ const resolveGeneratedImageState = Effect.fn('resolveGeneratedImageState')(funct
 
   const image_prompt = existing_image_prompt
     ? existing_image_prompt
-    : yield* generateImagePrompt(title, description, words, extra_instructions);
+    : yield* generateImagePrompt(title, description, words, extra_instructions, subject);
 
   const file_name_description = yield* generateFileNameAndDescription(image_prompt);
   const image_b64 = yield* generatePuzzleCardImage(image_prompt);
@@ -360,7 +401,8 @@ export const generateSavePuzzleImage = Effect.fn('generateSavePuzzleImage')(func
   const s3_key = createAssetLocation(
     input.game,
     generated_image.value.file_name,
-    crypto.randomUUID()
+    crypto.randomUUID(),
+    input.subject ?? 'puzzle'
   );
   const uploaded = yield* storage.uploadAssetFile(s3_key, compressed_result.buffer).pipe(
     Effect.as(true as const),
