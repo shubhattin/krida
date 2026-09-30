@@ -218,8 +218,14 @@ const PuzzleListView = ({
         </div>
       </div>
       <div className="container mx-auto max-w-6xl px-4 py-6">
-        {/* Cross-promote Padajala */}
-        <div className="mb-6">
+        <div className="mb-6 flex flex-col gap-3">
+          <Button
+            variant="outline"
+            nativeButton={false}
+            render={<Link to="/explore" search={{ game: 'padavali', view: 'puzzles' }} />}
+          >
+            Open in Explore — all games and paths
+          </Button>
           <GameCrossPromo promote="padajala" toPuzzles />
         </div>
         <div className="mb-6 flex flex-col items-stretch justify-center gap-3 sm:flex-row sm:items-center">

@@ -9,6 +9,7 @@ import { InputGroup, InputGroupAddon, InputGroupInput } from '~/components/ui/in
 import type { CrosswordListedPuzzlesType } from '~/util/cache.server/crossword_cache';
 import { CrosswordPreviewCard } from '~/components/pages/cross_word/CrosswordPreviewCard';
 import { GameCrossPromo } from '~/components/GameCrossPromo';
+import { Button } from '~/components/ui/button';
 import { useCrosswordListedPuzzles } from '~/components/pages/cross_word/useCrosswordListedPuzzles';
 import type { ListedCollectionsType } from '~/util/cache.server/collection_cache';
 import {
@@ -71,7 +72,13 @@ export function ListedCrosswordPuzzles({
         </div>
       </div>
 
-      {/* Cross-promote Padavali */}
+      <Button
+        variant="outline"
+        nativeButton={false}
+        render={<Link to="/explore" search={{ game: 'crossword', view: 'puzzles' }} />}
+      >
+        Open in Explore — all games and paths
+      </Button>
       <GameCrossPromo promote="padavali" toPuzzles />
 
       <div className="flex flex-wrap items-center gap-2">

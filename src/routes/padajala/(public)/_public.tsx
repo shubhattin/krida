@@ -2,16 +2,24 @@ import { createFileRoute, Outlet } from '@tanstack/react-router';
 import { ExternalLink, Book, Music } from 'lucide-react';
 import { SiGithub } from 'react-icons/si';
 import { FaYoutube, FaInstagram } from 'react-icons/fa';
+import { CrosswordMenuItems } from '~/components/app-bar/GameMenuItems';
+import { hubNavData$ } from '~/components/hub/hub_data';
+import HubShell from '~/components/hub/HubShell';
 import { cn } from '~/lib/utils';
 
 export const Route = createFileRoute('/padajala/(public)/_public')({
+  loader: () => hubNavData$(),
   component: PublicLayout
 });
 
 function PublicLayout() {
+  const nav = Route.useLoaderData();
+
   return (
-    <>
-      <Outlet />
+    <HubShell nav={nav} profileGame="crossword" gameMenuItems={<CrosswordMenuItems />}>
+      <div className="mx-2">
+        <Outlet />
+      </div>
       <footer
         className={cn(
           'pt-3 pb-6 sm:pt-4 sm:pb-6',
@@ -88,6 +96,6 @@ function PublicLayout() {
           </div>
         </div>
       </footer>
-    </>
+    </HubShell>
   );
 }
