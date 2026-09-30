@@ -3,15 +3,27 @@ import { ExternalLink, Book, Music } from 'lucide-react';
 import { SiGithub } from 'react-icons/si';
 import { FaYoutube, FaInstagram } from 'react-icons/fa';
 import { PWAInstallButton } from '~/components/PWA/PWAInit';
+import { PadavaliMenuItems } from '~/components/app-bar/GameMenuItems';
+import { hubNavData$ } from '~/components/hub/hub_data';
+import HubShell from '~/components/hub/HubShell';
 import { cn } from '~/lib/utils';
 
 export const Route = createFileRoute('/padavali/(public)/_public')({
+  loader: () => hubNavData$(),
   component: PublicLayout
 });
 
 function PublicLayout() {
+  const nav = Route.useLoaderData();
+
   return (
-    <>
+    <HubShell
+      collections={nav.collections}
+      tags={nav.tags}
+      profileGame="padavali"
+      showPwaControls
+      gameMenuItems={<PadavaliMenuItems />}
+    >
       <Outlet />
       <footer
         className={cn(
@@ -100,6 +112,6 @@ function PublicLayout() {
           </div>
         </div>
       </footer>
-    </>
+    </HubShell>
   );
 }
