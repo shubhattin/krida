@@ -9,7 +9,8 @@ import {
   jsonb,
   boolean,
   primaryKey,
-  index
+  index,
+  integer
 } from 'drizzle-orm/pg-core';
 import { ATTACHMENT_TYPE_LIST } from '../db_shared_vals';
 import type { BatchMetadata } from '~/util/types/ai_batch_metadata';
@@ -33,6 +34,40 @@ export const image_assets = pgTable(
     // the generated migration — drizzle-kit does not manage extensions).
     index('image_assets_description_trgm_idx').using('gin', table.description.op('gin_trgm_ops'))
   ]
+);
+
+/**
+ * Loose labels shared by every game. A puzzle can carry many tags, and a tag
+ * does not decide collection membership.
+ */
+export const tags = pgTable('tags', {
+  id: serial().primaryKey(),
+  /** URL-safe identifier, e.g. `shri-rama`. */
+  slug: text().notNull().unique(),
+  name: text().notNull(),
+  created_at: timestamp({ withTimezone: true }).notNull().defaultNow()
+});
+
+/**
+ * A curated, ordered set of games. Membership is hand-picked per game via join
+ * tables, so a collection can mix Padavali and Padajala.
+ */
+export const collections = pgTable(
+  'collections',
+  {
+    id: serial().primaryKey(),
+    /** Short unique nano-id */
+    uid: text().notNull().unique(),
+    slug: text().notNull().unique(),
+    title: text().notNull(),
+    description: text().notNull().default(''),
+    image_id: integer().references(() => image_assets.id, { onDelete: 'set null' }),
+    /** Whether the collection is listed on the public puzzles pages */
+    listed: boolean().notNull().default(false),
+    created_at: timestamp({ withTimezone: true }).notNull().defaultNow(),
+    updated_at: timestamp({ withTimezone: true }).$onUpdate(() => new Date())
+  },
+  (table) => [index('collections_listed_created_at_idx').on(table.listed, table.created_at)]
 );
 
 export const attachment_type_enum = pgEnum('attachment_type', ATTACHMENT_TYPE_LIST);
