@@ -5,7 +5,7 @@ import { QueueError, ValidationError } from './errors';
 
 const PositiveInt = Schema.Int.check(Schema.isGreaterThan(0));
 const NonNegInt = Schema.Int.check(Schema.isGreaterThanOrEqualTo(0));
-const Key32 = Schema.String.check(Schema.isLengthBetween(32, 32));
+const Key32 = Schema.String.check(Schema.isBetweenLength(32, 32));
 const NonEmptyString = Schema.String.check(Schema.isMinLength(1));
 
 export const scheduleListingPayloadSchema = Schema.Struct({
