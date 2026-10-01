@@ -9,7 +9,7 @@
 // Additionally, you should also exclude this file from your linter and/or formatter to prevent it from being checked or modified.
 
 import { Route as rootRouteImport } from './routes/__root'
-import { Route as IndexRouteImport } from './routes/index'
+import { Route as HubRouteImport } from './routes/_hub'
 import { Route as DashboardRouteImport } from './routes/dashboard'
 import { Route as PadajalaRouteRouteImport } from './routes/padajala/route'
 import { Route as PadavaliRouteRouteImport } from './routes/padavali/route'
@@ -17,7 +17,10 @@ import { Route as RobotsDottxtRouteImport } from './routes/robots[.]txt'
 import { Route as Sitemap0DotxmlRouteImport } from './routes/sitemap-0[.]xml'
 import { Route as Sitemap1DotxmlRouteImport } from './routes/sitemap-1[.]xml'
 import { Route as SitemapIndexDotxmlRouteImport } from './routes/sitemap-index[.]xml'
+import { Route as HubIndexRouteImport } from './routes/_hub/index'
+import { Route as HubExploreRouteImport } from './routes/_hub/explore'
 import { Route as CrosswordSplatRouteImport } from './routes/crossword.$'
+import { Route as HubCollectionsSlugRouteImport } from './routes/_hub/collections/$slug'
 import { Route as ApiQstashNew_puzzle_notificationRouteImport } from './routes/api/qstash/new_puzzle_notification'
 import { Route as ApiQstashSave_ai_batch_resultsRouteImport } from './routes/api/qstash/save_ai_batch_results'
 import { Route as ApiQstashSchedule_listingRouteImport } from './routes/api/qstash/schedule_listing'
@@ -56,9 +59,8 @@ import { Route as PadajalaauthAuthSchedulesEditIdRouteImport } from './routes/pa
 import { Route as PadavaliauthAuthSchedulesAddIndexRouteImport } from './routes/padavali/(auth)/_auth/schedules/add/index'
 import { Route as PadavaliauthAuthSchedulesEditIdRouteImport } from './routes/padavali/(auth)/_auth/schedules/edit/$id'
 
-const IndexRoute = IndexRouteImport.update({
-  id: '/',
-  path: '/',
+const HubRoute = HubRouteImport.update({
+  id: '/_hub',
   getParentRoute: () => rootRouteImport,
 } as any)
 const DashboardRoute = DashboardRouteImport.update({
@@ -96,10 +98,25 @@ const SitemapIndexDotxmlRoute = SitemapIndexDotxmlRouteImport.update({
   path: '/sitemap-index.xml',
   getParentRoute: () => rootRouteImport,
 } as any)
+const HubIndexRoute = HubIndexRouteImport.update({
+  id: '/',
+  path: '/',
+  getParentRoute: () => HubRoute,
+} as any)
+const HubExploreRoute = HubExploreRouteImport.update({
+  id: '/explore',
+  path: '/explore',
+  getParentRoute: () => HubRoute,
+} as any)
 const CrosswordSplatRoute = CrosswordSplatRouteImport.update({
   id: '/crossword/$',
   path: '/crossword/$',
   getParentRoute: () => rootRouteImport,
+} as any)
+const HubCollectionsSlugRoute = HubCollectionsSlugRouteImport.update({
+  id: '/collections/$slug',
+  path: '/collections/$slug',
+  getParentRoute: () => HubRoute,
 } as any)
 const ApiQstashNew_puzzle_notificationRoute =
   ApiQstashNew_puzzle_notificationRouteImport.update({
@@ -314,15 +331,17 @@ const PadavaliauthAuthSchedulesEditIdRoute =
   } as any)
 
 export interface FileRoutesByFullPath {
-  '/': typeof IndexRoute
   '/padajala': typeof PadajalaRouteRouteWithChildren
   '/padavali': typeof PadavaliRouteRouteWithChildren
+  '/': typeof HubIndexRoute
   '/dashboard': typeof DashboardRoute
   '/robots.txt': typeof RobotsDottxtRoute
   '/sitemap-0.xml': typeof Sitemap0DotxmlRoute
   '/sitemap-1.xml': typeof Sitemap1DotxmlRoute
   '/sitemap-index.xml': typeof SitemapIndexDotxmlRoute
+  '/explore': typeof HubExploreRoute
   '/crossword/$': typeof CrosswordSplatRoute
+  '/collections/$slug': typeof HubCollectionsSlugRoute
   '/api/qstash/new_puzzle_notification': typeof ApiQstashNew_puzzle_notificationRoute
   '/api/qstash/save_ai_batch_results': typeof ApiQstashSave_ai_batch_resultsRoute
   '/api/qstash/schedule_listing': typeof ApiQstashSchedule_listingRoute
@@ -358,7 +377,6 @@ export interface FileRoutesByFullPath {
   '/padavali/schedules/add/': typeof PadavaliauthAuthSchedulesAddIndexRoute
 }
 export interface FileRoutesByTo {
-  '/': typeof IndexRoute
   '/padajala': typeof PadajalapublicPublicIndexRoute
   '/padavali': typeof PadavalipublicPublicIndexRoute
   '/dashboard': typeof DashboardRoute
@@ -366,7 +384,10 @@ export interface FileRoutesByTo {
   '/sitemap-0.xml': typeof Sitemap0DotxmlRoute
   '/sitemap-1.xml': typeof Sitemap1DotxmlRoute
   '/sitemap-index.xml': typeof SitemapIndexDotxmlRoute
+  '/explore': typeof HubExploreRoute
   '/crossword/$': typeof CrosswordSplatRoute
+  '/': typeof HubIndexRoute
+  '/collections/$slug': typeof HubCollectionsSlugRoute
   '/api/qstash/new_puzzle_notification': typeof ApiQstashNew_puzzle_notificationRoute
   '/api/qstash/save_ai_batch_results': typeof ApiQstashSave_ai_batch_resultsRoute
   '/api/qstash/schedule_listing': typeof ApiQstashSchedule_listingRoute
@@ -401,15 +422,18 @@ export interface FileRoutesByTo {
 }
 export interface FileRoutesById {
   __root__: typeof rootRouteImport
-  '/': typeof IndexRoute
   '/padajala': typeof PadajalaRouteRouteWithChildren
   '/padavali': typeof PadavaliRouteRouteWithChildren
+  '/_hub': typeof HubRouteWithChildren
   '/dashboard': typeof DashboardRoute
   '/robots.txt': typeof RobotsDottxtRoute
   '/sitemap-0.xml': typeof Sitemap0DotxmlRoute
   '/sitemap-1.xml': typeof Sitemap1DotxmlRoute
   '/sitemap-index.xml': typeof SitemapIndexDotxmlRoute
+  '/_hub/explore': typeof HubExploreRoute
   '/crossword/$': typeof CrosswordSplatRoute
+  '/_hub/': typeof HubIndexRoute
+  '/_hub/collections/$slug': typeof HubCollectionsSlugRoute
   '/api/qstash/new_puzzle_notification': typeof ApiQstashNew_puzzle_notificationRoute
   '/api/qstash/save_ai_batch_results': typeof ApiQstashSave_ai_batch_resultsRoute
   '/api/qstash/schedule_listing': typeof ApiQstashSchedule_listingRoute
@@ -451,15 +475,17 @@ export interface FileRoutesById {
 export interface FileRouteTypes {
   fileRoutesByFullPath: FileRoutesByFullPath
   fullPaths:
-    | '/'
     | '/padajala'
     | '/padavali'
+    | '/'
     | '/dashboard'
     | '/robots.txt'
     | '/sitemap-0.xml'
     | '/sitemap-1.xml'
     | '/sitemap-index.xml'
+    | '/explore'
     | '/crossword/$'
+    | '/collections/$slug'
     | '/api/qstash/new_puzzle_notification'
     | '/api/qstash/save_ai_batch_results'
     | '/api/qstash/schedule_listing'
@@ -495,7 +521,6 @@ export interface FileRouteTypes {
     | '/padavali/schedules/add/'
   fileRoutesByTo: FileRoutesByTo
   to:
-    | '/'
     | '/padajala'
     | '/padavali'
     | '/dashboard'
@@ -503,7 +528,10 @@ export interface FileRouteTypes {
     | '/sitemap-0.xml'
     | '/sitemap-1.xml'
     | '/sitemap-index.xml'
+    | '/explore'
     | '/crossword/$'
+    | '/'
+    | '/collections/$slug'
     | '/api/qstash/new_puzzle_notification'
     | '/api/qstash/save_ai_batch_results'
     | '/api/qstash/schedule_listing'
@@ -537,15 +565,18 @@ export interface FileRouteTypes {
     | '/padavali/schedules/add'
   id:
     | '__root__'
-    | '/'
     | '/padajala'
     | '/padavali'
+    | '/_hub'
     | '/dashboard'
     | '/robots.txt'
     | '/sitemap-0.xml'
     | '/sitemap-1.xml'
     | '/sitemap-index.xml'
+    | '/_hub/explore'
     | '/crossword/$'
+    | '/_hub/'
+    | '/_hub/collections/$slug'
     | '/api/qstash/new_puzzle_notification'
     | '/api/qstash/save_ai_batch_results'
     | '/api/qstash/schedule_listing'
@@ -586,9 +617,9 @@ export interface FileRouteTypes {
   fileRoutesById: FileRoutesById
 }
 export interface RootRouteChildren {
-  IndexRoute: typeof IndexRoute
   PadajalaRouteRoute: typeof PadajalaRouteRouteWithChildren
   PadavaliRouteRoute: typeof PadavaliRouteRouteWithChildren
+  HubRoute: typeof HubRouteWithChildren
   DashboardRoute: typeof DashboardRoute
   RobotsDottxtRoute: typeof RobotsDottxtRoute
   Sitemap0DotxmlRoute: typeof Sitemap0DotxmlRoute
@@ -604,11 +635,11 @@ export interface RootRouteChildren {
 
 declare module '@tanstack/react-router' {
   interface FileRoutesByPath {
-    '/': {
-      id: '/'
-      path: '/'
+    '/_hub': {
+      id: '/_hub'
+      path: ''
       fullPath: '/'
-      preLoaderRoute: typeof IndexRouteImport
+      preLoaderRoute: typeof HubRouteImport
       parentRoute: typeof rootRouteImport
     }
     '/dashboard': {
@@ -660,12 +691,33 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof SitemapIndexDotxmlRouteImport
       parentRoute: typeof rootRouteImport
     }
+    '/_hub/': {
+      id: '/_hub/'
+      path: '/'
+      fullPath: '/'
+      preLoaderRoute: typeof HubIndexRouteImport
+      parentRoute: typeof HubRoute
+    }
+    '/_hub/explore': {
+      id: '/_hub/explore'
+      path: '/explore'
+      fullPath: '/explore'
+      preLoaderRoute: typeof HubExploreRouteImport
+      parentRoute: typeof HubRoute
+    }
     '/crossword/$': {
       id: '/crossword/$'
       path: '/crossword/$'
       fullPath: '/crossword/$'
       preLoaderRoute: typeof CrosswordSplatRouteImport
       parentRoute: typeof rootRouteImport
+    }
+    '/_hub/collections/$slug': {
+      id: '/_hub/collections/$slug'
+      path: '/collections/$slug'
+      fullPath: '/collections/$slug'
+      preLoaderRoute: typeof HubCollectionsSlugRouteImport
+      parentRoute: typeof HubRoute
     }
     '/api/qstash/new_puzzle_notification': {
       id: '/api/qstash/new_puzzle_notification'
@@ -1055,10 +1107,24 @@ const PadavaliRouteRouteWithChildren = PadavaliRouteRoute._addFileChildren(
   PadavaliRouteRouteChildren,
 )
 
+interface HubRouteChildren {
+  HubExploreRoute: typeof HubExploreRoute
+  HubIndexRoute: typeof HubIndexRoute
+  HubCollectionsSlugRoute: typeof HubCollectionsSlugRoute
+}
+
+const HubRouteChildren: HubRouteChildren = {
+  HubExploreRoute: HubExploreRoute,
+  HubIndexRoute: HubIndexRoute,
+  HubCollectionsSlugRoute: HubCollectionsSlugRoute,
+}
+
+const HubRouteWithChildren = HubRoute._addFileChildren(HubRouteChildren)
+
 const rootRouteChildren: RootRouteChildren = {
-  IndexRoute: IndexRoute,
   PadajalaRouteRoute: PadajalaRouteRouteWithChildren,
   PadavaliRouteRoute: PadavaliRouteRouteWithChildren,
+  HubRoute: HubRouteWithChildren,
   DashboardRoute: DashboardRoute,
   RobotsDottxtRoute: RobotsDottxtRoute,
   Sitemap0DotxmlRoute: Sitemap0DotxmlRoute,
