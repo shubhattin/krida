@@ -1,6 +1,4 @@
 import { Outlet, createFileRoute } from '@tanstack/react-router';
-import AppBar from '~/components/app-bar/AppBar';
-import { CrosswordMenuItems } from '~/components/app-bar/GameMenuItems';
 import { AppContextProvider } from '~/components/AppDataContext';
 import { getScript$ } from '~/lib/cache_server_route_data';
 
@@ -21,10 +19,7 @@ function PadajalaLayout() {
 
   return (
     <AppContextProvider initialScript={script}>
-      <AppBar game="crossword" gameMenuItems={<CrosswordMenuItems />} />
-      <div className="mx-2">
-        <Outlet />
-      </div>
+      <Outlet />
     </AppContextProvider>
   );
 }
