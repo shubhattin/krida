@@ -10,27 +10,43 @@ import {
   UPIIcon,
   YoutubeIcon
 } from '../icons';
+import { Heart } from 'lucide-react';
 import { cn } from '~/lib/utils';
+import { Button } from '~/components/ui/button';
 import { Dialog, DialogContent, DialogHeader, DialogTrigger } from '~/components/ui/dialog';
 import QRCode from 'qrcode';
 import ImageSpan from '../ImageSpan';
 import { DialogTitle } from '~/components/ui/dialog';
 
-// Main component
-const SupportOptions = () => {
+const SupportOptions = ({ compact = false }: { compact?: boolean }) => {
   return (
     <Dialog>
-      <DialogTrigger>
-        <span
-          className={cn(
-            '-mt-1 rounded-md px-1 py-2 font-semibold outline-hidden select-none hover:bg-gray-200 sm:px-2 dark:hover:bg-gray-700',
-            'mr-3 space-x-1.5 sm:mr-3'
-          )}
+      {compact ? (
+        <DialogTrigger
+          render={
+            <Button
+              variant="ghost"
+              size="icon"
+              aria-label="Support our projects"
+              className="text-rose-500 hover:bg-rose-50 hover:text-rose-600 dark:text-rose-400 dark:hover:bg-rose-950/40 dark:hover:text-rose-300"
+            />
+          }
         >
-          <Icon src={ContributeIcon} className="text-3xl text-rose-500 dark:text-rose-300" />
-          <span className="hidden text-sm font-semibold sm:inline">Support Our Projects</span>
-        </span>
-      </DialogTrigger>
+          <Heart />
+        </DialogTrigger>
+      ) : (
+        <DialogTrigger>
+          <span
+            className={cn(
+              '-mt-1 rounded-md px-1 py-2 font-semibold outline-hidden select-none hover:bg-gray-200 sm:px-2 dark:hover:bg-gray-700',
+              'mr-3 space-x-1.5 sm:mr-3'
+            )}
+          >
+            <Icon src={ContributeIcon} className="text-3xl text-rose-500 dark:text-rose-300" />
+            <span className="hidden text-sm font-semibold sm:inline">Support Our Projects</span>
+          </span>
+        </DialogTrigger>
+      )}
       <DialogContent className="w-80 bg-slate-200 p-3 dark:bg-gray-900">
         <DialogHeader>
           <DialogTitle>
