@@ -2,6 +2,8 @@ import { Outlet, createFileRoute } from '@tanstack/react-router';
 import { ExternalLink, Book, Music } from 'lucide-react';
 import { SiGithub } from 'react-icons/si';
 import { FaYoutube, FaInstagram } from 'react-icons/fa';
+import { PadavaliMenuItems } from '~/components/app-bar/GameMenuItems';
+import { HubHeader } from '~/components/hub/HubHeader';
 import { PWAInstallButton } from '~/components/PWA/PWAInit';
 import { cn } from '~/lib/utils';
 
@@ -12,7 +14,10 @@ export const Route = createFileRoute('/padavali/(public)/_public')({
 function PublicLayout() {
   return (
     <>
-      <Outlet />
+      <HubHeader activeGame="padavali" showPwaControls gameMenuItems={<PadavaliMenuItems />} />
+      <div className="mx-2">
+        <Outlet />
+      </div>
       <footer
         className={cn(
           'py-6 sm:py-8',
