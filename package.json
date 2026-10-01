@@ -76,7 +76,7 @@
     "dayjs": "^1.11.21",
     "drizzle-orm": "^0.43.1",
     "drizzle-zod": "^0.8.3",
-    "effect": "4.0.0-rc.111",
+    "effect": "4.0.0",
     "embla-carousel-react": "^8.6.0",
     "framer-motion": "^12.42.0",
     "fuse.js": "^7.5.0",
@@ -113,7 +113,7 @@
   },
   "devDependencies": {
     "@aws-sdk/client-s3": "^3.1075.0",
-    "@effect/vitest": "4.0.0-rc.111",
+    "@effect/vitest": "4.0.0",
     "@oxlint/plugins": "1.80.0",
     "@tanstack/devtools-vite": "0.6.0",
     "@tanstack/react-query-devtools": "5.101.4",
