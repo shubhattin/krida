@@ -22,6 +22,7 @@ import { Toaster } from '@/components/ui/sonner';
 import { cn } from '~/lib/utils';
 import { RouteProgress } from '~/components/RouteProgress';
 import PosthogInit from '~/components/tags/PosthogInit';
+import PWAInit from '~/components/PWA/PWAInit';
 import NotFound from './-NotFound';
 
 export const Route = createRootRouteWithContext<{ queryClient: QueryClient }>()({
@@ -34,8 +35,8 @@ export const Route = createRootRouteWithContext<{ queryClient: QueryClient }>()(
         content:
           'width=device-width, initial-scale=1, maximum-scale=1, user-scalable=no, viewport-fit=cover'
       },
-      { title: 'Padāvalī' },
-      { name: 'apple-mobile-web-app-title', content: 'Padavali' },
+      { title: 'Krida (क्रीडा)' },
+      { name: 'apple-mobile-web-app-title', content: 'Krida' },
       { name: 'apple-mobile-web-app-status-bar-style', content: 'black-translucent' }
     ],
     links: [
@@ -91,6 +92,7 @@ function RootProviders({ children }: { children: React.ReactNode }) {
       <TRPCProvider trpcClient={trpcClient} queryClient={queryClient}>
         <Toaster richColors={true} />
         {children}
+        <PWAInit />
         {import.meta.env.DEV && (
           <TanStackDevtools
             config={{ position: 'bottom-right' }}

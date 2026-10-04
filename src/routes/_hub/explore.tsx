@@ -18,7 +18,7 @@ export const Route = createFileRoute('/_hub/explore')({
   validateSearch: explore_search_schema,
   head: () =>
     routeHeadFromPageMeta({
-      title: 'Explore Sanskrit Puzzles | Sanskrit Games',
+      title: 'Explore Sanskrit Puzzles | Krida',
       project: 'landing_page',
       description:
         'Browse every Sanskrit word-search and crossword puzzle, curated collections, and topics in one place.'

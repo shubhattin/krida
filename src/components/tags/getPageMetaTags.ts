@@ -20,6 +20,12 @@ export function shareImageInfoFromAsset(
 
 export type MetadataProject = 'padavali' | 'padajala' | 'landing_page';
 
+const SITE_NAME = {
+  padavali: 'Padavali',
+  padajala: 'Padajāla',
+  landing_page: 'Krida (क्रीडा)'
+} as const satisfies Record<MetadataProject, string>;
+
 interface Props {
   title: string;
   description?: string | null;
@@ -66,7 +72,7 @@ export function routeHeadFromPageMeta({
       ...(robots ? ([{ name: 'robots', content: robots }] as const) : []),
       { property: 'og:title', content: title },
       ...(desc ? ([{ property: 'og:description', content: desc }] as const) : []),
-      { property: 'og:site_name', content: 'Padavali' },
+      { property: 'og:site_name', content: SITE_NAME[project] },
       { property: 'og:type', content: 'website' },
       { property: 'og:image', content: image.url },
       { property: 'og:image:width', content: String(image.width) },

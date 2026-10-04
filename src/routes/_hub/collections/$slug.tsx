@@ -31,7 +31,7 @@ export const Route = createFileRoute('/_hub/collections/$slug')({
   },
   head: ({ loaderData }) =>
     routeHeadFromPageMeta({
-      title: loaderData ? `${loaderData.title} | Sanskrit Games` : 'Collection | Sanskrit Games',
+      title: loaderData ? `${loaderData.title} | Krida` : 'Collection | Krida',
       project: 'landing_page',
       description: loaderData?.description || 'A curated collection of Sanskrit puzzles.',
       share_image_info: shareImageInfoFromAsset(loaderData?.image)

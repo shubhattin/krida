@@ -10,11 +10,11 @@ export const Route = createFileRoute('/padajala/(public)/_public')({
 function PublicLayout() {
   return (
     <div className="public-canvas flex min-h-dvh flex-col">
-      <HubHeader gameMenuItems={<CrosswordMenuItems />} />
+      <HubHeader showPwaControls gameMenuItems={<CrosswordMenuItems />} />
       <div className="flex-1">
         <Outlet />
       </div>
-      <HubFooter />
+      <HubFooter showPwa />
     </div>
   );
 }

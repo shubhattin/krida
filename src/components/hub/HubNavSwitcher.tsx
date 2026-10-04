@@ -158,8 +158,7 @@ function SwitcherTriggerLabel({ activeGame }: { activeGame: HubGameMeta | null }
   return (
     <>
       <GamesMark className="hidden sm:flex" />
-      <span className="truncate sm:hidden">Sanskrit Games</span>
-      <span className="hidden truncate sm:inline">Games</span>
+      <span className="truncate">Krida</span>
     </>
   );
 }
@@ -228,24 +227,5 @@ export function HubNavSwitcher({ active }: { active: HubNavId }) {
         </div>
       </PopoverContent>
     </Popover>
-  );
-}
-
-export function ExploreHeaderLink({ active }: { active: boolean }) {
-  return (
-    <Link
-      to="/explore"
-      aria-current={active ? 'page' : undefined}
-      aria-label="Explore"
-      className={cn(
-        'inline-flex h-9 items-center gap-1.5 rounded-full px-2.5 text-sm font-semibold no-underline transition-colors',
-        active
-          ? 'bg-indigo-600 text-white shadow-sm shadow-indigo-500/25'
-          : 'text-slate-600 hover:bg-indigo-50 hover:text-indigo-700 dark:text-slate-300 dark:hover:bg-slate-800 dark:hover:text-indigo-200'
-      )}
-    >
-      <Compass className="size-4 shrink-0" />
-      <span className="hidden sm:inline">Explore</span>
-    </Link>
   );
 }
