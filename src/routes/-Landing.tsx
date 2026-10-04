@@ -823,80 +823,94 @@ export function GameShowcaseCard({
         className={`absolute -inset-1 rounded-3xl bg-linear-to-br ${game.gradient.from} ${game.gradient.to} opacity-0 blur-xl transition-opacity duration-500 group-hover:opacity-15`}
       />
 
-      <div
-        className={`relative flex h-full flex-col overflow-hidden rounded-2xl border ${game.gradient.border} bg-white/60 shadow-lg backdrop-blur-md transition-transform duration-300 group-hover:-translate-y-1 group-hover:shadow-xl dark:bg-slate-900/50`}
-      >
-        <div className={cn('flex items-start', compact ? 'gap-3 p-3.5 pb-2' : 'gap-3.5 p-5 pb-3')}>
-          <GameAppIcon game={game.id} name={game.name} size={compact ? 'md' : 'lg'} />
-
-          <div className="min-w-0 flex-1">
-            <h3
-              className={`bg-linear-to-r ${game.gradient.text} ${game.gradient.textDark} bg-clip-text font-black tracking-tight text-transparent ${compact ? 'text-lg' : 'text-xl'}`}
-            >
-              {game.name}
-            </h3>
-            <span className="text-xs font-semibold tracking-wide text-slate-500 uppercase dark:text-slate-400">
-              {game.subtitle}
-            </span>
-          </div>
-        </div>
-
-        {compact ? null : (
-          <p className="px-5 pb-4 text-sm leading-relaxed text-slate-600 dark:text-slate-300">
-            {game.description}
-          </p>
-        )}
-
-        <div className={cn('flex items-center gap-2', compact ? 'px-3.5 pb-3' : 'px-5 pb-4')}>
-          <Button
-            render={
-              <Link
-                to={game.playHref}
-                className="flex items-center justify-center gap-1.5 font-bold"
-              />
-            }
-            nativeButton={false}
-            size="sm"
-            className={`flex-1 bg-linear-to-r ${game.gradient.from} ${game.gradient.to} text-xs text-white shadow-md ${game.gradient.shadowColor} transition-transform duration-200 hover:-translate-y-0.5 hover:shadow-lg ${compact ? 'px-3 py-2' : 'px-4 py-2.5'}`}
+      <div className="relative">
+        <Link
+          to={game.playHref}
+          aria-label={`Open ${game.name}`}
+          className="absolute inset-0 z-10 rounded-2xl focus-visible:ring-2 focus-visible:ring-indigo-400/70 focus-visible:outline-none"
+        />
+        <div
+          className={`relative flex h-full flex-col overflow-hidden rounded-2xl border ${game.gradient.border} bg-white/60 shadow-lg backdrop-blur-md transition-transform duration-300 group-hover:-translate-y-1 group-hover:shadow-xl dark:bg-slate-900/50`}
+        >
+          <div
+            className={cn('flex items-start', compact ? 'gap-2.5 p-3 pb-2' : 'gap-3.5 p-5 pb-3')}
           >
-            <Play className="size-3.5 fill-white" />
-            Play Now
-            <ArrowRight className="size-3.5" />
-          </Button>
+            <GameAppIcon game={game.id} name={game.name} size={compact ? 'sm' : 'lg'} />
 
-          <Button
-            render={
-              <Link
-                to={game.puzzlesHref}
-                className="flex items-center justify-center gap-1.5 font-semibold"
-              />
-            }
-            nativeButton={false}
-            size="sm"
-            variant="outline"
+            <div className="min-w-0 flex-1">
+              <h3
+                className={`bg-linear-to-r ${game.gradient.text} ${game.gradient.textDark} bg-clip-text font-black tracking-tight text-transparent ${compact ? 'text-base' : 'text-xl'}`}
+              >
+                {game.name}
+              </h3>
+              <span className="text-xs font-semibold tracking-wide text-slate-500 uppercase dark:text-slate-400">
+                {game.subtitle}
+              </span>
+            </div>
+          </div>
+
+          {compact ? null : (
+            <p className="px-5 pb-4 text-sm leading-relaxed text-slate-600 dark:text-slate-300">
+              {game.description}
+            </p>
+          )}
+
+          <div
             className={cn(
-              'flex-1 border-slate-200/80 bg-white/50 text-xs transition-transform duration-200 hover:-translate-y-0.5 hover:bg-white/80 dark:border-slate-700/80 dark:bg-slate-800/50 dark:hover:bg-slate-800/80',
-              compact ? 'px-3 py-2' : 'px-4 py-2.5'
+              'relative z-20 flex items-center gap-2',
+              compact ? 'px-3 pb-3' : 'px-5 pb-4'
             )}
           >
-            <BookOpen className="size-3.5" />
-            Puzzles
-          </Button>
-        </div>
+            <Button
+              render={
+                <Link
+                  to={game.playHref}
+                  className="flex items-center justify-center gap-1.5 font-bold"
+                />
+              }
+              nativeButton={false}
+              size="sm"
+              className={`flex-1 bg-linear-to-r ${game.gradient.from} ${game.gradient.to} text-xs text-white shadow-md ${game.gradient.shadowColor} transition-transform duration-200 hover:-translate-y-0.5 hover:shadow-lg ${compact ? 'px-3 py-2' : 'px-4 py-2.5'}`}
+            >
+              <Play className="size-3.5 fill-white" />
+              Play Now
+              <ArrowRight className="size-3.5" />
+            </Button>
 
-        <div
-          className={cn(
-            'border-t border-slate-200/50 dark:border-slate-700/50',
-            compact ? 'mx-3.5' : 'mx-5'
-          )}
-        />
+            <Button
+              render={
+                <Link
+                  to={game.puzzlesHref}
+                  className="flex items-center justify-center gap-1.5 font-semibold"
+                />
+              }
+              nativeButton={false}
+              size="sm"
+              variant="outline"
+              className={cn(
+                'flex-1 border-slate-200/80 bg-white/50 text-xs transition-transform duration-200 hover:-translate-y-0.5 hover:bg-white/80 dark:border-slate-700/80 dark:bg-slate-800/50 dark:hover:bg-slate-800/80',
+                compact ? 'px-3 py-2' : 'px-4 py-2.5'
+              )}
+            >
+              <BookOpen className="size-3.5" />
+              Puzzles
+            </Button>
+          </div>
 
-        <div className={compact ? 'p-3 pt-2.5' : 'p-4 pt-3'}>
-          {game.id === 'padavali' ? (
-            <PadavaliMiniPreview compact={compact} />
-          ) : (
-            <PadajalaMiniPreview compact={compact} />
-          )}
+          <div
+            className={cn(
+              'border-t border-slate-200/50 dark:border-slate-700/50',
+              compact ? 'mx-3' : 'mx-5'
+            )}
+          />
+
+          <div className={compact ? 'p-3 pt-2.5' : 'p-4 pt-3'}>
+            {game.id === 'padavali' ? (
+              <PadavaliMiniPreview compact />
+            ) : (
+              <PadajalaMiniPreview compact />
+            )}
+          </div>
         </div>
       </div>
     </motion.div>

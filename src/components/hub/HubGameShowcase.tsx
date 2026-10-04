@@ -41,7 +41,7 @@ export function HubGameShowcase() {
   }, [api, onSelect]);
 
   return (
-    <section className="flex flex-col gap-5">
+    <section className="flex flex-col gap-4">
       <header className="mx-auto flex w-full max-w-3xl min-w-0 items-center gap-3">
         <div className="flex shrink-0" aria-hidden="true">
           <GameAppIcon game="padavali" name="Padāvalī" size="sm" className="relative z-10" />

@@ -27,7 +27,7 @@ export function PreviewWarningBanner({ listed, slug }: PreviewWarningBannerProps
             }
           />
           <PopoverContent className="max-w-xs text-xs" align="center">
-            For sharing unlisted puzzles and internal testing. This page is not the public listed
+            For sharing private puzzles and internal testing. This page is not the public puzzle
             URL.
           </PopoverContent>
         </Popover>

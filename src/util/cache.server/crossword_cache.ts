@@ -67,7 +67,11 @@ const listed_puzzle_schema = z.object({
   title: z.string(),
   description: z.string(),
   image: image_schema.nullable(),
-  tags: public_tag_schema.array()
+  tags: public_tag_schema.array(),
+  /** Sort key: desc by last_listed_at, fallback to updated_at, then created_at. */
+  last_listed_at: z.coerce.date().nullable().optional(),
+  updated_at: z.coerce.date().nullable().optional(),
+  created_at: z.coerce.date().nullable().optional()
 });
 
 export type CrosswordListedPuzzlesType = z.infer<typeof listed_puzzle_schema>[];
@@ -202,7 +206,10 @@ const load_listed_puzzle_list: CacheItem<NoCacheParams, CrosswordListedPuzzlesTy
           id: true,
           slug: true,
           title: true,
-          description: true
+          description: true,
+          last_listed_at: true,
+          updated_at: true,
+          created_at: true
         },
         with: {
           image: {
@@ -227,9 +234,10 @@ const load_listed_puzzle_list: CacheItem<NoCacheParams, CrosswordListedPuzzlesTy
           }
         },
         where: ({ listed }, { eq }) => eq(listed, true),
-        orderBy: ({ created_at, last_listed_at }, { desc }) => [
-          desc(sql`COALESCE(${last_listed_at}, '1970-01-01'::timestamp with time zone)`),
-          desc(created_at)
+        orderBy: ({ created_at, updated_at, last_listed_at, id }, { desc }) => [
+          desc(sql`COALESCE(${last_listed_at}, ${updated_at}, ${created_at})`),
+          desc(created_at),
+          desc(id)
         ]
       })
     ).pipe(

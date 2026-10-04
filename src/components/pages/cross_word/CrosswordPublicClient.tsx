@@ -94,7 +94,7 @@ export default function CrosswordPublicClient({ puzzles, isAdmin }: CrosswordPub
       </div>
 
       {puzzles.length === 0 ? (
-        <p className="py-12 text-center text-muted-foreground">No listed puzzles yet.</p>
+        <p className="py-12 text-center text-muted-foreground">No puzzles yet.</p>
       ) : (
         <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-3">
           {puzzles.map((puzzle) => (

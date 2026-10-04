@@ -27,7 +27,7 @@ export function PreviewWarningBanner({ listed, slug }: PreviewWarningBannerProps
             }
           />
           <PopoverContent className="max-w-xs text-xs" align="center">
-            For sharing unlisted puzzles and internal testing. This page is not the public listed
+            For sharing private puzzles and internal testing. This page is not the public puzzle
             URL.
           </PopoverContent>
         </Popover>
@@ -38,7 +38,7 @@ export function PreviewWarningBanner({ listed, slug }: PreviewWarningBannerProps
           params={{ slug }}
           className="inline-flex items-center gap-1 text-sm font-medium text-primary underline-offset-4 hover:underline"
         >
-          Listed URL
+          Puzzle URL
           <ExternalLink className="size-3.5 shrink-0" aria-hidden="true" />
         </Link>
       ) : null}

@@ -27,7 +27,7 @@ export default function HubCollectionPage({ data, slug }: { data: HubData; slug:
   const imageUrl = collection.image ? getCDNUrl(collection.image.s3_key) : null;
 
   return (
-    <div className="mx-auto flex max-w-6xl flex-col gap-8 px-4 py-8">
+    <div className="mx-auto flex max-w-6xl flex-col gap-6 px-4 py-6 sm:py-8">
       <Link
         to="/explore"
         search={{ view: 'collections' }}
@@ -37,43 +37,39 @@ export default function HubCollectionPage({ data, slug }: { data: HubData; slug:
         All collections
       </Link>
 
-      <section className="overflow-hidden rounded-3xl border border-slate-200/80 bg-white/80 shadow-sm dark:border-slate-800/80 dark:bg-slate-900/50">
-        <div
-          className="relative w-full overflow-hidden bg-slate-100 dark:bg-slate-800"
-          style={{ aspectRatio: `${IMG_W} / ${IMG_H}` }}
-        >
+      <section className="flex items-start gap-4 rounded-3xl border border-slate-200/80 bg-white/80 p-4 shadow-sm sm:items-center sm:gap-5 sm:p-5 dark:border-slate-800/80 dark:bg-slate-900/50">
+        <div className="relative h-24 w-24 shrink-0 overflow-hidden rounded-2xl bg-slate-100 sm:h-28 sm:w-28 dark:bg-slate-800">
           {imageUrl ? (
             <Image
               src={imageUrl}
               alt=""
-              width={IMG_W * 240}
-              height={IMG_H * 240}
+              width={IMG_W * 96}
+              height={IMG_H * 96}
               className="size-full object-cover object-center"
             />
           ) : (
             <div className="flex size-full items-center justify-center bg-linear-to-br from-indigo-600 via-slate-700 to-slate-900">
-              <Layers className="size-16 text-white/70" />
+              <Layers className="size-8 text-white/70" />
             </div>
           )}
-          <div className="absolute inset-0 bg-linear-to-t from-black/80 via-black/25 to-transparent" />
-          <div className="absolute inset-x-0 bottom-0 flex flex-col gap-3 p-5 sm:p-8">
-            <div className="flex flex-wrap items-center gap-2">
-              {games.map((kind) => (
-                <HubGameBadge key={kind} game={kind} />
-              ))}
-              <span className="rounded-full bg-white/90 px-2.5 py-0.5 text-[11px] font-bold text-slate-800 dark:bg-slate-900/90 dark:text-slate-100">
-                {items.length} {items.length === 1 ? 'puzzle' : 'puzzles'}
-              </span>
-            </div>
-            <h1 className="text-3xl font-black tracking-tight text-white sm:text-4xl">
-              {collection.title}
-            </h1>
-            {collection.description ? (
-              <p className="max-w-2xl text-sm text-white/85 sm:text-base">
-                {collection.description}
-              </p>
-            ) : null}
+        </div>
+        <div className="flex min-w-0 flex-1 flex-col gap-2">
+          <div className="flex flex-wrap items-center gap-1.5">
+            {games.map((kind) => (
+              <HubGameBadge key={kind} game={kind} />
+            ))}
+            <span className="rounded-full bg-slate-900/5 px-2.5 py-0.5 text-[11px] font-bold text-slate-700 dark:bg-white/10 dark:text-slate-200">
+              {items.length} {items.length === 1 ? 'puzzle' : 'puzzles'}
+            </span>
           </div>
+          <h1 className="truncate text-2xl font-black tracking-tight text-slate-900 sm:text-3xl dark:text-slate-50">
+            {collection.title}
+          </h1>
+          {collection.description ? (
+            <p className="line-clamp-2 max-w-2xl text-sm text-slate-500 dark:text-slate-400">
+              {collection.description}
+            </p>
+          ) : null}
         </div>
       </section>
 

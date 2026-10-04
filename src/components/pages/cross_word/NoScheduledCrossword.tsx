@@ -200,7 +200,7 @@ export function NoScheduledCrossword({ next_schedule, listed_puzzles }: Props) {
                   <p className="mt-1.5 text-sm text-slate-500 dark:text-slate-400">
                     {next_schedule
                       ? 'While you wait for the next puzzle, explore the collection below.'
-                      : 'Discover and play from the listed crossword archive.'}
+                      : 'Discover and play from the crossword archive.'}
                   </p>
                   <div className="mt-4 flex justify-center">
                     <ExploreCatalogLink />

@@ -26,7 +26,7 @@ const PLACES: {
   icon: typeof Home;
 }[] = [
   { key: 'home', to: '/', label: 'Home', hint: 'Hub and today’s puzzles', icon: Home },
-  { key: 'explore', to: '/explore', label: 'Explore', hint: 'Every listed puzzle', icon: Compass }
+  { key: 'explore', to: '/explore', label: 'Explore', hint: 'Every puzzle', icon: Compass }
 ];
 
 function GamesMark({ className }: { className?: string }) {

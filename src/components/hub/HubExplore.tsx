@@ -2,7 +2,8 @@
 
 import { useContext, useEffect, useMemo, useRef, useState } from 'react';
 import { getRouteApi } from '@tanstack/react-router';
-import { SearchIcon } from 'lucide-react';
+import { Image } from '@unpic/react';
+import { LayoutGrid as LayoutGridIcon, SearchIcon } from 'lucide-react';
 import {
   createTypingContext,
   clearTypingContextOnKeyDown,
@@ -29,6 +30,7 @@ import { LanguageIcon } from '~/components/icons';
 import { scrollPaginationListToStart } from '~/lib/pagination-scroll';
 import { cn } from '~/lib/utils';
 import { HUB_GAMES } from './hub_games';
+import { GAME_APP_ICON_SRC } from '~/components/GameAppIcon';
 import type { HubData } from './hub_data';
 import { HubPuzzleCard } from './HubPuzzleCard';
 import { HubCollectionCard } from './HubCollectionCard';
@@ -50,6 +52,8 @@ const GAME_FILTERS: { value: 'all' | GameKind; label: string }[] = [
   { value: 'padavali', label: HUB_GAMES.padavali.name },
   { value: 'crossword', label: HUB_GAMES.crossword.name }
 ];
+
+type GameCounts = Record<'all' | GameKind, number>;
 
 function getVisiblePages(current: number, total: number): (number | 'ellipsis')[] {
   if (total <= 5) return Array.from({ length: total }, (_, i) => i + 1);
@@ -141,7 +145,17 @@ function ExplorePuzzleGrid({ puzzles }: { puzzles: HubPuzzle[] }) {
   );
 }
 
-function ExploreFilterBar({ tags }: { tags: (PublicTag & { count: number })[] }) {
+function ExploreFilterBar({
+  tags,
+  puzzleCount,
+  collectionCount,
+  gameCounts
+}: {
+  tags: (PublicTag & { count: number })[];
+  puzzleCount: number;
+  collectionCount: number;
+  gameCounts: GameCounts;
+}) {
   const search = exploreRoute.useSearch();
   const navigate = exploreRoute.useNavigate();
   const { script, setScript } = useContext(AppContext);
@@ -202,6 +216,8 @@ function ExploreFilterBar({ tags }: { tags: (PublicTag & { count: number })[] })
           <BrowseModeSwitch
             mode={search.view}
             onChange={(view) => void navigate({ search: (prev) => ({ ...prev, view }) })}
+            puzzleCount={puzzleCount}
+            collectionCount={collectionCount}
           />
           <Label className="inline-flex shrink-0 items-center justify-center gap-2 font-medium">
             <Switch
@@ -216,16 +232,39 @@ function ExploreFilterBar({ tags }: { tags: (PublicTag & { count: number })[] })
         </div>
 
         <div className="flex flex-wrap gap-2">
-          {GAME_FILTERS.map((option) => (
-            <Button
-              key={option.value}
-              size="sm"
-              variant={search.game === option.value ? 'secondary' : 'ghost'}
-              onClick={() => void navigate({ search: (prev) => ({ ...prev, game: option.value }) })}
-            >
-              {option.label}
-            </Button>
-          ))}
+          {GAME_FILTERS.map((option) => {
+            const active = search.game === option.value;
+            const count = gameCounts[option.value];
+            const gameIcon =
+              option.value === 'all' ? null : GAME_APP_ICON_SRC[HUB_GAMES[option.value].icon];
+            return (
+              <Button
+                key={option.value}
+                size="sm"
+                variant={active ? 'secondary' : 'ghost'}
+                aria-pressed={active}
+                onClick={() =>
+                  void navigate({ search: (prev) => ({ ...prev, game: option.value }) })
+                }
+                className="inline-flex items-center gap-1.5"
+              >
+                {option.value === 'all' ? (
+                  <LayoutGridIcon className="size-3.5" aria-hidden />
+                ) : gameIcon ? (
+                  <Image src={gameIcon} alt="" width={14} height={14} className="size-3.5" />
+                ) : null}
+                {option.label}
+                <span
+                  className={cn(
+                    'rounded-full px-1.5 text-[11px] font-semibold tabular-nums',
+                    active ? 'bg-primary/15 text-foreground' : 'text-muted-foreground'
+                  )}
+                >
+                  {count}
+                </span>
+              </Button>
+            );
+          })}
         </div>
 
         {tags.length > 0 ? (
@@ -250,6 +289,14 @@ function ExploreFilterBar({ tags }: { tags: (PublicTag & { count: number })[] })
                 )}
               >
                 {tag.name}
+                <span
+                  className={cn(
+                    'ml-1.5 text-[11px] tabular-nums',
+                    search.tag === tag.slug ? 'text-indigo-100' : 'text-slate-400'
+                  )}
+                >
+                  {tag.count}
+                </span>
               </button>
             ))}
           </div>
@@ -285,6 +332,20 @@ export default function HubExplore({ data }: { data: HubData }) {
   const filteredPuzzles = filterHubPuzzles(puzzles, filter);
   const filteredCollections = filterHubCollections(data.collections, byKey, filter);
   const filterKey = `${search.game}:${search.tag ?? ''}:${search.q ?? ''}`;
+  const baseFilter = { tags: search.tag ? [search.tag] : [], query: search.q };
+  const basePuzzles = useMemo(
+    () => filterHubPuzzles(puzzles, baseFilter),
+    // oxlint-disable-next-line exhaustive-deps
+    [puzzles, search.tag, search.q]
+  );
+  const gameCounts: GameCounts = useMemo(
+    () => ({
+      all: basePuzzles.length,
+      padavali: basePuzzles.filter((puzzle) => puzzle.game === 'padavali').length,
+      crossword: basePuzzles.filter((puzzle) => puzzle.game === 'crossword').length
+    }),
+    [basePuzzles]
+  );
 
   return (
     <div className="mx-auto flex max-w-6xl flex-col gap-6 px-4 py-8">
@@ -293,11 +354,16 @@ export default function HubExplore({ data }: { data: HubData }) {
           Explore
         </h1>
         <p className="text-sm text-slate-500 dark:text-slate-400">
-          Every listed puzzle, collection, and topic in one catalog.
+          Every puzzle, collection, and topic in one catalog.
         </p>
       </div>
 
-      <ExploreFilterBar tags={tags} />
+      <ExploreFilterBar
+        tags={tags}
+        puzzleCount={filteredPuzzles.length}
+        collectionCount={filteredCollections.length}
+        gameCounts={gameCounts}
+      />
 
       {search.view === 'collections' ? (
         <ExploreCollections collections={filteredCollections} />

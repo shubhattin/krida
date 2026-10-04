@@ -2,7 +2,7 @@
 
 import { useMemo, useState } from 'react';
 import { Image } from '@unpic/react';
-import { SearchIcon } from 'lucide-react';
+import { Layers as LayersIcon, Puzzle as PuzzleIcon, SearchIcon } from 'lucide-react';
 import { CrosswordPreviewCard } from '~/components/pages/cross_word/CrosswordPreviewCard';
 import type { CrosswordListedPuzzle } from '~/components/pages/cross_word/CrosswordPreviewCard';
 import { PuzzlePreviewCard } from '~/components/pages/padavali/PuzzlePreviewCard';
@@ -302,25 +302,65 @@ function CrosswordCollectionItems({
 
 export function BrowseModeSwitch({
   mode,
-  onChange
+  onChange,
+  puzzleCount,
+  collectionCount
 }: {
   mode: 'puzzles' | 'collections';
   onChange: (mode: 'puzzles' | 'collections') => void;
+  puzzleCount?: number;
+  collectionCount?: number;
 }) {
+  const options = [
+    {
+      value: 'puzzles' as const,
+      label: 'Puzzles',
+      icon: PuzzleIcon,
+      count: puzzleCount
+    },
+    {
+      value: 'collections' as const,
+      label: 'Collections',
+      icon: LayersIcon,
+      count: collectionCount
+    }
+  ];
   return (
-    <div className="inline-flex rounded-lg border border-border/70 p-0.5">
-      {(['puzzles', 'collections'] as const).map((value) => (
-        <Button
-          key={value}
-          type="button"
-          size="sm"
-          variant={mode === value ? 'secondary' : 'ghost'}
-          aria-pressed={mode === value}
-          onClick={() => onChange(value)}
-        >
-          {value === 'puzzles' ? 'Puzzles' : 'Collections'}
-        </Button>
-      ))}
+    <div
+      role="tablist"
+      aria-label="Browse puzzles or collections"
+      className="inline-flex shrink-0 items-center rounded-lg border border-border/70 bg-muted/40 p-0.5"
+    >
+      {options.map((option) => {
+        const active = mode === option.value;
+        const IconCmp = option.icon;
+        return (
+          <Button
+            key={option.value}
+            type="button"
+            size="sm"
+            role="tab"
+            variant={active ? 'secondary' : 'ghost'}
+            aria-selected={active}
+            aria-pressed={active}
+            onClick={() => onChange(option.value)}
+            className={cn('inline-flex items-center gap-1.5', active && 'shadow-xs')}
+          >
+            <IconCmp className="size-3.5" aria-hidden />
+            {option.label}
+            {option.count !== undefined ? (
+              <span
+                className={cn(
+                  'rounded-full px-1.5 text-[11px] font-semibold tabular-nums',
+                  active ? 'bg-primary/15 text-foreground' : 'bg-muted text-muted-foreground'
+                )}
+              >
+                {option.count}
+              </span>
+            ) : null}
+          </Button>
+        );
+      })}
     </div>
   );
 }

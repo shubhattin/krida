@@ -18,6 +18,8 @@ type HubPuzzleBase = {
   image: DisplayPuzzle['image'];
   tags: PublicTag[];
   href: string;
+  /** Epoch ms for `last_listed_at ?? updated_at ?? created_at` (desc). */
+  sortTime: number;
 };
 
 /** One listed puzzle from any game, keeping the original row for the game's own card. */
@@ -27,11 +29,35 @@ export type HubPuzzle =
 
 export const hubPuzzleKey = (game: GameKind, id: number) => `${game}:${id}`;
 
+type SortablePuzzle = {
+  last_listed_at?: Date | string | null;
+  updated_at?: Date | string | null;
+  created_at?: Date | string | null;
+};
+
+/** Desc order: `last_listed_at`, fallback to `updated_at`, then `created_at`. */
+export function hubSortTimestamp(puzzle: SortablePuzzle): number {
+  const raw = puzzle.last_listed_at ?? puzzle.updated_at ?? puzzle.created_at;
+  if (!raw) return 0;
+  const time = raw instanceof Date ? raw.getTime() : new Date(raw).getTime();
+  return Number.isFinite(time) ? time : 0;
+}
+
+function compareHubPuzzles(a: HubPuzzle, b: HubPuzzle): number {
+  if (b.sortTime !== a.sortTime) return b.sortTime - a.sortTime;
+  if (b.id !== a.id) return b.id - a.id;
+  return a.key.localeCompare(b.key);
+}
+
+export function sortHubPuzzles<T extends HubPuzzle>(puzzles: T[]): T[] {
+  return puzzles.toSorted(compareHubPuzzles);
+}
+
 export function toHubPuzzles(
   padavali: DisplayPuzzle[],
   crossword: CrosswordListedPuzzle[]
 ): HubPuzzle[] {
-  return [
+  const merged: HubPuzzle[] = [
     ...padavali.map((puzzle): HubPuzzle => ({
       game: 'padavali',
       key: hubPuzzleKey('padavali', puzzle.id),
@@ -42,6 +68,7 @@ export function toHubPuzzles(
       image: puzzle.image,
       tags: puzzle.tags,
       href: puzzleHref('padavali', puzzle.slug),
+      sortTime: hubSortTimestamp(puzzle),
       source: puzzle
     })),
     ...crossword.map((puzzle): HubPuzzle => ({
@@ -54,9 +81,11 @@ export function toHubPuzzles(
       image: puzzle.image,
       tags: puzzle.tags,
       href: puzzleHref('crossword', puzzle.slug),
+      sortTime: hubSortTimestamp(puzzle),
       source: puzzle
     }))
   ];
+  return sortHubPuzzles(merged);
 }
 
 /**
@@ -80,7 +109,8 @@ export function resolveCollectionItems(
         description: item.description,
         image: item.image,
         tags: [],
-        href: puzzleHref(item.game, item.slug)
+        href: puzzleHref(item.game, item.slug),
+        sortTime: 0
       };
       return item.game === 'padavali'
         ? {

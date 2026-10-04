@@ -2,7 +2,7 @@
 
 import { useContext, useState, type ReactNode } from 'react';
 import { Link } from '@tanstack/react-router';
-import { ArrowRight, Compass } from 'lucide-react';
+import { ArrowRight, Compass, LayoutGrid } from 'lucide-react';
 import { motion, useReducedMotion } from 'framer-motion';
 import { Image } from '@unpic/react';
 import { ScriptSelector } from '~/components/pages/padavali/ScriptSelector';
@@ -74,7 +74,7 @@ function RecentlyAdded({ puzzles }: { puzzles: ReturnType<typeof useHubPuzzles>[
     <section id="explore" className="flex scroll-mt-24 flex-col gap-4">
       <HubSectionHeading
         title="Explore"
-        description="Recently listed puzzles from every game"
+        description="Recent puzzles from every game"
         action={
           <Button
             nativeButton={false}
@@ -105,7 +105,9 @@ function RecentlyAdded({ puzzles }: { puzzles: ReturnType<typeof useHubPuzzles>[
           >
             {option.icon ? (
               <Image src={option.icon} alt="" width={14} height={14} className="size-3.5" />
-            ) : null}
+            ) : (
+              <LayoutGrid className="size-3.5" aria-hidden />
+            )}
             {option.label}
           </button>
         ))}

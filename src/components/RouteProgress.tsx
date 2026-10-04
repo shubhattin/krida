@@ -19,6 +19,7 @@ export function RouteProgress() {
     let finishing = 0;
     let raf = 0;
     let hideTimer = 0;
+    let showTimer = 0;
 
     function cancelRaf() {
       if (raf) cancelAnimationFrame(raf);
@@ -28,6 +29,11 @@ export function RouteProgress() {
     function clearHide() {
       if (hideTimer) clearTimeout(hideTimer);
       hideTimer = 0;
+    }
+
+    function clearShow() {
+      if (showTimer) clearTimeout(showTimer);
+      showTimer = 0;
     }
 
     function reducedMotion() {
@@ -47,15 +53,23 @@ export function RouteProgress() {
     function begin() {
       const gen = ++generation;
       clearHide();
+      clearShow();
       cancelRaf();
       running = true;
       finishing = 0;
       sawPendingRef.current = false;
       setSettling(false);
-      setOpacity(1);
-      progressValue = reducedMotion() ? 1 : 0.08;
-      setProgress(progressValue);
-      if (!reducedMotion()) raf = requestAnimationFrame(tick);
+      // Don't paint immediately: instantly-resolving updates (e.g. typing in
+      // /explore filters, which only change search) finish before the delay
+      // and never flash the bar. Real navigations outlive it and show as usual.
+      showTimer = window.setTimeout(() => {
+        if (gen !== generation) return;
+        showTimer = 0;
+        setOpacity(1);
+        progressValue = reducedMotion() ? 1 : 0.08;
+        setProgress(progressValue);
+        if (!reducedMotion()) raf = requestAnimationFrame(tick);
+      }, 150);
       return gen;
     }
 
@@ -63,6 +77,14 @@ export function RouteProgress() {
       if (gen !== generation || !running || finishing === gen) return;
       finishing = gen;
       cancelRaf();
+      if (showTimer) {
+        // Resolved before the bar ever painted — stay hidden.
+        clearShow();
+        running = false;
+        progressValue = 0;
+        setProgress(0);
+        return;
+      }
 
       // Two frames so the started bar paints before the completion transition,
       // including when the destination was already preloaded.
@@ -100,8 +122,10 @@ export function RouteProgress() {
 
     // Client navigations only. The first load has no resolved location, and
     // leaving the document is a full page load that never emits this event.
+    // Search-only updates (e.g. typing in /explore filters with replace:true)
+    // resolve instantly client-side — showing the bar for those just flashes.
     const unsubscribeStart = router.subscribe('onBeforeNavigate', (event) => {
-      if (!event.fromLocation || !event.hrefChanged) return;
+      if (!event.fromLocation || !event.hrefChanged || !event.pathChanged) return;
       begin();
     });
 
@@ -115,6 +139,7 @@ export function RouteProgress() {
       finishRef.current = () => {};
       cancelRaf();
       clearHide();
+      clearShow();
     };
   }, [router]);
 

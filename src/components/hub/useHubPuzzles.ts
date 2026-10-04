@@ -6,7 +6,7 @@ import { useCrosswordListedPuzzles } from '~/components/pages/cross_word/useCros
 import type { HubData } from './hub_data';
 import { toHubPuzzles, type HubPuzzle } from './hub_puzzles';
 
-/** Live, script-aware list of every listed puzzle across games (Padavali first, then Padajala). */
+/** Live, script-aware list of every listed puzzle across games, sorted by recency. */
 export function useHubPuzzles(data: HubData) {
   const padavali = useListedPuzzlesDisplay(
     data.padavali.listed,

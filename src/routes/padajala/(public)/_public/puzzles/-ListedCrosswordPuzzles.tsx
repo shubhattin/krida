@@ -105,7 +105,7 @@ export function ListedCrosswordPuzzles({
         />
       ) : filtered.length === 0 ? (
         <p className="py-12 text-center text-muted-foreground">
-          {listed_puzzles.length === 0 ? 'No listed puzzles yet.' : 'No puzzles match your search.'}
+          {listed_puzzles.length === 0 ? 'No puzzles yet.' : 'No puzzles match your search.'}
         </p>
       ) : (
         <div className="grid grid-cols-2 gap-3 sm:gap-4 lg:grid-cols-3 xl:grid-cols-4">

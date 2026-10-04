@@ -395,7 +395,7 @@ const EmptyPuzzleList = () => {
           </h1>
 
           <p className="mb-6 text-lg text-slate-600 dark:text-slate-300">
-            There are no listed puzzles yet. Check back later!
+            There are no puzzles yet. Check back later!
           </p>
 
           <div className="inline-flex items-center gap-2 rounded-xl bg-linear-to-r from-blue-100 to-indigo-100 px-6 py-3 text-blue-700 shadow-lg dark:from-blue-900/30 dark:to-indigo-900/30 dark:text-blue-300">

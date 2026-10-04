@@ -41,7 +41,7 @@ export function ExplorePromo() {
         <div className="min-w-0 flex-1">
           <p className="text-sm font-bold text-indigo-700 dark:text-indigo-300">Explore</p>
           <p className="mt-0.5 text-xs text-slate-500 dark:text-slate-400">
-            Browse every listed puzzle across all games.
+            Browse every puzzle across all games.
           </p>
         </div>
         <ArrowRight className="size-4 shrink-0 text-slate-400 transition-transform duration-200 group-hover:translate-x-0.5 dark:text-slate-500" />
