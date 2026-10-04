@@ -10,6 +10,7 @@
 
 import { Route as rootRouteImport } from './routes/__root'
 import { Route as HubRouteImport } from './routes/_hub'
+import { Route as AnalyticsRouteImport } from './routes/analytics'
 import { Route as DashboardRouteImport } from './routes/dashboard'
 import { Route as PadajalaRouteRouteImport } from './routes/padajala/route'
 import { Route as PadavaliRouteRouteImport } from './routes/padavali/route'
@@ -61,6 +62,11 @@ import { Route as PadavaliauthAuthSchedulesEditIdRouteImport } from './routes/pa
 
 const HubRoute = HubRouteImport.update({
   id: '/_hub',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const AnalyticsRoute = AnalyticsRouteImport.update({
+  id: '/analytics',
+  path: '/analytics',
   getParentRoute: () => rootRouteImport,
 } as any)
 const DashboardRoute = DashboardRouteImport.update({
@@ -334,6 +340,7 @@ export interface FileRoutesByFullPath {
   '/padajala': typeof PadajalaRouteRouteWithChildren
   '/padavali': typeof PadavaliRouteRouteWithChildren
   '/': typeof HubIndexRoute
+  '/analytics': typeof AnalyticsRoute
   '/dashboard': typeof DashboardRoute
   '/robots.txt': typeof RobotsDottxtRoute
   '/sitemap-0.xml': typeof Sitemap0DotxmlRoute
@@ -379,6 +386,7 @@ export interface FileRoutesByFullPath {
 export interface FileRoutesByTo {
   '/padajala': typeof PadajalapublicPublicIndexRoute
   '/padavali': typeof PadavalipublicPublicIndexRoute
+  '/analytics': typeof AnalyticsRoute
   '/dashboard': typeof DashboardRoute
   '/robots.txt': typeof RobotsDottxtRoute
   '/sitemap-0.xml': typeof Sitemap0DotxmlRoute
@@ -425,6 +433,7 @@ export interface FileRoutesById {
   '/padajala': typeof PadajalaRouteRouteWithChildren
   '/padavali': typeof PadavaliRouteRouteWithChildren
   '/_hub': typeof HubRouteWithChildren
+  '/analytics': typeof AnalyticsRoute
   '/dashboard': typeof DashboardRoute
   '/robots.txt': typeof RobotsDottxtRoute
   '/sitemap-0.xml': typeof Sitemap0DotxmlRoute
@@ -478,6 +487,7 @@ export interface FileRouteTypes {
     | '/padajala'
     | '/padavali'
     | '/'
+    | '/analytics'
     | '/dashboard'
     | '/robots.txt'
     | '/sitemap-0.xml'
@@ -523,6 +533,7 @@ export interface FileRouteTypes {
   to:
     | '/padajala'
     | '/padavali'
+    | '/analytics'
     | '/dashboard'
     | '/robots.txt'
     | '/sitemap-0.xml'
@@ -568,6 +579,7 @@ export interface FileRouteTypes {
     | '/padajala'
     | '/padavali'
     | '/_hub'
+    | '/analytics'
     | '/dashboard'
     | '/robots.txt'
     | '/sitemap-0.xml'
@@ -620,6 +632,7 @@ export interface RootRouteChildren {
   PadajalaRouteRoute: typeof PadajalaRouteRouteWithChildren
   PadavaliRouteRoute: typeof PadavaliRouteRouteWithChildren
   HubRoute: typeof HubRouteWithChildren
+  AnalyticsRoute: typeof AnalyticsRoute
   DashboardRoute: typeof DashboardRoute
   RobotsDottxtRoute: typeof RobotsDottxtRoute
   Sitemap0DotxmlRoute: typeof Sitemap0DotxmlRoute
@@ -640,6 +653,13 @@ declare module '@tanstack/react-router' {
       path: ''
       fullPath: '/'
       preLoaderRoute: typeof HubRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/analytics': {
+      id: '/analytics'
+      path: '/analytics'
+      fullPath: '/analytics'
+      preLoaderRoute: typeof AnalyticsRouteImport
       parentRoute: typeof rootRouteImport
     }
     '/dashboard': {
@@ -1125,6 +1145,7 @@ const rootRouteChildren: RootRouteChildren = {
   PadajalaRouteRoute: PadajalaRouteRouteWithChildren,
   PadavaliRouteRoute: PadavaliRouteRouteWithChildren,
   HubRoute: HubRouteWithChildren,
+  AnalyticsRoute: AnalyticsRoute,
   DashboardRoute: DashboardRoute,
   RobotsDottxtRoute: RobotsDottxtRoute,
   Sitemap0DotxmlRoute: Sitemap0DotxmlRoute,

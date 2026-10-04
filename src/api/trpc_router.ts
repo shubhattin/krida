@@ -9,6 +9,7 @@ import {
 import { crossword_router } from './routers/crossword';
 import { user_stats_router } from './routers/user';
 import { catalog_router } from './routers/catalog';
+import { analytics_router } from './routers/analytics';
 
 export const appRouter = t.router({
   puzzle: puzzle_router,
@@ -19,7 +20,8 @@ export const appRouter = t.router({
   image_assets: image_assets_router,
   public_ai: public_ai_router,
   batch_ai: batch_ai_router,
-  catalog: catalog_router
+  catalog: catalog_router,
+  analytics: analytics_router
 });
 
 export type AppRouter = typeof appRouter;

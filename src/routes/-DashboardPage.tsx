@@ -4,19 +4,11 @@ import { useState, type ReactNode } from 'react';
 import { useQuery } from '@tanstack/react-query';
 import { Link } from '@tanstack/react-router';
 import { format } from 'date-fns';
-import {
-  BookOpen,
-  CheckCircle2,
-  Clock3,
-  LayoutDashboard,
-  Percent,
-  Play,
-  Target
-} from 'lucide-react';
+import { BookOpen, CheckCircle2, Clock3, Percent, Play, Target } from 'lucide-react';
 import pretty_ms from 'pretty-ms';
 import { useTRPC } from '~/api/client';
 import type { DashboardGameId, GameDashboardStats } from '~/api/routers/user/user_dashboard';
-import { MenuButton } from '~/components/app-bar/AppBarMenu';
+import { CrosswordMenuItems, PadavaliMenuItems } from '~/components/app-bar/GameMenuItems';
 import { GameAppIcon } from '~/components/GameAppIcon';
 import { Button } from '~/components/ui/button';
 import {
@@ -29,8 +21,9 @@ import {
 } from '~/components/ui/card';
 import { Skeleton } from '~/components/ui/skeleton';
 import { Tabs, TabsList, TabsTrigger } from '~/components/ui/tabs';
+import { HubFooter } from '~/components/hub/HubFooter';
+import { HubHeader } from '~/components/hub/HubHeader';
 import { useSession } from '~/lib/auth-client';
-import { robotoSans } from '~/components/fonts';
 import { cn } from '~/lib/utils';
 
 type GameFilter = 'all' | DashboardGameId;
@@ -71,34 +64,17 @@ function DashboardPage() {
   const dashboardQuery = useQuery(trpc.user.get_dashboard.queryOptions({ game }));
 
   return (
-    <div className="min-h-screen bg-background">
-      <header className="w-full border-b border-slate-200/60 bg-linear-to-r from-white via-slate-50 to-blue-50 shadow-lg backdrop-blur-sm dark:border-slate-700/60 dark:from-slate-900 dark:via-slate-800 dark:to-slate-900">
-        <div className="mx-auto flex h-16 max-w-4xl items-center justify-between px-4 lg:px-6">
-          <Link to="/" className="group flex min-w-0 items-center gap-3 no-underline">
-            <div className="flex size-9 shrink-0 items-center justify-center rounded-xl bg-linear-to-br from-violet-500 to-indigo-600 text-white shadow-md shadow-violet-500/30 transition-transform duration-200 group-hover:scale-105">
-              <LayoutDashboard className="size-4" />
-            </div>
-            <div className="min-w-0">
-              <h1
-                className={cn(
-                  'bg-linear-to-r from-slate-800 to-slate-600 bg-clip-text text-2xl font-bold text-transparent',
-                  'transition-all duration-200 group-hover:from-blue-600 group-hover:to-indigo-500',
-                  'dark:from-slate-100 dark:to-slate-300 dark:group-hover:from-blue-400 dark:group-hover:to-indigo-300',
-                  robotoSans.className
-                )}
-              >
-                Dashboard
-              </h1>
-              <p className="text-xs font-medium text-slate-500 dark:text-slate-400">
-                Your play stats
-              </p>
-            </div>
-          </Link>
-          <MenuButton />
-        </div>
-      </header>
+    <div className="public-canvas flex min-h-dvh flex-col">
+      <HubHeader
+        gameMenuItems={
+          <>
+            <PadavaliMenuItems />
+            <CrosswordMenuItems />
+          </>
+        }
+      />
 
-      <main className="mx-auto flex max-w-4xl flex-col gap-6 px-4 py-6 lg:px-6">
+      <main className="mx-auto flex w-full max-w-4xl flex-1 flex-col gap-6 px-4 py-6 lg:px-6">
         <div className="flex flex-col gap-1">
           <h2 className="text-xl font-semibold tracking-tight">
             {userName ? `Hi, ${userName}` : 'Your games'}
@@ -156,6 +132,8 @@ function DashboardPage() {
           </div>
         ) : null}
       </main>
+
+      <HubFooter />
     </div>
   );
 }

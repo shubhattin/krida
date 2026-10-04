@@ -61,6 +61,16 @@ export const get_user_list_input_schema = z.object({
 
 export const dashboard_game_filter_schema = z.enum(['all', 'padavali', 'padajala']);
 
+/** Cross-game admin overview — started/completed plus signed-in player counts. */
+export const get_admin_overview_input_schema = z
+  .object({
+    game: dashboard_game_filter_schema.default('all'),
+    all_time: z.boolean(),
+    start_date: z.date().optional(),
+    end_date: z.date().optional()
+  })
+  .superRefine(refineDateRange);
+
 export const get_user_dashboard_input_schema = z.object({
   game: dashboard_game_filter_schema.default('all')
 });
