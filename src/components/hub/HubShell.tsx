@@ -6,9 +6,9 @@ import { HubFooter } from './HubFooter';
 export default function HubShell({ children }: { children: ReactNode }) {
   return (
     <div className="public-canvas flex min-h-dvh flex-col text-foreground">
-      <HubHeader />
+      <HubHeader showPwaControls />
       <main className="flex-1">{children}</main>
-      <HubFooter />
+      <HubFooter showPwa />
     </div>
   );
 }
