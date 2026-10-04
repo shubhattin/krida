@@ -7,7 +7,7 @@ import { GameShowcaseCard, GAMES } from './-Landing';
 
 export default function NotFoundClient() {
   return (
-    <main className="relative min-h-screen overflow-x-clip bg-linear-to-br from-slate-50 via-blue-50 to-indigo-50 px-4 py-16 dark:from-slate-950 dark:via-slate-900 dark:to-slate-950">
+    <main className="relative min-h-screen overflow-x-clip bg-background px-4 py-16">
       {/* Background blobs */}
       <div className="pointer-events-none absolute inset-0 overflow-hidden">
         <div className="absolute -top-40 -right-40 h-150 w-150 rounded-full bg-blue-500/10 blur-3xl dark:bg-blue-500/5" />

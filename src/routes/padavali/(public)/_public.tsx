@@ -9,9 +9,9 @@ export const Route = createFileRoute('/padavali/(public)/_public')({
 
 function PublicLayout() {
   return (
-    <div className="flex min-h-dvh flex-col bg-slate-50 dark:bg-slate-950">
+    <div className="public-canvas flex min-h-dvh flex-col">
       <HubHeader showPwaControls gameMenuItems={<PadavaliMenuItems />} />
-      <div className="mx-2 flex-1">
+      <div className="flex-1">
         <Outlet />
       </div>
       <HubFooter showPwa showOneSignal />

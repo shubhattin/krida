@@ -14,7 +14,7 @@ export function HubFooter({
   children?: ReactNode;
 }) {
   return (
-    <footer className="border-t border-slate-200/70 bg-linear-to-b from-slate-50 to-stone-50 px-4 py-12 dark:border-slate-800/70 dark:from-slate-950 dark:to-zinc-950">
+    <footer className="border-t border-border/70 bg-background px-4 py-12">
       <div className="mx-auto flex max-w-5xl flex-col items-center gap-8">
         {showOneSignal ? <div className="onesignal-customlink-container" /> : null}
         {showPwa ? <PWAInstallButton /> : null}

@@ -11,7 +11,7 @@ import {
   mapListedPuzzlesForDisplay,
   NORMAL_TITLE_SCRIPT
 } from '~/components/pages/padavali/listed_puzzle_display';
-import { GameCrossPromo } from '~/components/GameCrossPromo';
+import { ExplorePromo } from '~/components/ExplorePromo';
 import { runLoaderEffect } from '~/effect/run';
 import MainPagePadavali from './-MainPagePadavali';
 
@@ -112,7 +112,7 @@ function PadavaliHome() {
         />
       )}
       <div className="mx-auto max-w-4xl px-4 pb-12">
-        <GameCrossPromo promote="padajala" />
+        <ExplorePromo />
       </div>
     </>
   );

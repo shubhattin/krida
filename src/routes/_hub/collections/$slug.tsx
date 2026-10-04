@@ -1,10 +1,7 @@
 import { createFileRoute, getRouteApi, notFound } from '@tanstack/react-router';
 import { createServerFn } from '@tanstack/react-start';
 import { z } from 'zod';
-import {
-  routeHeadFromPageMeta,
-  shareImageInfoFromAsset
-} from '~/components/tags/getPageMetaTags';
+import { routeHeadFromPageMeta, shareImageInfoFromAsset } from '~/components/tags/getPageMetaTags';
 import { CACHE, NO_CACHE_PARAMS } from '~/util/cache.server/cache_loaders';
 import { runLoaderEffect } from '~/effect/run';
 import HubCollectionPage from '~/components/hub/HubCollectionPage';

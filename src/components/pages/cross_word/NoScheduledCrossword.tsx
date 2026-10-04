@@ -6,6 +6,7 @@ import { motion } from 'framer-motion';
 import { ClockIcon, LayoutGridIcon, Loader2Icon, SparklesIcon } from 'lucide-react';
 import { IoExtensionPuzzleSharp } from 'react-icons/io5';
 import { client } from '~/api/client';
+import { ExploreCatalogLink } from '~/components/ExplorePromo';
 import { ListedCrosswordBrowseEmbed } from '~/components/pages/cross_word/ListedCrosswordBrowseEmbed';
 import type {
   CrosswordListedPuzzlesType,
@@ -133,7 +134,7 @@ export function NoScheduledCrossword({ next_schedule, listed_puzzles }: Props) {
   }, [next_schedule, router]);
 
   return (
-    <div className="w-full bg-linear-to-br from-slate-50 via-blue-50 to-indigo-50 pb-12 dark:from-slate-900 dark:via-slate-800 dark:to-slate-900">
+    <div className="w-full pb-12">
       <div className="relative overflow-hidden">
         <div className="pointer-events-none absolute inset-0 overflow-hidden">
           <div className="absolute -top-20 left-1/2 h-64 w-64 -translate-x-1/2 rounded-full bg-blue-400/10 blur-3xl dark:bg-blue-500/10" />
@@ -201,6 +202,9 @@ export function NoScheduledCrossword({ next_schedule, listed_puzzles }: Props) {
                       ? 'While you wait for the next puzzle, explore the collection below.'
                       : 'Discover and play from the listed crossword archive.'}
                   </p>
+                  <div className="mt-4 flex justify-center">
+                    <ExploreCatalogLink />
+                  </div>
                 </div>
               </motion.div>
 

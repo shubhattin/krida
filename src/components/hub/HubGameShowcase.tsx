@@ -1,6 +1,7 @@
 'use client';
 
 import { useCallback, useEffect, useState } from 'react';
+import { ExploreCatalogLink } from '~/components/ExplorePromo';
 import { GameAppIcon } from '~/components/GameAppIcon';
 import { GameShowcaseCard, GAMES } from '~/routes/-Landing';
 import {
@@ -29,10 +30,11 @@ export function HubGameShowcase() {
 
   useEffect(() => {
     if (!api) return;
-    onSelect(api);
     api.on('select', onSelect);
     api.on('reInit', onSelect);
+    const frame = requestAnimationFrame(() => onSelect(api));
     return () => {
+      cancelAnimationFrame(frame);
       api.off('select', onSelect);
       api.off('reInit', onSelect);
     };
@@ -45,7 +47,7 @@ export function HubGameShowcase() {
           <GameAppIcon game="padavali" name="Padāvalī" size="sm" className="relative z-10" />
           <GameAppIcon game="padajala" name="Padajāla" size="sm" className="-ml-2" />
         </div>
-        <div className="min-w-0">
+        <div className="min-w-0 flex-1">
           <h1 className="text-2xl font-semibold tracking-tight text-pretty text-slate-900 sm:text-3xl dark:text-slate-50">
             Padāvalī and Padajāla
           </h1>
@@ -53,7 +55,11 @@ export function HubGameShowcase() {
             A Sanskrit word search and crossword.
           </p>
         </div>
+        <ExploreCatalogLink className="hidden shrink-0 sm:inline-flex" />
       </header>
+      <div className="mx-auto w-full max-w-3xl sm:hidden">
+        <ExploreCatalogLink />
+      </div>
 
       <Carousel
         setApi={setApi}

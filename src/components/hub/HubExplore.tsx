@@ -153,7 +153,7 @@ function ExploreFilterBar({ tags }: { tags: (PublicTag & { count: number })[] })
   }, [typingCtx]);
 
   return (
-    <div className="sticky top-16 z-40 -mx-4 border-y border-slate-200/70 bg-slate-50/90 px-4 py-3 backdrop-blur-md dark:border-slate-800/70 dark:bg-slate-950/90">
+    <div className="sticky top-16 z-40 -mx-4 border-y border-border/70 bg-background/90 px-4 py-3 backdrop-blur-md">
       <div className="flex flex-col gap-3">
         <div className="flex flex-col items-stretch gap-2 sm:flex-row sm:items-center">
           <InputGroup className="w-full sm:flex-1">

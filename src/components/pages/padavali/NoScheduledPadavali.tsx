@@ -6,6 +6,7 @@ import { ClockIcon, Loader2Icon, SparklesIcon, LayoutGridIcon } from 'lucide-rea
 import { motion } from 'framer-motion';
 import { IoExtensionPuzzleSharp } from 'react-icons/io5';
 import { client } from '~/api/client';
+import { ExploreCatalogLink } from '~/components/ExplorePromo';
 import { ListedPuzzlesBrowseEmbed } from '~/components/pages/padavali/ListedPuzzlesBrowseEmbed';
 import type { PadavaliListedPuzzlesType } from '~/util/cache.server/padavali_cache';
 import type { DisplayPuzzle } from '~/components/pages/padavali/listed_puzzle_display';
@@ -142,7 +143,7 @@ export const NoScheduledPadavali = ({
   }, [next_schedule, router]);
 
   return (
-    <div className="w-full bg-linear-to-br from-slate-50 via-blue-50 to-indigo-50 pb-12 dark:from-slate-900 dark:via-slate-800 dark:to-slate-900">
+    <div className="w-full pb-12">
       {/* Header */}
       <div className="relative overflow-hidden">
         {/* Decorative background blobs */}
@@ -216,6 +217,9 @@ export const NoScheduledPadavali = ({
                       ? 'While you wait for the next puzzle, explore our collection below.'
                       : 'Discover and play from our full collection of word puzzles.'}
                   </p>
+                  <div className="mt-4 flex justify-center">
+                    <ExploreCatalogLink />
+                  </div>
                 </div>
               </motion.div>
 

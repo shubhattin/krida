@@ -4,7 +4,7 @@ import { CACHE, NO_CACHE_PARAMS } from '~/util/cache.server/cache_loaders';
 import { routeHeadFromPageMeta } from '~/components/tags/getPageMetaTags';
 import { NoScheduledCrossword } from '~/components/pages/cross_word/NoScheduledCrossword';
 import MainPageCrossword from '~/components/pages/cross_word/MainPageCrossword';
-import { GameCrossPromo } from '~/components/GameCrossPromo';
+import { ExplorePromo } from '~/components/ExplorePromo';
 import { runLoaderEffect } from '~/effect/run';
 
 const loader$ = createServerFn({ method: 'GET' }).handler(async () => {
@@ -33,14 +33,14 @@ function CrosswordHomePage() {
   const { current_schedule, next_schedule, listed_puzzles } = Route.useLoaderData();
 
   return (
-    <main className="relative min-h-dvh overflow-x-clip bg-linear-to-br from-slate-50 via-blue-50 to-indigo-50 dark:from-slate-900 dark:via-slate-800 dark:to-slate-900">
+    <main className="relative min-h-dvh overflow-x-clip">
       {current_schedule ? (
         <MainPageCrossword word_puzzle={current_schedule.puzzle} />
       ) : (
         <NoScheduledCrossword next_schedule={next_schedule} listed_puzzles={listed_puzzles} />
       )}
       <div className="mx-auto max-w-4xl px-4 pb-12">
-        <GameCrossPromo promote="padavali" />
+        <ExplorePromo />
       </div>
     </main>
   );

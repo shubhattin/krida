@@ -8,7 +8,7 @@ import { ArrowLeftIcon, SearchIcon } from 'lucide-react';
 import { InputGroup, InputGroupAddon, InputGroupInput } from '~/components/ui/input-group';
 import type { CrosswordListedPuzzlesType } from '~/util/cache.server/crossword_cache';
 import { CrosswordPreviewCard } from '~/components/pages/cross_word/CrosswordPreviewCard';
-import { GameCrossPromo } from '~/components/GameCrossPromo';
+import { ExploreCatalogLink, ExplorePromo } from '~/components/ExplorePromo';
 import { useCrosswordListedPuzzles } from '~/components/pages/cross_word/useCrosswordListedPuzzles';
 import type { ListedCollectionsType } from '~/util/cache.server/collection_cache';
 import {
@@ -68,11 +68,13 @@ export function ListedCrosswordPuzzles({
           <p className="mt-1 text-sm text-muted-foreground">
             Search and play from the crossword puzzles.
           </p>
+          <div className="mt-3">
+            <ExploreCatalogLink />
+          </div>
         </div>
       </div>
 
-      {/* Cross-promote Padavali */}
-      <GameCrossPromo promote="padavali" toPuzzles />
+      <ExplorePromo />
 
       <div className="flex flex-wrap items-center gap-2">
         <BrowseModeSwitch mode={browseMode} onChange={setBrowseMode} />
