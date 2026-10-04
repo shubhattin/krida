@@ -66,21 +66,39 @@ const load_padavali_sitemap: CacheItem<NoCacheParams, string> = createCache({
       const config = yield* AppConfig;
       const base = config.siteUrl;
 
-      const puzzles = yield* dbRunHttp('sitemap.padavali_listed', (client) =>
-        client.query.padavali_puzzles.findMany({
-          columns: {
-            slug: true,
-            updated_at: true,
-            last_listed_at: true,
-            created_at: true
-          },
-          where: ({ listed }, { eq }) => eq(listed, true)
-        })
-      );
+      const [puzzles, collections] = yield* Effect.all([
+        dbRunHttp('sitemap.padavali_listed', (client) =>
+          client.query.padavali_puzzles.findMany({
+            columns: {
+              slug: true,
+              updated_at: true,
+              last_listed_at: true,
+              created_at: true
+            },
+            where: ({ listed }, { eq }) => eq(listed, true)
+          })
+        ),
+        dbRunHttp('sitemap.listed_collections', (client) =>
+          client.query.collections.findMany({
+            columns: {
+              slug: true,
+              updated_at: true,
+              created_at: true
+            },
+            where: ({ listed }, { eq }) => eq(listed, true)
+          })
+        )
+      ]);
 
       const entries: SitemapUrlEntry[] = [
+        { loc: joinUrl(base, '/') },
+        { loc: joinUrl(base, '/explore') },
         { loc: joinUrl(base, '/padavali') },
         { loc: joinUrl(base, '/padavali/puzzles') },
+        ...collections.map((collection) => ({
+          loc: joinUrl(base, `/collections/${encodeURIComponent(collection.slug)}`),
+          lastmod: collection.updated_at ?? collection.created_at
+        })),
         ...puzzles.map((puzzle) => ({
           loc: joinUrl(base, `/padavali/${encodeURIComponent(puzzle.slug)}`),
           lastmod: resolveLastmod(puzzle)

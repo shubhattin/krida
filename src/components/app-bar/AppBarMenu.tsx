@@ -7,17 +7,14 @@ import {
   Menu,
   Monitor,
   LogIn,
-  LogOut,
   Settings,
   Palette,
   ExternalLink,
   Book,
   Music,
   Check,
-  User,
-  LayoutDashboard
+  Shield
 } from 'lucide-react';
-import { Link } from '@tanstack/react-router';
 import { SiGithub } from 'react-icons/si';
 import { FaYoutube, FaInstagram } from 'react-icons/fa';
 import { useTheme, type Theme } from '~/components/theme-provider';
@@ -30,8 +27,7 @@ import { is_ios_atom, pwa_state_atom } from '../PWA/pwa_state';
 import { useAtom } from 'jotai';
 import { PWAInstallButton } from '../PWA/PWAInit';
 import { BsVectorPen } from 'react-icons/bs';
-import { signIn, signOut, useSession } from '~/lib/auth-client';
-import { resetPosthog } from '~/components/tags/PosthogInit';
+import { signIn, useSession } from '~/lib/auth-client';
 import { accountMenuIconClass, accountMenuLinkClass } from '~/components/app-bar/GameMenuItems';
 
 function SignInMenuButton({ onNavigate }: { onNavigate?: () => void }) {
@@ -55,78 +51,17 @@ function SignInMenuButton({ onNavigate }: { onNavigate?: () => void }) {
   );
 }
 
-function LoggedInAccountMenu({
-  onNavigate,
-  gameMenuItems
-}: {
-  onNavigate?: () => void;
-  gameMenuItems?: ReactNode;
-}) {
-  const user_info = useSession().data?.user;
-  if (!user_info) return null;
+function AdminMenuSection({ gameMenuItems }: { gameMenuItems?: ReactNode }) {
+  const isAdmin = useSession().data?.user?.role === 'admin';
+  if (!isAdmin || !gameMenuItems) return null;
 
-  return (
-    <div className="space-y-1">
-      {user_info.role === 'admin' && gameMenuItems ? (
-        <div className="grid grid-cols-2 gap-1">{gameMenuItems}</div>
-      ) : null}
-
-      <div className="grid grid-cols-2 gap-1">
-        <a
-          href={`${import.meta.env.VITE_BETTER_AUTH_URL}/user`}
-          target="_blank"
-          rel="noopener noreferrer"
-          onClick={onNavigate}
-          className={accountMenuLinkClass}
-        >
-          <div className={`${accountMenuIconClass} from-blue-500 to-cyan-600`}>
-            <User className="size-3 text-white" />
-          </div>
-          <span className="truncate">Profile</span>
-        </a>
-
-        <Link to="/dashboard" onClick={onNavigate} className={accountMenuLinkClass}>
-          <div className={`${accountMenuIconClass} from-violet-500 to-indigo-600`}>
-            <LayoutDashboard className="size-3 text-white" />
-          </div>
-          <span className="truncate">Dashboard</span>
-        </Link>
-
-        <button
-          type="button"
-          onClick={() => {
-            onNavigate?.();
-            void resetPosthog().then(() => signOut());
-          }}
-          className={cn(
-            accountMenuLinkClass,
-            'border-red-200 bg-red-50 text-red-700 hover:border-red-300 hover:bg-red-100 dark:border-red-800 dark:bg-red-950/30 dark:text-red-300 dark:hover:border-red-700 dark:hover:bg-red-900/30'
-          )}
-        >
-          <div className={`${accountMenuIconClass} from-red-500 to-rose-600`}>
-            <LogOut className="size-3 text-white" />
-          </div>
-          <span className="truncate">Log out</span>
-        </button>
-      </div>
-    </div>
-  );
-}
-
-function AccountMenuSection({
-  onNavigate,
-  gameMenuItems
-}: {
-  onNavigate?: () => void;
-  gameMenuItems?: ReactNode;
-}) {
   return (
     <div className="space-y-2">
       <div className="flex items-center gap-2">
-        <User className="h-4 w-4 text-slate-600 dark:text-slate-400" />
-        <span className="text-sm font-medium text-slate-700 dark:text-slate-300">Account</span>
+        <Shield className="h-4 w-4 text-slate-600 dark:text-slate-400" />
+        <span className="text-sm font-medium text-slate-700 dark:text-slate-300">Admin</span>
       </div>
-      <LoggedInAccountMenu onNavigate={onNavigate} gameMenuItems={gameMenuItems} />
+      <div className="grid grid-cols-2 gap-1">{gameMenuItems}</div>
     </div>
   );
 }
@@ -209,8 +144,6 @@ export function MenuButton({
   const { data: session } = useSession();
   const isLoggedIn = !!session?.user;
   const isAdmin = session?.user?.role === 'admin';
-  const showAccountAtTop = isLoggedIn && isAdmin;
-  const showAccountAtBottom = isLoggedIn && !isAdmin;
   const [open, setOpen] = useState(false);
   const [pwa_state] = useAtom(pwa_state_atom);
   const [isIos] = useAtom(is_ios_atom);
@@ -253,6 +186,7 @@ export function MenuButton({
           <Button
             variant="outline"
             size="icon"
+            aria-label="Open settings"
             className="relative shrink-0 border-slate-300/60 bg-white/80 backdrop-blur-sm transition-colors duration-200 hover:bg-slate-100/80 aria-expanded:bg-slate-100/80 dark:border-slate-600/60 dark:bg-slate-800/80 dark:hover:bg-slate-700/80 dark:aria-expanded:bg-slate-700/80"
           />
         }
@@ -312,12 +246,12 @@ export function MenuButton({
           </div>
           <Separator className="my-4 bg-slate-200 dark:bg-slate-700" />
 
-          {showAccountAtTop && (
+          {isAdmin && gameMenuWithNavigate ? (
             <>
-              <AccountMenuSection onNavigate={closeMenu} gameMenuItems={gameMenuWithNavigate} />
+              <AdminMenuSection gameMenuItems={gameMenuWithNavigate} />
               <Separator className="my-4 bg-slate-200 dark:bg-slate-700" />
             </>
-          )}
+          ) : null}
 
           <PwaControlsSection
             showPwaControls={showPwaControls}
@@ -443,16 +377,12 @@ export function MenuButton({
             </div>
           </div>
 
-          {(!isLoggedIn || showAccountAtBottom) && (
+          {!isLoggedIn ? (
             <>
               <Separator className="my-4 bg-slate-200 dark:bg-slate-700" />
-              {!isLoggedIn ? (
-                <SignInMenuButton onNavigate={closeMenu} />
-              ) : (
-                <AccountMenuSection onNavigate={closeMenu} gameMenuItems={gameMenuWithNavigate} />
-              )}
+              <SignInMenuButton onNavigate={closeMenu} />
             </>
-          )}
+          ) : null}
         </div>
       </PopoverContent>
     </Popover>

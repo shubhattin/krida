@@ -63,12 +63,7 @@ function RootDocument({ children }: { children: React.ReactNode }) {
         />
         <HeadContent />
       </head>
-      <body
-        className={cn(
-          'font-sans antialiased',
-          'overflow-y-scroll sm:px-2 lg:px-3 xl:px-4 2xl:px-4'
-        )}
-      >
+      <body className={cn('overflow-y-scroll font-sans antialiased')}>
         <RouteProgress />
         <RootProviders>{children}</RootProviders>
         <PosthogInit />
@@ -94,10 +89,8 @@ function RootProviders({ children }: { children: React.ReactNode }) {
   return (
     <ThemeProvider defaultTheme={DEFAULT_THEME} storageKey={THEME_STORAGE_KEY}>
       <TRPCProvider trpcClient={trpcClient} queryClient={queryClient}>
-        <div className="container mx-auto mb-1">
-          <Toaster richColors={true} />
-          {children}
-        </div>
+        <Toaster richColors={true} />
+        {children}
         {import.meta.env.DEV && (
           <TanStackDevtools
             config={{ position: 'bottom-right' }}

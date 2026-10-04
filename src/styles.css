@@ -60,7 +60,8 @@
 }
 
 .dark {
-  --background: oklch(0.2077 0.0398 265.7549);
+  /* Match Tailwind slate-950 so public shells, html, and body are one canvas. */
+  --background: oklch(0.129 0.042 264.695);
   --foreground: oklch(0.9288 0.0126 255.5078);
   --card: oklch(0.2795 0.0368 260.031);
   --card-foreground: oklch(0.9288 0.0126 255.5078);
@@ -171,9 +172,23 @@
   }
   html {
     scrollbar-gutter: stable;
+    background-color: var(--background);
   }
   body {
     @apply bg-background text-foreground;
+  }
+}
+
+@layer components {
+  /* Full-bleed public canvas: tint sits on --background so edges never mismatch. */
+  .public-canvas {
+    background-color: var(--background);
+    background-image: linear-gradient(
+      165deg,
+      var(--background) 0%,
+      color-mix(in oklch, var(--primary) 9%, var(--background)) 42%,
+      var(--background) 100%
+    );
   }
 }
 

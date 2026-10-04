@@ -703,10 +703,7 @@ function WordGame({
 
   return (
     <div
-      className={cn(
-        'w-full bg-linear-to-br from-slate-50 via-blue-50 to-indigo-50 dark:from-slate-900 dark:via-slate-800 dark:to-slate-900',
-        'pb-6 sm:pb-12'
-      )}
+      className={cn('public-canvas w-full', 'pb-6 sm:pb-12')}
       style={{
         // Prevent iOS Safari bounce and zoom during game
         WebkitOverflowScrolling: 'touch',

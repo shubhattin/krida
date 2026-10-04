@@ -286,10 +286,12 @@ function miniDemoCellClassName(
   inDemo: boolean,
   inFound: boolean,
   isLast: boolean,
-  demoState: DemoState
+  demoState: DemoState,
+  compact: boolean
 ): string {
   return cn(
-    'relative z-10 flex aspect-square items-center justify-center rounded-xl border text-base font-extrabold transition-all duration-300',
+    'relative z-10 flex aspect-square items-center justify-center border font-extrabold transition-all duration-300',
+    compact ? 'rounded-lg text-sm' : 'rounded-xl text-base',
     'border-slate-200 bg-linear-to-br from-white to-slate-50 text-slate-800 shadow-xs',
     'dark:border-slate-700 dark:from-slate-800 dark:to-slate-950 dark:text-slate-200',
     inFound &&
@@ -332,7 +334,8 @@ const MiniDemoCell = ({
   inDemo,
   inFound,
   isLast,
-  demoState
+  demoState,
+  compact = false
 }: {
   letter: string;
   row: number;
@@ -341,12 +344,13 @@ const MiniDemoCell = ({
   inFound: boolean;
   isLast: boolean;
   demoState: DemoState;
+  compact?: boolean;
 }) => (
   <div
     key={`${row}-${col}`}
     data-mini-row={row}
     data-mini-col={col}
-    className={miniDemoCellClassName(inDemo, inFound, isLast, demoState)}
+    className={miniDemoCellClassName(inDemo, inFound, isLast, demoState, compact)}
   >
     <span
       className={cn(
@@ -362,7 +366,7 @@ const MiniDemoCell = ({
 // ─── Padavali Mini Grid Preview ───────────────────────────
 // Mirrors GameGrid idle-demo: hand emoji traces a path, blue selection →
 // green success / red miss, SVG trail, found words persist.
-export function PadavaliMiniPreview() {
+export function PadavaliMiniPreview({ compact = false }: { compact?: boolean }) {
   const gridRef = useRef<HTMLDivElement>(null);
   const [demoPath, setDemoPath] = useState<CellPos[]>([]);
   const [demoState, setDemoState] = useState<'idle' | 'selecting' | 'success' | 'fail'>('idle');
@@ -515,9 +519,14 @@ export function PadavaliMiniPreview() {
           };
 
   return (
-    <div className="relative rounded-2xl border border-slate-200/40 bg-slate-100/40 p-4.5 dark:border-slate-800/40 dark:bg-slate-950/20">
+    <div
+      className={cn(
+        'relative rounded-2xl border border-slate-200/40 bg-slate-100/40 dark:border-slate-800/40 dark:bg-slate-950/20',
+        compact ? 'p-3' : 'p-4.5'
+      )}
+    >
       {/* Header */}
-      <div className="mb-3 flex items-center justify-between gap-2">
+      <div className={cn('flex items-center justify-between gap-2', compact ? 'mb-2' : 'mb-3')}>
         <div className="flex items-center gap-1.5">
           <div className="size-1.5 animate-pulse rounded-full bg-emerald-500" />
           <span className="text-[10px] font-bold tracking-wider text-slate-500 uppercase dark:text-slate-400">
@@ -618,7 +627,7 @@ export function PadavaliMiniPreview() {
 
         <div
           ref={gridRef}
-          className="relative z-10 grid grid-cols-5 gap-2.5"
+          className={cn('relative z-10 grid grid-cols-5', compact ? 'gap-1.5' : 'gap-2.5')}
           style={{ gridTemplateRows: `repeat(${GRID_ROWS}, 1fr)` }}
         >
           {MOCK_GRID.map((rowArr, rIdx) =>
@@ -640,6 +649,7 @@ export function PadavaliMiniPreview() {
                   inFound={inFound}
                   isLast={isLast}
                   demoState={demoState}
+                  compact={compact}
                 />
               );
             })
@@ -682,7 +692,7 @@ export function PadavaliMiniPreview() {
 }
 
 // ─── Padajala Mini Crossword Preview ──────────────────────
-export function PadajalaMiniPreview() {
+export function PadajalaMiniPreview({ compact = false }: { compact?: boolean }) {
   const [filledCount, setFilledCount] = useState(0);
   const totalCells = CROSSWORD_GRID.flat().filter(Boolean).length;
 
@@ -732,9 +742,14 @@ export function PadajalaMiniPreview() {
   const isComplete = wordsFound === 3;
 
   return (
-    <div className="relative rounded-2xl border border-slate-200/40 bg-slate-100/40 p-4.5 dark:border-slate-800/40 dark:bg-slate-950/20">
+    <div
+      className={cn(
+        'relative rounded-2xl border border-slate-200/40 bg-slate-100/40 dark:border-slate-800/40 dark:bg-slate-950/20',
+        compact ? 'p-3' : 'p-4.5'
+      )}
+    >
       {/* Header */}
-      <div className="mb-3 flex items-center justify-between">
+      <div className={cn('flex items-center justify-between', compact ? 'mb-2' : 'mb-3')}>
         <div className="flex items-center gap-1.5">
           <div
             className={`size-1.5 rounded-full ${isComplete ? 'bg-emerald-500' : 'bg-amber-500'}`}
@@ -755,7 +770,7 @@ export function PadajalaMiniPreview() {
       </div>
 
       {/* Crossword Grid */}
-      <div className="grid grid-cols-5 gap-2">
+      <div className={cn('grid grid-cols-5', compact ? 'gap-1.5' : 'gap-2')}>
         {CROSSWORD_GRID.map((row, rIdx) =>
           row.map((cell, cIdx) => {
             if (!cell) {
@@ -784,29 +799,39 @@ export function PadajalaMiniPreview() {
 }
 
 // ─── Game Showcase Card ───────────────────────────────────
-export function GameShowcaseCard({ game, index }: { game: (typeof GAMES)[number]; index: number }) {
+export function GameShowcaseCard({
+  game,
+  index,
+  compact = false
+}: {
+  game: (typeof GAMES)[number];
+  index: number;
+  compact?: boolean;
+}) {
   return (
     <motion.div
-      initial={{ opacity: 0, y: 30 }}
+      initial={{ opacity: 0, y: compact ? 16 : 30 }}
       animate={{ opacity: 1, y: 0 }}
-      transition={{ duration: 0.6, delay: 0.15 + index * 0.15, ease: 'easeOut' }}
-      className="group relative"
+      transition={{
+        duration: compact ? 0.4 : 0.6,
+        delay: compact ? 0.06 + index * 0.08 : 0.15 + index * 0.15,
+        ease: 'easeOut'
+      }}
+      className="group relative h-full"
     >
-      {/* Glow effect behind card */}
       <div
         className={`absolute -inset-1 rounded-3xl bg-linear-to-br ${game.gradient.from} ${game.gradient.to} opacity-0 blur-xl transition-opacity duration-500 group-hover:opacity-15`}
       />
 
       <div
-        className={`relative flex h-full flex-col overflow-hidden rounded-2xl border ${game.gradient.border} bg-white/60 shadow-lg backdrop-blur-md transition-all duration-300 group-hover:-translate-y-1 group-hover:shadow-xl dark:bg-slate-900/50`}
+        className={`relative flex h-full flex-col overflow-hidden rounded-2xl border ${game.gradient.border} bg-white/60 shadow-lg backdrop-blur-md transition-transform duration-300 group-hover:-translate-y-1 group-hover:shadow-xl dark:bg-slate-900/50`}
       >
-        {/* Card header with icon + title */}
-        <div className="flex items-start gap-3.5 p-5 pb-3">
-          <GameAppIcon game={game.id} name={game.name} size="lg" />
+        <div className={cn('flex items-start', compact ? 'gap-3 p-3.5 pb-2' : 'gap-3.5 p-5 pb-3')}>
+          <GameAppIcon game={game.id} name={game.name} size={compact ? 'md' : 'lg'} />
 
           <div className="min-w-0 flex-1">
             <h3
-              className={`bg-linear-to-r ${game.gradient.text} ${game.gradient.textDark} bg-clip-text text-xl font-black tracking-tight text-transparent`}
+              className={`bg-linear-to-r ${game.gradient.text} ${game.gradient.textDark} bg-clip-text font-black tracking-tight text-transparent ${compact ? 'text-lg' : 'text-xl'}`}
             >
               {game.name}
             </h3>
@@ -816,13 +841,13 @@ export function GameShowcaseCard({ game, index }: { game: (typeof GAMES)[number]
           </div>
         </div>
 
-        {/* Description */}
-        <p className="px-5 pb-4 text-sm leading-relaxed text-slate-600 dark:text-slate-300">
-          {game.description}
-        </p>
+        {compact ? null : (
+          <p className="px-5 pb-4 text-sm leading-relaxed text-slate-600 dark:text-slate-300">
+            {game.description}
+          </p>
+        )}
 
-        {/* CTAs */}
-        <div className="flex items-center gap-2 px-5 pb-4">
+        <div className={cn('flex items-center gap-2', compact ? 'px-3.5 pb-3' : 'px-5 pb-4')}>
           <Button
             render={
               <Link
@@ -832,7 +857,7 @@ export function GameShowcaseCard({ game, index }: { game: (typeof GAMES)[number]
             }
             nativeButton={false}
             size="sm"
-            className={`flex-1 bg-linear-to-r ${game.gradient.from} ${game.gradient.to} px-4 py-2.5 text-xs text-white shadow-md ${game.gradient.shadowColor} transition-all duration-200 hover:-translate-y-0.5 hover:shadow-lg`}
+            className={`flex-1 bg-linear-to-r ${game.gradient.from} ${game.gradient.to} text-xs text-white shadow-md ${game.gradient.shadowColor} transition-transform duration-200 hover:-translate-y-0.5 hover:shadow-lg ${compact ? 'px-3 py-2' : 'px-4 py-2.5'}`}
           >
             <Play className="size-3.5 fill-white" />
             Play Now
@@ -849,19 +874,29 @@ export function GameShowcaseCard({ game, index }: { game: (typeof GAMES)[number]
             nativeButton={false}
             size="sm"
             variant="outline"
-            className="flex-1 border-slate-200/80 bg-white/50 px-4 py-2.5 text-xs transition-all duration-200 hover:-translate-y-0.5 hover:bg-white/80 dark:border-slate-700/80 dark:bg-slate-800/50 dark:hover:bg-slate-800/80"
+            className={cn(
+              'flex-1 border-slate-200/80 bg-white/50 text-xs transition-transform duration-200 hover:-translate-y-0.5 hover:bg-white/80 dark:border-slate-700/80 dark:bg-slate-800/50 dark:hover:bg-slate-800/80',
+              compact ? 'px-3 py-2' : 'px-4 py-2.5'
+            )}
           >
             <BookOpen className="size-3.5" />
             Puzzles
           </Button>
         </div>
 
-        {/* Divider */}
-        <div className="mx-5 border-t border-slate-200/50 dark:border-slate-700/50" />
+        <div
+          className={cn(
+            'border-t border-slate-200/50 dark:border-slate-700/50',
+            compact ? 'mx-3.5' : 'mx-5'
+          )}
+        />
 
-        {/* Mini preview */}
-        <div className="p-4 pt-3">
-          {game.id === 'padavali' ? <PadavaliMiniPreview /> : <PadajalaMiniPreview />}
+        <div className={compact ? 'p-3 pt-2.5' : 'p-4 pt-3'}>
+          {game.id === 'padavali' ? (
+            <PadavaliMiniPreview compact={compact} />
+          ) : (
+            <PadajalaMiniPreview compact={compact} />
+          )}
         </div>
       </div>
     </motion.div>

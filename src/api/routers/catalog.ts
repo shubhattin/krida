@@ -19,6 +19,7 @@ import { runTrpcEffect } from '~/effect/run';
 import {
   CACHE,
   invalidate_and_refresh_cache,
+  invalidate_padavali_sitemap,
   NO_CACHE_PARAMS
 } from '~/util/cache.server/cache_loaders';
 import { puzzleNotInCollection } from '~/util/catalog/list_query';
@@ -43,7 +44,12 @@ const refreshListedPuzzles = (game: GameKind) =>
   );
 
 const refreshListedCollections = () =>
-  settle(invalidate_and_refresh_cache(CACHE.catalog.listed_collections, NO_CACHE_PARAMS));
+  settle(
+    Effect.all([
+      invalidate_and_refresh_cache(CACHE.catalog.listed_collections, NO_CACHE_PARAMS),
+      invalidate_padavali_sitemap()
+    ])
+  );
 
 const imageColumns = {
   id: true,

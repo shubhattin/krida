@@ -630,10 +630,7 @@ export function CrossWordGame({
 
   return (
     <div
-      className={cn(
-        'mx-auto w-full max-w-7xl bg-linear-to-br from-slate-50 via-blue-50 to-indigo-50 px-2 pt-2 pb-2 sm:px-4 sm:pt-3 sm:pb-4 md:px-6',
-        'dark:from-slate-900 dark:via-slate-800 dark:to-slate-900'
-      )}
+      className="mx-auto w-full max-w-7xl px-2 pt-2 pb-2 sm:px-4 sm:pt-3 sm:pb-4 md:px-6"
       style={{
         WebkitOverflowScrolling: 'touch',
         overscrollBehavior: overscrollBehaviorFor(started, completed),

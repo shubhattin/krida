@@ -1,6 +1,6 @@
 'use client';
 
-import { GameCrossPromo } from '~/components/GameCrossPromo';
+import { ExploreCatalogLink, ExplorePromo } from '~/components/ExplorePromo';
 import { useContext, useEffect, useMemo, useRef, useState } from 'react';
 import type { ScriptType } from '~/state/script_list';
 import { motion } from 'framer-motion';
@@ -139,7 +139,7 @@ const PuzzleListView = ({
   }
 
   return (
-    <div className="min-h-screen w-full bg-linear-to-br from-slate-50 via-blue-50 to-indigo-50 dark:from-slate-900 dark:via-slate-800 dark:to-slate-900">
+    <div className="min-h-screen w-full">
       {/* Hero Header */}
       <div className="relative overflow-hidden border-b border-slate-200/60 dark:border-slate-700/60">
         {/* Background gradient blobs */}
@@ -200,6 +200,9 @@ const PuzzleListView = ({
               <p className="mt-2 text-sm text-slate-500 dark:text-slate-400">
                 Browse and play all available Sanskrit word puzzles
               </p>
+              <div className="mt-4 flex justify-center">
+                <ExploreCatalogLink />
+              </div>
               {/* {puzzles.length > 0 && (
                 <motion.div
                   initial={{ opacity: 0, scale: 0.9 }}
@@ -218,9 +221,8 @@ const PuzzleListView = ({
         </div>
       </div>
       <div className="container mx-auto max-w-6xl px-4 py-6">
-        {/* Cross-promote Padajala */}
         <div className="mb-6">
-          <GameCrossPromo promote="padajala" toPuzzles />
+          <ExplorePromo />
         </div>
         <div className="mb-6 flex flex-col items-stretch justify-center gap-3 sm:flex-row sm:items-center">
           <InputGroup className="w-full sm:flex-1">
@@ -372,7 +374,7 @@ const PuzzleListView = ({
 
 const EmptyPuzzleList = () => {
   return (
-    <div className="min-h-screen w-full bg-linear-to-br from-slate-50 via-blue-50 to-indigo-50 dark:from-slate-900 dark:via-slate-800 dark:to-slate-900">
+    <div className="min-h-screen w-full">
       <div className="flex min-h-screen px-4 pt-40">
         <motion.div
           initial={{ opacity: 0, y: 20 }}
