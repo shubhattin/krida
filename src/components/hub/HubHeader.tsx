@@ -6,7 +6,7 @@ import { LayoutGrid } from 'lucide-react';
 import { MenuButton } from '~/components/app-bar/AppBarMenu';
 import { UserProfileChip } from '~/components/app-bar/UserProfileChip';
 import SupportOptions from '~/components/app-bar/SupportOptions';
-import { ExploreHeaderLink, HubNavSwitcher } from './HubNavSwitcher';
+import { HubNavSwitcher } from './HubNavSwitcher';
 import { HUB_GAMES, hubNavFromPath } from './hub_games';
 
 export function HubHeader({
@@ -47,7 +47,6 @@ export function HubHeader({
         <div className="min-w-0 flex-1" />
 
         <div className="flex shrink-0 items-center gap-1 sm:gap-2">
-          <ExploreHeaderLink active={active === 'explore'} />
           <SupportOptions />
           <UserProfileChip game={profileGame} gameLabel={profileLabel} />
           <div className="size-8 shrink-0">
