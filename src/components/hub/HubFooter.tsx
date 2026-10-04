@@ -25,11 +25,13 @@ export function HubFooter({
             <div className="flex size-9 items-center justify-center rounded-xl bg-blue-600 shadow-md shadow-blue-500/10">
               <BookOpen className="size-4 text-white" />
             </div>
-            <span className="text-lg font-black tracking-tight">Sanskrit Games</span>
+            <span className="text-lg font-black tracking-tight">
+              Krida <span className="font-noto-sans-devanagari">(क्रीडा)</span>
+            </span>
           </div>
           <p className="max-w-md text-sm leading-relaxed text-slate-500 dark:text-slate-400">
-            An open-source interactive education project building modern tools for Sanskrit
-            learning.
+            Sanskrit Games — an open-source interactive education project building modern tools for
+            Sanskrit learning.
           </p>
         </div>
 
@@ -113,7 +115,7 @@ export function HubFooter({
         </div>
 
         <p className="text-center text-[10px] font-bold tracking-widest text-slate-400 uppercase dark:text-slate-500">
-          © {new Date().getFullYear()} Sanskrit Games. All rights reserved.
+          © {new Date().getFullYear()} Krida. All rights reserved.
         </p>
       </div>
     </footer>

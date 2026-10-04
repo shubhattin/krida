@@ -35,8 +35,8 @@ export const Route = createRootRouteWithContext<{ queryClient: QueryClient }>()(
         content:
           'width=device-width, initial-scale=1, maximum-scale=1, user-scalable=no, viewport-fit=cover'
       },
-      { title: 'Sanskrit Games' },
-      { name: 'apple-mobile-web-app-title', content: 'Sanskrit Games' },
+      { title: 'Krida (क्रीडा)' },
+      { name: 'apple-mobile-web-app-title', content: 'Krida' },
       { name: 'apple-mobile-web-app-status-bar-style', content: 'black-translucent' }
     ],
     links: [

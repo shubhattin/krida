@@ -158,8 +158,7 @@ function SwitcherTriggerLabel({ activeGame }: { activeGame: HubGameMeta | null }
   return (
     <>
       <GamesMark className="hidden sm:flex" />
-      <span className="truncate sm:hidden">Sanskrit Games</span>
-      <span className="hidden truncate sm:inline">Games</span>
+      <span className="truncate">Krida</span>
     </>
   );
 }

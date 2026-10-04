@@ -13,7 +13,7 @@ export const Route = createFileRoute('/dashboard')({
   },
   head: () =>
     routeHeadFromPageMeta({
-      title: 'Dashboard | Sanskrit Games',
+      title: 'Dashboard | Krida',
       project: 'landing_page',
       description: 'Your Padāvalī and Padajāla play stats, best scores, and recent puzzles.'
     }),

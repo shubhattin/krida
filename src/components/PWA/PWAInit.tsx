@@ -145,12 +145,12 @@ export const PWAInstallButton = ({ setOpen }: { setOpen?: (v: boolean) => void }
             <AlertDialogHeader>
               <AlertDialogTitle className="flex items-center gap-2">
                 <Smartphone className="h-5 w-5" />
-                Install Sanskrit Games
+                Install Krida (क्रीडा)
               </AlertDialogTitle>
               <AlertDialogDescription className="space-y-3 text-left">
                 {/* {isIosSafari ? ( */}
                 <div className="space-y-3">
-                  <p>To install Sanskrit Games as an app on your iPhone/iPad:</p>
+                  <p>To install Krida (क्रीडा) as an app on your iPhone/iPad:</p>
                   <div className="space-y-2 rounded-lg bg-blue-50 p-3 dark:bg-blue-950/30">
                     <div className="flex items-start gap-2">
                       <span className="flex h-6 w-6 items-center justify-center rounded-full bg-blue-500 text-xs font-bold text-white">
@@ -181,7 +181,7 @@ export const PWAInstallButton = ({ setOpen }: { setOpen?: (v: boolean) => void }
                 </div>
                 {/* ) : (
                   <div className="space-y-3">
-                    <p>To install Sanskrit Games as an app:</p>
+                    <p>To install Krida (क्रीडा) as an app:</p>
                     <div className="rounded-lg bg-amber-50 p-3 dark:bg-amber-950/30">
                       <p className="text-sm">
                         Please open this page in <strong>Safari</strong> to install the app. Other

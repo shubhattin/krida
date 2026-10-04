@@ -49,10 +49,10 @@ export function HubGameShowcase() {
         </div>
         <div className="min-w-0 flex-1">
           <h1 className="text-2xl font-semibold tracking-tight text-pretty text-slate-900 sm:text-3xl dark:text-slate-50">
-            Padāvalī and Padajāla
+            Krida <span className="font-noto-sans-devanagari">(क्रीडा)</span>
           </h1>
           <p className="mt-0.5 text-sm text-slate-500 dark:text-slate-400">
-            A Sanskrit word search and crossword.
+            Sanskrit Games — a word search and crossword.
           </p>
         </div>
         <ExploreCatalogLink className="hidden shrink-0 sm:inline-flex" />
