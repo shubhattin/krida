@@ -84,8 +84,8 @@ export default function HubCollectionPage({ data, slug }: { data: HubData; slug:
       </section>
 
       <div className="grid grid-cols-2 gap-3 sm:gap-4 lg:grid-cols-4">
-        {items.map((puzzle, index) => (
-          <HubPuzzleCard key={puzzle.key} puzzle={puzzle} step={index + 1} />
+        {items.map((puzzle) => (
+          <HubPuzzleCard key={puzzle.key} puzzle={puzzle} />
         ))}
       </div>
     </div>
