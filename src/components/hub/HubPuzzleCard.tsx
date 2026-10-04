@@ -21,7 +21,7 @@ export function HubPuzzleCard({
   return (
     <div className="relative h-full">
       {showGameBadge ? (
-        <HubGameBadge game={puzzle.game} className="absolute top-2 left-2 z-10 shadow-md" />
+        <HubGameBadge game={puzzle.game} className="absolute top-2 left-2 z-10" />
       ) : null}
       {step != null ? (
         <span

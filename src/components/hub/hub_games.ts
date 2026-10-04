@@ -50,6 +50,8 @@ export function hubNavFromPath(pathname: string): HubNavId {
 export const HUB_GAME_ACCENT = {
   padavali: {
     badge: 'border-blue-300/70 bg-blue-600 text-white dark:border-blue-400/40 dark:bg-blue-500',
+    iconWell:
+      'border-blue-200/80 shadow-blue-500/20 dark:border-blue-500/35 dark:shadow-blue-900/40',
     pill: 'bg-blue-600 text-white shadow-blue-500/25 dark:bg-blue-500',
     border: 'border-blue-200/70 dark:border-blue-800/50',
     gradient: 'from-blue-500 to-indigo-600',
@@ -58,6 +60,8 @@ export const HUB_GAME_ACCENT = {
   },
   crossword: {
     badge: 'border-amber-300/70 bg-amber-500 text-white dark:border-amber-400/40 dark:bg-amber-500',
+    iconWell:
+      'border-amber-200/80 shadow-amber-500/25 dark:border-amber-500/40 dark:shadow-amber-900/40',
     pill: 'bg-amber-500 text-white shadow-amber-500/25 dark:bg-amber-500',
     border: 'border-amber-200/70 dark:border-amber-800/50',
     gradient: 'from-amber-500 to-orange-600',
