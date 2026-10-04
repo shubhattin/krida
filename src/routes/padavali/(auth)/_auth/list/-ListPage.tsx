@@ -599,9 +599,97 @@ const ListPagination = ({
   );
 };
 
+const PuzzleListResults = ({
+  layout,
+  isSuccess,
+  isFetching,
+  isInitialLoading,
+  puzzle_list,
+  links,
+  linksLoading,
+  linksFetching,
+  page,
+  pageCount,
+  hasPrev,
+  hasNext,
+  total,
+  onPageChange
+}: {
+  layout: ListLayout;
+  isSuccess: boolean;
+  isFetching: boolean;
+  isInitialLoading: boolean;
+  puzzle_list: PuzzleListItem[];
+  links: PuzzleListItem[];
+  linksLoading: boolean;
+  linksFetching: boolean;
+  page: number;
+  pageCount: number;
+  hasPrev: boolean;
+  hasNext: boolean;
+  total: number;
+  onPageChange: (page: number) => void;
+}) => {
+  const listRef = useRef<HTMLDivElement>(null);
+  const isLinks = layout === 'links';
+
+  return (
+    <>
+      <ListLoadingSkeleton show={isInitialLoading && !isLinks} layout={layout} />
+      {isLinks && linksLoading ? <ListLoadingSkeleton show layout="table" /> : null}
+      <div ref={listRef} className="space-y-4">
+        {isLinks && !linksLoading && links.length > 0 ? (
+          <>
+            <p className="text-center text-sm text-muted-foreground">
+              {links.length} puzzle{links.length === 1 ? '' : 's'}
+            </p>
+            <DataTable
+              scrollable
+              columns={listTableColumns}
+              data={links}
+              getRowId={(row) => String(row.id)}
+            />
+          </>
+        ) : null}
+        <PuzzleCardGrid
+          isSuccess={isSuccess}
+          isInitialLoading={isInitialLoading}
+          layout={layout}
+          puzzle_list={puzzle_list}
+        />
+        <PuzzleTableView
+          isSuccess={isSuccess}
+          isInitialLoading={isInitialLoading}
+          layout={layout}
+          columns={listTableColumns}
+          data={puzzle_list}
+        />
+        <ListEmptyState
+          isEmpty={isLinks ? !linksLoading && links.length === 0 : puzzle_list.length === 0}
+          isInitialLoading={isLinks ? false : isInitialLoading}
+          isFetching={isLinks ? linksFetching : isFetching}
+        />
+      </div>
+      {isLinks ? null : (
+        <ListPagination
+          page={page}
+          pageCount={pageCount}
+          hasPrev={hasPrev}
+          hasNext={hasNext}
+          isFetching={isFetching}
+          total={total}
+          onPageChange={(nextPage) => {
+            onPageChange(nextPage);
+            scrollPaginationListToStart(listRef.current);
+          }}
+        />
+      )}
+    </>
+  );
+};
+
 const ListPage = () => {
   const mounted = useIsMounted();
-  const listRef = useRef<HTMLDivElement>(null);
   const [page, setPage] = useState(1);
   const [search_title, setSearchTitle] = useState('');
   const [lipi_lekhika_typing, setLipiLekhikaTyping] = useState(true);
@@ -716,61 +804,22 @@ const ListPage = () => {
             setPage(1);
           }}
         />
-        <ListLoadingSkeleton show={isInitialLoading && layout !== 'links'} layout={layout} />
-        {layout === 'links' && all_links_q.isLoading ? (
-          <ListLoadingSkeleton show layout="table" />
-        ) : null}
-        <div ref={listRef} className="space-y-4">
-          {layout === 'links' && !all_links_q.isLoading && (all_links_q.data?.length ?? 0) > 0 ? (
-            <>
-              <p className="text-center text-sm text-muted-foreground">
-                {all_links_q.data?.length} puzzle{all_links_q.data?.length === 1 ? '' : 's'}
-              </p>
-              <DataTable
-                scrollable
-                columns={listTableColumns}
-                data={all_links_q.data ?? []}
-                getRowId={(row) => String(row.id)}
-              />
-            </>
-          ) : null}
-          <PuzzleCardGrid
-            isSuccess={isSuccess}
-            isInitialLoading={isInitialLoading}
-            layout={layout}
-            puzzle_list={puzzle_list}
-          />
-          <PuzzleTableView
-            isSuccess={isSuccess}
-            isInitialLoading={isInitialLoading}
-            layout={layout}
-            columns={listTableColumns}
-            data={puzzle_list}
-          />
-          <ListEmptyState
-            isEmpty={
-              layout === 'links'
-                ? !all_links_q.isLoading && (all_links_q.data?.length ?? 0) === 0
-                : puzzle_list.length === 0
-            }
-            isInitialLoading={layout === 'links' ? false : isInitialLoading}
-            isFetching={layout === 'links' ? all_links_q.isFetching : isFetching}
-          />
-        </div>
-        {layout === 'links' ? null : (
-          <ListPagination
-            page={page}
-            pageCount={pageCount}
-            hasPrev={hasPrev}
-            hasNext={hasNext}
-            isFetching={isFetching}
-            total={total}
-            onPageChange={(nextPage) => {
-              setPage(nextPage);
-              scrollPaginationListToStart(listRef.current);
-            }}
-          />
-        )}
+        <PuzzleListResults
+          layout={layout}
+          isSuccess={isSuccess}
+          isFetching={isFetching}
+          isInitialLoading={isInitialLoading}
+          puzzle_list={puzzle_list}
+          links={all_links_q.data ?? []}
+          linksLoading={all_links_q.isLoading}
+          linksFetching={all_links_q.isFetching}
+          page={page}
+          pageCount={pageCount}
+          hasPrev={hasPrev}
+          hasNext={hasNext}
+          total={total}
+          onPageChange={setPage}
+        />
       </div>
     </AdminCatalogTabs>
   );

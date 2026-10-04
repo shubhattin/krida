@@ -203,6 +203,127 @@ export function TagsPanel() {
   );
 }
 
+function TagsGrid({
+  tags,
+  onSelect
+}: {
+  tags: { id: number; slug: string; total_count: number }[];
+  onSelect: (id: number) => void;
+}) {
+  return (
+    <div className="grid grid-cols-1 gap-2 sm:grid-cols-2 lg:grid-cols-3">
+      {tags.map((tag) => (
+        <button
+          key={tag.id}
+          type="button"
+          onClick={() => onSelect(tag.id)}
+          className="rounded-xl border border-border/70 bg-card px-3 py-2 text-left transition-colors hover:bg-muted/60"
+        >
+          <span className="block font-medium">{tag.slug}</span>
+          <span className="text-xs text-muted-foreground">
+            {tag.total_count} game{tag.total_count === 1 ? '' : 's'}
+          </span>
+        </button>
+      ))}
+    </div>
+  );
+}
+
+function TagsPagination({
+  page,
+  pageCount,
+  hasPrev,
+  hasNext,
+  onPageChange
+}: {
+  page: number;
+  pageCount: number;
+  hasPrev: boolean;
+  hasNext: boolean;
+  onPageChange: (page: number) => void;
+}) {
+  if (pageCount <= 1) return null;
+
+  return (
+    <Pagination>
+      <PaginationContent>
+        <PaginationItem>
+          <PaginationPrevious
+            href="#"
+            text="Prev"
+            onClick={(event) => {
+              event.preventDefault();
+              if (hasPrev) onPageChange(page - 1);
+            }}
+            className={cn(!hasPrev ? 'pointer-events-none opacity-50' : undefined)}
+          />
+        </PaginationItem>
+        <PaginationItem>
+          <span className="px-2 text-sm text-muted-foreground">
+            {page} / {pageCount}
+          </span>
+        </PaginationItem>
+        <PaginationItem>
+          <PaginationNext
+            href="#"
+            text="Next"
+            onClick={(event) => {
+              event.preventDefault();
+              if (hasNext) onPageChange(page + 1);
+            }}
+            className={cn(!hasNext ? 'pointer-events-none opacity-50' : undefined)}
+          />
+        </PaginationItem>
+      </PaginationContent>
+    </Pagination>
+  );
+}
+
+function TagGamesDialog({
+  open,
+  title,
+  games,
+  loaded,
+  onClose
+}: {
+  open: boolean;
+  title: string;
+  games: { game: GameKind; id: number; title: string; description: string | null }[];
+  loaded: boolean;
+  onClose: () => void;
+}) {
+  return (
+    <Dialog open={open} onOpenChange={(nextOpen) => !nextOpen && onClose()}>
+      <DialogContent className="max-h-[80vh] overflow-hidden sm:max-w-lg">
+        <DialogHeader>
+          <DialogTitle>{title}</DialogTitle>
+          <DialogDescription>Games carrying this tag.</DialogDescription>
+        </DialogHeader>
+        <div className="max-h-[50vh] space-y-2 overflow-y-auto pr-1">
+          {games.map((game) => (
+            <div
+              key={`${game.game}-${game.id}`}
+              className="flex items-start gap-2 rounded-lg border border-border/60 p-2"
+            >
+              <GameKindIcon game={game.game} />
+              <div className="min-w-0">
+                <p className="truncate text-sm font-medium">{game.title}</p>
+                <p className="line-clamp-2 text-xs text-muted-foreground">
+                  {gameKindLabel(game.game)}
+                  {game.description ? ` · ${game.description}` : ''}
+                </p>
+              </div>
+            </div>
+          ))}
+          {loaded && games.length === 0 ? (
+            <p className="text-sm text-muted-foreground">No games use this tag.</p>
+          ) : null}
+        </div>
+      </DialogContent>
+    </Dialog>
+  );
+}
+
 function TagsPanelBody({
   page,
   onPageChange,
@@ -224,90 +345,29 @@ function TagsPanelBody({
       { enabled: selectedId !== null }
     )
   );
-  const selected = tags_q.data?.list.find((tag) => tag.id === selectedId);
+  const tags = tags_q.data?.list ?? [];
+  const selected = tags.find((tag) => tag.id === selectedId);
 
   return (
     <div className="space-y-3">
-      <div className="grid grid-cols-1 gap-2 sm:grid-cols-2 lg:grid-cols-3">
-        {(tags_q.data?.list ?? []).map((tag) => (
-          <button
-            key={tag.id}
-            type="button"
-            onClick={() => onSelect(tag.id)}
-            className="rounded-xl border border-border/70 bg-card px-3 py-2 text-left transition-colors hover:bg-muted/60"
-          >
-            <span className="block font-medium">{tag.slug}</span>
-            <span className="text-xs text-muted-foreground">
-              {tag.total_count} game{tag.total_count === 1 ? '' : 's'}
-            </span>
-          </button>
-        ))}
-      </div>
-      {(tags_q.data?.list.length ?? 0) === 0 && !tags_q.isLoading ? (
+      <TagsGrid tags={tags} onSelect={onSelect} />
+      {tags.length === 0 && !tags_q.isLoading ? (
         <p className="text-sm text-muted-foreground">No tags yet. Add them from a game editor.</p>
       ) : null}
-      {(tags_q.data?.pageCount ?? 1) > 1 ? (
-        <Pagination>
-          <PaginationContent>
-            <PaginationItem>
-              <PaginationPrevious
-                href="#"
-                text="Prev"
-                onClick={(event) => {
-                  event.preventDefault();
-                  if (tags_q.data?.hasPrev) onPageChange(page - 1);
-                }}
-                className={cn(!tags_q.data?.hasPrev ? 'pointer-events-none opacity-50' : undefined)}
-              />
-            </PaginationItem>
-            <PaginationItem>
-              <span className="px-2 text-sm text-muted-foreground">
-                {page} / {tags_q.data?.pageCount}
-              </span>
-            </PaginationItem>
-            <PaginationItem>
-              <PaginationNext
-                href="#"
-                text="Next"
-                onClick={(event) => {
-                  event.preventDefault();
-                  if (tags_q.data?.hasNext) onPageChange(page + 1);
-                }}
-                className={cn(!tags_q.data?.hasNext ? 'pointer-events-none opacity-50' : undefined)}
-              />
-            </PaginationItem>
-          </PaginationContent>
-        </Pagination>
-      ) : null}
-
-      <Dialog open={selectedId !== null} onOpenChange={(open) => !open && onSelect(null)}>
-        <DialogContent className="max-h-[80vh] overflow-hidden sm:max-w-lg">
-          <DialogHeader>
-            <DialogTitle>{selected?.slug ?? games_q.data?.tag.slug ?? 'Tag'}</DialogTitle>
-            <DialogDescription>Games carrying this tag.</DialogDescription>
-          </DialogHeader>
-          <div className="max-h-[50vh] space-y-2 overflow-y-auto pr-1">
-            {(games_q.data?.games ?? []).map((game) => (
-              <div
-                key={`${game.game}-${game.id}`}
-                className="flex items-start gap-2 rounded-lg border border-border/60 p-2"
-              >
-                <GameKindIcon game={game.game} />
-                <div className="min-w-0">
-                  <p className="truncate text-sm font-medium">{game.title}</p>
-                  <p className="line-clamp-2 text-xs text-muted-foreground">
-                    {gameKindLabel(game.game)}
-                    {game.description ? ` · ${game.description}` : ''}
-                  </p>
-                </div>
-              </div>
-            ))}
-            {games_q.isSuccess && games_q.data.games.length === 0 ? (
-              <p className="text-sm text-muted-foreground">No games use this tag.</p>
-            ) : null}
-          </div>
-        </DialogContent>
-      </Dialog>
+      <TagsPagination
+        page={page}
+        pageCount={tags_q.data?.pageCount ?? 1}
+        hasPrev={Boolean(tags_q.data?.hasPrev)}
+        hasNext={Boolean(tags_q.data?.hasNext)}
+        onPageChange={onPageChange}
+      />
+      <TagGamesDialog
+        open={selectedId !== null}
+        title={selected?.slug ?? games_q.data?.tag.slug ?? 'Tag'}
+        games={games_q.data?.games ?? []}
+        loaded={games_q.isSuccess}
+        onClose={() => onSelect(null)}
+      />
     </div>
   );
 }
