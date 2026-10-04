@@ -1,11 +1,8 @@
 'use client';
 
-import { useState, useMemo, type ComponentType } from 'react';
+import { useState, useMemo } from 'react';
 import { useQuery } from '@tanstack/react-query';
 import { useTRPC } from '~/api/client';
-import { Calendar } from '~/components/ui/calendar';
-import { Button } from '~/components/ui/button';
-import { Popover, PopoverContent, PopoverTrigger } from '~/components/ui/popover';
 import { Skeleton } from '~/components/ui/skeleton';
 import {
   Select,
@@ -18,40 +15,37 @@ import { Card, CardContent, CardHeader } from '~/components/ui/card';
 import { ChartContainer, ChartTooltip, ChartTooltipContent } from '~/components/ui/chart';
 import { XAxis, YAxis, CartesianGrid, AreaChart, Area, BarChart, Bar } from 'recharts';
 import {
-  CalendarIcon,
   TrendingUpIcon,
   UsersIcon,
   ClockIcon,
   CheckCircle2Icon,
   CrosshairIcon
 } from 'lucide-react';
-import { cn } from '~/lib/utils';
-import { format, parseISO, subMonths, subWeeks, startOfDay, endOfDay } from 'date-fns';
+import { format, parseISO } from 'date-fns';
 import pretty_ms from 'pretty-ms';
 import CrosswordPuzzleSelector, { type SelectedPuzzle } from './-CrosswordPuzzleSelector';
 import { UserSelector, type SelectedUser } from '~/components/analytics/UserSelector';
 import { TopPlayedLeader } from '~/components/analytics/TopPlayedLeader';
+import {
+  AnalyticsCustomRangePicker,
+  AnalyticsPeriodSelect
+} from '~/components/analytics/AnalyticsPeriodFilter';
+import {
+  useAnalyticsPeriod,
+  type AnalyticsPeriodState
+} from '~/components/analytics/analytics_period';
+import {
+  AnalyticsStatCardsSkeleton,
+  AnalyticsStatGrid,
+  type AnalyticsStat
+} from '~/components/analytics/AnalyticsStatCards';
 
-type DateRange = {
-  from: Date | undefined;
-  to: Date | undefined;
-};
-
-type PeriodType = 'all_time' | 'last_week' | 'last_month' | 'last_3_months' | 'custom';
 type ChartType =
   | 'sessions-completions'
   | 'avg-time'
   | 'avg-accuracy'
   | 'letter-inputs'
   | 'location';
-
-const PERIOD_ITEMS = [
-  { label: 'All Time', value: 'all_time' as const },
-  { label: 'Last Week', value: 'last_week' as const },
-  { label: 'Last Month', value: 'last_month' as const },
-  { label: 'Last 3 Months', value: 'last_3_months' as const },
-  { label: 'Custom Range', value: 'custom' as const }
-];
 
 const MAX_CHART_POINTS = 28;
 
@@ -351,29 +345,8 @@ type CrosswordStatsCompletion = {
   incorrect_entry_attempts: number;
 };
 
-function defaultDateRange(): DateRange {
-  const today = endOfDay(new Date());
-  const monthAgo = startOfDay(subMonths(today, 1));
-  return { from: monthAgo, to: today };
-}
-
 function initialSelectedPuzzles(puzzleId?: number, puzzleTitle?: string): SelectedPuzzle[] {
   return puzzleId && puzzleTitle ? [{ id: puzzleId, title: puzzleTitle }] : [];
-}
-
-function resolvePeriodRange(period: PeriodType, dateRange: DateRange): ResolvedRange {
-  const today = endOfDay(new Date());
-  if (period === 'all_time') return null;
-  if (period === 'last_week') return { from: startOfDay(subWeeks(today, 1)), to: today };
-  if (period === 'last_month') return { from: startOfDay(subMonths(today, 1)), to: today };
-  if (period === 'last_3_months') return { from: startOfDay(subMonths(today, 3)), to: today };
-  return dateRange.from && dateRange.to
-    ? { from: startOfDay(dateRange.from), to: endOfDay(dateRange.to) }
-    : null;
-}
-
-function statsRangeEnabled(allTime: boolean, range: ResolvedRange): boolean {
-  return allTime || !!(range?.from && range?.to);
 }
 
 function selectionLabel(selectedPuzzles: SelectedPuzzle[], selectedUsers: SelectedUser[]): string {
@@ -542,24 +515,19 @@ function computeSummaryStats(
 
 const PuzzleStats = ({ puzzleId, puzzleTitle }: PuzzleStatsProps) => {
   const isEmbedded = puzzleId != null;
-  const [period, setPeriod] = useState<PeriodType>('last_month');
   const [chartType, setChartType] = useState<ChartType>('sessions-completions');
   const [selectedPuzzles, setSelectedPuzzles] = useState<SelectedPuzzle[]>(() =>
     initialSelectedPuzzles(puzzleId, puzzleTitle)
   );
   const [selectedUsers, setSelectedUsers] = useState<SelectedUser[]>([]);
-  const [dateRange, setDateRange] = useState<DateRange>(defaultDateRange);
+  const period = useAnalyticsPeriod('last_month');
 
-  const effectiveDateRange = useMemo(
-    () => resolvePeriodRange(period, dateRange),
-    [period, dateRange]
-  );
-
+  const effectiveDateRange = period.effectiveRange;
   const puzzleIds = selectedPuzzles.length > 0 ? selectedPuzzles.map((p) => p.id) : undefined;
   const userIds = selectedUsers.length > 0 ? selectedUsers.map((user) => user.id) : undefined;
-  const allTime = period === 'all_time';
+  const allTime = period.allTime;
 
-  const statsQueryEnabled = statsRangeEnabled(allTime, effectiveDateRange);
+  const statsQueryEnabled = period.isReady;
 
   const trpc = useTRPC();
 
@@ -626,7 +594,7 @@ const PuzzleStats = ({ puzzleId, puzzleTitle }: PuzzleStatsProps) => {
             {selectionLabel(selectedPuzzles, selectedUsers)}
           </p>
         </div>
-        <StatsFilterControls period={period} setPeriod={setPeriod} />
+        <StatsFilterControls period={period} />
       </div>
 
       <CrosswordPuzzleSelector
@@ -640,9 +608,6 @@ const PuzzleStats = ({ puzzleId, puzzleTitle }: PuzzleStatsProps) => {
         onSelectedUsersChange={setSelectedUsers}
       />
 
-      {period === 'custom' && (
-        <CustomDateRangeRow dateRange={dateRange} setDateRange={setDateRange} />
-      )}
       <StatsQueryPanel
         isEmbedded={isEmbedded}
         isLoading={statsQuery.isLoading}
@@ -775,7 +740,7 @@ const StatsContentBody = ({
         </div>
       )}
       {/* Summary Cards */}
-      <SummaryCards summaryStats={summaryStats} />
+      <AnalyticsStatGrid stats={summaryStatCards(summaryStats)} />
 
       {summaryStats.totalSessions === 0 ? (
         <p className="py-4 text-center text-sm text-muted-foreground">
@@ -996,22 +961,7 @@ const ChartsSection = ({
 // Loading skeleton component
 const StatsLoadingSkeleton = () => (
   <div className="space-y-3">
-    <div className="grid grid-cols-1 gap-2 min-[480px]:grid-cols-2 xl:grid-cols-5">
-      {[...Array(5)].map((_, i) => (
-        <Card key={i} className="overflow-hidden">
-          <CardContent className="flex flex-col gap-1.5 p-3">
-            <div className="flex items-start justify-between gap-2 pl-2">
-              <div className="space-y-1.5">
-                <Skeleton className="h-2.5 w-16" />
-                <Skeleton className="h-7 w-14" />
-              </div>
-              <Skeleton className="size-8 shrink-0 rounded-lg" />
-            </div>
-            <Skeleton className="ml-2 h-2.5 w-20" />
-          </CardContent>
-        </Card>
-      ))}
-    </div>
+    <AnalyticsStatCardsSkeleton />
     <Card className="w-full">
       <CardHeader className="px-3 py-2">
         <Skeleton className="h-8 w-48" />
@@ -1023,99 +973,16 @@ const StatsLoadingSkeleton = () => (
   </div>
 );
 
-// Top filter controls — period
-const StatsFilterControls = ({
-  period,
-  setPeriod
-}: {
-  period: PeriodType;
-  setPeriod: (period: PeriodType) => void;
-}) => (
-  <div className="flex flex-col gap-2 sm:flex-row sm:items-center sm:gap-3">
-    <div className="flex shrink-0 items-center gap-2">
-      <span className="text-xs font-medium text-muted-foreground">Period</span>
-      <Select
-        items={PERIOD_ITEMS}
-        value={period}
-        onValueChange={(value) => {
-          if (value) setPeriod(value);
-        }}
-      >
-        <SelectTrigger size="sm" className="h-8 w-36" aria-label="Select period">
-          <SelectValue />
-        </SelectTrigger>
-        <SelectContent>
-          <SelectItem value="all_time">All Time</SelectItem>
-          <SelectItem value="last_week">Last Week</SelectItem>
-          <SelectItem value="last_month">Last Month</SelectItem>
-          <SelectItem value="last_3_months">Last 3 Months</SelectItem>
-          <SelectItem value="custom">Custom Range</SelectItem>
-        </SelectContent>
-      </Select>
-    </div>
-  </div>
-);
-
-const CustomDateRangeRow = ({
-  dateRange,
-  setDateRange
-}: {
-  dateRange: DateRange;
-  setDateRange: React.Dispatch<React.SetStateAction<DateRange>>;
-}) => (
-  <div className="flex flex-wrap items-center gap-2">
-    <span className="text-xs font-medium text-muted-foreground">From</span>
-    <Popover>
-      <PopoverTrigger
-        render={
-          <Button
-            variant="outline"
-            size="sm"
-            className={cn(
-              'h-8 justify-start text-left font-normal',
-              !dateRange.from && 'text-muted-foreground'
-            )}
-          />
-        }
-      >
-        <CalendarIcon className="mr-1.5 size-3.5" />
-        {dateRange.from ? format(dateRange.from, 'MMM d, yyyy') : 'Pick date'}
-      </PopoverTrigger>
-      <PopoverContent className="w-auto p-0" align="start">
-        <Calendar
-          mode="single"
-          selected={dateRange.from}
-          onSelect={(date) => setDateRange((prev) => ({ ...prev, from: date }))}
-          disabled={(date) => !!dateRange.to && date > dateRange.to}
-        />
-      </PopoverContent>
-    </Popover>
-    <span className="text-xs font-medium text-muted-foreground">To</span>
-    <Popover>
-      <PopoverTrigger
-        render={
-          <Button
-            variant="outline"
-            size="sm"
-            className={cn(
-              'h-8 justify-start text-left font-normal',
-              !dateRange.to && 'text-muted-foreground'
-            )}
-          />
-        }
-      >
-        <CalendarIcon className="mr-1.5 size-3.5" />
-        {dateRange.to ? format(dateRange.to, 'MMM d, yyyy') : 'Pick date'}
-      </PopoverTrigger>
-      <PopoverContent className="w-auto p-0" align="start">
-        <Calendar
-          mode="single"
-          selected={dateRange.to}
-          onSelect={(date) => setDateRange((prev) => ({ ...prev, to: date }))}
-          disabled={(date) => !!dateRange.from && date < dateRange.from}
-        />
-      </PopoverContent>
-    </Popover>
+// Top filter controls — period (custom pickers sit under the row)
+const StatsFilterControls = ({ period }: { period: AnalyticsPeriodState }) => (
+  <div className="flex flex-col gap-2 sm:items-end">
+    <AnalyticsPeriodSelect period={period.period} onPeriodChange={period.setPeriod} />
+    {period.period === 'custom' ? (
+      <AnalyticsCustomRangePicker
+        dateRange={period.dateRange}
+        onDateRangeChange={period.setDateRange}
+      />
+    ) : null}
   </div>
 );
 
@@ -1128,104 +995,45 @@ type SummaryStats = {
   avgAccuracy: number;
 };
 
-const StatMetricCard = ({
-  title,
-  value,
-  description,
-  icon: Icon,
-  accent
-}: {
-  title: string;
-  value: string;
-  description: string;
-  icon: ComponentType<{ className?: string }>;
-  accent: { bar: string; iconBg: string; iconColor: string };
-}) => (
-  <Card className="overflow-hidden border-slate-200/50 bg-linear-to-br from-white/80 to-slate-50/40 shadow-sm transition-shadow hover:shadow-md dark:border-slate-700/50 dark:from-slate-900/80 dark:to-slate-800/40">
-    <CardContent className="relative flex flex-col gap-1.5 p-3">
-      <div className={cn('absolute inset-y-2 left-0 w-1 rounded-r-full', accent.bar)} />
-      <div className="flex items-start justify-between gap-2 pl-2">
-        <div className="min-w-0 space-y-1">
-          <p className="text-[0.65rem] font-medium tracking-wide text-muted-foreground uppercase">
-            {title}
-          </p>
-          <p className="text-xl leading-none font-bold tracking-tight tabular-nums sm:text-2xl">
-            {value}
-          </p>
-        </div>
-        <div
-          className={cn(
-            'flex size-8 shrink-0 items-center justify-center rounded-lg ring-1 ring-black/5 ring-inset dark:ring-white/10',
-            accent.iconBg
-          )}
-        >
-          <Icon className={cn('size-3.5', accent.iconColor)} />
-        </div>
-      </div>
-      <p className="pl-2 text-[0.7rem] text-muted-foreground">{description}</p>
-    </CardContent>
-  </Card>
-);
-
-const SummaryCards = ({ summaryStats }: { summaryStats: SummaryStats }) => (
-  <div className="grid grid-cols-1 gap-2 min-[480px]:grid-cols-2 xl:grid-cols-5">
-    <StatMetricCard
-      title="Total Started"
-      value={summaryStats.totalSessions.toLocaleString()}
-      description="Games started"
-      icon={UsersIcon}
-      accent={{
-        bar: 'bg-blue-500',
-        iconBg: 'bg-blue-500/10',
-        iconColor: 'text-blue-600 dark:text-blue-400'
-      }}
-    />
-    <StatMetricCard
-      title="Completions"
-      value={summaryStats.totalCompletions.toLocaleString()}
-      description="Puzzles completed"
-      icon={CheckCircle2Icon}
-      accent={{
-        bar: 'bg-emerald-500',
-        iconBg: 'bg-emerald-500/10',
-        iconColor: 'text-emerald-600 dark:text-emerald-400'
-      }}
-    />
-    <StatMetricCard
-      title="Completion Rate"
-      value={`${summaryStats.completionRate}%`}
-      description="Of started games"
-      icon={TrendingUpIcon}
-      accent={{
-        bar: 'bg-violet-500',
-        iconBg: 'bg-violet-500/10',
-        iconColor: 'text-violet-600 dark:text-violet-400'
-      }}
-    />
-    <StatMetricCard
-      title="Avg Time"
-      value={pretty_ms(summaryStats.avgTimeTaken * 1000)}
-      description="Per completion"
-      icon={ClockIcon}
-      accent={{
-        bar: 'bg-amber-500',
-        iconBg: 'bg-amber-500/10',
-        iconColor: 'text-amber-600 dark:text-amber-400'
-      }}
-    />
-    <StatMetricCard
-      title="Avg Accuracy"
-      value={`${summaryStats.avgAccuracy}%`}
-      description="Per completion"
-      icon={CrosshairIcon}
-      accent={{
-        bar: 'bg-rose-500',
-        iconBg: 'bg-rose-500/10',
-        iconColor: 'text-rose-600 dark:text-rose-400'
-      }}
-    />
-  </div>
-);
+function summaryStatCards(summaryStats: SummaryStats): AnalyticsStat[] {
+  return [
+    {
+      label: 'Total Started',
+      value: summaryStats.totalSessions.toLocaleString(),
+      hint: 'Games started',
+      icon: UsersIcon,
+      accent: 'sky'
+    },
+    {
+      label: 'Completions',
+      value: summaryStats.totalCompletions.toLocaleString(),
+      hint: 'Puzzles completed',
+      icon: CheckCircle2Icon,
+      accent: 'emerald'
+    },
+    {
+      label: 'Completion Rate',
+      value: `${summaryStats.completionRate}%`,
+      hint: 'Of started games',
+      icon: TrendingUpIcon,
+      accent: 'violet'
+    },
+    {
+      label: 'Avg Time',
+      value: pretty_ms(summaryStats.avgTimeTaken * 1000),
+      hint: 'Per completion',
+      icon: ClockIcon,
+      accent: 'amber'
+    },
+    {
+      label: 'Avg Accuracy',
+      value: `${summaryStats.avgAccuracy}%`,
+      hint: 'Per completion',
+      icon: CrosshairIcon,
+      accent: 'rose'
+    }
+  ];
+}
 
 // Chart selector component
 const ChartSelector = ({

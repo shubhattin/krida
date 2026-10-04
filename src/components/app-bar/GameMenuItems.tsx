@@ -1,7 +1,7 @@
 'use client';
 
 import { Link } from '@tanstack/react-router';
-import { Calendar, List, Pencil, BarChart3, Images } from 'lucide-react';
+import { Calendar, ChartNoAxesCombined, List, Pencil, BarChart3, Images } from 'lucide-react';
 import { useAtom } from 'jotai';
 import { active_puzzle_id_atom } from '~/components/pages/padavali/WordGame/game_state';
 import { active_crossword_id_atom } from '~/components/pages/cross_word/CrossWordGame/game_state';
@@ -12,6 +12,47 @@ const accountMenuLinkClass =
 
 const accountMenuIconClass =
   'flex size-5 shrink-0 items-center justify-center rounded-md bg-linear-to-br';
+
+/** Menu entries shown on the central `/analytics` page. */
+export function AllGamesMenuItems({ onNavigate }: { onNavigate?: () => void }) {
+  const user_info = useSession().data?.user;
+  if (!user_info || user_info.role !== 'admin') return null;
+
+  return (
+    <>
+      <Link to="/analytics" onClick={onNavigate} className={accountMenuLinkClass}>
+        <div className={`${accountMenuIconClass} from-blue-500 to-indigo-600`}>
+          <ChartNoAxesCombined className="size-3 text-white" />
+        </div>
+        <span className="truncate">All analytics</span>
+      </Link>
+      <Link to="/padavali/analytics" onClick={onNavigate} className={accountMenuLinkClass}>
+        <div className={`${accountMenuIconClass} from-sky-500 to-blue-600`}>
+          <BarChart3 className="size-3 text-white" />
+        </div>
+        <span className="truncate">Padāvalī</span>
+      </Link>
+      <Link to="/padajala/analytics" onClick={onNavigate} className={accountMenuLinkClass}>
+        <div className={`${accountMenuIconClass} from-sky-500 to-blue-600`}>
+          <BarChart3 className="size-3 text-white" />
+        </div>
+        <span className="truncate">Padajāla</span>
+      </Link>
+    </>
+  );
+}
+
+/** Cross-link to the central analytics page, prepended to each game menu. */
+function AllAnalyticsLink({ onNavigate }: { onNavigate?: () => void }) {
+  return (
+    <Link to="/analytics" onClick={onNavigate} className={accountMenuLinkClass}>
+      <div className={`${accountMenuIconClass} from-blue-500 to-indigo-600`}>
+        <ChartNoAxesCombined className="size-3 text-white" />
+      </div>
+      <span className="truncate">All analytics</span>
+    </Link>
+  );
+}
 
 export function PadavaliMenuItems({ onNavigate }: { onNavigate?: () => void }) {
   const user_info = useSession().data?.user;
@@ -51,6 +92,7 @@ export function PadavaliMenuItems({ onNavigate }: { onNavigate?: () => void }) {
         </div>
         <span className="truncate">Analytics</span>
       </Link>
+      <AllAnalyticsLink onNavigate={onNavigate} />
       <Link to="/padavali/batch_manager" onClick={onNavigate} className={accountMenuLinkClass}>
         <div className={`${accountMenuIconClass} from-fuchsia-500 to-pink-600`}>
           <Images className="size-3 text-white" />
@@ -99,6 +141,7 @@ export function CrosswordMenuItems({ onNavigate }: { onNavigate?: () => void }) 
         </div>
         <span className="truncate">Analytics</span>
       </Link>
+      <AllAnalyticsLink onNavigate={onNavigate} />
       <Link to="/padajala/batch_manager" onClick={onNavigate} className={accountMenuLinkClass}>
         <div className={`${accountMenuIconClass} from-fuchsia-500 to-pink-600`}>
           <Images className="size-3 text-white" />
