@@ -35,7 +35,7 @@ export function HubHeader({
           </Link>
           <Link to="/" className="hidden min-w-0 no-underline sm:block">
             <span className="block text-sm font-black tracking-tight text-slate-900 dark:text-slate-50">
-              Krida <span className="font-noto-sans-devanagari">(क्रीडा)</span>
+              Krida
             </span>
             <span className="block text-[11px] font-medium text-slate-500 dark:text-slate-400">
               Play, learn, grow

@@ -627,7 +627,7 @@ const PuzzleListResults = ({
   pageCount: number;
   hasPrev: boolean;
   hasNext: boolean;
-  total: number;
+  total?: number;
   onPageChange: (page: number) => void;
 }) => {
   const listRef = useRef<HTMLDivElement>(null);

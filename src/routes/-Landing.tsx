@@ -1161,9 +1161,7 @@ export default function LandingPage() {
               <div className="flex h-9 w-9 items-center justify-center rounded-xl bg-blue-600 shadow-md shadow-blue-500/10">
                 <BookOpen className="h-4.5 w-4.5 text-white" />
               </div>
-              <span className="text-xl font-black tracking-tight">
-                Krida <span className="font-noto-sans-devanagari">(क्रीडा)</span>
-              </span>
+              <span className="text-xl font-black tracking-tight">Krida</span>
             </div>
             <p className="mx-auto max-w-md text-sm leading-relaxed text-slate-500 dark:text-slate-400">
               Sanskrit Games — an open-source interactive education project building modern tools

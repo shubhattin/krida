@@ -23,7 +23,7 @@ export type MetadataProject = 'padavali' | 'padajala' | 'landing_page';
 const SITE_NAME = {
   padavali: 'Padavali',
   padajala: 'Padajāla',
-  landing_page: 'Krida (क्रीडा)'
+  landing_page: 'Krida'
 } as const satisfies Record<MetadataProject, string>;
 
 interface Props {

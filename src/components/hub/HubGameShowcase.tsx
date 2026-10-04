@@ -48,8 +48,8 @@ export function HubGameShowcase() {
           <GameAppIcon game="padajala" name="Padajāla" size="sm" className="-ml-2" />
         </div>
         <div className="min-w-0 flex-1">
-          <h1 className="text-2xl font-semibold tracking-tight text-pretty text-slate-900 sm:text-3xl dark:text-slate-50">
-            Krida <span className="font-noto-sans-devanagari">(क्रीडा)</span>
+          <h1 className="text-3xl font-black tracking-tight sm:text-4xl">
+            <span className="krida-hero-wordmark">Krida</span>
           </h1>
           <p className="mt-0.5 text-sm text-slate-500 dark:text-slate-400">
             Sanskrit Games — a word search and crossword.

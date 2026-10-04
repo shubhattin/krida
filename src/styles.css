@@ -190,6 +190,51 @@
       var(--background) 100%
     );
   }
+
+  /* Hub hero wordmark: Padāvalī blue → Padajāla amber, slowly drifting. */
+  .krida-hero-wordmark {
+    background-image: linear-gradient(
+      105deg,
+      #1d4ed8 0%,
+      #4f46e5 28%,
+      #c026d3 52%,
+      #f59e0b 78%,
+      #1d4ed8 100%
+    );
+    background-size: 220% 100%;
+    background-clip: text;
+    -webkit-background-clip: text;
+    color: transparent;
+    animation: krida-hero-flow 9s ease-in-out infinite;
+  }
+
+  .dark .krida-hero-wordmark {
+    background-image: linear-gradient(
+      105deg,
+      #60a5fa 0%,
+      #a78bfa 28%,
+      #f0abfc 52%,
+      #fbbf24 78%,
+      #60a5fa 100%
+    );
+  }
+}
+
+@keyframes krida-hero-flow {
+  0%,
+  100% {
+    background-position: 0% 50%;
+  }
+  50% {
+    background-position: 100% 50%;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .krida-hero-wordmark {
+    animation: none;
+    background-position: 35% 50%;
+  }
 }
 
 /* Script font utility classes (replacing next/font className exports) */
