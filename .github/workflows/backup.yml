@@ -26,4 +26,4 @@ jobs:
       - name: Load Data and DB Dump
         run: |
           cd src/db/scripts/
-          bunx backup_db_data.ts
+          bun backup_db_data.ts
