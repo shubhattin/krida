@@ -12,7 +12,7 @@ import HubCollectionPage from '~/components/hub/HubCollectionPage';
 const hubRoute = getRouteApi('/_hub');
 
 const collectionMeta$ = createServerFn({ method: 'GET' })
-  .inputValidator(z.object({ slug: z.string().min(1).max(100) }))
+  .validator(z.object({ slug: z.string().min(1).max(100) }))
   .handler(async ({ data }) => {
     const collections = await runLoaderEffect(
       CACHE.catalog.listed_collections.get(NO_CACHE_PARAMS)
