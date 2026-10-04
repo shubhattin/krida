@@ -8,7 +8,11 @@ import { BookOpen, CheckCircle2, Clock3, Percent, Play, Target } from 'lucide-re
 import pretty_ms from 'pretty-ms';
 import { useTRPC } from '~/api/client';
 import type { DashboardGameId, GameDashboardStats } from '~/api/routers/user/user_dashboard';
-import { CrosswordMenuItems, PadavaliMenuItems } from '~/components/app-bar/GameMenuItems';
+import {
+  AllGamesMenuItems,
+  CrosswordMenuItems,
+  PadavaliMenuItems
+} from '~/components/app-bar/GameMenuItems';
 import { GameAppIcon } from '~/components/GameAppIcon';
 import { Button } from '~/components/ui/button';
 import {
@@ -68,6 +72,7 @@ function DashboardPage() {
       <HubHeader
         gameMenuItems={
           <>
+            <AllGamesMenuItems />
             <PadavaliMenuItems />
             <CrosswordMenuItems />
           </>
