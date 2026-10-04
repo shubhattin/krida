@@ -2,10 +2,9 @@
 
 import { useContext, useState, type ReactNode } from 'react';
 import { Link } from '@tanstack/react-router';
-import { ArrowRight, Languages } from 'lucide-react';
+import { ArrowRight } from 'lucide-react';
 import { motion, useReducedMotion } from 'framer-motion';
 import { Image } from '@unpic/react';
-import { GameShowcaseCard, GAMES } from '~/routes/-Landing';
 import { ScriptSelector } from '~/components/pages/padavali/ScriptSelector';
 import { AppContext } from '~/components/AppDataContext';
 import { GAME_APP_ICON_SRC } from '~/components/GameAppIcon';
@@ -14,6 +13,7 @@ import type { HubData } from './hub_data';
 import { HubPuzzleCard } from './HubPuzzleCard';
 import { HubCollectionCard } from './HubCollectionCard';
 import { HubTodayCard } from './HubTodayCard';
+import { HubGameShowcase } from './HubGameShowcase';
 import { tagsByPopularity } from './hub_puzzles';
 import { useHubPuzzles } from './useHubPuzzles';
 import type { GameKind } from '~/util/catalog/tags';
@@ -149,35 +149,7 @@ export default function HubHome({ data }: { data: HubData }) {
       </div>
 
       <div className="relative mx-auto flex max-w-6xl flex-col gap-12 px-4 py-6 sm:gap-14 sm:py-8">
-        <section className="flex flex-col gap-6">
-          <motion.header
-            initial={reduceMotion ? false : { opacity: 0, y: 8 }}
-            animate={{ opacity: 1, y: 0 }}
-            transition={{ duration: 0.35 }}
-            className="flex max-w-2xl flex-col gap-1.5"
-          >
-            <h1 className="bg-linear-to-r from-slate-900 via-blue-700 to-indigo-600 bg-clip-text text-2xl font-black tracking-tight text-pretty text-transparent sm:text-3xl dark:from-white dark:via-blue-300 dark:to-indigo-400">
-              Play Sanskrit through puzzles
-            </h1>
-            <p className="flex items-start gap-2 text-sm leading-relaxed text-slate-600 dark:text-slate-300">
-              <Languages className="mt-0.5 size-3.5 shrink-0 text-indigo-500" aria-hidden="true" />
-              Word search and crossword, with live transliteration in Devanagari, Telugu, Kannada,
-              Gujarati, Bengali, and Odia.
-            </p>
-          </motion.header>
-
-          <div className="flex flex-col gap-4">
-            <HubSectionHeading
-              title="Games"
-              description="Jump in — more titles will land here later"
-            />
-            <div className="mx-auto grid w-full max-w-3xl grid-cols-1 gap-6 md:grid-cols-2">
-              {GAMES.map((game, index) => (
-                <GameShowcaseCard key={game.id} game={game} index={index} />
-              ))}
-            </div>
-          </div>
-        </section>
+        <HubGameShowcase />
 
         {todayGames.length > 0 ? (
           <section className="flex flex-col gap-4">
@@ -229,7 +201,7 @@ export default function HubHome({ data }: { data: HubData }) {
                 </Button>
               }
             />
-            <div className="flex snap-x snap-mandatory gap-4 overflow-x-auto pb-2 scrollbar-none">
+            <div className="flex snap-x snap-mandatory scrollbar-none gap-4 overflow-x-auto pb-2">
               {data.collections.map((collection, index) => (
                 <motion.div
                   key={collection.uid}
