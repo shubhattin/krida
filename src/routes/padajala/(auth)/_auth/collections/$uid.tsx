@@ -1,13 +1,9 @@
-import { createFileRoute } from '@tanstack/react-router';
-import { CollectionEditPage } from '~/components/pages/catalog/CollectionEditPage';
-import { routeHeadFromPageMeta } from '~/components/tags/getPageMetaTags';
+import { createFileRoute, redirect } from '@tanstack/react-router';
 
+/** Deprecated: collections are edited at the shared `/collections/edit/$uid` page. */
 export const Route = createFileRoute('/padajala/(auth)/_auth/collections/$uid')({
-  head: () => routeHeadFromPageMeta({ title: 'Edit collection', project: 'padajala' }),
-  component: PadajalaCollectionRoute
+  beforeLoad: ({ params }) => {
+    throw redirect({ to: '/collections/edit/$uid', params: { uid: params.uid } });
+  },
+  component: () => null
 });
-
-function PadajalaCollectionRoute() {
-  const { uid } = Route.useParams();
-  return <CollectionEditPage uid={uid} backTo="/padajala/list" />;
-}

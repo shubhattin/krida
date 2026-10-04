@@ -53,7 +53,7 @@ import { listTableColumns, type PuzzleListItem } from './-list-table-columns';
 import { getCDNUrl } from '~/constants';
 import { fetchEveryListPage } from '~/components/pages/fetch-every-list-page';
 import { AdminCatalogFilters } from '~/components/pages/catalog/AdminCatalogFilters';
-import { AdminCatalogTabs } from '~/components/pages/catalog/AdminCatalogPanels';
+import { CatalogAdminLinks } from '~/components/pages/catalog/CatalogAdminLinks';
 
 dayjs.extend(relativeTime);
 
@@ -777,7 +777,8 @@ const ListPage = () => {
   }
 
   return (
-    <AdminCatalogTabs game="padavali">
+    <div className="space-y-4">
+      <CatalogAdminLinks />
       <div className="space-y-4">
         <ListFilterBar
           search_title={search_title}
@@ -821,7 +822,7 @@ const ListPage = () => {
           onPageChange={setPage}
         />
       </div>
-    </AdminCatalogTabs>
+    </div>
   );
 };
 

@@ -1,14 +1,17 @@
 'use client';
 
+import { useEffect } from 'react';
 import { Image } from '@unpic/react';
 import { Link } from '@tanstack/react-router';
 import { ArrowLeft, Layers } from 'lucide-react';
+import { useSetAtom } from 'jotai';
 import { getCDNUrl } from '~/constants';
 import type { HubData } from './hub_data';
 import { HubPuzzleCard } from './HubPuzzleCard';
 import { collectionGames, resolveCollectionItems } from './hub_puzzles';
 import { useHubPuzzles } from './useHubPuzzles';
 import { HubGameBadge } from './HubGameBadge';
+import { active_collection_atom } from '~/components/pages/catalog/catalog_admin_state';
 import { PUZZLE_CARD_IMAGE_ASPECT_RATIO } from '~/components/pages/padavali/listed_puzzle_display';
 
 const [IMG_W, IMG_H] = PUZZLE_CARD_IMAGE_ASPECT_RATIO;
@@ -16,7 +19,14 @@ const [IMG_W, IMG_H] = PUZZLE_CARD_IMAGE_ASPECT_RATIO;
 /** Public collection page: ordered puzzles from every game in the collection. */
 export default function HubCollectionPage({ data, slug }: { data: HubData; slug: string }) {
   const { byKey } = useHubPuzzles(data);
+  const setActiveCollection = useSetAtom(active_collection_atom);
   const collection = data.collections.find((row) => row.slug === slug);
+
+  useEffect(() => {
+    if (!collection) return;
+    setActiveCollection({ uid: collection.uid, title: collection.title });
+    return () => setActiveCollection(null);
+  }, [collection, setActiveCollection]);
 
   if (!collection) {
     return <p className="py-16 text-center text-slate-500">Collection not found.</p>;

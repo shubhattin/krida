@@ -1129,17 +1129,105 @@ const search_puzzles_route = protectedAdminProcedure
     )
   );
 
+const delete_collection_route = protectedAdminProcedure
+  .input(z.object({ uid: z.string().min(1) }))
+  .mutation(({ input }) =>
+    runTrpcEffect(
+      Effect.gen(function* () {
+        const collection = yield* findCollectionByUid(input.uid);
+        if (!collection) {
+          return yield* Effect.fail(
+            NotFoundError.make({ resource: 'collection', message: 'Collection not found' })
+          );
+        }
+        const [padavaliRow, crosswordRow] = yield* dbRunHttp(
+          'catalog.count_collection_items',
+          async (client) => {
+            const [padavaliCount] = await client
+              .select({ count: count() })
+              .from(padavali_collection_items)
+              .where(eq(padavali_collection_items.collection_id, collection.id));
+            const [crosswordCount] = await client
+              .select({ count: count() })
+              .from(crossword_collection_items)
+              .where(eq(crossword_collection_items.collection_id, collection.id));
+            return [padavaliCount, crosswordCount] as const;
+          }
+        );
+        const padavali = Number(padavaliRow?.count ?? 0);
+        const crossword = Number(crosswordRow?.count ?? 0);
+        yield* dbRunHttp('catalog.delete_collection', async (client) => {
+          await client.delete(collections).where(eq(collections.id, collection.id));
+        });
+        yield* refreshListedCollections();
+        // Membership rows cascade; puzzles and cover images are never deleted here.
+        return { success: true as const, padavali, crossword, total: padavali + crossword };
+      })
+    )
+  );
+
+const delete_tag_route = protectedAdminProcedure
+  .input(z.object({ tag_id: z.number().int() }))
+  .mutation(({ input }) =>
+    runTrpcEffect(
+      Effect.gen(function* () {
+        const [tag] = yield* dbRunHttp('catalog.find_tag_for_delete', (client) =>
+          client
+            .select({ id: tags.id, slug: tags.slug })
+            .from(tags)
+            .where(eq(tags.id, input.tag_id))
+            .limit(1)
+        );
+        if (!tag) {
+          return yield* Effect.fail(
+            NotFoundError.make({ resource: 'tag', message: 'Tag not found' })
+          );
+        }
+        const [padavaliRow, crosswordRow] = yield* dbRunHttp(
+          'catalog.count_tag_links',
+          async (client) => {
+            const [padavaliCount] = await client
+              .select({ count: count() })
+              .from(padavali_puzzle_tags)
+              .where(eq(padavali_puzzle_tags.tag_id, input.tag_id));
+            const [crosswordCount] = await client
+              .select({ count: count() })
+              .from(crossword_puzzle_tags)
+              .where(eq(crossword_puzzle_tags.tag_id, input.tag_id));
+            return [padavaliCount, crosswordCount] as const;
+          }
+        );
+        const total = Number(padavaliRow?.count ?? 0) + Number(crosswordRow?.count ?? 0);
+        if (total > 0) {
+          return yield* Effect.fail(
+            BadRequestError.make({
+              message: `Only unused tags can be deleted — "${tag.slug}" is on ${total} puzzle${total === 1 ? '' : 's'}`
+            })
+          );
+        }
+        yield* dbRunHttp('catalog.delete_tag', async (client) => {
+          await client.delete(tags).where(eq(tags.id, input.tag_id));
+        });
+        yield* refreshListedPuzzles('padavali');
+        yield* refreshListedPuzzles('crossword');
+        return { success: true as const };
+      })
+    )
+  );
+
 export const catalog_router = t.router({
   list_tags: list_tags_route,
   connected_games: connected_games_route,
   puzzle_tags: puzzle_tags_route,
   attach_tag: attach_tag_route,
   detach_tag: detach_tag_route,
+  delete_tag: delete_tag_route,
   list_collections: list_collections_route,
   create_collection: create_collection_route,
   get_collection: get_collection_route,
   update_collection: update_collection_route,
   save_collection: save_collection_route,
+  delete_collection: delete_collection_route,
   set_puzzle_links: set_puzzle_links_route,
   add_items: add_items_route,
   add_item: add_item_route,

@@ -20,12 +20,15 @@ import { Route as Sitemap1DotxmlRouteImport } from './routes/sitemap-1[.]xml'
 import { Route as SitemapIndexDotxmlRouteImport } from './routes/sitemap-index[.]xml'
 import { Route as HubIndexRouteImport } from './routes/_hub/index'
 import { Route as HubExploreRouteImport } from './routes/_hub/explore'
+import { Route as CollectionsListRouteImport } from './routes/collections/list'
 import { Route as CrosswordSplatRouteImport } from './routes/crossword.$'
+import { Route as TagsListRouteImport } from './routes/tags/list'
 import { Route as HubCollectionsSlugRouteImport } from './routes/_hub/collections/$slug'
 import { Route as ApiQstashNew_puzzle_notificationRouteImport } from './routes/api/qstash/new_puzzle_notification'
 import { Route as ApiQstashSave_ai_batch_resultsRouteImport } from './routes/api/qstash/save_ai_batch_results'
 import { Route as ApiQstashSchedule_listingRouteImport } from './routes/api/qstash/schedule_listing'
 import { Route as ApiTrpcSplatRouteImport } from './routes/api/trpc/$'
+import { Route as CollectionsEditUidRouteImport } from './routes/collections/edit/$uid'
 import { Route as PadajalaauthAuthRouteImport } from './routes/padajala/(auth)/_auth'
 import { Route as PadajalapublicPublicRouteImport } from './routes/padajala/(public)/_public'
 import { Route as PadavaliauthAuthRouteImport } from './routes/padavali/(auth)/_auth'
@@ -114,9 +117,19 @@ const HubExploreRoute = HubExploreRouteImport.update({
   path: '/explore',
   getParentRoute: () => HubRoute,
 } as any)
+const CollectionsListRoute = CollectionsListRouteImport.update({
+  id: '/collections/list',
+  path: '/collections/list',
+  getParentRoute: () => rootRouteImport,
+} as any)
 const CrosswordSplatRoute = CrosswordSplatRouteImport.update({
   id: '/crossword/$',
   path: '/crossword/$',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const TagsListRoute = TagsListRouteImport.update({
+  id: '/tags/list',
+  path: '/tags/list',
   getParentRoute: () => rootRouteImport,
 } as any)
 const HubCollectionsSlugRoute = HubCollectionsSlugRouteImport.update({
@@ -145,6 +158,11 @@ const ApiQstashSchedule_listingRoute =
 const ApiTrpcSplatRoute = ApiTrpcSplatRouteImport.update({
   id: '/api/trpc/$',
   path: '/api/trpc/$',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const CollectionsEditUidRoute = CollectionsEditUidRouteImport.update({
+  id: '/collections/edit/$uid',
+  path: '/collections/edit/$uid',
   getParentRoute: () => rootRouteImport,
 } as any)
 const PadajalaauthAuthRoute = PadajalaauthAuthRouteImport.update({
@@ -347,12 +365,15 @@ export interface FileRoutesByFullPath {
   '/sitemap-1.xml': typeof Sitemap1DotxmlRoute
   '/sitemap-index.xml': typeof SitemapIndexDotxmlRoute
   '/explore': typeof HubExploreRoute
+  '/collections/list': typeof CollectionsListRoute
   '/crossword/$': typeof CrosswordSplatRoute
+  '/tags/list': typeof TagsListRoute
   '/collections/$slug': typeof HubCollectionsSlugRoute
   '/api/qstash/new_puzzle_notification': typeof ApiQstashNew_puzzle_notificationRoute
   '/api/qstash/save_ai_batch_results': typeof ApiQstashSave_ai_batch_resultsRoute
   '/api/qstash/schedule_listing': typeof ApiQstashSchedule_listingRoute
   '/api/trpc/$': typeof ApiTrpcSplatRoute
+  '/collections/edit/$uid': typeof CollectionsEditUidRoute
   '/api/qstash/crossword/schedule_listing': typeof ApiQstashCrosswordSchedule_listingRoute
   '/padajala/$slug': typeof PadajalapublicPublicSlugRoute
   '/padavali/$slug': typeof PadavalipublicPublicSlugRoute
@@ -393,13 +414,16 @@ export interface FileRoutesByTo {
   '/sitemap-1.xml': typeof Sitemap1DotxmlRoute
   '/sitemap-index.xml': typeof SitemapIndexDotxmlRoute
   '/explore': typeof HubExploreRoute
+  '/collections/list': typeof CollectionsListRoute
   '/crossword/$': typeof CrosswordSplatRoute
+  '/tags/list': typeof TagsListRoute
   '/': typeof HubIndexRoute
   '/collections/$slug': typeof HubCollectionsSlugRoute
   '/api/qstash/new_puzzle_notification': typeof ApiQstashNew_puzzle_notificationRoute
   '/api/qstash/save_ai_batch_results': typeof ApiQstashSave_ai_batch_resultsRoute
   '/api/qstash/schedule_listing': typeof ApiQstashSchedule_listingRoute
   '/api/trpc/$': typeof ApiTrpcSplatRoute
+  '/collections/edit/$uid': typeof CollectionsEditUidRoute
   '/api/qstash/crossword/schedule_listing': typeof ApiQstashCrosswordSchedule_listingRoute
   '/padajala/$slug': typeof PadajalapublicPublicSlugRoute
   '/padavali/$slug': typeof PadavalipublicPublicSlugRoute
@@ -440,13 +464,16 @@ export interface FileRoutesById {
   '/sitemap-1.xml': typeof Sitemap1DotxmlRoute
   '/sitemap-index.xml': typeof SitemapIndexDotxmlRoute
   '/_hub/explore': typeof HubExploreRoute
+  '/collections/list': typeof CollectionsListRoute
   '/crossword/$': typeof CrosswordSplatRoute
+  '/tags/list': typeof TagsListRoute
   '/_hub/': typeof HubIndexRoute
   '/_hub/collections/$slug': typeof HubCollectionsSlugRoute
   '/api/qstash/new_puzzle_notification': typeof ApiQstashNew_puzzle_notificationRoute
   '/api/qstash/save_ai_batch_results': typeof ApiQstashSave_ai_batch_resultsRoute
   '/api/qstash/schedule_listing': typeof ApiQstashSchedule_listingRoute
   '/api/trpc/$': typeof ApiTrpcSplatRoute
+  '/collections/edit/$uid': typeof CollectionsEditUidRoute
   '/padajala/(auth)/_auth': typeof PadajalaauthAuthRouteWithChildren
   '/padajala/(public)/_public': typeof PadajalapublicPublicRouteWithChildren
   '/padavali/(auth)/_auth': typeof PadavaliauthAuthRouteWithChildren
@@ -494,12 +521,15 @@ export interface FileRouteTypes {
     | '/sitemap-1.xml'
     | '/sitemap-index.xml'
     | '/explore'
+    | '/collections/list'
     | '/crossword/$'
+    | '/tags/list'
     | '/collections/$slug'
     | '/api/qstash/new_puzzle_notification'
     | '/api/qstash/save_ai_batch_results'
     | '/api/qstash/schedule_listing'
     | '/api/trpc/$'
+    | '/collections/edit/$uid'
     | '/api/qstash/crossword/schedule_listing'
     | '/padajala/$slug'
     | '/padavali/$slug'
@@ -540,13 +570,16 @@ export interface FileRouteTypes {
     | '/sitemap-1.xml'
     | '/sitemap-index.xml'
     | '/explore'
+    | '/collections/list'
     | '/crossword/$'
+    | '/tags/list'
     | '/'
     | '/collections/$slug'
     | '/api/qstash/new_puzzle_notification'
     | '/api/qstash/save_ai_batch_results'
     | '/api/qstash/schedule_listing'
     | '/api/trpc/$'
+    | '/collections/edit/$uid'
     | '/api/qstash/crossword/schedule_listing'
     | '/padajala/$slug'
     | '/padavali/$slug'
@@ -586,13 +619,16 @@ export interface FileRouteTypes {
     | '/sitemap-1.xml'
     | '/sitemap-index.xml'
     | '/_hub/explore'
+    | '/collections/list'
     | '/crossword/$'
+    | '/tags/list'
     | '/_hub/'
     | '/_hub/collections/$slug'
     | '/api/qstash/new_puzzle_notification'
     | '/api/qstash/save_ai_batch_results'
     | '/api/qstash/schedule_listing'
     | '/api/trpc/$'
+    | '/collections/edit/$uid'
     | '/padajala/(auth)/_auth'
     | '/padajala/(public)/_public'
     | '/padavali/(auth)/_auth'
@@ -638,11 +674,14 @@ export interface RootRouteChildren {
   Sitemap0DotxmlRoute: typeof Sitemap0DotxmlRoute
   Sitemap1DotxmlRoute: typeof Sitemap1DotxmlRoute
   SitemapIndexDotxmlRoute: typeof SitemapIndexDotxmlRoute
+  CollectionsListRoute: typeof CollectionsListRoute
   CrosswordSplatRoute: typeof CrosswordSplatRoute
+  TagsListRoute: typeof TagsListRoute
   ApiQstashNew_puzzle_notificationRoute: typeof ApiQstashNew_puzzle_notificationRoute
   ApiQstashSave_ai_batch_resultsRoute: typeof ApiQstashSave_ai_batch_resultsRoute
   ApiQstashSchedule_listingRoute: typeof ApiQstashSchedule_listingRoute
   ApiTrpcSplatRoute: typeof ApiTrpcSplatRoute
+  CollectionsEditUidRoute: typeof CollectionsEditUidRoute
   ApiQstashCrosswordSchedule_listingRoute: typeof ApiQstashCrosswordSchedule_listingRoute
 }
 
@@ -725,11 +764,25 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof HubExploreRouteImport
       parentRoute: typeof HubRoute
     }
+    '/collections/list': {
+      id: '/collections/list'
+      path: '/collections/list'
+      fullPath: '/collections/list'
+      preLoaderRoute: typeof CollectionsListRouteImport
+      parentRoute: typeof rootRouteImport
+    }
     '/crossword/$': {
       id: '/crossword/$'
       path: '/crossword/$'
       fullPath: '/crossword/$'
       preLoaderRoute: typeof CrosswordSplatRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/tags/list': {
+      id: '/tags/list'
+      path: '/tags/list'
+      fullPath: '/tags/list'
+      preLoaderRoute: typeof TagsListRouteImport
       parentRoute: typeof rootRouteImport
     }
     '/_hub/collections/$slug': {
@@ -765,6 +818,13 @@ declare module '@tanstack/react-router' {
       path: '/api/trpc/$'
       fullPath: '/api/trpc/$'
       preLoaderRoute: typeof ApiTrpcSplatRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/collections/edit/$uid': {
+      id: '/collections/edit/$uid'
+      path: '/collections/edit/$uid'
+      fullPath: '/collections/edit/$uid'
+      preLoaderRoute: typeof CollectionsEditUidRouteImport
       parentRoute: typeof rootRouteImport
     }
     '/padajala/(auth)/_auth': {
@@ -1151,11 +1211,14 @@ const rootRouteChildren: RootRouteChildren = {
   Sitemap0DotxmlRoute: Sitemap0DotxmlRoute,
   Sitemap1DotxmlRoute: Sitemap1DotxmlRoute,
   SitemapIndexDotxmlRoute: SitemapIndexDotxmlRoute,
+  CollectionsListRoute: CollectionsListRoute,
   CrosswordSplatRoute: CrosswordSplatRoute,
+  TagsListRoute: TagsListRoute,
   ApiQstashNew_puzzle_notificationRoute: ApiQstashNew_puzzle_notificationRoute,
   ApiQstashSave_ai_batch_resultsRoute: ApiQstashSave_ai_batch_resultsRoute,
   ApiQstashSchedule_listingRoute: ApiQstashSchedule_listingRoute,
   ApiTrpcSplatRoute: ApiTrpcSplatRoute,
+  CollectionsEditUidRoute: CollectionsEditUidRoute,
   ApiQstashCrosswordSchedule_listingRoute:
     ApiQstashCrosswordSchedule_listingRoute,
 }

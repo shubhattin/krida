@@ -1,10 +1,20 @@
 'use client';
 
 import { Link } from '@tanstack/react-router';
-import { Calendar, ChartNoAxesCombined, List, Pencil, BarChart3, Images } from 'lucide-react';
+import {
+  Calendar,
+  ChartNoAxesCombined,
+  List,
+  Pencil,
+  BarChart3,
+  Images,
+  Layers,
+  Tag
+} from 'lucide-react';
 import { useAtom } from 'jotai';
 import { active_puzzle_id_atom } from '~/components/pages/padavali/WordGame/game_state';
 import { active_crossword_id_atom } from '~/components/pages/cross_word/CrossWordGame/game_state';
+import { active_collection_atom } from '~/components/pages/catalog/catalog_admin_state';
 import { useSession } from '~/lib/auth-client';
 
 const accountMenuLinkClass =
@@ -38,6 +48,7 @@ export function AllGamesMenuItems({ onNavigate }: { onNavigate?: () => void }) {
         </div>
         <span className="truncate">Padajāla</span>
       </Link>
+      <CatalogAdminMenuItems onNavigate={onNavigate} />
     </>
   );
 }
@@ -50,6 +61,50 @@ function AllAnalyticsLink({ onNavigate }: { onNavigate?: () => void }) {
         <ChartNoAxesCombined className="size-3 text-white" />
       </div>
       <span className="truncate">All analytics</span>
+    </Link>
+  );
+}
+
+/** Shared catalog pages — collections and tags span every game. */
+export function CatalogAdminMenuItems({ onNavigate }: { onNavigate?: () => void }) {
+  const user_info = useSession().data?.user;
+  if (!user_info || user_info.role !== 'admin') return null;
+
+  return (
+    <>
+      <Link to="/collections/list" onClick={onNavigate} className={accountMenuLinkClass}>
+        <div className={`${accountMenuIconClass} from-indigo-500 to-violet-600`}>
+          <Layers className="size-3 text-white" />
+        </div>
+        <span className="truncate">Collections</span>
+      </Link>
+      <Link to="/tags/list" onClick={onNavigate} className={accountMenuLinkClass}>
+        <div className={`${accountMenuIconClass} from-cyan-500 to-sky-600`}>
+          <Tag className="size-3 text-white" />
+        </div>
+        <span className="truncate">Tags</span>
+      </Link>
+    </>
+  );
+}
+
+/** "Edit collection" shortcut, visible only on a public collection page. */
+export function CollectionAdminMenuItems({ onNavigate }: { onNavigate?: () => void }) {
+  const user_info = useSession().data?.user;
+  const [activeCollection] = useAtom(active_collection_atom);
+  if (!user_info || user_info.role !== 'admin' || !activeCollection) return null;
+
+  return (
+    <Link
+      to="/collections/edit/$uid"
+      params={{ uid: activeCollection.uid }}
+      onClick={onNavigate}
+      className={accountMenuLinkClass}
+    >
+      <div className={`${accountMenuIconClass} from-amber-500 to-orange-600`}>
+        <Pencil className="size-3 text-white" />
+      </div>
+      <span className="truncate">Edit {activeCollection.title}</span>
     </Link>
   );
 }
@@ -93,6 +148,7 @@ export function PadavaliMenuItems({ onNavigate }: { onNavigate?: () => void }) {
         <span className="truncate">Analytics</span>
       </Link>
       <AllAnalyticsLink onNavigate={onNavigate} />
+      <CatalogAdminMenuItems onNavigate={onNavigate} />
       <Link to="/padavali/batch_manager" onClick={onNavigate} className={accountMenuLinkClass}>
         <div className={`${accountMenuIconClass} from-fuchsia-500 to-pink-600`}>
           <Images className="size-3 text-white" />
@@ -142,6 +198,7 @@ export function CrosswordMenuItems({ onNavigate }: { onNavigate?: () => void }) 
         <span className="truncate">Analytics</span>
       </Link>
       <AllAnalyticsLink onNavigate={onNavigate} />
+      <CatalogAdminMenuItems onNavigate={onNavigate} />
       <Link to="/padajala/batch_manager" onClick={onNavigate} className={accountMenuLinkClass}>
         <div className={`${accountMenuIconClass} from-fuchsia-500 to-pink-600`}>
           <Images className="size-3 text-white" />

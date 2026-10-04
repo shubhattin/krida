@@ -261,6 +261,8 @@ export function PuzzleCardImageSection({
 
 type ImageInfo = { id: number; s3_key: string; width: number; height: number };
 
+export type { ImageInfo };
+
 type ImageAssetListItem = ImageInfo & {
   description: string | null;
   created_at: Date;
@@ -326,7 +328,7 @@ function formatImageCreatedAt(created_at: Date | string): string {
 }
 
 /** Linear progress from 0→90 over the timeout duration, then frozen at 90 until done */
-const useGenerationProgress = (active: boolean) => {
+export const useGenerationProgress = (active: boolean) => {
   const [progress, setProgress] = useState(0);
 
   useEffect(() => {
@@ -651,7 +653,7 @@ function ImagePagination({
   );
 }
 
-const ExistingImageTab = ({
+export const ExistingImageTab = ({
   enabled,
   selected_image_id,
   onSelect,

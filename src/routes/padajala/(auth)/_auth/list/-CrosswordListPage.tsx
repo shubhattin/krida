@@ -45,7 +45,7 @@ import { getCDNUrl } from '~/constants';
 import { crosswordListTableColumns, type CrosswordListItem } from './-list-table-columns';
 import { fetchEveryListPage } from '~/components/pages/fetch-every-list-page';
 import { AdminCatalogFilters } from '~/components/pages/catalog/AdminCatalogFilters';
-import { AdminCatalogTabs } from '~/components/pages/catalog/AdminCatalogPanels';
+import { CatalogAdminLinks } from '~/components/pages/catalog/CatalogAdminLinks';
 
 dayjs.extend(relativeTime);
 
@@ -716,7 +716,8 @@ const CrosswordListPage = () => {
   }
 
   return (
-    <AdminCatalogTabs game="crossword">
+    <div className="flex flex-col gap-4">
+      <CatalogAdminLinks />
       <div className="flex flex-col gap-4">
         <ListFilterBar
           search_title={search_title}
@@ -757,7 +758,7 @@ const CrosswordListPage = () => {
           onPageChange={setPage}
         />
       </div>
-    </AdminCatalogTabs>
+    </div>
   );
 };
 
