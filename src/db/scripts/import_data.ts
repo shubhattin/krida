@@ -22,6 +22,12 @@ export const import_data = async (confirm_env = true) => {
   const crossword_sessions = await db.query.crossword_sessions.findMany();
   const crossword_gameplay_stats = await db.query.crossword_gameplay_stats.findMany();
   const crossword_schedules = await db.query.crossword_schedules.findMany();
+  const tags = await db.query.tags.findMany();
+  const collections = await db.query.collections.findMany();
+  const padavali_puzzle_tags = await db.query.padavali_puzzle_tags.findMany();
+  const crossword_puzzle_tags = await db.query.crossword_puzzle_tags.findMany();
+  const padavali_collection_items = await db.query.padavali_collection_items.findMany();
+  const crossword_collection_items = await db.query.crossword_collection_items.findMany();
 
   const json_data = {
     padavali_puzzles,
@@ -38,7 +44,13 @@ export const import_data = async (confirm_env = true) => {
     crossword_attachments,
     crossword_sessions,
     crossword_gameplay_stats,
-    crossword_schedules
+    crossword_schedules,
+    tags,
+    collections,
+    padavali_puzzle_tags,
+    crossword_puzzle_tags,
+    padavali_collection_items,
+    crossword_collection_items
   };
 
   await make_dir('./out');

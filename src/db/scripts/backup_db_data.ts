@@ -1,4 +1,5 @@
 import * as fs from 'fs';
+import path from 'node:path';
 import { z } from 'zod';
 import { execSync } from 'child_process';
 import { import_data } from './import_data';
@@ -18,7 +19,7 @@ import mime from 'mime-types';
 import ms from 'ms';
 
 // Load environment variables from .env
-dotenv.config({ path: '../../../.env' });
+dotenv.config({ path: path.resolve(import.meta.dirname, '../../../.env') });
 const MIN_BACKUPS_TO_KEEP = 12;
 
 const OUT_FOLDER = './backup';

@@ -27,6 +27,7 @@ import {
   GripVerticalIcon,
   ImageIcon,
   SquareArrowOutUpRight,
+  Plus,
   Wand2,
   XIcon
 } from 'lucide-react';
@@ -654,7 +655,8 @@ function CollectionItemsSection() {
           >
             Reorder
           </Button>
-          <Button type="button" onClick={() => setAddOpen(true)}>
+          <Button type="button" variant="outline" onClick={() => setAddOpen(true)}>
+            <Plus className="size-4" />
             Add games
           </Button>
         </div>

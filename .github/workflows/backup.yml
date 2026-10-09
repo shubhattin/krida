@@ -18,12 +18,9 @@ jobs:
       - uses: actions/checkout@v4
       - uses: oven-sh/setup-bun@v2
       - run: bun install --frozen-lockfile
-      - name: Setup PostgreSQL
-        uses: tj-actions/install-postgresql@v3
-        with:
-          postgresql-version: 16
+      - name: Install pg_dump and zip
+        run: sudo apt-get update && sudo apt-get install -y postgresql-client zip
 
       - name: Load Data and DB Dump
-        run: |
-          cd src/db/scripts/
-          bun backup_db_data.ts
+        working-directory: src/db/scripts
+        run: bun backup_db_data.ts

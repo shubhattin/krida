@@ -16,7 +16,13 @@ import {
   crossword_attachments,
   crossword_sessions,
   crossword_gameplay_stats,
-  crossword_schedules
+  crossword_schedules,
+  tags,
+  collections,
+  padavali_puzzle_tags,
+  crossword_puzzle_tags,
+  padavali_collection_items,
+  crossword_collection_items
 } from '~/db/schema';
 import {
   PadavaliPuzzleSchemaZod,
@@ -33,7 +39,13 @@ import {
   CrosswordAttachmentSchemaZod,
   CrosswordSessionSchemaZod,
   CrosswordGamePlayStatsSchemaZod,
-  CrosswordScheduleSchemaZod
+  CrosswordScheduleSchemaZod,
+  TagSchemaZod,
+  CollectionSchemaZod,
+  PadavaliPuzzleTagSchemaZod,
+  CrosswordPuzzleTagSchemaZod,
+  PadavaliCollectionItemSchemaZod,
+  CrosswordCollectionItemSchemaZod
 } from '~/db/schema_zod';
 import { z } from 'zod';
 import { sql } from 'drizzle-orm';
@@ -58,12 +70,20 @@ const ExportDataSchema = z.object({
   crossword_schedules: CrosswordScheduleSchemaZod.array().default([]),
   ai_batch_responses: AiBatchResponseSchemaZod.array(),
   ai_batches: AiBatchSchemaZod.array(),
-  image_assets: ImageAssetSchemaZod.array()
+  image_assets: ImageAssetSchemaZod.array(),
+  // Catalog tables default to [] so older JSON dumps still restore
+  tags: TagSchemaZod.array().default([]),
+  collections: CollectionSchemaZod.array().default([]),
+  padavali_puzzle_tags: PadavaliPuzzleTagSchemaZod.array().default([]),
+  crossword_puzzle_tags: CrosswordPuzzleTagSchemaZod.array().default([]),
+  padavali_collection_items: PadavaliCollectionItemSchemaZod.array().default([]),
+  crossword_collection_items: CrosswordCollectionItemSchemaZod.array().default([])
 });
 
 type ExportData = z.infer<typeof ExportDataSchema>;
 
-// Order: children first (stats → sessions → schedules/attachments/redirects → puzzles)
+// Order: children first (stats → sessions → schedules/attachments/redirects →
+// tag/collection links → puzzles → collections/tags → batches → images)
 async function deleteAllTables(tx: ExportTx): Promise<void> {
   try {
     await tx.delete(padavali_gameplay_stats);
@@ -71,19 +91,43 @@ async function deleteAllTables(tx: ExportTx): Promise<void> {
     await tx.delete(padavali_schedules);
     await tx.delete(padavali_attachments);
     await tx.delete(padavali_redirects);
+    await tx.delete(padavali_puzzle_tags);
+    await tx.delete(padavali_collection_items);
     await tx.delete(padavali_puzzles);
     await tx.delete(crossword_gameplay_stats);
     await tx.delete(crossword_sessions);
     await tx.delete(crossword_schedules);
     await tx.delete(crossword_attachments);
     await tx.delete(crossword_redirects);
+    await tx.delete(crossword_puzzle_tags);
+    await tx.delete(crossword_collection_items);
     await tx.delete(crossword_puzzles);
+    await tx.delete(collections);
+    await tx.delete(tags);
     await tx.delete(ai_batch_responses);
     await tx.delete(ai_batches);
     await tx.delete(image_assets);
     console.log(chalk.green('✓ Deleted All Tables Successfully'));
   } catch (e) {
     console.log(chalk.red('✗ Error while deleting tables:'), chalk.yellow(e));
+  }
+}
+
+async function insertIfAny<T extends PgTable>(
+  tx: ExportTx,
+  table: T,
+  rows: T['$inferInsert'][],
+  name: string
+): Promise<void> {
+  if (rows.length === 0) {
+    console.log(chalk.green('✓ No rows for'), chalk.blue(`\`${name}\``));
+    return;
+  }
+  try {
+    await tx.insert(table).values(rows);
+    console.log(chalk.green('✓ Successfully added values into table'), chalk.blue(`\`${name}\``));
+  } catch (e) {
+    console.log(chalk.red(`✗ Error while inserting ${name}:`), chalk.yellow(e));
   }
 }
 
@@ -130,6 +174,23 @@ async function insertSimpleData(tx: ExportTx, data: ExportData): Promise<void> {
   } catch (e) {
     console.log(chalk.red('✗ Error while inserting crossword_puzzles:'), chalk.yellow(e));
   }
+
+  await insertIfAny(tx, tags, data.tags, 'tags');
+  await insertIfAny(tx, collections, data.collections, 'collections');
+  await insertIfAny(tx, padavali_puzzle_tags, data.padavali_puzzle_tags, 'padavali_puzzle_tags');
+  await insertIfAny(tx, crossword_puzzle_tags, data.crossword_puzzle_tags, 'crossword_puzzle_tags');
+  await insertIfAny(
+    tx,
+    padavali_collection_items,
+    data.padavali_collection_items,
+    'padavali_collection_items'
+  );
+  await insertIfAny(
+    tx,
+    crossword_collection_items,
+    data.crossword_collection_items,
+    'crossword_collection_items'
+  );
 
   // inserting padavali_redirects
   try {
@@ -285,6 +346,10 @@ async function resetSerialSequences(tx: ExportTx): Promise<void> {
     );
     await tx.execute(
       sql`SELECT setval('"image_assets_id_seq"', (select MAX(id) from "image_assets"))`
+    );
+    await tx.execute(sql`SELECT setval('"tags_id_seq"', (select MAX(id) from "tags"))`);
+    await tx.execute(
+      sql`SELECT setval('"collections_id_seq"', (select MAX(id) from "collections"))`
     );
     console.log(chalk.green('✓ Successfully resetted ALL SERIAL'));
   } catch (e) {

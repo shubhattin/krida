@@ -1,11 +1,11 @@
 'use client';
 
-import { useState } from 'react';
+import { useEffect, useRef, useState } from 'react';
 import { Image } from '@unpic/react';
 import { Link, useRouter } from '@tanstack/react-router';
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import { atom, createStore, Provider, useAtom } from 'jotai';
-import { ArrowLeftIcon, SquareArrowOutUpRight, XIcon } from 'lucide-react';
+import { ArrowLeftIcon, PencilIcon, Plus, SquareArrowOutUpRight, XIcon } from 'lucide-react';
 import { toast } from 'sonner';
 import { useTRPC } from '~/api/client';
 import { AddGamesDialog } from '~/components/pages/catalog/AddGamesDialog';
@@ -112,27 +112,75 @@ function TagEditorBody({ tag }: { tag: TagData }) {
         </Link>
         <TagDeleteButton tagId={tag.id} slug={tag.slug} />
       </div>
-      <TagMetaFields />
+      <TagMetaFields currentSlug={tag.slug} />
       <TagPuzzlesSection />
       <TagSaveDock tagId={tag.id} routeSlug={tag.slug} />
     </div>
   );
 }
 
-function TagMetaFields() {
+function TagMetaFields({ currentSlug }: { currentSlug: string }) {
   const [slug, setSlug] = useAtom(slug_atom);
   const slugHistory = useHistoryTextField();
+  const [unlocked, setUnlocked] = useState(false);
+  const [warnOpen, setWarnOpen] = useState(false);
+  const inputRef = useRef<HTMLInputElement>(null);
+
+  useEffect(() => {
+    if (unlocked) inputRef.current?.focus();
+  }, [unlocked]);
+
+  const unlock = () => {
+    setUnlocked(true);
+    setWarnOpen(false);
+  };
 
   return (
     <div className="flex flex-col gap-1">
       <Label htmlFor="edit-tag-slug">Tag</Label>
-      <Input
-        id="edit-tag-slug"
-        value={slug}
-        onChange={(event) => setSlug(normalizeTagSlug(event.currentTarget.value))}
-        onFocus={slugHistory.onFocus}
-        onBlur={slugHistory.onBlur}
-      />
+      <div className="flex items-center gap-2">
+        <Input
+          ref={inputRef}
+          id="edit-tag-slug"
+          value={slug}
+          disabled={!unlocked}
+          onChange={(event) => setSlug(normalizeTagSlug(event.currentTarget.value))}
+          onFocus={slugHistory.onFocus}
+          onBlur={slugHistory.onBlur}
+        />
+        {unlocked ? null : (
+          <Button
+            type="button"
+            variant="outline"
+            size="sm"
+            className="shrink-0"
+            onClick={() => setWarnOpen(true)}
+          >
+            <PencilIcon className="size-4" />
+            Edit
+          </Button>
+        )}
+      </div>
+      <Dialog open={warnOpen} onOpenChange={setWarnOpen}>
+        <DialogContent className="sm:max-w-md">
+          <DialogHeader>
+            <DialogTitle>Edit “{currentSlug}”?</DialogTitle>
+            <DialogDescription>
+              This is not destructive — games keep this tag. Saving a new slug replaces the old one
+              everywhere it appears: puzzle lists, topic chips, and collection filters that used “
+              {currentSlug}” will follow the new slug instead.
+            </DialogDescription>
+          </DialogHeader>
+          <DialogFooter>
+            <Button type="button" variant="outline" onClick={() => setWarnOpen(false)}>
+              Cancel
+            </Button>
+            <Button type="button" onClick={unlock}>
+              Edit tag
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
     </div>
   );
 }
@@ -151,7 +199,8 @@ function TagPuzzlesSection() {
     <div className="flex flex-col gap-3">
       <div className="flex flex-wrap items-center justify-between gap-2">
         <h2 className="text-lg font-semibold">Games</h2>
-        <Button type="button" onClick={() => setAddOpen(true)}>
+        <Button type="button" variant="outline" onClick={() => setAddOpen(true)}>
+          <Plus className="size-4" />
           Add games
         </Button>
       </div>

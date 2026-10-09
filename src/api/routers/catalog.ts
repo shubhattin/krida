@@ -51,6 +51,84 @@ const refreshListedCollections = () =>
     ])
   );
 
+const loadTagPuzzleRefs = (tagId: number) =>
+  Effect.gen(function* () {
+    const { padavali, crossword } = yield* Effect.all({
+      padavali: dbRunHttp('catalog.tag_padavali_ids', (client) =>
+        client
+          .select({ puzzle_id: padavali_puzzle_tags.puzzle_id })
+          .from(padavali_puzzle_tags)
+          .where(eq(padavali_puzzle_tags.tag_id, tagId))
+      ),
+      crossword: dbRunHttp('catalog.tag_crossword_ids', (client) =>
+        client
+          .select({ puzzle_id: crossword_puzzle_tags.puzzle_id })
+          .from(crossword_puzzle_tags)
+          .where(eq(crossword_puzzle_tags.tag_id, tagId))
+      )
+    });
+    return [
+      ...padavali.map((row) => ({ game: 'padavali' as const, puzzle_id: row.puzzle_id })),
+      ...crossword.map((row) => ({ game: 'crossword' as const, puzzle_id: row.puzzle_id }))
+    ];
+  });
+
+const listedPuzzleIdsForGame = (game: GameKind, puzzleIds: number[]) => {
+  if (puzzleIds.length === 0) return Effect.succeed<number[]>([]);
+  const puzzles = puzzleTable[game];
+  return dbRunHttp(`catalog.listed_tag_puzzles.${game}`, (client) =>
+    client
+      .select({ id: puzzles.id })
+      .from(puzzles)
+      .where(and(inArray(puzzles.id, puzzleIds), eq(puzzles.listed, true)))
+  ).pipe(Effect.map((rows) => rows.map((row) => row.id)));
+};
+
+const listedCollectionContainsPuzzles = (game: GameKind, puzzleIds: number[]) => {
+  if (puzzleIds.length === 0) return Effect.succeed(false);
+  const items = itemTable[game];
+  return dbRunHttp(`catalog.listed_collections_for_tag.${game}`, (client) =>
+    client
+      .select({ id: collections.id })
+      .from(items)
+      .innerJoin(collections, eq(collections.id, items.collection_id))
+      .where(and(inArray(items.puzzle_id, puzzleIds), eq(collections.listed, true)))
+      .limit(1)
+  ).pipe(Effect.map((rows) => rows.length > 0));
+};
+
+/** Listed puzzle lists embed tag slugs; collection filters join those lists. Skip untouched games. */
+const refreshPublicCachesForTagPuzzles = (items: { game: GameKind; puzzle_id: number }[]) =>
+  Effect.gen(function* () {
+    if (items.length === 0) return;
+    const padavaliIds = [
+      ...new Set(items.filter((item) => item.game === 'padavali').map((item) => item.puzzle_id))
+    ];
+    const crosswordIds = [
+      ...new Set(items.filter((item) => item.game === 'crossword').map((item) => item.puzzle_id))
+    ];
+    const { listedPadavali, listedCrossword } = yield* Effect.all({
+      listedPadavali: listedPuzzleIdsForGame('padavali', padavaliIds),
+      listedCrossword: listedPuzzleIdsForGame('crossword', crosswordIds)
+    });
+
+    yield* Effect.all([
+      listedPadavali.length > 0 ? refreshListedPuzzles('padavali') : Effect.void,
+      listedCrossword.length > 0 ? refreshListedPuzzles('crossword') : Effect.void,
+      Effect.gen(function* () {
+        const { padavaliHit, crosswordHit } = yield* Effect.all({
+          padavaliHit: listedCollectionContainsPuzzles('padavali', listedPadavali),
+          crosswordHit: listedCollectionContainsPuzzles('crossword', listedCrossword)
+        });
+        if (padavaliHit || crosswordHit) {
+          yield* settle(
+            invalidate_and_refresh_cache(CACHE.catalog.listed_collections, NO_CACHE_PARAMS)
+          );
+        }
+      })
+    ]);
+  });
+
 const imageColumns = {
   id: true,
   s3_key: true,
@@ -344,11 +422,13 @@ const save_tag_route = protectedAdminProcedure
             NotFoundError.make({ resource: 'tag', message: 'Tag not found' })
           );
         }
-        yield* assertTagSlugAvailable(existing.id, input.slug);
-
         const unique = [
           ...new Map(input.puzzles.map((item) => [`${item.game}:${item.puzzle_id}`, item])).values()
         ];
+        const [, previous] = yield* Effect.all([
+          assertTagSlugAvailable(existing.id, input.slug),
+          loadTagPuzzleRefs(existing.id)
+        ]);
 
         const saved = yield* dbTransaction('catalog.save_tag', async (tx) => {
           for (const item of unique) {
@@ -396,8 +476,15 @@ const save_tag_route = protectedAdminProcedure
           );
         }
 
-        yield* refreshListedPuzzles('padavali');
-        yield* refreshListedPuzzles('crossword');
+        const affected = [
+          ...new Map(
+            [...previous, ...unique].map((item) => [
+              `${item.game}:${item.puzzle_id}`,
+              { game: item.game, puzzle_id: item.puzzle_id }
+            ])
+          ).values()
+        ];
+        yield* refreshPublicCachesForTagPuzzles(affected);
         return { success: true as const, slug: input.slug };
       })
     )
@@ -1362,27 +1449,13 @@ const delete_tag_route = protectedAdminProcedure
             NotFoundError.make({ resource: 'tag', message: 'Tag not found' })
           );
         }
-        const [padavaliRow, crosswordRow] = yield* dbRunHttp(
-          'catalog.count_tag_links',
-          async (client) => {
-            const [padavaliCount] = await client
-              .select({ count: count() })
-              .from(padavali_puzzle_tags)
-              .where(eq(padavali_puzzle_tags.tag_id, input.tag_id));
-            const [crosswordCount] = await client
-              .select({ count: count() })
-              .from(crossword_puzzle_tags)
-              .where(eq(crossword_puzzle_tags.tag_id, input.tag_id));
-            return [padavaliCount, crosswordCount] as const;
-          }
-        );
-        const padavali = Number(padavaliRow?.count ?? 0);
-        const crossword = Number(crosswordRow?.count ?? 0);
+        const previous = yield* loadTagPuzzleRefs(tag.id);
+        const padavali = previous.filter((item) => item.game === 'padavali').length;
+        const crossword = previous.filter((item) => item.game === 'crossword').length;
         yield* dbRunHttp('catalog.delete_tag', async (client) => {
           await client.delete(tags).where(eq(tags.id, input.tag_id));
         });
-        yield* refreshListedPuzzles('padavali');
-        yield* refreshListedPuzzles('crossword');
+        yield* refreshPublicCachesForTagPuzzles(previous);
         // Tag links cascade; puzzles themselves are never deleted here.
         return { success: true as const, padavali, crossword, total: padavali + crossword };
       })

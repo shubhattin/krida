@@ -1,10 +1,11 @@
+import path from 'node:path';
 import dotenv from 'dotenv';
 import * as schema from '../schema';
 import { drizzle } from 'drizzle-orm/postgres-js';
 import postgres from 'postgres';
 import { dbMode } from '../../tools/kry.server';
 
-dotenv.config({ path: '../../../.env' });
+dotenv.config({ path: path.resolve(import.meta.dirname, '../../../.env') });
 
 /** `--prod` / `--preview` select the matching URL; otherwise the local URL. */
 export const dbUrl = {

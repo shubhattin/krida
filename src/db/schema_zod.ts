@@ -14,7 +14,13 @@ import {
   crossword_attachments,
   crossword_sessions,
   crossword_gameplay_stats,
-  crossword_schedules
+  crossword_schedules,
+  tags,
+  collections,
+  padavali_puzzle_tags,
+  crossword_puzzle_tags,
+  padavali_collection_items,
+  crossword_collection_items
 } from './schema';
 import { createSelectSchema } from 'drizzle-zod';
 import { location_list_enum } from './types';
@@ -141,4 +147,25 @@ export const CrosswordScheduleSchemaZod = createSelectSchema(crossword_schedules
   updated_at: z.coerce.date().optional().nullable(),
   start_time: z.coerce.date(),
   end_time: z.coerce.date()
+});
+
+export const TagSchemaZod = createSelectSchema(tags, {
+  created_at: z.coerce.date()
+});
+
+export const CollectionSchemaZod = createSelectSchema(collections, {
+  created_at: z.coerce.date(),
+  updated_at: z.coerce.date().optional().nullable()
+});
+
+export const PadavaliPuzzleTagSchemaZod = createSelectSchema(padavali_puzzle_tags);
+
+export const CrosswordPuzzleTagSchemaZod = createSelectSchema(crossword_puzzle_tags);
+
+export const PadavaliCollectionItemSchemaZod = createSelectSchema(padavali_collection_items, {
+  created_at: z.coerce.date()
+});
+
+export const CrosswordCollectionItemSchemaZod = createSelectSchema(crossword_collection_items, {
+  created_at: z.coerce.date()
 });
