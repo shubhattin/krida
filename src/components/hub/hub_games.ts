@@ -1,8 +1,13 @@
 import type { GameAppIconId } from '~/components/GameAppIcon';
 import type { GameKind } from '~/util/catalog/tags';
+import {
+  isSimpleGameKind,
+  simpleGameHref,
+  type PublicGameKind
+} from '~/util/games/kinds';
 
 export type HubGameMeta = {
-  kind: GameKind;
+  kind: PublicGameKind;
   /** Icon / URL id — Padajala routes live under `/padajala`. */
   icon: GameAppIconId;
   name: string;
@@ -10,7 +15,7 @@ export type HubGameMeta = {
   description: string;
   href: '/padavali' | '/padajala';
   /** Puzzle catalog filter for this game (`?game=`). */
-  puzzlesGame: 'padavali' | 'crossword';
+  puzzlesGame: PublicGameKind;
 };
 
 export const HUB_GAMES = {
@@ -32,12 +37,14 @@ export const HUB_GAMES = {
     href: '/padajala',
     puzzlesGame: 'crossword'
   }
-} as const satisfies Record<GameKind, HubGameMeta>;
+} as const satisfies Record<PublicGameKind, HubGameMeta>;
 
 export const HUB_GAME_LIST: HubGameMeta[] = [HUB_GAMES.padavali, HUB_GAMES.crossword];
 
-export const puzzleHref = (game: GameKind, slug: string) =>
-  `${HUB_GAMES[game].href}/${encodeURIComponent(slug)}`;
+export const puzzleHref = (game: GameKind, slug: string) => {
+  if (isSimpleGameKind(game)) return simpleGameHref(game, slug);
+  return `${HUB_GAMES[game].href}/${encodeURIComponent(slug)}`;
+};
 
 export type HubNavId = 'home' | 'padavali' | 'crossword' | 'puzzles';
 

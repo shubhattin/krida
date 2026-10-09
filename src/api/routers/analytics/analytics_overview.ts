@@ -2,14 +2,28 @@ import { Effect } from 'effect';
 import { and, count, gte, isNotNull, lte, sql, type SQL } from 'drizzle-orm';
 import type { AnyPgColumn } from 'drizzle-orm/pg-core';
 import {
+  anveshi_gameplay_stats,
+  anveshi_sessions,
+  bhramita_gameplay_stats,
+  bhramita_sessions,
   crossword_gameplay_stats,
   crossword_sessions,
+  dvayi_gameplay_stats,
+  dvayi_sessions,
   padavali_gameplay_stats,
-  padavali_sessions
+  padavali_sessions,
+  surupa_gameplay_stats,
+  surupa_sessions
 } from '~/db/schema';
 import { dbRunHttp } from '~/effect/database';
 
-export type AdminAnalyticsGameId = 'padavali' | 'padajala';
+export type AdminAnalyticsGameId =
+  | 'padavali'
+  | 'padajala'
+  | 'dvayi'
+  | 'bhramita'
+  | 'surupa'
+  | 'anveshi';
 
 /** One game row of the cross-game admin overview. */
 export type AdminAnalyticsGameRow = {
@@ -28,7 +42,6 @@ export type AdminAnalyticsGameRow = {
 export type AdminAnalyticsTotals = Omit<AdminAnalyticsGameRow, 'game'>;
 
 export type AdminAnalyticsOverview = {
-  /** One row per selected game, in Padāvalī → Padajāla order. */
   games: AdminAnalyticsGameRow[];
   /** Sum of the selected game rows; user counts are unioned, not summed. */
   totals: AdminAnalyticsTotals;
@@ -54,7 +67,23 @@ type GameQueryResult = {
   signals: UserSignals;
 };
 
-const ADMIN_ANALYTICS_GAME_ORDER = ['padavali', 'padajala'] as const;
+type SessionTable = {
+  created_at: AnyPgColumn;
+  user_id: AnyPgColumn;
+};
+
+type StatsTable = {
+  created_at: AnyPgColumn;
+};
+
+export const ADMIN_ANALYTICS_GAME_ORDER = [
+  'padavali',
+  'padajala',
+  'dvayi',
+  'bhramita',
+  'surupa',
+  'anveshi'
+] as const satisfies readonly AdminAnalyticsGameId[];
 
 function rangeConditions(column: AnyPgColumn, query: AdminAnalyticsQuery): SQL[] {
   if (query.all_time) return [];
@@ -93,7 +122,6 @@ function countNewUsers(firstSeenByUser: Map<string, number>, query: AdminAnalyti
   return newUsers;
 }
 
-/** Union of two games' user signals — a player active in both counts once. */
 function mergeUserSignals(a: UserSignals, b: UserSignals): UserSignals {
   const first_seen_by_user = new Map(a.first_seen_by_user);
   for (const [userId, firstSeen] of b.first_seen_by_user) {
@@ -143,40 +171,43 @@ function buildTotals(
   };
 }
 
-const fetchPadavaliGameStats = Effect.fn('analytics.padavali_game_stats')(function* (
+const fetchTableStats = Effect.fn('analytics.table_game_stats')(function* (
+  label: string,
+  sessions: SessionTable,
+  gameplay_stats: StatsTable,
   query: AdminAnalyticsQuery
 ) {
-  const sessionConditions = rangeConditions(padavali_sessions.created_at, query);
-  const statsConditions = rangeConditions(padavali_gameplay_stats.created_at, query);
+  const sessionConditions = rangeConditions(sessions.created_at, query);
+  const statsConditions = rangeConditions(gameplay_stats.created_at, query);
 
   const { startedRows, completedRows, activeRows, firstSeenRows } = yield* Effect.all({
-    startedRows: dbRunHttp('analytics.padavali_started', (client) =>
+    startedRows: dbRunHttp(`analytics.${label}_started`, (client) =>
       client
         .select({ started: count() })
-        .from(padavali_sessions)
+        .from(sessions)
         .where(sessionConditions.length > 0 ? and(...sessionConditions) : undefined)
     ),
-    completedRows: dbRunHttp('analytics.padavali_completed', (client) =>
+    completedRows: dbRunHttp(`analytics.${label}_completed`, (client) =>
       client
         .select({ completed: count() })
-        .from(padavali_gameplay_stats)
+        .from(gameplay_stats)
         .where(statsConditions.length > 0 ? and(...statsConditions) : undefined)
     ),
-    activeRows: dbRunHttp('analytics.padavali_active_users', (client) =>
+    activeRows: dbRunHttp(`analytics.${label}_active_users`, (client) =>
       client
-        .selectDistinct({ user_id: padavali_sessions.user_id })
-        .from(padavali_sessions)
-        .where(and(isNotNull(padavali_sessions.user_id), ...sessionConditions))
+        .selectDistinct({ user_id: sessions.user_id })
+        .from(sessions)
+        .where(and(isNotNull(sessions.user_id), ...sessionConditions))
     ),
-    firstSeenRows: dbRunHttp('analytics.padavali_first_seen', (client) =>
+    firstSeenRows: dbRunHttp(`analytics.${label}_first_seen`, (client) =>
       client
         .select({
-          user_id: padavali_sessions.user_id,
-          first_seen: sql<Date>`min(${padavali_sessions.created_at})`
+          user_id: sessions.user_id,
+          first_seen: sql<Date>`min(${sessions.created_at})`
         })
-        .from(padavali_sessions)
-        .where(isNotNull(padavali_sessions.user_id))
-        .groupBy(padavali_sessions.user_id)
+        .from(sessions)
+        .where(isNotNull(sessions.user_id))
+        .groupBy(sessions.user_id)
     )
   });
 
@@ -184,85 +215,51 @@ const fetchPadavaliGameStats = Effect.fn('analytics.padavali_game_stats')(functi
     started: toCount(startedRows[0]?.started),
     completed: toCount(completedRows[0]?.completed),
     signals: {
-      active_user_ids: activeRows.flatMap((row) => (row.user_id ? [row.user_id] : [])),
-      first_seen_by_user: toFirstSeenMap(firstSeenRows)
+      active_user_ids: activeRows.flatMap((row) => (row.user_id ? [String(row.user_id)] : [])),
+      first_seen_by_user: toFirstSeenMap(
+        firstSeenRows.map((row) => ({
+          user_id: row.user_id ? String(row.user_id) : null,
+          first_seen: row.first_seen
+        }))
+      )
     }
   } satisfies GameQueryResult;
 });
 
-const fetchPadajalaGameStats = Effect.fn('analytics.padajala_game_stats')(function* (
-  query: AdminAnalyticsQuery
-) {
-  const sessionConditions = rangeConditions(crossword_sessions.created_at, query);
-  const statsConditions = rangeConditions(crossword_gameplay_stats.created_at, query);
+const GAME_TABLES = {
+  padavali: { label: 'padavali', sessions: padavali_sessions, stats: padavali_gameplay_stats },
+  padajala: { label: 'padajala', sessions: crossword_sessions, stats: crossword_gameplay_stats },
+  dvayi: { label: 'dvayi', sessions: dvayi_sessions, stats: dvayi_gameplay_stats },
+  bhramita: { label: 'bhramita', sessions: bhramita_sessions, stats: bhramita_gameplay_stats },
+  surupa: { label: 'surupa', sessions: surupa_sessions, stats: surupa_gameplay_stats },
+  anveshi: { label: 'anveshi', sessions: anveshi_sessions, stats: anveshi_gameplay_stats }
+} as const;
 
-  const { startedRows, completedRows, activeRows, firstSeenRows } = yield* Effect.all({
-    startedRows: dbRunHttp('analytics.padajala_started', (client) =>
-      client
-        .select({ started: count() })
-        .from(crossword_sessions)
-        .where(sessionConditions.length > 0 ? and(...sessionConditions) : undefined)
-    ),
-    completedRows: dbRunHttp('analytics.padajala_completed', (client) =>
-      client
-        .select({ completed: count() })
-        .from(crossword_gameplay_stats)
-        .where(statsConditions.length > 0 ? and(...statsConditions) : undefined)
-    ),
-    activeRows: dbRunHttp('analytics.padajala_active_users', (client) =>
-      client
-        .selectDistinct({ user_id: crossword_sessions.user_id })
-        .from(crossword_sessions)
-        .where(and(isNotNull(crossword_sessions.user_id), ...sessionConditions))
-    ),
-    firstSeenRows: dbRunHttp('analytics.padajala_first_seen', (client) =>
-      client
-        .select({
-          user_id: crossword_sessions.user_id,
-          first_seen: sql<Date>`min(${crossword_sessions.created_at})`
-        })
-        .from(crossword_sessions)
-        .where(isNotNull(crossword_sessions.user_id))
-        .groupBy(crossword_sessions.user_id)
-    )
-  });
-
-  return {
-    started: toCount(startedRows[0]?.started),
-    completed: toCount(completedRows[0]?.completed),
-    signals: {
-      active_user_ids: activeRows.flatMap((row) => (row.user_id ? [row.user_id] : [])),
-      first_seen_by_user: toFirstSeenMap(firstSeenRows)
-    }
-  } satisfies GameQueryResult;
-});
-
-/** Empty signals — used when a game filter excludes one of the two games. */
 const EMPTY_SIGNALS: UserSignals = { active_user_ids: [], first_seen_by_user: new Map() };
 
 /**
  * Cross-game admin overview: started / completed counts plus signed-in and
- * newly signed-in player counts, scoped to one or both games.
+ * newly signed-in player counts, scoped to the selected games.
  */
 export const fetchAdminAnalyticsOverview = Effect.fn('analytics.overview')(function* (
   query: AdminAnalyticsQuery,
   selectedGames: AdminAnalyticsGameId[]
 ) {
-  const [padavali, padajala] = yield* Effect.all([
-    selectedGames.includes('padavali') ? fetchPadavaliGameStats(query) : Effect.succeed(null),
-    selectedGames.includes('padajala') ? fetchPadajalaGameStats(query) : Effect.succeed(null)
-  ]);
+  const selected = new Set(selectedGames);
+  const ordered = ADMIN_ANALYTICS_GAME_ORDER.filter((game) => selected.has(game));
 
-  const results: { game: AdminAnalyticsGameId; result: GameQueryResult }[] = [];
-  if (padavali) results.push({ game: 'padavali', result: padavali });
-  if (padajala) results.push({ game: 'padajala', result: padajala });
+  const fetched = yield* Effect.all(
+    ordered.map((game) => {
+      const tables = GAME_TABLES[game];
+      return fetchTableStats(tables.label, tables.sessions, tables.stats, query).pipe(
+        Effect.map((result) => ({ game, result }))
+      );
+    }),
+    { concurrency: 'unbounded' }
+  );
 
-  const games = ADMIN_ANALYTICS_GAME_ORDER.flatMap((game) => {
-    const entry = results.find((item) => item.game === game);
-    return entry ? [buildGameRow(entry.game, entry.result, query)] : [];
-  });
-
-  const signals = results.reduce<UserSignals>(
+  const games = fetched.map((entry) => buildGameRow(entry.game, entry.result, query));
+  const signals = fetched.reduce<UserSignals>(
     (merged, entry) => mergeUserSignals(merged, entry.result.signals),
     EMPTY_SIGNALS
   );

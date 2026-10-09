@@ -24,6 +24,10 @@ Disallow: /padajala/schedules
 Disallow: /padajala/analytics
 Disallow: /padajala/batch_manager
 Disallow: /padajala/view/
+Disallow: /dvayi/
+Disallow: /bhramitA/
+Disallow: /surUpa/
+Disallow: /anveshi/
 
 Sitemap: ${siteUrl}/sitemap-index.xml
 `;

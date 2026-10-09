@@ -49,7 +49,7 @@ export const tags = pgTable('tags', {
 
 /**
  * A curated, ordered set of games. Membership is hand-picked per game via join
- * tables, so a collection can mix Padavali and Padajala.
+ * tables, so a collection can mix games from every catalog.
  */
 export const collections = pgTable(
   'collections',

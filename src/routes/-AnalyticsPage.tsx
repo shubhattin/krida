@@ -17,7 +17,7 @@ import type {
   AdminAnalyticsTotals
 } from '~/api/routers/analytics';
 import { AllGamesMenuItems } from '~/components/app-bar/GameMenuItems';
-import { GameAppIcon } from '~/components/GameAppIcon';
+import { GameAnalyticsMark } from '~/components/analytics/GameAnalyticsMark';
 import {
   AnalyticsStatCardsSkeleton,
   AnalyticsStatGrid,
@@ -37,7 +37,7 @@ import { Skeleton } from '~/components/ui/skeleton';
 import { Tabs, TabsList, TabsTrigger } from '~/components/ui/tabs';
 import { cn } from '~/lib/utils';
 
-type GameFilter = 'all' | 'padavali' | 'padajala';
+type GameFilter = 'all' | AdminAnalyticsGameId;
 
 /** Row shape returned by both `get_top_puzzles` procedures. */
 type TopPlayedPuzzleRow = {
@@ -55,18 +55,42 @@ const GAME_ACCENT = {
   padajala: {
     wash: 'from-amber-50/90 via-orange-50/40 to-amber-50/80 dark:from-amber-950/50 dark:via-stone-900/30 dark:to-orange-950/40',
     ring: 'hover:ring-amber-400/55 dark:hover:ring-amber-500/45'
+  },
+  dvayi: {
+    wash: 'from-rose-50/90 via-orange-50/40 to-amber-50/80 dark:from-rose-950/50 dark:via-slate-900/30 dark:to-orange-950/40',
+    ring: 'hover:ring-rose-400/55 dark:hover:ring-rose-500/45'
+  },
+  bhramita: {
+    wash: 'from-emerald-50/90 via-teal-50/40 to-cyan-50/80 dark:from-emerald-950/50 dark:via-slate-900/30 dark:to-teal-950/40',
+    ring: 'hover:ring-emerald-400/55 dark:hover:ring-emerald-500/45'
+  },
+  surupa: {
+    wash: 'from-violet-50/90 via-fuchsia-50/40 to-purple-50/80 dark:from-violet-950/50 dark:via-slate-900/30 dark:to-fuchsia-950/40',
+    ring: 'hover:ring-violet-400/55 dark:hover:ring-violet-500/45'
+  },
+  anveshi: {
+    wash: 'from-sky-50/90 via-indigo-50/40 to-blue-50/80 dark:from-sky-950/50 dark:via-slate-900/30 dark:to-indigo-950/40',
+    ring: 'hover:ring-sky-400/55 dark:hover:ring-sky-500/45'
   }
 } as const satisfies Record<AdminAnalyticsGameId, { wash: string; ring: string }>;
 
-const GAME_PRESENTATION = {
-  padavali: { name: HUB_GAMES.padavali.name, icon: 'padavali' as const },
-  padajala: { name: HUB_GAMES.crossword.name, icon: 'padajala' as const }
-} as const satisfies Record<AdminAnalyticsGameId, { name: string; icon: 'padavali' | 'padajala' }>;
+const GAME_PRESENTATION: Record<AdminAnalyticsGameId, { name: string }> = {
+  padavali: { name: HUB_GAMES.padavali.name },
+  padajala: { name: HUB_GAMES.crossword.name },
+  dvayi: { name: 'Dvayī' },
+  bhramita: { name: 'Bhramitā' },
+  surupa: { name: 'Surūpa' },
+  anveshi: { name: 'Anveṣī' }
+};
 
 const GAME_TABS = [
   { value: 'all', label: 'All games' },
   { value: 'padavali', label: HUB_GAMES.padavali.name },
-  { value: 'padajala', label: HUB_GAMES.crossword.name }
+  { value: 'padajala', label: HUB_GAMES.crossword.name },
+  { value: 'dvayi', label: 'Dvayī' },
+  { value: 'bhramita', label: 'Bhramitā' },
+  { value: 'surupa', label: 'Surūpa' },
+  { value: 'anveshi', label: 'Anveṣī' }
 ] as const;
 
 function totalsStats(totals: AdminAnalyticsTotals): AnalyticsStat[] {
@@ -129,7 +153,7 @@ function GameBreakdownCard({ row }: { row: AdminAnalyticsGameRow }) {
       )}
     >
       <div className="flex items-center gap-3 p-3 sm:p-4">
-        <GameAppIcon game={presentation.icon} name={presentation.name} size="sm" />
+        <GameAnalyticsMark game={row.game} name={presentation.name} />
         <div className="min-w-0">
           <p className="truncate text-sm font-bold tracking-tight">{presentation.name}</p>
           <p className="truncate text-xs text-muted-foreground">Per-game breakdown</p>
@@ -175,8 +199,12 @@ export default function AnalyticsPage() {
     trpc.analytics.get_overview.queryOptions({ game, ...rangeInput }, { enabled: period.isReady })
   );
 
-  const showPadavali = game !== 'padajala';
-  const showPadajala = game !== 'padavali';
+  const showPadavali = game === 'all' || game === 'padavali';
+  const showPadajala = game === 'all' || game === 'padajala';
+  const showDvayi = game === 'all' || game === 'dvayi';
+  const showBhramita = game === 'all' || game === 'bhramita';
+  const showSurupa = game === 'all' || game === 'surupa';
+  const showAnveshi = game === 'all' || game === 'anveshi';
 
   const topPadavaliQuery = useQuery(
     trpc.puzzle.stats.get_top_puzzles.queryOptions(
@@ -189,6 +217,31 @@ export default function AnalyticsPage() {
     trpc.crossword.stats.get_top_puzzles.queryOptions(
       { ...rangeInput, limit: 10 },
       { enabled: showPadajala && period.isReady }
+    )
+  );
+
+  const topDvayiQuery = useQuery(
+    trpc.dvayi.stats.get_top_puzzles.queryOptions(
+      { ...rangeInput, limit: 10 },
+      { enabled: showDvayi && period.isReady }
+    )
+  );
+  const topBhramitaQuery = useQuery(
+    trpc.bhramita.stats.get_top_puzzles.queryOptions(
+      { ...rangeInput, limit: 10 },
+      { enabled: showBhramita && period.isReady }
+    )
+  );
+  const topSurupaQuery = useQuery(
+    trpc.surupa.stats.get_top_puzzles.queryOptions(
+      { ...rangeInput, limit: 10 },
+      { enabled: showSurupa && period.isReady }
+    )
+  );
+  const topAnveshiQuery = useQuery(
+    trpc.anveshi.stats.get_top_puzzles.queryOptions(
+      { ...rangeInput, limit: 10 },
+      { enabled: showAnveshi && period.isReady }
     )
   );
 
@@ -206,7 +259,7 @@ export default function AnalyticsPage() {
             Analytics
           </h1>
           <p className="text-sm text-muted-foreground">
-            Play volume and signed-in players across Padāvalī and Padajāla.
+            Play volume and signed-in players across every catalog game.
           </p>
         </div>
 
@@ -214,7 +267,7 @@ export default function AnalyticsPage() {
           <Tabs
             value={game}
             onValueChange={(value) => {
-              if (value === 'padavali' || value === 'padajala' || value === 'all') setGame(value);
+              if (GAME_TABS.some((tab) => tab.value === value)) setGame(value as GameFilter);
             }}
             className="min-w-0"
           >
@@ -239,7 +292,7 @@ export default function AnalyticsPage() {
         {overviewQuery.isLoading ? (
           <div className="flex flex-col gap-4">
             <AnalyticsStatCardsSkeleton />
-            <BreakdownSkeleton count={game === 'all' ? 2 : 1} />
+            <BreakdownSkeleton count={game === 'all' ? 6 : 1} />
           </div>
         ) : null}
         {overviewQuery.isError ? (
@@ -287,6 +340,50 @@ export default function AnalyticsPage() {
                 emptyMessage="No Padajāla plays in this period"
                 isLoading={topPadajalaQuery.isLoading}
                 items={toTopPlayedRows(topPadajalaQuery.data?.puzzles ?? [])}
+              />
+            ) : null}
+            {showDvayi ? (
+              <TopPlayedLeader
+                variant="puzzles"
+                accordionValue="central-top-dvayi"
+                title="Top Played — Dvayī"
+                subtitle="Top 10 by plays"
+                emptyMessage="No Dvayī plays in this period"
+                isLoading={topDvayiQuery.isLoading}
+                items={toTopPlayedRows(topDvayiQuery.data?.puzzles ?? [])}
+              />
+            ) : null}
+            {showBhramita ? (
+              <TopPlayedLeader
+                variant="puzzles"
+                accordionValue="central-top-bhramita"
+                title="Top Played — Bhramitā"
+                subtitle="Top 10 by plays"
+                emptyMessage="No Bhramitā plays in this period"
+                isLoading={topBhramitaQuery.isLoading}
+                items={toTopPlayedRows(topBhramitaQuery.data?.puzzles ?? [])}
+              />
+            ) : null}
+            {showSurupa ? (
+              <TopPlayedLeader
+                variant="puzzles"
+                accordionValue="central-top-surupa"
+                title="Top Played — Surūpa"
+                subtitle="Top 10 by plays"
+                emptyMessage="No Surūpa plays in this period"
+                isLoading={topSurupaQuery.isLoading}
+                items={toTopPlayedRows(topSurupaQuery.data?.puzzles ?? [])}
+              />
+            ) : null}
+            {showAnveshi ? (
+              <TopPlayedLeader
+                variant="puzzles"
+                accordionValue="central-top-anveshi"
+                title="Top Played — Anveṣī"
+                subtitle="Top 10 by plays"
+                emptyMessage="No Anveṣī plays in this period"
+                isLoading={topAnveshiQuery.isLoading}
+                items={toTopPlayedRows(topAnveshiQuery.data?.puzzles ?? [])}
               />
             ) : null}
           </div>

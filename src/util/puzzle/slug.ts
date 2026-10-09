@@ -29,6 +29,16 @@ export const CROSSWORD_RESERVED_SLUGS = new Set([
   'view'
 ]);
 
+/** First-segment paths under the in-development game trees. */
+export const SIMPLE_GAME_RESERVED_SLUGS = new Set([
+  'analytics',
+  'edit',
+  'list',
+  'puzzle',
+  'puzzles',
+  'view'
+]);
+
 export const isReservedSlug = (slug: string) => RESERVED_SLUGS.has(slug);
 
 export const isReservedCrosswordSlug = (slug: string) => CROSSWORD_RESERVED_SLUGS.has(slug);
@@ -56,6 +66,22 @@ export const crossword_slug_schema = z
   .string()
   .transform(normalizeSlug)
   .refine(isValidCrosswordSlug, {
+    message:
+      'Slug may only contain lowercase letters, numbers, underscores, and dashes, and cannot match a reserved route name'
+  });
+
+export const isReservedSimpleGameSlug = (slug: string) => SIMPLE_GAME_RESERVED_SLUGS.has(slug);
+
+export const isValidSimpleGameSlug = (slug: string) =>
+  slug.length > 0 &&
+  slug.length <= MAX_SLUG_LENGTH &&
+  SLUG_REGEX.test(slug) &&
+  !isReservedSimpleGameSlug(slug);
+
+export const simple_game_slug_schema = z
+  .string()
+  .transform(normalizeSlug)
+  .refine(isValidSimpleGameSlug, {
     message:
       'Slug may only contain lowercase letters, numbers, underscores, and dashes, and cannot match a reserved route name'
   });

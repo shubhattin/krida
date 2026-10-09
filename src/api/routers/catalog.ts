@@ -2,17 +2,8 @@ import { Effect } from 'effect';
 import { and, asc, count, desc, eq, ilike, inArray, or, sql } from 'drizzle-orm';
 import { z } from 'zod';
 import { protectedAdminProcedure, t } from '~/api/trpc_init';
-import {
-  collections,
-  crossword_collection_items,
-  crossword_puzzle_tags,
-  crossword_puzzles,
-  image_assets,
-  padavali_collection_items,
-  padavali_puzzle_tags,
-  padavali_puzzles,
-  tags
-} from '~/db/schema';
+import { collections, image_assets, tags } from '~/db/schema';
+import { itemTable, puzzleTable, tagLinkTable, TAG_LINK_SQL } from '~/util/catalog/game_tables';
 import { dbRunHttp, dbTransaction, type DbTransaction } from '~/effect/database';
 import { BadRequestError, ConflictError, NotFoundError } from '~/effect/errors';
 import { runTrpcEffect } from '~/effect/run';
@@ -36,12 +27,7 @@ const settle = <A, E, R>(effect: Effect.Effect<A, E, R>) =>
   effect.pipe(Effect.catch(() => Effect.void));
 
 const refreshListedPuzzles = (game: GameKind) =>
-  settle(
-    invalidate_and_refresh_cache(
-      game === 'padavali' ? CACHE.padavali.listed_puzzle_list : CACHE.crossword.listed_puzzle_list,
-      NO_CACHE_PARAMS
-    )
-  );
+  settle(invalidate_and_refresh_cache(CACHE[game].listed_puzzle_list, NO_CACHE_PARAMS));
 
 const refreshListedCollections = () =>
   settle(
@@ -53,24 +39,19 @@ const refreshListedCollections = () =>
 
 const loadTagPuzzleRefs = (tagId: number) =>
   Effect.gen(function* () {
-    const { padavali, crossword } = yield* Effect.all({
-      padavali: dbRunHttp('catalog.tag_padavali_ids', (client) =>
-        client
-          .select({ puzzle_id: padavali_puzzle_tags.puzzle_id })
-          .from(padavali_puzzle_tags)
-          .where(eq(padavali_puzzle_tags.tag_id, tagId))
-      ),
-      crossword: dbRunHttp('catalog.tag_crossword_ids', (client) =>
-        client
-          .select({ puzzle_id: crossword_puzzle_tags.puzzle_id })
-          .from(crossword_puzzle_tags)
-          .where(eq(crossword_puzzle_tags.tag_id, tagId))
-      )
-    });
-    return [
-      ...padavali.map((row) => ({ game: 'padavali' as const, puzzle_id: row.puzzle_id })),
-      ...crossword.map((row) => ({ game: 'crossword' as const, puzzle_id: row.puzzle_id }))
-    ];
+    const groups = yield* Effect.all(
+      GAME_KINDS.map((game) => {
+        const link = tagLinkTable[game];
+        return dbRunHttp(`catalog.tag_${game}_ids`, (client) =>
+          client.select({ puzzle_id: link.puzzle_id }).from(link).where(eq(link.tag_id, tagId))
+        ).pipe(
+          Effect.map((rows) =>
+            rows.map((row) => ({ game, puzzle_id: row.puzzle_id }) as const)
+          )
+        );
+      })
+    );
+    return groups.flat();
   });
 
 const listedPuzzleIdsForGame = (game: GameKind, puzzleIds: number[]) => {
@@ -101,26 +82,28 @@ const listedCollectionContainsPuzzles = (game: GameKind, puzzleIds: number[]) =>
 const refreshPublicCachesForTagPuzzles = (items: { game: GameKind; puzzle_id: number }[]) =>
   Effect.gen(function* () {
     if (items.length === 0) return;
-    const padavaliIds = [
-      ...new Set(items.filter((item) => item.game === 'padavali').map((item) => item.puzzle_id))
-    ];
-    const crosswordIds = [
-      ...new Set(items.filter((item) => item.game === 'crossword').map((item) => item.puzzle_id))
-    ];
-    const { listedPadavali, listedCrossword } = yield* Effect.all({
-      listedPadavali: listedPuzzleIdsForGame('padavali', padavaliIds),
-      listedCrossword: listedPuzzleIdsForGame('crossword', crosswordIds)
-    });
+    const idsByGame = Object.fromEntries(
+      GAME_KINDS.map((game) => [
+        game,
+        [...new Set(items.filter((item) => item.game === game).map((item) => item.puzzle_id))]
+      ])
+    ) as Record<GameKind, number[]>;
+
+    const listedByGame = yield* Effect.all(
+      Object.fromEntries(
+        GAME_KINDS.map((game) => [game, listedPuzzleIdsForGame(game, idsByGame[game])])
+      ) as Record<GameKind, ReturnType<typeof listedPuzzleIdsForGame>>
+    );
 
     yield* Effect.all([
-      listedPadavali.length > 0 ? refreshListedPuzzles('padavali') : Effect.void,
-      listedCrossword.length > 0 ? refreshListedPuzzles('crossword') : Effect.void,
+      ...GAME_KINDS.map((game) =>
+        listedByGame[game].length > 0 ? refreshListedPuzzles(game) : Effect.void
+      ),
       Effect.gen(function* () {
-        const { padavaliHit, crosswordHit } = yield* Effect.all({
-          padavaliHit: listedCollectionContainsPuzzles('padavali', listedPadavali),
-          crosswordHit: listedCollectionContainsPuzzles('crossword', listedCrossword)
-        });
-        if (padavaliHit || crosswordHit) {
+        const hits = yield* Effect.all(
+          GAME_KINDS.map((game) => listedCollectionContainsPuzzles(game, listedByGame[game]))
+        );
+        if (hits.some(Boolean)) {
           yield* settle(
             invalidate_and_refresh_cache(CACHE.catalog.listed_collections, NO_CACHE_PARAMS)
           );
@@ -136,35 +119,20 @@ const imageColumns = {
   height: true
 } as const;
 
-const puzzleTable = {
-  padavali: padavali_puzzles,
-  crossword: crossword_puzzles
-} as const;
-
-const tagLinkTable = {
-  padavali: padavali_puzzle_tags,
-  crossword: crossword_puzzle_tags
-} as const;
-
-const itemTable = {
-  padavali: padavali_collection_items,
-  crossword: crossword_collection_items
-} as const;
-
 const nextOrderIndex = async (tx: DbTransaction, collectionId: number) => {
-  const [padavaliRow] = await tx
-    .select({
-      value: sql<number>`coalesce(max(${padavali_collection_items.order_index}), 0)`
+  const maxima = await Promise.all(
+    GAME_KINDS.map(async (game) => {
+      const items = itemTable[game];
+      const [row] = await tx
+        .select({
+          value: sql<number>`coalesce(max(${items.order_index}), 0)`
+        })
+        .from(items)
+        .where(eq(items.collection_id, collectionId));
+      return Number(row?.value ?? 0);
     })
-    .from(padavali_collection_items)
-    .where(eq(padavali_collection_items.collection_id, collectionId));
-  const [crosswordRow] = await tx
-    .select({
-      value: sql<number>`coalesce(max(${crossword_collection_items.order_index}), 0)`
-    })
-    .from(crossword_collection_items)
-    .where(eq(crossword_collection_items.collection_id, collectionId));
-  return Math.max(Number(padavaliRow?.value ?? 0), Number(crosswordRow?.value ?? 0)) + 1;
+  );
+  return Math.max(0, ...maxima) + 1;
 };
 
 const findCollectionByUid = (uid: string) =>
@@ -215,11 +183,12 @@ const loadTagPuzzles = (tagId: number) =>
       );
     };
 
-    const [padavali, crossword] = yield* Effect.all([load('padavali'), load('crossword')]);
-    return [
-      ...padavali.map((row) => ({ game: 'padavali' as const, ...row })),
-      ...crossword.map((row) => ({ game: 'crossword' as const, ...row }))
-    ].map(({ image_s3_key, ...row }) => ({
+    const groups = yield* Effect.all(GAME_KINDS.map((game) =>
+      load(game).pipe(
+        Effect.map((rows) => rows.map((row) => ({ game, ...row })))
+      )
+    ));
+    return groups.flat().map(({ image_s3_key, ...row }) => ({
       ...row,
       image: image_s3_key ? { s3_key: image_s3_key } : null
     }));
@@ -247,6 +216,10 @@ const assertTagSlugAvailable = (tagId: number, slug: string) =>
 const tagUsageSql = sql<number>`(
   (select count(*)::int from padavali_puzzle_tags pt where pt.tag_id = ${tags.id})
   + (select count(*)::int from crossword_puzzle_tags ct where ct.tag_id = ${tags.id})
+  + (select count(*)::int from dvayi_puzzle_tags dt where dt.tag_id = ${tags.id})
+  + (select count(*)::int from bhramita_puzzle_tags bt where bt.tag_id = ${tags.id})
+  + (select count(*)::int from surupa_puzzle_tags st where st.tag_id = ${tags.id})
+  + (select count(*)::int from anveshi_puzzle_tags at where at.tag_id = ${tags.id})
 )`;
 
 const list_tags_route = protectedAdminProcedure
@@ -295,6 +268,12 @@ const list_tags_route = protectedAdminProcedure
                 )`,
                 crossword_count: sql<number>`(
                   select count(*)::int from crossword_puzzle_tags ct where ct.tag_id = ${tags.id}
+                )`,
+                extra_count: sql<number>`(
+                  (select count(*)::int from dvayi_puzzle_tags dt where dt.tag_id = ${tags.id})
+                  + (select count(*)::int from bhramita_puzzle_tags bt where bt.tag_id = ${tags.id})
+                  + (select count(*)::int from surupa_puzzle_tags st where st.tag_id = ${tags.id})
+                  + (select count(*)::int from anveshi_puzzle_tags at where at.tag_id = ${tags.id})
                 )`
               })
               .from(tags)
@@ -305,11 +284,12 @@ const list_tags_route = protectedAdminProcedure
           )
         });
 
-        const list = rows.map((row) => ({
+        const list = rows.map(({ extra_count, ...row }) => ({
           ...row,
           padavali_count: Number(row.padavali_count),
           crossword_count: Number(row.crossword_count),
-          total_count: Number(row.padavali_count) + Number(row.crossword_count)
+          total_count:
+            Number(row.padavali_count) + Number(row.crossword_count) + Number(extra_count)
         }));
         const total = Number(countResult[0]?.count ?? 0);
         const pageCount = Math.max(1, Math.ceil(total / input.size));
@@ -445,23 +425,17 @@ const save_tag_route = protectedAdminProcedure
 
           await tx.update(tags).set({ slug: input.slug }).where(eq(tags.id, existing.id));
 
-          await tx.delete(padavali_puzzle_tags).where(eq(padavali_puzzle_tags.tag_id, existing.id));
-          await tx
-            .delete(crossword_puzzle_tags)
-            .where(eq(crossword_puzzle_tags.tag_id, existing.id));
+          for (const game of GAME_KINDS) {
+            const link = tagLinkTable[game];
+            await tx.delete(link).where(eq(link.tag_id, existing.id));
+          }
 
           for (const item of unique) {
-            if (item.game === 'padavali') {
-              await tx.insert(padavali_puzzle_tags).values({
-                puzzle_id: item.puzzle_id,
-                tag_id: existing.id
-              });
-            } else {
-              await tx.insert(crossword_puzzle_tags).values({
-                puzzle_id: item.puzzle_id,
-                tag_id: existing.id
-              });
-            }
+            const link = tagLinkTable[item.game];
+            await tx.insert(link).values({
+              puzzle_id: item.puzzle_id,
+              tag_id: existing.id
+            });
           }
 
           return { ok: true as const };
@@ -538,17 +512,11 @@ const attach_tag_route = protectedAdminProcedure
           const rows = await ensureTagsBySlugs(tx, [input.slug]);
           const row = rows[0];
           if (!row) throw new Error('Failed to create tag');
-          if (input.game === 'padavali') {
-            await tx
-              .insert(padavali_puzzle_tags)
-              .values({ puzzle_id: input.puzzle_id, tag_id: row.id })
-              .onConflictDoNothing();
-          } else {
-            await tx
-              .insert(crossword_puzzle_tags)
-              .values({ puzzle_id: input.puzzle_id, tag_id: row.id })
-              .onConflictDoNothing();
-          }
+          const link = tagLinkTable[input.game];
+          await tx
+            .insert(link)
+            .values({ puzzle_id: input.puzzle_id, tag_id: row.id })
+            .onConflictDoNothing();
           return { id: row.id, slug: row.slug };
         });
 
@@ -570,25 +538,10 @@ const detach_tag_route = protectedAdminProcedure
     runTrpcEffect(
       Effect.gen(function* () {
         yield* dbRunHttp('catalog.detach_tag', async (client) => {
-          if (input.game === 'padavali') {
-            await client
-              .delete(padavali_puzzle_tags)
-              .where(
-                and(
-                  eq(padavali_puzzle_tags.puzzle_id, input.puzzle_id),
-                  eq(padavali_puzzle_tags.tag_id, input.tag_id)
-                )
-              );
-            return;
-          }
+          const link = tagLinkTable[input.game];
           await client
-            .delete(crossword_puzzle_tags)
-            .where(
-              and(
-                eq(crossword_puzzle_tags.puzzle_id, input.puzzle_id),
-                eq(crossword_puzzle_tags.tag_id, input.tag_id)
-              )
-            );
+            .delete(link)
+            .where(and(eq(link.puzzle_id, input.puzzle_id), eq(link.tag_id, input.tag_id)));
         });
         yield* refreshListedPuzzles(input.game);
         return { success: true };
@@ -617,6 +570,12 @@ const list_collections_route = protectedAdminProcedure.query(() =>
           crossword_count: sql<number>`(
             select count(*)::int from crossword_collection_items ci
             where ci.collection_id = ${collections.id}
+          )`,
+          extra_count: sql<number>`(
+            (select count(*)::int from dvayi_collection_items di where di.collection_id = ${collections.id})
+            + (select count(*)::int from bhramita_collection_items bi where bi.collection_id = ${collections.id})
+            + (select count(*)::int from surupa_collection_items si where si.collection_id = ${collections.id})
+            + (select count(*)::int from anveshi_collection_items ai where ai.collection_id = ${collections.id})
           )`
         })
         .from(collections)
@@ -624,10 +583,10 @@ const list_collections_route = protectedAdminProcedure.query(() =>
         .orderBy(desc(collections.created_at))
     ).pipe(
       Effect.map((rows) =>
-        rows.map(({ image_s3_key, padavali_count, crossword_count, ...row }) => ({
+        rows.map(({ image_s3_key, padavali_count, crossword_count, extra_count, ...row }) => ({
           ...row,
           image: image_s3_key ? { s3_key: image_s3_key } : null,
-          item_count: Number(padavali_count) + Number(crossword_count)
+          item_count: Number(padavali_count) + Number(crossword_count) + Number(extra_count)
         }))
       )
     )
@@ -722,6 +681,66 @@ const get_collection_route = protectedAdminProcedure
                     with: { image: { columns: { s3_key: true } } }
                   }
                 }
+              },
+              dvayi_items: {
+                columns: { order_index: true },
+                with: {
+                  puzzle: {
+                    columns: {
+                      id: true,
+                      slug: true,
+                      title: true,
+                      description: true,
+                      listed: true
+                    },
+                    with: { image: { columns: { s3_key: true } } }
+                  }
+                }
+              },
+              bhramita_items: {
+                columns: { order_index: true },
+                with: {
+                  puzzle: {
+                    columns: {
+                      id: true,
+                      slug: true,
+                      title: true,
+                      description: true,
+                      listed: true
+                    },
+                    with: { image: { columns: { s3_key: true } } }
+                  }
+                }
+              },
+              surupa_items: {
+                columns: { order_index: true },
+                with: {
+                  puzzle: {
+                    columns: {
+                      id: true,
+                      slug: true,
+                      title: true,
+                      description: true,
+                      listed: true
+                    },
+                    with: { image: { columns: { s3_key: true } } }
+                  }
+                }
+              },
+              anveshi_items: {
+                columns: { order_index: true },
+                with: {
+                  puzzle: {
+                    columns: {
+                      id: true,
+                      slug: true,
+                      title: true,
+                      description: true,
+                      listed: true
+                    },
+                    with: { image: { columns: { s3_key: true } } }
+                  }
+                }
               }
             }
           })
@@ -740,6 +759,26 @@ const get_collection_route = protectedAdminProcedure
           })),
           ...collection.crossword_items.map((item) => ({
             game: 'crossword' as const,
+            order_index: item.order_index,
+            puzzle: item.puzzle
+          })),
+          ...collection.dvayi_items.map((item) => ({
+            game: 'dvayi' as const,
+            order_index: item.order_index,
+            puzzle: item.puzzle
+          })),
+          ...collection.bhramita_items.map((item) => ({
+            game: 'bhramita' as const,
+            order_index: item.order_index,
+            puzzle: item.puzzle
+          })),
+          ...collection.surupa_items.map((item) => ({
+            game: 'surupa' as const,
+            order_index: item.order_index,
+            puzzle: item.puzzle
+          })),
+          ...collection.anveshi_items.map((item) => ({
+            game: 'anveshi' as const,
             order_index: item.order_index,
             puzzle: item.puzzle
           }))
@@ -873,29 +912,19 @@ const save_collection_route = protectedAdminProcedure
             })
             .where(eq(collections.id, existing.id));
 
-          await tx
-            .delete(padavali_collection_items)
-            .where(eq(padavali_collection_items.collection_id, existing.id));
-          await tx
-            .delete(crossword_collection_items)
-            .where(eq(crossword_collection_items.collection_id, existing.id));
+          for (const game of GAME_KINDS) {
+            const items = itemTable[game];
+            await tx.delete(items).where(eq(items.collection_id, existing.id));
+          }
 
           for (let i = 0; i < unique.length; i++) {
             const item = unique[i]!;
-            const order_index = i + 1;
-            if (item.game === 'padavali') {
-              await tx.insert(padavali_collection_items).values({
-                collection_id: existing.id,
-                puzzle_id: item.puzzle_id,
-                order_index
-              });
-            } else {
-              await tx.insert(crossword_collection_items).values({
-                collection_id: existing.id,
-                puzzle_id: item.puzzle_id,
-                order_index
-              });
-            }
+            const items = itemTable[item.game];
+            await tx.insert(items).values({
+              collection_id: existing.id,
+              puzzle_id: item.puzzle_id,
+              order_index: i + 1
+            });
           }
 
           return { ok: true as const };
@@ -999,65 +1028,27 @@ const set_puzzle_links_route = protectedAdminProcedure
             return { ok: false as const };
           }
           const desiredCollectionIds = new Set(foundCollections.map((row) => row.id));
+          const link = tagLinkTable[input.game];
+          const items = itemTable[input.game];
 
-          if (input.game === 'padavali') {
-            await tx
-              .delete(padavali_puzzle_tags)
-              .where(eq(padavali_puzzle_tags.puzzle_id, input.puzzle_id));
-            if (tagIds.length > 0) {
-              await tx
-                .insert(padavali_puzzle_tags)
-                .values(tagIds.map((tag_id) => ({ puzzle_id: input.puzzle_id, tag_id })));
-            }
-            const current = await tx
-              .select({ collection_id: padavali_collection_items.collection_id })
-              .from(padavali_collection_items)
-              .where(eq(padavali_collection_items.puzzle_id, input.puzzle_id));
-            for (const row of current) {
-              if (!desiredCollectionIds.has(row.collection_id)) {
-                await tx
-                  .delete(padavali_collection_items)
-                  .where(
-                    and(
-                      eq(padavali_collection_items.puzzle_id, input.puzzle_id),
-                      eq(padavali_collection_items.collection_id, row.collection_id)
-                    )
-                  );
-              }
-            }
-            const currentIds = new Set(current.map((row) => row.collection_id));
-            for (const collectionId of desiredCollectionIds) {
-              if (currentIds.has(collectionId)) continue;
-              const orderIndex = await nextOrderIndex(tx, collectionId);
-              await tx.insert(padavali_collection_items).values({
-                collection_id: collectionId,
-                puzzle_id: input.puzzle_id,
-                order_index: orderIndex
-              });
-            }
-            return { ok: true as const };
-          }
-
-          await tx
-            .delete(crossword_puzzle_tags)
-            .where(eq(crossword_puzzle_tags.puzzle_id, input.puzzle_id));
+          await tx.delete(link).where(eq(link.puzzle_id, input.puzzle_id));
           if (tagIds.length > 0) {
             await tx
-              .insert(crossword_puzzle_tags)
+              .insert(link)
               .values(tagIds.map((tag_id) => ({ puzzle_id: input.puzzle_id, tag_id })));
           }
           const current = await tx
-            .select({ collection_id: crossword_collection_items.collection_id })
-            .from(crossword_collection_items)
-            .where(eq(crossword_collection_items.puzzle_id, input.puzzle_id));
+            .select({ collection_id: items.collection_id })
+            .from(items)
+            .where(eq(items.puzzle_id, input.puzzle_id));
           for (const row of current) {
             if (!desiredCollectionIds.has(row.collection_id)) {
               await tx
-                .delete(crossword_collection_items)
+                .delete(items)
                 .where(
                   and(
-                    eq(crossword_collection_items.puzzle_id, input.puzzle_id),
-                    eq(crossword_collection_items.collection_id, row.collection_id)
+                    eq(items.puzzle_id, input.puzzle_id),
+                    eq(items.collection_id, row.collection_id)
                   )
                 );
             }
@@ -1066,7 +1057,7 @@ const set_puzzle_links_route = protectedAdminProcedure
           for (const collectionId of desiredCollectionIds) {
             if (currentIds.has(collectionId)) continue;
             const orderIndex = await nextOrderIndex(tx, collectionId);
-            await tx.insert(crossword_collection_items).values({
+            await tx.insert(items).values({
               collection_id: collectionId,
               puzzle_id: input.puzzle_id,
               order_index: orderIndex
@@ -1126,43 +1117,21 @@ const add_items_route = protectedAdminProcedure
               .limit(1);
             if (!puzzle[0]) continue;
 
-            if (item.game === 'padavali') {
-              const existing = await tx
-                .select({ puzzle_id: padavali_collection_items.puzzle_id })
-                .from(padavali_collection_items)
-                .where(
-                  and(
-                    eq(padavali_collection_items.collection_id, collection.id),
-                    eq(padavali_collection_items.puzzle_id, item.puzzle_id)
-                  )
-                )
-                .limit(1);
-              if (existing[0]) continue;
-              const orderIndex = await nextOrderIndex(tx, collection.id);
-              await tx.insert(padavali_collection_items).values({
-                collection_id: collection.id,
-                puzzle_id: item.puzzle_id,
-                order_index: orderIndex
-              });
-            } else {
-              const existing = await tx
-                .select({ puzzle_id: crossword_collection_items.puzzle_id })
-                .from(crossword_collection_items)
-                .where(
-                  and(
-                    eq(crossword_collection_items.collection_id, collection.id),
-                    eq(crossword_collection_items.puzzle_id, item.puzzle_id)
-                  )
-                )
-                .limit(1);
-              if (existing[0]) continue;
-              const orderIndex = await nextOrderIndex(tx, collection.id);
-              await tx.insert(crossword_collection_items).values({
-                collection_id: collection.id,
-                puzzle_id: item.puzzle_id,
-                order_index: orderIndex
-              });
-            }
+            const items = itemTable[item.game];
+            const existing = await tx
+              .select({ puzzle_id: items.puzzle_id })
+              .from(items)
+              .where(
+                and(eq(items.collection_id, collection.id), eq(items.puzzle_id, item.puzzle_id))
+              )
+              .limit(1);
+            if (existing[0]) continue;
+            const orderIndex = await nextOrderIndex(tx, collection.id);
+            await tx.insert(items).values({
+              collection_id: collection.id,
+              puzzle_id: item.puzzle_id,
+              order_index: orderIndex
+            });
             countAdded += 1;
           }
           return countAdded;
@@ -1204,24 +1173,11 @@ const remove_item_route = protectedAdminProcedure
           );
         }
         yield* dbRunHttp('catalog.remove_collection_item', async (client) => {
-          if (input.game === 'padavali') {
-            await client
-              .delete(padavali_collection_items)
-              .where(
-                and(
-                  eq(padavali_collection_items.collection_id, collection.id),
-                  eq(padavali_collection_items.puzzle_id, input.puzzle_id)
-                )
-              );
-            return;
-          }
+          const items = itemTable[input.game];
           await client
-            .delete(crossword_collection_items)
+            .delete(items)
             .where(
-              and(
-                eq(crossword_collection_items.collection_id, collection.id),
-                eq(crossword_collection_items.puzzle_id, input.puzzle_id)
-              )
+              and(eq(items.collection_id, collection.id), eq(items.puzzle_id, input.puzzle_id))
             );
         });
         yield* refreshListedCollections();
@@ -1248,18 +1204,16 @@ const reorder_route = protectedAdminProcedure
         }
 
         const result = yield* dbTransaction('catalog.reorder_collection', async (tx) => {
-          const padavaliRows = await tx
-            .select({ puzzle_id: padavali_collection_items.puzzle_id })
-            .from(padavali_collection_items)
-            .where(eq(padavali_collection_items.collection_id, collection.id));
-          const crosswordRows = await tx
-            .select({ puzzle_id: crossword_collection_items.puzzle_id })
-            .from(crossword_collection_items)
-            .where(eq(crossword_collection_items.collection_id, collection.id));
-          const current = new Set([
-            ...padavaliRows.map((row) => `padavali:${row.puzzle_id}`),
-            ...crosswordRows.map((row) => `crossword:${row.puzzle_id}`)
-          ]);
+          const currentKeys: string[] = [];
+          for (const game of GAME_KINDS) {
+            const items = itemTable[game];
+            const rows = await tx
+              .select({ puzzle_id: items.puzzle_id })
+              .from(items)
+              .where(eq(items.collection_id, collection.id));
+            for (const row of rows) currentKeys.push(`${game}:${row.puzzle_id}`);
+          }
+          const current = new Set(currentKeys);
           const incoming = input.items.map((item) => `${item.game}:${item.puzzle_id}`);
           if (
             incoming.length !== current.size ||
@@ -1332,7 +1286,7 @@ const search_puzzles_route = protectedAdminProcedure
   .query(({ input }) =>
     runTrpcEffect(
       Effect.gen(function* () {
-        const games: GameKind[] = input.game === 'all' ? ['padavali', 'crossword'] : [input.game];
+        const games: GameKind[] = input.game === 'all' ? [...GAME_KINDS] : [input.game];
         const tokens = tokenizeSearchQuery(input.query);
 
         const load = (game: GameKind) => {
@@ -1347,7 +1301,7 @@ const search_puzzles_route = protectedAdminProcedure
           if (input.tag_slug) {
             conditions.push(
               sql`exists (
-                select 1 from ${sql.raw(game === 'padavali' ? 'padavali_puzzle_tags' : 'crossword_puzzle_tags')} pt
+                select 1 from ${sql.raw(TAG_LINK_SQL[game])} pt
                 inner join tags t on t.id = pt.tag_id
                 where pt.puzzle_id = ${puzzles.id} and t.slug = ${input.tag_slug}
               )`
@@ -1406,28 +1360,28 @@ const delete_collection_route = protectedAdminProcedure
             NotFoundError.make({ resource: 'collection', message: 'Collection not found' })
           );
         }
-        const [padavaliRow, crosswordRow] = yield* dbRunHttp(
-          'catalog.count_collection_items',
-          async (client) => {
-            const [padavaliCount] = await client
-              .select({ count: count() })
-              .from(padavali_collection_items)
-              .where(eq(padavali_collection_items.collection_id, collection.id));
-            const [crosswordCount] = await client
-              .select({ count: count() })
-              .from(crossword_collection_items)
-              .where(eq(crossword_collection_items.collection_id, collection.id));
-            return [padavaliCount, crosswordCount] as const;
-          }
-        );
-        const padavali = Number(padavaliRow?.count ?? 0);
-        const crossword = Number(crosswordRow?.count ?? 0);
+        const counts = yield* dbRunHttp('catalog.count_collection_items', async (client) => {
+          const entries = await Promise.all(
+            GAME_KINDS.map(async (game) => {
+              const items = itemTable[game];
+              const [row] = await client
+                .select({ count: count() })
+                .from(items)
+                .where(eq(items.collection_id, collection.id));
+              return [game, Number(row?.count ?? 0)] as const;
+            })
+          );
+          return Object.fromEntries(entries) as Record<GameKind, number>;
+        });
+        const padavali = counts.padavali;
+        const crossword = counts.crossword;
+        const total = GAME_KINDS.reduce((sum, game) => sum + counts[game], 0);
         yield* dbRunHttp('catalog.delete_collection', async (client) => {
           await client.delete(collections).where(eq(collections.id, collection.id));
         });
         yield* refreshListedCollections();
         // Membership rows cascade; puzzles and cover images are never deleted here.
-        return { success: true as const, padavali, crossword, total: padavali + crossword };
+        return { success: true as const, padavali, crossword, total };
       })
     )
   );
@@ -1452,12 +1406,13 @@ const delete_tag_route = protectedAdminProcedure
         const previous = yield* loadTagPuzzleRefs(tag.id);
         const padavali = previous.filter((item) => item.game === 'padavali').length;
         const crossword = previous.filter((item) => item.game === 'crossword').length;
+        const total = previous.length;
         yield* dbRunHttp('catalog.delete_tag', async (client) => {
           await client.delete(tags).where(eq(tags.id, input.tag_id));
         });
         yield* refreshPublicCachesForTagPuzzles(previous);
         // Tag links cascade; puzzles themselves are never deleted here.
-        return { success: true as const, padavali, crossword, total: padavali + crossword };
+        return { success: true as const, padavali, crossword, total };
       })
     )
   );

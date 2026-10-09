@@ -34,6 +34,7 @@ import {
   useEditorHistoryActions,
   useHistoryTextField
 } from '~/hooks/useEditorHistory';
+import { formatGameCounts } from '~/util/games/labels';
 import { normalizeTagSlug, type GameKind } from '~/util/catalog/tags';
 
 type TagPuzzle = {
@@ -294,8 +295,7 @@ function TagDeleteButton({ tagId, slug }: { tagId: number; slug: string }) {
   const [open, setOpen] = useState(false);
   const [confirm, setConfirm] = useState<'no' | 'yes'>('no');
 
-  const padavaliCount = puzzles.filter((item) => item.game === 'padavali').length;
-  const crosswordCount = puzzles.length - padavaliCount;
+  const gameCountsLabel = formatGameCounts(puzzles);
   const hasItems = puzzles.length > 0;
 
   const delete_mut = useMutation(
@@ -336,7 +336,7 @@ function TagDeleteButton({ tagId, slug }: { tagId: number; slug: string }) {
             <DialogTitle>Delete “{slug}”?</DialogTitle>
             <DialogDescription>
               {hasItems
-                ? `This tag is on ${puzzles.length} game${puzzles.length === 1 ? '' : 's'} (${padavaliCount} Padavali · ${crosswordCount} Padajala). Deleting unlinks every game, but the puzzles themselves stay untouched. This cannot be undone.`
+                ? `This tag is on ${puzzles.length} game${puzzles.length === 1 ? '' : 's'}${gameCountsLabel ? ` (${gameCountsLabel})` : ''}. Deleting unlinks every game, but the puzzles themselves stay untouched. This cannot be undone.`
                 : 'This tag is not on any games. Deleting removes it permanently. This cannot be undone.'}
             </DialogDescription>
           </DialogHeader>

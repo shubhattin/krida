@@ -12,7 +12,7 @@ const PENDING_VALUE = 'pending';
 const POLL = Duration.millis(50);
 const MAX_POLLS = 40;
 
-type PlayKind = 'padavali' | 'crossword';
+type PlayKind = 'padavali' | 'crossword' | 'dvayi' | 'bhramita' | 'surupa' | 'anveshi';
 
 const keyFor = (kind: PlayKind, playId: string) => `stats:play:${kind}:${playId}`;
 

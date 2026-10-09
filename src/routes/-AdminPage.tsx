@@ -3,13 +3,17 @@
 import type { ReactNode } from 'react';
 import { Link } from '@tanstack/react-router';
 import {
+  ArrowLeftRight,
   ArrowRight,
   BarChart3,
   Calendar,
   ChartNoAxesCombined,
+  CircleHelp,
   Images,
   Layers,
   List,
+  Shuffle,
+  SpellCheck,
   Tag
 } from 'lucide-react';
 import { AllGamesMenuItems } from '~/components/app-bar/GameMenuItems';
@@ -17,6 +21,41 @@ import { GameAppIcon } from '~/components/GameAppIcon';
 import { HubHeader } from '~/components/hub/HubHeader';
 import { HUB_GAMES } from '~/components/hub/hub_games';
 import { cn } from '~/lib/utils';
+
+function AdminHrefCard({
+  href,
+  label,
+  description,
+  icon
+}: {
+  href: string;
+  label: string;
+  description: string;
+  icon: ReactNode;
+}) {
+  return (
+    <a
+      href={href}
+      className={cn(
+        'group flex items-start gap-3 rounded-2xl border border-border/70 bg-card/80 p-4 no-underline',
+        'shadow-sm transition-all duration-200',
+        'hover:-translate-y-0.5 hover:border-slate-300 hover:shadow-md',
+        'dark:hover:border-slate-600'
+      )}
+    >
+      <div className="mt-0.5 flex size-10 shrink-0 items-center justify-center rounded-xl bg-slate-100 text-slate-700 dark:bg-slate-800 dark:text-slate-200">
+        {icon}
+      </div>
+      <div className="min-w-0 flex-1">
+        <div className="flex items-center gap-1.5 font-semibold text-slate-900 dark:text-slate-50">
+          <span className="truncate">{label}</span>
+          <ArrowRight className="size-3.5 shrink-0 text-muted-foreground transition-transform group-hover:translate-x-0.5" />
+        </div>
+        <p className="mt-0.5 text-sm text-muted-foreground">{description}</p>
+      </div>
+    </a>
+  );
+}
 
 function AdminLinkCard({
   to,
@@ -102,8 +141,7 @@ export default function AdminPage() {
             Admin
           </h1>
           <p className="max-w-2xl text-sm text-muted-foreground">
-            Central place to manage puzzles, schedules, analytics, collections, and tags across
-            Padāvalī and Padajāla.
+            Central place to manage puzzles, schedules, analytics, collections, and tags.
           </p>
         </div>
 
@@ -206,6 +244,98 @@ export default function AdminPage() {
             label="Tags"
             description="Topics used to filter and organize puzzles."
             icon={<Tag className="size-5" />}
+          />
+        </AdminSection>
+
+        <AdminSection
+          title="Dvayī"
+          description="Match-the-following puzzles (in development)."
+          icon={
+            <div className="flex size-10 shrink-0 items-center justify-center rounded-xl bg-linear-to-br from-rose-500 to-orange-500 text-white shadow-md shadow-rose-500/25">
+              <ArrowLeftRight className="size-5" />
+            </div>
+          }
+        >
+          <AdminHrefCard
+            href="/dvayi/list"
+            label="Manage puzzles"
+            description="Create and edit matching columns."
+            icon={<List className="size-5" />}
+          />
+          <AdminHrefCard
+            href="/dvayi/analytics"
+            label="Analytics"
+            description="Play volume and puzzle performance."
+            icon={<BarChart3 className="size-5" />}
+          />
+        </AdminSection>
+
+        <AdminSection
+          title="Bhramitā"
+          description="Jumbled-word puzzles (in development)."
+          icon={
+            <div className="flex size-10 shrink-0 items-center justify-center rounded-xl bg-linear-to-br from-emerald-500 to-teal-600 text-white shadow-md shadow-emerald-500/25">
+              <Shuffle className="size-5" />
+            </div>
+          }
+        >
+          <AdminHrefCard
+            href="/bhramitA/list"
+            label="Manage puzzles"
+            description="Create and edit syllable jumbles."
+            icon={<List className="size-5" />}
+          />
+          <AdminHrefCard
+            href="/bhramitA/analytics"
+            label="Analytics"
+            description="Play volume and puzzle performance."
+            icon={<BarChart3 className="size-5" />}
+          />
+        </AdminSection>
+
+        <AdminSection
+          title="Surūpa"
+          description="Spelling-corrector puzzles (in development)."
+          icon={
+            <div className="flex size-10 shrink-0 items-center justify-center rounded-xl bg-linear-to-br from-violet-500 to-fuchsia-600 text-white shadow-md shadow-violet-500/25">
+              <SpellCheck className="size-5" />
+            </div>
+          }
+        >
+          <AdminHrefCard
+            href="/surUpa/list"
+            label="Manage puzzles"
+            description="Create and edit syllable alternatives."
+            icon={<List className="size-5" />}
+          />
+          <AdminHrefCard
+            href="/surUpa/analytics"
+            label="Analytics"
+            description="Play volume and puzzle performance."
+            icon={<BarChart3 className="size-5" />}
+          />
+        </AdminSection>
+
+        <AdminSection
+          title="Anveṣī"
+          description="Multiple-choice quizzes (in development)."
+          icon={
+            <div className="flex size-10 shrink-0 items-center justify-center rounded-xl bg-linear-to-br from-sky-500 to-indigo-600 text-white shadow-md shadow-sky-500/25">
+              <CircleHelp className="size-5" />
+            </div>
+          }
+        >
+          <AdminHrefCard
+            href="/anveshi/list"
+            label="Manage puzzles"
+            description="Create and edit question sets."
+            icon={<List className="size-5" />}
+          />
+          <AdminHrefCard
+            href="/anveshi/analytics"
+            label="Analytics"
+            description="Play volume and puzzle performance."
+            icon={<BarChart3 className="size-5" />}
           />
         </AdminSection>
       </main>

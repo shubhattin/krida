@@ -98,6 +98,8 @@ export function resolveCollectionItems(
 ): HubPuzzle[] {
   return items
     .toSorted((a, b) => a.order_index - b.order_index || a.puzzle_id - b.puzzle_id)
+    // TODO: drop this public-kind filter once dvayi/bhramita/surupa/anveshi ship on /puzzles.
+    .filter((item) => item.game === 'padavali' || item.game === 'crossword')
     .map((item) => {
       const found = byKey.get(hubPuzzleKey(item.game, item.puzzle_id));
       if (found) return found;
@@ -144,6 +146,7 @@ export function resolveCollectionItems(
 
 export function collectionGames(collection: ListedCollectionsType[number]): GameKind[] {
   const games = new Set(collection.items.map((item) => item.game));
+  // TODO: include SIMPLE_GAME_KINDS once those games ship on /puzzles.
   return (['padavali', 'crossword'] as const).filter((game) => games.has(game));
 }
 

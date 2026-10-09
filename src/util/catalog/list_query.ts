@@ -1,18 +1,34 @@
 import { inArray, sql, type SQL, type SQLWrapper } from 'drizzle-orm';
 import { eq } from 'drizzle-orm';
-import { tags, padavali_puzzle_tags, crossword_puzzle_tags } from '~/db/schema';
+import {
+  tags,
+  padavali_puzzle_tags,
+  crossword_puzzle_tags,
+  dvayi_puzzle_tags,
+  bhramita_puzzle_tags,
+  surupa_puzzle_tags,
+  anveshi_puzzle_tags
+} from '~/db/schema';
 import { dbRunHttp } from '~/effect/database';
 import { Effect } from 'effect';
 import type { GameKind, PublicTag } from './tags';
 
 const LINK_TABLE = {
   padavali: 'padavali_puzzle_tags',
-  crossword: 'crossword_puzzle_tags'
+  crossword: 'crossword_puzzle_tags',
+  dvayi: 'dvayi_puzzle_tags',
+  bhramita: 'bhramita_puzzle_tags',
+  surupa: 'surupa_puzzle_tags',
+  anveshi: 'anveshi_puzzle_tags'
 } as const;
 
 const ITEM_TABLE = {
   padavali: 'padavali_collection_items',
-  crossword: 'crossword_collection_items'
+  crossword: 'crossword_collection_items',
+  dvayi: 'dvayi_collection_items',
+  bhramita: 'bhramita_collection_items',
+  surupa: 'surupa_collection_items',
+  anveshi: 'anveshi_collection_items'
 } as const;
 
 export const puzzleHasTag = (puzzleId: SQLWrapper, game: GameKind, slug: string): SQL =>
@@ -44,7 +60,11 @@ export const puzzleNotInCollection = (
 
 const linkTable = {
   padavali: padavali_puzzle_tags,
-  crossword: crossword_puzzle_tags
+  crossword: crossword_puzzle_tags,
+  dvayi: dvayi_puzzle_tags,
+  bhramita: bhramita_puzzle_tags,
+  surupa: surupa_puzzle_tags,
+  anveshi: anveshi_puzzle_tags
 } as const;
 
 export const tagsForPuzzleIds = (game: GameKind, puzzleIds: number[]) => {

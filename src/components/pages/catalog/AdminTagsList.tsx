@@ -420,7 +420,7 @@ function NewTagDialog({
         <DialogHeader>
           <DialogTitle>New tag</DialogTitle>
           <DialogDescription>
-            Tags are shared by Padavali and Padajala. You can attach games after the tag is created.
+            Tags are shared across every game. You can attach games after the tag is created.
           </DialogDescription>
         </DialogHeader>
         <div className="flex flex-col gap-1">

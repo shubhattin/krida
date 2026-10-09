@@ -7,7 +7,9 @@ import {
 } from '~/api/routers/analytics/analytics_overview';
 
 const overviewGames = (game: 'all' | AdminAnalyticsGameId): AdminAnalyticsGameId[] =>
-  game === 'all' ? ['padavali', 'padajala'] : [game];
+  game === 'all'
+    ? ['padavali', 'padajala', 'dvayi', 'bhramita', 'surupa', 'anveshi']
+    : [game];
 
 const get_overview_route = protectedAdminProcedure
   .input(get_admin_overview_input_schema)

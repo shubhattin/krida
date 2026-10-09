@@ -20,7 +20,35 @@ import {
   padavali_puzzle_tags,
   crossword_puzzle_tags,
   padavali_collection_items,
-  crossword_collection_items
+  crossword_collection_items,
+  dvayi_puzzles,
+  dvayi_redirects,
+  dvayi_attachments,
+  dvayi_sessions,
+  dvayi_gameplay_stats,
+  dvayi_puzzle_tags,
+  dvayi_collection_items,
+  bhramita_puzzles,
+  bhramita_redirects,
+  bhramita_attachments,
+  bhramita_sessions,
+  bhramita_gameplay_stats,
+  bhramita_puzzle_tags,
+  bhramita_collection_items,
+  surupa_puzzles,
+  surupa_redirects,
+  surupa_attachments,
+  surupa_sessions,
+  surupa_gameplay_stats,
+  surupa_puzzle_tags,
+  surupa_collection_items,
+  anveshi_puzzles,
+  anveshi_redirects,
+  anveshi_attachments,
+  anveshi_sessions,
+  anveshi_gameplay_stats,
+  anveshi_puzzle_tags,
+  anveshi_collection_items
 } from './schema';
 import { createSelectSchema } from 'drizzle-zod';
 import { location_list_enum } from './types';
@@ -28,6 +56,10 @@ import { script_list_enum } from '~/state/script_list';
 import { batch_metadata_schema } from '~/util/types/ai_batch_metadata';
 
 import { padavali_word_candidate_list_schema } from '~/util/puzzle/word_list';
+import { dvayi_puzzle_data_schema } from '~/util/dvayi/data';
+import { bhramita_puzzle_data_schema } from '~/util/bhramita/data';
+import { surupa_puzzle_data_schema } from '~/util/surupa/data';
+import { anveshi_puzzle_data_schema } from '~/util/anveshi/data';
 
 export const PadavaliPuzzleSchemaZod = createSelectSchema(padavali_puzzles, {
   word_list: padavali_word_candidate_list_schema,
@@ -167,5 +199,110 @@ export const PadavaliCollectionItemSchemaZod = createSelectSchema(padavali_colle
 });
 
 export const CrosswordCollectionItemSchemaZod = createSelectSchema(crossword_collection_items, {
+  created_at: z.coerce.date()
+});
+
+const simplePuzzleDates = {
+  created_at: z.coerce.date(),
+  updated_at: z.coerce.date().optional().nullable(),
+  last_listed_at: z.coerce.date().optional().nullable()
+} as const;
+
+export const DvayiPuzzleSchemaZod = createSelectSchema(dvayi_puzzles, {
+  puzzle_data: dvayi_puzzle_data_schema,
+  ...simplePuzzleDates
+});
+export const BhramitaPuzzleSchemaZod = createSelectSchema(bhramita_puzzles, {
+  puzzle_data: bhramita_puzzle_data_schema,
+  ...simplePuzzleDates
+});
+export const SurupaPuzzleSchemaZod = createSelectSchema(surupa_puzzles, {
+  puzzle_data: surupa_puzzle_data_schema,
+  ...simplePuzzleDates
+});
+export const AnveshiPuzzleSchemaZod = createSelectSchema(anveshi_puzzles, {
+  puzzle_data: anveshi_puzzle_data_schema,
+  ...simplePuzzleDates
+});
+
+export const DvayiRedirectSchemaZod = createSelectSchema(dvayi_redirects, {
+  created_at: z.coerce.date()
+});
+export const BhramitaRedirectSchemaZod = createSelectSchema(bhramita_redirects, {
+  created_at: z.coerce.date()
+});
+export const SurupaRedirectSchemaZod = createSelectSchema(surupa_redirects, {
+  created_at: z.coerce.date()
+});
+export const AnveshiRedirectSchemaZod = createSelectSchema(anveshi_redirects, {
+  created_at: z.coerce.date()
+});
+
+export const DvayiAttachmentSchemaZod = createSelectSchema(dvayi_attachments, {
+  created_at: z.coerce.date(),
+  updated_at: z.coerce.date().optional().nullable()
+});
+export const BhramitaAttachmentSchemaZod = createSelectSchema(bhramita_attachments, {
+  created_at: z.coerce.date(),
+  updated_at: z.coerce.date().optional().nullable()
+});
+export const SurupaAttachmentSchemaZod = createSelectSchema(surupa_attachments, {
+  created_at: z.coerce.date(),
+  updated_at: z.coerce.date().optional().nullable()
+});
+export const AnveshiAttachmentSchemaZod = createSelectSchema(anveshi_attachments, {
+  created_at: z.coerce.date(),
+  updated_at: z.coerce.date().optional().nullable()
+});
+
+export const DvayiSessionSchemaZod = createSelectSchema(dvayi_sessions, {
+  created_at: z.coerce.date(),
+  location: location_list_enum,
+  script: script_list_enum.nullable().optional()
+});
+export const BhramitaSessionSchemaZod = createSelectSchema(bhramita_sessions, {
+  created_at: z.coerce.date(),
+  location: location_list_enum,
+  script: script_list_enum.nullable().optional()
+});
+export const SurupaSessionSchemaZod = createSelectSchema(surupa_sessions, {
+  created_at: z.coerce.date(),
+  location: location_list_enum,
+  script: script_list_enum.nullable().optional()
+});
+export const AnveshiSessionSchemaZod = createSelectSchema(anveshi_sessions, {
+  created_at: z.coerce.date(),
+  location: location_list_enum,
+  script: script_list_enum.nullable().optional()
+});
+
+export const DvayiGamePlayStatsSchemaZod = createSelectSchema(dvayi_gameplay_stats, {
+  created_at: z.coerce.date()
+});
+export const BhramitaGamePlayStatsSchemaZod = createSelectSchema(bhramita_gameplay_stats, {
+  created_at: z.coerce.date()
+});
+export const SurupaGamePlayStatsSchemaZod = createSelectSchema(surupa_gameplay_stats, {
+  created_at: z.coerce.date()
+});
+export const AnveshiGamePlayStatsSchemaZod = createSelectSchema(anveshi_gameplay_stats, {
+  created_at: z.coerce.date()
+});
+
+export const DvayiPuzzleTagSchemaZod = createSelectSchema(dvayi_puzzle_tags);
+export const BhramitaPuzzleTagSchemaZod = createSelectSchema(bhramita_puzzle_tags);
+export const SurupaPuzzleTagSchemaZod = createSelectSchema(surupa_puzzle_tags);
+export const AnveshiPuzzleTagSchemaZod = createSelectSchema(anveshi_puzzle_tags);
+
+export const DvayiCollectionItemSchemaZod = createSelectSchema(dvayi_collection_items, {
+  created_at: z.coerce.date()
+});
+export const BhramitaCollectionItemSchemaZod = createSelectSchema(bhramita_collection_items, {
+  created_at: z.coerce.date()
+});
+export const SurupaCollectionItemSchemaZod = createSelectSchema(surupa_collection_items, {
+  created_at: z.coerce.date()
+});
+export const AnveshiCollectionItemSchemaZod = createSelectSchema(anveshi_collection_items, {
   created_at: z.coerce.date()
 });
