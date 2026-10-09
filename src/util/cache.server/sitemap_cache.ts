@@ -93,8 +93,7 @@ const load_padavali_sitemap: CacheItem<NoCacheParams, string> = createCache({
       const entries: SitemapUrlEntry[] = [
         { loc: joinUrl(base, '/') },
         { loc: joinUrl(base, '/explore') },
-        { loc: joinUrl(base, '/padavali') },
-        { loc: joinUrl(base, '/padavali/puzzles') },
+        { loc: joinUrl(base, '/explore?game=padavali') },
         ...collections.map((collection) => ({
           loc: joinUrl(base, `/collections/${encodeURIComponent(collection.slug)}`),
           lastmod: collection.updated_at ?? collection.created_at
@@ -131,8 +130,7 @@ const load_padajala_sitemap: CacheItem<NoCacheParams, string> = createCache({
       );
 
       const entries: SitemapUrlEntry[] = [
-        { loc: joinUrl(base, '/padajala') },
-        { loc: joinUrl(base, '/padajala/puzzles') },
+        { loc: joinUrl(base, '/explore?game=crossword') },
         ...puzzles.map((puzzle) => ({
           loc: joinUrl(base, `/padajala/${encodeURIComponent(puzzle.slug)}`),
           lastmod: resolveLastmod(puzzle)
