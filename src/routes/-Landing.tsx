@@ -568,7 +568,9 @@ export function PadavaliMiniPreview({ compact = false }: { compact?: boolean }) 
       </div>
 
       {/* Grid + hand + trails — SVG under opaque cells (like GameGrid) */}
-      <div className="relative">
+      <div
+        className={cn('relative mx-auto w-full', compact ? 'max-w-[16.5rem]' : 'max-w-[20.5rem]')}
+      >
         {/* Trails sit under the grid so letters stay readable */}
         <svg
           className="pointer-events-none absolute inset-0 z-0 h-full w-full"
@@ -637,7 +639,10 @@ export function PadavaliMiniPreview({ compact = false }: { compact?: boolean }) 
               const isLast =
                 inDemo &&
                 demoPath.length > 0 &&
-                cellsEqual(demoPath[demoPath.length - 1]!, { row: rIdx, col: cIdx });
+                cellsEqual(demoPath[demoPath.length - 1]!, {
+                  row: rIdx,
+                  col: cIdx
+                });
 
               return (
                 <MiniDemoCell
@@ -770,29 +775,31 @@ export function PadajalaMiniPreview({ compact = false }: { compact?: boolean }) 
       </div>
 
       {/* Crossword Grid */}
-      <div className={cn('grid grid-cols-5', compact ? 'gap-1.5' : 'gap-2')}>
-        {CROSSWORD_GRID.map((row, rIdx) =>
-          row.map((cell, cIdx) => {
-            if (!cell) {
+      <div className={cn('mx-auto w-full', compact ? 'max-w-[16.5rem]' : 'max-w-[20.5rem]')}>
+        <div className={cn('grid grid-cols-5', compact ? 'gap-1.5' : 'gap-2')}>
+          {CROSSWORD_GRID.map((row, rIdx) =>
+            row.map((cell, cIdx) => {
+              if (!cell) {
+                return (
+                  <div
+                    key={`${rIdx}-${cIdx}`}
+                    className="aspect-square rounded-xl border border-slate-200/60 bg-slate-200/40 dark:border-slate-800/50 dark:bg-slate-950/90"
+                  />
+                );
+              }
+
               return (
-                <div
-                  key={`${rIdx}-${cIdx}`}
-                  className="aspect-square rounded-xl border border-slate-200/60 bg-slate-200/40 dark:border-slate-800/50 dark:bg-slate-950/90"
+                <CrosswordPreviewCell
+                  key={`cell-${rIdx}-${cIdx}`}
+                  row={rIdx}
+                  col={cIdx}
+                  index={cellIndex++}
+                  filledCount={filledCount}
                 />
               );
-            }
-
-            return (
-              <CrosswordPreviewCell
-                key={`cell-${rIdx}-${cIdx}`}
-                row={rIdx}
-                col={cIdx}
-                index={cellIndex++}
-                filledCount={filledCount}
-              />
-            );
-          })
-        )}
+            })
+          )}
+        </div>
       </div>
     </div>
   );
@@ -940,7 +947,11 @@ export default function LandingPage() {
 
   const itemVariants: Variants = {
     hidden: { y: 20, opacity: 0 },
-    visible: { y: 0, opacity: 1, transition: { duration: 0.5, ease: 'easeOut' } }
+    visible: {
+      y: 0,
+      opacity: 1,
+      transition: { duration: 0.5, ease: 'easeOut' }
+    }
   };
 
   return (
@@ -1006,7 +1017,7 @@ export default function LandingPage() {
       {/* Game Cards Section */}
       <section className="relative px-4 pb-16 md:pb-24">
         <div className="mx-auto max-w-3xl">
-          <div className="grid grid-cols-1 gap-6 md:grid-cols-2">
+          <div className="grid grid-cols-1 gap-6 sm:grid-cols-2">
             {GAMES.map((game, index) => (
               <GameShowcaseCard key={game.id} game={game} index={index} />
             ))}

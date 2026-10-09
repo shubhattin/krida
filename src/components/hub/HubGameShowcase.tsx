@@ -68,7 +68,7 @@ export function HubGameShowcase() {
         aria-label="Games"
       >
         {canScroll ? (
-          <div className="mb-3 flex items-center gap-2 md:hidden">
+          <div className="mb-3 flex items-center gap-2 sm:hidden">
             <p className="mr-auto text-xs font-medium text-slate-500 tabular-nums dark:text-slate-400">
               {selected + 1} / {GAMES.length}
             </p>
@@ -81,7 +81,7 @@ export function HubGameShowcase() {
           {GAMES.map((game, index) => (
             <CarouselItem
               key={game.id}
-              className="min-w-0 basis-full md:basis-1/2"
+              className="min-w-0 basis-full sm:basis-1/2"
               aria-label={game.name}
             >
               <GameShowcaseCard game={game} index={index} compact />
@@ -90,7 +90,7 @@ export function HubGameShowcase() {
         </CarouselContent>
 
         {canScroll ? (
-          <div className="mt-3 flex items-center justify-center gap-1.5 md:hidden">
+          <div className="mt-3 flex items-center justify-center gap-1.5 sm:hidden">
             {GAMES.map((game, index) => (
               <button
                 key={game.id}
