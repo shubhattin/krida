@@ -55,6 +55,11 @@ const GAME_FILTERS: { value: 'all' | GameKind; label: string }[] = [
 
 type GameCounts = Record<'all' | GameKind, number>;
 
+/** Page 1 stays out of the URL; higher pages use `?page=N`. */
+function pageSearchValue(page: number): number | undefined {
+  return page <= 1 ? undefined : page;
+}
+
 function getVisiblePages(current: number, total: number): (number | 'ellipsis')[] {
   if (total <= 5) return Array.from({ length: total }, (_, i) => i + 1);
   const pages = new Set<number>([1, total, current]);
@@ -71,13 +76,36 @@ function getVisiblePages(current: number, total: number): (number | 'ellipsis')[
 
 function ExplorePuzzleGrid({ puzzles }: { puzzles: HubPuzzle[] }) {
   const listRef = useRef<HTMLDivElement>(null);
-  const [page, setPage] = useState(1);
+  const search = exploreRoute.useSearch();
+  const navigate = exploreRoute.useNavigate();
   const pageCount = Math.max(1, Math.ceil(puzzles.length / PAGE_LIMIT));
-  const safePage = Math.min(page, pageCount);
+  const requestedPage = search.page ?? 1;
+  const safePage = Math.min(requestedPage, pageCount);
   const paginated = puzzles.slice((safePage - 1) * PAGE_LIMIT, safePage * PAGE_LIMIT);
 
+  // Clamp out-of-range ?page= into a valid page (or drop it on page 1).
+  useEffect(() => {
+    if (puzzles.length === 0) {
+      if (search.page != null) {
+        void navigate({
+          search: (prev) => ({ ...prev, page: undefined }),
+          replace: true
+        });
+      }
+      return;
+    }
+    if (requestedPage === safePage && (safePage > 1 || search.page == null)) return;
+    void navigate({
+      search: (prev) => ({ ...prev, page: pageSearchValue(safePage) }),
+      replace: true
+    });
+  }, [navigate, puzzles.length, requestedPage, safePage, search.page]);
+
   const goToPage = (next: number) => {
-    setPage(next);
+    const clamped = Math.min(Math.max(1, next), pageCount);
+    void navigate({
+      search: (prev) => ({ ...prev, page: pageSearchValue(clamped) })
+    });
     scrollPaginationListToStart(listRef.current);
   };
 
@@ -180,7 +208,8 @@ function ExploreFilterBar({
                 void navigate({
                   search: (prev) => ({
                     ...prev,
-                    q: event.currentTarget.value || undefined
+                    q: event.currentTarget.value || undefined,
+                    page: undefined
                   }),
                   replace: true
                 })
@@ -191,7 +220,11 @@ function ExploreFilterBar({
                   event,
                   (newValue) =>
                     void navigate({
-                      search: (prev) => ({ ...prev, q: newValue || undefined }),
+                      search: (prev) => ({
+                        ...prev,
+                        q: newValue || undefined,
+                        page: undefined
+                      }),
                       replace: true
                     }),
                   lipiLekhikaTyping
@@ -215,7 +248,9 @@ function ExploreFilterBar({
           </InputGroup>
           <BrowseModeSwitch
             mode={search.view}
-            onChange={(view) => void navigate({ search: (prev) => ({ ...prev, view }) })}
+            onChange={(view) =>
+              void navigate({ search: (prev) => ({ ...prev, view, page: undefined }) })
+            }
             puzzleCount={puzzleCount}
             collectionCount={collectionCount}
           />
@@ -244,7 +279,9 @@ function ExploreFilterBar({
                 variant={active ? 'secondary' : 'ghost'}
                 aria-pressed={active}
                 onClick={() =>
-                  void navigate({ search: (prev) => ({ ...prev, game: option.value }) })
+                  void navigate({
+                    search: (prev) => ({ ...prev, game: option.value, page: undefined })
+                  })
                 }
                 className="inline-flex items-center gap-1.5"
               >
@@ -277,7 +314,8 @@ function ExploreFilterBar({
                   void navigate({
                     search: (prev) => ({
                       ...prev,
-                      tag: prev.tag === tag.slug ? undefined : tag.slug
+                      tag: prev.tag === tag.slug ? undefined : tag.slug,
+                      page: undefined
                     })
                   })
                 }
@@ -322,6 +360,7 @@ function ExploreCollections({ collections }: { collections: ListedCollectionsTyp
 /** Unified browse: every puzzle across games, filterable by game, tag, and text. */
 export default function HubExplore({ data }: { data: HubData }) {
   const search = exploreRoute.useSearch();
+  const navigate = exploreRoute.useNavigate();
   const { puzzles, byKey } = useHubPuzzles(data);
   const tags = tagsByPopularity(puzzles);
   const filter = {
@@ -331,8 +370,17 @@ export default function HubExplore({ data }: { data: HubData }) {
   };
   const filteredPuzzles = filterHubPuzzles(puzzles, filter);
   const filteredCollections = filterHubCollections(data.collections, byKey, filter);
-  const filterKey = `${search.game}:${search.tag ?? ''}:${search.q ?? ''}`;
   const baseFilter = { tags: search.tag ? [search.tag] : [], query: search.q };
+
+  // Collections aren't paginated — drop a leftover ?page= from puzzle view.
+  useEffect(() => {
+    if (search.view === 'collections' && search.page != null) {
+      void navigate({
+        search: (prev) => ({ ...prev, page: undefined }),
+        replace: true
+      });
+    }
+  }, [navigate, search.page, search.view]);
   const basePuzzles = useMemo(
     () => filterHubPuzzles(puzzles, baseFilter),
     // oxlint-disable-next-line exhaustive-deps
@@ -368,7 +416,7 @@ export default function HubExplore({ data }: { data: HubData }) {
       {search.view === 'collections' ? (
         <ExploreCollections collections={filteredCollections} />
       ) : (
-        <ExplorePuzzleGrid key={filterKey} puzzles={filteredPuzzles} />
+        <ExplorePuzzleGrid puzzles={filteredPuzzles} />
       )}
     </div>
   );

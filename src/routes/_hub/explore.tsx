@@ -9,7 +9,9 @@ const explore_search_schema = z.object({
   game: z.enum(['all', 'padavali', 'crossword']).catch('all').default('all'),
   view: z.enum(['puzzles', 'collections']).catch('puzzles').default('puzzles'),
   tag: z.string().max(80).optional().catch(undefined),
-  q: z.string().max(200).optional().catch(undefined)
+  q: z.string().max(200).optional().catch(undefined),
+  /** 1-based; omitted from the URL when on page 1. */
+  page: z.coerce.number().int().min(1).optional().catch(undefined)
 });
 
 export type ExploreSearch = z.infer<typeof explore_search_schema>;
