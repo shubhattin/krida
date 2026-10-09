@@ -169,6 +169,13 @@
       "when": 1790780415035,
       "tag": "0023_dusty_wilson_fisk",
       "breakpoints": true
+    },
+    {
+      "idx": 24,
+      "version": "7",
+      "when": 1791569271563,
+      "tag": "0024_motionless_dragon_lord",
+      "breakpoints": true
     }
   ]
 }

@@ -31,7 +31,7 @@ export function TagFilterPopover({
   const visible = useMemo(() => {
     const query = search.trim().toLowerCase();
     if (!query) return tags;
-    return tags.filter((tag) => tag.slug.includes(query) || tag.name.toLowerCase().includes(query));
+    return tags.filter((tag) => tag.slug.includes(query));
   }, [search, tags]);
 
   const toggle = (slug: string) => {

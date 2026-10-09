@@ -75,7 +75,7 @@ function useDevanagariTyping() {
 /** Shared admin collections browser — one list for every game. */
 export function AdminCollectionsList() {
   const [search, setSearch] = useState('');
-  const [lipiLekhikaTyping, setLipiLekhikaTyping] = useState(true);
+  const [lipiLekhikaTyping, setLipiLekhikaTyping] = useState(false);
   const [listedFilter, setListedFilter] = useState<ListedFilter>('all');
   const [sortBy, setSortBy] = useState<CollectionSort>('created_at');
   const [order, setOrder] = useState<SortOrder>('desc');
@@ -333,7 +333,7 @@ function NewCollectionDialog({
   const [title, setTitle] = useState('');
   const [slug, setSlug] = useState('');
   const [description, setDescription] = useState('');
-  const [lipiLekhikaTyping, setLipiLekhikaTyping] = useState(true);
+  const [lipiLekhikaTyping, setLipiLekhikaTyping] = useState(false);
   const titleCtx = useDevanagariTyping();
   const descriptionCtx = useDevanagariTyping();
 

@@ -36,7 +36,7 @@ function TagsListRoute() {
             Tags
           </h1>
           <p className="text-sm text-muted-foreground">
-            Every tag, shared by Padāvalī and Padajāla. Select one to see its puzzles.
+            Every tag, shared by Padāvalī and Padajāla. Open one to edit its name and games.
           </p>
         </div>
         <AdminTagsList />

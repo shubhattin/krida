@@ -9,7 +9,7 @@ import { useEditorHistoryActions } from '~/hooks/useEditorHistory';
 import { cn } from '~/lib/utils';
 import { normalizeTagSlug } from '~/util/catalog/tags';
 
-export type EditorTag = { id: number; slug: string; name: string };
+export type EditorTag = { id: number; slug: string };
 export type EditorCollectionLink = { id: number; uid: string; slug: string; title: string };
 
 export const puzzle_tags_atom = atom<EditorTag[]>([]);
@@ -61,7 +61,7 @@ function TagsField() {
   const addSlug = (slug: string) => {
     if (!slug || tags.some((tag) => tag.slug === slug)) return;
     const known = matches.find((tag) => tag.slug === slug);
-    setTags((current) => [...current, known ?? { id: 0, slug, name: slug }]);
+    setTags((current) => [...current, known ?? { id: 0, slug }]);
     setDraft('');
     setActive(0);
     setOpen(true);

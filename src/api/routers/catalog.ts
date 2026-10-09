@@ -104,13 +104,67 @@ const ensureTagsBySlugs = async (tx: DbTransaction, slugs: string[]) => {
   }
   await tx
     .insert(tags)
-    .values(unique.map((slug) => ({ slug, name: slug })))
+    .values(unique.map((slug) => ({ slug })))
     .onConflictDoNothing({ target: tags.slug });
-  return tx
-    .select({ id: tags.id, slug: tags.slug, name: tags.name })
-    .from(tags)
-    .where(inArray(tags.slug, unique));
+  return tx.select({ id: tags.id, slug: tags.slug }).from(tags).where(inArray(tags.slug, unique));
 };
+
+const tag_puzzle_input = z.object({
+  game: z.enum(GAME_KINDS),
+  puzzle_id: z.number().int()
+});
+
+const loadTagPuzzles = (tagId: number) =>
+  Effect.gen(function* () {
+    const load = (game: GameKind) => {
+      const puzzles = puzzleTable[game];
+      const link = tagLinkTable[game];
+      return dbRunHttp(`catalog.tag_games.${game}`, (client) =>
+        client
+          .select({
+            id: puzzles.id,
+            slug: puzzles.slug,
+            title: puzzles.title,
+            description: puzzles.description,
+            listed: puzzles.listed,
+            image_s3_key: image_assets.s3_key
+          })
+          .from(link)
+          .innerJoin(puzzles, eq(puzzles.id, link.puzzle_id))
+          .leftJoin(image_assets, eq(image_assets.id, puzzles.image_id))
+          .where(eq(link.tag_id, tagId))
+          .orderBy(asc(puzzles.title))
+      );
+    };
+
+    const [padavali, crossword] = yield* Effect.all([load('padavali'), load('crossword')]);
+    return [
+      ...padavali.map((row) => ({ game: 'padavali' as const, ...row })),
+      ...crossword.map((row) => ({ game: 'crossword' as const, ...row }))
+    ].map(({ image_s3_key, ...row }) => ({
+      ...row,
+      image: image_s3_key ? { s3_key: image_s3_key } : null
+    }));
+  });
+
+const findTagBySlug = (slug: string) =>
+  dbRunHttp('catalog.find_tag_by_slug', (client) =>
+    client.query.tags.findFirst({
+      where: (tbl, { eq: eqFn }) => eqFn(tbl.slug, slug)
+    })
+  );
+
+const assertTagSlugAvailable = (tagId: number, slug: string) =>
+  Effect.gen(function* () {
+    const owner = yield* dbRunHttp('catalog.tag_slug_owner', (client) =>
+      client.select({ id: tags.id }).from(tags).where(eq(tags.slug, slug)).limit(1)
+    );
+    if (owner[0] && owner[0].id !== tagId) {
+      return yield* Effect.fail(
+        ConflictError.make({ message: 'A tag with this slug already exists' })
+      );
+    }
+  });
 
 const tagUsageSql = sql<number>`(
   (select count(*)::int from padavali_puzzle_tags pt where pt.tag_id = ${tags.id})
@@ -123,7 +177,7 @@ const list_tags_route = protectedAdminProcedure
       page: z.number().int().min(1).default(1),
       size: z.number().int().min(1).max(100).default(24),
       search: z.string().max(80).optional(),
-      sort: z.enum(['slug', 'name', 'created_at', 'count']).default('slug'),
+      sort: z.enum(['slug', 'created_at', 'count']).default('slug'),
       order: z.enum(['asc', 'desc']).default('asc'),
       usage: z.enum(['all', 'used', 'unused']).default('all')
     })
@@ -133,9 +187,7 @@ const list_tags_route = protectedAdminProcedure
       Effect.gen(function* () {
         const search = input.search?.trim();
         const pattern = search ? `%${escapeIlikeToken(search)}%` : undefined;
-        const searchWhere = pattern
-          ? or(ilike(tags.slug, pattern), ilike(tags.name, pattern))
-          : undefined;
+        const searchWhere = pattern ? ilike(tags.slug, pattern) : undefined;
         const usageWhere =
           input.usage === 'used'
             ? sql`${tagUsageSql} > 0`
@@ -145,7 +197,6 @@ const list_tags_route = protectedAdminProcedure
         const whereClause = and(searchWhere, usageWhere);
         const sortColumn = {
           slug: tags.slug,
-          name: tags.name,
           created_at: tags.created_at,
           count: tagUsageSql
         }[input.sort];
@@ -161,7 +212,6 @@ const list_tags_route = protectedAdminProcedure
               .select({
                 id: tags.id,
                 slug: tags.slug,
-                name: tags.name,
                 padavali_count: sql<number>`(
                   select count(*)::int from padavali_puzzle_tags pt where pt.tag_id = ${tags.id}
                 )`,
@@ -213,37 +263,142 @@ const connected_games_route = protectedAdminProcedure
           );
         }
 
-        const load = (game: GameKind) => {
-          const puzzles = puzzleTable[game];
-          const link = tagLinkTable[game];
-          return dbRunHttp(`catalog.tag_games.${game}`, (client) =>
-            client
-              .select({
-                id: puzzles.id,
-                slug: puzzles.slug,
-                title: puzzles.title,
-                description: puzzles.description,
-                listed: puzzles.listed,
-                image_s3_key: image_assets.s3_key
-              })
-              .from(link)
-              .innerJoin(puzzles, eq(puzzles.id, link.puzzle_id))
-              .leftJoin(image_assets, eq(image_assets.id, puzzles.image_id))
-              .where(eq(link.tag_id, input.tag_id))
-              .orderBy(asc(puzzles.title))
-          );
-        };
-
-        const [padavali, crossword] = yield* Effect.all([load('padavali'), load('crossword')]);
-        const games = [
-          ...padavali.map((row) => ({ game: 'padavali' as const, ...row })),
-          ...crossword.map((row) => ({ game: 'crossword' as const, ...row }))
-        ].map(({ image_s3_key, ...row }) => ({
-          ...row,
-          image: image_s3_key ? { s3_key: image_s3_key } : null
-        }));
-
+        const games = yield* loadTagPuzzles(input.tag_id);
         return { tag, games };
+      })
+    )
+  );
+
+const get_tag_route = protectedAdminProcedure
+  .input(z.object({ slug: tag_slug_schema }))
+  .query(({ input }) =>
+    runTrpcEffect(
+      Effect.gen(function* () {
+        const tag = yield* findTagBySlug(input.slug);
+        if (!tag) {
+          return yield* Effect.fail(
+            NotFoundError.make({ resource: 'tag', message: 'Tag not found' })
+          );
+        }
+        const games = yield* loadTagPuzzles(tag.id);
+        return {
+          id: tag.id,
+          slug: tag.slug,
+          puzzles: games.map(({ game, id, slug, title, description, listed, image }) => ({
+            game,
+            puzzle: { id, slug, title, description: description ?? '', listed, image }
+          }))
+        };
+      })
+    )
+  );
+
+const create_tag_route = protectedAdminProcedure
+  .input(
+    z.object({
+      slug: tag_slug_schema
+    })
+  )
+  .mutation(({ input }) =>
+    runTrpcEffect(
+      Effect.gen(function* () {
+        const taken = yield* dbRunHttp('catalog.tag_slug_taken', (client) =>
+          client.select({ id: tags.id }).from(tags).where(eq(tags.slug, input.slug)).limit(1)
+        );
+        if (taken[0]) {
+          return yield* Effect.fail(
+            ConflictError.make({ message: 'A tag with this slug already exists' })
+          );
+        }
+        const [created] = yield* dbRunHttp('catalog.create_tag', (client) =>
+          client.insert(tags).values({ slug: input.slug }).returning()
+        );
+        if (!created) {
+          return yield* Effect.fail(BadRequestError.make({ message: 'Failed to create tag' }));
+        }
+        return created;
+      })
+    )
+  );
+
+const save_tag_route = protectedAdminProcedure
+  .input(
+    z.object({
+      tag_id: z.number().int(),
+      slug: tag_slug_schema,
+      puzzles: z.array(tag_puzzle_input).max(500)
+    })
+  )
+  .mutation(({ input }) =>
+    runTrpcEffect(
+      Effect.gen(function* () {
+        const [existing] = yield* dbRunHttp('catalog.find_tag_for_save', (client) =>
+          client
+            .select({ id: tags.id, slug: tags.slug })
+            .from(tags)
+            .where(eq(tags.id, input.tag_id))
+            .limit(1)
+        );
+        if (!existing) {
+          return yield* Effect.fail(
+            NotFoundError.make({ resource: 'tag', message: 'Tag not found' })
+          );
+        }
+        yield* assertTagSlugAvailable(existing.id, input.slug);
+
+        const unique = [
+          ...new Map(input.puzzles.map((item) => [`${item.game}:${item.puzzle_id}`, item])).values()
+        ];
+
+        const saved = yield* dbTransaction('catalog.save_tag', async (tx) => {
+          for (const item of unique) {
+            const puzzles = puzzleTable[item.game];
+            const puzzle = await tx
+              .select({ id: puzzles.id })
+              .from(puzzles)
+              .where(eq(puzzles.id, item.puzzle_id))
+              .limit(1);
+            if (!puzzle[0]) {
+              return { ok: false as const, missing: item };
+            }
+          }
+
+          await tx.update(tags).set({ slug: input.slug }).where(eq(tags.id, existing.id));
+
+          await tx.delete(padavali_puzzle_tags).where(eq(padavali_puzzle_tags.tag_id, existing.id));
+          await tx
+            .delete(crossword_puzzle_tags)
+            .where(eq(crossword_puzzle_tags.tag_id, existing.id));
+
+          for (const item of unique) {
+            if (item.game === 'padavali') {
+              await tx.insert(padavali_puzzle_tags).values({
+                puzzle_id: item.puzzle_id,
+                tag_id: existing.id
+              });
+            } else {
+              await tx.insert(crossword_puzzle_tags).values({
+                puzzle_id: item.puzzle_id,
+                tag_id: existing.id
+              });
+            }
+          }
+
+          return { ok: true as const };
+        });
+
+        if (!saved.ok) {
+          return yield* Effect.fail(
+            NotFoundError.make({
+              resource: 'puzzle',
+              message: `Puzzle not found (${saved.missing.game}:${saved.missing.puzzle_id})`
+            })
+          );
+        }
+
+        yield* refreshListedPuzzles('padavali');
+        yield* refreshListedPuzzles('crossword');
+        return { success: true as const, slug: input.slug };
       })
     )
   );
@@ -256,7 +411,7 @@ const puzzle_tags_route = protectedAdminProcedure
         const link = tagLinkTable[input.game];
         const rows = yield* dbRunHttp('catalog.puzzle_tags', (client) =>
           client
-            .select({ id: tags.id, slug: tags.slug, name: tags.name })
+            .select({ id: tags.id, slug: tags.slug })
             .from(link)
             .innerJoin(tags, eq(tags.id, link.tag_id))
             .where(eq(link.puzzle_id, input.puzzle_id))
@@ -307,7 +462,7 @@ const attach_tag_route = protectedAdminProcedure
               .values({ puzzle_id: input.puzzle_id, tag_id: row.id })
               .onConflictDoNothing();
           }
-          return { id: row.id, slug: row.slug, name: row.name };
+          return { id: row.id, slug: row.slug };
         });
 
         yield* refreshListedPuzzles(input.game);
@@ -1221,20 +1376,15 @@ const delete_tag_route = protectedAdminProcedure
             return [padavaliCount, crosswordCount] as const;
           }
         );
-        const total = Number(padavaliRow?.count ?? 0) + Number(crosswordRow?.count ?? 0);
-        if (total > 0) {
-          return yield* Effect.fail(
-            BadRequestError.make({
-              message: `Only unused tags can be deleted — "${tag.slug}" is on ${total} puzzle${total === 1 ? '' : 's'}`
-            })
-          );
-        }
+        const padavali = Number(padavaliRow?.count ?? 0);
+        const crossword = Number(crosswordRow?.count ?? 0);
         yield* dbRunHttp('catalog.delete_tag', async (client) => {
           await client.delete(tags).where(eq(tags.id, input.tag_id));
         });
         yield* refreshListedPuzzles('padavali');
         yield* refreshListedPuzzles('crossword');
-        return { success: true as const };
+        // Tag links cascade; puzzles themselves are never deleted here.
+        return { success: true as const, padavali, crossword, total: padavali + crossword };
       })
     )
   );
@@ -1242,6 +1392,9 @@ const delete_tag_route = protectedAdminProcedure
 export const catalog_router = t.router({
   list_tags: list_tags_route,
   connected_games: connected_games_route,
+  get_tag: get_tag_route,
+  create_tag: create_tag_route,
+  save_tag: save_tag_route,
   puzzle_tags: puzzle_tags_route,
   attach_tag: attach_tag_route,
   detach_tag: detach_tag_route,

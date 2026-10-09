@@ -2,8 +2,7 @@ import { z } from 'zod';
 
 export const public_tag_schema = z.object({
   id: z.number().int(),
-  slug: z.string(),
-  name: z.string()
+  slug: z.string()
 });
 
 export type PublicTag = z.infer<typeof public_tag_schema>;

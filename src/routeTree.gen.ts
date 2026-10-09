@@ -35,6 +35,7 @@ import { Route as PadajalaauthAuthRouteImport } from './routes/padajala/(auth)/_
 import { Route as PadajalapublicPublicRouteImport } from './routes/padajala/(public)/_public'
 import { Route as PadavaliauthAuthRouteImport } from './routes/padavali/(auth)/_auth'
 import { Route as PadavalipublicPublicRouteImport } from './routes/padavali/(public)/_public'
+import { Route as TagsEditSlugRouteImport } from './routes/tags/edit/$slug'
 import { Route as ApiQstashCrosswordSchedule_listingRouteImport } from './routes/api/qstash/crossword/schedule_listing'
 import { Route as PadajalapublicPublicIndexRouteImport } from './routes/padajala/(public)/_public/index'
 import { Route as PadajalapublicPublicSlugRouteImport } from './routes/padajala/(public)/_public/$slug'
@@ -192,6 +193,11 @@ const PadavaliauthAuthRoute = PadavaliauthAuthRouteImport.update({
 const PadavalipublicPublicRoute = PadavalipublicPublicRouteImport.update({
   id: '/(public)/_public',
   getParentRoute: () => PadavaliRouteRoute,
+} as any)
+const TagsEditSlugRoute = TagsEditSlugRouteImport.update({
+  id: '/tags/edit/$slug',
+  path: '/tags/edit/$slug',
+  getParentRoute: () => rootRouteImport,
 } as any)
 const ApiQstashCrosswordSchedule_listingRoute =
   ApiQstashCrosswordSchedule_listingRouteImport.update({
@@ -388,6 +394,7 @@ export interface FileRoutesByFullPath {
   '/api/qstash/schedule_listing': typeof ApiQstashSchedule_listingRoute
   '/api/trpc/$': typeof ApiTrpcSplatRoute
   '/collections/edit/$uid': typeof CollectionsEditUidRoute
+  '/tags/edit/$slug': typeof TagsEditSlugRoute
   '/api/qstash/crossword/schedule_listing': typeof ApiQstashCrosswordSchedule_listingRoute
   '/padajala/$slug': typeof PadajalapublicPublicSlugRoute
   '/padavali/$slug': typeof PadavalipublicPublicSlugRoute
@@ -440,6 +447,7 @@ export interface FileRoutesByTo {
   '/api/qstash/schedule_listing': typeof ApiQstashSchedule_listingRoute
   '/api/trpc/$': typeof ApiTrpcSplatRoute
   '/collections/edit/$uid': typeof CollectionsEditUidRoute
+  '/tags/edit/$slug': typeof TagsEditSlugRoute
   '/api/qstash/crossword/schedule_listing': typeof ApiQstashCrosswordSchedule_listingRoute
   '/padajala/$slug': typeof PadajalapublicPublicSlugRoute
   '/padavali/$slug': typeof PadavalipublicPublicSlugRoute
@@ -496,6 +504,7 @@ export interface FileRoutesById {
   '/padajala/(public)/_public': typeof PadajalapublicPublicRouteWithChildren
   '/padavali/(auth)/_auth': typeof PadavaliauthAuthRouteWithChildren
   '/padavali/(public)/_public': typeof PadavalipublicPublicRouteWithChildren
+  '/tags/edit/$slug': typeof TagsEditSlugRoute
   '/api/qstash/crossword/schedule_listing': typeof ApiQstashCrosswordSchedule_listingRoute
   '/padajala/(public)/_public/$slug': typeof PadajalapublicPublicSlugRoute
   '/padavali/(public)/_public/$slug': typeof PadavalipublicPublicSlugRoute
@@ -550,6 +559,7 @@ export interface FileRouteTypes {
     | '/api/qstash/schedule_listing'
     | '/api/trpc/$'
     | '/collections/edit/$uid'
+    | '/tags/edit/$slug'
     | '/api/qstash/crossword/schedule_listing'
     | '/padajala/$slug'
     | '/padavali/$slug'
@@ -602,6 +612,7 @@ export interface FileRouteTypes {
     | '/api/qstash/schedule_listing'
     | '/api/trpc/$'
     | '/collections/edit/$uid'
+    | '/tags/edit/$slug'
     | '/api/qstash/crossword/schedule_listing'
     | '/padajala/$slug'
     | '/padavali/$slug'
@@ -657,6 +668,7 @@ export interface FileRouteTypes {
     | '/padajala/(public)/_public'
     | '/padavali/(auth)/_auth'
     | '/padavali/(public)/_public'
+    | '/tags/edit/$slug'
     | '/api/qstash/crossword/schedule_listing'
     | '/padajala/(public)/_public/$slug'
     | '/padavali/(public)/_public/$slug'
@@ -708,6 +720,7 @@ export interface RootRouteChildren {
   ApiQstashSchedule_listingRoute: typeof ApiQstashSchedule_listingRoute
   ApiTrpcSplatRoute: typeof ApiTrpcSplatRoute
   CollectionsEditUidRoute: typeof CollectionsEditUidRoute
+  TagsEditSlugRoute: typeof TagsEditSlugRoute
   ApiQstashCrosswordSchedule_listingRoute: typeof ApiQstashCrosswordSchedule_listingRoute
 }
 
@@ -894,6 +907,13 @@ declare module '@tanstack/react-router' {
       fullPath: '/padavali'
       preLoaderRoute: typeof PadavalipublicPublicRouteImport
       parentRoute: typeof PadavaliRouteRoute
+    }
+    '/tags/edit/$slug': {
+      id: '/tags/edit/$slug'
+      path: '/tags/edit/$slug'
+      fullPath: '/tags/edit/$slug'
+      preLoaderRoute: typeof TagsEditSlugRouteImport
+      parentRoute: typeof rootRouteImport
     }
     '/api/qstash/crossword/schedule_listing': {
       id: '/api/qstash/crossword/schedule_listing'
@@ -1261,6 +1281,7 @@ const rootRouteChildren: RootRouteChildren = {
   ApiQstashSchedule_listingRoute: ApiQstashSchedule_listingRoute,
   ApiTrpcSplatRoute: ApiTrpcSplatRoute,
   CollectionsEditUidRoute: CollectionsEditUidRoute,
+  TagsEditSlugRoute: TagsEditSlugRoute,
   ApiQstashCrosswordSchedule_listingRoute:
     ApiQstashCrosswordSchedule_listingRoute,
 }

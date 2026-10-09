@@ -326,7 +326,7 @@ function PuzzlesFilterBar({
                     : 'border-slate-200 bg-white/80 text-slate-600 hover:border-indigo-300 dark:border-slate-700 dark:bg-slate-900/70 dark:text-slate-300'
                 )}
               >
-                {tag.name}
+                {tag.slug}
                 <span
                   className={cn(
                     'ml-1.5 text-[11px] tabular-nums',
@@ -362,7 +362,10 @@ export default function HubPuzzles({ data }: { data: HubData }) {
   const search = puzzlesRoute.useSearch();
   const navigate = puzzlesRoute.useNavigate();
   const { puzzles, byKey } = useHubPuzzles(data);
-  const tags = tagsByPopularity(puzzles);
+  const tags = useMemo(
+    () => tagsByPopularity(filterHubPuzzles(puzzles, { game: search.game })),
+    [puzzles, search.game]
+  );
   const filter = {
     game: search.game,
     tags: search.tag ? [search.tag] : [],
@@ -381,6 +384,16 @@ export default function HubPuzzles({ data }: { data: HubData }) {
       });
     }
   }, [navigate, search.page, search.view]);
+
+  // Drop a tag that isn't used by any listed puzzle of the selected game.
+  useEffect(() => {
+    if (!search.tag) return;
+    if (tags.some((tag) => tag.slug === search.tag)) return;
+    void navigate({
+      search: (prev) => ({ ...prev, tag: undefined, page: undefined }),
+      replace: true
+    });
+  }, [navigate, search.tag, tags]);
   const basePuzzles = useMemo(
     () => filterHubPuzzles(puzzles, baseFilter),
     // oxlint-disable-next-line exhaustive-deps

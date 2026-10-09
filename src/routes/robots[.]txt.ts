@@ -11,6 +11,7 @@ Disallow: /analytics
 Disallow: /collections/list
 Disallow: /collections/edit
 Disallow: /tags/list
+Disallow: /tags/edit
 Disallow: /padavali/list
 Disallow: /padavali/edit
 Disallow: /padavali/schedules

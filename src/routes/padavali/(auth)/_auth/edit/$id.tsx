@@ -42,7 +42,7 @@ const loader$ = createServerFn({ method: 'GET' })
             },
             puzzle_tags: {
               with: {
-                tag: { columns: { id: true, slug: true, name: true } }
+                tag: { columns: { id: true, slug: true } }
               }
             },
             collection_items: {

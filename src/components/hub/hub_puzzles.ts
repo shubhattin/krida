@@ -196,7 +196,7 @@ export function filterHubCollections(
   });
 }
 
-/** Tags sorted by how many listed puzzles (across games) carry them. */
+/** Tags sorted by how many of the given puzzles carry them. */
 export function tagsByPopularity(puzzles: HubPuzzle[]): (PublicTag & { count: number })[] {
   const bySlug = new Map<string, PublicTag & { count: number }>();
   for (const puzzle of puzzles) {

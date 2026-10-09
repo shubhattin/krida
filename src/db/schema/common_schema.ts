@@ -44,7 +44,6 @@ export const tags = pgTable('tags', {
   id: serial().primaryKey(),
   /** URL-safe identifier, e.g. `shri-rama`. */
   slug: text().notNull().unique(),
-  name: text().notNull(),
   created_at: timestamp({ withTimezone: true }).notNull().defaultNow()
 });
 

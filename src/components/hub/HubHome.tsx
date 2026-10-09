@@ -231,7 +231,7 @@ export default function HubHome({ data }: { data: HubData }) {
                   search={{ tag: tag.slug }}
                   className="rounded-full border border-slate-200 bg-white/80 px-3 py-1.5 text-sm no-underline shadow-xs transition-colors duration-200 hover:border-indigo-300 hover:bg-indigo-50 focus-visible:ring-2 focus-visible:ring-indigo-400/70 focus-visible:outline-none dark:border-slate-700 dark:bg-slate-900/70 dark:hover:border-indigo-500/40 dark:hover:bg-indigo-950/30"
                 >
-                  {tag.name}
+                  {tag.slug}
                   <span className="ml-1.5 text-[11px] text-slate-400 tabular-nums">
                     {tag.count}
                   </span>

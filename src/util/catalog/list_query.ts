@@ -57,8 +57,7 @@ export const tagsForPuzzleIds = (game: GameKind, puzzleIds: number[]) => {
       .select({
         puzzle_id: link.puzzle_id,
         id: tags.id,
-        slug: tags.slug,
-        name: tags.name
+        slug: tags.slug
       })
       .from(link)
       .innerJoin(tags, eq(tags.id, link.tag_id))
@@ -69,7 +68,7 @@ export const tagsForPuzzleIds = (game: GameKind, puzzleIds: number[]) => {
       const grouped = new Map<number, PublicTag[]>();
       for (const row of rows) {
         const current = grouped.get(row.puzzle_id) ?? [];
-        current.push({ id: row.id, slug: row.slug, name: row.name });
+        current.push({ id: row.id, slug: row.slug });
         grouped.set(row.puzzle_id, current);
       }
       return grouped;

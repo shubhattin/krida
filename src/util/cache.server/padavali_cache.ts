@@ -212,8 +212,7 @@ const load_listed_puzzle_list: CacheItem<NoCacheParams, PadavaliListedPuzzlesTyp
               tag: {
                 columns: {
                   id: true,
-                  slug: true,
-                  name: true
+                  slug: true
                 }
               }
             }

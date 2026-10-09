@@ -17,7 +17,7 @@ export type PuzzleListItem = {
   created_at: Date;
   updated_at: Date | null;
   image: { s3_key: string } | null;
-  tags?: { id: number; slug: string; name: string }[];
+  tags?: { id: number; slug: string }[];
 };
 
 export const listTableColumns: DataTableColumnDef<PuzzleListItem>[] = [
