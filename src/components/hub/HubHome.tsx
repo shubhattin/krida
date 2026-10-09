@@ -184,6 +184,8 @@ export default function HubHome({ data }: { data: HubData }) {
           </section>
         ) : null}
 
+        <RecentlyAdded puzzles={puzzles} />
+
         {data.collections.length > 0 ? (
           <section className="flex flex-col gap-4">
             <HubSectionHeading
@@ -246,8 +248,6 @@ export default function HubHome({ data }: { data: HubData }) {
             </div>
           </section>
         ) : null}
-
-        <RecentlyAdded puzzles={puzzles} />
       </div>
     </div>
   );

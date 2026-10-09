@@ -12,6 +12,7 @@ import {
   type CarouselApi
 } from '~/components/ui/carousel';
 import { Button } from '~/components/ui/button';
+import { cn } from '~/lib/utils';
 
 const navButtonClass =
   'size-7 shrink-0 rounded-full border border-slate-300 bg-white text-slate-700 shadow-sm hover:bg-slate-50 disabled:opacity-35 dark:border-slate-600 dark:bg-slate-800 dark:text-slate-100 dark:hover:bg-slate-700';
@@ -60,9 +61,27 @@ export function HubGameShowcase() {
           </p>
         </div>
         <div className="flex shrink-0 items-center gap-1 sm:hidden">
-          <p className="pr-0.5 text-[11px] font-medium text-slate-500 tabular-nums dark:text-slate-400">
-            {selected + 1}/{GAMES.length}
-          </p>
+          <div className="mr-0.5 flex items-center">
+            {GAMES.map((game, index) => (
+              <button
+                key={game.id}
+                type="button"
+                aria-label={`Show ${game.name}`}
+                aria-current={selected === index ? 'true' : undefined}
+                onClick={() => api?.scrollTo(index)}
+                className="flex size-5 items-center justify-center"
+              >
+                <span
+                  className={cn(
+                    'rounded-full transition-[width,background-color] duration-200',
+                    selected === index
+                      ? 'h-1.5 w-3 bg-slate-800 dark:bg-white'
+                      : 'size-1.5 bg-slate-300 dark:bg-slate-600'
+                  )}
+                />
+              </button>
+            ))}
+          </div>
           <Button
             type="button"
             variant="outline"
