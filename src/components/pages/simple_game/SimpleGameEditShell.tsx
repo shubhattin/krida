@@ -178,7 +178,7 @@ function SimpleGameEditBody<T>({
     trpc[kind].delete_puzzle.mutationOptions({
       onSuccess: () => {
         toast.success('Puzzle deleted');
-        window.location.href = simpleGameListHref(kind);
+        window.location.assign(simpleGameListHref(kind));
       },
       onError: () => toast.error('Could not delete puzzle')
     })

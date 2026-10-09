@@ -78,6 +78,7 @@ export function SimpleGameListPage({ kind }: { kind: SimpleGameKind }) {
       page,
       debounced,
       listed,
+      listedFilter,
       sortBy,
       orderBy,
       tagSlug,
@@ -97,6 +98,7 @@ export function SimpleGameListPage({ kind }: { kind: SimpleGameKind }) {
     placeholderData: (prev) => prev
   });
 
+  // SAFETY: get_puzzle_list_page returns this game's listed rows, which match ListItem.
   const items = (listQuery.data?.list ?? []) as ListItem[];
   const pageCount = listQuery.data?.pageCount ?? 1;
   const columns = useMemo(() => listColumns(kind), [kind]);

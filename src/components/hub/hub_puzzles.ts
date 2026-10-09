@@ -5,6 +5,7 @@ import type {
   ListedCollectionsType
 } from '~/util/cache.server/collection_cache';
 import type { GameKind, PublicTag } from '~/util/catalog/tags';
+import type { PublicGameKind } from '~/util/games/kinds';
 import { matchesWordSearch } from '~/util/puzzle/search';
 import { puzzleHref } from './hub_games';
 
@@ -144,7 +145,7 @@ export function resolveCollectionItems(
     });
 }
 
-export function collectionGames(collection: ListedCollectionsType[number]): GameKind[] {
+export function collectionGames(collection: ListedCollectionsType[number]): PublicGameKind[] {
   const games = new Set(collection.items.map((item) => item.game));
   // TODO: include SIMPLE_GAME_KINDS once those games ship on /puzzles.
   return (['padavali', 'crossword'] as const).filter((game) => games.has(game));

@@ -8,10 +8,7 @@ import type { AdminAnalyticsGameId } from '~/api/routers/analytics';
 import { SIMPLE_GAME_META } from '~/util/games/kinds';
 import { GameAnalyticsMark } from './GameAnalyticsMark';
 
-const GAME_LINK_META: Record<
-  AdminAnalyticsGameId,
-  { href: string; name: string; subtitle: string }
-> = {
+const GAME_LINK_META = {
   padavali: {
     href: '/padavali/analytics',
     name: HUB_GAMES.padavali.name,
@@ -42,9 +39,9 @@ const GAME_LINK_META: Record<
     name: SIMPLE_GAME_META.anveshi.name,
     subtitle: SIMPLE_GAME_META.anveshi.subtitle
   }
-};
+} as const satisfies Record<AdminAnalyticsGameId, { href: string; name: string; subtitle: string }>;
 
-const LINK_ACCENT: Record<AdminAnalyticsGameId, { wash: string; ring: string; icon: string }> = {
+const LINK_ACCENT = {
   padavali: {
     wash: 'from-blue-50/90 via-sky-50/40 to-indigo-50/80 dark:from-blue-950/50 dark:via-slate-900/30 dark:to-indigo-950/40',
     ring: 'hover:ring-blue-400/55 dark:hover:ring-blue-500/45',
@@ -75,7 +72,7 @@ const LINK_ACCENT: Record<AdminAnalyticsGameId, { wash: string; ring: string; ic
     ring: SIMPLE_GAME_META.anveshi.accent.ring,
     icon: 'from-sky-500 to-indigo-600 shadow-sky-500/30'
   }
-};
+} as const satisfies Record<AdminAnalyticsGameId, { wash: string; ring: string; icon: string }>;
 
 export type GameAnalyticsLinkRow = {
   game: AdminAnalyticsGameId;

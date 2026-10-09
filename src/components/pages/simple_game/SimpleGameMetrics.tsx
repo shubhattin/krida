@@ -49,6 +49,8 @@ export function SimpleGameMetrics({
     turnstileRef.current = turnstile;
   }, [turnstile]);
 
+  const resetTurnstile = () => turnstileRef.current?.reset();
+
   const {
     mutate: mutateStarted,
     reset: resetStarted,
@@ -56,10 +58,13 @@ export function SimpleGameMetrics({
     isPending: startedPending,
     data: startedData
   } = useMutation(
+    // SAFETY: the callbacks below only run after the mutation settles (async),
+    // never during render — the ref is read/written from mutation lifecycle code.
+    // oxlint-disable-next-line react/refs
     trpc[kind].stats.update_games_started.mutationOptions({
       onSuccess() {
         setTurnstileToken(null);
-        turnstileRef.current?.reset();
+        resetTurnstile();
         load_posthog((posthog) => {
           posthog.capture('gameplay_started', {
             puzzle_id: puzzleId,
@@ -75,17 +80,20 @@ export function SimpleGameMetrics({
   );
 
   const { mutate: mutateStats, reset: resetStats } = useMutation(
+    // SAFETY: the callbacks below only run after the mutation settles (async),
+    // never during render — the ref is read/written from mutation lifecycle code.
+    // oxlint-disable-next-line react/refs
     trpc[kind].stats.submit_stats.mutationOptions({
       onSuccess() {
         setTurnstileToken(null);
-        turnstileRef.current?.reset();
+        resetTurnstile();
         resetStarted();
         resetStats();
       },
       onError() {
         statsSubmittedRef.current = null;
         setTurnstileToken(null);
-        turnstileRef.current?.reset();
+        resetTurnstile();
       }
     })
   );

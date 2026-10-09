@@ -1,6 +1,7 @@
 import { z } from 'zod';
 import { attachment_schema } from '~/db/db_shared_vals';
 import { location_list_enum } from '~/db/types';
+import { script_list_enum } from '~/state/script_list';
 import { simple_game_slug_schema } from '~/util/puzzle/slug';
 
 export const simple_game_add_input_schema = z.object({
@@ -50,7 +51,7 @@ export const simple_game_update_games_started_input_schema = z.object({
   turnstile_token: z.string().min(1).nullable().optional(),
   id: z.number().int(),
   location: location_list_enum,
-  script: z.string().min(1).optional(),
+  script: script_list_enum.optional(),
   client_play_id: z.string().uuid()
 });
 

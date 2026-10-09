@@ -14,6 +14,12 @@ import type { SurupaPuzzleData } from '~/util/surupa/data';
 import type { SimpleGameKind } from '~/util/games/kinds';
 import type { SimpleGamePuzzle } from '~/util/cache.server/simple_game_cache';
 
+type AnySimplePuzzleData =
+  | DvayiPuzzleData
+  | BhramitaPuzzleData
+  | SurupaPuzzleData
+  | AnveshiPuzzleData;
+
 export function SimpleGamePlayPage({
   kind,
   location,
@@ -22,7 +28,7 @@ export function SimpleGamePlayPage({
 }: {
   kind: SimpleGameKind;
   location: location_list_type;
-  puzzle: SimpleGamePuzzle<unknown>;
+  puzzle: SimpleGamePuzzle<AnySimplePuzzleData>;
   preview?: boolean;
 }) {
   return (
@@ -41,6 +47,7 @@ export function SimpleGamePlayPage({
           <DvayiPlay
             puzzleId={puzzle.id}
             location={location}
+            // SAFETY: dvayi loaders always store DvayiPuzzleData in puzzle_data.
             data={puzzle.puzzle_data as DvayiPuzzleData}
           />
         ) : null}
@@ -48,6 +55,7 @@ export function SimpleGamePlayPage({
           <BhramitaPlay
             puzzleId={puzzle.id}
             location={location}
+            // SAFETY: bhramita loaders always store BhramitaPuzzleData in puzzle_data.
             data={puzzle.puzzle_data as BhramitaPuzzleData}
           />
         ) : null}
@@ -55,6 +63,7 @@ export function SimpleGamePlayPage({
           <SurupaPlay
             puzzleId={puzzle.id}
             location={location}
+            // SAFETY: surupa loaders always store SurupaPuzzleData in puzzle_data.
             data={puzzle.puzzle_data as SurupaPuzzleData}
           />
         ) : null}
@@ -62,6 +71,7 @@ export function SimpleGamePlayPage({
           <AnveshiPlay
             puzzleId={puzzle.id}
             location={location}
+            // SAFETY: anveshi loaders always store AnveshiPuzzleData in puzzle_data.
             data={puzzle.puzzle_data as AnveshiPuzzleData}
           />
         ) : null}

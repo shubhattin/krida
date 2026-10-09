@@ -74,14 +74,14 @@ const GAME_ACCENT = {
   }
 } as const satisfies Record<AdminAnalyticsGameId, { wash: string; ring: string }>;
 
-const GAME_PRESENTATION: Record<AdminAnalyticsGameId, { name: string }> = {
+const GAME_PRESENTATION = {
   padavali: { name: HUB_GAMES.padavali.name },
   padajala: { name: HUB_GAMES.crossword.name },
   dvayi: { name: 'Dvayī' },
   bhramita: { name: 'Bhramitā' },
   surupa: { name: 'Surūpa' },
   anveshi: { name: 'Anveṣī' }
-};
+} as const satisfies Record<AdminAnalyticsGameId, { name: string }>;
 
 const GAME_TABS = [
   { value: 'all', label: 'All games' },
@@ -267,7 +267,8 @@ export default function AnalyticsPage() {
           <Tabs
             value={game}
             onValueChange={(value) => {
-              if (GAME_TABS.some((tab) => tab.value === value)) setGame(value as GameFilter);
+              const tab = GAME_TABS.find((item) => item.value === value);
+              if (tab) setGame(tab.value);
             }}
             className="min-w-0"
           >

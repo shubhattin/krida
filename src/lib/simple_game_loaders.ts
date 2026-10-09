@@ -7,7 +7,20 @@ import { dbRunHttp } from '~/effect/database';
 import { runLoaderEffect } from '~/effect/run';
 import { SIMPLE_GAME_TABLES } from '~/util/catalog/simple_game_tables';
 import { CACHE, NO_CACHE_PARAMS } from '~/util/cache.server/cache_loaders';
+import type { SimpleGameCacheLoaders, SimpleGamePuzzle } from '~/util/cache.server/simple_game_cache';
+import type { AnveshiPuzzleData } from '~/util/anveshi/data';
+import type { BhramitaPuzzleData } from '~/util/bhramita/data';
+import type { DvayiPuzzleData } from '~/util/dvayi/data';
+import type { SurupaPuzzleData } from '~/util/surupa/data';
 import { type SimpleGameKind } from '~/util/games/kinds';
+
+type AnySimplePuzzleData =
+  | DvayiPuzzleData
+  | BhramitaPuzzleData
+  | SurupaPuzzleData
+  | AnveshiPuzzleData;
+
+type PublicSimplePuzzle = SimpleGamePuzzle<AnySimplePuzzleData>;
 
 const kind_schema = z.enum(['dvayi', 'bhramita', 'surupa', 'anveshi']);
 
@@ -20,8 +33,14 @@ export type SimpleGameSlugResolution =
   | { type: 'redirect'; targetSlug: string }
   | { type: 'not_found' };
 
-async function loadCachedPuzzle(kind: SimpleGameKind, slug: string) {
-  return runLoaderEffect(CACHE[kind].word_puzzle.get({ slug }));
+async function loadCachedPuzzle(
+  kind: SimpleGameKind,
+  slug: string
+): Promise<PublicSimplePuzzle | undefined> {
+  // SAFETY: CACHE[kind] for SimpleGameKind is always a SimpleGameCacheLoaders;
+  // the four games share that loader shape with kind-specific puzzle_data.
+  const cache = CACHE[kind] as SimpleGameCacheLoaders<AnySimplePuzzleData>;
+  return runLoaderEffect(cache.word_puzzle.get({ slug }));
 }
 
 export async function resolveSimpleGameSlug(

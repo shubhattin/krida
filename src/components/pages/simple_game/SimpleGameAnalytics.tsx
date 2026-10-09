@@ -40,9 +40,123 @@ import { Skeleton } from '~/components/ui/skeleton';
 import { SIMPLE_GAME_META, type SimpleGameKind } from '~/util/games/kinds';
 
 type AnalyticsGame = 'padavali' | 'padajala' | SimpleGameKind;
+type DatedRow = { created_at: Date | string };
+type DailyPoint = { date: string; started: number; completed: number; label: string };
+
+const EMPTY_DATED_ROWS: DatedRow[] = [];
 
 function analyticsUserGame(kind: SimpleGameKind): AnalyticsGame {
   return kind;
+}
+
+function dailyPlaySeries(sessions: DatedRow[], stats: DatedRow[]): DailyPoint[] {
+  const map = new Map<string, { date: string; started: number; completed: number }>();
+  for (const session of sessions) {
+    const date = format(new Date(session.created_at), 'yyyy-MM-dd');
+    const row = map.get(date) ?? { date, started: 0, completed: 0 };
+    row.started += 1;
+    map.set(date, row);
+  }
+  for (const stat of stats) {
+    const date = format(new Date(stat.created_at), 'yyyy-MM-dd');
+    const row = map.get(date) ?? { date, started: 0, completed: 0 };
+    row.completed += 1;
+    map.set(date, row);
+  }
+  return [...map.values()].toSorted((a, b) => a.date.localeCompare(b.date)).map((row) => ({
+    ...row,
+    label: format(parseISO(row.date), 'MMM dd')
+  }));
+}
+
+function simpleGameStatCards(
+  started: number,
+  completed: number,
+  avgTime: number,
+  avgAccuracy: number
+): AnalyticsStat[] {
+  return [
+    {
+      label: 'Started',
+      value: started.toLocaleString(),
+      hint: 'Play sessions',
+      icon: PlayIcon,
+      accent: 'sky'
+    },
+    {
+      label: 'Completed',
+      value: completed.toLocaleString(),
+      hint: 'Finished games',
+      icon: CheckCircle2Icon,
+      accent: 'emerald'
+    },
+    {
+      label: 'Completion',
+      value: `${started > 0 ? Math.round((completed / started) * 100) : 0}%`,
+      hint: 'Finished / started',
+      icon: TrendingUpIcon,
+      accent: 'violet'
+    },
+    {
+      label: 'Avg time',
+      value: avgTime > 0 ? pretty_ms(avgTime * 1000, { compact: true }) : '—',
+      hint: 'Per completed play',
+      icon: ClockIcon,
+      accent: 'amber'
+    },
+    {
+      label: 'Avg accuracy',
+      value: `${avgAccuracy}%`,
+      hint: 'Correct / attempts',
+      icon: CrosshairIcon,
+      accent: 'fuchsia'
+    }
+  ];
+}
+
+function SimpleGameDailyChart({
+  isLoading,
+  daily
+}: {
+  isLoading: boolean;
+  daily: DailyPoint[];
+}) {
+  if (isLoading) return <Skeleton className="h-64 w-full" />;
+  if (daily.length === 0) {
+    return (
+      <p className="py-16 text-center text-sm text-muted-foreground">No plays in this period.</p>
+    );
+  }
+  return (
+    <ChartContainer
+      className="h-64 w-full"
+      config={{
+        started: { label: 'Started', color: 'hsl(var(--chart-1))' },
+        completed: { label: 'Completed', color: 'hsl(var(--chart-2))' }
+      }}
+    >
+      <AreaChart data={daily}>
+        <CartesianGrid vertical={false} />
+        <XAxis dataKey="label" tickLine={false} axisLine={false} />
+        <YAxis tickLine={false} axisLine={false} allowDecimals={false} />
+        <ChartTooltip content={<ChartTooltipContent />} />
+        <Area
+          type="monotone"
+          dataKey="started"
+          stroke="var(--color-started)"
+          fill="var(--color-started)"
+          fillOpacity={0.18}
+        />
+        <Area
+          type="monotone"
+          dataKey="completed"
+          stroke="var(--color-completed)"
+          fill="var(--color-completed)"
+          fillOpacity={0.28}
+        />
+      </AreaChart>
+    </ChartContainer>
+  );
 }
 
 export function SimpleGameAnalytics({
@@ -93,8 +207,8 @@ export function SimpleGameAnalytics({
     )
   );
 
-  const sessions = statsQuery.data?.sessions ?? [];
-  const stats = statsQuery.data?.stats ?? [];
+  const sessions = statsQuery.data?.sessions ?? EMPTY_DATED_ROWS;
+  const stats = statsQuery.data?.stats ?? EMPTY_DATED_ROWS;
   const completed = stats.length;
   const started = sessions.length;
   const avgTime =
@@ -103,64 +217,8 @@ export function SimpleGameAnalytics({
     completed > 0
       ? Math.round(stats.reduce((sum, row) => sum + row.accuracy, 0) / completed)
       : 0;
-
-  const cards: AnalyticsStat[] = [
-    {
-      label: 'Started',
-      value: started.toLocaleString(),
-      hint: 'Play sessions',
-      icon: PlayIcon,
-      accent: 'sky'
-    },
-    {
-      label: 'Completed',
-      value: completed.toLocaleString(),
-      hint: 'Finished games',
-      icon: CheckCircle2Icon,
-      accent: 'emerald'
-    },
-    {
-      label: 'Completion',
-      value: `${started > 0 ? Math.round((completed / started) * 100) : 0}%`,
-      hint: 'Finished / started',
-      icon: TrendingUpIcon,
-      accent: 'violet'
-    },
-    {
-      label: 'Avg time',
-      value: avgTime > 0 ? pretty_ms(avgTime * 1000, { compact: true }) : '—',
-      hint: 'Per completed play',
-      icon: ClockIcon,
-      accent: 'amber'
-    },
-    {
-      label: 'Avg accuracy',
-      value: `${avgAccuracy}%`,
-      hint: 'Correct / attempts',
-      icon: CrosshairIcon,
-      accent: 'fuchsia'
-    }
-  ];
-
-  const daily = useMemo(() => {
-    const map = new Map<string, { date: string; started: number; completed: number }>();
-    for (const session of sessions) {
-      const date = format(new Date(session.created_at), 'yyyy-MM-dd');
-      const row = map.get(date) ?? { date, started: 0, completed: 0 };
-      row.started += 1;
-      map.set(date, row);
-    }
-    for (const stat of stats) {
-      const date = format(new Date(stat.created_at), 'yyyy-MM-dd');
-      const row = map.get(date) ?? { date, started: 0, completed: 0 };
-      row.completed += 1;
-      map.set(date, row);
-    }
-    return [...map.values()].toSorted((a, b) => a.date.localeCompare(b.date)).map((row) => ({
-      ...row,
-      label: format(parseISO(row.date), 'MMM dd')
-    }));
-  }, [sessions, stats]);
+  const cards = simpleGameStatCards(started, completed, avgTime, avgAccuracy);
+  const daily = useMemo(() => dailyPlaySeries(sessions, stats), [sessions, stats]);
 
   return (
     <div className="space-y-5">
@@ -211,42 +269,7 @@ export function SimpleGameAnalytics({
         <AnalyticsStatGrid stats={cards} />
       )}
       <Card className="p-4">
-        {statsQuery.isLoading ? (
-          <Skeleton className="h-64 w-full" />
-        ) : daily.length === 0 ? (
-          <p className="py-16 text-center text-sm text-muted-foreground">
-            No plays in this period.
-          </p>
-        ) : (
-          <ChartContainer
-            className="h-64 w-full"
-            config={{
-              started: { label: 'Started', color: 'hsl(var(--chart-1))' },
-              completed: { label: 'Completed', color: 'hsl(var(--chart-2))' }
-            }}
-          >
-            <AreaChart data={daily}>
-              <CartesianGrid vertical={false} />
-              <XAxis dataKey="label" tickLine={false} axisLine={false} />
-              <YAxis tickLine={false} axisLine={false} allowDecimals={false} />
-              <ChartTooltip content={<ChartTooltipContent />} />
-              <Area
-                type="monotone"
-                dataKey="started"
-                stroke="var(--color-started)"
-                fill="var(--color-started)"
-                fillOpacity={0.18}
-              />
-              <Area
-                type="monotone"
-                dataKey="completed"
-                stroke="var(--color-completed)"
-                fill="var(--color-completed)"
-                fillOpacity={0.28}
-              />
-            </AreaChart>
-          </ChartContainer>
-        )}
+        <SimpleGameDailyChart isLoading={statsQuery.isLoading} daily={daily} />
       </Card>
       <TopPlayedLeader
         variant="puzzles"

@@ -34,17 +34,12 @@ export function BhramitaPlay({
   const [seconds, setSeconds] = useState(0);
   const [index, setIndex] = useState(0);
   const [built, setBuilt] = useState<string[]>([]);
-  const [pool, setPool] = useState<string[]>([]);
+  const [pool, setPool] = useState<string[]>(() =>
+    words[0] ? shuffleSyllables(words[0].syllables) : []
+  );
   const [correct, setCorrect] = useState(0);
   const [attempts, setAttempts] = useState(0);
   const current = words[index];
-
-  useEffect(() => {
-    const word = words[0];
-    setPool(word ? shuffleSyllables(word.syllables) : []);
-    setBuilt([]);
-    setIndex(0);
-  }, [nonce, words]);
 
   useEffect(() => {
     if (!started || completed) return;
@@ -87,6 +82,8 @@ export function BhramitaPlay({
     setCompleted(false);
     setSeconds(0);
     setIndex(0);
+    setBuilt([]);
+    setPool(words[0] ? shuffleSyllables(words[0].syllables) : []);
     setCorrect(0);
     setAttempts(0);
   };

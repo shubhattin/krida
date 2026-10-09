@@ -25,7 +25,6 @@ import {
 import { escapeIlikeToken } from '~/util/puzzle/search';
 import type { SimpleGameKind } from '~/util/games/kinds';
 import type { SimpleGameTableSet } from '~/db/schema/simple_game_tables';
-import type { ScriptType } from '~/state/script_list';
 
 export function createSimpleGameStatsRouter<TData>(
   kind: SimpleGameKind,
@@ -103,7 +102,7 @@ export function createSimpleGameStatsRouter<TData>(
               .values({
                 puzzle_id: id,
                 location,
-                script: script as ScriptType | undefined,
+                script,
                 user_id: userFields.user_id
               })
               .returning()
@@ -238,7 +237,9 @@ export function createSimpleGameStatsRouter<TData>(
           );
 
           if (topSessions.length === 0) {
-            return { puzzles: [] as { puzzle_id: number; title: string; started: number; completed: number }[] };
+            const puzzles: { puzzle_id: number; title: string; started: number; completed: number }[] =
+              [];
+            return { puzzles };
           }
 
           const puzzleIds = topSessions.map((row) => row.puzzle_id);

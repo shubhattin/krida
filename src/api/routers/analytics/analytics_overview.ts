@@ -1,6 +1,6 @@
 import { Effect } from 'effect';
 import { and, count, gte, isNotNull, lte, sql, type SQL } from 'drizzle-orm';
-import type { AnyPgColumn } from 'drizzle-orm/pg-core';
+import type { AnyPgColumn, AnyPgTable } from 'drizzle-orm/pg-core';
 import {
   anveshi_gameplay_stats,
   anveshi_sessions,
@@ -67,12 +67,12 @@ type GameQueryResult = {
   signals: UserSignals;
 };
 
-type SessionTable = {
+type SessionTable = AnyPgTable & {
   created_at: AnyPgColumn;
   user_id: AnyPgColumn;
 };
 
-type StatsTable = {
+type StatsTable = AnyPgTable & {
   created_at: AnyPgColumn;
 };
 

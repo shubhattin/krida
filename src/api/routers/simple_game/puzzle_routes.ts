@@ -24,6 +24,7 @@ import { BadRequestError, NotFoundError } from '~/effect/errors';
 import { runTrpcEffect } from '~/effect/run';
 import type { SimpleGameKind } from '~/util/games/kinds';
 import type { SimpleGameTableSet } from '~/db/schema/simple_game_tables';
+import type { SimpleGameCacheLoaders } from '~/util/cache.server/simple_game_cache';
 import type { GameAnalysis } from '~/util/games/issues';
 import { createSimpleGameSlugHelpers } from './slug_helpers';
 import { createSimpleGameStatsRouter } from './stats';
@@ -36,12 +37,13 @@ const LISTED_PUZZLES_PREVIEW_LIMIT = 16;
 export function createSimpleGameRouter<TData>(options: {
   kind: SimpleGameKind;
   tables: SimpleGameTableSet<TData>;
+  cache: SimpleGameCacheLoaders<TData>;
   dataSchema: z.ZodType<TData>;
   emptyData: TData;
   infer: (data: TData) => TData;
   analyze: (data: TData) => GameAnalysis;
 }) {
-  const { kind, tables, dataSchema, emptyData, infer, analyze } = options;
+  const { kind, tables, cache: puzzleCache, dataSchema, emptyData, infer, analyze } = options;
   const updateSchema = simpleGameUpdateInputSchema(dataSchema);
   const slugHelpers = createSimpleGameSlugHelpers(kind, tables);
   const stats = createSimpleGameStatsRouter(kind, tables);
@@ -88,6 +90,7 @@ export function createSimpleGameRouter<TData>(options: {
           })()
         : Promise.resolve();
 
+    const emptyInsertedAttachments: { id: number }[] = [];
     const [new_attachments_inserted] = await Promise.all([
       new_attachments.length > 0
         ? tx
@@ -102,7 +105,7 @@ export function createSimpleGameRouter<TData>(options: {
               }))
             )
             .returning()
-        : ([] as { id: number }[]),
+        : emptyInsertedAttachments,
       deleted_attachments.length > 0
         ? tx.delete(tables.attachments).where(
             and(
@@ -124,8 +127,6 @@ export function createSimpleGameRouter<TData>(options: {
       }))
     };
   };
-
-  const puzzleCache = CACHE[kind];
 
   const refreshListed = () =>
     settle(invalidate_and_refresh_cache(puzzleCache.listed_puzzle_list, NO_CACHE_PARAMS));
@@ -277,8 +278,10 @@ export function createSimpleGameRouter<TData>(options: {
               await slugHelpers.delete_redirect_for_slug(tx, input.slug);
             }
 
-            return insertWithUniqueUid(tx, tables.puzzles, (scoped, uid) =>
-              scoped
+            // SAFETY: tables.puzzles is always one of the concrete PuzzleTable
+            // members; the generic SimpleGameTableSet factory erases that union.
+            return insertWithUniqueUid<{ id: number }[]>(tx, tables.puzzles as never, async (scoped, uid) => {
+              const rows = await scoped
                 .insert(tables.puzzles)
                 .values({
                   uid,
@@ -288,8 +291,11 @@ export function createSimpleGameRouter<TData>(options: {
                   puzzle_data: emptyData,
                   listed: false
                 })
-                .returning()
-            );
+                .returning();
+              // SAFETY: returning() always includes serial id on this puzzle table.
+              const insertedRows: { id: number }[] = rows;
+              return insertedRows;
+            });
           });
           const inserted = inserted_puzzles[0];
           if (!inserted) {

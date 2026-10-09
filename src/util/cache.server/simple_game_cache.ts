@@ -44,7 +44,7 @@ export type SimpleGamePuzzle<T> = {
   slug: string;
   title: string;
   created_at: Date;
-  updated_at: Date | null | undefined;
+  updated_at?: Date | null;
   listed: boolean;
   description: string;
   puzzle_data: T;
@@ -93,12 +93,21 @@ export function createSimpleGameCacheLoaders<T>(
           )
       ).pipe(
         Effect.flatMap((rows) =>
-          tagsForPuzzleIds(kind, rows.map((row) => row.id)).pipe(
+          tagsForPuzzleIds(
+            kind,
+            // SAFETY: listed rows always select serial puzzle ids from this game's table.
+            rows.map((row) => row.id as number)
+          ).pipe(
             Effect.map((tagsByPuzzle) =>
-              rows.map((puzzle) => ({
-                ...puzzle,
-                tags: tagsByPuzzle.get(puzzle.id) ?? []
-              }))
+              rows.map((puzzle) => {
+                // SAFETY: selected listed columns plus tags match SimpleListedPuzzle.
+                const listed: SimpleListedPuzzle = {
+                  ...puzzle,
+                  // SAFETY: listed rows always select serial puzzle ids from this game's table.
+                  tags: tagsByPuzzle.get(puzzle.id as number) ?? []
+                };
+                return listed;
+              })
             )
           )
         ),
@@ -107,9 +116,11 @@ export function createSimpleGameCacheLoaders<T>(
   });
 
   const word_puzzle: CacheItem<SimpleGamePuzzleParams, SimpleGamePuzzle<T> | undefined> =
-    createCache({
-      getKey: ({ slug }) => wordPuzzleKey(slug),
-      schema: puzzleSchema,
+    createCache<SimpleGamePuzzleParams, SimpleGamePuzzle<T> | undefined>({
+    getKey: ({ slug }) => wordPuzzleKey(slug),
+    // SAFETY: createCache stores undefined for misses; puzzleSchema already
+    // validates the present SimpleGamePuzzle<T> payload.
+    schema: puzzleSchema as z.ZodType<SimpleGamePuzzle<T> | undefined>,
       shouldCache: (data) => data !== undefined,
       fetch: ({ slug }) =>
         dbRunHttp(`${kind}.word_puzzle`, async (client) => {
@@ -140,7 +151,9 @@ export function createSimpleGameCacheLoaders<T>(
             .from(tables.attachments)
             .where(eq(tables.attachments.puzzle_id, puzzle.id))
             .orderBy(tables.attachments.order_index);
-          return { ...puzzle, attachments };
+          // SAFETY: selected puzzle columns plus attachments match SimpleGamePuzzle<T>.
+          const wordPuzzle: SimpleGamePuzzle<T> = { ...puzzle, attachments };
+          return wordPuzzle;
         }).pipe(Effect.mapError(toCacheError('fetchWordPuzzle', wordPuzzleKey(slug))))
     });
 

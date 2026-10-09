@@ -2,7 +2,11 @@
 
 import { useAtom, type PrimitiveAtom } from 'jotai';
 import { PlusIcon, Trash2Icon } from 'lucide-react';
-import { ATTACHMENT_TYPE_NAMES, type attachment_list_type } from '~/db/db_shared_vals';
+import {
+  ATTACHMENT_TYPE_LIST,
+  ATTACHMENT_TYPE_NAMES,
+  type attachment_list_type
+} from '~/db/db_shared_vals';
 import { useEditorHistoryActions } from '~/hooks/useEditorHistory';
 import { Button } from '~/components/ui/button';
 import { Input } from '~/components/ui/input';
@@ -69,10 +73,10 @@ export function SimpleGameAttachments({
                 <Select
                   value={attachment.type}
                   onValueChange={(value) => {
+                    const type = ATTACHMENT_TYPE_LIST.find((item) => item === value);
+                    if (!type) return;
                     setAttachments((prev) =>
-                      prev.map((item, i) =>
-                        i === index ? { ...item, type: value as attachment_list_type } : item
-                      )
+                      prev.map((item, i) => (i === index ? { ...item, type } : item))
                     );
                     commit();
                   }}

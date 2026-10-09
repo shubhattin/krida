@@ -6,12 +6,15 @@ export type PublicGameKind = (typeof PUBLIC_GAME_KINDS)[number];
 export const SIMPLE_GAME_KINDS = ['dvayi', 'bhramita', 'surupa', 'anveshi'] as const;
 export type SimpleGameKind = (typeof SIMPLE_GAME_KINDS)[number];
 
+const SIMPLE_GAME_KIND_SET: ReadonlySet<string> = new Set(SIMPLE_GAME_KINDS);
+const PUBLIC_GAME_KIND_SET: ReadonlySet<string> = new Set(PUBLIC_GAME_KINDS);
+
 export function isSimpleGameKind(game: string): game is SimpleGameKind {
-  return (SIMPLE_GAME_KINDS as readonly string[]).includes(game);
+  return SIMPLE_GAME_KIND_SET.has(game);
 }
 
 export function isPublicGameKind(game: string): game is PublicGameKind {
-  return (PUBLIC_GAME_KINDS as readonly string[]).includes(game);
+  return PUBLIC_GAME_KIND_SET.has(game);
 }
 
 export type SimpleGameRoutePrefix = 'dvayi' | 'bhramitA' | 'surUpa' | 'anveshi';

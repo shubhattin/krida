@@ -82,6 +82,7 @@ const listedCollectionContainsPuzzles = (game: GameKind, puzzleIds: number[]) =>
 const refreshPublicCachesForTagPuzzles = (items: { game: GameKind; puzzle_id: number }[]) =>
   Effect.gen(function* () {
     if (items.length === 0) return;
+    // SAFETY: GAME_KINDS is the full GameKind union, so these entries cover every key.
     const idsByGame = Object.fromEntries(
       GAME_KINDS.map((game) => [
         game,
@@ -89,6 +90,7 @@ const refreshPublicCachesForTagPuzzles = (items: { game: GameKind; puzzle_id: nu
       ])
     ) as Record<GameKind, number[]>;
 
+    // SAFETY: GAME_KINDS is the full GameKind union, so these entries cover every key.
     const listedByGame = yield* Effect.all(
       Object.fromEntries(
         GAME_KINDS.map((game) => [game, listedPuzzleIdsForGame(game, idsByGame[game])])
@@ -1371,6 +1373,7 @@ const delete_collection_route = protectedAdminProcedure
               return [game, Number(row?.count ?? 0)] as const;
             })
           );
+          // SAFETY: entries are built from GAME_KINDS, so every GameKind key is present.
           return Object.fromEntries(entries) as Record<GameKind, number>;
         });
         const padavali = counts.padavali;
