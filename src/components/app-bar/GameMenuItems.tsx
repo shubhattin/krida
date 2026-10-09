@@ -94,7 +94,7 @@ export function CatalogAdminMenuItems({ onNavigate }: { onNavigate?: () => void 
   );
 }
 
-/** Hub (`/`, `/explore`) — admin hub first, then cross-game shortcuts. */
+/** Hub (`/`, `/puzzles`) — admin hub first, then cross-game shortcuts. */
 export function AllGamesMenuItems({ onNavigate }: { onNavigate?: () => void }) {
   const isAdmin = useIsAdmin();
   if (!isAdmin) return null;

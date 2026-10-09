@@ -139,14 +139,14 @@ function GameLinks() {
         name="Padāvalī"
         subtitle="Word Search"
         playTo="/padavali"
-        puzzlesTo="/padavali/puzzles"
+        puzzlesGame="padavali"
       />
       <GameLinkCard
         game="padajala"
         name="Padajāla"
         subtitle="Crossword"
         playTo="/padajala"
-        puzzlesTo="/padajala/puzzles"
+        puzzlesGame="crossword"
       />
     </div>
   );
@@ -157,13 +157,13 @@ function GameLinkCard({
   name,
   subtitle,
   playTo,
-  puzzlesTo
+  puzzlesGame
 }: {
   game: DashboardGameId;
   name: string;
   subtitle: string;
   playTo: '/padavali' | '/padajala';
-  puzzlesTo: '/padavali/puzzles' | '/padajala/puzzles';
+  puzzlesGame: 'padavali' | 'crossword';
 }) {
   const chrome = GAME_CHROME[game];
 
@@ -199,7 +199,7 @@ function GameLinkCard({
             Play
           </Button>
           <Button
-            render={<Link to={puzzlesTo} />}
+            render={<Link to="/puzzles" search={{ game: puzzlesGame }} />}
             nativeButton={false}
             size="sm"
             variant="outline"

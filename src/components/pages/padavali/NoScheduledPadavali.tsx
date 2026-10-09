@@ -6,7 +6,7 @@ import { ClockIcon, Loader2Icon, SparklesIcon, LayoutGridIcon } from 'lucide-rea
 import { motion } from 'framer-motion';
 import { IoExtensionPuzzleSharp } from 'react-icons/io5';
 import { client } from '~/api/client';
-import { ExploreCatalogLink } from '~/components/ExplorePromo';
+import { AllPuzzlesLink } from '~/components/PuzzleCatalogLink';
 import { ListedPuzzlesBrowseEmbed } from '~/components/pages/padavali/ListedPuzzlesBrowseEmbed';
 import type { PadavaliListedPuzzlesType } from '~/util/cache.server/padavali_cache';
 import type { DisplayPuzzle } from '~/components/pages/padavali/listed_puzzle_display';
@@ -210,15 +210,15 @@ export const NoScheduledPadavali = ({
 
                 <div>
                   <h1 className="bg-linear-to-r from-slate-800 via-blue-700 to-indigo-600 bg-clip-text text-2xl font-extrabold text-transparent sm:text-3xl dark:from-slate-100 dark:via-blue-300 dark:to-indigo-400">
-                    Explore Sanskrit Puzzles
+                    Sanskrit Puzzles
                   </h1>
                   <p className="mt-1.5 text-sm text-slate-500 dark:text-slate-400">
                     {next_schedule
-                      ? 'While you wait for the next puzzle, explore our collection below.'
+                      ? 'While you wait for the next puzzle, browse the collection below.'
                       : 'Discover and play from our full collection of word puzzles.'}
                   </p>
                   <div className="mt-4 flex justify-center">
-                    <ExploreCatalogLink />
+                    <AllPuzzlesLink />
                   </div>
                 </div>
               </motion.div>

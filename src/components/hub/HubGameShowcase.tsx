@@ -1,7 +1,7 @@
 'use client';
 
 import { useCallback, useEffect, useState } from 'react';
-import { ExploreCatalogLink } from '~/components/ExplorePromo';
+import { AllPuzzlesLink } from '~/components/PuzzleCatalogLink';
 import { GameAppIcon } from '~/components/GameAppIcon';
 import { GameShowcaseCard, GAMES } from '~/routes/-Landing';
 import {
@@ -55,10 +55,10 @@ export function HubGameShowcase() {
             Sanskrit Games — a word search and crossword.
           </p>
         </div>
-        <ExploreCatalogLink className="hidden shrink-0 sm:inline-flex" />
+        <AllPuzzlesLink className="hidden shrink-0 sm:inline-flex" />
       </header>
       <div className="mx-auto w-full max-w-3xl sm:hidden">
-        <ExploreCatalogLink />
+        <AllPuzzlesLink />
       </div>
 
       <Carousel

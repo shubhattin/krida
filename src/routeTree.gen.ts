@@ -13,6 +13,7 @@ import { Route as HubRouteImport } from './routes/_hub'
 import { Route as AdminRouteImport } from './routes/admin'
 import { Route as AnalyticsRouteImport } from './routes/analytics'
 import { Route as DashboardRouteImport } from './routes/dashboard'
+import { Route as ExploreRouteImport } from './routes/explore'
 import { Route as PadajalaRouteRouteImport } from './routes/padajala/route'
 import { Route as PadavaliRouteRouteImport } from './routes/padavali/route'
 import { Route as RobotsDottxtRouteImport } from './routes/robots[.]txt'
@@ -20,7 +21,7 @@ import { Route as Sitemap0DotxmlRouteImport } from './routes/sitemap-0[.]xml'
 import { Route as Sitemap1DotxmlRouteImport } from './routes/sitemap-1[.]xml'
 import { Route as SitemapIndexDotxmlRouteImport } from './routes/sitemap-index[.]xml'
 import { Route as HubIndexRouteImport } from './routes/_hub/index'
-import { Route as HubExploreRouteImport } from './routes/_hub/explore'
+import { Route as HubPuzzlesRouteImport } from './routes/_hub/puzzles'
 import { Route as CollectionsListRouteImport } from './routes/collections/list'
 import { Route as CrosswordSplatRouteImport } from './routes/crossword.$'
 import { Route as TagsListRouteImport } from './routes/tags/list'
@@ -83,6 +84,11 @@ const DashboardRoute = DashboardRouteImport.update({
   path: '/dashboard',
   getParentRoute: () => rootRouteImport,
 } as any)
+const ExploreRoute = ExploreRouteImport.update({
+  id: '/explore',
+  path: '/explore',
+  getParentRoute: () => rootRouteImport,
+} as any)
 const PadajalaRouteRoute = PadajalaRouteRouteImport.update({
   id: '/padajala',
   path: '/padajala',
@@ -118,9 +124,9 @@ const HubIndexRoute = HubIndexRouteImport.update({
   path: '/',
   getParentRoute: () => HubRoute,
 } as any)
-const HubExploreRoute = HubExploreRouteImport.update({
-  id: '/explore',
-  path: '/explore',
+const HubPuzzlesRoute = HubPuzzlesRouteImport.update({
+  id: '/puzzles',
+  path: '/puzzles',
   getParentRoute: () => HubRoute,
 } as any)
 const CollectionsListRoute = CollectionsListRouteImport.update({
@@ -367,11 +373,12 @@ export interface FileRoutesByFullPath {
   '/admin': typeof AdminRoute
   '/analytics': typeof AnalyticsRoute
   '/dashboard': typeof DashboardRoute
+  '/explore': typeof ExploreRoute
   '/robots.txt': typeof RobotsDottxtRoute
   '/sitemap-0.xml': typeof Sitemap0DotxmlRoute
   '/sitemap-1.xml': typeof Sitemap1DotxmlRoute
   '/sitemap-index.xml': typeof SitemapIndexDotxmlRoute
-  '/explore': typeof HubExploreRoute
+  '/puzzles': typeof HubPuzzlesRoute
   '/collections/list': typeof CollectionsListRoute
   '/crossword/$': typeof CrosswordSplatRoute
   '/tags/list': typeof TagsListRoute
@@ -417,11 +424,12 @@ export interface FileRoutesByTo {
   '/admin': typeof AdminRoute
   '/analytics': typeof AnalyticsRoute
   '/dashboard': typeof DashboardRoute
+  '/explore': typeof ExploreRoute
   '/robots.txt': typeof RobotsDottxtRoute
   '/sitemap-0.xml': typeof Sitemap0DotxmlRoute
   '/sitemap-1.xml': typeof Sitemap1DotxmlRoute
   '/sitemap-index.xml': typeof SitemapIndexDotxmlRoute
-  '/explore': typeof HubExploreRoute
+  '/puzzles': typeof HubPuzzlesRoute
   '/collections/list': typeof CollectionsListRoute
   '/crossword/$': typeof CrosswordSplatRoute
   '/tags/list': typeof TagsListRoute
@@ -468,11 +476,12 @@ export interface FileRoutesById {
   '/admin': typeof AdminRoute
   '/analytics': typeof AnalyticsRoute
   '/dashboard': typeof DashboardRoute
+  '/explore': typeof ExploreRoute
   '/robots.txt': typeof RobotsDottxtRoute
   '/sitemap-0.xml': typeof Sitemap0DotxmlRoute
   '/sitemap-1.xml': typeof Sitemap1DotxmlRoute
   '/sitemap-index.xml': typeof SitemapIndexDotxmlRoute
-  '/_hub/explore': typeof HubExploreRoute
+  '/_hub/puzzles': typeof HubPuzzlesRoute
   '/collections/list': typeof CollectionsListRoute
   '/crossword/$': typeof CrosswordSplatRoute
   '/tags/list': typeof TagsListRoute
@@ -526,11 +535,12 @@ export interface FileRouteTypes {
     | '/admin'
     | '/analytics'
     | '/dashboard'
+    | '/explore'
     | '/robots.txt'
     | '/sitemap-0.xml'
     | '/sitemap-1.xml'
     | '/sitemap-index.xml'
-    | '/explore'
+    | '/puzzles'
     | '/collections/list'
     | '/crossword/$'
     | '/tags/list'
@@ -576,11 +586,12 @@ export interface FileRouteTypes {
     | '/admin'
     | '/analytics'
     | '/dashboard'
+    | '/explore'
     | '/robots.txt'
     | '/sitemap-0.xml'
     | '/sitemap-1.xml'
     | '/sitemap-index.xml'
-    | '/explore'
+    | '/puzzles'
     | '/collections/list'
     | '/crossword/$'
     | '/tags/list'
@@ -626,11 +637,12 @@ export interface FileRouteTypes {
     | '/admin'
     | '/analytics'
     | '/dashboard'
+    | '/explore'
     | '/robots.txt'
     | '/sitemap-0.xml'
     | '/sitemap-1.xml'
     | '/sitemap-index.xml'
-    | '/_hub/explore'
+    | '/_hub/puzzles'
     | '/collections/list'
     | '/crossword/$'
     | '/tags/list'
@@ -683,6 +695,7 @@ export interface RootRouteChildren {
   AdminRoute: typeof AdminRoute
   AnalyticsRoute: typeof AnalyticsRoute
   DashboardRoute: typeof DashboardRoute
+  ExploreRoute: typeof ExploreRoute
   RobotsDottxtRoute: typeof RobotsDottxtRoute
   Sitemap0DotxmlRoute: typeof Sitemap0DotxmlRoute
   Sitemap1DotxmlRoute: typeof Sitemap1DotxmlRoute
@@ -726,6 +739,13 @@ declare module '@tanstack/react-router' {
       path: '/dashboard'
       fullPath: '/dashboard'
       preLoaderRoute: typeof DashboardRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/explore': {
+      id: '/explore'
+      path: '/explore'
+      fullPath: '/explore'
+      preLoaderRoute: typeof ExploreRouteImport
       parentRoute: typeof rootRouteImport
     }
     '/padajala': {
@@ -777,11 +797,11 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof HubIndexRouteImport
       parentRoute: typeof HubRoute
     }
-    '/_hub/explore': {
-      id: '/_hub/explore'
-      path: '/explore'
-      fullPath: '/explore'
-      preLoaderRoute: typeof HubExploreRouteImport
+    '/_hub/puzzles': {
+      id: '/_hub/puzzles'
+      path: '/puzzles'
+      fullPath: '/puzzles'
+      preLoaderRoute: typeof HubPuzzlesRouteImport
       parentRoute: typeof HubRoute
     }
     '/collections/list': {
@@ -1208,13 +1228,13 @@ const PadavaliRouteRouteWithChildren = PadavaliRouteRoute._addFileChildren(
 )
 
 interface HubRouteChildren {
-  HubExploreRoute: typeof HubExploreRoute
+  HubPuzzlesRoute: typeof HubPuzzlesRoute
   HubIndexRoute: typeof HubIndexRoute
   HubCollectionsSlugRoute: typeof HubCollectionsSlugRoute
 }
 
 const HubRouteChildren: HubRouteChildren = {
-  HubExploreRoute: HubExploreRoute,
+  HubPuzzlesRoute: HubPuzzlesRoute,
   HubIndexRoute: HubIndexRoute,
   HubCollectionsSlugRoute: HubCollectionsSlugRoute,
 }
@@ -1228,6 +1248,7 @@ const rootRouteChildren: RootRouteChildren = {
   AdminRoute: AdminRoute,
   AnalyticsRoute: AnalyticsRoute,
   DashboardRoute: DashboardRoute,
+  ExploreRoute: ExploreRoute,
   RobotsDottxtRoute: RobotsDottxtRoute,
   Sitemap0DotxmlRoute: Sitemap0DotxmlRoute,
   Sitemap1DotxmlRoute: Sitemap1DotxmlRoute,

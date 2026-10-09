@@ -60,7 +60,7 @@ export function RouteProgress() {
       sawPendingRef.current = false;
       setSettling(false);
       // Don't paint immediately: instantly-resolving updates (e.g. typing in
-      // /explore filters, which only change search) finish before the delay
+      // /puzzles filters, which only change search) finish before the delay
       // and never flash the bar. Real navigations outlive it and show as usual.
       showTimer = window.setTimeout(() => {
         if (gen !== generation) return;
@@ -122,7 +122,7 @@ export function RouteProgress() {
 
     // Client navigations only. The first load has no resolved location, and
     // leaving the document is a full page load that never emits this event.
-    // Search-only updates (e.g. typing in /explore filters with replace:true)
+    // Search-only updates (e.g. typing in /puzzles filters with replace:true)
     // resolve instantly client-side — showing the bar for those just flashes.
     const unsubscribeStart = router.subscribe('onBeforeNavigate', (event) => {
       if (!event.fromLocation || !event.hrefChanged || !event.pathChanged) return;

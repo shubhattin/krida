@@ -4,7 +4,7 @@ import { useQuery, type QueryClient } from '@tanstack/react-query';
 import { client } from '~/api/client';
 import type { CrosswordListedPuzzlesType } from '~/util/cache.server/crossword_cache';
 
-/** Public browse list (home embed + /padajala/puzzles). */
+/** Public browse list (home embed + /puzzles). */
 export const padajalaListedPuzzleQueryKey = ['listed_puzzle', 'padajala'] as const;
 
 const crosswordListedCarouselQueryKey = ['crossword_listed_puzzles_carousel'] as const;

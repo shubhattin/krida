@@ -70,8 +70,8 @@ export function HubTodayCard({
               variant="outline"
               render={
                 <Link
-                  to="/explore"
-                  search={{ game: game.exploreGame }}
+                  to="/puzzles"
+                  search={{ game: game.puzzlesGame }}
                   className="inline-flex items-center gap-1.5"
                 />
               }

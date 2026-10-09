@@ -27,7 +27,7 @@ Solve Sanskrit crossword grids with across and down clues.
   - Main: Devanagari (देवनागरी), Telugu (తెలుగు), Kannada (ಕನ್ನಡ), Gujarati (ગુજરાતી), Bengali (বাংলা), Odia (ଓଡ଼ିଆ), Malayalam (മലയാളം), Tamil (தமிழ்), Assamese (অসমীয়া), Gurumukhi (ਗੁਰਮੁਖੀ), Sinhala (සිංහල), Romanized
   - Ancient: Brahmi (𑀩𑁆𑀭𑁍𑀫), Siddham (𑖭𑖿𑖨𑖱𑖾), Grantha (𑌅𑌗𑍍𑌰𑍍), Sharada (𑆳𑆫𑆢𑆳)
 - **Daily & Scheduled Puzzles** — new puzzles go live on a schedule, with reminders
-- **Explore** — browse every listed puzzle, topic and tag across both games
+- **Puzzles** — browse every listed puzzle, topic and tag across both games
 - **Collections** — curated, ordered sets of puzzles that can mix both games
 - **AI-Generated Art** — puzzle cards and collection covers are illustrated with AI (prompt written for a centred, 3:2 landscape composition)
 - **Player Dashboard** — sign in to track your own starts, completions, best time/accuracy and recent plays

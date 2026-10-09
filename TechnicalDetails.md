@@ -46,6 +46,6 @@ Krida uses the `lipilekhika` transliteration engine to convert Sanskrit text bet
 
 - **Puzzles** live in per-game tables (`padavali_puzzles`, `crossword_puzzles`) and can be **listed** publicly on a schedule
 - **Collections** are curated, ordered sets of puzzles that can mix both games
-- **Tags** are shared labels used for grouping in Explore
+- **Tags** are shared labels used for grouping in the puzzle catalog
 - **Sessions** record every play attempt (game, script, location, signed-in user) and **gameplay stats** record completions (time taken, accuracy, attempts)
 - Images are AI-generated at `1536x1024` and stored as WebP at `768x512` (3:2 landscape), with per-asset `width`/`height` recorded in `image_assets`

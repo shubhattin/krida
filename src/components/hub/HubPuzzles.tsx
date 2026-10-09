@@ -44,7 +44,7 @@ import { useHubPuzzles } from './useHubPuzzles';
 import type { GameKind, PublicTag } from '~/util/catalog/tags';
 import type { ListedCollectionsType } from '~/util/cache.server/collection_cache';
 
-const exploreRoute = getRouteApi('/_hub/explore');
+const puzzlesRoute = getRouteApi('/_hub/puzzles');
 const PAGE_LIMIT = 12;
 
 const GAME_FILTERS: { value: 'all' | GameKind; label: string }[] = [
@@ -74,10 +74,10 @@ function getVisiblePages(current: number, total: number): (number | 'ellipsis')[
   return result;
 }
 
-function ExplorePuzzleGrid({ puzzles }: { puzzles: HubPuzzle[] }) {
+function PuzzlesGrid({ puzzles }: { puzzles: HubPuzzle[] }) {
   const listRef = useRef<HTMLDivElement>(null);
-  const search = exploreRoute.useSearch();
-  const navigate = exploreRoute.useNavigate();
+  const search = puzzlesRoute.useSearch();
+  const navigate = puzzlesRoute.useNavigate();
   const pageCount = Math.max(1, Math.ceil(puzzles.length / PAGE_LIMIT));
   const requestedPage = search.page ?? 1;
   const safePage = Math.min(requestedPage, pageCount);
@@ -173,7 +173,7 @@ function ExplorePuzzleGrid({ puzzles }: { puzzles: HubPuzzle[] }) {
   );
 }
 
-function ExploreFilterBar({
+function PuzzlesFilterBar({
   tags,
   puzzleCount,
   collectionCount,
@@ -184,8 +184,8 @@ function ExploreFilterBar({
   collectionCount: number;
   gameCounts: GameCounts;
 }) {
-  const search = exploreRoute.useSearch();
-  const navigate = exploreRoute.useNavigate();
+  const search = puzzlesRoute.useSearch();
+  const navigate = puzzlesRoute.useNavigate();
   const { script, setScript } = useContext(AppContext);
   const [lipiLekhikaTyping, setLipiLekhikaTyping] = useState(false);
   const typingCtx = useMemo(() => createTypingContext(script!), [script]);
@@ -344,7 +344,7 @@ function ExploreFilterBar({
   );
 }
 
-function ExploreCollections({ collections }: { collections: ListedCollectionsType }) {
+function PuzzlesCollections({ collections }: { collections: ListedCollectionsType }) {
   if (collections.length === 0) {
     return <p className="py-12 text-center text-slate-500">No collections match your filters.</p>;
   }
@@ -358,9 +358,9 @@ function ExploreCollections({ collections }: { collections: ListedCollectionsTyp
 }
 
 /** Unified browse: every puzzle across games, filterable by game, tag, and text. */
-export default function HubExplore({ data }: { data: HubData }) {
-  const search = exploreRoute.useSearch();
-  const navigate = exploreRoute.useNavigate();
+export default function HubPuzzles({ data }: { data: HubData }) {
+  const search = puzzlesRoute.useSearch();
+  const navigate = puzzlesRoute.useNavigate();
   const { puzzles, byKey } = useHubPuzzles(data);
   const tags = tagsByPopularity(puzzles);
   const filter = {
@@ -399,14 +399,14 @@ export default function HubExplore({ data }: { data: HubData }) {
     <div className="mx-auto flex max-w-6xl flex-col gap-6 px-4 py-8">
       <div className="flex flex-col gap-1">
         <h1 className="text-3xl font-black tracking-tight text-slate-900 dark:text-slate-50">
-          Explore
+          Puzzles
         </h1>
         <p className="text-sm text-slate-500 dark:text-slate-400">
-          Every puzzle, collection, and topic in one catalog.
+          Every listed puzzle across both games — or switch to curated collections.
         </p>
       </div>
 
-      <ExploreFilterBar
+      <PuzzlesFilterBar
         tags={tags}
         puzzleCount={filteredPuzzles.length}
         collectionCount={filteredCollections.length}
@@ -414,9 +414,9 @@ export default function HubExplore({ data }: { data: HubData }) {
       />
 
       {search.view === 'collections' ? (
-        <ExploreCollections collections={filteredCollections} />
+        <PuzzlesCollections collections={filteredCollections} />
       ) : (
-        <ExplorePuzzleGrid puzzles={filteredPuzzles} />
+        <PuzzlesGrid puzzles={filteredPuzzles} />
       )}
     </div>
   );

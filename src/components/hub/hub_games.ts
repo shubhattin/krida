@@ -9,8 +9,8 @@ export type HubGameMeta = {
   subtitle: string;
   description: string;
   href: '/padavali' | '/padajala';
-  /** Explore filter for this game (`?game=`). */
-  exploreGame: 'padavali' | 'crossword';
+  /** Puzzle catalog filter for this game (`?game=`). */
+  puzzlesGame: 'padavali' | 'crossword';
 };
 
 export const HUB_GAMES = {
@@ -21,7 +21,7 @@ export const HUB_GAMES = {
     subtitle: 'Word Search',
     description: 'Find hidden Sanskrit words by dragging across a grid of letters.',
     href: '/padavali',
-    exploreGame: 'padavali'
+    puzzlesGame: 'padavali'
   },
   crossword: {
     kind: 'crossword',
@@ -30,7 +30,7 @@ export const HUB_GAMES = {
     subtitle: 'Crossword',
     description: 'Solve Sanskrit crossword puzzles and expand your vocabulary.',
     href: '/padajala',
-    exploreGame: 'crossword'
+    puzzlesGame: 'crossword'
   }
 } as const satisfies Record<GameKind, HubGameMeta>;
 
@@ -39,12 +39,12 @@ export const HUB_GAME_LIST: HubGameMeta[] = [HUB_GAMES.padavali, HUB_GAMES.cross
 export const puzzleHref = (game: GameKind, slug: string) =>
   `${HUB_GAMES[game].href}/${encodeURIComponent(slug)}`;
 
-export type HubNavId = 'home' | 'padavali' | 'crossword' | 'explore';
+export type HubNavId = 'home' | 'padavali' | 'crossword' | 'puzzles';
 
 export function hubNavFromPath(pathname: string): HubNavId {
   if (pathname.startsWith('/padavali')) return 'padavali';
   if (pathname.startsWith('/padajala')) return 'crossword';
-  if (pathname.startsWith('/explore') || pathname.startsWith('/collections')) return 'explore';
+  if (pathname.startsWith('/puzzles') || pathname.startsWith('/collections')) return 'puzzles';
   return 'home';
 }
 

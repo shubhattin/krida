@@ -158,7 +158,7 @@ export const GAMES = [
     subtitle: 'Word Search',
     description: 'Find hidden Sanskrit words by dragging across a grid of letters.',
     playHref: '/padavali',
-    puzzlesHref: '/padavali/puzzles',
+    puzzlesGame: 'padavali' as const,
     gradient: {
       from: 'from-blue-500',
       to: 'to-indigo-600',
@@ -177,7 +177,7 @@ export const GAMES = [
     subtitle: 'Crossword',
     description: 'Solve Sanskrit crossword puzzles and expand your vocabulary.',
     playHref: '/padajala',
-    puzzlesHref: '/padajala/puzzles',
+    puzzlesGame: 'crossword' as const,
     gradient: {
       from: 'from-amber-500',
       to: 'to-orange-600',
@@ -880,7 +880,8 @@ export function GameShowcaseCard({
             <Button
               render={
                 <Link
-                  to={game.puzzlesHref}
+                  to="/puzzles"
+                  search={{ game: game.puzzlesGame }}
                   className="flex items-center justify-center gap-1.5 font-semibold"
                 />
               }

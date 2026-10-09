@@ -39,7 +39,7 @@ export default function HubCollectionPage({ data, slug }: { data: HubData; slug:
   return (
     <div className="mx-auto flex max-w-6xl flex-col gap-6 px-4 py-6 sm:py-8">
       <Link
-        to="/explore"
+        to="/puzzles"
         search={{ view: 'collections' }}
         className="inline-flex w-fit items-center gap-1.5 text-sm text-slate-500 no-underline hover:text-slate-900 dark:hover:text-slate-100"
       >

@@ -2,7 +2,7 @@
 
 import { useContext, useState, type ReactNode } from 'react';
 import { Link } from '@tanstack/react-router';
-import { ArrowRight, Compass, LayoutGrid } from 'lucide-react';
+import { ArrowRight, LayoutGrid, Puzzle } from 'lucide-react';
 import { motion, useReducedMotion } from 'framer-motion';
 import { Image } from '@unpic/react';
 import { ScriptSelector } from '~/components/pages/padavali/ScriptSelector';
@@ -71,19 +71,19 @@ function RecentlyAdded({ puzzles }: { puzzles: ReturnType<typeof useHubPuzzles>[
   ).slice(0, 8);
 
   return (
-    <section id="explore" className="flex scroll-mt-24 flex-col gap-4">
+    <section id="puzzles" className="flex scroll-mt-24 flex-col gap-4">
       <HubSectionHeading
-        title="Explore"
+        title="Puzzles"
         description="Recent puzzles from every game"
         action={
           <Button
             nativeButton={false}
             variant="outline"
             size="sm"
-            render={<Link to="/explore" className="inline-flex items-center gap-1.5" />}
+            render={<Link to="/puzzles" className="inline-flex items-center gap-1.5" />}
           >
-            <Compass className="size-3.5" />
-            Browse catalog
+            <Puzzle className="size-3.5" />
+            All puzzles
             <ArrowRight className="size-3.5" />
           </Button>
         }
@@ -193,7 +193,7 @@ export default function HubHome({ data }: { data: HubData }) {
                   size="sm"
                   render={
                     <Link
-                      to="/explore"
+                      to="/puzzles"
                       search={{ view: 'collections' }}
                       className="inline-flex items-center gap-1"
                     />
@@ -227,7 +227,7 @@ export default function HubHome({ data }: { data: HubData }) {
               {tags.map((tag) => (
                 <Link
                   key={tag.id}
-                  to="/explore"
+                  to="/puzzles"
                   search={{ tag: tag.slug }}
                   className="rounded-full border border-slate-200 bg-white/80 px-3 py-1.5 text-sm no-underline shadow-xs transition-colors duration-200 hover:border-indigo-300 hover:bg-indigo-50 focus-visible:ring-2 focus-visible:ring-indigo-400/70 focus-visible:outline-none dark:border-slate-700 dark:bg-slate-900/70 dark:hover:border-indigo-500/40 dark:hover:bg-indigo-950/30"
                 >

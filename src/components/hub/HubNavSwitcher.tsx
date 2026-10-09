@@ -2,7 +2,7 @@
 
 import { useState } from 'react';
 import { Link } from '@tanstack/react-router';
-import { Check, ChevronDown, Compass, Home } from 'lucide-react';
+import { Check, ChevronDown, Home, Puzzle } from 'lucide-react';
 import { Image } from '@unpic/react';
 import { Button } from '~/components/ui/button';
 import {
@@ -19,14 +19,14 @@ import { cn } from '~/lib/utils';
 import { HUB_GAME_LIST, HUB_GAMES, type HubGameMeta, type HubNavId } from './hub_games';
 
 const PLACES: {
-  key: 'home' | 'explore';
-  to: '/' | '/explore';
+  key: 'home' | 'puzzles';
+  to: '/' | '/puzzles';
   label: string;
   hint: string;
   icon: typeof Home;
 }[] = [
   { key: 'home', to: '/', label: 'Home', hint: 'Hub and today’s puzzles', icon: Home },
-  { key: 'explore', to: '/explore', label: 'Explore', hint: 'Every puzzle', icon: Compass }
+  { key: 'puzzles', to: '/puzzles', label: 'Puzzles', hint: 'Every listed puzzle', icon: Puzzle }
 ];
 
 function GamesMark({ className }: { className?: string }) {
@@ -52,7 +52,7 @@ const PLACE_ACTIVE = {
     icon: 'bg-slate-900 text-white dark:bg-slate-100 dark:text-slate-900',
     check: 'text-slate-800 dark:text-slate-200'
   },
-  explore: {
+  puzzles: {
     row: 'bg-indigo-50 ring-1 ring-indigo-200 dark:bg-indigo-950/80 dark:ring-indigo-500/50',
     icon: 'bg-indigo-600 text-white',
     check: 'text-indigo-600 dark:text-indigo-300'
@@ -206,7 +206,7 @@ export function HubNavSwitcher({ active }: { active: HubNavId }) {
         <PopoverHeader className="px-3 pt-3 pb-2">
           <PopoverTitle className="text-slate-900 dark:text-slate-50">Go to</PopoverTitle>
           <PopoverDescription className="text-slate-500 dark:text-slate-400">
-            Home, catalog, and every game.
+            Home, puzzles, and every game.
           </PopoverDescription>
         </PopoverHeader>
         <div className="flex flex-col gap-0.5 px-1.5 pb-2">

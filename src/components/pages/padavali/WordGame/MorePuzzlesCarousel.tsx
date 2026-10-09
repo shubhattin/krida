@@ -95,7 +95,7 @@ function MorePuzzlesCarouselSkeleton({
   );
 }
 
-const ExploreMoreCarouselCard = () => {
+const AllPuzzlesCarouselCard = () => {
   const [w, h] = PUZZLE_CARD_IMAGE_ASPECT_RATIO;
   const [started] = useAtom(started_atom);
   const [completed] = useAtom(completed_atom);
@@ -104,13 +104,13 @@ const ExploreMoreCarouselCard = () => {
   const handleClick = (e: React.MouseEvent<HTMLAnchorElement>) => {
     if (started && !completed) {
       e.preventDefault();
-      setPendingUrl('/explore?game=padavali');
+      setPendingUrl('/puzzles?game=padavali');
     }
   };
 
   return (
     <Link
-      to="/explore"
+      to="/puzzles"
       search={{ game: 'padavali' }}
       onClick={handleClick}
       className="group flex h-full flex-col overflow-hidden rounded-xl border border-dashed border-blue-300 bg-linear-to-br from-blue-50 to-indigo-50 no-underline shadow-lg transition-all duration-200 hover:border-blue-400 hover:shadow-xl dark:border-blue-600/60 dark:from-blue-950/40 dark:to-indigo-950/40 dark:hover:border-blue-500"
@@ -124,7 +124,7 @@ const ExploreMoreCarouselCard = () => {
         </div>
         <div>
           <div className="text-sm font-semibold text-blue-700 sm:text-base dark:text-blue-300">
-            Explore more
+            All puzzles
           </div>
           <div className="mt-1 text-xs text-slate-500 dark:text-slate-400">View all puzzles</div>
         </div>
@@ -193,7 +193,7 @@ export const MorePuzzlesCarousel = ({
   const handleViewAllClick = (e: React.MouseEvent<HTMLAnchorElement>) => {
     if (started && !completed) {
       e.preventDefault();
-      setPendingUrl('/explore?game=padavali');
+      setPendingUrl('/puzzles?game=padavali');
     }
   };
 
@@ -247,7 +247,7 @@ export const MorePuzzlesCarousel = ({
             <div className="flex shrink-0 items-center gap-2">
               {/* View All Puzzles link — always visible */}
               <Link
-                to="/explore"
+                to="/puzzles"
                 search={{ game: 'padavali' }}
                 onClick={handleViewAllClick}
                 className="flex items-center justify-center gap-1 rounded-full border border-blue-200/70 bg-blue-50/80 px-2.5 py-1 text-xs leading-none font-medium text-blue-600 no-underline transition-all duration-150 hover:bg-blue-100 hover:text-blue-700 dark:border-blue-700/50 dark:bg-blue-950/40 dark:text-blue-400 dark:hover:bg-blue-900/50"
@@ -273,7 +273,7 @@ export const MorePuzzlesCarousel = ({
               </CarouselItem>
             ))}
             <CarouselItem className={carouselItemClass}>
-              <ExploreMoreCarouselCard />
+              <AllPuzzlesCarouselCard />
             </CarouselItem>
           </CarouselContent>
         </Carousel>
@@ -308,7 +308,7 @@ export const MorePuzzlesAccordion = ({ excludeSlug, excludeId, className }: Acco
   const handleLinkClick = (e: React.MouseEvent<HTMLAnchorElement>) => {
     if (started && !completed) {
       e.preventDefault();
-      setPendingUrl('/explore?game=padavali');
+      setPendingUrl('/puzzles?game=padavali');
     }
   };
 
@@ -335,7 +335,7 @@ export const MorePuzzlesAccordion = ({ excludeSlug, excludeId, className }: Acco
 
             {/* Round Blue Link to Puzzles */}
             <Link
-              to="/explore"
+              to="/puzzles"
               search={{ game: 'padavali' }}
               onClick={handleLinkClick}
               aria-label="Browse all puzzles"
