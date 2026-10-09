@@ -6,6 +6,11 @@ const ROBOTS_TXT = `User-agent: *
 Allow: /
 Disallow: /api/
 Disallow: /dashboard
+Disallow: /admin
+Disallow: /analytics
+Disallow: /collections/list
+Disallow: /collections/edit
+Disallow: /tags/list
 Disallow: /padavali/list
 Disallow: /padavali/edit
 Disallow: /padavali/schedules

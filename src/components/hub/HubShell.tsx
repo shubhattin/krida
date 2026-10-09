@@ -7,13 +7,13 @@ import { HubFooter } from './HubFooter';
 export default function HubShell({ children }: { children: ReactNode }) {
   return (
     <div className="public-canvas flex min-h-dvh flex-col text-foreground">
-      {/* Admin menu items render only for admins, so visitors see no change. */}
+      {/* Collection edit (when open) first, then admin hub + shortcuts — admins only. */}
       <HubHeader
         showPwaControls
         gameMenuItems={
           <>
-            <AllGamesMenuItems />
             <CollectionAdminMenuItems />
+            <AllGamesMenuItems />
           </>
         }
       />

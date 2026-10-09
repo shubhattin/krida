@@ -9,13 +9,15 @@ import {
   BarChart3,
   Images,
   Layers,
-  Tag
+  Tag,
+  Shield
 } from 'lucide-react';
 import { useAtom } from 'jotai';
 import { active_puzzle_id_atom } from '~/components/pages/padavali/WordGame/game_state';
 import { active_crossword_id_atom } from '~/components/pages/cross_word/CrossWordGame/game_state';
 import { active_collection_atom } from '~/components/pages/catalog/catalog_admin_state';
 import { useSession } from '~/lib/auth-client';
+import { cn } from '~/lib/utils';
 
 const accountMenuLinkClass =
   'flex min-w-0 w-full items-center gap-1.5 rounded-md border border-slate-200 bg-slate-50 px-2 py-1.5 text-left text-xs font-medium text-slate-700 transition-colors hover:border-slate-300 hover:bg-slate-100 dark:border-slate-700 dark:bg-slate-800/50 dark:text-slate-300 dark:hover:border-slate-600 dark:hover:bg-slate-700/50';
@@ -23,13 +25,83 @@ const accountMenuLinkClass =
 const accountMenuIconClass =
   'flex size-5 shrink-0 items-center justify-center rounded-md bg-linear-to-br';
 
-/** Menu entries shown on the central `/analytics` page. */
-export function AllGamesMenuItems({ onNavigate }: { onNavigate?: () => void }) {
-  const user_info = useSession().data?.user;
-  if (!user_info || user_info.role !== 'admin') return null;
+function useIsAdmin() {
+  const user = useSession().data?.user;
+  return !!user && user.role === 'admin';
+}
+
+/** Primary entry to the central `/admin` hub. */
+export function AdminPageMenuLink({
+  onNavigate,
+  prominent = false
+}: {
+  onNavigate?: () => void;
+  /** Full-width, slightly taller treatment for hub pages. */
+  prominent?: boolean;
+}) {
+  if (!useIsAdmin()) return null;
+
+  return (
+    <Link
+      to="/admin"
+      onClick={onNavigate}
+      className={cn(
+        accountMenuLinkClass,
+        prominent && 'col-span-2 gap-2.5 px-3 py-2.5 text-sm font-semibold'
+      )}
+    >
+      <div
+        className={cn(
+          accountMenuIconClass,
+          'from-blue-500 to-indigo-600',
+          prominent && 'size-7 rounded-lg'
+        )}
+      >
+        <Shield className={cn('text-white', prominent ? 'size-3.5' : 'size-3')} />
+      </div>
+      <span className="min-w-0 truncate">
+        {prominent ? 'Admin' : 'Admin hub'}
+        {prominent ? (
+          <span className="mt-0.5 block text-[11px] font-normal text-slate-500 dark:text-slate-400">
+            Manage puzzles, analytics & catalog
+          </span>
+        ) : null}
+      </span>
+    </Link>
+  );
+}
+
+/** Shared catalog pages — collections and tags span every game. */
+export function CatalogAdminMenuItems({ onNavigate }: { onNavigate?: () => void }) {
+  const isAdmin = useIsAdmin();
+  if (!isAdmin) return null;
 
   return (
     <>
+      <Link to="/collections/list" onClick={onNavigate} className={accountMenuLinkClass}>
+        <div className={`${accountMenuIconClass} from-indigo-500 to-violet-600`}>
+          <Layers className="size-3 text-white" />
+        </div>
+        <span className="truncate">Collections</span>
+      </Link>
+      <Link to="/tags/list" onClick={onNavigate} className={accountMenuLinkClass}>
+        <div className={`${accountMenuIconClass} from-cyan-500 to-sky-600`}>
+          <Tag className="size-3 text-white" />
+        </div>
+        <span className="truncate">Tags</span>
+      </Link>
+    </>
+  );
+}
+
+/** Hub (`/`, `/explore`) — admin hub first, then cross-game shortcuts. */
+export function AllGamesMenuItems({ onNavigate }: { onNavigate?: () => void }) {
+  const isAdmin = useIsAdmin();
+  if (!isAdmin) return null;
+
+  return (
+    <>
+      <AdminPageMenuLink onNavigate={onNavigate} prominent />
       <Link to="/analytics" onClick={onNavigate} className={accountMenuLinkClass}>
         <div className={`${accountMenuIconClass} from-blue-500 to-indigo-600`}>
           <ChartNoAxesCombined className="size-3 text-white" />
@@ -53,53 +125,18 @@ export function AllGamesMenuItems({ onNavigate }: { onNavigate?: () => void }) {
   );
 }
 
-/** Cross-link to the central analytics page, prepended to each game menu. */
-function AllAnalyticsLink({ onNavigate }: { onNavigate?: () => void }) {
-  return (
-    <Link to="/analytics" onClick={onNavigate} className={accountMenuLinkClass}>
-      <div className={`${accountMenuIconClass} from-blue-500 to-indigo-600`}>
-        <ChartNoAxesCombined className="size-3 text-white" />
-      </div>
-      <span className="truncate">All analytics</span>
-    </Link>
-  );
-}
-
-/** Shared catalog pages — collections and tags span every game. */
-export function CatalogAdminMenuItems({ onNavigate }: { onNavigate?: () => void }) {
-  const user_info = useSession().data?.user;
-  if (!user_info || user_info.role !== 'admin') return null;
-
-  return (
-    <>
-      <Link to="/collections/list" onClick={onNavigate} className={accountMenuLinkClass}>
-        <div className={`${accountMenuIconClass} from-indigo-500 to-violet-600`}>
-          <Layers className="size-3 text-white" />
-        </div>
-        <span className="truncate">Collections</span>
-      </Link>
-      <Link to="/tags/list" onClick={onNavigate} className={accountMenuLinkClass}>
-        <div className={`${accountMenuIconClass} from-cyan-500 to-sky-600`}>
-          <Tag className="size-3 text-white" />
-        </div>
-        <span className="truncate">Tags</span>
-      </Link>
-    </>
-  );
-}
-
 /** "Edit collection" shortcut, visible only on a public collection page. */
 export function CollectionAdminMenuItems({ onNavigate }: { onNavigate?: () => void }) {
-  const user_info = useSession().data?.user;
+  const isAdmin = useIsAdmin();
   const [activeCollection] = useAtom(active_collection_atom);
-  if (!user_info || user_info.role !== 'admin' || !activeCollection) return null;
+  if (!isAdmin || !activeCollection) return null;
 
   return (
     <Link
       to="/collections/edit/$uid"
       params={{ uid: activeCollection.uid }}
       onClick={onNavigate}
-      className={accountMenuLinkClass}
+      className={cn(accountMenuLinkClass, 'col-span-2')}
     >
       <div className={`${accountMenuIconClass} from-amber-500 to-orange-600`}>
         <Pencil className="size-3 text-white" />
@@ -109,26 +146,28 @@ export function CollectionAdminMenuItems({ onNavigate }: { onNavigate?: () => vo
   );
 }
 
+/** Padāvalī routes — edit current puzzle, admin hub, then game tools. */
 export function PadavaliMenuItems({ onNavigate }: { onNavigate?: () => void }) {
-  const user_info = useSession().data?.user;
+  const isAdmin = useIsAdmin();
   const [activePuzzleId] = useAtom(active_puzzle_id_atom);
-  if (!user_info || user_info.role !== 'admin') return null;
+  if (!isAdmin) return null;
 
   return (
     <>
-      {activePuzzleId != null && (
+      {activePuzzleId != null ? (
         <Link
           to="/padavali/edit/$id"
           params={{ id: String(activePuzzleId) }}
           onClick={onNavigate}
-          className={accountMenuLinkClass}
+          className={cn(accountMenuLinkClass, 'col-span-2')}
         >
           <div className={`${accountMenuIconClass} from-amber-500 to-orange-600`}>
             <Pencil className="size-3 text-white" />
           </div>
-          <span className="truncate">Edit #{activePuzzleId}</span>
+          <span className="truncate">Edit puzzle #{activePuzzleId}</span>
         </Link>
-      )}
+      ) : null}
+      <AdminPageMenuLink onNavigate={onNavigate} prominent />
       <Link to="/padavali/list" onClick={onNavigate} className={accountMenuLinkClass}>
         <div className={`${accountMenuIconClass} from-purple-500 to-violet-600`}>
           <List className="size-3 text-white" />
@@ -147,38 +186,39 @@ export function PadavaliMenuItems({ onNavigate }: { onNavigate?: () => void }) {
         </div>
         <span className="truncate">Analytics</span>
       </Link>
-      <AllAnalyticsLink onNavigate={onNavigate} />
-      <CatalogAdminMenuItems onNavigate={onNavigate} />
       <Link to="/padavali/batch_manager" onClick={onNavigate} className={accountMenuLinkClass}>
         <div className={`${accountMenuIconClass} from-fuchsia-500 to-pink-600`}>
           <Images className="size-3 text-white" />
         </div>
         <span className="truncate">Batches</span>
       </Link>
+      <CatalogAdminMenuItems onNavigate={onNavigate} />
     </>
   );
 }
 
+/** Padajāla routes — edit current crossword, admin hub, then game tools. */
 export function CrosswordMenuItems({ onNavigate }: { onNavigate?: () => void }) {
-  const user_info = useSession().data?.user;
+  const isAdmin = useIsAdmin();
   const [activeCrosswordId] = useAtom(active_crossword_id_atom);
-  if (!user_info || user_info.role !== 'admin') return null;
+  if (!isAdmin) return null;
 
   return (
     <>
-      {activeCrosswordId != null && (
+      {activeCrosswordId != null ? (
         <Link
           to="/padajala/edit/$id"
           params={{ id: String(activeCrosswordId) }}
           onClick={onNavigate}
-          className={accountMenuLinkClass}
+          className={cn(accountMenuLinkClass, 'col-span-2')}
         >
           <div className={`${accountMenuIconClass} from-amber-500 to-orange-600`}>
             <Pencil className="size-3 text-white" />
           </div>
-          <span className="truncate">Edit #{activeCrosswordId}</span>
+          <span className="truncate">Edit puzzle #{activeCrosswordId}</span>
         </Link>
-      )}
+      ) : null}
+      <AdminPageMenuLink onNavigate={onNavigate} prominent />
       <Link to="/padajala/list" onClick={onNavigate} className={accountMenuLinkClass}>
         <div className={`${accountMenuIconClass} from-purple-500 to-violet-600`}>
           <List className="size-3 text-white" />
@@ -197,14 +237,13 @@ export function CrosswordMenuItems({ onNavigate }: { onNavigate?: () => void }) 
         </div>
         <span className="truncate">Analytics</span>
       </Link>
-      <AllAnalyticsLink onNavigate={onNavigate} />
-      <CatalogAdminMenuItems onNavigate={onNavigate} />
       <Link to="/padajala/batch_manager" onClick={onNavigate} className={accountMenuLinkClass}>
         <div className={`${accountMenuIconClass} from-fuchsia-500 to-pink-600`}>
           <Images className="size-3 text-white" />
         </div>
         <span className="truncate">Batches</span>
       </Link>
+      <CatalogAdminMenuItems onNavigate={onNavigate} />
     </>
   );
 }
