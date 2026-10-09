@@ -1,6 +1,5 @@
 import { createFileRoute, redirect } from '@tanstack/react-router';
 import { AllGamesMenuItems } from '~/components/app-bar/GameMenuItems';
-import { HubFooter } from '~/components/hub/HubFooter';
 import { HubHeader } from '~/components/hub/HubHeader';
 import { TagEditPage } from '~/components/pages/catalog/TagEditPage';
 import { routeHeadFromPageMeta } from '~/components/tags/getPageMetaTags';
@@ -26,7 +25,6 @@ function TagEditRoute() {
       <div className="mx-2 flex-1">
         <TagEditPage slug={slug} />
       </div>
-      <HubFooter />
     </div>
   );
 }

@@ -1,6 +1,5 @@
 import { createFileRoute, Outlet, redirect } from '@tanstack/react-router';
 import { PadavaliMenuItems } from '~/components/app-bar/GameMenuItems';
-import { HubFooter } from '~/components/hub/HubFooter';
 import { HubHeader } from '~/components/hub/HubHeader';
 import { getUserSession$ } from '~/lib/get_auth_from_cookie';
 
@@ -23,7 +22,6 @@ function AuthLayout() {
       <div className="mx-2 flex-1">
         <Outlet />
       </div>
-      <HubFooter showPwa showOneSignal />
     </div>
   );
 }

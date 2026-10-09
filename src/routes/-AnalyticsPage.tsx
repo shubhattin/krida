@@ -30,7 +30,6 @@ import {
 import { useAnalyticsPeriod } from '~/components/analytics/analytics_period';
 import { GameAnalyticsLinks } from '~/components/analytics/GameAnalyticsLinks';
 import { TopPlayedLeader, type TopPlayedRow } from '~/components/analytics/TopPlayedLeader';
-import { HubFooter } from '~/components/hub/HubFooter';
 import { HubHeader } from '~/components/hub/HubHeader';
 import { HUB_GAMES } from '~/components/hub/hub_games';
 import { Card } from '~/components/ui/card';
@@ -293,8 +292,6 @@ export default function AnalyticsPage() {
           </div>
         ) : null}
       </main>
-
-      <HubFooter />
     </div>
   );
 }

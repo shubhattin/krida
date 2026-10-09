@@ -21,7 +21,6 @@ import {
 } from '~/components/ui/card';
 import { Skeleton } from '~/components/ui/skeleton';
 import { Tabs, TabsList, TabsTrigger } from '~/components/ui/tabs';
-import { HubFooter } from '~/components/hub/HubFooter';
 import { HubHeader } from '~/components/hub/HubHeader';
 import { useSession } from '~/lib/auth-client';
 import { cn } from '~/lib/utils';
@@ -125,8 +124,6 @@ function DashboardPage() {
           </div>
         ) : null}
       </main>
-
-      <HubFooter />
     </div>
   );
 }

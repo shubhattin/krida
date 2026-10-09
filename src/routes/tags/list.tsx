@@ -1,7 +1,6 @@
 import { createFileRoute, redirect } from '@tanstack/react-router';
 import { Tag } from 'lucide-react';
 import { AllGamesMenuItems } from '~/components/app-bar/GameMenuItems';
-import { HubFooter } from '~/components/hub/HubFooter';
 import { HubHeader } from '~/components/hub/HubHeader';
 import { AdminTagsList } from '~/components/pages/catalog/AdminTagsList';
 import { routeHeadFromPageMeta } from '~/components/tags/getPageMetaTags';
@@ -41,7 +40,6 @@ function TagsListRoute() {
         </div>
         <AdminTagsList />
       </main>
-      <HubFooter />
     </div>
   );
 }

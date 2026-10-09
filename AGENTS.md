@@ -35,6 +35,13 @@
 - Never start the dev server, as it would be already running on the provisioned port.
 - Never run git commit commands on your own
 
+# Lipi Lekhika
+
+Whenever you add Lipi Lekhika typing on an input, search field, or dialog:
+
+- Default the switch **off**, unless the user explicitly asks for it on.
+- Also wire **Alt+X / Alt+C** to toggle it (same pattern as existing catalog and hub search).
+
 # AI
 
 - Before making any new chnages always read te current contens of file as soemtimes there might be manually done changes which might overwrite.

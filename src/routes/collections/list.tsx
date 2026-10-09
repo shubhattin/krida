@@ -1,7 +1,6 @@
 import { createFileRoute, redirect } from '@tanstack/react-router';
 import { Layers } from 'lucide-react';
 import { AllGamesMenuItems } from '~/components/app-bar/GameMenuItems';
-import { HubFooter } from '~/components/hub/HubFooter';
 import { HubHeader } from '~/components/hub/HubHeader';
 import { AdminCollectionsList } from '~/components/pages/catalog/AdminCollectionsList';
 import { routeHeadFromPageMeta } from '~/components/tags/getPageMetaTags';
@@ -41,7 +40,6 @@ function CollectionsListRoute() {
         </div>
         <AdminCollectionsList />
       </main>
-      <HubFooter />
     </div>
   );
 }

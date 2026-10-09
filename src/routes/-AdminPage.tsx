@@ -14,7 +14,6 @@ import {
 } from 'lucide-react';
 import { AllGamesMenuItems } from '~/components/app-bar/GameMenuItems';
 import { GameAppIcon } from '~/components/GameAppIcon';
-import { HubFooter } from '~/components/hub/HubFooter';
 import { HubHeader } from '~/components/hub/HubHeader';
 import { HUB_GAMES } from '~/components/hub/hub_games';
 import { cn } from '~/lib/utils';
@@ -210,8 +209,6 @@ export default function AdminPage() {
           />
         </AdminSection>
       </main>
-
-      <HubFooter />
     </div>
   );
 }

@@ -124,7 +124,10 @@ function RecentlyAdded({ puzzles }: { puzzles: ReturnType<typeof useHubPuzzles>[
               key={puzzle.key}
               initial={reduceMotion ? false : { opacity: 0, y: 8 }}
               animate={{ opacity: 1, y: 0 }}
-              transition={{ duration: 0.28, delay: reduceMotion ? 0 : index * 0.04 }}
+              transition={{
+                duration: 0.28,
+                delay: reduceMotion ? 0 : index * 0.04
+              }}
             >
               <HubPuzzleCard puzzle={puzzle} />
             </motion.div>
@@ -151,7 +154,7 @@ export default function HubHome({ data }: { data: HubData }) {
         <div className="absolute top-28 right-1/5 size-72 rounded-full bg-amber-400/10 blur-3xl dark:bg-amber-500/8" />
       </div>
 
-      <div className="relative mx-auto flex max-w-6xl flex-col gap-12 px-4 py-6 sm:gap-14 sm:py-8">
+      <div className="relative mx-auto flex max-w-6xl flex-col gap-7 px-4 py-4 sm:gap-14 sm:py-8">
         <HubGameShowcase />
 
         {todayGames.length > 0 ? (
@@ -210,7 +213,10 @@ export default function HubHome({ data }: { data: HubData }) {
                   key={collection.uid}
                   initial={reduceMotion ? false : { opacity: 0, y: 8 }}
                   animate={{ opacity: 1, y: 0 }}
-                  transition={{ duration: 0.28, delay: reduceMotion ? 0 : index * 0.05 }}
+                  transition={{
+                    duration: 0.28,
+                    delay: reduceMotion ? 0 : index * 0.05
+                  }}
                   className="w-64 shrink-0 snap-start sm:w-72"
                 >
                   <HubCollectionCard collection={collection} />

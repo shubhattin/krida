@@ -1,6 +1,6 @@
 'use client';
 
-import { useEffect, useMemo, useState } from 'react';
+import { useEffect, useMemo, useState, type KeyboardEvent } from 'react';
 import { useQuery } from '@tanstack/react-query';
 import { SearchIcon, XIcon } from 'lucide-react';
 import {
@@ -51,7 +51,7 @@ export function AddGamesDialog({
   const [query, setQuery] = useState('');
   const [tagSlug, setTagSlug] = useState('');
   const [game, setGame] = useState<'all' | GameKind>('all');
-  const [lipi, setLipi] = useState(true);
+  const [lipi, setLipi] = useState(false);
   const [picked, setPicked] = useState<PickedGame[]>([]);
   const typing = useMemo(() => createTypingContext('Devanagari'), []);
   const tags_q = useQuery(trpc.catalog.list_tags.queryOptions({ page: 1, size: 100 }));
@@ -74,6 +74,18 @@ export function AddGamesDialog({
     return !existingKeys.has(key) && !pickedKeys.has(key);
   });
 
+  const toggleLipiOnShortcut = (event: KeyboardEvent) => {
+    if (
+      event.altKey &&
+      (event.key === 'x' || event.key === 'X' || event.key === 'c' || event.key === 'C')
+    ) {
+      event.preventDefault();
+      setLipi((prev) => !prev);
+      return true;
+    }
+    return false;
+  };
+
   const toggle = (puzzle: PickedGame) => {
     setPicked((current) => {
       const key = `${puzzle.game}:${puzzle.id}`;
@@ -92,7 +104,12 @@ export function AddGamesDialog({
         onOpenChange(next);
       }}
     >
-      <DialogContent className="flex max-h-[85vh] flex-col gap-3 overflow-hidden sm:max-w-2xl">
+      <DialogContent
+        className="flex max-h-[85vh] flex-col gap-3 overflow-hidden sm:max-w-2xl"
+        onKeyDown={(event) => {
+          toggleLipiOnShortcut(event);
+        }}
+      >
         <DialogHeader>
           <DialogTitle>Add games</DialogTitle>
         </DialogHeader>
@@ -140,7 +157,15 @@ export function AddGamesDialog({
               onChange={(event) => setQuery(event.currentTarget.value)}
               onBeforeInput={(event) => handleTypingBeforeInputEvent(typing, event, setQuery, lipi)}
               onBlur={() => typing.clearContext()}
-              onKeyDown={(event) => clearTypingContextOnKeyDown(event, typing)}
+              onKeyDown={(event) => {
+                if (
+                  event.altKey &&
+                  (event.key === 'x' || event.key === 'X' || event.key === 'c' || event.key === 'C')
+                ) {
+                  return;
+                }
+                clearTypingContextOnKeyDown(event, typing);
+              }}
             />
           </InputGroup>
           <Label className="inline-flex items-center gap-1">

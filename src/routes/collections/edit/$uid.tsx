@@ -1,6 +1,5 @@
 import { createFileRoute, redirect } from '@tanstack/react-router';
 import { AllGamesMenuItems } from '~/components/app-bar/GameMenuItems';
-import { HubFooter } from '~/components/hub/HubFooter';
 import { HubHeader } from '~/components/hub/HubHeader';
 import { CollectionEditPage } from '~/components/pages/catalog/CollectionEditPage';
 import { routeHeadFromPageMeta } from '~/components/tags/getPageMetaTags';
@@ -26,7 +25,6 @@ function CollectionEditRoute() {
       <div className="mx-2 flex-1">
         <CollectionEditPage uid={uid} />
       </div>
-      <HubFooter />
     </div>
   );
 }
