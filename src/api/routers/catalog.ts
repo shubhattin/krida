@@ -112,12 +112,20 @@ const ensureTagsBySlugs = async (tx: DbTransaction, slugs: string[]) => {
     .where(inArray(tags.slug, unique));
 };
 
+const tagUsageSql = sql<number>`(
+  (select count(*)::int from padavali_puzzle_tags pt where pt.tag_id = ${tags.id})
+  + (select count(*)::int from crossword_puzzle_tags ct where ct.tag_id = ${tags.id})
+)`;
+
 const list_tags_route = protectedAdminProcedure
   .input(
     z.object({
       page: z.number().int().min(1).default(1),
       size: z.number().int().min(1).max(100).default(24),
-      search: z.string().max(80).optional()
+      search: z.string().max(80).optional(),
+      sort: z.enum(['slug', 'name', 'created_at', 'count']).default('slug'),
+      order: z.enum(['asc', 'desc']).default('asc'),
+      usage: z.enum(['all', 'used', 'unused']).default('all')
     })
   )
   .query(({ input }) =>
@@ -125,9 +133,23 @@ const list_tags_route = protectedAdminProcedure
       Effect.gen(function* () {
         const search = input.search?.trim();
         const pattern = search ? `%${escapeIlikeToken(search)}%` : undefined;
-        const whereClause = pattern
+        const searchWhere = pattern
           ? or(ilike(tags.slug, pattern), ilike(tags.name, pattern))
           : undefined;
+        const usageWhere =
+          input.usage === 'used'
+            ? sql`${tagUsageSql} > 0`
+            : input.usage === 'unused'
+              ? sql`${tagUsageSql} = 0`
+              : undefined;
+        const whereClause = and(searchWhere, usageWhere);
+        const sortColumn = {
+          slug: tags.slug,
+          name: tags.name,
+          created_at: tags.created_at,
+          count: tagUsageSql
+        }[input.sort];
+        const orderBy = input.order === 'desc' ? desc(sortColumn) : asc(sortColumn);
         const offset = (input.page - 1) * input.size;
 
         const { countResult, rows } = yield* Effect.all({
@@ -149,7 +171,7 @@ const list_tags_route = protectedAdminProcedure
               })
               .from(tags)
               .where(whereClause)
-              .orderBy(asc(tags.slug))
+              .orderBy(orderBy, asc(tags.slug))
               .limit(input.size)
               .offset(offset)
           )
@@ -343,6 +365,8 @@ const list_collections_route = protectedAdminProcedure.query(() =>
           title: collections.title,
           description: collections.description,
           listed: collections.listed,
+          created_at: collections.created_at,
+          updated_at: collections.updated_at,
           image_s3_key: image_assets.s3_key,
           padavali_count: sql<number>`(
             select count(*)::int from padavali_collection_items pi

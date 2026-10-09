@@ -22,10 +22,22 @@ import {
 } from '@dnd-kit/sortable';
 import { CSS } from '@dnd-kit/utilities';
 import { atom, createStore, Provider, useAtom } from 'jotai';
-import { ArrowLeftIcon, GripVerticalIcon, ImageIcon, SearchIcon, Wand2, XIcon } from 'lucide-react';
+import {
+  ArrowLeftIcon,
+  GripVerticalIcon,
+  ImageIcon,
+  SearchIcon,
+  SquareArrowOutUpRight,
+  Wand2,
+  XIcon
+} from 'lucide-react';
 import { toast } from 'sonner';
 import { useTRPC } from '~/api/client';
-import { GameKindIcon, gameKindLabel } from '~/components/pages/catalog/GameKindIcon';
+import {
+  GameKindIcon,
+  PuzzleEditLink,
+  gameKindLabel
+} from '~/components/pages/catalog/GameKindIcon';
 import { invalidateCatalogQueries } from '~/components/pages/catalog/invalidateCatalogQueries';
 import { EditorActionDock } from '~/components/pages/puzzle/EditorActionDock';
 import { Button } from '~/components/ui/button';
@@ -672,13 +684,24 @@ function CollectionItemsSection() {
                 className="h-10 w-14 shrink-0 rounded object-cover"
               />
             ) : null}
-            <div className="min-w-0 flex-1">
-              <p className="truncate text-sm font-medium">{item.puzzle.title}</p>
+            <PuzzleEditLink
+              game={item.game}
+              id={item.puzzle.id}
+              className="min-w-0 flex-1 no-underline"
+            >
+              <p className="flex items-center gap-1.5 truncate text-sm font-medium text-foreground hover:underline">
+                <span className="truncate">{item.puzzle.title}</span>
+                <SquareArrowOutUpRight
+                  className="size-3 shrink-0 text-muted-foreground"
+                  aria-hidden
+                />
+              </p>
               <p className="truncate text-xs text-muted-foreground">
                 {gameKindLabel(item.game)}
                 {item.puzzle.description ? ` · ${item.puzzle.description}` : ''}
               </p>
-            </div>
+              <span className="sr-only">Edit {item.puzzle.title} (opens in a new tab)</span>
+            </PuzzleEditLink>
             <Button
               type="button"
               size="icon-sm"
