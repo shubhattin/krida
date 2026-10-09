@@ -104,13 +104,14 @@ const ExploreMoreCarouselCard = () => {
   const handleClick = (e: React.MouseEvent<HTMLAnchorElement>) => {
     if (started && !completed) {
       e.preventDefault();
-      setPendingUrl('/padavali/puzzles');
+      setPendingUrl('/explore?game=padavali');
     }
   };
 
   return (
     <Link
-      to="/padavali/puzzles"
+      to="/explore"
+      search={{ game: 'padavali' }}
       onClick={handleClick}
       className="group flex h-full flex-col overflow-hidden rounded-xl border border-dashed border-blue-300 bg-linear-to-br from-blue-50 to-indigo-50 no-underline shadow-lg transition-all duration-200 hover:border-blue-400 hover:shadow-xl dark:border-blue-600/60 dark:from-blue-950/40 dark:to-indigo-950/40 dark:hover:border-blue-500"
     >
@@ -192,7 +193,7 @@ export const MorePuzzlesCarousel = ({
   const handleViewAllClick = (e: React.MouseEvent<HTMLAnchorElement>) => {
     if (started && !completed) {
       e.preventDefault();
-      setPendingUrl('/padavali/puzzles');
+      setPendingUrl('/explore?game=padavali');
     }
   };
 
@@ -246,7 +247,8 @@ export const MorePuzzlesCarousel = ({
             <div className="flex shrink-0 items-center gap-2">
               {/* View All Puzzles link — always visible */}
               <Link
-                to="/padavali/puzzles"
+                to="/explore"
+                search={{ game: 'padavali' }}
                 onClick={handleViewAllClick}
                 className="flex items-center justify-center gap-1 rounded-full border border-blue-200/70 bg-blue-50/80 px-2.5 py-1 text-xs leading-none font-medium text-blue-600 no-underline transition-all duration-150 hover:bg-blue-100 hover:text-blue-700 dark:border-blue-700/50 dark:bg-blue-950/40 dark:text-blue-400 dark:hover:bg-blue-900/50"
               >
@@ -306,7 +308,7 @@ export const MorePuzzlesAccordion = ({ excludeSlug, excludeId, className }: Acco
   const handleLinkClick = (e: React.MouseEvent<HTMLAnchorElement>) => {
     if (started && !completed) {
       e.preventDefault();
-      setPendingUrl('/padavali/puzzles');
+      setPendingUrl('/explore?game=padavali');
     }
   };
 
@@ -333,7 +335,8 @@ export const MorePuzzlesAccordion = ({ excludeSlug, excludeId, className }: Acco
 
             {/* Round Blue Link to Puzzles */}
             <Link
-              to="/padavali/puzzles"
+              to="/explore"
+              search={{ game: 'padavali' }}
               onClick={handleLinkClick}
               aria-label="Browse all puzzles"
               className="flex size-7 shrink-0 items-center justify-center rounded-full border border-blue-200/70 bg-blue-50/80 text-blue-600 shadow-sm transition-all duration-150 hover:bg-blue-100 hover:text-blue-700 dark:border-blue-700/50 dark:bg-blue-950/40 dark:text-blue-400 dark:hover:bg-blue-900/50"

@@ -9,7 +9,8 @@ export type HubGameMeta = {
   subtitle: string;
   description: string;
   href: '/padavali' | '/padajala';
-  puzzlesHref: '/padavali/puzzles' | '/padajala/puzzles';
+  /** Explore filter for this game (`?game=`). */
+  exploreGame: 'padavali' | 'crossword';
 };
 
 export const HUB_GAMES = {
@@ -20,7 +21,7 @@ export const HUB_GAMES = {
     subtitle: 'Word Search',
     description: 'Find hidden Sanskrit words by dragging across a grid of letters.',
     href: '/padavali',
-    puzzlesHref: '/padavali/puzzles'
+    exploreGame: 'padavali'
   },
   crossword: {
     kind: 'crossword',
@@ -29,7 +30,7 @@ export const HUB_GAMES = {
     subtitle: 'Crossword',
     description: 'Solve Sanskrit crossword puzzles and expand your vocabulary.',
     href: '/padajala',
-    puzzlesHref: '/padajala/puzzles'
+    exploreGame: 'crossword'
   }
 } as const satisfies Record<GameKind, HubGameMeta>;
 

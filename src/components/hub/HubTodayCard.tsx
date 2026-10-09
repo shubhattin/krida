@@ -68,7 +68,13 @@ export function HubTodayCard({
             <Button
               nativeButton={false}
               variant="outline"
-              render={<Link to={game.puzzlesHref} className="inline-flex items-center gap-1.5" />}
+              render={
+                <Link
+                  to="/explore"
+                  search={{ game: game.exploreGame }}
+                  className="inline-flex items-center gap-1.5"
+                />
+              }
             >
               Browse puzzles
               <ArrowRight className="size-3.5" />
