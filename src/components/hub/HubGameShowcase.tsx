@@ -116,7 +116,7 @@ export function HubGameShowcase() {
               className="min-w-0 basis-full sm:basis-1/2"
               aria-label={game.name}
             >
-              <GameShowcaseCard game={game} index={index} compact />
+              <GameShowcaseCard game={game} index={index} compact cardLink="puzzles" />
             </CarouselItem>
           ))}
         </CarouselContent>

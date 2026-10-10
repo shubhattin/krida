@@ -51,6 +51,25 @@ export function hubNavFromPath(pathname: string): HubNavId {
   return 'home';
 }
 
+/** Home `#` anchors for deep-linking into the puzzles section (`/#padavali`, `/#padajala`). */
+export type HubHomeHash = 'puzzles' | 'padavali' | 'padajala';
+
+/** Map hub filter value → home page hash (padajala branding, not `crossword`). */
+export function hubHomeHashForGame(game: 'all' | PublicGameKind): HubHomeHash {
+  if (game === 'padavali') return 'padavali';
+  if (game === 'crossword') return 'padajala';
+  return 'puzzles';
+}
+
+/** Parse `/#padavali` / `/#padajala` / `/#puzzles` into the home puzzles filter. */
+export function hubGameFromHomeHash(hash: string): 'all' | PublicGameKind | null {
+  const id = hash.startsWith('#') ? hash.slice(1) : hash;
+  if (id === 'padavali') return 'padavali';
+  if (id === 'padajala') return 'crossword';
+  if (id === 'puzzles') return 'all';
+  return null;
+}
+
 export const HUB_GAME_ACCENT = {
   padavali: {
     badge: 'border-blue-300/70 bg-blue-600 text-white dark:border-blue-400/40 dark:bg-blue-500',

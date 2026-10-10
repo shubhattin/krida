@@ -17,7 +17,13 @@ import {
 import { Separator } from '~/components/ui/separator';
 import { GAME_APP_ICON_SRC, GameAppIcon } from '~/components/GameAppIcon';
 import { cn } from '~/lib/utils';
-import { HUB_GAME_LIST, HUB_GAMES, type HubGameMeta, type HubNavId } from './hub_games';
+import {
+  HUB_GAME_LIST,
+  HUB_GAMES,
+  hubHomeHashForGame,
+  type HubGameMeta,
+  type HubNavId
+} from './hub_games';
 
 const PLACES: {
   key: 'home' | 'puzzles';
@@ -115,7 +121,9 @@ function GameNavCard({ game, active }: { game: HubGameMeta; active: boolean }) {
   const selected = active ? GAME_CARD_ACTIVE[game.kind] : null;
   return (
     <Link
-      to={game.href}
+      to="/"
+      search={{ game: game.kind }}
+      hash={hubHomeHashForGame(game.kind)}
       aria-current={active ? 'page' : undefined}
       className={cn(
         'flex min-w-0 flex-col gap-2 rounded-2xl border p-2.5 no-underline transition-colors',

@@ -1,14 +1,14 @@
 'use client';
 
-import { useContext, useState, type ReactNode } from 'react';
-import { Link } from '@tanstack/react-router';
+import { useContext, useEffect, useRef, type ReactNode } from 'react';
+import { Link, getRouteApi, useNavigate, useRouterState } from '@tanstack/react-router';
 import { ArrowRight, LayoutGrid, Puzzle } from 'lucide-react';
 import { motion, useReducedMotion } from 'framer-motion';
 import { Image } from '@unpic/react';
 import { ScriptSelector } from '~/components/pages/padavali/ScriptSelector';
 import { AppContext } from '~/components/AppDataContext';
 import { GAME_APP_ICON_SRC } from '~/components/GameAppIcon';
-import { HUB_GAMES, HUB_GAME_LIST } from './hub_games';
+import { HUB_GAMES, HUB_GAME_LIST, hubGameFromHomeHash, hubHomeHashForGame } from './hub_games';
 import type { HubData } from './hub_data';
 import { HubPuzzleCard } from './HubPuzzleCard';
 import { HubCollectionCard } from './HubCollectionCard';
@@ -19,6 +19,8 @@ import { useHubPuzzles } from './useHubPuzzles';
 import type { PublicGameKind } from '~/util/games/kinds';
 import { cn } from '~/lib/utils';
 import { Button } from '~/components/ui/button';
+
+const homeRoute = getRouteApi('/_hub/');
 
 function HubSectionHeading({
   title,
@@ -64,15 +66,72 @@ const PUZZLE_FILTERS: {
 ];
 
 function RecentlyAdded({ puzzles }: { puzzles: ReturnType<typeof useHubPuzzles>['puzzles'] }) {
-  const [game, setGame] = useState<'all' | PublicGameKind>('all');
+  const { game: gameSearch } = homeRoute.useSearch();
+  const navigate = useNavigate({ from: '/' });
+  const hash = useRouterState({ select: (s) => s.location.hash });
+  const hashGame = hubGameFromHomeHash(hash);
+  /** `?game=` is SSR-safe (hash is not sent to the server). */
+  const game: 'all' | PublicGameKind = gameSearch ?? 'all';
   const { script, setScript } = useContext(AppContext);
   const reduceMotion = useReducedMotion();
+  const scrolledHashRef = useRef<string | null>(null);
   const visible = (
     game === 'all' ? puzzles : puzzles.filter((puzzle) => puzzle.game === game)
   ).slice(0, 8);
 
+  // `/#padavali` alone → promote into `?game=` so the filter stays shareable/SSR-friendly.
+  useEffect(() => {
+    if (!hashGame || hashGame === 'all' || gameSearch === hashGame) return;
+    void navigate({
+      search: { game: hashGame },
+      hash: hubHomeHashForGame(hashGame),
+      replace: true
+    });
+  }, [gameSearch, hashGame, navigate]);
+
+  // Scroll to the puzzles section when landing via `?game=` (redirect) or `#padavali` / `#padajala`.
+  useEffect(() => {
+    const targetGame = gameSearch ?? (hashGame && hashGame !== 'all' ? hashGame : null);
+    if (!targetGame) return;
+    const id = hubHomeHashForGame(targetGame);
+    if (scrolledHashRef.current === id) return;
+    scrolledHashRef.current = id;
+
+    // Add hash after a search-only redirect so the URL matches `/#padavali` deep links.
+    if (!hashGame) {
+      void navigate({
+        search: { game: targetGame },
+        hash: id,
+        replace: true
+      });
+    }
+
+    const frame = requestAnimationFrame(() => {
+      document.getElementById(id)?.scrollIntoView({
+        behavior: reduceMotion ? 'auto' : 'smooth',
+        block: 'start'
+      });
+    });
+    return () => cancelAnimationFrame(frame);
+  }, [gameSearch, hashGame, navigate, reduceMotion]);
+
+  const setGameFilter = (value: 'all' | PublicGameKind) => {
+    const nextHash = hubHomeHashForGame(value);
+    // Chip clicks update the URL; skip auto-scroll (only landings via hash should scroll).
+    scrolledHashRef.current = nextHash;
+    void navigate({
+      search: value === 'all' ? {} : { game: value },
+      hash: nextHash,
+      replace: true
+    });
+  };
+
   return (
-    <section id="puzzles" className="flex scroll-mt-24 flex-col gap-4">
+    <section className="relative flex flex-col gap-4">
+      {/* Deep-link anchors for `/#puzzles`, `/#padavali`, `/#padajala` */}
+      <div id="puzzles" className="pointer-events-none absolute -top-24 h-px w-px scroll-mt-24" />
+      <div id="padavali" className="pointer-events-none absolute -top-24 h-px w-px scroll-mt-24" />
+      <div id="padajala" className="pointer-events-none absolute -top-24 h-px w-px scroll-mt-24" />
       <HubSectionHeading
         title="Puzzles"
         description="Recent puzzles from every game"
@@ -95,7 +154,7 @@ function RecentlyAdded({ puzzles }: { puzzles: ReturnType<typeof useHubPuzzles>[
             key={option.value}
             type="button"
             aria-pressed={game === option.value}
-            onClick={() => setGame(option.value)}
+            onClick={() => setGameFilter(option.value)}
             className={cn(
               'relative inline-flex items-center gap-1.5 rounded-full border px-3 py-1.5 text-xs font-semibold transition-colors duration-200',
               'focus-visible:ring-2 focus-visible:ring-indigo-400/70 focus-visible:outline-none',

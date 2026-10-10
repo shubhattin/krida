@@ -1,6 +1,6 @@
 import { createFileRoute, getRouteApi } from '@tanstack/react-router';
 import { z } from 'zod';
-import { routeHeadFromPageMeta } from '~/components/tags/getPageMetaTags';
+import { routeHeadFromPageMeta, type MetadataProject } from '~/components/tags/getPageMetaTags';
 import HubPuzzles from '~/components/hub/HubPuzzles';
 
 const hubRoute = getRouteApi('/_hub');
@@ -17,15 +17,40 @@ const puzzles_search_schema = z.object({
 
 export type PuzzlesSearch = z.infer<typeof puzzles_search_schema>;
 
+type PuzzlesPageMeta = {
+  title: string;
+  project: MetadataProject;
+  description: string;
+};
+
+function puzzlesMetaForGame(game: PuzzlesSearch['game']): PuzzlesPageMeta {
+  if (game === 'padavali') {
+    return {
+      title: 'Padāvalī Puzzles | Krida',
+      project: 'padavali',
+      description:
+        'Browse Sanskrit word-search puzzles from Padāvalī — find hidden words across Indian scripts.'
+    };
+  }
+  if (game === 'crossword') {
+    return {
+      title: 'Padajāla Puzzles | Krida',
+      project: 'padajala',
+      description:
+        'Browse Sanskrit crossword puzzles from Padajāla — solve grids and grow your vocabulary.'
+    };
+  }
+  return {
+    title: 'Sanskrit Puzzles | Krida',
+    project: 'landing_page',
+    description:
+      'Browse every Sanskrit word-search and crossword puzzle, curated collections, and topics in one place.'
+  };
+}
+
 export const Route = createFileRoute('/_hub/puzzles')({
   validateSearch: puzzles_search_schema,
-  head: () =>
-    routeHeadFromPageMeta({
-      title: 'Sanskrit Puzzles | Krida',
-      project: 'landing_page',
-      description:
-        'Browse every Sanskrit word-search and crossword puzzle, curated collections, and topics in one place.'
-    }),
+  head: ({ match }) => routeHeadFromPageMeta(puzzlesMetaForGame(match.search.game)),
   component: PuzzlesPage
 });
 

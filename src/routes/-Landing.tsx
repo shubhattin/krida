@@ -1,12 +1,9 @@
 'use client';
 
 import { useEffect, useRef, useState } from 'react';
-import { Button } from '@/components/ui/button';
 import {
   Sparkles,
   BookOpen,
-  Play,
-  ArrowRight,
   ExternalLink,
   Book,
   Music,
@@ -810,82 +807,18 @@ export function PadajalaMiniPreview({ compact = false }: { compact?: boolean }) 
   );
 }
 
-function ShowcaseCardActions({
-  game,
-  compact,
-  layout
-}: {
-  game: (typeof GAMES)[number];
-  compact: boolean;
-  layout: 'row' | 'stack';
-}) {
-  const stacked = layout === 'stack';
-
-  return (
-    <div
-      className={cn(
-        'relative z-20',
-        stacked
-          ? 'flex w-[6.75rem] shrink-0 flex-col gap-1'
-          : cn('flex items-center gap-2', compact ? 'px-3 pb-3' : 'px-5 pb-4')
-      )}
-    >
-      <Button
-        render={
-          <Link to={game.playHref} className="flex items-center justify-center gap-1.5 font-bold" />
-        }
-        nativeButton={false}
-        size="sm"
-        className={cn(
-          `bg-linear-to-r ${game.gradient.from} ${game.gradient.to} text-xs text-white shadow-md ${game.gradient.shadowColor} transition-transform duration-200 hover:-translate-y-0.5 hover:shadow-lg`,
-          stacked
-            ? 'h-7 w-full px-2 text-[11px]'
-            : compact
-              ? 'flex-1 px-3 py-2'
-              : 'flex-1 px-4 py-2.5'
-        )}
-      >
-        <Play className={cn('fill-white', stacked ? 'size-3' : 'size-3.5')} />
-        Play Now
-        {stacked ? null : <ArrowRight className="size-3.5" />}
-      </Button>
-
-      <Button
-        render={
-          <Link
-            to="/puzzles"
-            search={{ game: game.puzzlesGame }}
-            className="flex items-center justify-center gap-1.5 font-semibold"
-          />
-        }
-        nativeButton={false}
-        size="sm"
-        variant="outline"
-        className={cn(
-          'border-slate-200/80 bg-white/50 text-xs transition-transform duration-200 hover:-translate-y-0.5 hover:bg-white/80 dark:border-slate-700/80 dark:bg-slate-800/50 dark:hover:bg-slate-800/80',
-          stacked
-            ? 'h-7 w-full px-2 text-[11px]'
-            : compact
-              ? 'flex-1 px-3 py-2'
-              : 'flex-1 px-4 py-2.5'
-        )}
-      >
-        <BookOpen className={stacked ? 'size-3' : 'size-3.5'} />
-        Puzzles
-      </Button>
-    </div>
-  );
-}
-
 // ─── Game Showcase Card ───────────────────────────────────
 export function GameShowcaseCard({
   game,
   index,
-  compact = false
+  compact = false,
+  /** Card body click target: play route, or puzzles catalog filtered to this game. */
+  cardLink = 'play'
 }: {
   game: (typeof GAMES)[number];
   index: number;
   compact?: boolean;
+  cardLink?: 'play' | 'puzzles';
 }) {
   return (
     <motion.div
@@ -903,13 +836,22 @@ export function GameShowcaseCard({
       />
 
       <div className="relative">
-        <Link
-          to={game.playHref}
-          aria-label={`Open ${game.name}`}
-          className="absolute inset-0 z-0 rounded-2xl focus-visible:ring-2 focus-visible:ring-indigo-400/70 focus-visible:outline-none"
-        />
+        {cardLink === 'puzzles' ? (
+          <Link
+            to="/puzzles"
+            search={{ game: game.puzzlesGame }}
+            aria-label={`Browse ${game.name} puzzles`}
+            className="absolute inset-0 z-10 rounded-2xl focus-visible:ring-2 focus-visible:ring-indigo-400/70 focus-visible:outline-none"
+          />
+        ) : (
+          <Link
+            to={game.playHref}
+            aria-label={`Open ${game.name}`}
+            className="absolute inset-0 z-10 rounded-2xl focus-visible:ring-2 focus-visible:ring-indigo-400/70 focus-visible:outline-none"
+          />
+        )}
         <div
-          className={`relative z-10 flex h-full flex-col overflow-hidden rounded-2xl border ${game.gradient.border} bg-white/60 shadow-lg backdrop-blur-md transition-transform duration-300 group-hover:-translate-y-1 group-hover:shadow-xl dark:bg-slate-900/50`}
+          className={`pointer-events-none relative z-20 flex h-full flex-col overflow-hidden rounded-2xl border ${game.gradient.border} bg-white/60 shadow-lg backdrop-blur-md transition-transform duration-300 group-hover:-translate-y-1 group-hover:shadow-xl dark:bg-slate-900/50`}
         >
           <div
             className={cn(
@@ -924,7 +866,7 @@ export function GameShowcaseCard({
               className="pointer-events-none"
             />
 
-            <div className="pointer-events-none min-w-0 flex-1">
+            <div className="min-w-0 flex-1">
               <h3
                 className={`bg-linear-to-r ${game.gradient.text} ${game.gradient.textDark} bg-clip-text font-black tracking-tight text-transparent ${compact ? 'text-base' : 'text-xl'}`}
               >
@@ -934,23 +876,13 @@ export function GameShowcaseCard({
                 {game.subtitle}
               </span>
             </div>
-
-            {compact ? (
-              <div className="sm:hidden">
-                <ShowcaseCardActions game={game} compact layout="stack" />
-              </div>
-            ) : null}
           </div>
 
           {compact ? null : (
-            <p className="pointer-events-none px-5 pb-4 text-sm leading-relaxed text-slate-600 dark:text-slate-300">
+            <p className="px-5 pb-4 text-sm leading-relaxed text-slate-600 dark:text-slate-300">
               {game.description}
             </p>
           )}
-
-          <div className={compact ? 'hidden sm:block' : undefined}>
-            <ShowcaseCardActions game={game} compact={compact} layout="row" />
-          </div>
 
           <div
             className={cn(
@@ -959,12 +891,7 @@ export function GameShowcaseCard({
             )}
           />
 
-          <div
-            className={cn(
-              'pointer-events-none',
-              compact ? 'p-2.5 pt-2 sm:p-3 sm:pt-2.5' : 'p-4 pt-3'
-            )}
-          >
+          <div className={compact ? 'p-2.5 pt-2 sm:p-3 sm:pt-2.5' : 'p-4 pt-3'}>
             {game.id === 'padavali' ? (
               <PadavaliMiniPreview compact />
             ) : (
