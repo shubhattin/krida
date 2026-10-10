@@ -31,7 +31,7 @@ function tablesFor(kind: SimpleGameKind) {
   return SIMPLE_GAME_TABLES[kind];
 }
 
-export type SimpleGameSlugResolution =
+type SimpleGameSlugResolution =
   | { type: 'puzzle'; puzzle: NonNullable<Awaited<ReturnType<typeof loadCachedPuzzle>>> }
   | { type: 'redirect'; targetSlug: string }
   | { type: 'not_found' };
@@ -46,7 +46,7 @@ async function loadCachedPuzzle(
   return runLoaderEffect(cache.word_puzzle.get({ slug }));
 }
 
-export async function resolveSimpleGameSlug(
+async function resolveSimpleGameSlug(
   kind: SimpleGameKind,
   slug: string
 ): Promise<SimpleGameSlugResolution> {
