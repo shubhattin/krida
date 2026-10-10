@@ -176,6 +176,13 @@
       "when": 1791569271563,
       "tag": "0024_motionless_dragon_lord",
       "breakpoints": true
+    },
+    {
+      "idx": 25,
+      "version": "7",
+      "when": 1791604360423,
+      "tag": "0025_fearless_lily_hollister",
+      "breakpoints": true
     }
   ]
 }
