@@ -12,8 +12,16 @@ import { isLipiToggleKey, LipiLekhikaSwitch } from '~/components/puzzle/LipiLekh
 import { Button } from '~/components/ui/button';
 import { Input } from '~/components/ui/input';
 import { useEditorHistoryActions, useHistoryTextField } from '~/hooks/useEditorHistory';
-import { createSurupaWord, type SurupaPuzzleData } from '~/util/surupa/data';
-import { inferSurupaPuzzleData } from '~/util/surupa/infer';
+import { createSurupaWord, type SurupaPuzzleData, type SurupaWord } from '~/util/surupa/data';
+import { alignSurupaPuzzleData, alignSurupaWord } from '~/util/surupa/infer';
+
+function withAlignedAlternatives(
+  word: SurupaWord,
+  updater: (lists: string[][]) => string[][]
+): SurupaWord {
+  const aligned = alignSurupaWord(word);
+  return { ...aligned, alternatives: updater(aligned.alternatives) };
+}
 
 export function SurupaEditor({
   dataAtom,
@@ -27,7 +35,6 @@ export function SurupaEditor({
   const { commit } = useEditorHistoryActions();
   const typing = useMemo(() => createTypingContext('Devanagari'), []);
   const field = useHistoryTextField();
-  const inferred = inferSurupaPuzzleData(data);
 
   const onLipiKey = (event: KeyboardEvent) => {
     if (isLipiToggleKey(event)) {
@@ -61,9 +68,9 @@ export function SurupaEditor({
         </div>
       </div>
       {data.words.map((word, index) => {
-        const inferredWord = inferred.words[index];
-        const syllables = inferredWord?.syllables ?? [];
-        const alternatives = inferredWord?.alternatives ?? [];
+        const aligned = alignSurupaWord(word);
+        const syllables = aligned.syllables;
+        const alternatives = aligned.alternatives;
         return (
           <div
             key={word.id}
@@ -101,7 +108,7 @@ export function SurupaEditor({
                 onBlur={() => {
                   field.onBlur();
                   typing.clearContext();
-                  setData((prev) => inferSurupaPuzzleData(prev));
+                  setData((prev) => alignSurupaPuzzleData(prev));
                   commit();
                 }}
                 onKeyDown={onLipiKey}
@@ -120,46 +127,23 @@ export function SurupaEditor({
                 <Trash2 className="size-4" />
               </Button>
             </div>
-            <div className="space-y-3">
+            <div className="space-y-2">
               {syllables.map((syllable, syllableIndex) => (
-                <div key={`${word.id}-${syllableIndex}`} className="rounded-xl bg-violet-500/5 p-2">
-                  <div className="mb-1.5 flex items-center justify-between">
-                    <span className="rounded-md bg-violet-600 px-2 py-0.5 text-sm font-semibold text-white">
-                      {syllable}
-                    </span>
-                    <Button
-                      size="sm"
-                      variant="ghost"
-                      onClick={() => {
-                        setData((prev) => ({
-                          ...prev,
-                          words: prev.words.map((row) =>
-                            row.id !== word.id
-                              ? row
-                              : {
-                                  ...row,
-                                  alternatives: row.alternatives.map((list, i) =>
-                                    i === syllableIndex ? [...list, ''] : list
-                                  )
-                                }
-                          )
-                        }));
-                        commit();
-                      }}
-                    >
-                      <Plus className="size-3.5" />
-                      Alternative
-                    </Button>
-                  </div>
-                  <div className="flex flex-wrap gap-2">
-                    {(alternatives[syllableIndex] ?? []).map((alt, altIndex) => (
+                <div
+                  key={`${word.id}-${syllableIndex}`}
+                  className="flex flex-wrap items-center gap-2 rounded-xl bg-violet-500/5 p-2"
+                >
+                  <span className="shrink-0 rounded-md bg-violet-600 px-2 py-0.5 text-sm font-semibold text-white">
+                    {syllable}
+                  </span>
+                  {(alternatives[syllableIndex] ?? []).map((alt, altIndex) => (
                       <div
                         key={`${word.id}-${syllableIndex}-${altIndex}`}
                         className="flex items-center gap-1"
                       >
                         <Input
                           value={alt}
-                          className="w-28"
+                          className="h-8 w-24"
                           {...field}
                           onChange={(event) => {
                             const value = event.currentTarget.value;
@@ -168,14 +152,13 @@ export function SurupaEditor({
                               words: prev.words.map((row) =>
                                 row.id !== word.id
                                   ? row
-                                  : {
-                                      ...row,
-                                      alternatives: row.alternatives.map((list, i) =>
+                                  : withAlignedAlternatives(row, (lists) =>
+                                      lists.map((list, i) =>
                                         i === syllableIndex
                                           ? list.map((item, j) => (j === altIndex ? value : item))
                                           : list
                                       )
-                                    }
+                                    )
                               )
                             }));
                           }}
@@ -189,16 +172,15 @@ export function SurupaEditor({
                                   words: prev.words.map((row) =>
                                     row.id !== word.id
                                       ? row
-                                      : {
-                                          ...row,
-                                          alternatives: row.alternatives.map((list, i) =>
+                                      : withAlignedAlternatives(row, (lists) =>
+                                          lists.map((list, i) =>
                                             i === syllableIndex
                                               ? list.map((item, j) =>
                                                   j === altIndex ? value : item
                                                 )
                                               : list
                                           )
-                                        }
+                                        )
                                   )
                                 }));
                               },
@@ -215,20 +197,20 @@ export function SurupaEditor({
                         <Button
                           size="icon"
                           variant="ghost"
+                          className="size-8"
                           onClick={() => {
                             setData((prev) => ({
                               ...prev,
                               words: prev.words.map((row) =>
                                 row.id !== word.id
                                   ? row
-                                  : {
-                                      ...row,
-                                      alternatives: row.alternatives.map((list, i) =>
+                                  : withAlignedAlternatives(row, (lists) =>
+                                      lists.map((list, i) =>
                                         i === syllableIndex
                                           ? list.filter((_, j) => j !== altIndex)
                                           : list
                                       )
-                                    }
+                                    )
                               )
                             }));
                             commit();
@@ -238,7 +220,29 @@ export function SurupaEditor({
                         </Button>
                       </div>
                     ))}
-                  </div>
+                    <Button
+                      size="sm"
+                      variant="ghost"
+                      className="ml-auto"
+                      onClick={() => {
+                        setData((prev) => ({
+                          ...prev,
+                          words: prev.words.map((row) =>
+                            row.id !== word.id
+                              ? row
+                              : withAlignedAlternatives(row, (lists) =>
+                                  lists.map((list, i) =>
+                                    i === syllableIndex ? [...list, ''] : list
+                                  )
+                                )
+                          )
+                        }));
+                        commit();
+                      }}
+                    >
+                      <Plus className="size-3.5" />
+                      Alternative
+                    </Button>
                 </div>
               ))}
             </div>

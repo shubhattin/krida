@@ -2,7 +2,7 @@ import { createFileRoute, notFound, redirect } from '@tanstack/react-router';
 import { SimpleGamePlayPage } from '~/components/pages/simple_game/SimpleGamePlayPage';
 import { routeHeadFromPageMeta } from '~/components/tags/getPageMetaTags';
 import { loadSimpleGameBySlug$ } from '~/lib/simple_game_loaders';
-import { SIMPLE_GAME_META } from '~/util/games/kinds';
+import { SIMPLE_GAME_META, simpleGameHref } from '~/util/games/kinds';
 
 const meta = SIMPLE_GAME_META.dvayi;
 
@@ -11,7 +11,7 @@ export const Route = createFileRoute('/dvayi/(public)/_public/$slug')({
     const result = await loadSimpleGameBySlug$({ data: { kind: 'dvayi', slug: params.slug } });
     if (result.kind === 'redirect') {
       throw redirect({
-        href: `/${meta.routePrefix}/${encodeURIComponent(result.targetSlug)}`,
+        href: simpleGameHref(meta.kind, result.targetSlug),
         statusCode: 301
       });
     }

@@ -17,12 +17,8 @@ export function isPublicGameKind(game: string): game is PublicGameKind {
   return PUBLIC_GAME_KIND_SET.has(game);
 }
 
-export type SimpleGameRoutePrefix = 'dvayi' | 'bhramitA' | 'surUpa' | 'anveshi';
-
 export type SimpleGameMeta = {
   kind: SimpleGameKind;
-  /** Public URL prefix (`/bhramitA`, `/surUpa`, …). */
-  routePrefix: SimpleGameRoutePrefix;
   name: string;
   subtitle: string;
   description: string;
@@ -42,7 +38,6 @@ export type SimpleGameMeta = {
 export const SIMPLE_GAME_META = {
   dvayi: {
     kind: 'dvayi',
-    routePrefix: 'dvayi',
     name: 'Dvayī',
     subtitle: 'Match the following',
     description: 'Pair each prompt with its matching counterpart.',
@@ -59,7 +54,6 @@ export const SIMPLE_GAME_META = {
   },
   bhramita: {
     kind: 'bhramita',
-    routePrefix: 'bhramitA',
     name: 'Bhramitā',
     subtitle: 'Jumbled words',
     description: 'Unscramble Devanagari syllables back into the original word.',
@@ -77,7 +71,6 @@ export const SIMPLE_GAME_META = {
   },
   surupa: {
     kind: 'surupa',
-    routePrefix: 'surUpa',
     name: 'Surūpa',
     subtitle: 'Spelling corrector',
     description: 'Pick the right syllable at each step to restore the word.',
@@ -95,7 +88,6 @@ export const SIMPLE_GAME_META = {
   },
   anveshi: {
     kind: 'anveshi',
-    routePrefix: 'anveshi',
     name: 'Anveṣī',
     subtitle: 'Multiple choice',
     description: 'Answer a set of questions, with optional hints and explanations.',
@@ -117,21 +109,21 @@ export const SIMPLE_GAME_LIST: SimpleGameMeta[] = SIMPLE_GAME_KINDS.map(
 );
 
 export function simpleGameHref(kind: SimpleGameKind, slug: string) {
-  return `/${SIMPLE_GAME_META[kind].routePrefix}/${encodeURIComponent(slug)}`;
+  return `/${kind}/${encodeURIComponent(slug)}`;
 }
 
 export function simpleGameViewHref(kind: SimpleGameKind, uid: string) {
-  return `/${SIMPLE_GAME_META[kind].routePrefix}/view/${encodeURIComponent(uid)}`;
+  return `/${kind}/view/${encodeURIComponent(uid)}`;
 }
 
 export function simpleGameEditHref(kind: SimpleGameKind, id: number) {
-  return `/${SIMPLE_GAME_META[kind].routePrefix}/edit/${id}`;
+  return `/${kind}/edit/${id}`;
 }
 
 export function simpleGameListHref(kind: SimpleGameKind) {
-  return `/${SIMPLE_GAME_META[kind].routePrefix}/list`;
+  return `/${kind}/list`;
 }
 
 export function simpleGameAnalyticsHref(kind: SimpleGameKind) {
-  return `/${SIMPLE_GAME_META[kind].routePrefix}/analytics`;
+  return `/${kind}/analytics`;
 }

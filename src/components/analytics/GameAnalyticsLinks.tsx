@@ -5,7 +5,7 @@ import { Card } from '~/components/ui/card';
 import { HUB_GAMES } from '~/components/hub/hub_games';
 import { cn } from '~/lib/utils';
 import type { AdminAnalyticsGameId } from '~/api/routers/analytics';
-import { SIMPLE_GAME_META } from '~/util/games/kinds';
+import { SIMPLE_GAME_META, simpleGameAnalyticsHref } from '~/util/games/kinds';
 import { GameAnalyticsMark } from './GameAnalyticsMark';
 
 const GAME_LINK_META = {
@@ -20,22 +20,22 @@ const GAME_LINK_META = {
     subtitle: 'Crossword'
   },
   dvayi: {
-    href: '/dvayi/analytics',
+    href: simpleGameAnalyticsHref('dvayi'),
     name: SIMPLE_GAME_META.dvayi.name,
     subtitle: SIMPLE_GAME_META.dvayi.subtitle
   },
   bhramita: {
-    href: '/bhramitA/analytics',
+    href: simpleGameAnalyticsHref('bhramita'),
     name: SIMPLE_GAME_META.bhramita.name,
     subtitle: SIMPLE_GAME_META.bhramita.subtitle
   },
   surupa: {
-    href: '/surUpa/analytics',
+    href: simpleGameAnalyticsHref('surupa'),
     name: SIMPLE_GAME_META.surupa.name,
     subtitle: SIMPLE_GAME_META.surupa.subtitle
   },
   anveshi: {
-    href: '/anveshi/analytics',
+    href: simpleGameAnalyticsHref('anveshi'),
     name: SIMPLE_GAME_META.anveshi.name,
     subtitle: SIMPLE_GAME_META.anveshi.subtitle
   }

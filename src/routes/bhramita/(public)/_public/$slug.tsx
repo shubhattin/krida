@@ -4,11 +4,11 @@ import { routeHeadFromPageMeta } from '~/components/tags/getPageMetaTags';
 import { loadSimpleGameBySlug$ } from '~/lib/simple_game_loaders';
 import { SIMPLE_GAME_META, simpleGameHref } from '~/util/games/kinds';
 
-const meta = SIMPLE_GAME_META.anveshi;
+const meta = SIMPLE_GAME_META.bhramita;
 
-export const Route = createFileRoute('/anveshi/(public)/_public/$slug')({
+export const Route = createFileRoute('/bhramita/(public)/_public/$slug')({
   loader: async ({ params }) => {
-    const result = await loadSimpleGameBySlug$({ data: { kind: 'anveshi', slug: params.slug } });
+    const result = await loadSimpleGameBySlug$({ data: { kind: 'bhramita', slug: params.slug } });
     if (result.kind === 'redirect') {
       throw redirect({
         href: simpleGameHref(meta.kind, result.targetSlug),
@@ -21,14 +21,14 @@ export const Route = createFileRoute('/anveshi/(public)/_public/$slug')({
   head: ({ loaderData }) =>
     routeHeadFromPageMeta({
       title: loaderData
-        ? `${loaderData.kind === 'puzzle' ? loaderData.puzzle.title : loaderData.title} | Anveṣī`
+        ? `${loaderData.kind === 'puzzle' ? loaderData.puzzle.title : loaderData.title} | Bhramitā`
         : 'Not Found',
       description: loaderData
         ? loaderData.kind === 'puzzle'
           ? loaderData.puzzle.description
           : loaderData.description
         : null,
-      project: 'anveshi',
+      project: 'bhramita',
       robots: 'noindex'
     }),
   component: SlugRoute
@@ -43,5 +43,5 @@ function SlugRoute() {
       </div>
     );
   }
-  return <SimpleGamePlayPage kind="anveshi" location="list_page" puzzle={data.puzzle} />;
+  return <SimpleGamePlayPage kind="bhramita" location="list_page" puzzle={data.puzzle} />;
 }

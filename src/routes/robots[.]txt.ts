@@ -25,8 +25,8 @@ Disallow: /padajala/analytics
 Disallow: /padajala/batch_manager
 Disallow: /padajala/view/
 Disallow: /dvayi/
-Disallow: /bhramitA/
-Disallow: /surUpa/
+Disallow: /bhramita/
+Disallow: /surupa/
 Disallow: /anveshi/
 
 Sitemap: ${siteUrl}/sitemap-index.xml
