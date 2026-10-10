@@ -304,12 +304,16 @@ export function BrowseModeSwitch({
   mode,
   onChange,
   puzzleCount,
-  collectionCount
+  collectionCount,
+  className,
+  fullWidth = false
 }: {
   mode: 'puzzles' | 'collections';
   onChange: (mode: 'puzzles' | 'collections') => void;
   puzzleCount?: number;
   collectionCount?: number;
+  className?: string;
+  fullWidth?: boolean;
 }) {
   const options = [
     {
@@ -329,7 +333,11 @@ export function BrowseModeSwitch({
     <div
       role="tablist"
       aria-label="Browse puzzles or collections"
-      className="inline-flex shrink-0 items-center rounded-lg border border-border/70 bg-muted/40 p-0.5"
+      className={cn(
+        'inline-flex shrink-0 items-center rounded-lg border border-border/70 bg-muted/40 p-0.5',
+        fullWidth && 'flex w-full',
+        className
+      )}
     >
       {options.map((option) => {
         const active = mode === option.value;
@@ -344,7 +352,11 @@ export function BrowseModeSwitch({
             aria-selected={active}
             aria-pressed={active}
             onClick={() => onChange(option.value)}
-            className={cn('inline-flex items-center gap-1.5', active && 'shadow-xs')}
+            className={cn(
+              'inline-flex items-center gap-1.5',
+              fullWidth && 'flex-1',
+              active && 'shadow-xs'
+            )}
           >
             <IconCmp className="size-3.5" aria-hidden />
             {option.label}
