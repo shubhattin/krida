@@ -8,6 +8,7 @@ import {
   createTypingContext,
   handleTypingBeforeInputEvent
 } from 'lipilekhika/typing';
+import { isLipiToggleKey, LipiLekhikaSwitch } from '~/components/puzzle/LipiLekhikaSwitch';
 import { Button } from '~/components/ui/button';
 import { Input } from '~/components/ui/input';
 import { useEditorHistoryActions, useHistoryTextField } from '~/hooks/useEditorHistory';
@@ -22,7 +23,7 @@ export function BhramitaEditor({
   lipiAtom: PrimitiveAtom<boolean>;
 }) {
   const [data, setData] = useAtom(dataAtom);
-  const [lipi] = useAtom(lipiAtom);
+  const [lipi, setLipi] = useAtom(lipiAtom);
   const { commit } = useEditorHistoryActions();
   const typing = useMemo(() => createTypingContext('Devanagari'), []);
   const field = useHistoryTextField();
@@ -32,17 +33,24 @@ export function BhramitaEditor({
     <section className="space-y-4 rounded-2xl border border-emerald-200/70 bg-linear-to-br from-emerald-50/80 via-white to-teal-50/70 p-4 dark:border-emerald-900/40 dark:from-emerald-950/30 dark:via-slate-950 dark:to-teal-950/20">
       <div className="flex items-center justify-between gap-2">
         <h2 className="text-lg font-bold">Words</h2>
-        <Button
-          size="sm"
-          variant="outline"
-          onClick={() => {
-            setData((prev) => ({ ...prev, words: [...prev.words, createBhramitaWord()] }));
-            commit();
-          }}
-        >
-          <Plus className="size-4" />
-          Add word
-        </Button>
+        <div className="flex items-center gap-2">
+          <LipiLekhikaSwitch
+            checked={lipi}
+            onCheckedChange={setLipi}
+            label="Lipi Lekhika for words"
+          />
+          <Button
+            size="sm"
+            variant="outline"
+            onClick={() => {
+              setData((prev) => ({ ...prev, words: [...prev.words, createBhramitaWord()] }));
+              commit();
+            }}
+          >
+            <Plus className="size-4" />
+            Add word
+          </Button>
+        </div>
       </div>
       <div className="space-y-3">
         {data.words.map((word, index) => {
@@ -87,7 +95,13 @@ export function BhramitaEditor({
                     setData((prev) => inferBhramitaPuzzleData(prev));
                     commit();
                   }}
-                  onKeyDown={(event) => clearTypingContextOnKeyDown(event, typing)}
+                  onKeyDown={(event) => {
+                    if (isLipiToggleKey(event)) {
+                      event.preventDefault();
+                      setLipi((prev) => !prev);
+                    }
+                    clearTypingContextOnKeyDown(event, typing);
+                  }}
                 />
                 <Button
                   size="icon"

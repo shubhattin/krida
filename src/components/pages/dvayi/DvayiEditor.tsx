@@ -8,6 +8,7 @@ import {
   createTypingContext,
   handleTypingBeforeInputEvent
 } from 'lipilekhika/typing';
+import { isLipiToggleKey, LipiLekhikaSwitch } from '~/components/puzzle/LipiLekhikaSwitch';
 import { Button } from '~/components/ui/button';
 import { Input } from '~/components/ui/input';
 import { useEditorHistoryActions, useHistoryTextField } from '~/hooks/useEditorHistory';
@@ -22,7 +23,7 @@ export function DvayiEditor({
   lipiAtom: PrimitiveAtom<boolean>;
 }) {
   const [data, setData] = useAtom(dataAtom);
-  const [lipi] = useAtom(lipiAtom);
+  const [lipi, setLipi] = useAtom(lipiAtom);
   const { commit } = useEditorHistoryActions();
   const typing = useMemo(() => createTypingContext('Devanagari'), []);
   const field = useHistoryTextField();
@@ -62,15 +63,28 @@ export function DvayiEditor({
     commit();
   };
 
-  const onLipiKey = (event: KeyboardEvent) => clearTypingContextOnKeyDown(event, typing);
+  const onLipiKey = (event: KeyboardEvent) => {
+    if (isLipiToggleKey(event)) {
+      event.preventDefault();
+      setLipi((prev) => !prev);
+    }
+    clearTypingContextOnKeyDown(event, typing);
+  };
 
   return (
     <section className="space-y-4 rounded-2xl border border-rose-200/70 bg-linear-to-br from-rose-50/80 via-white to-orange-50/70 p-4 dark:border-rose-900/40 dark:from-rose-950/30 dark:via-slate-950 dark:to-orange-950/20">
       <div className="flex flex-wrap items-center justify-between gap-2">
-        <h2 className="text-lg font-bold">Match columns</h2>
-        <p className="text-xs text-muted-foreground">
-          Select a left item, then a right item to pair them. Click a pair again to unlink.
-        </p>
+        <div>
+          <h2 className="text-lg font-bold">Match columns</h2>
+          <p className="text-xs text-muted-foreground">
+            Select a left item, then a right item to pair them. Click a pair again to unlink.
+          </p>
+        </div>
+        <LipiLekhikaSwitch
+          checked={lipi}
+          onCheckedChange={setLipi}
+          label="Lipi Lekhika for match columns"
+        />
       </div>
       <div className="grid gap-4 lg:grid-cols-2">
         <div className="space-y-2">

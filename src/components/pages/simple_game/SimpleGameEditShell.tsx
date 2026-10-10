@@ -1,6 +1,6 @@
 'use client';
 
-import { useMemo, useState, type KeyboardEvent, type ReactNode } from 'react';
+import { useMemo, useState, type ReactNode } from 'react';
 import { useMutation, useQueryClient } from '@tanstack/react-query';
 import { useAtom, type PrimitiveAtom } from 'jotai';
 import { toast } from 'sonner';
@@ -10,12 +10,12 @@ import {
   handleTypingBeforeInputEvent
 } from 'lipilekhika/typing';
 import { useTRPC } from '~/api/client';
-import { LanguageIcon } from '~/components/icons';
 import {
   PuzzleCatalogFields,
   puzzle_collections_atom,
   puzzle_tags_atom
 } from '~/components/pages/catalog/PuzzleCatalogFields';
+import { isLipiToggleKey, LipiLekhikaSwitch } from '~/components/puzzle/LipiLekhikaSwitch';
 import { invalidateCatalogQueries } from '~/components/pages/catalog/invalidateCatalogQueries';
 import { EditorActionDock } from '~/components/pages/puzzle/EditorActionDock';
 import { Button } from '~/components/ui/button';
@@ -38,7 +38,6 @@ import {
   useEditorHistoryActions,
   useHistoryTextField
 } from '~/hooks/useEditorHistory';
-import Icon from '~/tools/Icon';
 import type { GameAnalysis } from '~/util/games/issues';
 import { SIMPLE_GAME_META, simpleGameListHref, type SimpleGameKind } from '~/util/games/kinds';
 import { SimpleGameAttachments, type EditableAttachment } from './SimpleGameAttachments';
@@ -122,24 +121,16 @@ function SimpleGameEditBody<T>({
   const [listed, setListed] = useAtom(atoms.listed);
   const [puzzleData] = useAtom(atoms.puzzleData);
   const [attachments, setAttachments] = useAtom(atoms.attachments);
-  const [lipi, setLipi] = useAtom(atoms.lipi);
   const [tags] = useAtom(puzzle_tags_atom);
   const [collections] = useAtom(puzzle_collections_atom);
   const [deleteOpen, setDeleteOpen] = useState(false);
+  const [titleLipi, setTitleLipi] = useState(true);
+  const [descriptionLipi, setDescriptionLipi] = useState(false);
   const titleField = useHistoryTextField();
   const descriptionField = useHistoryTextField();
-  const typing = useMemo(() => createTypingContext('Devanagari'), []);
+  const titleTyping = useMemo(() => createTypingContext('Devanagari'), []);
+  const descriptionTyping = useMemo(() => createTypingContext('Devanagari'), []);
   const meta = SIMPLE_GAME_META[kind];
-
-  const toggleLipi = (event: KeyboardEvent) => {
-    if (
-      event.altKey &&
-      (event.key === 'x' || event.key === 'X' || event.key === 'c' || event.key === 'C')
-    ) {
-      event.preventDefault();
-      setLipi((prev) => !prev);
-    }
-  };
 
   const sync_catalog_mut = useMutation(trpc.catalog.set_puzzle_links.mutationOptions());
 
@@ -212,42 +203,54 @@ function SimpleGameEditBody<T>({
   };
 
   return (
-    <div
-      className="mx-auto flex w-full max-w-6xl flex-col gap-6 px-2 py-4 pb-28 sm:px-4"
-      onKeyDown={toggleLipi}
-    >
-      <div className="flex flex-wrap items-center justify-between gap-3">
-        <SimpleGameSlugField
-          kind={kind}
-          puzzleId={puzzleId}
-          slug={slug}
-          onSlugUpdated={onSlugUpdated}
-        />
-        <Label className="inline-flex items-center gap-1.5">
-          <Switch checked={lipi} onCheckedChange={setLipi} aria-label="Lipi Lekhika" />
-          <Icon src={LanguageIcon} className="size-5" />
-          <span className="text-sm">Devanagari typing</span>
-        </Label>
-      </div>
-      <div className="space-y-1">
-        <Label htmlFor={`${kind}-edit-title`}>Title</Label>
+    <div className="mx-auto flex w-full max-w-6xl flex-col gap-6 px-2 py-4 pb-28 sm:px-4">
+      <SimpleGameSlugField
+        kind={kind}
+        puzzleId={puzzleId}
+        slug={slug}
+        onSlugUpdated={onSlugUpdated}
+      />
+      <div className="flex flex-col gap-1">
+        <div className="flex items-center justify-between gap-2">
+          <Label htmlFor={`${kind}-edit-title`}>Title</Label>
+          <LipiLekhikaSwitch
+            checked={titleLipi}
+            onCheckedChange={setTitleLipi}
+            label="Lipi Lekhika for title"
+          />
+        </div>
         <Input
           id={`${kind}-edit-title`}
           value={title}
           className="text-lg font-semibold"
           {...titleField}
           onChange={(event) => setTitle(event.currentTarget.value)}
-          onBeforeInput={(event) => handleTypingBeforeInputEvent(typing, event, setTitle, lipi)}
+          onBeforeInput={(event) =>
+            handleTypingBeforeInputEvent(titleTyping, event, setTitle, titleLipi)
+          }
           onBlur={() => {
             titleField.onBlur();
-            typing.clearContext();
+            titleTyping.clearContext();
             commit();
           }}
-          onKeyDown={(event) => clearTypingContextOnKeyDown(event, typing)}
+          onKeyDown={(event) => {
+            if (isLipiToggleKey(event)) {
+              event.preventDefault();
+              setTitleLipi((prev) => !prev);
+            }
+            clearTypingContextOnKeyDown(event, titleTyping);
+          }}
         />
       </div>
-      <div className="space-y-1">
-        <Label htmlFor={`${kind}-edit-description`}>Description</Label>
+      <div className="flex flex-col gap-1">
+        <div className="flex items-center justify-between gap-2">
+          <Label htmlFor={`${kind}-edit-description`}>Description</Label>
+          <LipiLekhikaSwitch
+            checked={descriptionLipi}
+            onCheckedChange={setDescriptionLipi}
+            label="Lipi Lekhika for description"
+          />
+        </div>
         <Textarea
           id={`${kind}-edit-description`}
           value={description}
@@ -255,14 +258,20 @@ function SimpleGameEditBody<T>({
           {...descriptionField}
           onChange={(event) => setDescription(event.currentTarget.value)}
           onBeforeInput={(event) =>
-            handleTypingBeforeInputEvent(typing, event, setDescription, lipi)
+            handleTypingBeforeInputEvent(descriptionTyping, event, setDescription, descriptionLipi)
           }
           onBlur={() => {
             descriptionField.onBlur();
-            typing.clearContext();
+            descriptionTyping.clearContext();
             commit();
           }}
-          onKeyDown={(event) => clearTypingContextOnKeyDown(event, typing)}
+          onKeyDown={(event) => {
+            if (isLipiToggleKey(event)) {
+              event.preventDefault();
+              setDescriptionLipi((prev) => !prev);
+            }
+            clearTypingContextOnKeyDown(event, descriptionTyping);
+          }}
         />
       </div>
       <PuzzleCatalogFields />

@@ -3,35 +3,25 @@
 import type { LucideIcon } from 'lucide-react';
 import type { ReactNode } from 'react';
 import {
-  ArrowLeftRight,
   BarChart3,
   Calendar,
   ChartNoAxesCombined,
-  CircleHelp,
   Images,
   Layers,
   List,
-  Shuffle,
-  SpellCheck,
   Tag
 } from 'lucide-react';
 import { AllGamesMenuItems } from '~/components/app-bar/GameMenuItems';
 import { GameAppIcon } from '~/components/GameAppIcon';
 import { HubHeader } from '~/components/hub/HubHeader';
 import { HUB_GAMES } from '~/components/hub/hub_games';
+import { SIMPLE_GAME_ICONS } from '~/components/pages/simple_game/simple_game_icons';
 import { cn } from '~/lib/utils';
 import {
   SIMPLE_GAME_LIST,
   simpleGameAnalyticsHref,
   simpleGameListHref
 } from '~/util/games/kinds';
-
-const SIMPLE_GAME_ICONS = {
-  dvayi: ArrowLeftRight,
-  bhramita: Shuffle,
-  surupa: SpellCheck,
-  anveshi: CircleHelp
-} as const;
 
 type AdminChip = {
   href: string;

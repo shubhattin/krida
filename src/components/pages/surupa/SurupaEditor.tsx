@@ -1,6 +1,6 @@
 'use client';
 
-import { useMemo } from 'react';
+import { useMemo, type KeyboardEvent } from 'react';
 import { useAtom, type PrimitiveAtom } from 'jotai';
 import { Plus, Trash2 } from 'lucide-react';
 import {
@@ -8,6 +8,7 @@ import {
   createTypingContext,
   handleTypingBeforeInputEvent
 } from 'lipilekhika/typing';
+import { isLipiToggleKey, LipiLekhikaSwitch } from '~/components/puzzle/LipiLekhikaSwitch';
 import { Button } from '~/components/ui/button';
 import { Input } from '~/components/ui/input';
 import { useEditorHistoryActions, useHistoryTextField } from '~/hooks/useEditorHistory';
@@ -22,27 +23,42 @@ export function SurupaEditor({
   lipiAtom: PrimitiveAtom<boolean>;
 }) {
   const [data, setData] = useAtom(dataAtom);
-  const [lipi] = useAtom(lipiAtom);
+  const [lipi, setLipi] = useAtom(lipiAtom);
   const { commit } = useEditorHistoryActions();
   const typing = useMemo(() => createTypingContext('Devanagari'), []);
   const field = useHistoryTextField();
   const inferred = inferSurupaPuzzleData(data);
 
+  const onLipiKey = (event: KeyboardEvent) => {
+    if (isLipiToggleKey(event)) {
+      event.preventDefault();
+      setLipi((prev) => !prev);
+    }
+    clearTypingContextOnKeyDown(event, typing);
+  };
+
   return (
     <section className="space-y-4 rounded-2xl border border-violet-200/70 bg-linear-to-br from-violet-50/80 via-white to-fuchsia-50/70 p-4 dark:border-violet-900/40 dark:from-violet-950/30 dark:via-slate-950 dark:to-fuchsia-950/20">
       <div className="flex items-center justify-between">
         <h2 className="text-lg font-bold">Words & syllable alternatives</h2>
-        <Button
-          size="sm"
-          variant="outline"
-          onClick={() => {
-            setData((prev) => ({ ...prev, words: [...prev.words, createSurupaWord()] }));
-            commit();
-          }}
-        >
-          <Plus className="size-4" />
-          Add word
-        </Button>
+        <div className="flex items-center gap-2">
+          <LipiLekhikaSwitch
+            checked={lipi}
+            onCheckedChange={setLipi}
+            label="Lipi Lekhika for words"
+          />
+          <Button
+            size="sm"
+            variant="outline"
+            onClick={() => {
+              setData((prev) => ({ ...prev, words: [...prev.words, createSurupaWord()] }));
+              commit();
+            }}
+          >
+            <Plus className="size-4" />
+            Add word
+          </Button>
+        </div>
       </div>
       {data.words.map((word, index) => {
         const inferredWord = inferred.words[index];
@@ -88,7 +104,7 @@ export function SurupaEditor({
                   setData((prev) => inferSurupaPuzzleData(prev));
                   commit();
                 }}
-                onKeyDown={(event) => clearTypingContextOnKeyDown(event, typing)}
+                onKeyDown={onLipiKey}
               />
               <Button
                 size="icon"
@@ -194,7 +210,7 @@ export function SurupaEditor({
                             typing.clearContext();
                             commit();
                           }}
-                          onKeyDown={(event) => clearTypingContextOnKeyDown(event, typing)}
+                          onKeyDown={onLipiKey}
                         />
                         <Button
                           size="icon"

@@ -1,6 +1,6 @@
 'use client';
 
-import { useMemo, useState, type KeyboardEvent, type ReactNode } from 'react';
+import { useMemo, useState, type ReactNode } from 'react';
 import { IoMdAdd } from 'react-icons/io';
 import {
   clearTypingContextOnKeyDown,
@@ -8,8 +8,8 @@ import {
   handleTypingBeforeInputEvent
 } from 'lipilekhika/typing';
 import { toast } from 'sonner';
-import { LanguageIcon } from '~/components/icons';
 import { SlugRedirectConflictPrompt } from '~/components/pages/padavali/SlugRedirectConflictPrompt';
+import { isLipiToggleKey, LipiLekhikaSwitch } from '~/components/puzzle/LipiLekhikaSwitch';
 import { SlugStatusHint, SlugStatusIcon } from '~/components/puzzle/SlugStatus';
 import { Button } from '~/components/ui/button';
 import {
@@ -33,11 +33,9 @@ import {
 } from '~/components/ui/dialog';
 import { Input } from '~/components/ui/input';
 import { Label } from '~/components/ui/label';
-import { Switch } from '~/components/ui/switch';
 import { Textarea } from '~/components/ui/textarea';
 import { useDebouncedSlugCheck, type SlugCheckFn } from '~/hooks/useDebouncedSlugCheck';
 import { cn } from '~/lib/utils';
-import Icon from '~/tools/Icon';
 import { isValidSlug } from '~/util/puzzle/slug';
 
 export type PuzzleCreateFields = {
@@ -85,10 +83,12 @@ export function PuzzleAddDialog({
   const [title, setTitle] = useState('');
   const [description, setDescription] = useState('');
   const [slug, setSlug] = useState('');
-  const [lipiOn, setLipiOn] = useState(lipi);
+  const [titleLipi, setTitleLipi] = useState(true);
+  const [descriptionLipi, setDescriptionLipi] = useState(false);
   const [overrideRedirectSlug, setOverrideRedirectSlug] = useState(false);
   const [overrideForSlug, setOverrideForSlug] = useState('');
-  const typing = useMemo(() => createTypingContext('Devanagari'), []);
+  const titleTyping = useMemo(() => createTypingContext('Devanagari'), []);
+  const descriptionTyping = useMemo(() => createTypingContext('Devanagari'), []);
 
   const {
     status: slugStatus,
@@ -112,19 +112,9 @@ export function PuzzleAddDialog({
     setSlug('');
     setOverrideRedirectSlug(false);
     setOverrideForSlug('');
-    setLipiOn(lipi);
+    setTitleLipi(true);
+    setDescriptionLipi(false);
     onClose?.();
-  };
-
-  const toggleLipi = (event: KeyboardEvent) => {
-    if (!lipi) return;
-    if (
-      event.altKey &&
-      (event.key === 'x' || event.key === 'X' || event.key === 'c' || event.key === 'C')
-    ) {
-      event.preventDefault();
-      setLipiOn((prev) => !prev);
-    }
   };
 
   const submit = async () => {
@@ -169,33 +159,41 @@ export function PuzzleAddDialog({
             </Button>
           }
         />
-        <DialogContent className="sm:max-w-lg" onKeyDown={toggleLipi}>
+        <DialogContent className="sm:max-w-lg">
           <DialogHeader>
             <DialogTitle>{dialogTitle}</DialogTitle>
             <DialogDescription>{dialogDescription}</DialogDescription>
           </DialogHeader>
-          {lipi ? (
-            <div className="flex justify-end">
-              <Label className="inline-flex items-center gap-1.5">
-                <Switch checked={lipiOn} onCheckedChange={setLipiOn} aria-label="Lipi Lekhika" />
-                <Icon src={LanguageIcon} className="size-5" />
-              </Label>
-            </div>
-          ) : null}
           <div className="space-y-3">
-            <div className="space-y-1">
-              <Label htmlFor="puzzle-add-title">Title</Label>
+            <div className="flex flex-col gap-1">
+              <div className="flex items-center justify-between gap-2">
+                <Label htmlFor="puzzle-add-title">Title</Label>
+                {lipi ? (
+                  <LipiLekhikaSwitch
+                    checked={titleLipi}
+                    onCheckedChange={setTitleLipi}
+                    label="Lipi Lekhika for title"
+                  />
+                ) : null}
+              </div>
               <Input
                 id="puzzle-add-title"
                 value={title}
                 onChange={(event) => setTitle(event.currentTarget.value)}
                 onBeforeInput={
                   lipi
-                    ? (event) => handleTypingBeforeInputEvent(typing, event, setTitle, lipiOn)
+                    ? (event) =>
+                        handleTypingBeforeInputEvent(titleTyping, event, setTitle, titleLipi)
                     : undefined
                 }
-                onBlur={() => typing.clearContext()}
-                onKeyDown={(event) => clearTypingContextOnKeyDown(event, typing)}
+                onBlur={() => titleTyping.clearContext()}
+                onKeyDown={(event) => {
+                  if (lipi && isLipiToggleKey(event)) {
+                    event.preventDefault();
+                    setTitleLipi((prev) => !prev);
+                  }
+                  clearTypingContextOnKeyDown(event, titleTyping);
+                }}
                 placeholder="Puzzle title"
               />
             </div>
@@ -225,8 +223,17 @@ export function PuzzleAddDialog({
                 />
               ) : null}
             </div>
-            <div className="space-y-1">
-              <Label htmlFor="puzzle-add-description">Description</Label>
+            <div className="flex flex-col gap-1">
+              <div className="flex items-center justify-between gap-2">
+                <Label htmlFor="puzzle-add-description">Description</Label>
+                {lipi ? (
+                  <LipiLekhikaSwitch
+                    checked={descriptionLipi}
+                    onCheckedChange={setDescriptionLipi}
+                    label="Lipi Lekhika for description"
+                  />
+                ) : null}
+              </div>
               <Textarea
                 id="puzzle-add-description"
                 value={description}
@@ -235,11 +242,23 @@ export function PuzzleAddDialog({
                 onChange={(event) => setDescription(event.currentTarget.value)}
                 onBeforeInput={
                   lipi
-                    ? (event) => handleTypingBeforeInputEvent(typing, event, setDescription, lipiOn)
+                    ? (event) =>
+                        handleTypingBeforeInputEvent(
+                          descriptionTyping,
+                          event,
+                          setDescription,
+                          descriptionLipi
+                        )
                     : undefined
                 }
-                onBlur={() => typing.clearContext()}
-                onKeyDown={(event) => clearTypingContextOnKeyDown(event, typing)}
+                onBlur={() => descriptionTyping.clearContext()}
+                onKeyDown={(event) => {
+                  if (lipi && isLipiToggleKey(event)) {
+                    event.preventDefault();
+                    setDescriptionLipi((prev) => !prev);
+                  }
+                  clearTypingContextOnKeyDown(event, descriptionTyping);
+                }}
               />
             </div>
             {extraFields}

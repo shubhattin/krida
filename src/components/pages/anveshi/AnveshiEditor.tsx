@@ -8,6 +8,7 @@ import {
   createTypingContext,
   handleTypingBeforeInputEvent
 } from 'lipilekhika/typing';
+import { isLipiToggleKey, LipiLekhikaSwitch } from '~/components/puzzle/LipiLekhikaSwitch';
 import { Button } from '~/components/ui/button';
 import { Input } from '~/components/ui/input';
 import { Label } from '~/components/ui/label';
@@ -28,31 +29,44 @@ export function AnveshiEditor({
   lipiAtom: PrimitiveAtom<boolean>;
 }) {
   const [data, setData] = useAtom(dataAtom);
-  const [lipi] = useAtom(lipiAtom);
+  const [lipi, setLipi] = useAtom(lipiAtom);
   const { commit } = useEditorHistoryActions();
   const typing = useMemo(() => createTypingContext('Devanagari'), []);
   const field = useHistoryTextField();
 
-  const onLipiKey = (event: KeyboardEvent) => clearTypingContextOnKeyDown(event, typing);
+  const onLipiKey = (event: KeyboardEvent) => {
+    if (isLipiToggleKey(event)) {
+      event.preventDefault();
+      setLipi((prev) => !prev);
+    }
+    clearTypingContextOnKeyDown(event, typing);
+  };
 
   return (
     <section className="space-y-4 rounded-2xl border border-sky-200/70 bg-linear-to-br from-sky-50/80 via-white to-indigo-50/70 p-4 dark:border-sky-900/40 dark:from-sky-950/30 dark:via-slate-950 dark:to-indigo-950/20">
       <div className="flex flex-wrap items-center justify-between gap-2">
         <h2 className="text-lg font-bold">Questions</h2>
-        <Button
-          size="sm"
-          variant="outline"
-          onClick={() => {
-            setData((prev) => ({
-              ...prev,
-              questions: [...prev.questions, createAnveshiQuestion()]
-            }));
-            commit();
-          }}
-        >
-          <Plus className="size-4" />
-          Add question
-        </Button>
+        <div className="flex items-center gap-2">
+          <LipiLekhikaSwitch
+            checked={lipi}
+            onCheckedChange={setLipi}
+            label="Lipi Lekhika for questions"
+          />
+          <Button
+            size="sm"
+            variant="outline"
+            onClick={() => {
+              setData((prev) => ({
+                ...prev,
+                questions: [...prev.questions, createAnveshiQuestion()]
+              }));
+              commit();
+            }}
+          >
+            <Plus className="size-4" />
+            Add question
+          </Button>
+        </div>
       </div>
       {data.questions.length === 0 ? (
         <p className="text-sm text-muted-foreground">

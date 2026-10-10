@@ -3,6 +3,7 @@
 import { ArrowLeftIcon, BarChart3Icon } from 'lucide-react';
 import { SimpleGameAddDialog } from './SimpleGameAddDialog';
 import { SimpleGameAnalytics } from './SimpleGameAnalytics';
+import { SIMPLE_GAME_ICONS } from './simple_game_icons';
 import { SimpleGameListPage } from './SimpleGameListPage';
 import {
   SIMPLE_GAME_META,
@@ -12,6 +13,7 @@ import {
   type SimpleGameKind
 } from '~/util/games/kinds';
 import { Button } from '~/components/ui/button';
+import { cn } from '~/lib/utils';
 import { FaPlay } from 'react-icons/fa';
 import { IoMdArrowRoundBack } from 'react-icons/io';
 
@@ -20,30 +22,49 @@ const backLinkClass =
 
 export function SimpleGameListRoutePage({ kind }: { kind: SimpleGameKind }) {
   const meta = SIMPLE_GAME_META[kind];
+  const Icon = SIMPLE_GAME_ICONS[kind];
   return (
-    <div className="container mx-auto p-4">
-      <div className="my-2 mb-4 px-2">
+    <div className="container mx-auto flex flex-col gap-4 p-4">
+      <div className="px-2">
         <a href="/admin" className={backLinkClass}>
           <ArrowLeftIcon className="size-4 shrink-0" />
           Admin
         </a>
       </div>
-      <div className="mt-2 mb-5 flex flex-wrap items-center justify-center gap-4 px-2">
-        <h1 className="w-full text-center text-2xl font-bold tracking-tight">
-          {meta.nameDev} · {meta.name}
-        </h1>
-        <Button
-          render={
-            <a href={simpleGameAnalyticsHref(kind)} className="inline-flex items-center gap-2" />
-          }
-          nativeButton={false}
-          variant="outline"
-          className="text-base font-semibold"
-        >
-          <BarChart3Icon className="size-4 shrink-0" />
-          Analytics
-        </Button>
-        <SimpleGameAddDialog kind={kind} />
+      <div className="flex flex-wrap items-center justify-between gap-3 px-2">
+        <div className="flex min-w-0 items-center gap-3">
+          <div
+            className={cn(
+              'flex size-10 shrink-0 items-center justify-center rounded-xl bg-linear-to-br text-white shadow-sm',
+              meta.accent.from,
+              meta.accent.to
+            )}
+          >
+            <Icon className="size-4" />
+          </div>
+          <div className="min-w-0">
+            <h1 className="text-xl font-bold tracking-tight">
+              <span className="text-muted-foreground">{meta.nameDev}</span>
+              {' · '}
+              {meta.name}
+            </h1>
+            <p className="text-sm text-muted-foreground">{meta.subtitle}</p>
+          </div>
+        </div>
+        <div className="flex flex-wrap items-center gap-2">
+          <Button
+            render={
+              <a href={simpleGameAnalyticsHref(kind)} className="inline-flex items-center gap-2" />
+            }
+            nativeButton={false}
+            variant="outline"
+            className="text-base font-semibold"
+          >
+            <BarChart3Icon className="size-4 shrink-0" />
+            Analytics
+          </Button>
+          <SimpleGameAddDialog kind={kind} />
+        </div>
       </div>
       <SimpleGameListPage kind={kind} />
     </div>
