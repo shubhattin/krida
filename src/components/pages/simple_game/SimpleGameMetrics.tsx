@@ -1,6 +1,6 @@
 'use client';
 
-import { useEffect, useEffectEvent, useRef, useState } from 'react';
+import { useEffect, useEffectEvent, useRef, useState, useSyncExternalStore } from 'react';
 import { useMutation } from '@tanstack/react-query';
 import { useTurnstile } from 'react-turnstile';
 import { useTRPC } from '~/api/client';
@@ -12,6 +12,8 @@ import type { location_list_type } from '~/db/types';
 import type { SimpleGameKind } from '~/util/games/kinds';
 import { useContext } from 'react';
 import { AppContext } from '~/components/AppDataContext';
+
+const subscribeNever = () => () => {};
 
 export function SimpleGameMetrics({
   kind,
@@ -36,6 +38,7 @@ export function SimpleGameMetrics({
 }) {
   const trpc = useTRPC();
   const { script } = useContext(AppContext);
+  const mounted = useSyncExternalStore(subscribeNever, () => true, () => false);
   const { authReady, isAuthed } = usePlayAuth();
   const [turnstileToken, setTurnstileToken] = useState<string | null>(null);
   const turnstile = useTurnstile();
@@ -160,7 +163,7 @@ export function SimpleGameMetrics({
     reportComplete(playMetricsToken(isAuthed, turnstileToken));
   }, [authReady, completed, isAuthed, startedOk, turnstileToken]);
 
-  if (isAuthed) return null;
+  if (!mounted || !authReady || isAuthed) return null;
   return (
     <div className="flex justify-center py-2">
       <TurnstileWidget setToken={setTurnstileToken} />

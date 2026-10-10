@@ -1,7 +1,7 @@
 'use client';
 
 import { useEffect, useMemo, useState } from 'react';
-import { Play, RotateCcw, Sparkles } from 'lucide-react';
+import { RotateCcw, Sparkles } from 'lucide-react';
 import pretty_ms from 'pretty-ms';
 import { Button } from '~/components/ui/button';
 import { cn } from '~/lib/utils';
@@ -9,6 +9,7 @@ import type { DvayiPuzzleData } from '~/util/dvayi/data';
 import { inferDvayiPuzzleData } from '~/util/dvayi/infer';
 import type { location_list_type } from '~/db/types';
 import { SimpleGameMetrics } from '~/components/pages/simple_game/SimpleGameMetrics';
+import { SimpleGameStartOverlay } from '~/components/pages/simple_game/SimpleGameStartOverlay';
 import { useTransliteratedText } from '~/components/pages/simple_game/useTransliteratedText';
 
 function shuffle<T>(items: readonly T[]): T[] {
@@ -44,15 +45,16 @@ export function DvayiPlay({
   const [guesses, setGuesses] = useState<Record<string, string>>({});
   const [correct, setCorrect] = useState(0);
   const [attempts, setAttempts] = useState(0);
-  const rightOrder = useMemo(
-    () => shuffle(inferred.right),
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-    [inferred, nonce]
-  );
+  const [rightOrder, setRightOrder] = useState(inferred.right);
   const answer = useMemo(
     () => new Map(inferred.matches.map((match) => [match.leftId, match.rightId])),
     [inferred]
   );
+
+  const startGame = () => {
+    setRightOrder(shuffle(inferred.right));
+    setStarted(true);
+  };
 
   useEffect(() => {
     if (!started || completed) return;
@@ -88,34 +90,25 @@ export function DvayiPlay({
     setGuesses({});
     setCorrect(0);
     setAttempts(0);
+    setRightOrder(inferred.right);
   };
 
   return (
     <div className="space-y-5">
       <div
         className={cn(
-          'relative overflow-hidden rounded-3xl border border-rose-200/70 bg-white/80 p-4 shadow-sm dark:border-rose-900/40 dark:bg-slate-950/70',
+          'relative isolate overflow-hidden rounded-3xl border border-rose-200/70 bg-white/80 p-4 shadow-sm dark:border-rose-900/40 dark:bg-slate-950/70',
           !started && 'select-none'
         )}
       >
         {!started ? (
-          <div className="absolute inset-0 z-10 flex items-center justify-center bg-white/70 backdrop-blur-[2px] dark:bg-slate-950/70">
-            <Button
-              size="lg"
-              className="bg-linear-to-r from-rose-500 to-orange-500 text-white shadow-lg shadow-rose-500/30"
-              onClick={() => setStarted(true)}
-            >
-              <Play className="size-5" />
-              Start matching
-            </Button>
-          </div>
+          <SimpleGameStartOverlay
+            label="Start matching"
+            buttonClassName="bg-linear-to-r from-rose-500 to-orange-500 shadow-rose-500/30"
+            onStart={startGame}
+          />
         ) : null}
-        <div
-          className={cn(
-            'grid gap-6 md:grid-cols-2',
-            !started && 'pointer-events-none blur-[0.5px]'
-          )}
-        >
+        <div className={cn('relative z-0 grid gap-6 md:grid-cols-2', !started && 'pointer-events-none')}>
           <div className="space-y-2">
             {inferred.left.map((item) => {
               const locked = Boolean(guesses[item.id]);

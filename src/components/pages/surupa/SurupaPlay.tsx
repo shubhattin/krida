@@ -1,7 +1,7 @@
 'use client';
 
 import { useEffect, useMemo, useState } from 'react';
-import { Play, RotateCcw, Sparkles } from 'lucide-react';
+import { RotateCcw, Sparkles } from 'lucide-react';
 import pretty_ms from 'pretty-ms';
 import { Button } from '~/components/ui/button';
 import { cn } from '~/lib/utils';
@@ -9,6 +9,7 @@ import type { SurupaPuzzleData } from '~/util/surupa/data';
 import { inferSurupaPuzzleData } from '~/util/surupa/infer';
 import type { location_list_type } from '~/db/types';
 import { SimpleGameMetrics } from '~/components/pages/simple_game/SimpleGameMetrics';
+import { SimpleGameStartOverlay } from '~/components/pages/simple_game/SimpleGameStartOverlay';
 import { useTransliteratedText } from '~/components/pages/simple_game/useTransliteratedText';
 
 function shuffle<T>(items: readonly T[]): T[] {
@@ -45,18 +46,22 @@ export function SurupaPlay({
   const [correct, setCorrect] = useState(0);
   const [attempts, setAttempts] = useState(0);
   const current = words[wordIndex];
-  const choices = useMemo(
-    () =>
-      (current?.syllables ?? []).map((syllable, index) =>
-        shuffle([syllable, ...(current?.alternatives[index] ?? [])].filter(Boolean))
-      ),
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-    [current, nonce, wordIndex]
+  const [choices, setChoices] = useState(() =>
+    (words[0]?.syllables ?? []).map((syllable, index) =>
+      [syllable, ...(words[0]?.alternatives[index] ?? [])].filter(Boolean)
+    )
   );
 
   useEffect(() => {
     setPicks(Array.from({ length: current?.syllables.length ?? 0 }, () => ''));
   }, [current, nonce, wordIndex]);
+
+  useEffect(() => {
+    const options = (current?.syllables ?? []).map((syllable, index) =>
+      [syllable, ...(current?.alternatives[index] ?? [])].filter(Boolean)
+    );
+    setChoices(started ? options.map((list) => shuffle(list)) : options);
+  }, [current, nonce, started, wordIndex]);
 
   useEffect(() => {
     if (!started || completed) return;
@@ -91,20 +96,15 @@ export function SurupaPlay({
 
   return (
     <div className="space-y-5">
-      <div className="relative overflow-hidden rounded-3xl border border-violet-200/70 bg-white/80 p-5 dark:border-violet-900/40 dark:bg-slate-950/70">
+      <div className="relative isolate overflow-hidden rounded-3xl border border-violet-200/70 bg-white/80 p-5 dark:border-violet-900/40 dark:bg-slate-950/70">
         {!started ? (
-          <div className="absolute inset-0 z-10 flex items-center justify-center bg-white/70 backdrop-blur-[2px] dark:bg-slate-950/70">
-            <Button
-              size="lg"
-              className="bg-linear-to-r from-violet-500 to-fuchsia-600 text-white shadow-lg"
-              onClick={() => setStarted(true)}
-            >
-              <Play className="size-5" />
-              Start
-            </Button>
-          </div>
+          <SimpleGameStartOverlay
+            label="Start"
+            buttonClassName="bg-linear-to-r from-violet-500 to-fuchsia-600"
+            onStart={() => setStarted(true)}
+          />
         ) : null}
-        <div className={cn('space-y-4', !started && 'pointer-events-none')}>
+        <div className={cn('relative z-0 space-y-4', !started && 'pointer-events-none')}>
           <p className="text-sm text-muted-foreground">
             Word {Math.min(wordIndex + 1, words.length)} of {words.length}
           </p>

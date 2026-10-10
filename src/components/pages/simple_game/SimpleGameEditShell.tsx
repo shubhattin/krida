@@ -70,15 +70,18 @@ export function SimpleGameEditShell<T>({
   analysis: GameAnalysis;
   children: ReactNode;
 }) {
-  const historyAtoms = {
-    title: atoms.title,
-    description: atoms.description,
-    listed: atoms.listed,
-    puzzleData: atoms.puzzleData,
-    attachments: atoms.attachments,
-    tags: puzzle_tags_atom,
-    collections: puzzle_collections_atom
-  };
+  const historyAtoms = useMemo(
+    () => ({
+      title: atoms.title,
+      description: atoms.description,
+      listed: atoms.listed,
+      puzzleData: atoms.puzzleData,
+      attachments: atoms.attachments,
+      tags: puzzle_tags_atom,
+      collections: puzzle_collections_atom
+    }),
+    [atoms]
+  );
 
   return (
     <EditorHistoryProvider atoms={historyAtoms}>

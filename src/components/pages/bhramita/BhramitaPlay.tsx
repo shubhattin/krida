@@ -1,7 +1,7 @@
 'use client';
 
 import { useEffect, useMemo, useState } from 'react';
-import { Play, RotateCcw, Sparkles } from 'lucide-react';
+import { RotateCcw, Sparkles } from 'lucide-react';
 import pretty_ms from 'pretty-ms';
 import { Button } from '~/components/ui/button';
 import { cn } from '~/lib/utils';
@@ -9,6 +9,7 @@ import type { BhramitaPuzzleData } from '~/util/bhramita/data';
 import { inferBhramitaPuzzleData, shuffleSyllables } from '~/util/bhramita/infer';
 import type { location_list_type } from '~/db/types';
 import { SimpleGameMetrics } from '~/components/pages/simple_game/SimpleGameMetrics';
+import { SimpleGameStartOverlay } from '~/components/pages/simple_game/SimpleGameStartOverlay';
 import { useTransliteratedText } from '~/components/pages/simple_game/useTransliteratedText';
 
 function Label({ text }: { text: string }) {
@@ -34,9 +35,7 @@ export function BhramitaPlay({
   const [seconds, setSeconds] = useState(0);
   const [index, setIndex] = useState(0);
   const [built, setBuilt] = useState<string[]>([]);
-  const [pool, setPool] = useState<string[]>(() =>
-    words[0] ? shuffleSyllables(words[0].syllables) : []
-  );
+  const [pool, setPool] = useState<string[]>(() => words[0]?.syllables ?? []);
   const [correct, setCorrect] = useState(0);
   const [attempts, setAttempts] = useState(0);
   const current = words[index];
@@ -76,6 +75,11 @@ export function BhramitaPlay({
     setPool((prev) => [...prev, syllable]);
   };
 
+  const startGame = () => {
+    setPool(words[0] ? shuffleSyllables(words[0].syllables) : []);
+    setStarted(true);
+  };
+
   const restart = () => {
     setNonce((value) => value + 1);
     setStarted(false);
@@ -83,27 +87,22 @@ export function BhramitaPlay({
     setSeconds(0);
     setIndex(0);
     setBuilt([]);
-    setPool(words[0] ? shuffleSyllables(words[0].syllables) : []);
+    setPool(words[0]?.syllables ?? []);
     setCorrect(0);
     setAttempts(0);
   };
 
   return (
     <div className="space-y-5">
-      <div className="relative overflow-hidden rounded-3xl border border-emerald-200/70 bg-white/80 p-5 dark:border-emerald-900/40 dark:bg-slate-950/70">
+      <div className="relative isolate overflow-hidden rounded-3xl border border-emerald-200/70 bg-white/80 p-5 dark:border-emerald-900/40 dark:bg-slate-950/70">
         {!started ? (
-          <div className="absolute inset-0 z-10 flex items-center justify-center bg-white/70 backdrop-blur-[2px] dark:bg-slate-950/70">
-            <Button
-              size="lg"
-              className="bg-linear-to-r from-emerald-500 to-teal-600 text-white shadow-lg"
-              onClick={() => setStarted(true)}
-            >
-              <Play className="size-5" />
-              Start
-            </Button>
-          </div>
+          <SimpleGameStartOverlay
+            label="Start"
+            buttonClassName="bg-linear-to-r from-emerald-500 to-teal-600"
+            onStart={startGame}
+          />
         ) : null}
-        <div className={cn(!started && 'pointer-events-none')}>
+        <div className={cn('relative z-0', !started && 'pointer-events-none')}>
           <p className="text-sm text-muted-foreground">
             Word {Math.min(index + 1, words.length)} of {words.length}
           </p>
