@@ -1,14 +1,14 @@
 import { Effect } from 'effect';
 import { z } from 'zod';
 import { protectedAdminProcedure, publicProcedure, t } from '~/api/trpc_init';
-import { dbRunHttp, dbTransaction, type DbTransaction } from '~/effect/database';
+import { dbRunHttp, dbTransaction } from '~/effect/database';
 import {
   padavali_attachments,
   padavali_redirects,
   padavali_puzzles,
   image_assets
 } from '~/db/schema';
-import { and, asc, count, desc, eq, ilike, inArray, or, sql } from 'drizzle-orm';
+import { and, asc, count, desc, eq, ilike, or, sql } from 'drizzle-orm';
 import { padavali_stats_router } from './padavali_stats';
 import {
   CACHE,
@@ -32,13 +32,21 @@ import {
 } from '~/util/puzzle/slug';
 import { escapeIlikeToken, tokenizeSearchQuery } from '~/util/puzzle/search';
 import { puzzleHasTag, puzzleInCollection, tagsForPuzzleIds } from '~/util/catalog/list_query';
-import { BadRequestError, ConflictError, NotFoundError } from '~/effect/errors';
+import { syncPuzzleAttachments } from '~/game_shell/attachments';
+import { createGameSlugHelpers } from '~/game_shell/slug';
+import { BadRequestError, NotFoundError } from '~/effect/errors';
 import { AppConfig } from '~/effect/config';
 import { runTrpcEffect } from '~/effect/run';
 import { padavaliActiveWordsEqual } from '~/util/puzzle/word_list';
 
 const settle = <A, E, R>(effect: Effect.Effect<A, E, R>) =>
   effect.pipe(Effect.catch(() => Effect.void));
+
+const slugHelpers = createGameSlugHelpers({
+  kind: 'padavali',
+  tables: { puzzles: padavali_puzzles, redirects: padavali_redirects },
+  isValidSlug
+});
 
 const puzzle_in_current_schedule = Effect.fn('padavali.puzzle_in_current_schedule')(function* (
   id: number
@@ -70,210 +78,6 @@ export const notify_for_listed_puzzle = Effect.fn('padavali.notify_for_listed_pu
   });
 });
 
-type AttachmentInput = z.infer<typeof puzzle_update_input_schema>['puzzle_data']['attachments'];
-
-const update_puzzle_attachments = async (
-  tx: DbTransaction,
-  puzzle_id: number,
-  attachments: AttachmentInput
-) => {
-  const current_attachments = await tx.query.padavali_attachments.findMany({
-    where: (tbl, { eq }) => eq(tbl.puzzle_id, puzzle_id),
-    columns: {
-      id: true
-    }
-  });
-  const new_attachments = attachments
-    .map((attachment, i) => ({
-      index: i,
-      data: attachment
-    }))
-    .filter((attachment) => !attachment.data.id);
-  const existing_attachments = attachments.filter((attachment) => attachment.id);
-  const updated_attachments = existing_attachments.filter((attachment) =>
-    current_attachments.some((a) => a.id === attachment.id)
-  );
-  const deleted_attachments = current_attachments.filter(
-    (attachment) => !attachments.some((a) => a.id === attachment.id)
-  );
-
-  const update_existing =
-    updated_attachments.length > 0
-      ? (() => {
-          const value_rows = updated_attachments.map(
-            (a) =>
-              sql`(${a.id!}::int, ${a.type}::attachment_type, ${a.url}::text, ${a.order_index}::smallint, ${a.title}::text)`
-          );
-          return tx.execute(sql`
-            UPDATE ${padavali_attachments} AS t
-            SET
-              type = v.type,
-              url = v.url,
-              order_index = v.order_index,
-              title = v.title,
-              updated_at = now()
-            FROM (VALUES ${sql.join(value_rows, sql`, `)}) AS v(id, type, url, order_index, title)
-            WHERE t.puzzle_id = ${puzzle_id}
-              AND t.id = v.id
-          `);
-        })()
-      : Promise.resolve();
-
-  // SAFETY: empty-array branch stands in for insert().returning() rows we only need ids from
-  const [new_attachments_inserted] = await Promise.all([
-    new_attachments.length > 0
-      ? tx
-          .insert(padavali_attachments)
-          .values(
-            new_attachments.map((a) => ({
-              puzzle_id,
-              type: a.data.type,
-              url: a.data.url,
-              order_index: a.data.order_index,
-              title: a.data.title
-            }))
-          )
-          .returning()
-      : ([] as { id: number }[]),
-    deleted_attachments.length > 0
-      ? tx.delete(padavali_attachments).where(
-          and(
-            eq(padavali_attachments.puzzle_id, puzzle_id),
-            inArray(
-              padavali_attachments.id,
-              deleted_attachments.map((a) => a.id)
-            )
-          )
-        )
-      : Promise.resolve(),
-    update_existing
-  ]);
-
-  return {
-    newly_added_index_ids: new_attachments_inserted.map((a, i) => ({
-      id: a.id,
-      index: new_attachments[i].index
-    }))
-  };
-};
-
-type SlugAvailabilityOptions = {
-  exclude_puzzle_id?: number;
-};
-
-const resolve_slug_availability = Effect.fn('padavali.resolve_slug_availability')(function* (
-  slug: string,
-  options: SlugAvailabilityOptions = {}
-) {
-  const { exclude_puzzle_id } = options;
-  const normalized = normalizeSlug(slug);
-  if (!isValidSlug(normalized)) {
-    return { available: false as const, reason: 'invalid_format' as const, slug: normalized };
-  }
-
-  const { existing_puzzle, existing_redirect } = yield* Effect.all({
-    existing_puzzle: dbRunHttp('padavali.find_puzzle_by_slug', (client) =>
-      client.query.padavali_puzzles.findFirst({
-        where: (tbl, { eq }) => eq(tbl.slug, normalized),
-        columns: { id: true, slug: true, title: true }
-      })
-    ),
-    existing_redirect: dbRunHttp('padavali.find_redirect_by_slug', (client) =>
-      client.query.padavali_redirects.findFirst({
-        where: (tbl, { eq }) => eq(tbl.slug, normalized),
-        with: {
-          puzzle: {
-            columns: { id: true, slug: true, title: true }
-          }
-        }
-      })
-    )
-  });
-
-  if (
-    existing_puzzle &&
-    !(exclude_puzzle_id !== undefined && existing_puzzle.id === exclude_puzzle_id)
-  ) {
-    return {
-      available: false as const,
-      reason: 'taken' as const,
-      slug: normalized,
-      conflicting_puzzle: existing_puzzle
-    };
-  }
-
-  if (
-    existing_redirect?.puzzle &&
-    !(exclude_puzzle_id !== undefined && existing_redirect.puzzle.id === exclude_puzzle_id)
-  ) {
-    return {
-      available: true as const,
-      slug: normalized,
-      redirect_conflict: {
-        redirect_id: existing_redirect.id,
-        redirect_slug: existing_redirect.slug,
-        puzzle: existing_redirect.puzzle
-      }
-    };
-  }
-
-  return { available: true as const, slug: normalized };
-});
-
-const assert_slug_usable_for_mutation = Effect.fn('padavali.assert_slug_usable_for_mutation')(
-  function* (slug: string, options: SlugAvailabilityOptions & { override_redirect_slug: boolean }) {
-    const availability = yield* resolve_slug_availability(slug, options);
-
-    if (!availability.available) {
-      if (availability.reason === 'invalid_format') {
-        return yield* Effect.fail(
-          BadRequestError.make({
-            message: 'Invalid slug format'
-          })
-        );
-      }
-      return yield* Effect.fail(
-        ConflictError.make({
-          message: 'Slug is already taken by another puzzle'
-        })
-      );
-    }
-
-    if ('redirect_conflict' in availability && availability.redirect_conflict) {
-      if (!options.override_redirect_slug) {
-        return yield* Effect.fail(
-          ConflictError.make({
-            message: 'Slug conflicts with an existing redirect; confirmation required'
-          })
-        );
-      }
-    }
-
-    return availability;
-  }
-);
-
-const delete_redirect_for_slug = async (tx: DbTransaction, slug: string) => {
-  await tx.delete(padavali_redirects).where(eq(padavali_redirects.slug, slug));
-};
-
-const upsert_redirect_for_puzzle = async (
-  tx: DbTransaction,
-  puzzle_id: number,
-  redirect_slug: string
-) => {
-  await tx
-    .insert(padavali_redirects)
-    .values({
-      puzzle_id,
-      slug: redirect_slug
-    })
-    .onConflictDoUpdate({
-      target: padavali_redirects.slug,
-      set: { puzzle_id }
-    });
-};
-
 const check_slug_availability_route = protectedAdminProcedure
   .input(
     z.object({
@@ -282,7 +86,7 @@ const check_slug_availability_route = protectedAdminProcedure
     })
   )
   .query(({ input: { slug, exclude_puzzle_id } }) =>
-    runTrpcEffect(resolve_slug_availability(slug, { exclude_puzzle_id }))
+    runTrpcEffect(slugHelpers.resolve_slug_availability(slug, { exclude_puzzle_id }))
   );
 
 const update_puzzle_route = protectedAdminProcedure
@@ -336,7 +140,12 @@ const update_puzzle_route = protectedAdminProcedure
                 );
             }
 
-            const attachment_result = await update_puzzle_attachments(tx, puzzle_id, attachments);
+            const attachment_result = await syncPuzzleAttachments(
+              tx,
+              padavali_attachments,
+              puzzle_id,
+              attachments
+            );
             return {
               updated_count: updated.length,
               newly_added_index_ids: attachment_result.newly_added_index_ids
@@ -411,13 +220,13 @@ const update_puzzle_slug_route = protectedAdminProcedure
           );
         }
 
-        yield* assert_slug_usable_for_mutation(new_slug, {
+        yield* slugHelpers.assert_slug_usable_for_mutation(new_slug, {
           exclude_puzzle_id: puzzle_id,
           override_redirect_slug
         });
 
         const updated_count = yield* dbTransaction('padavali.update_puzzle_slug', async (tx) => {
-          await delete_redirect_for_slug(tx, new_slug);
+          await slugHelpers.delete_redirect_for_slug(tx, new_slug);
 
           const updated = await tx
             .update(padavali_puzzles)
@@ -426,7 +235,7 @@ const update_puzzle_slug_route = protectedAdminProcedure
             .returning();
 
           if (updated.length > 0) {
-            await upsert_redirect_for_puzzle(tx, puzzle_id, current_slug);
+            await slugHelpers.upsert_redirect_for_puzzle(tx, puzzle_id, current_slug);
           }
 
           return updated.length;
@@ -478,13 +287,13 @@ const add_puzzle_route = protectedAdminProcedure
   .mutation(({ input }) =>
     runTrpcEffect(
       Effect.gen(function* () {
-        yield* assert_slug_usable_for_mutation(input.slug, {
+        yield* slugHelpers.assert_slug_usable_for_mutation(input.slug, {
           override_redirect_slug: input.override_redirect_slug
         });
 
         const inserted_puzzles = yield* dbTransaction('padavali.insert_puzzle', async (tx) => {
           if (input.override_redirect_slug) {
-            await delete_redirect_for_slug(tx, input.slug);
+            await slugHelpers.delete_redirect_for_slug(tx, input.slug);
           }
 
           return insertWithUniqueUid(tx, padavali_puzzles, (scoped, uid) =>

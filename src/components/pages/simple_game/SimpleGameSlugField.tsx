@@ -2,10 +2,11 @@
 
 import { useState } from 'react';
 import { useMutation } from '@tanstack/react-query';
-import { CheckIcon, Loader2Icon, PencilIcon, XIcon } from 'lucide-react';
+import { PencilIcon } from 'lucide-react';
 import { toast } from 'sonner';
 import { client, useTRPC } from '~/api/client';
 import { SlugRedirectConflictPrompt } from '~/components/pages/padavali/SlugRedirectConflictPrompt';
+import { SlugStatusHint, SlugStatusIcon } from '~/components/puzzle/SlugStatus';
 import { Button } from '~/components/ui/button';
 import {
   Dialog,
@@ -17,7 +18,6 @@ import {
 import { Input } from '~/components/ui/input';
 import { Label } from '~/components/ui/label';
 import { useDebouncedSlugCheck } from '~/hooks/useDebouncedSlugCheck';
-import { cn } from '~/lib/utils';
 import type { SimpleGameKind } from '~/util/games/kinds';
 import { isValidSimpleGameSlug } from '~/util/puzzle/slug';
 
@@ -92,26 +92,12 @@ export function SimpleGameSlugField({
                 className="pr-9"
                 onChange={(event) => setDraft(event.currentTarget.value)}
               />
-              <span className="absolute inset-y-0 right-2 flex items-center">
-                {status === 'checking' ? (
-                  <Loader2Icon className="size-4 animate-spin text-muted-foreground" />
-                ) : null}
-                {status === 'available' ? <CheckIcon className="size-4 text-green-600" /> : null}
-                {status === 'taken' || status === 'invalid' ? (
-                  <XIcon className="size-4 text-red-600" />
-                ) : null}
-              </span>
-            </div>
-            <p
-              className={cn(
-                'text-xs',
-                status === 'taken' || status === 'invalid'
-                  ? 'text-red-600'
-                  : 'text-muted-foreground'
-              )}
-            >
-              The previous slug stays as a redirect.
-            </p>
+                <span className="absolute inset-y-0 right-2 flex items-center">
+                  <SlugStatusIcon status={status} />
+                </span>
+              </div>
+              <SlugStatusHint status={status} normalizedSlug={normalizedSlug} />
+              <p className="text-xs text-muted-foreground">The previous slug stays as a redirect.</p>
             {status === 'redirect_conflict' && redirectConflict ? (
               <SlugRedirectConflictPrompt
                 conflict={redirectConflict}

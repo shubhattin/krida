@@ -1,16 +1,15 @@
 import { Effect } from 'effect';
 import { z } from 'zod';
 import { protectedAdminProcedure, publicProcedure, t } from '../../trpc_init';
-import { dbRunHttp, dbTransaction, type DbTransaction } from '~/effect/database';
-import { and, asc, count, desc, eq, ilike, inArray, or, sql } from 'drizzle-orm';
+import { dbRunHttp, dbTransaction } from '~/effect/database';
+import { and, asc, count, desc, eq, ilike, or, sql } from 'drizzle-orm';
 import { escapeIlikeToken, tokenizeSearchQuery } from '~/util/puzzle/search';
 import { puzzleHasTag, puzzleInCollection, tagsForPuzzleIds } from '~/util/catalog/list_query';
 import {
   simple_game_add_input_schema,
   simple_game_list_input_schema,
   simple_game_update_slug_input_schema,
-  simpleGameUpdateInputSchema,
-  type SimpleGameAttachmentInput
+  simpleGameUpdateInputSchema
 } from '~/db/simple_game_shared';
 import { insertWithUniqueUid } from '~/util/puzzle/nano_id';
 import { simple_game_slug_schema } from '~/util/puzzle/slug';
@@ -20,6 +19,7 @@ import {
   NO_CACHE_PARAMS
 } from '~/util/cache.server/cache_loaders';
 import { normalizeSlug } from '~/util/puzzle/slug';
+import { syncPuzzleAttachments } from '~/game_shell/attachments';
 import { BadRequestError, NotFoundError } from '~/effect/errors';
 import { runTrpcEffect } from '~/effect/run';
 import type { SimpleGameKind } from '~/util/games/kinds';
@@ -47,86 +47,6 @@ export function createSimpleGameRouter<TData>(options: {
   const updateSchema = simpleGameUpdateInputSchema(dataSchema);
   const slugHelpers = createSimpleGameSlugHelpers(kind, tables);
   const stats = createSimpleGameStatsRouter(kind, tables);
-
-  const update_puzzle_attachments = async (
-    tx: DbTransaction,
-    puzzle_id: number,
-    attachments: SimpleGameAttachmentInput[]
-  ) => {
-    const current_attachments = await tx
-      .select({ id: tables.attachments.id })
-      .from(tables.attachments)
-      .where(eq(tables.attachments.puzzle_id, puzzle_id));
-    const new_attachments = attachments
-      .map((attachment, i) => ({ index: i, data: attachment }))
-      .filter((attachment) => !attachment.data.id);
-    const existing_attachments = attachments.filter((attachment) => attachment.id);
-    const updated_attachments = existing_attachments.filter((attachment) =>
-      current_attachments.some((row) => row.id === attachment.id)
-    );
-    const deleted_attachments = current_attachments.filter(
-      (attachment) => !attachments.some((row) => row.id === attachment.id)
-    );
-
-    const update_existing =
-      updated_attachments.length > 0
-        ? (() => {
-            const value_rows = updated_attachments.map(
-              (attachment) =>
-                sql`(${attachment.id!}::int, ${attachment.type}::attachment_type, ${attachment.url}::text, ${attachment.order_index}::smallint, ${attachment.title}::text)`
-            );
-            return tx.execute(sql`
-              UPDATE ${tables.attachments} AS t
-              SET
-                type = v.type,
-                url = v.url,
-                order_index = v.order_index,
-                title = v.title,
-                updated_at = now()
-              FROM (VALUES ${sql.join(value_rows, sql`, `)}) AS v(id, type, url, order_index, title)
-              WHERE t.puzzle_id = ${puzzle_id}
-                AND t.id = v.id
-            `);
-          })()
-        : Promise.resolve();
-
-    const emptyInsertedAttachments: { id: number }[] = [];
-    const [new_attachments_inserted] = await Promise.all([
-      new_attachments.length > 0
-        ? tx
-            .insert(tables.attachments)
-            .values(
-              new_attachments.map((attachment) => ({
-                puzzle_id,
-                type: attachment.data.type,
-                url: attachment.data.url,
-                order_index: attachment.data.order_index,
-                title: attachment.data.title
-              }))
-            )
-            .returning()
-        : emptyInsertedAttachments,
-      deleted_attachments.length > 0
-        ? tx.delete(tables.attachments).where(
-            and(
-              eq(tables.attachments.puzzle_id, puzzle_id),
-              inArray(
-                tables.attachments.id,
-                deleted_attachments.map((row) => row.id)
-              )
-            )
-          )
-        : Promise.resolve(),
-      update_existing
-    ]);
-
-    return {
-      newly_added_index_ids: new_attachments_inserted.map((row, i) => ({
-        id: row.id,
-        index: new_attachments[i]!.index
-      }))
-    };
-  };
 
   const refreshListed = () =>
     settle(invalidate_and_refresh_cache(puzzleCache.listed_puzzle_list, NO_CACHE_PARAMS));
@@ -377,7 +297,12 @@ export function createSimpleGameRouter<TData>(options: {
                 .where(and(eq(tables.puzzles.id, puzzle_id), eq(tables.puzzles.slug, puzzle_slug)))
                 .returning();
 
-              const attachment_result = await update_puzzle_attachments(tx, puzzle_id, attachments);
+              const attachment_result = await syncPuzzleAttachments(
+                tx,
+                tables.attachments,
+                puzzle_id,
+                attachments
+              );
               return {
                 updated_count: updated.length,
                 newly_added_index_ids: attachment_result.newly_added_index_ids

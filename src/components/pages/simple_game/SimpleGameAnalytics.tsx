@@ -35,15 +35,17 @@ import { SIMPLE_GAME_META, type SimpleGameKind } from '~/util/games/kinds';
 
 type AnalyticsGame = 'padavali' | 'padajala' | SimpleGameKind;
 type DatedRow = { created_at: Date | string };
+type StatRow = DatedRow & { time_taken: number; accuracy: number };
 type DailyPoint = { date: string; started: number; completed: number; label: string };
 
-const EMPTY_DATED_ROWS: DatedRow[] = [];
+const EMPTY_SESSIONS: DatedRow[] = [];
+const EMPTY_STATS: StatRow[] = [];
 
 function analyticsUserGame(kind: SimpleGameKind): AnalyticsGame {
   return kind;
 }
 
-function dailyPlaySeries(sessions: DatedRow[], stats: DatedRow[]): DailyPoint[] {
+function dailyPlaySeries(sessions: DatedRow[], stats: StatRow[]): DailyPoint[] {
   const map = new Map<string, { date: string; started: number; completed: number }>();
   for (const session of sessions) {
     const date = format(new Date(session.created_at), 'yyyy-MM-dd');
@@ -197,8 +199,8 @@ export function SimpleGameAnalytics({
     )
   );
 
-  const sessions = statsQuery.data?.sessions ?? EMPTY_DATED_ROWS;
-  const stats = statsQuery.data?.stats ?? EMPTY_DATED_ROWS;
+  const sessions = statsQuery.data?.sessions ?? EMPTY_SESSIONS;
+  const stats = statsQuery.data?.stats ?? EMPTY_STATS;
   const completed = stats.length;
   const started = sessions.length;
   const avgTime =

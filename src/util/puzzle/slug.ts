@@ -4,40 +4,29 @@ export const MAX_SLUG_LENGTH = 100;
 
 export const SLUG_REGEX = /^[a-z0-9_-]+$/;
 
-/** First-segment paths under `/padavali/*` that must not be used as puzzle slugs. */
-export const RESERVED_SLUGS = new Set([
+/** First-segment paths reserved under every game tree. */
+const SHARED_RESERVED_SLUGS = [
   'analytics',
-  'archived',
   'edit',
   'list',
   'puzzle',
   'puzzles',
-  'schedules',
   'view'
-]);
+] as const;
+
+/** First-segment paths under `/padavali/*` that must not be used as puzzle slugs. */
+export const RESERVED_SLUGS = new Set<string>([...SHARED_RESERVED_SLUGS, 'archived', 'schedules']);
 
 /** First-segment paths under `/padajala/*` that must not be used as puzzle slugs. */
-export const CROSSWORD_RESERVED_SLUGS = new Set([
-  'analytics',
+export const CROSSWORD_RESERVED_SLUGS = new Set<string>([
+  ...SHARED_RESERVED_SLUGS,
   'archived',
   'batch_manager',
-  'edit',
-  'list',
-  'puzzle',
-  'puzzles',
-  'schedules',
-  'view'
+  'schedules'
 ]);
 
 /** First-segment paths under the in-development game trees. */
-export const SIMPLE_GAME_RESERVED_SLUGS = new Set([
-  'analytics',
-  'edit',
-  'list',
-  'puzzle',
-  'puzzles',
-  'view'
-]);
+export const SIMPLE_GAME_RESERVED_SLUGS = new Set<string>(SHARED_RESERVED_SLUGS);
 
 export const isReservedSlug = (slug: string) => RESERVED_SLUGS.has(slug);
 

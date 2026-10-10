@@ -1,14 +1,14 @@
 import { Effect } from 'effect';
 import { z } from 'zod';
 import { protectedAdminProcedure, publicProcedure, t } from '../../trpc_init';
-import { dbRunHttp, dbTransaction, type DbTransaction } from '~/effect/database';
+import { dbRunHttp, dbTransaction } from '~/effect/database';
 import {
   crossword_attachments,
   crossword_puzzles,
   crossword_redirects,
   image_assets
 } from '~/db/schema';
-import { and, asc, count, desc, eq, ilike, inArray, or, sql } from 'drizzle-orm';
+import { and, asc, count, desc, eq, ilike, or, sql } from 'drizzle-orm';
 import { escapeIlikeToken, tokenizeSearchQuery } from '~/util/puzzle/search';
 import { puzzleHasTag, puzzleInCollection, tagsForPuzzleIds } from '~/util/catalog/list_query';
 import { createEmptyGridData } from '~/util/cross_word/grid';
@@ -28,7 +28,6 @@ import {
   NO_CACHE_PARAMS
 } from '~/util/cache.server/cache_loaders';
 import { normalizeSlug } from '~/util/puzzle/slug';
-import type { crossword_update_input_schema as CrosswordUpdateInputSchema } from '~/db/crossword_shared';
 import {
   assert_slug_usable_for_mutation,
   delete_redirect_for_slug,
@@ -38,13 +37,13 @@ import {
 import { crossword_stats_router } from './crossword_stats';
 import { crossword_schedules_router } from './crossword_schedules';
 import { more_hints_inputs_equal } from '~/util/ai/more_hints';
+import { syncPuzzleAttachments } from '~/game_shell/attachments';
 import { BadRequestError, NotFoundError } from '~/effect/errors';
 import { runTrpcEffect } from '~/effect/run';
 
-type AttachmentInput = z.infer<typeof CrosswordUpdateInputSchema>['puzzle_data']['attachments'];
-
 const settle = <A, E, R>(effect: Effect.Effect<A, E, R>) =>
   effect.pipe(Effect.catch(() => Effect.void));
+
 
 const puzzle_in_current_schedule = Effect.fn('crossword.puzzle_in_current_schedule')(function* (
   id: number
@@ -59,89 +58,6 @@ const puzzle_in_next_schedule = Effect.fn('crossword.puzzle_in_next_schedule')(f
   const next_schedule = yield* CACHE.crossword.next_schedule.get(NO_CACHE_PARAMS);
   return next_schedule?.puzzle.id === id;
 });
-
-const update_puzzle_attachments = async (
-  tx: DbTransaction,
-  puzzle_id: number,
-  attachments: AttachmentInput
-) => {
-  const current_attachments = await tx.query.crossword_attachments.findMany({
-    where: (tbl, { eq: eqFn }) => eqFn(tbl.puzzle_id, puzzle_id),
-    columns: { id: true }
-  });
-  const new_attachments = attachments
-    .map((attachment, i) => ({
-      index: i,
-      data: attachment
-    }))
-    .filter((attachment) => !attachment.data.id);
-  const existing_attachments = attachments.filter((attachment) => attachment.id);
-  const updated_attachments = existing_attachments.filter((attachment) =>
-    current_attachments.some((a) => a.id === attachment.id)
-  );
-  const deleted_attachments = current_attachments.filter(
-    (attachment) => !attachments.some((a) => a.id === attachment.id)
-  );
-
-  const update_existing =
-    updated_attachments.length > 0
-      ? (() => {
-          const value_rows = updated_attachments.map(
-            (a) =>
-              sql`(${a.id!}::int, ${a.type}::attachment_type, ${a.url}::text, ${a.order_index}::smallint, ${a.title}::text)`
-          );
-          return tx.execute(sql`
-            UPDATE ${crossword_attachments} AS t
-            SET
-              type = v.type,
-              url = v.url,
-              order_index = v.order_index,
-              title = v.title,
-              updated_at = now()
-            FROM (VALUES ${sql.join(value_rows, sql`, `)}) AS v(id, type, url, order_index, title)
-            WHERE t.puzzle_id = ${puzzle_id}
-              AND t.id = v.id
-          `);
-        })()
-      : Promise.resolve();
-
-  // SAFETY: empty-array branch stands in for insert().returning() rows we only need ids from
-  const [new_attachments_inserted] = await Promise.all([
-    new_attachments.length > 0
-      ? tx
-          .insert(crossword_attachments)
-          .values(
-            new_attachments.map((a) => ({
-              puzzle_id,
-              type: a.data.type,
-              url: a.data.url,
-              order_index: a.data.order_index,
-              title: a.data.title
-            }))
-          )
-          .returning()
-      : ([] as { id: number }[]),
-    deleted_attachments.length > 0
-      ? tx.delete(crossword_attachments).where(
-          and(
-            eq(crossword_attachments.puzzle_id, puzzle_id),
-            inArray(
-              crossword_attachments.id,
-              deleted_attachments.map((a) => a.id)
-            )
-          )
-        )
-      : Promise.resolve(),
-    update_existing
-  ]);
-
-  return {
-    newly_added_index_ids: new_attachments_inserted.map((a, i) => ({
-      id: a.id,
-      index: new_attachments[i].index
-    }))
-  };
-};
 
 const check_slug_availability_route = protectedAdminProcedure
   .input(
@@ -409,7 +325,12 @@ const update_puzzle_route = protectedAdminProcedure
               )
               .returning();
 
-            const attachment_result = await update_puzzle_attachments(tx, puzzle_id, attachments);
+            const attachment_result = await syncPuzzleAttachments(
+              tx,
+              crossword_attachments,
+              puzzle_id,
+              attachments
+            );
             return {
               updated_count: updated.length,
               newly_added_index_ids: attachment_result.newly_added_index_ids
