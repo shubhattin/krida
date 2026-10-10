@@ -4,7 +4,6 @@ import { useEffect, useEffectEvent, useMemo, useRef, useState } from 'react';
 import { useAtomValue } from 'jotai';
 import { LayoutGroup, motion } from 'framer-motion';
 import { AlertCircle, CheckCircle2, Sparkles } from 'lucide-react';
-import { transliterate } from 'lipilekhika';
 import { cn } from '~/lib/utils';
 import { Popover, PopoverContent, PopoverTrigger } from '~/components/ui/popover';
 import { active_focus_atom, numbered_entries_atom, solved_entry_ids_atom } from './game_state';
@@ -12,6 +11,7 @@ import type { useCrossWordGame } from './useCrossWordGame';
 import type { MoreHintsQuery } from './useMoreHints';
 import type { NumberedEntry } from '~/util/cross_word/game_model';
 import { DEFAULT_DATA_SCRIPT } from '~/state/script_list';
+import { transliterate_custom } from '~/tools/transliterator';
 
 type ClueFilter = 'all' | 'across' | 'down';
 
@@ -50,7 +50,7 @@ function SolvedRomanizedWord({ wordDev }: { wordDev: string }) {
     if (!trimmed || romanizedCache.has(trimmed)) return;
 
     let active = true;
-    void transliterate(trimmed, DEFAULT_DATA_SCRIPT, ROMANIZED_SCRIPT).then((result) => {
+    void transliterate_custom(trimmed, DEFAULT_DATA_SCRIPT, ROMANIZED_SCRIPT).then((result) => {
       if (!active) return;
       romanizedCache.set(trimmed, result);
       setFetched({ word: trimmed, result });

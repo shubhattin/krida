@@ -1,11 +1,11 @@
 'use client';
 
 import { useContext, useEffect, useState } from 'react';
-import { transliterate } from 'lipilekhika';
 import { useQuery } from '@tanstack/react-query';
 import { useTRPC } from '~/api/client';
 import { AppContext } from '~/components/AppDataContext';
 import { DEFAULT_DATA_SCRIPT } from '~/state/script_list';
+import { transliterate_custom } from '~/tools/transliterator';
 
 export function useWordMeanings(puzzle_id: number, puzzle_slug: string) {
   const trpc = useTRPC();
@@ -30,7 +30,7 @@ export function useWordMeanings(puzzle_id: number, puzzle_slug: string) {
           const tWord =
             script === DEFAULT_DATA_SCRIPT
               ? w.word
-              : await transliterate(w.word, DEFAULT_DATA_SCRIPT, script!);
+              : await transliterate_custom(w.word, DEFAULT_DATA_SCRIPT, script!);
           return [w.word, tWord] as const;
         })
       );

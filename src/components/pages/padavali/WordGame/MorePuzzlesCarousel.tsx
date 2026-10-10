@@ -3,10 +3,10 @@
 import { useContext } from 'react';
 import { Link } from '@tanstack/react-router';
 import { useQuery } from '@tanstack/react-query';
-import { transliterate } from 'lipilekhika';
 import { motion } from 'framer-motion';
 import { ArrowRightIcon, LayoutGridIcon, ExternalLinkIcon } from 'lucide-react';
 import { client } from '~/api/client';
+import { transliterate_custom } from '~/tools/transliterator';
 import { AppContext } from '~/components/AppDataContext';
 import { DEFAULT_DATA_SCRIPT, type ScriptType } from '~/state/script_list';
 import { PuzzlePreviewCard } from '~/components/pages/padavali/PuzzlePreviewCard';
@@ -156,21 +156,17 @@ export const getCarouselPuzzlesQueryFn =
     if (org.length === 0) return [];
 
     const [transliterated_texts, normal_titles] = await Promise.all([
-      transliterate(
+      transliterate_custom(
         org.flatMap((p: ListedPuzzlePreviewRow) =>
           p.description ? [p.title, p.description] : [p.title]
         ),
         DEFAULT_DATA_SCRIPT,
         script
       ),
-      transliterate(
+      transliterate_custom(
         org.map((p: ListedPuzzlePreviewRow) => p.title),
         DEFAULT_DATA_SCRIPT,
-        NORMAL_TITLE_SCRIPT,
-        {
-          'all_to_normal:replace_avagraha_with_a': true,
-          'all_to_normal:replace_pancham_varga_varna_with_n': true
-        }
+        NORMAL_TITLE_SCRIPT
       )
     ]);
 

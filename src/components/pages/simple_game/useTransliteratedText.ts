@@ -1,9 +1,9 @@
 'use client';
 
 import { useContext, useEffect, useState } from 'react';
-import { transliterate } from 'lipilekhika';
 import { AppContext } from '~/components/AppDataContext';
 import { DEFAULT_DATA_SCRIPT } from '~/state/script_list';
+import { transliterate_custom } from '~/tools/transliterator';
 
 export function useTransliteratedText(text: string): string {
   const { script } = useContext(AppContext);
@@ -13,7 +13,7 @@ export function useTransliteratedText(text: string): string {
   useEffect(() => {
     if (!text || script === DEFAULT_DATA_SCRIPT) return;
     let cancelled = false;
-    void transliterate(text, DEFAULT_DATA_SCRIPT, script).then((result) => {
+    void transliterate_custom(text, DEFAULT_DATA_SCRIPT, script).then((result) => {
       if (!cancelled) setTranslated({ key, value: result });
     });
     return () => {
@@ -35,11 +35,11 @@ export function useTransliteratedList(values: readonly string[]): string[] {
   useEffect(() => {
     if (values.length === 0 || script === DEFAULT_DATA_SCRIPT) return;
     let cancelled = false;
-    void Promise.all(values.map((value) => transliterate(value, DEFAULT_DATA_SCRIPT, script))).then(
-      (result) => {
-        if (!cancelled) setTranslated({ key, value: result });
-      }
-    );
+    void Promise.all(
+      values.map((value) => transliterate_custom(value, DEFAULT_DATA_SCRIPT, script))
+    ).then((result) => {
+      if (!cancelled) setTranslated({ key, value: result });
+    });
     return () => {
       cancelled = true;
     };

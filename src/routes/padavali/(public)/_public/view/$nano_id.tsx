@@ -6,6 +6,7 @@ import { transliterate_node } from 'lipilekhika/node';
 import { z } from 'zod';
 import WordGame from '~/components/pages/padavali/WordGame/WordGameRoot';
 import { get_transliterated_word_game_msgs } from '~/components/pages/padavali/WordGame/msgs';
+import { transliterate_custom } from '~/tools/transliterator';
 import { routeHeadFromPageMeta } from '~/components/tags/getPageMetaTags';
 import { padavali_puzzles } from '~/db/schema';
 import { dbRunHttp } from '~/effect/database';
@@ -37,12 +38,20 @@ const loader$ = createServerFn({ method: 'GET' })
     if (!word_puzzle) return { valid: false as const };
 
     const script = await getScript$();
-    const word_game_msgs = await get_transliterated_word_game_msgs(script);
-    const title = await transliterate_node(word_puzzle.title, DEFAULT_DATA_SCRIPT, script);
-    const grid_cells = await transliterate_node(
+    const word_game_msgs = await get_transliterated_word_game_msgs(script, transliterate_node);
+    const title = await transliterate_custom(
+      word_puzzle.title,
+      DEFAULT_DATA_SCRIPT,
+      script,
+      undefined,
+      transliterate_node
+    );
+    const grid_cells = await transliterate_custom(
       word_puzzle.grid_data.flat(),
       DEFAULT_DATA_SCRIPT,
-      script
+      script,
+      undefined,
+      transliterate_node
     );
     let cell_i = 0;
     const grid_data = word_puzzle.grid_data.map((row) => row.map(() => grid_cells[cell_i++]!));

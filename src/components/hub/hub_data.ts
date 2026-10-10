@@ -1,6 +1,7 @@
 import { createServerFn } from '@tanstack/react-start';
 import { transliterate_node } from 'lipilekhika/node';
 import { DEFAULT_DATA_SCRIPT } from '~/state/script_list';
+import { transliterate_custom } from '~/tools/transliterator';
 import { getScript$ } from '~/lib/cache_server_route_data';
 import { CACHE, NO_CACHE_PARAMS } from '~/util/cache.server/cache_loaders';
 import {
@@ -68,14 +69,22 @@ export const hubData$ = createServerFn({ method: 'GET' }).handler(async () => {
     p.description ? [p.title, p.description] : [p.title]
   );
   const [transliterated_texts, normal_titles, padavali_today_title] = await Promise.all([
-    transliterate_node(puzzle_texts, DEFAULT_DATA_SCRIPT, script),
-    transliterate_node(
+    transliterate_custom(puzzle_texts, DEFAULT_DATA_SCRIPT, script, undefined, transliterate_node),
+    transliterate_custom(
       padavali_listed.map((p) => p.title),
       DEFAULT_DATA_SCRIPT,
-      NORMAL_TITLE_SCRIPT
+      NORMAL_TITLE_SCRIPT,
+      undefined,
+      transliterate_node
     ),
     padavali_today
-      ? transliterate_node(padavali_today.title, DEFAULT_DATA_SCRIPT, script)
+      ? transliterate_custom(
+          padavali_today.title,
+          DEFAULT_DATA_SCRIPT,
+          script,
+          undefined,
+          transliterate_node
+        )
       : Promise.resolve(null)
   ]);
 

@@ -2,7 +2,7 @@
 
 import { useQuery, type QueryClient } from '@tanstack/react-query';
 import { useContext, useMemo } from 'react';
-import { transliterate } from 'lipilekhika';
+import { transliterate_custom } from '~/tools/transliterator';
 import { AppContext } from '~/components/AppDataContext';
 import { DEFAULT_DATA_SCRIPT } from '~/state/script_list';
 import type { PadavaliListedPuzzlesType } from '~/util/cache.server/padavali_cache';
@@ -42,14 +42,10 @@ export function useListedPuzzlesDisplay(
     // oxlint-disable-next-line query/exhaustive-deps
     queryKey: [...listedPuzzleQueryKey, 'normal'],
     queryFn: () =>
-      transliterate(
+      transliterate_custom(
         listed_puzzles.map((p) => p.title),
         DEFAULT_DATA_SCRIPT,
-        NORMAL_TITLE_SCRIPT,
-        {
-          'all_to_normal:replace_avagraha_with_a': true,
-          'all_to_normal:replace_pancham_varga_varna_with_n': true
-        }
+        NORMAL_TITLE_SCRIPT
       ),
     initialData: listed_puzzles_init_transliterated.every((p) => p.title_normal != null)
       ? listed_puzzles_init_transliterated.map((p) => p.title_normal)
@@ -65,7 +61,11 @@ export function useListedPuzzlesDisplay(
       const puzzle_texts = listed_puzzles.flatMap((p) =>
         p.description ? [p.title, p.description] : [p.title]
       );
-      const transliterated_texts = await transliterate(puzzle_texts, DEFAULT_DATA_SCRIPT, script);
+      const transliterated_texts = await transliterate_custom(
+        puzzle_texts,
+        DEFAULT_DATA_SCRIPT,
+        script
+      );
       return mapListedPuzzlesForDisplay(
         listed_puzzles,
         transliterated_texts,

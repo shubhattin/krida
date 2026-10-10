@@ -1,5 +1,5 @@
 import { type ScriptType, DEFAULT_DATA_SCRIPT } from '~/state/script_list';
-import { transliterate } from 'lipilekhika';
+import { transliterate_custom } from '~/tools/transliterator';
 
 export const word_game_msgs = {
   play: 'क्रीड',
@@ -11,20 +11,26 @@ export const word_game_msgs = {
   time_elapsed: 'अतीत-समयः'
 };
 
-export const get_transliterated_word_game_msgs = async (script: ScriptType) => {
-  const [play, replay, stop, reveal, time_taken, found_words, time_elapsed] = await transliterate(
-    [
-      word_game_msgs.play,
-      word_game_msgs.replay,
-      word_game_msgs.stop,
-      word_game_msgs.reveal,
-      word_game_msgs.time_taken,
-      word_game_msgs.found_words,
-      word_game_msgs.time_elapsed
-    ],
-    DEFAULT_DATA_SCRIPT,
-    script
-  );
+export const get_transliterated_word_game_msgs = async (
+  script: ScriptType,
+  transliterate_fn?: Parameters<typeof transliterate_custom>[4]
+) => {
+  const [play, replay, stop, reveal, time_taken, found_words, time_elapsed] =
+    await transliterate_custom(
+      [
+        word_game_msgs.play,
+        word_game_msgs.replay,
+        word_game_msgs.stop,
+        word_game_msgs.reveal,
+        word_game_msgs.time_taken,
+        word_game_msgs.found_words,
+        word_game_msgs.time_elapsed
+      ],
+      DEFAULT_DATA_SCRIPT,
+      script,
+      undefined,
+      transliterate_fn
+    );
   return {
     play,
     replay,

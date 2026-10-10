@@ -2,8 +2,8 @@
 
 import { useRef, useEffect, useMemo, useContext, useState } from 'react';
 import { motion } from 'framer-motion';
-import { transliterate } from 'lipilekhika';
 import { DEFAULT_DATA_SCRIPT, type ScriptType } from '~/state/script_list';
+import { transliterate_custom } from '~/tools/transliterator';
 import { FONT_INFO } from '~/state/script_font_data';
 import { get_transliterated_word_game_msgs, type word_game_msgs } from './msgs';
 import { GameContoller } from './GameController';
@@ -607,12 +607,12 @@ function WordGame({
 
   // transliteration
   useEffect(() => {
-    transliterate(org_grid_data.flat(), DEFAULT_DATA_SCRIPT, script!).then((grid_cells) => {
+    transliterate_custom(org_grid_data.flat(), DEFAULT_DATA_SCRIPT, script!).then((grid_cells) => {
       let cell_i = 0;
       setGridData(org_grid_data.map((row) => row.map(() => grid_cells[cell_i++]!)));
     });
 
-    transliterate(org_title, DEFAULT_DATA_SCRIPT, script!).then((title) => {
+    transliterate_custom(org_title, DEFAULT_DATA_SCRIPT, script!).then((title) => {
       setTitle(title);
     });
 
@@ -620,7 +620,7 @@ function WordGame({
       setWordMsgs(word_msgs);
     });
     if (description) {
-      transliterate(description, DEFAULT_DATA_SCRIPT, script!).then((description) => {
+      transliterate_custom(description, DEFAULT_DATA_SCRIPT, script!).then((description) => {
         setDescriptionTransliterated(description);
       });
     }
