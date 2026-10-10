@@ -15,7 +15,7 @@ export function SimpleGameAddDialog({ kind }: { kind: SimpleGameKind }) {
       triggerLabel={`New ${meta.name}`}
       triggerVariant="default"
       triggerClassName={meta.accent.cta}
-      dialogTitle={`New ${meta.nameDev} puzzle`}
+      dialogTitle={`New ${meta.name} puzzle`}
       dialogDescription={`${meta.subtitle}. Title and slug are required.`}
       confirmTitle="Create this puzzle?"
       confirmDescription={({ title }) => `“${title}” will open in the editor next.`}

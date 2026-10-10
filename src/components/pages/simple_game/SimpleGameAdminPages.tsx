@@ -43,11 +43,7 @@ export function SimpleGameListRoutePage({ kind }: { kind: SimpleGameKind }) {
             <Icon className="size-4" />
           </div>
           <div className="min-w-0">
-            <h1 className="text-xl font-bold tracking-tight">
-              <span className="text-muted-foreground">{meta.nameDev}</span>
-              {' · '}
-              {meta.name}
-            </h1>
+            <h1 className="text-xl font-bold tracking-tight">{meta.name}</h1>
             <p className="text-sm text-muted-foreground">{meta.subtitle}</p>
           </div>
         </div>

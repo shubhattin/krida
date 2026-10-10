@@ -24,7 +24,6 @@ export type SimpleGameMeta = {
   /** Public URL prefix (`/bhramitA`, `/surUpa`, …). */
   routePrefix: SimpleGameRoutePrefix;
   name: string;
-  nameDev: string;
   subtitle: string;
   description: string;
   /** Tailwind accent tokens for admin + public shells. */
@@ -45,7 +44,6 @@ export const SIMPLE_GAME_META = {
     kind: 'dvayi',
     routePrefix: 'dvayi',
     name: 'Dvayī',
-    nameDev: 'द्वयी',
     subtitle: 'Match the following',
     description: 'Pair each prompt with its matching counterpart.',
     accent: {
@@ -63,7 +61,6 @@ export const SIMPLE_GAME_META = {
     kind: 'bhramita',
     routePrefix: 'bhramitA',
     name: 'Bhramitā',
-    nameDev: 'भ्रमिता',
     subtitle: 'Jumbled words',
     description: 'Unscramble Devanagari syllables back into the original word.',
     accent: {
@@ -82,7 +79,6 @@ export const SIMPLE_GAME_META = {
     kind: 'surupa',
     routePrefix: 'surUpa',
     name: 'Surūpa',
-    nameDev: 'सुरूप',
     subtitle: 'Spelling corrector',
     description: 'Pick the right syllable at each step to restore the word.',
     accent: {
@@ -101,7 +97,6 @@ export const SIMPLE_GAME_META = {
     kind: 'anveshi',
     routePrefix: 'anveshi',
     name: 'Anveṣī',
-    nameDev: 'अन्वेषि',
     subtitle: 'Multiple choice',
     description: 'Answer a set of questions, with optional hints and explanations.',
     accent: {

@@ -32,10 +32,7 @@ export function SimpleGameLanding({
       />
       <div className="flex flex-wrap items-start justify-between gap-4">
         <div>
-          <p className="text-xs font-semibold tracking-[0.22em] text-muted-foreground uppercase">
-            {meta.nameDev}
-          </p>
-          <h1 className="mt-1 text-4xl font-black tracking-tight">{meta.name}</h1>
+          <h1 className="text-4xl font-black tracking-tight">{meta.name}</h1>
           <p className="mt-2 max-w-xl text-muted-foreground">{meta.description}</p>
         </div>
         <ScriptSelector script={script} onScriptChange={setScript} />

@@ -49,7 +49,7 @@ export function SimpleGamePublicShell({
       <div className="flex flex-wrap items-center justify-between gap-3">
         <div>
           <p className="text-xs font-semibold tracking-[0.2em] text-muted-foreground uppercase">
-            {meta.nameDev} · {meta.subtitle}
+            {meta.name} · {meta.subtitle}
           </p>
           <h1 className="mt-1 text-3xl font-black tracking-tight">{titleText}</h1>
         </div>

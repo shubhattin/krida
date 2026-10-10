@@ -92,7 +92,6 @@ function AdminActionChip({ href, label, icon: Icon, name }: AdminChip & { name: 
 
 function AdminGameCard({
   name,
-  nameDev,
   subtitle,
   icon,
   wash,
@@ -100,7 +99,6 @@ function AdminGameCard({
   actions
 }: {
   name: string;
-  nameDev?: string;
   subtitle: string;
   icon: ReactNode;
   wash: string;
@@ -119,14 +117,7 @@ function AdminGameCard({
         {icon}
         <div className="min-w-0 flex-1">
           <h3 className="text-base font-bold tracking-tight text-slate-900 dark:text-slate-50">
-            {nameDev ? (
-              <>
-                <span className="mr-1.5 text-muted-foreground">{nameDev}</span>
-                {name}
-              </>
-            ) : (
-              name
-            )}
+            {name}
           </h3>
           <p className="text-xs text-muted-foreground">{subtitle}</p>
         </div>
@@ -231,7 +222,6 @@ export default function AdminPage() {
                 <AdminGameCard
                   key={game.kind}
                   name={game.name}
-                  nameDev={game.nameDev}
                   subtitle={game.subtitle}
                   wash={game.accent.wash}
                   border={game.accent.border}
