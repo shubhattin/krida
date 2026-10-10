@@ -4,13 +4,7 @@ import { useMemo, useState } from 'react';
 import { useQuery } from '@tanstack/react-query';
 import { format, parseISO } from 'date-fns';
 import pretty_ms from 'pretty-ms';
-import {
-  CheckCircle2Icon,
-  ClockIcon,
-  CrosshairIcon,
-  PlayIcon,
-  TrendingUpIcon
-} from 'lucide-react';
+import { CheckCircle2Icon, ClockIcon, CrosshairIcon, PlayIcon, TrendingUpIcon } from 'lucide-react';
 import { Area, AreaChart, CartesianGrid, XAxis, YAxis } from 'recharts';
 import { useTRPC } from '~/api/client';
 import { client } from '~/api/client';
@@ -63,10 +57,12 @@ function dailyPlaySeries(sessions: DatedRow[], stats: DatedRow[]): DailyPoint[] 
     row.completed += 1;
     map.set(date, row);
   }
-  return [...map.values()].toSorted((a, b) => a.date.localeCompare(b.date)).map((row) => ({
-    ...row,
-    label: format(parseISO(row.date), 'MMM dd')
-  }));
+  return [...map.values()]
+    .toSorted((a, b) => a.date.localeCompare(b.date))
+    .map((row) => ({
+      ...row,
+      label: format(parseISO(row.date), 'MMM dd')
+    }));
 }
 
 function simpleGameStatCards(
@@ -114,13 +110,7 @@ function simpleGameStatCards(
   ];
 }
 
-function SimpleGameDailyChart({
-  isLoading,
-  daily
-}: {
-  isLoading: boolean;
-  daily: DailyPoint[];
-}) {
+function SimpleGameDailyChart({ isLoading, daily }: { isLoading: boolean; daily: DailyPoint[] }) {
   if (isLoading) return <Skeleton className="h-64 w-full" />;
   if (daily.length === 0) {
     return (
@@ -214,9 +204,7 @@ export function SimpleGameAnalytics({
   const avgTime =
     completed > 0 ? Math.round(stats.reduce((sum, row) => sum + row.time_taken, 0) / completed) : 0;
   const avgAccuracy =
-    completed > 0
-      ? Math.round(stats.reduce((sum, row) => sum + row.accuracy, 0) / completed)
-      : 0;
+    completed > 0 ? Math.round(stats.reduce((sum, row) => sum + row.accuracy, 0) / completed) : 0;
   const cards = simpleGameStatCards(started, completed, avgTime, avgAccuracy);
   const daily = useMemo(() => dailyPlaySeries(sessions, stats), [sessions, stats]);
 
@@ -229,25 +217,25 @@ export function SimpleGameAnalytics({
       <div className="flex flex-col gap-3 lg:flex-row lg:items-end lg:justify-between">
         <div className="flex flex-wrap items-end gap-3">
           {lockedPuzzleId == null ? (
-          <div className="space-y-1">
-            <Label>Puzzle</Label>
-            <Select
-              value={puzzleId === 'all' ? 'all' : String(puzzleId)}
-              onValueChange={(value) => setPuzzleId(value === 'all' ? 'all' : Number(value))}
-            >
-              <SelectTrigger className="w-56">
-                <SelectValue />
-              </SelectTrigger>
-              <SelectContent>
-                <SelectItem value="all">All puzzles</SelectItem>
-                {(puzzlesQuery.data?.list ?? []).map((puzzle) => (
-                  <SelectItem key={puzzle.id} value={String(puzzle.id)}>
-                    {puzzle.title}
-                  </SelectItem>
-                ))}
-              </SelectContent>
-            </Select>
-          </div>
+            <div className="space-y-1">
+              <Label>Puzzle</Label>
+              <Select
+                value={puzzleId === 'all' ? 'all' : String(puzzleId)}
+                onValueChange={(value) => setPuzzleId(value === 'all' ? 'all' : Number(value))}
+              >
+                <SelectTrigger className="w-56">
+                  <SelectValue />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="all">All puzzles</SelectItem>
+                  {(puzzlesQuery.data?.list ?? []).map((puzzle) => (
+                    <SelectItem key={puzzle.id} value={String(puzzle.id)}>
+                      {puzzle.title}
+                    </SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+            </div>
           ) : null}
           <UserSelector
             game={analyticsUserGame(kind)}
@@ -263,11 +251,7 @@ export function SimpleGameAnalytics({
           onDateRangeChange={period.setDateRange}
         />
       ) : null}
-      {statsQuery.isLoading ? (
-        <AnalyticsStatCardsSkeleton />
-      ) : (
-        <AnalyticsStatGrid stats={cards} />
-      )}
+      {statsQuery.isLoading ? <AnalyticsStatCardsSkeleton /> : <AnalyticsStatGrid stats={cards} />}
       <Card className="p-4">
         <SimpleGameDailyChart isLoading={statsQuery.isLoading} daily={daily} />
       </Card>

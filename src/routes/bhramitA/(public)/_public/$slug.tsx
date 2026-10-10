@@ -38,7 +38,9 @@ function SlugRoute() {
   const data = Route.useLoaderData();
   if (data.kind === 'unavailable') {
     return (
-      <div className="px-4 py-16 text-center text-muted-foreground">This puzzle is not available.</div>
+      <div className="px-4 py-16 text-center text-muted-foreground">
+        This puzzle is not available.
+      </div>
     );
   }
   return <SimpleGamePlayPage kind="bhramita" location="list_page" puzzle={data.puzzle} />;

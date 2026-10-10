@@ -6,7 +6,10 @@ import {
   SimpleGameViewEdit,
   type SimpleGameEditPuzzle
 } from '~/components/pages/simple_game/SimpleGameViewEdit';
-import type { EditorCollectionLink, EditorTag } from '~/components/pages/catalog/PuzzleCatalogFields';
+import type {
+  EditorCollectionLink,
+  EditorTag
+} from '~/components/pages/catalog/PuzzleCatalogFields';
 import { emptyBhramitaPuzzleData, type BhramitaPuzzleData } from '~/util/bhramita/data';
 import { analyzeBhramitaPuzzle } from '~/util/bhramita/validate';
 

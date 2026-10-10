@@ -117,10 +117,10 @@ export function createSimpleGameCacheLoaders<T>(
 
   const word_puzzle: CacheItem<SimpleGamePuzzleParams, SimpleGamePuzzle<T> | undefined> =
     createCache<SimpleGamePuzzleParams, SimpleGamePuzzle<T> | undefined>({
-    getKey: ({ slug }) => wordPuzzleKey(slug),
-    // SAFETY: createCache stores undefined for misses; puzzleSchema already
-    // validates the present SimpleGamePuzzle<T> payload.
-    schema: puzzleSchema as z.ZodType<SimpleGamePuzzle<T> | undefined>,
+      getKey: ({ slug }) => wordPuzzleKey(slug),
+      // SAFETY: createCache stores undefined for misses; puzzleSchema already
+      // validates the present SimpleGamePuzzle<T> payload.
+      schema: puzzleSchema as z.ZodType<SimpleGamePuzzle<T> | undefined>,
       shouldCache: (data) => data !== undefined,
       fetch: ({ slug }) =>
         dbRunHttp(`${kind}.word_puzzle`, async (client) => {

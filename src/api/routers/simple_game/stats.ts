@@ -38,14 +38,8 @@ export function createSimpleGameStatsRouter<TData>(
           const { turnstile_token, info } = input;
           yield* requireTurnstileIfGuest(turnstile_token, ctx.user);
 
-          const {
-            puzzle_id,
-            time_taken,
-            accuracy,
-            correct_attempts,
-            total_attempts,
-            session_id
-          } = info;
+          const { puzzle_id, time_taken, accuracy, correct_attempts, total_attempts, session_id } =
+            info;
 
           const [session] = yield* dbRunHttp(`${kind}_stats.find_session`, (client) =>
             client
@@ -237,8 +231,12 @@ export function createSimpleGameStatsRouter<TData>(
           );
 
           if (topSessions.length === 0) {
-            const puzzles: { puzzle_id: number; title: string; started: number; completed: number }[] =
-              [];
+            const puzzles: {
+              puzzle_id: number;
+              title: string;
+              started: number;
+              completed: number;
+            }[] = [];
             return { puzzles };
           }
 
@@ -251,20 +249,22 @@ export function createSimpleGameStatsRouter<TData>(
                 ]
               : [];
 
-          const completionRows = yield* dbRunHttp(`${kind}_stats.get_top_completion_counts`, (client) =>
-            client
-              .select({
-                puzzle_id: tables.gameplay_stats.puzzle_id,
-                completed: count()
-              })
-              .from(tables.gameplay_stats)
-              .where(
-                and(
-                  inArray(tables.gameplay_stats.puzzle_id, puzzleIds),
-                  ...(statsDateConditions.length > 0 ? statsDateConditions : [])
+          const completionRows = yield* dbRunHttp(
+            `${kind}_stats.get_top_completion_counts`,
+            (client) =>
+              client
+                .select({
+                  puzzle_id: tables.gameplay_stats.puzzle_id,
+                  completed: count()
+                })
+                .from(tables.gameplay_stats)
+                .where(
+                  and(
+                    inArray(tables.gameplay_stats.puzzle_id, puzzleIds),
+                    ...(statsDateConditions.length > 0 ? statsDateConditions : [])
+                  )
                 )
-              )
-              .groupBy(tables.gameplay_stats.puzzle_id)
+                .groupBy(tables.gameplay_stats.puzzle_id)
           );
 
           const completedByPuzzle = new Map(
@@ -338,19 +338,21 @@ export function createSimpleGameStatsRouter<TData>(
             statsConditions.push(inArray(tables.gameplay_stats.puzzle_id, puzzle_ids));
           }
 
-          const completionRows = yield* dbRunHttp(`${kind}_stats.get_top_user_completions`, (client) =>
-            client
-              .select({
-                user_id: tables.sessions.user_id,
-                completed: count()
-              })
-              .from(tables.gameplay_stats)
-              .innerJoin(
-                tables.sessions,
-                eq(tables.gameplay_stats.session_id, tables.sessions.id)
-              )
-              .where(and(...statsConditions))
-              .groupBy(tables.sessions.user_id)
+          const completionRows = yield* dbRunHttp(
+            `${kind}_stats.get_top_user_completions`,
+            (client) =>
+              client
+                .select({
+                  user_id: tables.sessions.user_id,
+                  completed: count()
+                })
+                .from(tables.gameplay_stats)
+                .innerJoin(
+                  tables.sessions,
+                  eq(tables.gameplay_stats.session_id, tables.sessions.id)
+                )
+                .where(and(...statsConditions))
+                .groupBy(tables.sessions.user_id)
           );
 
           const completedByUser = new Map(

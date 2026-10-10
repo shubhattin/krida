@@ -198,7 +198,10 @@ export function createSimpleGameRouter<TData>(options: {
             for (const token of tokenizeSearchQuery(trimmedSearch)) {
               const pattern = `%${escapeIlikeToken(token)}%`;
               conditions.push(
-                or(ilike(tables.puzzles.title, pattern), ilike(tables.puzzles.description, pattern))!
+                or(
+                  ilike(tables.puzzles.title, pattern),
+                  ilike(tables.puzzles.description, pattern)
+                )!
               );
             }
           }
@@ -280,22 +283,26 @@ export function createSimpleGameRouter<TData>(options: {
 
             // SAFETY: tables.puzzles is always one of the concrete PuzzleTable
             // members; the generic SimpleGameTableSet factory erases that union.
-            return insertWithUniqueUid<{ id: number }[]>(tx, tables.puzzles as never, async (scoped, uid) => {
-              const rows = await scoped
-                .insert(tables.puzzles)
-                .values({
-                  uid,
-                  slug: input.slug,
-                  title: input.title.trim(),
-                  description: input.description?.trim() ?? '',
-                  puzzle_data: emptyData,
-                  listed: false
-                })
-                .returning();
-              // SAFETY: returning() always includes serial id on this puzzle table.
-              const insertedRows: { id: number }[] = rows;
-              return insertedRows;
-            });
+            return insertWithUniqueUid<{ id: number }[]>(
+              tx,
+              tables.puzzles as never,
+              async (scoped, uid) => {
+                const rows = await scoped
+                  .insert(tables.puzzles)
+                  .values({
+                    uid,
+                    slug: input.slug,
+                    title: input.title.trim(),
+                    description: input.description?.trim() ?? '',
+                    puzzle_data: emptyData,
+                    listed: false
+                  })
+                  .returning();
+                // SAFETY: returning() always includes serial id on this puzzle table.
+                const insertedRows: { id: number }[] = rows;
+                return insertedRows;
+              }
+            );
           });
           const inserted = inserted_puzzles[0];
           if (!inserted) {
@@ -581,10 +588,7 @@ export function createSimpleGameRouter<TData>(options: {
             await client
               .delete(tables.redirects)
               .where(
-                and(
-                  eq(tables.redirects.id, redirect.id),
-                  eq(tables.redirects.puzzle_id, puzzle_id)
-                )
+                and(eq(tables.redirects.id, redirect.id), eq(tables.redirects.puzzle_id, puzzle_id))
               );
           });
 

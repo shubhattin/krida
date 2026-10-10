@@ -105,7 +105,9 @@ export function BhramitaEditor({
               </div>
               <div className="mt-2 flex flex-wrap gap-1.5">
                 {syllables.length === 0 ? (
-                  <span className="text-xs text-muted-foreground">Syllables appear as you type.</span>
+                  <span className="text-xs text-muted-foreground">
+                    Syllables appear as you type.
+                  </span>
                 ) : (
                   syllables.map((syllable, syllableIndex) => (
                     <span

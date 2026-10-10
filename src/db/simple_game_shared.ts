@@ -29,11 +29,9 @@ export const simple_game_update_slug_input_schema = z.object({
   override_redirect_slug: z.boolean().default(false)
 });
 
-export const simple_game_attachment_input_schema = attachment_schema
-  .omit({ id: true })
-  .extend({
-    id: z.number().int().nullable()
-  });
+export const simple_game_attachment_input_schema = attachment_schema.omit({ id: true }).extend({
+  id: z.number().int().nullable()
+});
 
 export const simple_game_submit_stats_input_schema = z.object({
   turnstile_token: z.string().min(1).nullable().optional(),

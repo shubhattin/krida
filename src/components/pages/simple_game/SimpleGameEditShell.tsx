@@ -212,7 +212,10 @@ function SimpleGameEditBody<T>({
   };
 
   return (
-    <div className="mx-auto flex w-full max-w-6xl flex-col gap-6 px-2 py-4 pb-28 sm:px-4" onKeyDown={toggleLipi}>
+    <div
+      className="mx-auto flex w-full max-w-6xl flex-col gap-6 px-2 py-4 pb-28 sm:px-4"
+      onKeyDown={toggleLipi}
+    >
       <div className="flex flex-wrap items-center justify-between gap-3">
         <SimpleGameSlugField
           kind={kind}

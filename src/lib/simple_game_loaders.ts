@@ -7,7 +7,10 @@ import { dbRunHttp } from '~/effect/database';
 import { runLoaderEffect } from '~/effect/run';
 import { SIMPLE_GAME_TABLES } from '~/util/catalog/simple_game_tables';
 import { CACHE, NO_CACHE_PARAMS } from '~/util/cache.server/cache_loaders';
-import type { SimpleGameCacheLoaders, SimpleGamePuzzle } from '~/util/cache.server/simple_game_cache';
+import type {
+  SimpleGameCacheLoaders,
+  SimpleGamePuzzle
+} from '~/util/cache.server/simple_game_cache';
 import type { AnveshiPuzzleData } from '~/util/anveshi/data';
 import type { BhramitaPuzzleData } from '~/util/bhramita/data';
 import type { DvayiPuzzleData } from '~/util/dvayi/data';

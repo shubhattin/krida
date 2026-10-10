@@ -45,9 +45,7 @@ const loadTagPuzzleRefs = (tagId: number) =>
         return dbRunHttp(`catalog.tag_${game}_ids`, (client) =>
           client.select({ puzzle_id: link.puzzle_id }).from(link).where(eq(link.tag_id, tagId))
         ).pipe(
-          Effect.map((rows) =>
-            rows.map((row) => ({ game, puzzle_id: row.puzzle_id }) as const)
-          )
+          Effect.map((rows) => rows.map((row) => ({ game, puzzle_id: row.puzzle_id }) as const))
         );
       })
     );
@@ -185,11 +183,11 @@ const loadTagPuzzles = (tagId: number) =>
       );
     };
 
-    const groups = yield* Effect.all(GAME_KINDS.map((game) =>
-      load(game).pipe(
-        Effect.map((rows) => rows.map((row) => ({ game, ...row })))
+    const groups = yield* Effect.all(
+      GAME_KINDS.map((game) =>
+        load(game).pipe(Effect.map((rows) => rows.map((row) => ({ game, ...row }))))
       )
-    ));
+    );
     return groups.flat().map(({ image_s3_key, ...row }) => ({
       ...row,
       image: image_s3_key ? { s3_key: image_s3_key } : null

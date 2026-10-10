@@ -47,11 +47,7 @@ export function analyzeAnveshiPuzzle(data: AnveshiPuzzleData): GameAnalysis {
       const key = option.text.trim();
       if (key && seen.has(key)) {
         warnings.push(
-          issue(
-            'warning',
-            'duplicate_option',
-            `Question ${index + 1} has duplicate option text.`
-          )
+          issue('warning', 'duplicate_option', `Question ${index + 1} has duplicate option text.`)
         );
       }
       seen.add(key);
@@ -68,9 +64,7 @@ export function analyzeAnveshiPuzzle(data: AnveshiPuzzleData): GameAnalysis {
       );
     }
     if (question.hint.trim().length === 0) {
-      warnings.push(
-        issue('warning', 'missing_hint', `Question ${index + 1} has no hint.`)
-      );
+      warnings.push(issue('warning', 'missing_hint', `Question ${index + 1} has no hint.`));
     }
     if (question.explanation.trim().length === 0) {
       warnings.push(

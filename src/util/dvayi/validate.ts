@@ -71,8 +71,7 @@ export function analyzeDvayiPuzzle(data: DvayiPuzzleData): GameAnalysis {
   }
 
   const completePairs = inferred.matches.length;
-  const canList =
-    completePairs >= 2 && unmatchedLeft.length === 0 && unmatchedRight.length === 0;
+  const canList = completePairs >= 2 && unmatchedLeft.length === 0 && unmatchedRight.length === 0;
 
   if (!canList && completePairs < 2) {
     warnings.push(

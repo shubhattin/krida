@@ -6,7 +6,10 @@ import {
   SimpleGameViewEdit,
   type SimpleGameEditPuzzle
 } from '~/components/pages/simple_game/SimpleGameViewEdit';
-import type { EditorCollectionLink, EditorTag } from '~/components/pages/catalog/PuzzleCatalogFields';
+import type {
+  EditorCollectionLink,
+  EditorTag
+} from '~/components/pages/catalog/PuzzleCatalogFields';
 import { emptyDvayiPuzzleData, type DvayiPuzzleData } from '~/util/dvayi/data';
 import { analyzeDvayiPuzzle } from '~/util/dvayi/validate';
 

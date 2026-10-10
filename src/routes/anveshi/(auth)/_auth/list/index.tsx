@@ -3,7 +3,8 @@ import { SimpleGameListRoutePage } from '~/components/pages/simple_game/SimpleGa
 import { routeHeadFromPageMeta } from '~/components/tags/getPageMetaTags';
 
 export const Route = createFileRoute('/anveshi/(auth)/_auth/list/')({
-  head: () => routeHeadFromPageMeta({ title: 'Anveṣī List', project: 'anveshi', robots: 'noindex' }),
+  head: () =>
+    routeHeadFromPageMeta({ title: 'Anveṣī List', project: 'anveshi', robots: 'noindex' }),
   component: ListRoute
 });
 

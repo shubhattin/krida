@@ -27,11 +27,7 @@ export type EditableAttachment = {
   order_index: number;
 };
 
-export function SimpleGameAttachments({
-  atom
-}: {
-  atom: PrimitiveAtom<EditableAttachment[]>;
-}) {
+export function SimpleGameAttachments({ atom }: { atom: PrimitiveAtom<EditableAttachment[]> }) {
   const [attachments, setAttachments] = useAtom(atom);
   const { commit } = useEditorHistoryActions();
 

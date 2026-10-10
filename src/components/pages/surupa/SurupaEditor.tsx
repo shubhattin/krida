@@ -137,7 +137,10 @@ export function SurupaEditor({
                   </div>
                   <div className="flex flex-wrap gap-2">
                     {(alternatives[syllableIndex] ?? []).map((alt, altIndex) => (
-                      <div key={`${word.id}-${syllableIndex}-${altIndex}`} className="flex items-center gap-1">
+                      <div
+                        key={`${word.id}-${syllableIndex}-${altIndex}`}
+                        className="flex items-center gap-1"
+                      >
                         <Input
                           value={alt}
                           className="w-28"

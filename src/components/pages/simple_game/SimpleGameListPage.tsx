@@ -247,7 +247,11 @@ export function SimpleGameListPage({ kind }: { kind: SimpleGameKind }) {
                   <span>{dayjs(item.updated_at ?? item.created_at).fromNow()}</span>
                 </div>
                 <div className="flex gap-2 pt-1">
-                  <Button size="sm" variant="outline" render={<a href={simpleGameEditHref(kind, item.id)} />}>
+                  <Button
+                    size="sm"
+                    variant="outline"
+                    render={<a href={simpleGameEditHref(kind, item.id)} />}
+                  >
                     Edit
                   </Button>
                   <Button

@@ -51,8 +51,7 @@ export function analyzeSurupaPuzzle(data: SurupaPuzzleData): GameAnalysis {
   }
 
   const playable = inferred.words.filter(
-    (entry) =>
-      entry.syllables.length > 0 && entry.alternatives.length === entry.syllables.length
+    (entry) => entry.syllables.length > 0 && entry.alternatives.length === entry.syllables.length
   ).length;
   return analysisFrom(errors, warnings, playable >= 1);
 }

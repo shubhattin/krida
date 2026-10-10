@@ -110,7 +110,12 @@ export function DvayiPlay({
             </Button>
           </div>
         ) : null}
-        <div className={cn('grid gap-6 md:grid-cols-2', !started && 'pointer-events-none blur-[0.5px]')}>
+        <div
+          className={cn(
+            'grid gap-6 md:grid-cols-2',
+            !started && 'pointer-events-none blur-[0.5px]'
+          )}
+        >
           <div className="space-y-2">
             {inferred.left.map((item) => {
               const locked = Boolean(guesses[item.id]);

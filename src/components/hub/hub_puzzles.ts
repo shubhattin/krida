@@ -97,52 +97,54 @@ export function resolveCollectionItems(
   items: ListedCollectionItem[],
   byKey: Map<string, HubPuzzle>
 ): HubPuzzle[] {
-  return items
-    .toSorted((a, b) => a.order_index - b.order_index || a.puzzle_id - b.puzzle_id)
-    // TODO: drop this public-kind filter once dvayi/bhramita/surupa/anveshi ship on /puzzles.
-    .filter((item) => item.game === 'padavali' || item.game === 'crossword')
-    .map((item) => {
-      const found = byKey.get(hubPuzzleKey(item.game, item.puzzle_id));
-      if (found) return found;
-      const base = {
-        key: hubPuzzleKey(item.game, item.puzzle_id),
-        id: item.puzzle_id,
-        slug: item.slug,
-        title: item.title,
-        description: item.description,
-        image: item.image,
-        tags: [],
-        href: puzzleHref(item.game, item.slug),
-        sortTime: 0
-      };
-      return item.game === 'padavali'
-        ? {
-            ...base,
-            game: 'padavali' as const,
-            source: {
-              id: item.puzzle_id,
-              slug: item.slug,
-              title: item.title,
-              description: item.description,
-              description_original: item.description,
-              title_normal: item.title,
-              image: item.image,
-              tags: []
+  return (
+    items
+      .toSorted((a, b) => a.order_index - b.order_index || a.puzzle_id - b.puzzle_id)
+      // TODO: drop this public-kind filter once dvayi/bhramita/surupa/anveshi ship on /puzzles.
+      .filter((item) => item.game === 'padavali' || item.game === 'crossword')
+      .map((item) => {
+        const found = byKey.get(hubPuzzleKey(item.game, item.puzzle_id));
+        if (found) return found;
+        const base = {
+          key: hubPuzzleKey(item.game, item.puzzle_id),
+          id: item.puzzle_id,
+          slug: item.slug,
+          title: item.title,
+          description: item.description,
+          image: item.image,
+          tags: [],
+          href: puzzleHref(item.game, item.slug),
+          sortTime: 0
+        };
+        return item.game === 'padavali'
+          ? {
+              ...base,
+              game: 'padavali' as const,
+              source: {
+                id: item.puzzle_id,
+                slug: item.slug,
+                title: item.title,
+                description: item.description,
+                description_original: item.description,
+                title_normal: item.title,
+                image: item.image,
+                tags: []
+              }
             }
-          }
-        : {
-            ...base,
-            game: 'crossword' as const,
-            source: {
-              id: item.puzzle_id,
-              slug: item.slug,
-              title: item.title,
-              description: item.description,
-              image: item.image,
-              tags: []
-            }
-          };
-    });
+          : {
+              ...base,
+              game: 'crossword' as const,
+              source: {
+                id: item.puzzle_id,
+                slug: item.slug,
+                title: item.title,
+                description: item.description,
+                image: item.image,
+                tags: []
+              }
+            };
+      })
+  );
 }
 
 export function collectionGames(collection: ListedCollectionsType[number]): PublicGameKind[] {

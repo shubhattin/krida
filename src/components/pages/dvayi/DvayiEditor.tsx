@@ -12,10 +12,7 @@ import { Button } from '~/components/ui/button';
 import { Input } from '~/components/ui/input';
 import { useEditorHistoryActions, useHistoryTextField } from '~/hooks/useEditorHistory';
 import { cn } from '~/lib/utils';
-import {
-  createDvayiColumnItem,
-  type DvayiPuzzleData
-} from '~/util/dvayi/data';
+import { createDvayiColumnItem, type DvayiPuzzleData } from '~/util/dvayi/data';
 
 export function DvayiEditor({
   dataAtom,
@@ -98,14 +95,19 @@ export function DvayiEditor({
                   }));
                 }}
                 onBeforeInput={(event) =>
-                  handleTypingBeforeInputEvent(typing, event, (value) => {
-                    setData((prev) => ({
-                      ...prev,
-                      left: prev.left.map((row) =>
-                        row.id === item.id ? { ...row, text: value } : row
-                      )
-                    }));
-                  }, lipi)
+                  handleTypingBeforeInputEvent(
+                    typing,
+                    event,
+                    (value) => {
+                      setData((prev) => ({
+                        ...prev,
+                        left: prev.left.map((row) =>
+                          row.id === item.id ? { ...row, text: value } : row
+                        )
+                      }));
+                    },
+                    lipi
+                  )
                 }
                 onBlur={() => {
                   field.onBlur();
@@ -154,14 +156,19 @@ export function DvayiEditor({
                   }));
                 }}
                 onBeforeInput={(event) =>
-                  handleTypingBeforeInputEvent(typing, event, (value) => {
-                    setData((prev) => ({
-                      ...prev,
-                      right: prev.right.map((row) =>
-                        row.id === item.id ? { ...row, text: value } : row
-                      )
-                    }));
-                  }, lipi)
+                  handleTypingBeforeInputEvent(
+                    typing,
+                    event,
+                    (value) => {
+                      setData((prev) => ({
+                        ...prev,
+                        right: prev.right.map((row) =>
+                          row.id === item.id ? { ...row, text: value } : row
+                        )
+                      }));
+                    },
+                    lipi
+                  )
                 }
                 onBlur={() => {
                   field.onBlur();

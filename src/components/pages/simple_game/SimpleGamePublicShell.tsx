@@ -56,7 +56,9 @@ export function SimpleGamePublicShell({
         <ScriptSelector script={script} onScriptChange={setScript} />
       </div>
       {descriptionText ? (
-        <p className="max-w-2xl text-base leading-relaxed text-muted-foreground">{descriptionText}</p>
+        <p className="max-w-2xl text-base leading-relaxed text-muted-foreground">
+          {descriptionText}
+        </p>
       ) : null}
       {attachments.length > 0 ? <MediaAttachments attachments={attachments} /> : null}
       {children}

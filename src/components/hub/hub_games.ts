@@ -1,10 +1,6 @@
 import type { GameAppIconId } from '~/components/GameAppIcon';
 import type { GameKind } from '~/util/catalog/tags';
-import {
-  isSimpleGameKind,
-  simpleGameHref,
-  type PublicGameKind
-} from '~/util/games/kinds';
+import { isSimpleGameKind, simpleGameHref, type PublicGameKind } from '~/util/games/kinds';
 
 export type HubGameMeta = {
   kind: PublicGameKind;

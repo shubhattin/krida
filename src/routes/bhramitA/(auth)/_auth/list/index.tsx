@@ -3,7 +3,8 @@ import { SimpleGameListRoutePage } from '~/components/pages/simple_game/SimpleGa
 import { routeHeadFromPageMeta } from '~/components/tags/getPageMetaTags';
 
 export const Route = createFileRoute('/bhramitA/(auth)/_auth/list/')({
-  head: () => routeHeadFromPageMeta({ title: 'Bhramitā List', project: 'bhramita', robots: 'noindex' }),
+  head: () =>
+    routeHeadFromPageMeta({ title: 'Bhramitā List', project: 'bhramita', robots: 'noindex' }),
   component: ListRoute
 });
 

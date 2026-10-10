@@ -6,7 +6,10 @@ import {
   SimpleGameViewEdit,
   type SimpleGameEditPuzzle
 } from '~/components/pages/simple_game/SimpleGameViewEdit';
-import type { EditorCollectionLink, EditorTag } from '~/components/pages/catalog/PuzzleCatalogFields';
+import type {
+  EditorCollectionLink,
+  EditorTag
+} from '~/components/pages/catalog/PuzzleCatalogFields';
 import { emptySurupaPuzzleData, type SurupaPuzzleData } from '~/util/surupa/data';
 import { analyzeSurupaPuzzle } from '~/util/surupa/validate';
 

@@ -100,7 +100,7 @@ export function AnveshiPlay({
           <p className="text-sm text-muted-foreground">
             Question {Math.min(index + 1, questions.length)} of {questions.length}
           </p>
-          <h2 className="text-2xl font-bold leading-snug">
+          <h2 className="text-2xl leading-snug font-bold">
             <Label text={current?.prompt ?? ''} />
           </h2>
           {current?.hint ? (

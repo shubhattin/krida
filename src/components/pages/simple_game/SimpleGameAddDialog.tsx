@@ -58,7 +58,11 @@ export function SimpleGameAddDialog({ kind }: { kind: SimpleGameKind }) {
   const [overrideForSlug, setOverrideForSlug] = useState('');
   const typing = useMemo(() => createTypingContext('Devanagari'), []);
 
-  const { status: slugStatus, normalizedSlug, redirectConflict } = useDebouncedSlugCheck(slug, {
+  const {
+    status: slugStatus,
+    normalizedSlug,
+    redirectConflict
+  } = useDebouncedSlugCheck(slug, {
     enabled: open,
     checkSlug: (params) => client[kind].check_slug_availability.query(params),
     isValidSlugFn: isValidSimpleGameSlug
@@ -215,10 +219,7 @@ export function SimpleGameAddDialog({ kind }: { kind: SimpleGameKind }) {
             </div>
           </div>
           <DialogFooter>
-            <Button
-              disabled={!canSubmit || add_mut.isPending}
-              onClick={() => setConfirmOpen(true)}
-            >
+            <Button disabled={!canSubmit || add_mut.isPending} onClick={() => setConfirmOpen(true)}>
               Create
             </Button>
           </DialogFooter>

@@ -139,8 +139,7 @@ export function SimpleGameMetrics({
     if (!sessionId) return;
     if (statsSubmittedRef.current === sessionNonce) return;
     statsSubmittedRef.current = sessionNonce;
-    const accuracy =
-      totalAttempts > 0 ? Math.round((correctAttempts / totalAttempts) * 100) : 100;
+    const accuracy = totalAttempts > 0 ? Math.round((correctAttempts / totalAttempts) * 100) : 100;
     mutateStats({
       turnstile_token: token,
       info: {

@@ -174,19 +174,19 @@ export function AddGamesDialog({
           </Label>
         </div>
         <div className="flex flex-wrap items-center gap-1.5">
-          {(['all', 'padavali', 'crossword', 'dvayi', 'bhramita', 'surupa', 'anveshi'] as const).map(
-            (value) => (
-              <Button
-                key={value}
-                type="button"
-                size="sm"
-                variant={game === value ? 'secondary' : 'outline'}
-                onClick={() => setGame(value)}
-              >
-                {value === 'all' ? 'All' : gameKindLabel(value)}
-              </Button>
-            )
-          )}
+          {(
+            ['all', 'padavali', 'crossword', 'dvayi', 'bhramita', 'surupa', 'anveshi'] as const
+          ).map((value) => (
+            <Button
+              key={value}
+              type="button"
+              size="sm"
+              variant={game === value ? 'secondary' : 'outline'}
+              onClick={() => setGame(value)}
+            >
+              {value === 'all' ? 'All' : gameKindLabel(value)}
+            </Button>
+          ))}
           <select
             className="h-8 rounded-md border border-input bg-background px-2 text-sm"
             value={tagSlug}

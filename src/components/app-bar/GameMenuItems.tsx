@@ -305,11 +305,7 @@ export function SimpleGameMenuItems({
         </div>
         <span className="truncate">List</span>
       </a>
-      <a
-        href={simpleGameAnalyticsHref(kind)}
-        onClick={onNavigate}
-        className={accountMenuLinkClass}
-      >
+      <a href={simpleGameAnalyticsHref(kind)} onClick={onNavigate} className={accountMenuLinkClass}>
         <div className={cn(accountMenuIconClass, 'bg-linear-to-br from-sky-500 to-blue-600')}>
           <BarChart3 className="size-3 text-white" />
         </div>

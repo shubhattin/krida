@@ -92,7 +92,10 @@ export function createSimpleGameSlugHelpers<TData>(
   });
 
   const assert_slug_usable_for_mutation = Effect.fn(`${kind}.assert_slug_usable_for_mutation`)(
-    function* (slug: string, options: SlugAvailabilityOptions & { override_redirect_slug: boolean }) {
+    function* (
+      slug: string,
+      options: SlugAvailabilityOptions & { override_redirect_slug: boolean }
+    ) {
       const availability = yield* resolve_slug_availability(slug, options);
 
       if (!availability.available) {

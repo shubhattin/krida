@@ -33,7 +33,9 @@ export function SimpleGameListRoutePage({ kind }: { kind: SimpleGameKind }) {
           {meta.nameDev} · {meta.name}
         </h1>
         <Button
-          render={<a href={simpleGameAnalyticsHref(kind)} className="inline-flex items-center gap-2" />}
+          render={
+            <a href={simpleGameAnalyticsHref(kind)} className="inline-flex items-center gap-2" />
+          }
           nativeButton={false}
           variant="outline"
           className="text-base font-semibold"
@@ -66,16 +68,13 @@ export function SimpleGameAnalyticsRoutePage({ kind }: { kind: SimpleGameKind })
   );
 }
 
-export function SimpleGameEditHeader({
-  kind,
-  uid
-}: {
-  kind: SimpleGameKind;
-  uid: string;
-}) {
+export function SimpleGameEditHeader({ kind, uid }: { kind: SimpleGameKind; uid: string }) {
   return (
     <div className="my-2 mb-3.5 flex items-center gap-6 px-2 sm:gap-9">
-      <a href={simpleGameListHref(kind)} className="inline-flex items-center gap-1.5 text-lg font-semibold">
+      <a
+        href={simpleGameListHref(kind)}
+        className="inline-flex items-center gap-1.5 text-lg font-semibold"
+      >
         <IoMdArrowRoundBack className="size-5 shrink-0" />
         Main List
       </a>

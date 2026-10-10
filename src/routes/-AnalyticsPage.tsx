@@ -184,74 +184,288 @@ function BreakdownSkeleton({ count }: { count: number }) {
     </div>
   );
 }
+
+function includesGame(filter: GameFilter, id: AdminAnalyticsGameId) {
+  return filter === 'all' || filter === id;
+}
+
+type PeriodState = ReturnType<typeof useAnalyticsPeriod>;
+type AnalyticsRange = {
+  all_time: boolean;
+  start_date?: Date;
+  end_date?: Date;
+};
+type TopPlayedQuery = { isLoading: boolean; puzzles: TopPlayedPuzzleRow[] };
+
+function toTopPlayedQuery(
+  isLoading: boolean,
+  puzzles: TopPlayedPuzzleRow[] | undefined
+): TopPlayedQuery {
+  return { isLoading, puzzles: puzzles ?? [] };
+}
+
+function useTopPlayedQueries(game: GameFilter, range: AnalyticsRange, isReady: boolean) {
+  const trpc = useTRPC();
+  const padavali = useQuery(
+    trpc.puzzle.stats.get_top_puzzles.queryOptions(
+      { ...range, limit: 10 },
+      { enabled: includesGame(game, 'padavali') && isReady }
+    )
+  );
+  const padajala = useQuery(
+    trpc.crossword.stats.get_top_puzzles.queryOptions(
+      { ...range, limit: 10 },
+      { enabled: includesGame(game, 'padajala') && isReady }
+    )
+  );
+  const dvayi = useQuery(
+    trpc.dvayi.stats.get_top_puzzles.queryOptions(
+      { ...range, limit: 10 },
+      { enabled: includesGame(game, 'dvayi') && isReady }
+    )
+  );
+  const bhramita = useQuery(
+    trpc.bhramita.stats.get_top_puzzles.queryOptions(
+      { ...range, limit: 10 },
+      { enabled: includesGame(game, 'bhramita') && isReady }
+    )
+  );
+  const surupa = useQuery(
+    trpc.surupa.stats.get_top_puzzles.queryOptions(
+      { ...range, limit: 10 },
+      { enabled: includesGame(game, 'surupa') && isReady }
+    )
+  );
+  const anveshi = useQuery(
+    trpc.anveshi.stats.get_top_puzzles.queryOptions(
+      { ...range, limit: 10 },
+      { enabled: includesGame(game, 'anveshi') && isReady }
+    )
+  );
+  return {
+    padavali: toTopPlayedQuery(padavali.isLoading, padavali.data?.puzzles),
+    padajala: toTopPlayedQuery(padajala.isLoading, padajala.data?.puzzles),
+    dvayi: toTopPlayedQuery(dvayi.isLoading, dvayi.data?.puzzles),
+    bhramita: toTopPlayedQuery(bhramita.isLoading, bhramita.data?.puzzles),
+    surupa: toTopPlayedQuery(surupa.isLoading, surupa.data?.puzzles),
+    anveshi: toTopPlayedQuery(anveshi.isLoading, anveshi.data?.puzzles)
+  };
+}
+
+function AnalyticsToolbar({
+  game,
+  onGameChange,
+  period
+}: {
+  game: GameFilter;
+  onGameChange: (game: GameFilter) => void;
+  period: PeriodState;
+}) {
+  return (
+    <>
+      <div className="flex flex-col gap-2 sm:flex-row sm:items-start sm:justify-between">
+        <Tabs
+          value={game}
+          onValueChange={(value) => {
+            const tab = GAME_TABS.find((item) => item.value === value);
+            if (tab) onGameChange(tab.value);
+          }}
+          className="min-w-0"
+        >
+          <TabsList className="w-full justify-start sm:w-fit">
+            {GAME_TABS.map((tab) => (
+              <TabsTrigger key={tab.value} value={tab.value}>
+                {tab.label}
+              </TabsTrigger>
+            ))}
+          </TabsList>
+        </Tabs>
+        <AnalyticsPeriodSelect period={period.period} onPeriodChange={period.setPeriod} />
+      </div>
+      {period.period === 'custom' ? (
+        <AnalyticsCustomRangePicker
+          dateRange={period.dateRange}
+          onDateRangeChange={period.setDateRange}
+        />
+      ) : null}
+    </>
+  );
+}
+
+function TopPlayedLeaders({
+  game,
+  padavali,
+  padajala,
+  dvayi,
+  bhramita,
+  surupa,
+  anveshi
+}: {
+  game: GameFilter;
+  padavali: TopPlayedQuery;
+  padajala: TopPlayedQuery;
+  dvayi: TopPlayedQuery;
+  bhramita: TopPlayedQuery;
+  surupa: TopPlayedQuery;
+  anveshi: TopPlayedQuery;
+}) {
+  return (
+    <>
+      {includesGame(game, 'padavali') ? (
+        <TopPlayedLeader
+          variant="puzzles"
+          accordionValue="central-top-padavali"
+          title="Top Played — Padāvalī"
+          subtitle="Top 10 by plays"
+          emptyMessage="No Padāvalī plays in this period"
+          isLoading={padavali.isLoading}
+          items={toTopPlayedRows(padavali.puzzles)}
+        />
+      ) : null}
+      {includesGame(game, 'padajala') ? (
+        <TopPlayedLeader
+          variant="puzzles"
+          accordionValue="central-top-padajala"
+          title="Top Played — Padajāla"
+          subtitle="Top 10 by plays"
+          emptyMessage="No Padajāla plays in this period"
+          isLoading={padajala.isLoading}
+          items={toTopPlayedRows(padajala.puzzles)}
+        />
+      ) : null}
+      {includesGame(game, 'dvayi') ? (
+        <TopPlayedLeader
+          variant="puzzles"
+          accordionValue="central-top-dvayi"
+          title="Top Played — Dvayī"
+          subtitle="Top 10 by plays"
+          emptyMessage="No Dvayī plays in this period"
+          isLoading={dvayi.isLoading}
+          items={toTopPlayedRows(dvayi.puzzles)}
+        />
+      ) : null}
+      {includesGame(game, 'bhramita') ? (
+        <TopPlayedLeader
+          variant="puzzles"
+          accordionValue="central-top-bhramita"
+          title="Top Played — Bhramitā"
+          subtitle="Top 10 by plays"
+          emptyMessage="No Bhramitā plays in this period"
+          isLoading={bhramita.isLoading}
+          items={toTopPlayedRows(bhramita.puzzles)}
+        />
+      ) : null}
+      {includesGame(game, 'surupa') ? (
+        <TopPlayedLeader
+          variant="puzzles"
+          accordionValue="central-top-surupa"
+          title="Top Played — Surūpa"
+          subtitle="Top 10 by plays"
+          emptyMessage="No Surūpa plays in this period"
+          isLoading={surupa.isLoading}
+          items={toTopPlayedRows(surupa.puzzles)}
+        />
+      ) : null}
+      {includesGame(game, 'anveshi') ? (
+        <TopPlayedLeader
+          variant="puzzles"
+          accordionValue="central-top-anveshi"
+          title="Top Played — Anveṣī"
+          subtitle="Top 10 by plays"
+          emptyMessage="No Anveṣī plays in this period"
+          isLoading={anveshi.isLoading}
+          items={toTopPlayedRows(anveshi.puzzles)}
+        />
+      ) : null}
+    </>
+  );
+}
+
+function AnalyticsResults({
+  game,
+  isLoading,
+  isError,
+  games,
+  totals,
+  padavali,
+  padajala,
+  dvayi,
+  bhramita,
+  surupa,
+  anveshi
+}: {
+  game: GameFilter;
+  isLoading: boolean;
+  isError: boolean;
+  games: AdminAnalyticsGameRow[];
+  totals: AdminAnalyticsTotals | undefined;
+  padavali: TopPlayedQuery;
+  padajala: TopPlayedQuery;
+  dvayi: TopPlayedQuery;
+  bhramita: TopPlayedQuery;
+  surupa: TopPlayedQuery;
+  anveshi: TopPlayedQuery;
+}) {
+  if (isLoading) {
+    return (
+      <div className="flex flex-col gap-4">
+        <AnalyticsStatCardsSkeleton />
+        <BreakdownSkeleton count={game === 'all' ? GAME_TABS.length - 1 : 1} />
+      </div>
+    );
+  }
+  if (isError) {
+    return (
+      <p className="py-8 text-center text-sm text-destructive">Failed to load analytics overview</p>
+    );
+  }
+  if (!totals) return null;
+
+  return (
+    <div className="flex flex-col gap-4">
+      <AnalyticsStatGrid stats={totalsStats(totals)} />
+      <div className="grid grid-cols-1 gap-3 lg:grid-cols-2">
+        {games.map((row) => (
+          <GameBreakdownCard key={row.game} row={row} />
+        ))}
+      </div>
+      <GameAnalyticsLinks
+        rows={games.map((row) => ({
+          game: row.game,
+          started: row.started,
+          completed: row.completed
+        }))}
+      />
+      <TopPlayedLeaders
+        game={game}
+        padavali={padavali}
+        padajala={padajala}
+        dvayi={dvayi}
+        bhramita={bhramita}
+        surupa={surupa}
+        anveshi={anveshi}
+      />
+    </div>
+  );
+}
+
 export default function AnalyticsPage() {
   const [game, setGame] = useState<GameFilter>('all');
   const period = useAnalyticsPeriod('last_month');
   const trpc = useTRPC();
-
   const rangeInput = {
     all_time: period.allTime,
     start_date: period.effectiveRange?.from,
     end_date: period.effectiveRange?.to
   };
-
   const overviewQuery = useQuery(
     trpc.analytics.get_overview.queryOptions({ game, ...rangeInput }, { enabled: period.isReady })
   );
-
-  const showPadavali = game === 'all' || game === 'padavali';
-  const showPadajala = game === 'all' || game === 'padajala';
-  const showDvayi = game === 'all' || game === 'dvayi';
-  const showBhramita = game === 'all' || game === 'bhramita';
-  const showSurupa = game === 'all' || game === 'surupa';
-  const showAnveshi = game === 'all' || game === 'anveshi';
-
-  const topPadavaliQuery = useQuery(
-    trpc.puzzle.stats.get_top_puzzles.queryOptions(
-      { ...rangeInput, limit: 10 },
-      { enabled: showPadavali && period.isReady }
-    )
-  );
-
-  const topPadajalaQuery = useQuery(
-    trpc.crossword.stats.get_top_puzzles.queryOptions(
-      { ...rangeInput, limit: 10 },
-      { enabled: showPadajala && period.isReady }
-    )
-  );
-
-  const topDvayiQuery = useQuery(
-    trpc.dvayi.stats.get_top_puzzles.queryOptions(
-      { ...rangeInput, limit: 10 },
-      { enabled: showDvayi && period.isReady }
-    )
-  );
-  const topBhramitaQuery = useQuery(
-    trpc.bhramita.stats.get_top_puzzles.queryOptions(
-      { ...rangeInput, limit: 10 },
-      { enabled: showBhramita && period.isReady }
-    )
-  );
-  const topSurupaQuery = useQuery(
-    trpc.surupa.stats.get_top_puzzles.queryOptions(
-      { ...rangeInput, limit: 10 },
-      { enabled: showSurupa && period.isReady }
-    )
-  );
-  const topAnveshiQuery = useQuery(
-    trpc.anveshi.stats.get_top_puzzles.queryOptions(
-      { ...rangeInput, limit: 10 },
-      { enabled: showAnveshi && period.isReady }
-    )
-  );
-
-  const games = overviewQuery.data?.games ?? [];
-  const totals = overviewQuery.data?.totals;
+  const topPlayed = useTopPlayedQueries(game, rangeInput, period.isReady);
 
   return (
     <div className="public-canvas flex min-h-dvh flex-col">
       <HubHeader gameMenuItems={<AllGamesMenuItems />} />
-
       <main className="mx-auto flex w-full max-w-6xl flex-1 flex-col gap-4 px-3 py-4 sm:px-4 sm:py-6">
         <div className="flex min-w-0 flex-col gap-1">
           <h1 className="flex items-center gap-2 text-xl font-bold tracking-tight sm:text-2xl">
@@ -262,133 +476,20 @@ export default function AnalyticsPage() {
             Play volume and signed-in players across every catalog game.
           </p>
         </div>
-
-        <div className="flex flex-col gap-2 sm:flex-row sm:items-start sm:justify-between">
-          <Tabs
-            value={game}
-            onValueChange={(value) => {
-              const tab = GAME_TABS.find((item) => item.value === value);
-              if (tab) setGame(tab.value);
-            }}
-            className="min-w-0"
-          >
-            <TabsList className="w-full justify-start sm:w-fit">
-              {GAME_TABS.map((tab) => (
-                <TabsTrigger key={tab.value} value={tab.value}>
-                  {tab.label}
-                </TabsTrigger>
-              ))}
-            </TabsList>
-          </Tabs>
-          <AnalyticsPeriodSelect period={period.period} onPeriodChange={period.setPeriod} />
-        </div>
-
-        {period.period === 'custom' ? (
-          <AnalyticsCustomRangePicker
-            dateRange={period.dateRange}
-            onDateRangeChange={period.setDateRange}
-          />
-        ) : null}
-
-        {overviewQuery.isLoading ? (
-          <div className="flex flex-col gap-4">
-            <AnalyticsStatCardsSkeleton />
-            <BreakdownSkeleton count={game === 'all' ? 6 : 1} />
-          </div>
-        ) : null}
-        {overviewQuery.isError ? (
-          <p className="py-8 text-center text-sm text-destructive">
-            Failed to load analytics overview
-          </p>
-        ) : null}
-
-        {totals ? (
-          <div className="flex flex-col gap-4">
-            <AnalyticsStatGrid stats={totalsStats(totals)} />
-
-            <div className="grid grid-cols-1 gap-3 lg:grid-cols-2">
-              {games.map((row) => (
-                <GameBreakdownCard key={row.game} row={row} />
-              ))}
-            </div>
-
-            <GameAnalyticsLinks
-              rows={games.map((row) => ({
-                game: row.game,
-                started: row.started,
-                completed: row.completed
-              }))}
-            />
-
-            {showPadavali ? (
-              <TopPlayedLeader
-                variant="puzzles"
-                accordionValue="central-top-padavali"
-                title="Top Played — Padāvalī"
-                subtitle="Top 10 by plays"
-                emptyMessage="No Padāvalī plays in this period"
-                isLoading={topPadavaliQuery.isLoading}
-                items={toTopPlayedRows(topPadavaliQuery.data?.puzzles ?? [])}
-              />
-            ) : null}
-
-            {showPadajala ? (
-              <TopPlayedLeader
-                variant="puzzles"
-                accordionValue="central-top-padajala"
-                title="Top Played — Padajāla"
-                subtitle="Top 10 by plays"
-                emptyMessage="No Padajāla plays in this period"
-                isLoading={topPadajalaQuery.isLoading}
-                items={toTopPlayedRows(topPadajalaQuery.data?.puzzles ?? [])}
-              />
-            ) : null}
-            {showDvayi ? (
-              <TopPlayedLeader
-                variant="puzzles"
-                accordionValue="central-top-dvayi"
-                title="Top Played — Dvayī"
-                subtitle="Top 10 by plays"
-                emptyMessage="No Dvayī plays in this period"
-                isLoading={topDvayiQuery.isLoading}
-                items={toTopPlayedRows(topDvayiQuery.data?.puzzles ?? [])}
-              />
-            ) : null}
-            {showBhramita ? (
-              <TopPlayedLeader
-                variant="puzzles"
-                accordionValue="central-top-bhramita"
-                title="Top Played — Bhramitā"
-                subtitle="Top 10 by plays"
-                emptyMessage="No Bhramitā plays in this period"
-                isLoading={topBhramitaQuery.isLoading}
-                items={toTopPlayedRows(topBhramitaQuery.data?.puzzles ?? [])}
-              />
-            ) : null}
-            {showSurupa ? (
-              <TopPlayedLeader
-                variant="puzzles"
-                accordionValue="central-top-surupa"
-                title="Top Played — Surūpa"
-                subtitle="Top 10 by plays"
-                emptyMessage="No Surūpa plays in this period"
-                isLoading={topSurupaQuery.isLoading}
-                items={toTopPlayedRows(topSurupaQuery.data?.puzzles ?? [])}
-              />
-            ) : null}
-            {showAnveshi ? (
-              <TopPlayedLeader
-                variant="puzzles"
-                accordionValue="central-top-anveshi"
-                title="Top Played — Anveṣī"
-                subtitle="Top 10 by plays"
-                emptyMessage="No Anveṣī plays in this period"
-                isLoading={topAnveshiQuery.isLoading}
-                items={toTopPlayedRows(topAnveshiQuery.data?.puzzles ?? [])}
-              />
-            ) : null}
-          </div>
-        ) : null}
+        <AnalyticsToolbar game={game} onGameChange={setGame} period={period} />
+        <AnalyticsResults
+          game={game}
+          isLoading={overviewQuery.isLoading}
+          isError={overviewQuery.isError}
+          games={overviewQuery.data?.games ?? []}
+          totals={overviewQuery.data?.totals}
+          padavali={topPlayed.padavali}
+          padajala={topPlayed.padajala}
+          dvayi={topPlayed.dvayi}
+          bhramita={topPlayed.bhramita}
+          surupa={topPlayed.surupa}
+          anveshi={topPlayed.anveshi}
+        />
       </main>
     </div>
   );

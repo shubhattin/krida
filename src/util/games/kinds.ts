@@ -51,8 +51,7 @@ export const SIMPLE_GAME_META = {
     accent: {
       from: 'from-rose-500',
       to: 'to-orange-500',
-      badge:
-        'border-rose-300/70 bg-rose-500 text-white dark:border-rose-400/40 dark:bg-rose-500',
+      badge: 'border-rose-300/70 bg-rose-500 text-white dark:border-rose-400/40 dark:bg-rose-500',
       glow: 'bg-rose-500/15 dark:bg-rose-400/10',
       border: 'border-rose-200/70 dark:border-rose-800/50',
       wash: 'from-rose-50/90 via-orange-50/40 to-amber-50/80 dark:from-rose-950/50 dark:via-slate-900/30 dark:to-orange-950/40',

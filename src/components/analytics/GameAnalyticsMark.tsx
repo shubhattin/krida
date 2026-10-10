@@ -1,10 +1,4 @@
-import {
-  ArrowLeftRight,
-  CircleHelp,
-  Shuffle,
-  SpellCheck,
-  type LucideIcon
-} from 'lucide-react';
+import { ArrowLeftRight, CircleHelp, Shuffle, SpellCheck, type LucideIcon } from 'lucide-react';
 import { GameAppIcon } from '~/components/GameAppIcon';
 import type { AdminAnalyticsGameId } from '~/api/routers/analytics';
 import { SIMPLE_GAME_META } from '~/util/games/kinds';
@@ -15,10 +9,7 @@ const SIMPLE_ICONS = {
   bhramita: Shuffle,
   surupa: SpellCheck,
   anveshi: CircleHelp
-} as const satisfies Record<
-  Exclude<AdminAnalyticsGameId, 'padavali' | 'padajala'>,
-  LucideIcon
->;
+} as const satisfies Record<Exclude<AdminAnalyticsGameId, 'padavali' | 'padajala'>, LucideIcon>;
 
 export function GameAnalyticsMark({
   game,
