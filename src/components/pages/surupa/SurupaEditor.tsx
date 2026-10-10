@@ -137,112 +137,108 @@ export function SurupaEditor({
                     {syllable}
                   </span>
                   {(alternatives[syllableIndex] ?? []).map((alt, altIndex) => (
-                      <div
-                        key={`${word.id}-${syllableIndex}-${altIndex}`}
-                        className="flex items-center gap-1"
-                      >
-                        <Input
-                          value={alt}
-                          className="h-8 w-24"
-                          {...field}
-                          onChange={(event) => {
-                            const value = event.currentTarget.value;
-                            setData((prev) => ({
-                              ...prev,
-                              words: prev.words.map((row) =>
-                                row.id !== word.id
-                                  ? row
-                                  : withAlignedAlternatives(row, (lists) =>
-                                      lists.map((list, i) =>
-                                        i === syllableIndex
-                                          ? list.map((item, j) => (j === altIndex ? value : item))
-                                          : list
-                                      )
-                                    )
-                              )
-                            }));
-                          }}
-                          onBeforeInput={(event) =>
-                            handleTypingBeforeInputEvent(
-                              typing,
-                              event,
-                              (value) => {
-                                setData((prev) => ({
-                                  ...prev,
-                                  words: prev.words.map((row) =>
-                                    row.id !== word.id
-                                      ? row
-                                      : withAlignedAlternatives(row, (lists) =>
-                                          lists.map((list, i) =>
-                                            i === syllableIndex
-                                              ? list.map((item, j) =>
-                                                  j === altIndex ? value : item
-                                                )
-                                              : list
-                                          )
-                                        )
-                                  )
-                                }));
-                              },
-                              lipi
-                            )
-                          }
-                          onBlur={() => {
-                            field.onBlur();
-                            typing.clearContext();
-                            commit();
-                          }}
-                          onKeyDown={onLipiKey}
-                        />
-                        <Button
-                          size="icon"
-                          variant="ghost"
-                          className="size-8"
-                          onClick={() => {
-                            setData((prev) => ({
-                              ...prev,
-                              words: prev.words.map((row) =>
-                                row.id !== word.id
-                                  ? row
-                                  : withAlignedAlternatives(row, (lists) =>
-                                      lists.map((list, i) =>
-                                        i === syllableIndex
-                                          ? list.filter((_, j) => j !== altIndex)
-                                          : list
-                                      )
-                                    )
-                              )
-                            }));
-                            commit();
-                          }}
-                        >
-                          <Trash2 className="size-3.5" />
-                        </Button>
-                      </div>
-                    ))}
-                    <Button
-                      size="sm"
-                      variant="ghost"
-                      className="ml-auto"
-                      onClick={() => {
-                        setData((prev) => ({
-                          ...prev,
-                          words: prev.words.map((row) =>
-                            row.id !== word.id
-                              ? row
-                              : withAlignedAlternatives(row, (lists) =>
-                                  lists.map((list, i) =>
-                                    i === syllableIndex ? [...list, ''] : list
-                                  )
-                                )
-                          )
-                        }));
-                        commit();
-                      }}
+                    <div
+                      key={`${word.id}-${syllableIndex}-${altIndex}`}
+                      className="flex items-center gap-1"
                     >
-                      <Plus className="size-3.5" />
-                      Alternative
-                    </Button>
+                      <Input
+                        value={alt}
+                        className="h-8 w-24"
+                        {...field}
+                        onChange={(event) => {
+                          const value = event.currentTarget.value;
+                          setData((prev) => ({
+                            ...prev,
+                            words: prev.words.map((row) =>
+                              row.id !== word.id
+                                ? row
+                                : withAlignedAlternatives(row, (lists) =>
+                                    lists.map((list, i) =>
+                                      i === syllableIndex
+                                        ? list.map((item, j) => (j === altIndex ? value : item))
+                                        : list
+                                    )
+                                  )
+                            )
+                          }));
+                        }}
+                        onBeforeInput={(event) =>
+                          handleTypingBeforeInputEvent(
+                            typing,
+                            event,
+                            (value) => {
+                              setData((prev) => ({
+                                ...prev,
+                                words: prev.words.map((row) =>
+                                  row.id !== word.id
+                                    ? row
+                                    : withAlignedAlternatives(row, (lists) =>
+                                        lists.map((list, i) =>
+                                          i === syllableIndex
+                                            ? list.map((item, j) => (j === altIndex ? value : item))
+                                            : list
+                                        )
+                                      )
+                                )
+                              }));
+                            },
+                            lipi
+                          )
+                        }
+                        onBlur={() => {
+                          field.onBlur();
+                          typing.clearContext();
+                          commit();
+                        }}
+                        onKeyDown={onLipiKey}
+                      />
+                      <Button
+                        size="icon"
+                        variant="ghost"
+                        className="size-8"
+                        onClick={() => {
+                          setData((prev) => ({
+                            ...prev,
+                            words: prev.words.map((row) =>
+                              row.id !== word.id
+                                ? row
+                                : withAlignedAlternatives(row, (lists) =>
+                                    lists.map((list, i) =>
+                                      i === syllableIndex
+                                        ? list.filter((_, j) => j !== altIndex)
+                                        : list
+                                    )
+                                  )
+                            )
+                          }));
+                          commit();
+                        }}
+                      >
+                        <Trash2 className="size-3.5" />
+                      </Button>
+                    </div>
+                  ))}
+                  <Button
+                    size="sm"
+                    variant="ghost"
+                    className="ml-auto"
+                    onClick={() => {
+                      setData((prev) => ({
+                        ...prev,
+                        words: prev.words.map((row) =>
+                          row.id !== word.id
+                            ? row
+                            : withAlignedAlternatives(row, (lists) =>
+                                lists.map((list, i) => (i === syllableIndex ? [...list, ''] : list))
+                              )
+                        )
+                      }));
+                      commit();
+                    }}
+                  >
+                    <Plus className="size-3.5" />
+                    Alternative
+                  </Button>
                 </div>
               ))}
             </div>

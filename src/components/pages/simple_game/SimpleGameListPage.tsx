@@ -205,7 +205,11 @@ function SimpleGameListFilters({
                 }
               }}
             >
-              <SelectTrigger size="sm" className="w-24 text-xs sm:text-sm" aria-label="Listed filter">
+              <SelectTrigger
+                size="sm"
+                className="w-24 text-xs sm:text-sm"
+                aria-label="Listed filter"
+              >
                 <SelectValue />
               </SelectTrigger>
               <SelectDropdown items={LISTED_FILTER_ITEMS} />

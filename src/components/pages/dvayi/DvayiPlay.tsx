@@ -65,21 +65,21 @@ export function DvayiPlay({
   const pair = (leftId: string, rightId: string) => {
     if (!started || completed) return;
     setAttempts((value) => value + 1);
-    if (answer.get(leftId) === rightId) {
-      setGuesses((prev) => ({ ...prev, [leftId]: rightId }));
-      setCorrect((value) => value + 1);
+    if (answer.get(leftId) !== rightId) {
       setSelectedLeft(null);
-    } else {
-      setSelectedLeft(null);
+      return;
     }
-  };
-
-  useEffect(() => {
-    if (!started || completed) return;
-    if (inferred.matches.length > 0 && Object.keys(guesses).length === inferred.matches.length) {
+    const nextGuesses = { ...guesses, [leftId]: rightId };
+    setGuesses(nextGuesses);
+    setCorrect((value) => value + 1);
+    setSelectedLeft(null);
+    if (
+      inferred.matches.length > 0 &&
+      Object.keys(nextGuesses).length === inferred.matches.length
+    ) {
       setCompleted(true);
     }
-  }, [completed, guesses, inferred.matches.length, started]);
+  };
 
   const restart = () => {
     setNonce((value) => value + 1);
@@ -108,7 +108,12 @@ export function DvayiPlay({
             onStart={startGame}
           />
         ) : null}
-        <div className={cn('relative z-0 grid gap-6 md:grid-cols-2', !started && 'pointer-events-none')}>
+        <div
+          className={cn(
+            'relative z-0 grid gap-6 md:grid-cols-2',
+            !started && 'pointer-events-none'
+          )}
+        >
           <div className="space-y-2">
             {inferred.left.map((item) => {
               const locked = Boolean(guesses[item.id]);

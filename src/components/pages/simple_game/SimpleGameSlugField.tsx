@@ -92,12 +92,12 @@ export function SimpleGameSlugField({
                 className="pr-9"
                 onChange={(event) => setDraft(event.currentTarget.value)}
               />
-                <span className="absolute inset-y-0 right-2 flex items-center">
-                  <SlugStatusIcon status={status} />
-                </span>
-              </div>
-              <SlugStatusHint status={status} normalizedSlug={normalizedSlug} />
-              <p className="text-xs text-muted-foreground">The previous slug stays as a redirect.</p>
+              <span className="absolute inset-y-0 right-2 flex items-center">
+                <SlugStatusIcon status={status} />
+              </span>
+            </div>
+            <SlugStatusHint status={status} normalizedSlug={normalizedSlug} />
+            <p className="text-xs text-muted-foreground">The previous slug stays as a redirect.</p>
             {status === 'redirect_conflict' && redirectConflict ? (
               <SlugRedirectConflictPrompt
                 conflict={redirectConflict}

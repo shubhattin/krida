@@ -23,6 +23,16 @@ function shuffle<T>(items: readonly T[]): T[] {
   return next;
 }
 
+function emptyPicks(count: number): string[] {
+  return Array.from({ length: count }, () => '');
+}
+
+function choiceLists(word: { syllables: string[]; alternatives: string[][] } | undefined) {
+  return (word?.syllables ?? []).map((syllable, index) =>
+    [syllable, ...(word?.alternatives[index] ?? [])].filter(Boolean)
+  );
+}
+
 function Glyph({ text }: { text: string }) {
   return <>{useTransliteratedText(text)}</>;
 }
@@ -42,26 +52,11 @@ export function SurupaPlay({
   const [completed, setCompleted] = useState(false);
   const [seconds, setSeconds] = useState(0);
   const [wordIndex, setWordIndex] = useState(0);
-  const [picks, setPicks] = useState<string[]>([]);
+  const [picks, setPicks] = useState(() => emptyPicks(words[0]?.syllables.length ?? 0));
   const [correct, setCorrect] = useState(0);
   const [attempts, setAttempts] = useState(0);
   const current = words[wordIndex];
-  const [choices, setChoices] = useState(() =>
-    (words[0]?.syllables ?? []).map((syllable, index) =>
-      [syllable, ...(words[0]?.alternatives[index] ?? [])].filter(Boolean)
-    )
-  );
-
-  useEffect(() => {
-    setPicks(Array.from({ length: current?.syllables.length ?? 0 }, () => ''));
-  }, [current, nonce, wordIndex]);
-
-  useEffect(() => {
-    const options = (current?.syllables ?? []).map((syllable, index) =>
-      [syllable, ...(current?.alternatives[index] ?? [])].filter(Boolean)
-    );
-    setChoices(started ? options.map((list) => shuffle(list)) : options);
-  }, [current, nonce, started, wordIndex]);
+  const [choices, setChoices] = useState(() => choiceLists(words[0]));
 
   useEffect(() => {
     if (!started || completed) return;
@@ -81,7 +76,15 @@ export function SurupaPlay({
       setCompleted(true);
       return;
     }
+    const nextWord = words[wordIndex + 1];
     setWordIndex((index) => index + 1);
+    setPicks(emptyPicks(nextWord?.syllables.length ?? 0));
+    setChoices(choiceLists(nextWord).map((list) => shuffle(list)));
+  };
+
+  const startGame = () => {
+    setChoices(choiceLists(current).map((list) => shuffle(list)));
+    setStarted(true);
   };
 
   const restart = () => {
@@ -90,6 +93,8 @@ export function SurupaPlay({
     setCompleted(false);
     setSeconds(0);
     setWordIndex(0);
+    setPicks(emptyPicks(words[0]?.syllables.length ?? 0));
+    setChoices(choiceLists(words[0]));
     setCorrect(0);
     setAttempts(0);
   };
@@ -101,7 +106,7 @@ export function SurupaPlay({
           <SimpleGameStartOverlay
             label="Start"
             buttonClassName="bg-linear-to-r from-violet-500 to-fuchsia-600"
-            onStart={() => setStarted(true)}
+            onStart={startGame}
           />
         ) : null}
         <div className={cn('relative z-0 space-y-4', !started && 'pointer-events-none')}>

@@ -2,26 +2,14 @@
 
 import type { LucideIcon } from 'lucide-react';
 import type { ReactNode } from 'react';
-import {
-  BarChart3,
-  Calendar,
-  ChartNoAxesCombined,
-  Images,
-  Layers,
-  List,
-  Tag
-} from 'lucide-react';
+import { BarChart3, Calendar, ChartNoAxesCombined, Images, Layers, List, Tag } from 'lucide-react';
 import { AllGamesMenuItems } from '~/components/app-bar/GameMenuItems';
 import { GameAppIcon } from '~/components/GameAppIcon';
 import { HubHeader } from '~/components/hub/HubHeader';
 import { HUB_GAMES } from '~/components/hub/hub_games';
 import { SIMPLE_GAME_ICONS } from '~/components/pages/simple_game/simple_game_icons';
 import { cn } from '~/lib/utils';
-import {
-  SIMPLE_GAME_LIST,
-  simpleGameAnalyticsHref,
-  simpleGameListHref
-} from '~/util/games/kinds';
+import { SIMPLE_GAME_LIST, simpleGameAnalyticsHref, simpleGameListHref } from '~/util/games/kinds';
 
 type AdminChip = {
   href: string;
@@ -50,7 +38,7 @@ function AdminToolCard({
       className={cn(
         'group flex items-center gap-3 rounded-xl border border-border/70 bg-linear-to-br p-3 no-underline',
         'shadow-sm transition-all duration-200 hover:-translate-y-0.5 hover:shadow-md',
-        'focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2',
+        'focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 focus-visible:outline-none',
         wash
       )}
     >
@@ -81,7 +69,7 @@ function AdminActionChip({ href, label, icon: Icon, name }: AdminChip & { name: 
         'inline-flex items-center gap-1.5 rounded-lg border border-border/70 bg-background/80 px-2.5 py-1.5',
         'text-xs font-medium text-slate-700 no-underline transition-colors',
         'hover:border-slate-300 hover:bg-muted dark:text-slate-200 dark:hover:border-slate-600',
-        'focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring'
+        'focus-visible:ring-2 focus-visible:ring-ring focus-visible:outline-none'
       )}
     >
       <Icon className="size-3.5 shrink-0 text-muted-foreground" />

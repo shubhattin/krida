@@ -29,6 +29,7 @@ import { PWAInstallButton } from '../PWA/PWAInit';
 import { BsVectorPen } from 'react-icons/bs';
 import { signIn, useSession } from '~/lib/auth-client';
 import { accountMenuIconClass, accountMenuLinkClass } from '~/components/app-bar/GameMenuItems';
+import { useCloseOnNavigate } from '~/hooks/useCloseOnNavigate';
 
 function SignInMenuButton({ onNavigate }: { onNavigate?: () => void }) {
   return (
@@ -145,6 +146,7 @@ export function MenuButton({
   const isLoggedIn = !!session?.user;
   const isAdmin = session?.user?.role === 'admin';
   const [open, setOpen] = useState(false);
+  useCloseOnNavigate(() => setOpen(false));
   const [pwa_state] = useAtom(pwa_state_atom);
   const [isIos] = useAtom(is_ios_atom);
   const closeMenu = () => setOpen(false);

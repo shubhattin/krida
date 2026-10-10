@@ -39,9 +39,7 @@ const AddCrosswordDialog = () => {
               min={CROSSWORD_MIN_DIM}
               max={CROSSWORD_MAX_DIM}
               value={rows}
-              onChange={(event) =>
-                setRows(Number(event.currentTarget.value) || CROSSWORD_MIN_DIM)
-              }
+              onChange={(event) => setRows(Number(event.currentTarget.value) || CROSSWORD_MIN_DIM)}
               className="w-20"
               aria-label="Rows"
             />
@@ -51,9 +49,7 @@ const AddCrosswordDialog = () => {
               min={CROSSWORD_MIN_DIM}
               max={CROSSWORD_MAX_DIM}
               value={cols}
-              onChange={(event) =>
-                setCols(Number(event.currentTarget.value) || CROSSWORD_MIN_DIM)
-              }
+              onChange={(event) => setCols(Number(event.currentTarget.value) || CROSSWORD_MIN_DIM)}
               className="w-20"
               aria-label="Columns"
             />

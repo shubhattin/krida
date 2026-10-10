@@ -63,14 +63,6 @@ export function analyzeAnveshiPuzzle(data: AnveshiPuzzleData): GameAnalysis {
         )
       );
     }
-    if (question.hint.trim().length === 0) {
-      warnings.push(issue('warning', 'missing_hint', `Question ${index + 1} has no hint.`));
-    }
-    if (question.explanation.trim().length === 0) {
-      warnings.push(
-        issue('warning', 'missing_explanation', `Question ${index + 1} has no explanation.`)
-      );
-    }
     if (question.options.length < 4) {
       warnings.push(
         issue('warning', 'few_options', `Question ${index + 1} has fewer than four options.`)

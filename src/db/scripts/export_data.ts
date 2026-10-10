@@ -22,7 +22,35 @@ import {
   padavali_puzzle_tags,
   crossword_puzzle_tags,
   padavali_collection_items,
-  crossword_collection_items
+  crossword_collection_items,
+  dvayi_puzzles,
+  dvayi_redirects,
+  dvayi_attachments,
+  dvayi_sessions,
+  dvayi_gameplay_stats,
+  dvayi_puzzle_tags,
+  dvayi_collection_items,
+  bhramita_puzzles,
+  bhramita_redirects,
+  bhramita_attachments,
+  bhramita_sessions,
+  bhramita_gameplay_stats,
+  bhramita_puzzle_tags,
+  bhramita_collection_items,
+  surupa_puzzles,
+  surupa_redirects,
+  surupa_attachments,
+  surupa_sessions,
+  surupa_gameplay_stats,
+  surupa_puzzle_tags,
+  surupa_collection_items,
+  anveshi_puzzles,
+  anveshi_redirects,
+  anveshi_attachments,
+  anveshi_sessions,
+  anveshi_gameplay_stats,
+  anveshi_puzzle_tags,
+  anveshi_collection_items
 } from '~/db/schema';
 import {
   PadavaliPuzzleSchemaZod,
@@ -45,7 +73,35 @@ import {
   PadavaliPuzzleTagSchemaZod,
   CrosswordPuzzleTagSchemaZod,
   PadavaliCollectionItemSchemaZod,
-  CrosswordCollectionItemSchemaZod
+  CrosswordCollectionItemSchemaZod,
+  DvayiPuzzleSchemaZod,
+  DvayiRedirectSchemaZod,
+  DvayiAttachmentSchemaZod,
+  DvayiSessionSchemaZod,
+  DvayiGamePlayStatsSchemaZod,
+  DvayiPuzzleTagSchemaZod,
+  DvayiCollectionItemSchemaZod,
+  BhramitaPuzzleSchemaZod,
+  BhramitaRedirectSchemaZod,
+  BhramitaAttachmentSchemaZod,
+  BhramitaSessionSchemaZod,
+  BhramitaGamePlayStatsSchemaZod,
+  BhramitaPuzzleTagSchemaZod,
+  BhramitaCollectionItemSchemaZod,
+  SurupaPuzzleSchemaZod,
+  SurupaRedirectSchemaZod,
+  SurupaAttachmentSchemaZod,
+  SurupaSessionSchemaZod,
+  SurupaGamePlayStatsSchemaZod,
+  SurupaPuzzleTagSchemaZod,
+  SurupaCollectionItemSchemaZod,
+  AnveshiPuzzleSchemaZod,
+  AnveshiRedirectSchemaZod,
+  AnveshiAttachmentSchemaZod,
+  AnveshiSessionSchemaZod,
+  AnveshiGamePlayStatsSchemaZod,
+  AnveshiPuzzleTagSchemaZod,
+  AnveshiCollectionItemSchemaZod
 } from '~/db/schema_zod';
 import { z } from 'zod';
 import { sql } from 'drizzle-orm';
@@ -77,7 +133,36 @@ const ExportDataSchema = z.object({
   padavali_puzzle_tags: PadavaliPuzzleTagSchemaZod.array().default([]),
   crossword_puzzle_tags: CrosswordPuzzleTagSchemaZod.array().default([]),
   padavali_collection_items: PadavaliCollectionItemSchemaZod.array().default([]),
-  crossword_collection_items: CrosswordCollectionItemSchemaZod.array().default([])
+  crossword_collection_items: CrosswordCollectionItemSchemaZod.array().default([]),
+  // Simple games default to [] so older JSON dumps still restore
+  dvayi_puzzles: DvayiPuzzleSchemaZod.array().default([]),
+  dvayi_redirects: DvayiRedirectSchemaZod.array().default([]),
+  dvayi_attachments: DvayiAttachmentSchemaZod.array().default([]),
+  dvayi_sessions: DvayiSessionSchemaZod.array().default([]),
+  dvayi_gameplay_stats: DvayiGamePlayStatsSchemaZod.array().default([]),
+  dvayi_puzzle_tags: DvayiPuzzleTagSchemaZod.array().default([]),
+  dvayi_collection_items: DvayiCollectionItemSchemaZod.array().default([]),
+  bhramita_puzzles: BhramitaPuzzleSchemaZod.array().default([]),
+  bhramita_redirects: BhramitaRedirectSchemaZod.array().default([]),
+  bhramita_attachments: BhramitaAttachmentSchemaZod.array().default([]),
+  bhramita_sessions: BhramitaSessionSchemaZod.array().default([]),
+  bhramita_gameplay_stats: BhramitaGamePlayStatsSchemaZod.array().default([]),
+  bhramita_puzzle_tags: BhramitaPuzzleTagSchemaZod.array().default([]),
+  bhramita_collection_items: BhramitaCollectionItemSchemaZod.array().default([]),
+  surupa_puzzles: SurupaPuzzleSchemaZod.array().default([]),
+  surupa_redirects: SurupaRedirectSchemaZod.array().default([]),
+  surupa_attachments: SurupaAttachmentSchemaZod.array().default([]),
+  surupa_sessions: SurupaSessionSchemaZod.array().default([]),
+  surupa_gameplay_stats: SurupaGamePlayStatsSchemaZod.array().default([]),
+  surupa_puzzle_tags: SurupaPuzzleTagSchemaZod.array().default([]),
+  surupa_collection_items: SurupaCollectionItemSchemaZod.array().default([]),
+  anveshi_puzzles: AnveshiPuzzleSchemaZod.array().default([]),
+  anveshi_redirects: AnveshiRedirectSchemaZod.array().default([]),
+  anveshi_attachments: AnveshiAttachmentSchemaZod.array().default([]),
+  anveshi_sessions: AnveshiSessionSchemaZod.array().default([]),
+  anveshi_gameplay_stats: AnveshiGamePlayStatsSchemaZod.array().default([]),
+  anveshi_puzzle_tags: AnveshiPuzzleTagSchemaZod.array().default([]),
+  anveshi_collection_items: AnveshiCollectionItemSchemaZod.array().default([])
 });
 
 type ExportData = z.infer<typeof ExportDataSchema>;
@@ -102,6 +187,34 @@ async function deleteAllTables(tx: ExportTx): Promise<void> {
     await tx.delete(crossword_puzzle_tags);
     await tx.delete(crossword_collection_items);
     await tx.delete(crossword_puzzles);
+    await tx.delete(dvayi_gameplay_stats);
+    await tx.delete(dvayi_sessions);
+    await tx.delete(dvayi_attachments);
+    await tx.delete(dvayi_redirects);
+    await tx.delete(dvayi_puzzle_tags);
+    await tx.delete(dvayi_collection_items);
+    await tx.delete(dvayi_puzzles);
+    await tx.delete(bhramita_gameplay_stats);
+    await tx.delete(bhramita_sessions);
+    await tx.delete(bhramita_attachments);
+    await tx.delete(bhramita_redirects);
+    await tx.delete(bhramita_puzzle_tags);
+    await tx.delete(bhramita_collection_items);
+    await tx.delete(bhramita_puzzles);
+    await tx.delete(surupa_gameplay_stats);
+    await tx.delete(surupa_sessions);
+    await tx.delete(surupa_attachments);
+    await tx.delete(surupa_redirects);
+    await tx.delete(surupa_puzzle_tags);
+    await tx.delete(surupa_collection_items);
+    await tx.delete(surupa_puzzles);
+    await tx.delete(anveshi_gameplay_stats);
+    await tx.delete(anveshi_sessions);
+    await tx.delete(anveshi_attachments);
+    await tx.delete(anveshi_redirects);
+    await tx.delete(anveshi_puzzle_tags);
+    await tx.delete(anveshi_collection_items);
+    await tx.delete(anveshi_puzzles);
     await tx.delete(collections);
     await tx.delete(tags);
     await tx.delete(ai_batch_responses);
@@ -141,6 +254,24 @@ async function insertChunked<T extends PgTable>(
   }
 }
 
+async function insertChunkedIfAny<T extends PgTable>(
+  tx: ExportTx,
+  table: T,
+  rows: T['$inferInsert'][],
+  name: string
+): Promise<void> {
+  if (rows.length === 0) {
+    console.log(chalk.green('✓ No rows for'), chalk.blue(`\`${name}\``));
+    return;
+  }
+  try {
+    await insertChunked(tx, table, rows);
+    console.log(chalk.green('✓ Successfully added values into table'), chalk.blue(`\`${name}\``));
+  } catch (e) {
+    console.log(chalk.red(`✗ Error while inserting ${name}:`), chalk.yellow(e));
+  }
+}
+
 async function insertSimpleData(tx: ExportTx, data: ExportData): Promise<void> {
   // inserting image_assets
   try {
@@ -175,6 +306,11 @@ async function insertSimpleData(tx: ExportTx, data: ExportData): Promise<void> {
     console.log(chalk.red('✗ Error while inserting crossword_puzzles:'), chalk.yellow(e));
   }
 
+  await insertIfAny(tx, dvayi_puzzles, data.dvayi_puzzles, 'dvayi_puzzles');
+  await insertIfAny(tx, bhramita_puzzles, data.bhramita_puzzles, 'bhramita_puzzles');
+  await insertIfAny(tx, surupa_puzzles, data.surupa_puzzles, 'surupa_puzzles');
+  await insertIfAny(tx, anveshi_puzzles, data.anveshi_puzzles, 'anveshi_puzzles');
+
   await insertIfAny(tx, tags, data.tags, 'tags');
   await insertIfAny(tx, collections, data.collections, 'collections');
   await insertIfAny(tx, padavali_puzzle_tags, data.padavali_puzzle_tags, 'padavali_puzzle_tags');
@@ -190,6 +326,34 @@ async function insertSimpleData(tx: ExportTx, data: ExportData): Promise<void> {
     crossword_collection_items,
     data.crossword_collection_items,
     'crossword_collection_items'
+  );
+  await insertIfAny(tx, dvayi_puzzle_tags, data.dvayi_puzzle_tags, 'dvayi_puzzle_tags');
+  await insertIfAny(tx, bhramita_puzzle_tags, data.bhramita_puzzle_tags, 'bhramita_puzzle_tags');
+  await insertIfAny(tx, surupa_puzzle_tags, data.surupa_puzzle_tags, 'surupa_puzzle_tags');
+  await insertIfAny(tx, anveshi_puzzle_tags, data.anveshi_puzzle_tags, 'anveshi_puzzle_tags');
+  await insertIfAny(
+    tx,
+    dvayi_collection_items,
+    data.dvayi_collection_items,
+    'dvayi_collection_items'
+  );
+  await insertIfAny(
+    tx,
+    bhramita_collection_items,
+    data.bhramita_collection_items,
+    'bhramita_collection_items'
+  );
+  await insertIfAny(
+    tx,
+    surupa_collection_items,
+    data.surupa_collection_items,
+    'surupa_collection_items'
+  );
+  await insertIfAny(
+    tx,
+    anveshi_collection_items,
+    data.anveshi_collection_items,
+    'anveshi_collection_items'
   );
 
   // inserting padavali_redirects
@@ -235,6 +399,15 @@ async function insertSimpleData(tx: ExportTx, data: ExportData): Promise<void> {
   } catch (e) {
     console.log(chalk.red('✗ Error while inserting crossword_attachments:'), chalk.yellow(e));
   }
+
+  await insertIfAny(tx, dvayi_redirects, data.dvayi_redirects, 'dvayi_redirects');
+  await insertIfAny(tx, bhramita_redirects, data.bhramita_redirects, 'bhramita_redirects');
+  await insertIfAny(tx, surupa_redirects, data.surupa_redirects, 'surupa_redirects');
+  await insertIfAny(tx, anveshi_redirects, data.anveshi_redirects, 'anveshi_redirects');
+  await insertIfAny(tx, dvayi_attachments, data.dvayi_attachments, 'dvayi_attachments');
+  await insertIfAny(tx, bhramita_attachments, data.bhramita_attachments, 'bhramita_attachments');
+  await insertIfAny(tx, surupa_attachments, data.surupa_attachments, 'surupa_attachments');
+  await insertIfAny(tx, anveshi_attachments, data.anveshi_attachments, 'anveshi_attachments');
 
   // inserting padavali_schedules
   try {
@@ -303,6 +476,35 @@ async function insertChunkedData(tx: ExportTx, data: ExportData): Promise<void> 
   } catch (e) {
     console.log(chalk.red('✗ Error while inserting crossword_gameplay_stats:'), chalk.yellow(e));
   }
+
+  await insertChunkedIfAny(tx, dvayi_sessions, data.dvayi_sessions, 'dvayi_sessions');
+  await insertChunkedIfAny(tx, bhramita_sessions, data.bhramita_sessions, 'bhramita_sessions');
+  await insertChunkedIfAny(tx, surupa_sessions, data.surupa_sessions, 'surupa_sessions');
+  await insertChunkedIfAny(tx, anveshi_sessions, data.anveshi_sessions, 'anveshi_sessions');
+  await insertChunkedIfAny(
+    tx,
+    dvayi_gameplay_stats,
+    data.dvayi_gameplay_stats,
+    'dvayi_gameplay_stats'
+  );
+  await insertChunkedIfAny(
+    tx,
+    bhramita_gameplay_stats,
+    data.bhramita_gameplay_stats,
+    'bhramita_gameplay_stats'
+  );
+  await insertChunkedIfAny(
+    tx,
+    surupa_gameplay_stats,
+    data.surupa_gameplay_stats,
+    'surupa_gameplay_stats'
+  );
+  await insertChunkedIfAny(
+    tx,
+    anveshi_gameplay_stats,
+    data.anveshi_gameplay_stats,
+    'anveshi_gameplay_stats'
+  );
 }
 
 // resetting SERIAL (sequences renamed to match tables in 0017_rename_owned_sequences)
@@ -351,6 +553,32 @@ async function resetSerialSequences(tx: ExportTx): Promise<void> {
     await tx.execute(
       sql`SELECT setval('"collections_id_seq"', (select MAX(id) from "collections"))`
     );
+    for (const table of [
+      'dvayi_puzzles',
+      'dvayi_attachments',
+      'dvayi_gameplay_stats',
+      'dvayi_sessions',
+      'dvayi_redirects',
+      'bhramita_puzzles',
+      'bhramita_attachments',
+      'bhramita_gameplay_stats',
+      'bhramita_sessions',
+      'bhramita_redirects',
+      'surupa_puzzles',
+      'surupa_attachments',
+      'surupa_gameplay_stats',
+      'surupa_sessions',
+      'surupa_redirects',
+      'anveshi_puzzles',
+      'anveshi_attachments',
+      'anveshi_gameplay_stats',
+      'anveshi_sessions',
+      'anveshi_redirects'
+    ] as const) {
+      await tx.execute(
+        sql.raw(`SELECT setval('"${table}_id_seq"', (select MAX(id) from "${table}"))`)
+      );
+    }
     console.log(chalk.green('✓ Successfully resetted ALL SERIAL'));
   } catch (e) {
     console.log(chalk.red('✗ Error while resetting SERIAL:'), chalk.yellow(e));

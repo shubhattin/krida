@@ -44,7 +44,6 @@ import { runTrpcEffect } from '~/effect/run';
 const settle = <A, E, R>(effect: Effect.Effect<A, E, R>) =>
   effect.pipe(Effect.catch(() => Effect.void));
 
-
 const puzzle_in_current_schedule = Effect.fn('crossword.puzzle_in_current_schedule')(function* (
   id: number
 ) {

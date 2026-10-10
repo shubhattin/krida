@@ -38,7 +38,11 @@ export function SimpleGameMetrics({
 }) {
   const trpc = useTRPC();
   const { script } = useContext(AppContext);
-  const mounted = useSyncExternalStore(subscribeNever, () => true, () => false);
+  const mounted = useSyncExternalStore(
+    subscribeNever,
+    () => true,
+    () => false
+  );
   const { authReady, isAuthed } = usePlayAuth();
   const [turnstileToken, setTurnstileToken] = useState<string | null>(null);
   const turnstile = useTurnstile();
