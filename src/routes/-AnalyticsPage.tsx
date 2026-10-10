@@ -17,7 +17,7 @@ import type {
   AdminAnalyticsTotals
 } from '~/api/routers/analytics';
 import { AllGamesMenuItems } from '~/components/app-bar/GameMenuItems';
-import { GameAppIcon } from '~/components/GameAppIcon';
+import { GameAnalyticsMark } from '~/components/analytics/GameAnalyticsMark';
 import {
   AnalyticsStatCardsSkeleton,
   AnalyticsStatGrid,
@@ -37,7 +37,7 @@ import { Skeleton } from '~/components/ui/skeleton';
 import { Tabs, TabsList, TabsTrigger } from '~/components/ui/tabs';
 import { cn } from '~/lib/utils';
 
-type GameFilter = 'all' | 'padavali' | 'padajala';
+type GameFilter = 'all' | AdminAnalyticsGameId;
 
 /** Row shape returned by both `get_top_puzzles` procedures. */
 type TopPlayedPuzzleRow = {
@@ -55,18 +55,42 @@ const GAME_ACCENT = {
   padajala: {
     wash: 'from-amber-50/90 via-orange-50/40 to-amber-50/80 dark:from-amber-950/50 dark:via-stone-900/30 dark:to-orange-950/40',
     ring: 'hover:ring-amber-400/55 dark:hover:ring-amber-500/45'
+  },
+  dvayi: {
+    wash: 'from-rose-50/90 via-orange-50/40 to-amber-50/80 dark:from-rose-950/50 dark:via-slate-900/30 dark:to-orange-950/40',
+    ring: 'hover:ring-rose-400/55 dark:hover:ring-rose-500/45'
+  },
+  bhramita: {
+    wash: 'from-emerald-50/90 via-teal-50/40 to-cyan-50/80 dark:from-emerald-950/50 dark:via-slate-900/30 dark:to-teal-950/40',
+    ring: 'hover:ring-emerald-400/55 dark:hover:ring-emerald-500/45'
+  },
+  surupa: {
+    wash: 'from-violet-50/90 via-fuchsia-50/40 to-purple-50/80 dark:from-violet-950/50 dark:via-slate-900/30 dark:to-fuchsia-950/40',
+    ring: 'hover:ring-violet-400/55 dark:hover:ring-violet-500/45'
+  },
+  anveshi: {
+    wash: 'from-sky-50/90 via-indigo-50/40 to-blue-50/80 dark:from-sky-950/50 dark:via-slate-900/30 dark:to-indigo-950/40',
+    ring: 'hover:ring-sky-400/55 dark:hover:ring-sky-500/45'
   }
 } as const satisfies Record<AdminAnalyticsGameId, { wash: string; ring: string }>;
 
 const GAME_PRESENTATION = {
-  padavali: { name: HUB_GAMES.padavali.name, icon: 'padavali' as const },
-  padajala: { name: HUB_GAMES.crossword.name, icon: 'padajala' as const }
-} as const satisfies Record<AdminAnalyticsGameId, { name: string; icon: 'padavali' | 'padajala' }>;
+  padavali: { name: HUB_GAMES.padavali.name },
+  padajala: { name: HUB_GAMES.crossword.name },
+  dvayi: { name: 'Dvayī' },
+  bhramita: { name: 'Bhramitā' },
+  surupa: { name: 'Surūpa' },
+  anveshi: { name: 'Anveṣī' }
+} as const satisfies Record<AdminAnalyticsGameId, { name: string }>;
 
 const GAME_TABS = [
   { value: 'all', label: 'All games' },
   { value: 'padavali', label: HUB_GAMES.padavali.name },
-  { value: 'padajala', label: HUB_GAMES.crossword.name }
+  { value: 'padajala', label: HUB_GAMES.crossword.name },
+  { value: 'dvayi', label: 'Dvayī' },
+  { value: 'bhramita', label: 'Bhramitā' },
+  { value: 'surupa', label: 'Surūpa' },
+  { value: 'anveshi', label: 'Anveṣī' }
 ] as const;
 
 function totalsStats(totals: AdminAnalyticsTotals): AnalyticsStat[] {
@@ -129,7 +153,7 @@ function GameBreakdownCard({ row }: { row: AdminAnalyticsGameRow }) {
       )}
     >
       <div className="flex items-center gap-3 p-3 sm:p-4">
-        <GameAppIcon game={presentation.icon} name={presentation.name} size="sm" />
+        <GameAnalyticsMark game={row.game} name={presentation.name} />
         <div className="min-w-0">
           <p className="truncate text-sm font-bold tracking-tight">{presentation.name}</p>
           <p className="truncate text-xs text-muted-foreground">Per-game breakdown</p>
@@ -160,45 +184,288 @@ function BreakdownSkeleton({ count }: { count: number }) {
     </div>
   );
 }
+
+function includesGame(filter: GameFilter, id: AdminAnalyticsGameId) {
+  return filter === 'all' || filter === id;
+}
+
+type PeriodState = ReturnType<typeof useAnalyticsPeriod>;
+type AnalyticsRange = {
+  all_time: boolean;
+  start_date?: Date;
+  end_date?: Date;
+};
+type TopPlayedQuery = { isLoading: boolean; puzzles: TopPlayedPuzzleRow[] };
+
+function toTopPlayedQuery(
+  isLoading: boolean,
+  puzzles: TopPlayedPuzzleRow[] | undefined
+): TopPlayedQuery {
+  return { isLoading, puzzles: puzzles ?? [] };
+}
+
+function useTopPlayedQueries(game: GameFilter, range: AnalyticsRange, isReady: boolean) {
+  const trpc = useTRPC();
+  const padavali = useQuery(
+    trpc.puzzle.stats.get_top_puzzles.queryOptions(
+      { ...range, limit: 10 },
+      { enabled: includesGame(game, 'padavali') && isReady }
+    )
+  );
+  const padajala = useQuery(
+    trpc.crossword.stats.get_top_puzzles.queryOptions(
+      { ...range, limit: 10 },
+      { enabled: includesGame(game, 'padajala') && isReady }
+    )
+  );
+  const dvayi = useQuery(
+    trpc.dvayi.stats.get_top_puzzles.queryOptions(
+      { ...range, limit: 10 },
+      { enabled: includesGame(game, 'dvayi') && isReady }
+    )
+  );
+  const bhramita = useQuery(
+    trpc.bhramita.stats.get_top_puzzles.queryOptions(
+      { ...range, limit: 10 },
+      { enabled: includesGame(game, 'bhramita') && isReady }
+    )
+  );
+  const surupa = useQuery(
+    trpc.surupa.stats.get_top_puzzles.queryOptions(
+      { ...range, limit: 10 },
+      { enabled: includesGame(game, 'surupa') && isReady }
+    )
+  );
+  const anveshi = useQuery(
+    trpc.anveshi.stats.get_top_puzzles.queryOptions(
+      { ...range, limit: 10 },
+      { enabled: includesGame(game, 'anveshi') && isReady }
+    )
+  );
+  return {
+    padavali: toTopPlayedQuery(padavali.isLoading, padavali.data?.puzzles),
+    padajala: toTopPlayedQuery(padajala.isLoading, padajala.data?.puzzles),
+    dvayi: toTopPlayedQuery(dvayi.isLoading, dvayi.data?.puzzles),
+    bhramita: toTopPlayedQuery(bhramita.isLoading, bhramita.data?.puzzles),
+    surupa: toTopPlayedQuery(surupa.isLoading, surupa.data?.puzzles),
+    anveshi: toTopPlayedQuery(anveshi.isLoading, anveshi.data?.puzzles)
+  };
+}
+
+function AnalyticsToolbar({
+  game,
+  onGameChange,
+  period
+}: {
+  game: GameFilter;
+  onGameChange: (game: GameFilter) => void;
+  period: PeriodState;
+}) {
+  return (
+    <>
+      <div className="flex flex-col gap-2 sm:flex-row sm:items-start sm:justify-between">
+        <Tabs
+          value={game}
+          onValueChange={(value) => {
+            const tab = GAME_TABS.find((item) => item.value === value);
+            if (tab) onGameChange(tab.value);
+          }}
+          className="min-w-0"
+        >
+          <TabsList className="w-full justify-start sm:w-fit">
+            {GAME_TABS.map((tab) => (
+              <TabsTrigger key={tab.value} value={tab.value}>
+                {tab.label}
+              </TabsTrigger>
+            ))}
+          </TabsList>
+        </Tabs>
+        <AnalyticsPeriodSelect period={period.period} onPeriodChange={period.setPeriod} />
+      </div>
+      {period.period === 'custom' ? (
+        <AnalyticsCustomRangePicker
+          dateRange={period.dateRange}
+          onDateRangeChange={period.setDateRange}
+        />
+      ) : null}
+    </>
+  );
+}
+
+function TopPlayedLeaders({
+  game,
+  padavali,
+  padajala,
+  dvayi,
+  bhramita,
+  surupa,
+  anveshi
+}: {
+  game: GameFilter;
+  padavali: TopPlayedQuery;
+  padajala: TopPlayedQuery;
+  dvayi: TopPlayedQuery;
+  bhramita: TopPlayedQuery;
+  surupa: TopPlayedQuery;
+  anveshi: TopPlayedQuery;
+}) {
+  return (
+    <>
+      {includesGame(game, 'padavali') ? (
+        <TopPlayedLeader
+          variant="puzzles"
+          accordionValue="central-top-padavali"
+          title="Top Played — Padāvalī"
+          subtitle="Top 10 by plays"
+          emptyMessage="No Padāvalī plays in this period"
+          isLoading={padavali.isLoading}
+          items={toTopPlayedRows(padavali.puzzles)}
+        />
+      ) : null}
+      {includesGame(game, 'padajala') ? (
+        <TopPlayedLeader
+          variant="puzzles"
+          accordionValue="central-top-padajala"
+          title="Top Played — Padajāla"
+          subtitle="Top 10 by plays"
+          emptyMessage="No Padajāla plays in this period"
+          isLoading={padajala.isLoading}
+          items={toTopPlayedRows(padajala.puzzles)}
+        />
+      ) : null}
+      {includesGame(game, 'dvayi') ? (
+        <TopPlayedLeader
+          variant="puzzles"
+          accordionValue="central-top-dvayi"
+          title="Top Played — Dvayī"
+          subtitle="Top 10 by plays"
+          emptyMessage="No Dvayī plays in this period"
+          isLoading={dvayi.isLoading}
+          items={toTopPlayedRows(dvayi.puzzles)}
+        />
+      ) : null}
+      {includesGame(game, 'bhramita') ? (
+        <TopPlayedLeader
+          variant="puzzles"
+          accordionValue="central-top-bhramita"
+          title="Top Played — Bhramitā"
+          subtitle="Top 10 by plays"
+          emptyMessage="No Bhramitā plays in this period"
+          isLoading={bhramita.isLoading}
+          items={toTopPlayedRows(bhramita.puzzles)}
+        />
+      ) : null}
+      {includesGame(game, 'surupa') ? (
+        <TopPlayedLeader
+          variant="puzzles"
+          accordionValue="central-top-surupa"
+          title="Top Played — Surūpa"
+          subtitle="Top 10 by plays"
+          emptyMessage="No Surūpa plays in this period"
+          isLoading={surupa.isLoading}
+          items={toTopPlayedRows(surupa.puzzles)}
+        />
+      ) : null}
+      {includesGame(game, 'anveshi') ? (
+        <TopPlayedLeader
+          variant="puzzles"
+          accordionValue="central-top-anveshi"
+          title="Top Played — Anveṣī"
+          subtitle="Top 10 by plays"
+          emptyMessage="No Anveṣī plays in this period"
+          isLoading={anveshi.isLoading}
+          items={toTopPlayedRows(anveshi.puzzles)}
+        />
+      ) : null}
+    </>
+  );
+}
+
+function AnalyticsResults({
+  game,
+  isLoading,
+  isError,
+  games,
+  totals,
+  padavali,
+  padajala,
+  dvayi,
+  bhramita,
+  surupa,
+  anveshi
+}: {
+  game: GameFilter;
+  isLoading: boolean;
+  isError: boolean;
+  games: AdminAnalyticsGameRow[];
+  totals: AdminAnalyticsTotals | undefined;
+  padavali: TopPlayedQuery;
+  padajala: TopPlayedQuery;
+  dvayi: TopPlayedQuery;
+  bhramita: TopPlayedQuery;
+  surupa: TopPlayedQuery;
+  anveshi: TopPlayedQuery;
+}) {
+  if (isLoading) {
+    return (
+      <div className="flex flex-col gap-4">
+        <AnalyticsStatCardsSkeleton />
+        <BreakdownSkeleton count={game === 'all' ? GAME_TABS.length - 1 : 1} />
+      </div>
+    );
+  }
+  if (isError) {
+    return (
+      <p className="py-8 text-center text-sm text-destructive">Failed to load analytics overview</p>
+    );
+  }
+  if (!totals) return null;
+
+  return (
+    <div className="flex flex-col gap-4">
+      <AnalyticsStatGrid stats={totalsStats(totals)} />
+      <div className="grid grid-cols-1 gap-3 lg:grid-cols-2">
+        {games.map((row) => (
+          <GameBreakdownCard key={row.game} row={row} />
+        ))}
+      </div>
+      <GameAnalyticsLinks
+        rows={games.map((row) => ({
+          game: row.game,
+          started: row.started,
+          completed: row.completed
+        }))}
+      />
+      <TopPlayedLeaders
+        game={game}
+        padavali={padavali}
+        padajala={padajala}
+        dvayi={dvayi}
+        bhramita={bhramita}
+        surupa={surupa}
+        anveshi={anveshi}
+      />
+    </div>
+  );
+}
+
 export default function AnalyticsPage() {
   const [game, setGame] = useState<GameFilter>('all');
   const period = useAnalyticsPeriod('last_month');
   const trpc = useTRPC();
-
   const rangeInput = {
     all_time: period.allTime,
     start_date: period.effectiveRange?.from,
     end_date: period.effectiveRange?.to
   };
-
   const overviewQuery = useQuery(
     trpc.analytics.get_overview.queryOptions({ game, ...rangeInput }, { enabled: period.isReady })
   );
-
-  const showPadavali = game !== 'padajala';
-  const showPadajala = game !== 'padavali';
-
-  const topPadavaliQuery = useQuery(
-    trpc.puzzle.stats.get_top_puzzles.queryOptions(
-      { ...rangeInput, limit: 10 },
-      { enabled: showPadavali && period.isReady }
-    )
-  );
-
-  const topPadajalaQuery = useQuery(
-    trpc.crossword.stats.get_top_puzzles.queryOptions(
-      { ...rangeInput, limit: 10 },
-      { enabled: showPadajala && period.isReady }
-    )
-  );
-
-  const games = overviewQuery.data?.games ?? [];
-  const totals = overviewQuery.data?.totals;
+  const topPlayed = useTopPlayedQueries(game, rangeInput, period.isReady);
 
   return (
     <div className="public-canvas flex min-h-dvh flex-col">
       <HubHeader gameMenuItems={<AllGamesMenuItems />} />
-
       <main className="mx-auto flex w-full max-w-6xl flex-1 flex-col gap-4 px-3 py-4 sm:px-4 sm:py-6">
         <div className="flex min-w-0 flex-col gap-1">
           <h1 className="flex items-center gap-2 text-xl font-bold tracking-tight sm:text-2xl">
@@ -206,91 +473,23 @@ export default function AnalyticsPage() {
             Analytics
           </h1>
           <p className="text-sm text-muted-foreground">
-            Play volume and signed-in players across Padāvalī and Padajāla.
+            Play volume and signed-in players across every catalog game.
           </p>
         </div>
-
-        <div className="flex flex-col gap-2 sm:flex-row sm:items-start sm:justify-between">
-          <Tabs
-            value={game}
-            onValueChange={(value) => {
-              if (value === 'padavali' || value === 'padajala' || value === 'all') setGame(value);
-            }}
-            className="min-w-0"
-          >
-            <TabsList className="w-full justify-start sm:w-fit">
-              {GAME_TABS.map((tab) => (
-                <TabsTrigger key={tab.value} value={tab.value}>
-                  {tab.label}
-                </TabsTrigger>
-              ))}
-            </TabsList>
-          </Tabs>
-          <AnalyticsPeriodSelect period={period.period} onPeriodChange={period.setPeriod} />
-        </div>
-
-        {period.period === 'custom' ? (
-          <AnalyticsCustomRangePicker
-            dateRange={period.dateRange}
-            onDateRangeChange={period.setDateRange}
-          />
-        ) : null}
-
-        {overviewQuery.isLoading ? (
-          <div className="flex flex-col gap-4">
-            <AnalyticsStatCardsSkeleton />
-            <BreakdownSkeleton count={game === 'all' ? 2 : 1} />
-          </div>
-        ) : null}
-        {overviewQuery.isError ? (
-          <p className="py-8 text-center text-sm text-destructive">
-            Failed to load analytics overview
-          </p>
-        ) : null}
-
-        {totals ? (
-          <div className="flex flex-col gap-4">
-            <AnalyticsStatGrid stats={totalsStats(totals)} />
-
-            <div className="grid grid-cols-1 gap-3 lg:grid-cols-2">
-              {games.map((row) => (
-                <GameBreakdownCard key={row.game} row={row} />
-              ))}
-            </div>
-
-            <GameAnalyticsLinks
-              rows={games.map((row) => ({
-                game: row.game,
-                started: row.started,
-                completed: row.completed
-              }))}
-            />
-
-            {showPadavali ? (
-              <TopPlayedLeader
-                variant="puzzles"
-                accordionValue="central-top-padavali"
-                title="Top Played — Padāvalī"
-                subtitle="Top 10 by plays"
-                emptyMessage="No Padāvalī plays in this period"
-                isLoading={topPadavaliQuery.isLoading}
-                items={toTopPlayedRows(topPadavaliQuery.data?.puzzles ?? [])}
-              />
-            ) : null}
-
-            {showPadajala ? (
-              <TopPlayedLeader
-                variant="puzzles"
-                accordionValue="central-top-padajala"
-                title="Top Played — Padajāla"
-                subtitle="Top 10 by plays"
-                emptyMessage="No Padajāla plays in this period"
-                isLoading={topPadajalaQuery.isLoading}
-                items={toTopPlayedRows(topPadajalaQuery.data?.puzzles ?? [])}
-              />
-            ) : null}
-          </div>
-        ) : null}
+        <AnalyticsToolbar game={game} onGameChange={setGame} period={period} />
+        <AnalyticsResults
+          game={game}
+          isLoading={overviewQuery.isLoading}
+          isError={overviewQuery.isError}
+          games={overviewQuery.data?.games ?? []}
+          totals={overviewQuery.data?.totals}
+          padavali={topPlayed.padavali}
+          padajala={topPlayed.padajala}
+          dvayi={topPlayed.dvayi}
+          bhramita={topPlayed.bhramita}
+          surupa={topPlayed.surupa}
+          anveshi={topPlayed.anveshi}
+        />
       </main>
     </div>
   );

@@ -1,71 +1,38 @@
 'use client';
 
-import { useEffect, useRef } from 'react';
+import { useCallback, useEffect, useRef } from 'react';
+import { useBlocker } from '@tanstack/react-router';
 
 const DEFAULT_MESSAGE =
   'You have unsaved changes. Are you sure you want to leave? Your edits will be lost.';
 
-const GUARD_STATE = { __padavaliEditorUnsavedGuard: true } as const;
-
-/** Marker state pushed onto the history stack so the guard can recognize its own sentinel. */
-type UnsavedGuardState = { __padavaliEditorUnsavedGuard?: boolean };
-
-function isGuardState(state: UnsavedGuardState | undefined): boolean {
-  return state?.__padavaliEditorUnsavedGuard === true;
-}
-
 /**
- * Browser-level leave guard: blocks reload/close via `beforeunload`, and
- * intercepts back/forward via `popstate` + native `confirm`.
- * Active only while `enabled` is true.
+ * Leave guard for editors. Uses the router blocker instead of a dummy
+ * `history.pushState` — that sentinel created a new history entry, and with
+ * `scrollRestoration: true` the router scrolled the page back to the top on
+ * the first unsaved edit.
  */
 export function useUnsavedChangesGuard(enabled: boolean, message: string = DEFAULT_MESSAGE) {
   const messageRef = useRef(message);
+  const enabledRef = useRef(enabled);
 
   useEffect(() => {
     messageRef.current = message;
   }, [message]);
 
   useEffect(() => {
-    if (!enabled) return;
-
-    let sentinelPushed = false;
-
-    const pushSentinel = () => {
-      if (sentinelPushed) return;
-      window.history.pushState(GUARD_STATE, '', window.location.href);
-      sentinelPushed = true;
-    };
-
-    const handleBeforeUnload = (e: BeforeUnloadEvent) => {
-      e.preventDefault();
-      e.returnValue = '';
-    };
-
-    const handlePopState = () => {
-      // Browser already popped our sentinel (or navigated). Treat as leave attempt.
-      sentinelPushed = false;
-      const confirmLeave = window.confirm(messageRef.current);
-      if (!confirmLeave) {
-        pushSentinel();
-        return;
-      }
-      // Proceed with the back navigation past the real page entry.
-      window.history.back();
-    };
-
-    window.addEventListener('beforeunload', handleBeforeUnload);
-    window.addEventListener('popstate', handlePopState);
-    pushSentinel();
-
-    return () => {
-      window.removeEventListener('beforeunload', handleBeforeUnload);
-      window.removeEventListener('popstate', handlePopState);
-      // Drop the duplicate same-URL sentinel without leaving the editor.
-      if (sentinelPushed && isGuardState(window.history.state)) {
-        sentinelPushed = false;
-        window.history.back();
-      }
-    };
+    enabledRef.current = enabled;
   }, [enabled]);
+
+  const shouldBlockFn = useCallback(() => {
+    if (!enabledRef.current) return false;
+    return !window.confirm(messageRef.current);
+  }, []);
+
+  useBlocker({
+    shouldBlockFn,
+    disabled: !enabled,
+    enableBeforeUnload: enabled,
+    withResolver: false
+  });
 }

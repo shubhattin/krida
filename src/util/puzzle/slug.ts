@@ -4,30 +4,22 @@ export const MAX_SLUG_LENGTH = 100;
 
 export const SLUG_REGEX = /^[a-z0-9_-]+$/;
 
+/** First-segment paths reserved under every game tree. */
+const SHARED_RESERVED_SLUGS = ['analytics', 'edit', 'list', 'puzzle', 'puzzles', 'view'] as const;
+
 /** First-segment paths under `/padavali/*` that must not be used as puzzle slugs. */
-export const RESERVED_SLUGS = new Set([
-  'analytics',
-  'archived',
-  'edit',
-  'list',
-  'puzzle',
-  'puzzles',
-  'schedules',
-  'view'
-]);
+export const RESERVED_SLUGS = new Set<string>([...SHARED_RESERVED_SLUGS, 'archived', 'schedules']);
 
 /** First-segment paths under `/padajala/*` that must not be used as puzzle slugs. */
-export const CROSSWORD_RESERVED_SLUGS = new Set([
-  'analytics',
+export const CROSSWORD_RESERVED_SLUGS = new Set<string>([
+  ...SHARED_RESERVED_SLUGS,
   'archived',
   'batch_manager',
-  'edit',
-  'list',
-  'puzzle',
-  'puzzles',
-  'schedules',
-  'view'
+  'schedules'
 ]);
+
+/** First-segment paths under the in-development game trees. */
+export const SIMPLE_GAME_RESERVED_SLUGS = new Set<string>(SHARED_RESERVED_SLUGS);
 
 export const isReservedSlug = (slug: string) => RESERVED_SLUGS.has(slug);
 
@@ -56,6 +48,22 @@ export const crossword_slug_schema = z
   .string()
   .transform(normalizeSlug)
   .refine(isValidCrosswordSlug, {
+    message:
+      'Slug may only contain lowercase letters, numbers, underscores, and dashes, and cannot match a reserved route name'
+  });
+
+export const isReservedSimpleGameSlug = (slug: string) => SIMPLE_GAME_RESERVED_SLUGS.has(slug);
+
+export const isValidSimpleGameSlug = (slug: string) =>
+  slug.length > 0 &&
+  slug.length <= MAX_SLUG_LENGTH &&
+  SLUG_REGEX.test(slug) &&
+  !isReservedSimpleGameSlug(slug);
+
+export const simple_game_slug_schema = z
+  .string()
+  .transform(normalizeSlug)
+  .refine(isValidSimpleGameSlug, {
     message:
       'Slug may only contain lowercase letters, numbers, underscores, and dashes, and cannot match a reserved route name'
   });

@@ -1,6 +1,6 @@
 'use client';
 
-import React, { useEffect, useRef } from 'react';
+import React, { useEffect, useRef, useState } from 'react';
 import Icon from '~/tools/Icon';
 import {
   ContributeIcon,
@@ -12,14 +12,18 @@ import {
 } from '../icons';
 import { cn } from '~/lib/utils';
 import { Dialog, DialogContent, DialogHeader, DialogTrigger } from '~/components/ui/dialog';
+import { useCloseOnNavigate } from '~/hooks/useCloseOnNavigate';
 import QRCode from 'qrcode';
 import ImageSpan from '../ImageSpan';
 import { DialogTitle } from '~/components/ui/dialog';
 
 // Main component
 const SupportOptions = () => {
+  const [open, setOpen] = useState(false);
+  useCloseOnNavigate(() => setOpen(false));
+
   return (
-    <Dialog>
+    <Dialog open={open} onOpenChange={setOpen}>
       <DialogTrigger>
         <span
           className={cn(

@@ -26,7 +26,7 @@ export type SelectedUser = {
 const USER_FETCH_LIMIT = 8;
 
 type UserSelectorProps = {
-  game: 'padavali' | 'padajala';
+  game: 'padavali' | 'padajala' | 'dvayi' | 'bhramita' | 'surupa' | 'anveshi';
   selectedUsers: SelectedUser[];
   onSelectedUsersChange: (users: SelectedUser[]) => void;
 };
@@ -60,9 +60,9 @@ function useUserSelectorListQuery(
         size: USER_FETCH_LIMIT,
         search: search !== '' ? search : undefined
       };
-      return game === 'padavali'
-        ? client.puzzle.stats.get_user_list_page.query(input)
-        : client.crossword.stats.get_user_list_page.query(input);
+      if (game === 'padavali') return client.puzzle.stats.get_user_list_page.query(input);
+      if (game === 'padajala') return client.crossword.stats.get_user_list_page.query(input);
+      return client[game].stats.get_user_list_page.query(input);
     },
     enabled: open,
     placeholderData: (prev) => prev,

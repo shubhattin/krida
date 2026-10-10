@@ -6,6 +6,7 @@ import HubPuzzles from '~/components/hub/HubPuzzles';
 const hubRoute = getRouteApi('/_hub');
 
 const puzzles_search_schema = z.object({
+  // TODO: add dvayi/bhramita/surupa/anveshi to this public filter once those games ship.
   game: z.enum(['all', 'padavali', 'crossword']).catch('all').default('all'),
   view: z.enum(['puzzles', 'collections']).catch('puzzles').default('puzzles'),
   tag: z.string().max(80).optional().catch(undefined),

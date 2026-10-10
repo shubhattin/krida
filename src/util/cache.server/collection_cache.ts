@@ -132,6 +132,8 @@ const load_listed_collections: CacheItem<NoCacheParams, ListedCollectionsType> =
           title: row.title,
           description: row.description,
           image: row.image,
+          // TODO: include dvayi/bhramita/surupa/anveshi items here once those
+          // games ship on /puzzles. Admin collections already persist them.
           items: [
             ...toPublicItems('padavali', row.padavali_items),
             ...toPublicItems('crossword', row.crossword_items)

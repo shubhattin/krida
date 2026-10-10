@@ -4,6 +4,7 @@ import type { RedisJsonValue } from '~/effect/redis';
 import { crosswordCacheKeys } from '~/util/cache.server/crossword_cache';
 import { padavaliCacheKeys } from '~/util/cache.server/padavali_cache';
 import { sitemapCacheKeys } from '~/util/cache.server/sitemap_cache';
+import { simpleGameCacheKeys } from '~/util/cache.server/simple_game_cache';
 
 const redisGenerationKey = (cacheKey: string) => `${cacheKey}:gen`;
 
@@ -23,6 +24,14 @@ describe('cache keys', () => {
     expect(crosswordCacheKeys.word_puzzle('xyz')).toBe('crossword:word_puzzle:xyz');
     expect(crosswordCacheKeys.more_hints('xyz')).toBe('crossword:puzzle_more_hints:xyz');
     expect(crosswordCacheKeys).not.toHaveProperty('word_meanings');
+  });
+
+  it('uses simple-game prefixes for listed lists and word puzzles', () => {
+    expect(simpleGameCacheKeys('dvayi').listed_puzzle_list()).toBe('dvayi:listed_puzzle_list');
+    expect(simpleGameCacheKeys('dvayi').word_puzzle('abc')).toBe('dvayi:word_puzzle:abc');
+    expect(simpleGameCacheKeys('bhramita').word_puzzle('xyz')).toBe('bhramita:word_puzzle:xyz');
+    expect(simpleGameCacheKeys('surupa').listed_puzzle_list()).toBe('surupa:listed_puzzle_list');
+    expect(simpleGameCacheKeys('anveshi').word_puzzle('mcq')).toBe('anveshi:word_puzzle:mcq');
   });
 
   it('uses sitemap keys for padavali and padajala', () => {

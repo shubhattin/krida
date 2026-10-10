@@ -12,7 +12,10 @@ import { Route as rootRouteImport } from './routes/__root'
 import { Route as HubRouteImport } from './routes/_hub'
 import { Route as AdminRouteImport } from './routes/admin'
 import { Route as AnalyticsRouteImport } from './routes/analytics'
+import { Route as AnveshiRouteRouteImport } from './routes/anveshi/route'
+import { Route as BhramitaRouteRouteImport } from './routes/bhramita/route'
 import { Route as DashboardRouteImport } from './routes/dashboard'
+import { Route as DvayiRouteRouteImport } from './routes/dvayi/route'
 import { Route as ExploreRouteImport } from './routes/explore'
 import { Route as PadajalaRouteRouteImport } from './routes/padajala/route'
 import { Route as PadavaliRouteRouteImport } from './routes/padavali/route'
@@ -20,27 +23,59 @@ import { Route as RobotsDottxtRouteImport } from './routes/robots[.]txt'
 import { Route as Sitemap0DotxmlRouteImport } from './routes/sitemap-0[.]xml'
 import { Route as Sitemap1DotxmlRouteImport } from './routes/sitemap-1[.]xml'
 import { Route as SitemapIndexDotxmlRouteImport } from './routes/sitemap-index[.]xml'
+import { Route as SurupaRouteRouteImport } from './routes/surupa/route'
 import { Route as HubIndexRouteImport } from './routes/_hub/index'
 import { Route as HubPuzzlesRouteImport } from './routes/_hub/puzzles'
 import { Route as CollectionsListRouteImport } from './routes/collections/list'
 import { Route as CrosswordSplatRouteImport } from './routes/crossword.$'
 import { Route as TagsListRouteImport } from './routes/tags/list'
 import { Route as HubCollectionsSlugRouteImport } from './routes/_hub/collections/$slug'
+import { Route as AnveshiauthAuthRouteImport } from './routes/anveshi/(auth)/_auth'
+import { Route as AnveshipublicPublicRouteImport } from './routes/anveshi/(public)/_public'
 import { Route as ApiQstashNew_puzzle_notificationRouteImport } from './routes/api/qstash/new_puzzle_notification'
 import { Route as ApiQstashSave_ai_batch_resultsRouteImport } from './routes/api/qstash/save_ai_batch_results'
 import { Route as ApiQstashSchedule_listingRouteImport } from './routes/api/qstash/schedule_listing'
 import { Route as ApiTrpcSplatRouteImport } from './routes/api/trpc/$'
+import { Route as BhramitaauthAuthRouteImport } from './routes/bhramita/(auth)/_auth'
+import { Route as BhramitapublicPublicRouteImport } from './routes/bhramita/(public)/_public'
 import { Route as CollectionsEditUidRouteImport } from './routes/collections/edit/$uid'
+import { Route as DvayiauthAuthRouteImport } from './routes/dvayi/(auth)/_auth'
+import { Route as DvayipublicPublicRouteImport } from './routes/dvayi/(public)/_public'
 import { Route as PadajalaauthAuthRouteImport } from './routes/padajala/(auth)/_auth'
 import { Route as PadajalapublicPublicRouteImport } from './routes/padajala/(public)/_public'
 import { Route as PadavaliauthAuthRouteImport } from './routes/padavali/(auth)/_auth'
 import { Route as PadavalipublicPublicRouteImport } from './routes/padavali/(public)/_public'
+import { Route as SurupaauthAuthRouteImport } from './routes/surupa/(auth)/_auth'
+import { Route as SurupapublicPublicRouteImport } from './routes/surupa/(public)/_public'
 import { Route as TagsEditSlugRouteImport } from './routes/tags/edit/$slug'
+import { Route as AnveshipublicPublicIndexRouteImport } from './routes/anveshi/(public)/_public/index'
+import { Route as AnveshipublicPublicSlugRouteImport } from './routes/anveshi/(public)/_public/$slug'
 import { Route as ApiQstashCrosswordSchedule_listingRouteImport } from './routes/api/qstash/crossword/schedule_listing'
+import { Route as BhramitapublicPublicIndexRouteImport } from './routes/bhramita/(public)/_public/index'
+import { Route as BhramitapublicPublicSlugRouteImport } from './routes/bhramita/(public)/_public/$slug'
+import { Route as DvayipublicPublicIndexRouteImport } from './routes/dvayi/(public)/_public/index'
+import { Route as DvayipublicPublicSlugRouteImport } from './routes/dvayi/(public)/_public/$slug'
 import { Route as PadajalapublicPublicIndexRouteImport } from './routes/padajala/(public)/_public/index'
 import { Route as PadajalapublicPublicSlugRouteImport } from './routes/padajala/(public)/_public/$slug'
 import { Route as PadavalipublicPublicIndexRouteImport } from './routes/padavali/(public)/_public/index'
 import { Route as PadavalipublicPublicSlugRouteImport } from './routes/padavali/(public)/_public/$slug'
+import { Route as SurupapublicPublicIndexRouteImport } from './routes/surupa/(public)/_public/index'
+import { Route as SurupapublicPublicSlugRouteImport } from './routes/surupa/(public)/_public/$slug'
+import { Route as AnveshiauthAuthAnalyticsIndexRouteImport } from './routes/anveshi/(auth)/_auth/analytics/index'
+import { Route as AnveshiauthAuthEditIdRouteImport } from './routes/anveshi/(auth)/_auth/edit/$id'
+import { Route as AnveshiauthAuthListIndexRouteImport } from './routes/anveshi/(auth)/_auth/list/index'
+import { Route as AnveshipublicPublicPuzzlesIndexRouteImport } from './routes/anveshi/(public)/_public/puzzles/index'
+import { Route as AnveshipublicPublicViewNano_idRouteImport } from './routes/anveshi/(public)/_public/view/$nano_id'
+import { Route as BhramitaauthAuthAnalyticsIndexRouteImport } from './routes/bhramita/(auth)/_auth/analytics/index'
+import { Route as BhramitaauthAuthEditIdRouteImport } from './routes/bhramita/(auth)/_auth/edit/$id'
+import { Route as BhramitaauthAuthListIndexRouteImport } from './routes/bhramita/(auth)/_auth/list/index'
+import { Route as BhramitapublicPublicPuzzlesIndexRouteImport } from './routes/bhramita/(public)/_public/puzzles/index'
+import { Route as BhramitapublicPublicViewNano_idRouteImport } from './routes/bhramita/(public)/_public/view/$nano_id'
+import { Route as DvayiauthAuthAnalyticsIndexRouteImport } from './routes/dvayi/(auth)/_auth/analytics/index'
+import { Route as DvayiauthAuthEditIdRouteImport } from './routes/dvayi/(auth)/_auth/edit/$id'
+import { Route as DvayiauthAuthListIndexRouteImport } from './routes/dvayi/(auth)/_auth/list/index'
+import { Route as DvayipublicPublicPuzzlesIndexRouteImport } from './routes/dvayi/(public)/_public/puzzles/index'
+import { Route as DvayipublicPublicViewNano_idRouteImport } from './routes/dvayi/(public)/_public/view/$nano_id'
 import { Route as PadajalaauthAuthAnalyticsIndexRouteImport } from './routes/padajala/(auth)/_auth/analytics/index'
 import { Route as PadajalaauthAuthBatch_managerIndexRouteImport } from './routes/padajala/(auth)/_auth/batch_manager/index'
 import { Route as PadajalaauthAuthCollectionsUidRouteImport } from './routes/padajala/(auth)/_auth/collections/$uid'
@@ -61,6 +96,11 @@ import { Route as PadavalipublicPublicArchivedId_uuidRouteImport } from './route
 import { Route as PadavalipublicPublicPuzzleSlugRouteImport } from './routes/padavali/(public)/_public/puzzle/$slug'
 import { Route as PadavalipublicPublicPuzzlesIndexRouteImport } from './routes/padavali/(public)/_public/puzzles/index'
 import { Route as PadavalipublicPublicViewNano_idRouteImport } from './routes/padavali/(public)/_public/view/$nano_id'
+import { Route as SurupaauthAuthAnalyticsIndexRouteImport } from './routes/surupa/(auth)/_auth/analytics/index'
+import { Route as SurupaauthAuthEditIdRouteImport } from './routes/surupa/(auth)/_auth/edit/$id'
+import { Route as SurupaauthAuthListIndexRouteImport } from './routes/surupa/(auth)/_auth/list/index'
+import { Route as SurupapublicPublicPuzzlesIndexRouteImport } from './routes/surupa/(public)/_public/puzzles/index'
+import { Route as SurupapublicPublicViewNano_idRouteImport } from './routes/surupa/(public)/_public/view/$nano_id'
 import { Route as PadajalaauthAuthSchedulesAddIndexRouteImport } from './routes/padajala/(auth)/_auth/schedules/add/index'
 import { Route as PadajalaauthAuthSchedulesEditIdRouteImport } from './routes/padajala/(auth)/_auth/schedules/edit/$id'
 import { Route as PadavaliauthAuthSchedulesAddIndexRouteImport } from './routes/padavali/(auth)/_auth/schedules/add/index'
@@ -80,9 +120,24 @@ const AnalyticsRoute = AnalyticsRouteImport.update({
   path: '/analytics',
   getParentRoute: () => rootRouteImport,
 } as any)
+const AnveshiRouteRoute = AnveshiRouteRouteImport.update({
+  id: '/anveshi',
+  path: '/anveshi',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const BhramitaRouteRoute = BhramitaRouteRouteImport.update({
+  id: '/bhramita',
+  path: '/bhramita',
+  getParentRoute: () => rootRouteImport,
+} as any)
 const DashboardRoute = DashboardRouteImport.update({
   id: '/dashboard',
   path: '/dashboard',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const DvayiRouteRoute = DvayiRouteRouteImport.update({
+  id: '/dvayi',
+  path: '/dvayi',
   getParentRoute: () => rootRouteImport,
 } as any)
 const ExploreRoute = ExploreRouteImport.update({
@@ -120,6 +175,11 @@ const SitemapIndexDotxmlRoute = SitemapIndexDotxmlRouteImport.update({
   path: '/sitemap-index.xml',
   getParentRoute: () => rootRouteImport,
 } as any)
+const SurupaRouteRoute = SurupaRouteRouteImport.update({
+  id: '/surupa',
+  path: '/surupa',
+  getParentRoute: () => rootRouteImport,
+} as any)
 const HubIndexRoute = HubIndexRouteImport.update({
   id: '/',
   path: '/',
@@ -150,6 +210,14 @@ const HubCollectionsSlugRoute = HubCollectionsSlugRouteImport.update({
   path: '/collections/$slug',
   getParentRoute: () => HubRoute,
 } as any)
+const AnveshiauthAuthRoute = AnveshiauthAuthRouteImport.update({
+  id: '/(auth)/_auth',
+  getParentRoute: () => AnveshiRouteRoute,
+} as any)
+const AnveshipublicPublicRoute = AnveshipublicPublicRouteImport.update({
+  id: '/(public)/_public',
+  getParentRoute: () => AnveshiRouteRoute,
+} as any)
 const ApiQstashNew_puzzle_notificationRoute =
   ApiQstashNew_puzzle_notificationRouteImport.update({
     id: '/api/qstash/new_puzzle_notification',
@@ -173,10 +241,26 @@ const ApiTrpcSplatRoute = ApiTrpcSplatRouteImport.update({
   path: '/api/trpc/$',
   getParentRoute: () => rootRouteImport,
 } as any)
+const BhramitaauthAuthRoute = BhramitaauthAuthRouteImport.update({
+  id: '/(auth)/_auth',
+  getParentRoute: () => BhramitaRouteRoute,
+} as any)
+const BhramitapublicPublicRoute = BhramitapublicPublicRouteImport.update({
+  id: '/(public)/_public',
+  getParentRoute: () => BhramitaRouteRoute,
+} as any)
 const CollectionsEditUidRoute = CollectionsEditUidRouteImport.update({
   id: '/collections/edit/$uid',
   path: '/collections/edit/$uid',
   getParentRoute: () => rootRouteImport,
+} as any)
+const DvayiauthAuthRoute = DvayiauthAuthRouteImport.update({
+  id: '/(auth)/_auth',
+  getParentRoute: () => DvayiRouteRoute,
+} as any)
+const DvayipublicPublicRoute = DvayipublicPublicRouteImport.update({
+  id: '/(public)/_public',
+  getParentRoute: () => DvayiRouteRoute,
 } as any)
 const PadajalaauthAuthRoute = PadajalaauthAuthRouteImport.update({
   id: '/(auth)/_auth',
@@ -194,10 +278,29 @@ const PadavalipublicPublicRoute = PadavalipublicPublicRouteImport.update({
   id: '/(public)/_public',
   getParentRoute: () => PadavaliRouteRoute,
 } as any)
+const SurupaauthAuthRoute = SurupaauthAuthRouteImport.update({
+  id: '/(auth)/_auth',
+  getParentRoute: () => SurupaRouteRoute,
+} as any)
+const SurupapublicPublicRoute = SurupapublicPublicRouteImport.update({
+  id: '/(public)/_public',
+  getParentRoute: () => SurupaRouteRoute,
+} as any)
 const TagsEditSlugRoute = TagsEditSlugRouteImport.update({
   id: '/tags/edit/$slug',
   path: '/tags/edit/$slug',
   getParentRoute: () => rootRouteImport,
+} as any)
+const AnveshipublicPublicIndexRoute =
+  AnveshipublicPublicIndexRouteImport.update({
+    id: '/',
+    path: '/',
+    getParentRoute: () => AnveshipublicPublicRoute,
+  } as any)
+const AnveshipublicPublicSlugRoute = AnveshipublicPublicSlugRouteImport.update({
+  id: '/$slug',
+  path: '/$slug',
+  getParentRoute: () => AnveshipublicPublicRoute,
 } as any)
 const ApiQstashCrosswordSchedule_listingRoute =
   ApiQstashCrosswordSchedule_listingRouteImport.update({
@@ -205,6 +308,28 @@ const ApiQstashCrosswordSchedule_listingRoute =
     path: '/api/qstash/crossword/schedule_listing',
     getParentRoute: () => rootRouteImport,
   } as any)
+const BhramitapublicPublicIndexRoute =
+  BhramitapublicPublicIndexRouteImport.update({
+    id: '/',
+    path: '/',
+    getParentRoute: () => BhramitapublicPublicRoute,
+  } as any)
+const BhramitapublicPublicSlugRoute =
+  BhramitapublicPublicSlugRouteImport.update({
+    id: '/$slug',
+    path: '/$slug',
+    getParentRoute: () => BhramitapublicPublicRoute,
+  } as any)
+const DvayipublicPublicIndexRoute = DvayipublicPublicIndexRouteImport.update({
+  id: '/',
+  path: '/',
+  getParentRoute: () => DvayipublicPublicRoute,
+} as any)
+const DvayipublicPublicSlugRoute = DvayipublicPublicSlugRouteImport.update({
+  id: '/$slug',
+  path: '/$slug',
+  getParentRoute: () => DvayipublicPublicRoute,
+} as any)
 const PadajalapublicPublicIndexRoute =
   PadajalapublicPublicIndexRouteImport.update({
     id: '/',
@@ -228,6 +353,102 @@ const PadavalipublicPublicSlugRoute =
     id: '/$slug',
     path: '/$slug',
     getParentRoute: () => PadavalipublicPublicRoute,
+  } as any)
+const SurupapublicPublicIndexRoute = SurupapublicPublicIndexRouteImport.update({
+  id: '/',
+  path: '/',
+  getParentRoute: () => SurupapublicPublicRoute,
+} as any)
+const SurupapublicPublicSlugRoute = SurupapublicPublicSlugRouteImport.update({
+  id: '/$slug',
+  path: '/$slug',
+  getParentRoute: () => SurupapublicPublicRoute,
+} as any)
+const AnveshiauthAuthAnalyticsIndexRoute =
+  AnveshiauthAuthAnalyticsIndexRouteImport.update({
+    id: '/analytics/',
+    path: '/analytics/',
+    getParentRoute: () => AnveshiauthAuthRoute,
+  } as any)
+const AnveshiauthAuthEditIdRoute = AnveshiauthAuthEditIdRouteImport.update({
+  id: '/edit/$id',
+  path: '/edit/$id',
+  getParentRoute: () => AnveshiauthAuthRoute,
+} as any)
+const AnveshiauthAuthListIndexRoute =
+  AnveshiauthAuthListIndexRouteImport.update({
+    id: '/list/',
+    path: '/list/',
+    getParentRoute: () => AnveshiauthAuthRoute,
+  } as any)
+const AnveshipublicPublicPuzzlesIndexRoute =
+  AnveshipublicPublicPuzzlesIndexRouteImport.update({
+    id: '/puzzles/',
+    path: '/puzzles/',
+    getParentRoute: () => AnveshipublicPublicRoute,
+  } as any)
+const AnveshipublicPublicViewNano_idRoute =
+  AnveshipublicPublicViewNano_idRouteImport.update({
+    id: '/view/$nano_id',
+    path: '/view/$nano_id',
+    getParentRoute: () => AnveshipublicPublicRoute,
+  } as any)
+const BhramitaauthAuthAnalyticsIndexRoute =
+  BhramitaauthAuthAnalyticsIndexRouteImport.update({
+    id: '/analytics/',
+    path: '/analytics/',
+    getParentRoute: () => BhramitaauthAuthRoute,
+  } as any)
+const BhramitaauthAuthEditIdRoute = BhramitaauthAuthEditIdRouteImport.update({
+  id: '/edit/$id',
+  path: '/edit/$id',
+  getParentRoute: () => BhramitaauthAuthRoute,
+} as any)
+const BhramitaauthAuthListIndexRoute =
+  BhramitaauthAuthListIndexRouteImport.update({
+    id: '/list/',
+    path: '/list/',
+    getParentRoute: () => BhramitaauthAuthRoute,
+  } as any)
+const BhramitapublicPublicPuzzlesIndexRoute =
+  BhramitapublicPublicPuzzlesIndexRouteImport.update({
+    id: '/puzzles/',
+    path: '/puzzles/',
+    getParentRoute: () => BhramitapublicPublicRoute,
+  } as any)
+const BhramitapublicPublicViewNano_idRoute =
+  BhramitapublicPublicViewNano_idRouteImport.update({
+    id: '/view/$nano_id',
+    path: '/view/$nano_id',
+    getParentRoute: () => BhramitapublicPublicRoute,
+  } as any)
+const DvayiauthAuthAnalyticsIndexRoute =
+  DvayiauthAuthAnalyticsIndexRouteImport.update({
+    id: '/analytics/',
+    path: '/analytics/',
+    getParentRoute: () => DvayiauthAuthRoute,
+  } as any)
+const DvayiauthAuthEditIdRoute = DvayiauthAuthEditIdRouteImport.update({
+  id: '/edit/$id',
+  path: '/edit/$id',
+  getParentRoute: () => DvayiauthAuthRoute,
+} as any)
+const DvayiauthAuthListIndexRoute = DvayiauthAuthListIndexRouteImport.update({
+  id: '/list/',
+  path: '/list/',
+  getParentRoute: () => DvayiauthAuthRoute,
+} as any)
+const DvayipublicPublicPuzzlesIndexRoute =
+  DvayipublicPublicPuzzlesIndexRouteImport.update({
+    id: '/puzzles/',
+    path: '/puzzles/',
+    getParentRoute: () => DvayipublicPublicRoute,
+  } as any)
+const DvayipublicPublicViewNano_idRoute =
+  DvayipublicPublicViewNano_idRouteImport.update({
+    id: '/view/$nano_id',
+    path: '/view/$nano_id',
+    getParentRoute: () => DvayipublicPublicRoute,
   } as any)
 const PadajalaauthAuthAnalyticsIndexRoute =
   PadajalaauthAuthAnalyticsIndexRouteImport.update({
@@ -347,6 +568,34 @@ const PadavalipublicPublicViewNano_idRoute =
     path: '/view/$nano_id',
     getParentRoute: () => PadavalipublicPublicRoute,
   } as any)
+const SurupaauthAuthAnalyticsIndexRoute =
+  SurupaauthAuthAnalyticsIndexRouteImport.update({
+    id: '/analytics/',
+    path: '/analytics/',
+    getParentRoute: () => SurupaauthAuthRoute,
+  } as any)
+const SurupaauthAuthEditIdRoute = SurupaauthAuthEditIdRouteImport.update({
+  id: '/edit/$id',
+  path: '/edit/$id',
+  getParentRoute: () => SurupaauthAuthRoute,
+} as any)
+const SurupaauthAuthListIndexRoute = SurupaauthAuthListIndexRouteImport.update({
+  id: '/list/',
+  path: '/list/',
+  getParentRoute: () => SurupaauthAuthRoute,
+} as any)
+const SurupapublicPublicPuzzlesIndexRoute =
+  SurupapublicPublicPuzzlesIndexRouteImport.update({
+    id: '/puzzles/',
+    path: '/puzzles/',
+    getParentRoute: () => SurupapublicPublicRoute,
+  } as any)
+const SurupapublicPublicViewNano_idRoute =
+  SurupapublicPublicViewNano_idRouteImport.update({
+    id: '/view/$nano_id',
+    path: '/view/$nano_id',
+    getParentRoute: () => SurupapublicPublicRoute,
+  } as any)
 const PadajalaauthAuthSchedulesAddIndexRoute =
   PadajalaauthAuthSchedulesAddIndexRouteImport.update({
     id: '/schedules/add/',
@@ -373,8 +622,12 @@ const PadavaliauthAuthSchedulesEditIdRoute =
   } as any)
 
 export interface FileRoutesByFullPath {
+  '/anveshi': typeof AnveshiRouteRouteWithChildren
+  '/bhramita': typeof BhramitaRouteRouteWithChildren
+  '/dvayi': typeof DvayiRouteRouteWithChildren
   '/padajala': typeof PadajalaRouteRouteWithChildren
   '/padavali': typeof PadavaliRouteRouteWithChildren
+  '/surupa': typeof SurupaRouteRouteWithChildren
   '/': typeof HubIndexRoute
   '/admin': typeof AdminRoute
   '/analytics': typeof AnalyticsRoute
@@ -395,11 +648,25 @@ export interface FileRoutesByFullPath {
   '/api/trpc/$': typeof ApiTrpcSplatRoute
   '/collections/edit/$uid': typeof CollectionsEditUidRoute
   '/tags/edit/$slug': typeof TagsEditSlugRoute
+  '/anveshi/$slug': typeof AnveshipublicPublicSlugRoute
   '/api/qstash/crossword/schedule_listing': typeof ApiQstashCrosswordSchedule_listingRoute
+  '/bhramita/$slug': typeof BhramitapublicPublicSlugRoute
+  '/dvayi/$slug': typeof DvayipublicPublicSlugRoute
   '/padajala/$slug': typeof PadajalapublicPublicSlugRoute
   '/padavali/$slug': typeof PadavalipublicPublicSlugRoute
+  '/surupa/$slug': typeof SurupapublicPublicSlugRoute
+  '/anveshi/': typeof AnveshipublicPublicIndexRoute
+  '/bhramita/': typeof BhramitapublicPublicIndexRoute
+  '/dvayi/': typeof DvayipublicPublicIndexRoute
   '/padajala/': typeof PadajalapublicPublicIndexRoute
   '/padavali/': typeof PadavalipublicPublicIndexRoute
+  '/surupa/': typeof SurupapublicPublicIndexRoute
+  '/anveshi/edit/$id': typeof AnveshiauthAuthEditIdRoute
+  '/anveshi/view/$nano_id': typeof AnveshipublicPublicViewNano_idRoute
+  '/bhramita/edit/$id': typeof BhramitaauthAuthEditIdRoute
+  '/bhramita/view/$nano_id': typeof BhramitapublicPublicViewNano_idRoute
+  '/dvayi/edit/$id': typeof DvayiauthAuthEditIdRoute
+  '/dvayi/view/$nano_id': typeof DvayipublicPublicViewNano_idRoute
   '/padajala/collections/$uid': typeof PadajalaauthAuthCollectionsUidRoute
   '/padajala/edit/$id': typeof PadajalaauthAuthEditIdRoute
   '/padajala/archived/$id_uuid': typeof PadajalapublicPublicArchivedId_uuidRoute
@@ -410,6 +677,17 @@ export interface FileRoutesByFullPath {
   '/padavali/archived/$id_uuid': typeof PadavalipublicPublicArchivedId_uuidRoute
   '/padavali/puzzle/$slug': typeof PadavalipublicPublicPuzzleSlugRoute
   '/padavali/view/$nano_id': typeof PadavalipublicPublicViewNano_idRoute
+  '/surupa/edit/$id': typeof SurupaauthAuthEditIdRoute
+  '/surupa/view/$nano_id': typeof SurupapublicPublicViewNano_idRoute
+  '/anveshi/analytics/': typeof AnveshiauthAuthAnalyticsIndexRoute
+  '/anveshi/list/': typeof AnveshiauthAuthListIndexRoute
+  '/anveshi/puzzles/': typeof AnveshipublicPublicPuzzlesIndexRoute
+  '/bhramita/analytics/': typeof BhramitaauthAuthAnalyticsIndexRoute
+  '/bhramita/list/': typeof BhramitaauthAuthListIndexRoute
+  '/bhramita/puzzles/': typeof BhramitapublicPublicPuzzlesIndexRoute
+  '/dvayi/analytics/': typeof DvayiauthAuthAnalyticsIndexRoute
+  '/dvayi/list/': typeof DvayiauthAuthListIndexRoute
+  '/dvayi/puzzles/': typeof DvayipublicPublicPuzzlesIndexRoute
   '/padajala/analytics/': typeof PadajalaauthAuthAnalyticsIndexRoute
   '/padajala/batch_manager/': typeof PadajalaauthAuthBatch_managerIndexRoute
   '/padajala/list/': typeof PadajalaauthAuthListIndexRoute
@@ -420,14 +698,21 @@ export interface FileRoutesByFullPath {
   '/padavali/list/': typeof PadavaliauthAuthListIndexRoute
   '/padavali/schedules/': typeof PadavaliauthAuthSchedulesIndexRoute
   '/padavali/puzzles/': typeof PadavalipublicPublicPuzzlesIndexRoute
+  '/surupa/analytics/': typeof SurupaauthAuthAnalyticsIndexRoute
+  '/surupa/list/': typeof SurupaauthAuthListIndexRoute
+  '/surupa/puzzles/': typeof SurupapublicPublicPuzzlesIndexRoute
   '/padajala/schedules/edit/$id': typeof PadajalaauthAuthSchedulesEditIdRoute
   '/padavali/schedules/edit/$id': typeof PadavaliauthAuthSchedulesEditIdRoute
   '/padajala/schedules/add/': typeof PadajalaauthAuthSchedulesAddIndexRoute
   '/padavali/schedules/add/': typeof PadavaliauthAuthSchedulesAddIndexRoute
 }
 export interface FileRoutesByTo {
+  '/anveshi': typeof AnveshipublicPublicIndexRoute
+  '/bhramita': typeof BhramitapublicPublicIndexRoute
+  '/dvayi': typeof DvayipublicPublicIndexRoute
   '/padajala': typeof PadajalapublicPublicIndexRoute
   '/padavali': typeof PadavalipublicPublicIndexRoute
+  '/surupa': typeof SurupapublicPublicIndexRoute
   '/admin': typeof AdminRoute
   '/analytics': typeof AnalyticsRoute
   '/dashboard': typeof DashboardRoute
@@ -448,9 +733,19 @@ export interface FileRoutesByTo {
   '/api/trpc/$': typeof ApiTrpcSplatRoute
   '/collections/edit/$uid': typeof CollectionsEditUidRoute
   '/tags/edit/$slug': typeof TagsEditSlugRoute
+  '/anveshi/$slug': typeof AnveshipublicPublicSlugRoute
   '/api/qstash/crossword/schedule_listing': typeof ApiQstashCrosswordSchedule_listingRoute
+  '/bhramita/$slug': typeof BhramitapublicPublicSlugRoute
+  '/dvayi/$slug': typeof DvayipublicPublicSlugRoute
   '/padajala/$slug': typeof PadajalapublicPublicSlugRoute
   '/padavali/$slug': typeof PadavalipublicPublicSlugRoute
+  '/surupa/$slug': typeof SurupapublicPublicSlugRoute
+  '/anveshi/edit/$id': typeof AnveshiauthAuthEditIdRoute
+  '/anveshi/view/$nano_id': typeof AnveshipublicPublicViewNano_idRoute
+  '/bhramita/edit/$id': typeof BhramitaauthAuthEditIdRoute
+  '/bhramita/view/$nano_id': typeof BhramitapublicPublicViewNano_idRoute
+  '/dvayi/edit/$id': typeof DvayiauthAuthEditIdRoute
+  '/dvayi/view/$nano_id': typeof DvayipublicPublicViewNano_idRoute
   '/padajala/collections/$uid': typeof PadajalaauthAuthCollectionsUidRoute
   '/padajala/edit/$id': typeof PadajalaauthAuthEditIdRoute
   '/padajala/archived/$id_uuid': typeof PadajalapublicPublicArchivedId_uuidRoute
@@ -461,6 +756,17 @@ export interface FileRoutesByTo {
   '/padavali/archived/$id_uuid': typeof PadavalipublicPublicArchivedId_uuidRoute
   '/padavali/puzzle/$slug': typeof PadavalipublicPublicPuzzleSlugRoute
   '/padavali/view/$nano_id': typeof PadavalipublicPublicViewNano_idRoute
+  '/surupa/edit/$id': typeof SurupaauthAuthEditIdRoute
+  '/surupa/view/$nano_id': typeof SurupapublicPublicViewNano_idRoute
+  '/anveshi/analytics': typeof AnveshiauthAuthAnalyticsIndexRoute
+  '/anveshi/list': typeof AnveshiauthAuthListIndexRoute
+  '/anveshi/puzzles': typeof AnveshipublicPublicPuzzlesIndexRoute
+  '/bhramita/analytics': typeof BhramitaauthAuthAnalyticsIndexRoute
+  '/bhramita/list': typeof BhramitaauthAuthListIndexRoute
+  '/bhramita/puzzles': typeof BhramitapublicPublicPuzzlesIndexRoute
+  '/dvayi/analytics': typeof DvayiauthAuthAnalyticsIndexRoute
+  '/dvayi/list': typeof DvayiauthAuthListIndexRoute
+  '/dvayi/puzzles': typeof DvayipublicPublicPuzzlesIndexRoute
   '/padajala/analytics': typeof PadajalaauthAuthAnalyticsIndexRoute
   '/padajala/batch_manager': typeof PadajalaauthAuthBatch_managerIndexRoute
   '/padajala/list': typeof PadajalaauthAuthListIndexRoute
@@ -471,6 +777,9 @@ export interface FileRoutesByTo {
   '/padavali/list': typeof PadavaliauthAuthListIndexRoute
   '/padavali/schedules': typeof PadavaliauthAuthSchedulesIndexRoute
   '/padavali/puzzles': typeof PadavalipublicPublicPuzzlesIndexRoute
+  '/surupa/analytics': typeof SurupaauthAuthAnalyticsIndexRoute
+  '/surupa/list': typeof SurupaauthAuthListIndexRoute
+  '/surupa/puzzles': typeof SurupapublicPublicPuzzlesIndexRoute
   '/padajala/schedules/edit/$id': typeof PadajalaauthAuthSchedulesEditIdRoute
   '/padavali/schedules/edit/$id': typeof PadavaliauthAuthSchedulesEditIdRoute
   '/padajala/schedules/add': typeof PadajalaauthAuthSchedulesAddIndexRoute
@@ -478,8 +787,12 @@ export interface FileRoutesByTo {
 }
 export interface FileRoutesById {
   __root__: typeof rootRouteImport
+  '/anveshi': typeof AnveshiRouteRouteWithChildren
+  '/bhramita': typeof BhramitaRouteRouteWithChildren
+  '/dvayi': typeof DvayiRouteRouteWithChildren
   '/padajala': typeof PadajalaRouteRouteWithChildren
   '/padavali': typeof PadavaliRouteRouteWithChildren
+  '/surupa': typeof SurupaRouteRouteWithChildren
   '/_hub': typeof HubRouteWithChildren
   '/admin': typeof AdminRoute
   '/analytics': typeof AnalyticsRoute
@@ -495,21 +808,43 @@ export interface FileRoutesById {
   '/tags/list': typeof TagsListRoute
   '/_hub/': typeof HubIndexRoute
   '/_hub/collections/$slug': typeof HubCollectionsSlugRoute
+  '/anveshi/(auth)/_auth': typeof AnveshiauthAuthRouteWithChildren
+  '/anveshi/(public)/_public': typeof AnveshipublicPublicRouteWithChildren
   '/api/qstash/new_puzzle_notification': typeof ApiQstashNew_puzzle_notificationRoute
   '/api/qstash/save_ai_batch_results': typeof ApiQstashSave_ai_batch_resultsRoute
   '/api/qstash/schedule_listing': typeof ApiQstashSchedule_listingRoute
   '/api/trpc/$': typeof ApiTrpcSplatRoute
+  '/bhramita/(auth)/_auth': typeof BhramitaauthAuthRouteWithChildren
+  '/bhramita/(public)/_public': typeof BhramitapublicPublicRouteWithChildren
   '/collections/edit/$uid': typeof CollectionsEditUidRoute
+  '/dvayi/(auth)/_auth': typeof DvayiauthAuthRouteWithChildren
+  '/dvayi/(public)/_public': typeof DvayipublicPublicRouteWithChildren
   '/padajala/(auth)/_auth': typeof PadajalaauthAuthRouteWithChildren
   '/padajala/(public)/_public': typeof PadajalapublicPublicRouteWithChildren
   '/padavali/(auth)/_auth': typeof PadavaliauthAuthRouteWithChildren
   '/padavali/(public)/_public': typeof PadavalipublicPublicRouteWithChildren
+  '/surupa/(auth)/_auth': typeof SurupaauthAuthRouteWithChildren
+  '/surupa/(public)/_public': typeof SurupapublicPublicRouteWithChildren
   '/tags/edit/$slug': typeof TagsEditSlugRoute
+  '/anveshi/(public)/_public/$slug': typeof AnveshipublicPublicSlugRoute
   '/api/qstash/crossword/schedule_listing': typeof ApiQstashCrosswordSchedule_listingRoute
+  '/bhramita/(public)/_public/$slug': typeof BhramitapublicPublicSlugRoute
+  '/dvayi/(public)/_public/$slug': typeof DvayipublicPublicSlugRoute
   '/padajala/(public)/_public/$slug': typeof PadajalapublicPublicSlugRoute
   '/padavali/(public)/_public/$slug': typeof PadavalipublicPublicSlugRoute
+  '/surupa/(public)/_public/$slug': typeof SurupapublicPublicSlugRoute
+  '/anveshi/(public)/_public/': typeof AnveshipublicPublicIndexRoute
+  '/bhramita/(public)/_public/': typeof BhramitapublicPublicIndexRoute
+  '/dvayi/(public)/_public/': typeof DvayipublicPublicIndexRoute
   '/padajala/(public)/_public/': typeof PadajalapublicPublicIndexRoute
   '/padavali/(public)/_public/': typeof PadavalipublicPublicIndexRoute
+  '/surupa/(public)/_public/': typeof SurupapublicPublicIndexRoute
+  '/anveshi/(auth)/_auth/edit/$id': typeof AnveshiauthAuthEditIdRoute
+  '/anveshi/(public)/_public/view/$nano_id': typeof AnveshipublicPublicViewNano_idRoute
+  '/bhramita/(auth)/_auth/edit/$id': typeof BhramitaauthAuthEditIdRoute
+  '/bhramita/(public)/_public/view/$nano_id': typeof BhramitapublicPublicViewNano_idRoute
+  '/dvayi/(auth)/_auth/edit/$id': typeof DvayiauthAuthEditIdRoute
+  '/dvayi/(public)/_public/view/$nano_id': typeof DvayipublicPublicViewNano_idRoute
   '/padajala/(auth)/_auth/collections/$uid': typeof PadajalaauthAuthCollectionsUidRoute
   '/padajala/(auth)/_auth/edit/$id': typeof PadajalaauthAuthEditIdRoute
   '/padajala/(public)/_public/archived/$id_uuid': typeof PadajalapublicPublicArchivedId_uuidRoute
@@ -520,6 +855,17 @@ export interface FileRoutesById {
   '/padavali/(public)/_public/archived/$id_uuid': typeof PadavalipublicPublicArchivedId_uuidRoute
   '/padavali/(public)/_public/puzzle/$slug': typeof PadavalipublicPublicPuzzleSlugRoute
   '/padavali/(public)/_public/view/$nano_id': typeof PadavalipublicPublicViewNano_idRoute
+  '/surupa/(auth)/_auth/edit/$id': typeof SurupaauthAuthEditIdRoute
+  '/surupa/(public)/_public/view/$nano_id': typeof SurupapublicPublicViewNano_idRoute
+  '/anveshi/(auth)/_auth/analytics/': typeof AnveshiauthAuthAnalyticsIndexRoute
+  '/anveshi/(auth)/_auth/list/': typeof AnveshiauthAuthListIndexRoute
+  '/anveshi/(public)/_public/puzzles/': typeof AnveshipublicPublicPuzzlesIndexRoute
+  '/bhramita/(auth)/_auth/analytics/': typeof BhramitaauthAuthAnalyticsIndexRoute
+  '/bhramita/(auth)/_auth/list/': typeof BhramitaauthAuthListIndexRoute
+  '/bhramita/(public)/_public/puzzles/': typeof BhramitapublicPublicPuzzlesIndexRoute
+  '/dvayi/(auth)/_auth/analytics/': typeof DvayiauthAuthAnalyticsIndexRoute
+  '/dvayi/(auth)/_auth/list/': typeof DvayiauthAuthListIndexRoute
+  '/dvayi/(public)/_public/puzzles/': typeof DvayipublicPublicPuzzlesIndexRoute
   '/padajala/(auth)/_auth/analytics/': typeof PadajalaauthAuthAnalyticsIndexRoute
   '/padajala/(auth)/_auth/batch_manager/': typeof PadajalaauthAuthBatch_managerIndexRoute
   '/padajala/(auth)/_auth/list/': typeof PadajalaauthAuthListIndexRoute
@@ -530,6 +876,9 @@ export interface FileRoutesById {
   '/padavali/(auth)/_auth/list/': typeof PadavaliauthAuthListIndexRoute
   '/padavali/(auth)/_auth/schedules/': typeof PadavaliauthAuthSchedulesIndexRoute
   '/padavali/(public)/_public/puzzles/': typeof PadavalipublicPublicPuzzlesIndexRoute
+  '/surupa/(auth)/_auth/analytics/': typeof SurupaauthAuthAnalyticsIndexRoute
+  '/surupa/(auth)/_auth/list/': typeof SurupaauthAuthListIndexRoute
+  '/surupa/(public)/_public/puzzles/': typeof SurupapublicPublicPuzzlesIndexRoute
   '/padajala/(auth)/_auth/schedules/edit/$id': typeof PadajalaauthAuthSchedulesEditIdRoute
   '/padavali/(auth)/_auth/schedules/edit/$id': typeof PadavaliauthAuthSchedulesEditIdRoute
   '/padajala/(auth)/_auth/schedules/add/': typeof PadajalaauthAuthSchedulesAddIndexRoute
@@ -538,8 +887,12 @@ export interface FileRoutesById {
 export interface FileRouteTypes {
   fileRoutesByFullPath: FileRoutesByFullPath
   fullPaths:
+    | '/anveshi'
+    | '/bhramita'
+    | '/dvayi'
     | '/padajala'
     | '/padavali'
+    | '/surupa'
     | '/'
     | '/admin'
     | '/analytics'
@@ -560,11 +913,25 @@ export interface FileRouteTypes {
     | '/api/trpc/$'
     | '/collections/edit/$uid'
     | '/tags/edit/$slug'
+    | '/anveshi/$slug'
     | '/api/qstash/crossword/schedule_listing'
+    | '/bhramita/$slug'
+    | '/dvayi/$slug'
     | '/padajala/$slug'
     | '/padavali/$slug'
+    | '/surupa/$slug'
+    | '/anveshi/'
+    | '/bhramita/'
+    | '/dvayi/'
     | '/padajala/'
     | '/padavali/'
+    | '/surupa/'
+    | '/anveshi/edit/$id'
+    | '/anveshi/view/$nano_id'
+    | '/bhramita/edit/$id'
+    | '/bhramita/view/$nano_id'
+    | '/dvayi/edit/$id'
+    | '/dvayi/view/$nano_id'
     | '/padajala/collections/$uid'
     | '/padajala/edit/$id'
     | '/padajala/archived/$id_uuid'
@@ -575,6 +942,17 @@ export interface FileRouteTypes {
     | '/padavali/archived/$id_uuid'
     | '/padavali/puzzle/$slug'
     | '/padavali/view/$nano_id'
+    | '/surupa/edit/$id'
+    | '/surupa/view/$nano_id'
+    | '/anveshi/analytics/'
+    | '/anveshi/list/'
+    | '/anveshi/puzzles/'
+    | '/bhramita/analytics/'
+    | '/bhramita/list/'
+    | '/bhramita/puzzles/'
+    | '/dvayi/analytics/'
+    | '/dvayi/list/'
+    | '/dvayi/puzzles/'
     | '/padajala/analytics/'
     | '/padajala/batch_manager/'
     | '/padajala/list/'
@@ -585,14 +963,21 @@ export interface FileRouteTypes {
     | '/padavali/list/'
     | '/padavali/schedules/'
     | '/padavali/puzzles/'
+    | '/surupa/analytics/'
+    | '/surupa/list/'
+    | '/surupa/puzzles/'
     | '/padajala/schedules/edit/$id'
     | '/padavali/schedules/edit/$id'
     | '/padajala/schedules/add/'
     | '/padavali/schedules/add/'
   fileRoutesByTo: FileRoutesByTo
   to:
+    | '/anveshi'
+    | '/bhramita'
+    | '/dvayi'
     | '/padajala'
     | '/padavali'
+    | '/surupa'
     | '/admin'
     | '/analytics'
     | '/dashboard'
@@ -613,9 +998,19 @@ export interface FileRouteTypes {
     | '/api/trpc/$'
     | '/collections/edit/$uid'
     | '/tags/edit/$slug'
+    | '/anveshi/$slug'
     | '/api/qstash/crossword/schedule_listing'
+    | '/bhramita/$slug'
+    | '/dvayi/$slug'
     | '/padajala/$slug'
     | '/padavali/$slug'
+    | '/surupa/$slug'
+    | '/anveshi/edit/$id'
+    | '/anveshi/view/$nano_id'
+    | '/bhramita/edit/$id'
+    | '/bhramita/view/$nano_id'
+    | '/dvayi/edit/$id'
+    | '/dvayi/view/$nano_id'
     | '/padajala/collections/$uid'
     | '/padajala/edit/$id'
     | '/padajala/archived/$id_uuid'
@@ -626,6 +1021,17 @@ export interface FileRouteTypes {
     | '/padavali/archived/$id_uuid'
     | '/padavali/puzzle/$slug'
     | '/padavali/view/$nano_id'
+    | '/surupa/edit/$id'
+    | '/surupa/view/$nano_id'
+    | '/anveshi/analytics'
+    | '/anveshi/list'
+    | '/anveshi/puzzles'
+    | '/bhramita/analytics'
+    | '/bhramita/list'
+    | '/bhramita/puzzles'
+    | '/dvayi/analytics'
+    | '/dvayi/list'
+    | '/dvayi/puzzles'
     | '/padajala/analytics'
     | '/padajala/batch_manager'
     | '/padajala/list'
@@ -636,14 +1042,21 @@ export interface FileRouteTypes {
     | '/padavali/list'
     | '/padavali/schedules'
     | '/padavali/puzzles'
+    | '/surupa/analytics'
+    | '/surupa/list'
+    | '/surupa/puzzles'
     | '/padajala/schedules/edit/$id'
     | '/padavali/schedules/edit/$id'
     | '/padajala/schedules/add'
     | '/padavali/schedules/add'
   id:
     | '__root__'
+    | '/anveshi'
+    | '/bhramita'
+    | '/dvayi'
     | '/padajala'
     | '/padavali'
+    | '/surupa'
     | '/_hub'
     | '/admin'
     | '/analytics'
@@ -659,21 +1072,43 @@ export interface FileRouteTypes {
     | '/tags/list'
     | '/_hub/'
     | '/_hub/collections/$slug'
+    | '/anveshi/(auth)/_auth'
+    | '/anveshi/(public)/_public'
     | '/api/qstash/new_puzzle_notification'
     | '/api/qstash/save_ai_batch_results'
     | '/api/qstash/schedule_listing'
     | '/api/trpc/$'
+    | '/bhramita/(auth)/_auth'
+    | '/bhramita/(public)/_public'
     | '/collections/edit/$uid'
+    | '/dvayi/(auth)/_auth'
+    | '/dvayi/(public)/_public'
     | '/padajala/(auth)/_auth'
     | '/padajala/(public)/_public'
     | '/padavali/(auth)/_auth'
     | '/padavali/(public)/_public'
+    | '/surupa/(auth)/_auth'
+    | '/surupa/(public)/_public'
     | '/tags/edit/$slug'
+    | '/anveshi/(public)/_public/$slug'
     | '/api/qstash/crossword/schedule_listing'
+    | '/bhramita/(public)/_public/$slug'
+    | '/dvayi/(public)/_public/$slug'
     | '/padajala/(public)/_public/$slug'
     | '/padavali/(public)/_public/$slug'
+    | '/surupa/(public)/_public/$slug'
+    | '/anveshi/(public)/_public/'
+    | '/bhramita/(public)/_public/'
+    | '/dvayi/(public)/_public/'
     | '/padajala/(public)/_public/'
     | '/padavali/(public)/_public/'
+    | '/surupa/(public)/_public/'
+    | '/anveshi/(auth)/_auth/edit/$id'
+    | '/anveshi/(public)/_public/view/$nano_id'
+    | '/bhramita/(auth)/_auth/edit/$id'
+    | '/bhramita/(public)/_public/view/$nano_id'
+    | '/dvayi/(auth)/_auth/edit/$id'
+    | '/dvayi/(public)/_public/view/$nano_id'
     | '/padajala/(auth)/_auth/collections/$uid'
     | '/padajala/(auth)/_auth/edit/$id'
     | '/padajala/(public)/_public/archived/$id_uuid'
@@ -684,6 +1119,17 @@ export interface FileRouteTypes {
     | '/padavali/(public)/_public/archived/$id_uuid'
     | '/padavali/(public)/_public/puzzle/$slug'
     | '/padavali/(public)/_public/view/$nano_id'
+    | '/surupa/(auth)/_auth/edit/$id'
+    | '/surupa/(public)/_public/view/$nano_id'
+    | '/anveshi/(auth)/_auth/analytics/'
+    | '/anveshi/(auth)/_auth/list/'
+    | '/anveshi/(public)/_public/puzzles/'
+    | '/bhramita/(auth)/_auth/analytics/'
+    | '/bhramita/(auth)/_auth/list/'
+    | '/bhramita/(public)/_public/puzzles/'
+    | '/dvayi/(auth)/_auth/analytics/'
+    | '/dvayi/(auth)/_auth/list/'
+    | '/dvayi/(public)/_public/puzzles/'
     | '/padajala/(auth)/_auth/analytics/'
     | '/padajala/(auth)/_auth/batch_manager/'
     | '/padajala/(auth)/_auth/list/'
@@ -694,6 +1140,9 @@ export interface FileRouteTypes {
     | '/padavali/(auth)/_auth/list/'
     | '/padavali/(auth)/_auth/schedules/'
     | '/padavali/(public)/_public/puzzles/'
+    | '/surupa/(auth)/_auth/analytics/'
+    | '/surupa/(auth)/_auth/list/'
+    | '/surupa/(public)/_public/puzzles/'
     | '/padajala/(auth)/_auth/schedules/edit/$id'
     | '/padavali/(auth)/_auth/schedules/edit/$id'
     | '/padajala/(auth)/_auth/schedules/add/'
@@ -701,8 +1150,12 @@ export interface FileRouteTypes {
   fileRoutesById: FileRoutesById
 }
 export interface RootRouteChildren {
+  AnveshiRouteRoute: typeof AnveshiRouteRouteWithChildren
+  BhramitaRouteRoute: typeof BhramitaRouteRouteWithChildren
+  DvayiRouteRoute: typeof DvayiRouteRouteWithChildren
   PadajalaRouteRoute: typeof PadajalaRouteRouteWithChildren
   PadavaliRouteRoute: typeof PadavaliRouteRouteWithChildren
+  SurupaRouteRoute: typeof SurupaRouteRouteWithChildren
   HubRoute: typeof HubRouteWithChildren
   AdminRoute: typeof AdminRoute
   AnalyticsRoute: typeof AnalyticsRoute
@@ -747,11 +1200,32 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof AnalyticsRouteImport
       parentRoute: typeof rootRouteImport
     }
+    '/anveshi': {
+      id: '/anveshi'
+      path: '/anveshi'
+      fullPath: '/anveshi'
+      preLoaderRoute: typeof AnveshiRouteRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/bhramita': {
+      id: '/bhramita'
+      path: '/bhramita'
+      fullPath: '/bhramita'
+      preLoaderRoute: typeof BhramitaRouteRouteImport
+      parentRoute: typeof rootRouteImport
+    }
     '/dashboard': {
       id: '/dashboard'
       path: '/dashboard'
       fullPath: '/dashboard'
       preLoaderRoute: typeof DashboardRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/dvayi': {
+      id: '/dvayi'
+      path: '/dvayi'
+      fullPath: '/dvayi'
+      preLoaderRoute: typeof DvayiRouteRouteImport
       parentRoute: typeof rootRouteImport
     }
     '/explore': {
@@ -803,6 +1277,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof SitemapIndexDotxmlRouteImport
       parentRoute: typeof rootRouteImport
     }
+    '/surupa': {
+      id: '/surupa'
+      path: '/surupa'
+      fullPath: '/surupa'
+      preLoaderRoute: typeof SurupaRouteRouteImport
+      parentRoute: typeof rootRouteImport
+    }
     '/_hub/': {
       id: '/_hub/'
       path: '/'
@@ -845,6 +1326,20 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof HubCollectionsSlugRouteImport
       parentRoute: typeof HubRoute
     }
+    '/anveshi/(auth)/_auth': {
+      id: '/anveshi/(auth)/_auth'
+      path: ''
+      fullPath: '/anveshi'
+      preLoaderRoute: typeof AnveshiauthAuthRouteImport
+      parentRoute: typeof AnveshiRouteRoute
+    }
+    '/anveshi/(public)/_public': {
+      id: '/anveshi/(public)/_public'
+      path: ''
+      fullPath: '/anveshi'
+      preLoaderRoute: typeof AnveshipublicPublicRouteImport
+      parentRoute: typeof AnveshiRouteRoute
+    }
     '/api/qstash/new_puzzle_notification': {
       id: '/api/qstash/new_puzzle_notification'
       path: '/api/qstash/new_puzzle_notification'
@@ -873,12 +1368,40 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof ApiTrpcSplatRouteImport
       parentRoute: typeof rootRouteImport
     }
+    '/bhramita/(auth)/_auth': {
+      id: '/bhramita/(auth)/_auth'
+      path: ''
+      fullPath: '/bhramita'
+      preLoaderRoute: typeof BhramitaauthAuthRouteImport
+      parentRoute: typeof BhramitaRouteRoute
+    }
+    '/bhramita/(public)/_public': {
+      id: '/bhramita/(public)/_public'
+      path: ''
+      fullPath: '/bhramita'
+      preLoaderRoute: typeof BhramitapublicPublicRouteImport
+      parentRoute: typeof BhramitaRouteRoute
+    }
     '/collections/edit/$uid': {
       id: '/collections/edit/$uid'
       path: '/collections/edit/$uid'
       fullPath: '/collections/edit/$uid'
       preLoaderRoute: typeof CollectionsEditUidRouteImport
       parentRoute: typeof rootRouteImport
+    }
+    '/dvayi/(auth)/_auth': {
+      id: '/dvayi/(auth)/_auth'
+      path: ''
+      fullPath: '/dvayi'
+      preLoaderRoute: typeof DvayiauthAuthRouteImport
+      parentRoute: typeof DvayiRouteRoute
+    }
+    '/dvayi/(public)/_public': {
+      id: '/dvayi/(public)/_public'
+      path: ''
+      fullPath: '/dvayi'
+      preLoaderRoute: typeof DvayipublicPublicRouteImport
+      parentRoute: typeof DvayiRouteRoute
     }
     '/padajala/(auth)/_auth': {
       id: '/padajala/(auth)/_auth'
@@ -908,6 +1431,20 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof PadavalipublicPublicRouteImport
       parentRoute: typeof PadavaliRouteRoute
     }
+    '/surupa/(auth)/_auth': {
+      id: '/surupa/(auth)/_auth'
+      path: ''
+      fullPath: '/surupa'
+      preLoaderRoute: typeof SurupaauthAuthRouteImport
+      parentRoute: typeof SurupaRouteRoute
+    }
+    '/surupa/(public)/_public': {
+      id: '/surupa/(public)/_public'
+      path: ''
+      fullPath: '/surupa'
+      preLoaderRoute: typeof SurupapublicPublicRouteImport
+      parentRoute: typeof SurupaRouteRoute
+    }
     '/tags/edit/$slug': {
       id: '/tags/edit/$slug'
       path: '/tags/edit/$slug'
@@ -915,12 +1452,54 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof TagsEditSlugRouteImport
       parentRoute: typeof rootRouteImport
     }
+    '/anveshi/(public)/_public/': {
+      id: '/anveshi/(public)/_public/'
+      path: '/'
+      fullPath: '/anveshi/'
+      preLoaderRoute: typeof AnveshipublicPublicIndexRouteImport
+      parentRoute: typeof AnveshipublicPublicRoute
+    }
+    '/anveshi/(public)/_public/$slug': {
+      id: '/anveshi/(public)/_public/$slug'
+      path: '/$slug'
+      fullPath: '/anveshi/$slug'
+      preLoaderRoute: typeof AnveshipublicPublicSlugRouteImport
+      parentRoute: typeof AnveshipublicPublicRoute
+    }
     '/api/qstash/crossword/schedule_listing': {
       id: '/api/qstash/crossword/schedule_listing'
       path: '/api/qstash/crossword/schedule_listing'
       fullPath: '/api/qstash/crossword/schedule_listing'
       preLoaderRoute: typeof ApiQstashCrosswordSchedule_listingRouteImport
       parentRoute: typeof rootRouteImport
+    }
+    '/bhramita/(public)/_public/': {
+      id: '/bhramita/(public)/_public/'
+      path: '/'
+      fullPath: '/bhramita/'
+      preLoaderRoute: typeof BhramitapublicPublicIndexRouteImport
+      parentRoute: typeof BhramitapublicPublicRoute
+    }
+    '/bhramita/(public)/_public/$slug': {
+      id: '/bhramita/(public)/_public/$slug'
+      path: '/$slug'
+      fullPath: '/bhramita/$slug'
+      preLoaderRoute: typeof BhramitapublicPublicSlugRouteImport
+      parentRoute: typeof BhramitapublicPublicRoute
+    }
+    '/dvayi/(public)/_public/': {
+      id: '/dvayi/(public)/_public/'
+      path: '/'
+      fullPath: '/dvayi/'
+      preLoaderRoute: typeof DvayipublicPublicIndexRouteImport
+      parentRoute: typeof DvayipublicPublicRoute
+    }
+    '/dvayi/(public)/_public/$slug': {
+      id: '/dvayi/(public)/_public/$slug'
+      path: '/$slug'
+      fullPath: '/dvayi/$slug'
+      preLoaderRoute: typeof DvayipublicPublicSlugRouteImport
+      parentRoute: typeof DvayipublicPublicRoute
     }
     '/padajala/(public)/_public/': {
       id: '/padajala/(public)/_public/'
@@ -949,6 +1528,125 @@ declare module '@tanstack/react-router' {
       fullPath: '/padavali/$slug'
       preLoaderRoute: typeof PadavalipublicPublicSlugRouteImport
       parentRoute: typeof PadavalipublicPublicRoute
+    }
+    '/surupa/(public)/_public/': {
+      id: '/surupa/(public)/_public/'
+      path: '/'
+      fullPath: '/surupa/'
+      preLoaderRoute: typeof SurupapublicPublicIndexRouteImport
+      parentRoute: typeof SurupapublicPublicRoute
+    }
+    '/surupa/(public)/_public/$slug': {
+      id: '/surupa/(public)/_public/$slug'
+      path: '/$slug'
+      fullPath: '/surupa/$slug'
+      preLoaderRoute: typeof SurupapublicPublicSlugRouteImport
+      parentRoute: typeof SurupapublicPublicRoute
+    }
+    '/anveshi/(auth)/_auth/analytics/': {
+      id: '/anveshi/(auth)/_auth/analytics/'
+      path: '/analytics'
+      fullPath: '/anveshi/analytics/'
+      preLoaderRoute: typeof AnveshiauthAuthAnalyticsIndexRouteImport
+      parentRoute: typeof AnveshiauthAuthRoute
+    }
+    '/anveshi/(auth)/_auth/edit/$id': {
+      id: '/anveshi/(auth)/_auth/edit/$id'
+      path: '/edit/$id'
+      fullPath: '/anveshi/edit/$id'
+      preLoaderRoute: typeof AnveshiauthAuthEditIdRouteImport
+      parentRoute: typeof AnveshiauthAuthRoute
+    }
+    '/anveshi/(auth)/_auth/list/': {
+      id: '/anveshi/(auth)/_auth/list/'
+      path: '/list'
+      fullPath: '/anveshi/list/'
+      preLoaderRoute: typeof AnveshiauthAuthListIndexRouteImport
+      parentRoute: typeof AnveshiauthAuthRoute
+    }
+    '/anveshi/(public)/_public/puzzles/': {
+      id: '/anveshi/(public)/_public/puzzles/'
+      path: '/puzzles'
+      fullPath: '/anveshi/puzzles/'
+      preLoaderRoute: typeof AnveshipublicPublicPuzzlesIndexRouteImport
+      parentRoute: typeof AnveshipublicPublicRoute
+    }
+    '/anveshi/(public)/_public/view/$nano_id': {
+      id: '/anveshi/(public)/_public/view/$nano_id'
+      path: '/view/$nano_id'
+      fullPath: '/anveshi/view/$nano_id'
+      preLoaderRoute: typeof AnveshipublicPublicViewNano_idRouteImport
+      parentRoute: typeof AnveshipublicPublicRoute
+    }
+    '/bhramita/(auth)/_auth/analytics/': {
+      id: '/bhramita/(auth)/_auth/analytics/'
+      path: '/analytics'
+      fullPath: '/bhramita/analytics/'
+      preLoaderRoute: typeof BhramitaauthAuthAnalyticsIndexRouteImport
+      parentRoute: typeof BhramitaauthAuthRoute
+    }
+    '/bhramita/(auth)/_auth/edit/$id': {
+      id: '/bhramita/(auth)/_auth/edit/$id'
+      path: '/edit/$id'
+      fullPath: '/bhramita/edit/$id'
+      preLoaderRoute: typeof BhramitaauthAuthEditIdRouteImport
+      parentRoute: typeof BhramitaauthAuthRoute
+    }
+    '/bhramita/(auth)/_auth/list/': {
+      id: '/bhramita/(auth)/_auth/list/'
+      path: '/list'
+      fullPath: '/bhramita/list/'
+      preLoaderRoute: typeof BhramitaauthAuthListIndexRouteImport
+      parentRoute: typeof BhramitaauthAuthRoute
+    }
+    '/bhramita/(public)/_public/puzzles/': {
+      id: '/bhramita/(public)/_public/puzzles/'
+      path: '/puzzles'
+      fullPath: '/bhramita/puzzles/'
+      preLoaderRoute: typeof BhramitapublicPublicPuzzlesIndexRouteImport
+      parentRoute: typeof BhramitapublicPublicRoute
+    }
+    '/bhramita/(public)/_public/view/$nano_id': {
+      id: '/bhramita/(public)/_public/view/$nano_id'
+      path: '/view/$nano_id'
+      fullPath: '/bhramita/view/$nano_id'
+      preLoaderRoute: typeof BhramitapublicPublicViewNano_idRouteImport
+      parentRoute: typeof BhramitapublicPublicRoute
+    }
+    '/dvayi/(auth)/_auth/analytics/': {
+      id: '/dvayi/(auth)/_auth/analytics/'
+      path: '/analytics'
+      fullPath: '/dvayi/analytics/'
+      preLoaderRoute: typeof DvayiauthAuthAnalyticsIndexRouteImport
+      parentRoute: typeof DvayiauthAuthRoute
+    }
+    '/dvayi/(auth)/_auth/edit/$id': {
+      id: '/dvayi/(auth)/_auth/edit/$id'
+      path: '/edit/$id'
+      fullPath: '/dvayi/edit/$id'
+      preLoaderRoute: typeof DvayiauthAuthEditIdRouteImport
+      parentRoute: typeof DvayiauthAuthRoute
+    }
+    '/dvayi/(auth)/_auth/list/': {
+      id: '/dvayi/(auth)/_auth/list/'
+      path: '/list'
+      fullPath: '/dvayi/list/'
+      preLoaderRoute: typeof DvayiauthAuthListIndexRouteImport
+      parentRoute: typeof DvayiauthAuthRoute
+    }
+    '/dvayi/(public)/_public/puzzles/': {
+      id: '/dvayi/(public)/_public/puzzles/'
+      path: '/puzzles'
+      fullPath: '/dvayi/puzzles/'
+      preLoaderRoute: typeof DvayipublicPublicPuzzlesIndexRouteImport
+      parentRoute: typeof DvayipublicPublicRoute
+    }
+    '/dvayi/(public)/_public/view/$nano_id': {
+      id: '/dvayi/(public)/_public/view/$nano_id'
+      path: '/view/$nano_id'
+      fullPath: '/dvayi/view/$nano_id'
+      preLoaderRoute: typeof DvayipublicPublicViewNano_idRouteImport
+      parentRoute: typeof DvayipublicPublicRoute
     }
     '/padajala/(auth)/_auth/analytics/': {
       id: '/padajala/(auth)/_auth/analytics/'
@@ -1090,6 +1788,41 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof PadavalipublicPublicViewNano_idRouteImport
       parentRoute: typeof PadavalipublicPublicRoute
     }
+    '/surupa/(auth)/_auth/analytics/': {
+      id: '/surupa/(auth)/_auth/analytics/'
+      path: '/analytics'
+      fullPath: '/surupa/analytics/'
+      preLoaderRoute: typeof SurupaauthAuthAnalyticsIndexRouteImport
+      parentRoute: typeof SurupaauthAuthRoute
+    }
+    '/surupa/(auth)/_auth/edit/$id': {
+      id: '/surupa/(auth)/_auth/edit/$id'
+      path: '/edit/$id'
+      fullPath: '/surupa/edit/$id'
+      preLoaderRoute: typeof SurupaauthAuthEditIdRouteImport
+      parentRoute: typeof SurupaauthAuthRoute
+    }
+    '/surupa/(auth)/_auth/list/': {
+      id: '/surupa/(auth)/_auth/list/'
+      path: '/list'
+      fullPath: '/surupa/list/'
+      preLoaderRoute: typeof SurupaauthAuthListIndexRouteImport
+      parentRoute: typeof SurupaauthAuthRoute
+    }
+    '/surupa/(public)/_public/puzzles/': {
+      id: '/surupa/(public)/_public/puzzles/'
+      path: '/puzzles'
+      fullPath: '/surupa/puzzles/'
+      preLoaderRoute: typeof SurupapublicPublicPuzzlesIndexRouteImport
+      parentRoute: typeof SurupapublicPublicRoute
+    }
+    '/surupa/(public)/_public/view/$nano_id': {
+      id: '/surupa/(public)/_public/view/$nano_id'
+      path: '/view/$nano_id'
+      fullPath: '/surupa/view/$nano_id'
+      preLoaderRoute: typeof SurupapublicPublicViewNano_idRouteImport
+      parentRoute: typeof SurupapublicPublicRoute
+    }
     '/padajala/(auth)/_auth/schedules/add/': {
       id: '/padajala/(auth)/_auth/schedules/add/'
       path: '/schedules/add'
@@ -1120,6 +1853,146 @@ declare module '@tanstack/react-router' {
     }
   }
 }
+
+interface AnveshiauthAuthRouteChildren {
+  AnveshiauthAuthEditIdRoute: typeof AnveshiauthAuthEditIdRoute
+  AnveshiauthAuthAnalyticsIndexRoute: typeof AnveshiauthAuthAnalyticsIndexRoute
+  AnveshiauthAuthListIndexRoute: typeof AnveshiauthAuthListIndexRoute
+}
+
+const AnveshiauthAuthRouteChildren: AnveshiauthAuthRouteChildren = {
+  AnveshiauthAuthEditIdRoute: AnveshiauthAuthEditIdRoute,
+  AnveshiauthAuthAnalyticsIndexRoute: AnveshiauthAuthAnalyticsIndexRoute,
+  AnveshiauthAuthListIndexRoute: AnveshiauthAuthListIndexRoute,
+}
+
+const AnveshiauthAuthRouteWithChildren = AnveshiauthAuthRoute._addFileChildren(
+  AnveshiauthAuthRouteChildren,
+)
+
+interface AnveshipublicPublicRouteChildren {
+  AnveshipublicPublicSlugRoute: typeof AnveshipublicPublicSlugRoute
+  AnveshipublicPublicIndexRoute: typeof AnveshipublicPublicIndexRoute
+  AnveshipublicPublicViewNano_idRoute: typeof AnveshipublicPublicViewNano_idRoute
+  AnveshipublicPublicPuzzlesIndexRoute: typeof AnveshipublicPublicPuzzlesIndexRoute
+}
+
+const AnveshipublicPublicRouteChildren: AnveshipublicPublicRouteChildren = {
+  AnveshipublicPublicSlugRoute: AnveshipublicPublicSlugRoute,
+  AnveshipublicPublicIndexRoute: AnveshipublicPublicIndexRoute,
+  AnveshipublicPublicViewNano_idRoute: AnveshipublicPublicViewNano_idRoute,
+  AnveshipublicPublicPuzzlesIndexRoute: AnveshipublicPublicPuzzlesIndexRoute,
+}
+
+const AnveshipublicPublicRouteWithChildren =
+  AnveshipublicPublicRoute._addFileChildren(AnveshipublicPublicRouteChildren)
+
+interface AnveshiRouteRouteChildren {
+  AnveshiauthAuthRoute: typeof AnveshiauthAuthRouteWithChildren
+  AnveshipublicPublicRoute: typeof AnveshipublicPublicRouteWithChildren
+}
+
+const AnveshiRouteRouteChildren: AnveshiRouteRouteChildren = {
+  AnveshiauthAuthRoute: AnveshiauthAuthRouteWithChildren,
+  AnveshipublicPublicRoute: AnveshipublicPublicRouteWithChildren,
+}
+
+const AnveshiRouteRouteWithChildren = AnveshiRouteRoute._addFileChildren(
+  AnveshiRouteRouteChildren,
+)
+
+interface BhramitaauthAuthRouteChildren {
+  BhramitaauthAuthEditIdRoute: typeof BhramitaauthAuthEditIdRoute
+  BhramitaauthAuthAnalyticsIndexRoute: typeof BhramitaauthAuthAnalyticsIndexRoute
+  BhramitaauthAuthListIndexRoute: typeof BhramitaauthAuthListIndexRoute
+}
+
+const BhramitaauthAuthRouteChildren: BhramitaauthAuthRouteChildren = {
+  BhramitaauthAuthEditIdRoute: BhramitaauthAuthEditIdRoute,
+  BhramitaauthAuthAnalyticsIndexRoute: BhramitaauthAuthAnalyticsIndexRoute,
+  BhramitaauthAuthListIndexRoute: BhramitaauthAuthListIndexRoute,
+}
+
+const BhramitaauthAuthRouteWithChildren =
+  BhramitaauthAuthRoute._addFileChildren(BhramitaauthAuthRouteChildren)
+
+interface BhramitapublicPublicRouteChildren {
+  BhramitapublicPublicSlugRoute: typeof BhramitapublicPublicSlugRoute
+  BhramitapublicPublicIndexRoute: typeof BhramitapublicPublicIndexRoute
+  BhramitapublicPublicViewNano_idRoute: typeof BhramitapublicPublicViewNano_idRoute
+  BhramitapublicPublicPuzzlesIndexRoute: typeof BhramitapublicPublicPuzzlesIndexRoute
+}
+
+const BhramitapublicPublicRouteChildren: BhramitapublicPublicRouteChildren = {
+  BhramitapublicPublicSlugRoute: BhramitapublicPublicSlugRoute,
+  BhramitapublicPublicIndexRoute: BhramitapublicPublicIndexRoute,
+  BhramitapublicPublicViewNano_idRoute: BhramitapublicPublicViewNano_idRoute,
+  BhramitapublicPublicPuzzlesIndexRoute: BhramitapublicPublicPuzzlesIndexRoute,
+}
+
+const BhramitapublicPublicRouteWithChildren =
+  BhramitapublicPublicRoute._addFileChildren(BhramitapublicPublicRouteChildren)
+
+interface BhramitaRouteRouteChildren {
+  BhramitaauthAuthRoute: typeof BhramitaauthAuthRouteWithChildren
+  BhramitapublicPublicRoute: typeof BhramitapublicPublicRouteWithChildren
+}
+
+const BhramitaRouteRouteChildren: BhramitaRouteRouteChildren = {
+  BhramitaauthAuthRoute: BhramitaauthAuthRouteWithChildren,
+  BhramitapublicPublicRoute: BhramitapublicPublicRouteWithChildren,
+}
+
+const BhramitaRouteRouteWithChildren = BhramitaRouteRoute._addFileChildren(
+  BhramitaRouteRouteChildren,
+)
+
+interface DvayiauthAuthRouteChildren {
+  DvayiauthAuthEditIdRoute: typeof DvayiauthAuthEditIdRoute
+  DvayiauthAuthAnalyticsIndexRoute: typeof DvayiauthAuthAnalyticsIndexRoute
+  DvayiauthAuthListIndexRoute: typeof DvayiauthAuthListIndexRoute
+}
+
+const DvayiauthAuthRouteChildren: DvayiauthAuthRouteChildren = {
+  DvayiauthAuthEditIdRoute: DvayiauthAuthEditIdRoute,
+  DvayiauthAuthAnalyticsIndexRoute: DvayiauthAuthAnalyticsIndexRoute,
+  DvayiauthAuthListIndexRoute: DvayiauthAuthListIndexRoute,
+}
+
+const DvayiauthAuthRouteWithChildren = DvayiauthAuthRoute._addFileChildren(
+  DvayiauthAuthRouteChildren,
+)
+
+interface DvayipublicPublicRouteChildren {
+  DvayipublicPublicSlugRoute: typeof DvayipublicPublicSlugRoute
+  DvayipublicPublicIndexRoute: typeof DvayipublicPublicIndexRoute
+  DvayipublicPublicViewNano_idRoute: typeof DvayipublicPublicViewNano_idRoute
+  DvayipublicPublicPuzzlesIndexRoute: typeof DvayipublicPublicPuzzlesIndexRoute
+}
+
+const DvayipublicPublicRouteChildren: DvayipublicPublicRouteChildren = {
+  DvayipublicPublicSlugRoute: DvayipublicPublicSlugRoute,
+  DvayipublicPublicIndexRoute: DvayipublicPublicIndexRoute,
+  DvayipublicPublicViewNano_idRoute: DvayipublicPublicViewNano_idRoute,
+  DvayipublicPublicPuzzlesIndexRoute: DvayipublicPublicPuzzlesIndexRoute,
+}
+
+const DvayipublicPublicRouteWithChildren =
+  DvayipublicPublicRoute._addFileChildren(DvayipublicPublicRouteChildren)
+
+interface DvayiRouteRouteChildren {
+  DvayiauthAuthRoute: typeof DvayiauthAuthRouteWithChildren
+  DvayipublicPublicRoute: typeof DvayipublicPublicRouteWithChildren
+}
+
+const DvayiRouteRouteChildren: DvayiRouteRouteChildren = {
+  DvayiauthAuthRoute: DvayiauthAuthRouteWithChildren,
+  DvayipublicPublicRoute: DvayipublicPublicRouteWithChildren,
+}
+
+const DvayiRouteRouteWithChildren = DvayiRouteRoute._addFileChildren(
+  DvayiRouteRouteChildren,
+)
 
 interface PadajalaauthAuthRouteChildren {
   PadajalaauthAuthCollectionsUidRoute: typeof PadajalaauthAuthCollectionsUidRoute
@@ -1247,6 +2120,53 @@ const PadavaliRouteRouteWithChildren = PadavaliRouteRoute._addFileChildren(
   PadavaliRouteRouteChildren,
 )
 
+interface SurupaauthAuthRouteChildren {
+  SurupaauthAuthEditIdRoute: typeof SurupaauthAuthEditIdRoute
+  SurupaauthAuthAnalyticsIndexRoute: typeof SurupaauthAuthAnalyticsIndexRoute
+  SurupaauthAuthListIndexRoute: typeof SurupaauthAuthListIndexRoute
+}
+
+const SurupaauthAuthRouteChildren: SurupaauthAuthRouteChildren = {
+  SurupaauthAuthEditIdRoute: SurupaauthAuthEditIdRoute,
+  SurupaauthAuthAnalyticsIndexRoute: SurupaauthAuthAnalyticsIndexRoute,
+  SurupaauthAuthListIndexRoute: SurupaauthAuthListIndexRoute,
+}
+
+const SurupaauthAuthRouteWithChildren = SurupaauthAuthRoute._addFileChildren(
+  SurupaauthAuthRouteChildren,
+)
+
+interface SurupapublicPublicRouteChildren {
+  SurupapublicPublicSlugRoute: typeof SurupapublicPublicSlugRoute
+  SurupapublicPublicIndexRoute: typeof SurupapublicPublicIndexRoute
+  SurupapublicPublicViewNano_idRoute: typeof SurupapublicPublicViewNano_idRoute
+  SurupapublicPublicPuzzlesIndexRoute: typeof SurupapublicPublicPuzzlesIndexRoute
+}
+
+const SurupapublicPublicRouteChildren: SurupapublicPublicRouteChildren = {
+  SurupapublicPublicSlugRoute: SurupapublicPublicSlugRoute,
+  SurupapublicPublicIndexRoute: SurupapublicPublicIndexRoute,
+  SurupapublicPublicViewNano_idRoute: SurupapublicPublicViewNano_idRoute,
+  SurupapublicPublicPuzzlesIndexRoute: SurupapublicPublicPuzzlesIndexRoute,
+}
+
+const SurupapublicPublicRouteWithChildren =
+  SurupapublicPublicRoute._addFileChildren(SurupapublicPublicRouteChildren)
+
+interface SurupaRouteRouteChildren {
+  SurupaauthAuthRoute: typeof SurupaauthAuthRouteWithChildren
+  SurupapublicPublicRoute: typeof SurupapublicPublicRouteWithChildren
+}
+
+const SurupaRouteRouteChildren: SurupaRouteRouteChildren = {
+  SurupaauthAuthRoute: SurupaauthAuthRouteWithChildren,
+  SurupapublicPublicRoute: SurupapublicPublicRouteWithChildren,
+}
+
+const SurupaRouteRouteWithChildren = SurupaRouteRoute._addFileChildren(
+  SurupaRouteRouteChildren,
+)
+
 interface HubRouteChildren {
   HubPuzzlesRoute: typeof HubPuzzlesRoute
   HubIndexRoute: typeof HubIndexRoute
@@ -1262,8 +2182,12 @@ const HubRouteChildren: HubRouteChildren = {
 const HubRouteWithChildren = HubRoute._addFileChildren(HubRouteChildren)
 
 const rootRouteChildren: RootRouteChildren = {
+  AnveshiRouteRoute: AnveshiRouteRouteWithChildren,
+  BhramitaRouteRoute: BhramitaRouteRouteWithChildren,
+  DvayiRouteRoute: DvayiRouteRouteWithChildren,
   PadajalaRouteRoute: PadajalaRouteRouteWithChildren,
   PadavaliRouteRoute: PadavaliRouteRouteWithChildren,
+  SurupaRouteRoute: SurupaRouteRouteWithChildren,
   HubRoute: HubRouteWithChildren,
   AdminRoute: AdminRoute,
   AnalyticsRoute: AnalyticsRoute,

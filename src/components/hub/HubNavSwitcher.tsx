@@ -1,6 +1,7 @@
 'use client';
 
 import { useState } from 'react';
+import { useCloseOnNavigate } from '~/hooks/useCloseOnNavigate';
 import { Link } from '@tanstack/react-router';
 import { Check, ChevronDown, Home, Puzzle } from 'lucide-react';
 import { Image } from '@unpic/react';
@@ -165,6 +166,7 @@ function SwitcherTriggerLabel({ activeGame }: { activeGame: HubGameMeta | null }
 
 export function HubNavSwitcher({ active }: { active: HubNavId }) {
   const [open, setOpen] = useState(false);
+  useCloseOnNavigate(() => setOpen(false));
   const activeGame = active === 'padavali' || active === 'crossword' ? HUB_GAMES[active] : null;
   const triggerLabel = activeGame
     ? `Switch game, currently ${activeGame.name}`

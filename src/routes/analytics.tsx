@@ -15,7 +15,7 @@ export const Route = createFileRoute('/analytics')({
     routeHeadFromPageMeta({
       title: 'Analytics | Krida',
       project: 'landing_page',
-      description: 'Play volume and signed-in player analytics across Padāvalī and Padajāla.',
+      description: 'Play volume and signed-in player analytics across every catalog game.',
       robots: 'noindex'
     }),
   component: AnalyticsPage

@@ -16,7 +16,7 @@ import { HubTodayCard } from './HubTodayCard';
 import { HubGameShowcase } from './HubGameShowcase';
 import { tagsByPopularity } from './hub_puzzles';
 import { useHubPuzzles } from './useHubPuzzles';
-import type { GameKind } from '~/util/catalog/tags';
+import type { PublicGameKind } from '~/util/games/kinds';
 import { cn } from '~/lib/utils';
 import { Button } from '~/components/ui/button';
 
@@ -44,8 +44,9 @@ function HubSectionHeading({
   );
 }
 
+// TODO: add dvayi/bhramita/surupa/anveshi once those games ship on the hub.
 const PUZZLE_FILTERS: {
-  value: 'all' | GameKind;
+  value: 'all' | PublicGameKind;
   label: string;
   icon?: (typeof GAME_APP_ICON_SRC)[keyof typeof GAME_APP_ICON_SRC];
 }[] = [
@@ -63,7 +64,7 @@ const PUZZLE_FILTERS: {
 ];
 
 function RecentlyAdded({ puzzles }: { puzzles: ReturnType<typeof useHubPuzzles>['puzzles'] }) {
-  const [game, setGame] = useState<'all' | GameKind>('all');
+  const [game, setGame] = useState<'all' | PublicGameKind>('all');
   const { script, setScript } = useContext(AppContext);
   const reduceMotion = useReducedMotion();
   const visible = (

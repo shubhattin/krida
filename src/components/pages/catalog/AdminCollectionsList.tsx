@@ -378,7 +378,7 @@ function NewCollectionDialog({
         <DialogHeader>
           <DialogTitle>New collection</DialogTitle>
           <DialogDescription>
-            A collection is a hand-picked list. You can add Padavali and Padajala games after it is
+            A collection is a hand-picked list. You can add games from any catalog after it is
             created.
           </DialogDescription>
         </DialogHeader>

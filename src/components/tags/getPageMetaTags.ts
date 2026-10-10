@@ -18,12 +18,23 @@ export function shareImageInfoFromAsset(
   };
 }
 
-export type MetadataProject = 'padavali' | 'padajala' | 'landing_page';
+export type MetadataProject =
+  | 'padavali'
+  | 'padajala'
+  | 'landing_page'
+  | 'dvayi'
+  | 'bhramita'
+  | 'surupa'
+  | 'anveshi';
 
 const SITE_NAME = {
   padavali: 'Padavali',
   padajala: 'Padajāla',
-  landing_page: 'Krida'
+  landing_page: 'Krida',
+  dvayi: 'Dvayī',
+  bhramita: 'Bhramitā',
+  surupa: 'Surūpa',
+  anveshi: 'Anveṣī'
 } as const satisfies Record<MetadataProject, string>;
 
 interface Props {
@@ -51,7 +62,11 @@ export const SHARE_IMAGE_INFO = {
     url: 'https://cdn.jsdelivr.net/gh/shubhattin/padavali@latest/src/images/banner/landing_page_banner.jpg',
     width: 1200,
     height: 630
-  }
+  },
+  dvayi: DEFAULT_SHARE_IMAGE_INFO,
+  bhramita: DEFAULT_SHARE_IMAGE_INFO,
+  surupa: DEFAULT_SHARE_IMAGE_INFO,
+  anveshi: DEFAULT_SHARE_IMAGE_INFO
 } satisfies Record<MetadataProject, ShareImageInfo>;
 
 /** TanStack Router `head` meta entries. */

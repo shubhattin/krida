@@ -1,4 +1,5 @@
 import { z } from 'zod';
+import { SIMPLE_GAME_KINDS } from '~/util/games/kinds';
 
 export const public_tag_schema = z.object({
   id: z.number().int(),
@@ -7,7 +8,7 @@ export const public_tag_schema = z.object({
 
 export type PublicTag = z.infer<typeof public_tag_schema>;
 
-export const GAME_KINDS = ['padavali', 'crossword'] as const;
+export const GAME_KINDS = ['padavali', 'crossword', ...SIMPLE_GAME_KINDS] as const;
 export type GameKind = (typeof GAME_KINDS)[number];
 
 /** Lowercase slug: spaces become hyphens, anything outside `[a-z0-9_-]` is dropped. */

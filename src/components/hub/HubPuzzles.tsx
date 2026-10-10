@@ -41,19 +41,21 @@ import {
   type HubPuzzle
 } from './hub_puzzles';
 import { useHubPuzzles } from './useHubPuzzles';
-import type { GameKind, PublicTag } from '~/util/catalog/tags';
+import type { PublicTag } from '~/util/catalog/tags';
+import type { PublicGameKind } from '~/util/games/kinds';
 import type { ListedCollectionsType } from '~/util/cache.server/collection_cache';
 
 const puzzlesRoute = getRouteApi('/_hub/puzzles');
 const PAGE_LIMIT = 12;
 
-const GAME_FILTERS: { value: 'all' | GameKind; label: string }[] = [
+// TODO: add dvayi/bhramita/surupa/anveshi once those games ship on /puzzles.
+const GAME_FILTERS: { value: 'all' | PublicGameKind; label: string }[] = [
   { value: 'all', label: 'All games' },
   { value: 'padavali', label: HUB_GAMES.padavali.name },
   { value: 'crossword', label: HUB_GAMES.crossword.name }
 ];
 
-type GameCounts = Record<'all' | GameKind, number>;
+type GameCounts = Record<'all' | PublicGameKind, number>;
 
 /** Page 1 stays out of the URL; higher pages use `?page=N`. */
 function pageSearchValue(page: number): number | undefined {

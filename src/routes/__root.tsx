@@ -21,6 +21,7 @@ import {
 import { Toaster } from '@/components/ui/sonner';
 import { cn } from '~/lib/utils';
 import { RouteProgress } from '~/components/RouteProgress';
+import { DismissOverlaysOnNavigate } from '~/components/DismissOverlaysOnNavigate';
 import PosthogInit from '~/components/tags/PosthogInit';
 import PWAInit from '~/components/PWA/PWAInit';
 import NotFound from './-NotFound';
@@ -66,6 +67,7 @@ function RootDocument({ children }: { children: React.ReactNode }) {
       </head>
       <body className={cn('overflow-y-scroll font-sans antialiased')}>
         <RouteProgress />
+        <DismissOverlaysOnNavigate />
         <RootProviders>{children}</RootProviders>
         <PosthogInit />
         <Scripts />

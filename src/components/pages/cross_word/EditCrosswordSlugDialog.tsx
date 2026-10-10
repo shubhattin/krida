@@ -2,7 +2,7 @@
 
 import { useState } from 'react';
 import { useRouter } from '@tanstack/react-router';
-import { CheckIcon, Loader2Icon, PencilIcon, Trash2Icon, XIcon } from 'lucide-react';
+import { PencilIcon, Trash2Icon } from 'lucide-react';
 import { client, useTRPC } from '~/api/client';
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import { invalidatePadajalaListedPuzzleQueries } from '~/components/pages/cross_word/useCrosswordListedPuzzles';
@@ -30,6 +30,7 @@ import { Label } from '~/components/ui/label';
 import { toast } from 'sonner';
 import { useDebouncedSlugCheck } from '~/hooks/useDebouncedSlugCheck';
 import { SlugRedirectConflictPrompt } from '~/components/pages/padavali/SlugRedirectConflictPrompt';
+import { SlugStatusIcon } from '~/components/puzzle/SlugStatus';
 import {
   Accordion,
   AccordionContent,
@@ -43,23 +44,6 @@ type Props = {
   puzzleId: number;
   currentSlug: string;
   onSlugUpdated: (slug: string) => void;
-};
-
-const SlugStatusIcon = ({
-  status
-}: {
-  status: ReturnType<typeof useDebouncedSlugCheck>['status'];
-}) => {
-  if (status === 'checking') {
-    return <Loader2Icon className="size-4 animate-spin text-muted-foreground" />;
-  }
-  if (status === 'available') {
-    return <CheckIcon className="size-4 text-green-600" />;
-  }
-  if (status === 'taken' || status === 'invalid') {
-    return <XIcon className="size-4 text-red-600" />;
-  }
-  return null;
 };
 
 type SlugStatus = ReturnType<typeof useDebouncedSlugCheck>['status'];

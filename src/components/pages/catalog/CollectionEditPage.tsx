@@ -38,6 +38,7 @@ import {
   PuzzleEditLink,
   gameKindLabel
 } from '~/components/pages/catalog/GameKindIcon';
+import { formatGameCounts } from '~/util/games/labels';
 import { AddGamesDialog } from '~/components/pages/catalog/AddGamesDialog';
 import { invalidateCatalogQueries } from '~/components/pages/catalog/invalidateCatalogQueries';
 import { EditorActionDock } from '~/components/pages/puzzle/EditorActionDock';
@@ -762,8 +763,7 @@ function CollectionDeleteButton({ uid }: { uid: string }) {
   const [open, setOpen] = useState(false);
   const [confirm, setConfirm] = useState<'no' | 'yes'>('no');
 
-  const padavaliCount = items.filter((item) => item.game === 'padavali').length;
-  const crosswordCount = items.length - padavaliCount;
+  const gameCountsLabel = formatGameCounts(items);
   const hasItems = items.length > 0;
 
   const delete_mut = useMutation(
@@ -804,7 +804,7 @@ function CollectionDeleteButton({ uid }: { uid: string }) {
             <DialogTitle>Delete “{title || 'this collection'}”?</DialogTitle>
             <DialogDescription>
               {hasItems
-                ? `This collection holds ${items.length} game${items.length === 1 ? '' : 's'} (${padavaliCount} Padavali · ${crosswordCount} Padajala). Deleting unlinks every game, but the puzzles themselves stay untouched. This cannot be undone.`
+                ? `This collection holds ${items.length} game${items.length === 1 ? '' : 's'}${gameCountsLabel ? ` (${gameCountsLabel})` : ''}. Deleting unlinks every game, but the puzzles themselves stay untouched. This cannot be undone.`
                 : 'This collection has no games. Deleting removes it permanently. This cannot be undone.'}
             </DialogDescription>
           </DialogHeader>

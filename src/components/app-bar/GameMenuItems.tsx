@@ -2,17 +2,28 @@
 
 import { Link } from '@tanstack/react-router';
 import {
+  ArrowLeftRight,
   Calendar,
   ChartNoAxesCombined,
+  CircleHelp,
   List,
   Pencil,
   BarChart3,
   Images,
   Layers,
   Tag,
-  Shield
+  Shield,
+  Shuffle,
+  SpellCheck
 } from 'lucide-react';
-import { useAtom } from 'jotai';
+import { atom, useAtom } from 'jotai';
+import {
+  simpleGameAnalyticsHref,
+  simpleGameEditHref,
+  simpleGameListHref,
+  SIMPLE_GAME_META,
+  type SimpleGameKind
+} from '~/util/games/kinds';
 import { active_puzzle_id_atom } from '~/components/pages/padavali/WordGame/game_state';
 import { active_crossword_id_atom } from '~/components/pages/cross_word/CrossWordGame/game_state';
 import { active_collection_atom } from '~/components/pages/catalog/catalog_admin_state';
@@ -243,6 +254,69 @@ export function CrosswordMenuItems({ onNavigate }: { onNavigate?: () => void }) 
         </div>
         <span className="truncate">Batches</span>
       </Link>
+      <CatalogAdminMenuItems onNavigate={onNavigate} />
+    </>
+  );
+}
+
+export const active_simple_game_id_atom = atom<{ kind: SimpleGameKind; id: number } | null>(null);
+
+const SIMPLE_MENU_ICON = {
+  dvayi: ArrowLeftRight,
+  bhramita: Shuffle,
+  surupa: SpellCheck,
+  anveshi: CircleHelp
+} as const;
+
+/** In-development games — list, analytics, and optional live-edit shortcut. */
+export function SimpleGameMenuItems({
+  kind,
+  onNavigate
+}: {
+  kind: SimpleGameKind;
+  onNavigate?: () => void;
+}) {
+  const isAdmin = useIsAdmin();
+  const [active] = useAtom(active_simple_game_id_atom);
+  if (!isAdmin) return null;
+
+  const meta = SIMPLE_GAME_META[kind];
+  const Icon = SIMPLE_MENU_ICON[kind];
+  const accent = `${meta.accent.from} ${meta.accent.to}`;
+
+  return (
+    <>
+      {active?.kind === kind ? (
+        <a
+          href={simpleGameEditHref(kind, active.id)}
+          onClick={onNavigate}
+          className={cn(accountMenuLinkClass, 'col-span-2')}
+        >
+          <div className={cn(accountMenuIconClass, 'bg-linear-to-br', accent)}>
+            <Pencil className="size-3 text-white" />
+          </div>
+          <span className="truncate">Edit puzzle #{active.id}</span>
+        </a>
+      ) : null}
+      <AdminPageMenuLink onNavigate={onNavigate} prominent />
+      <a href={simpleGameListHref(kind)} onClick={onNavigate} className={accountMenuLinkClass}>
+        <div className={cn(accountMenuIconClass, 'bg-linear-to-br from-purple-500 to-violet-600')}>
+          <List className="size-3 text-white" />
+        </div>
+        <span className="truncate">List</span>
+      </a>
+      <a href={simpleGameAnalyticsHref(kind)} onClick={onNavigate} className={accountMenuLinkClass}>
+        <div className={cn(accountMenuIconClass, 'bg-linear-to-br from-sky-500 to-blue-600')}>
+          <BarChart3 className="size-3 text-white" />
+        </div>
+        <span className="truncate">Analytics</span>
+      </a>
+      <a href={simpleGameListHref(kind)} onClick={onNavigate} className={accountMenuLinkClass}>
+        <div className={cn(accountMenuIconClass, 'bg-linear-to-br', accent)}>
+          <Icon className="size-3 text-white" />
+        </div>
+        <span className="truncate">{meta.name}</span>
+      </a>
       <CatalogAdminMenuItems onNavigate={onNavigate} />
     </>
   );

@@ -10,7 +10,7 @@ import {
 } from 'lipilekhika/typing';
 import { toast } from 'sonner';
 import { useTRPC } from '~/api/client';
-import { GameKindIcon } from '~/components/pages/catalog/GameKindIcon';
+import { GameKindIcon, gameKindLabel } from '~/components/pages/catalog/GameKindIcon';
 import { LanguageIcon } from '~/components/icons';
 import { Button } from '~/components/ui/button';
 import {
@@ -174,7 +174,9 @@ export function AddGamesDialog({
           </Label>
         </div>
         <div className="flex flex-wrap items-center gap-1.5">
-          {(['all', 'padavali', 'crossword'] as const).map((value) => (
+          {(
+            ['all', 'padavali', 'crossword', 'dvayi', 'bhramita', 'surupa', 'anveshi'] as const
+          ).map((value) => (
             <Button
               key={value}
               type="button"
@@ -182,7 +184,7 @@ export function AddGamesDialog({
               variant={game === value ? 'secondary' : 'outline'}
               onClick={() => setGame(value)}
             >
-              {value === 'all' ? 'All' : value === 'padavali' ? 'Padavali' : 'Padajala'}
+              {value === 'all' ? 'All' : gameKindLabel(value)}
             </Button>
           ))}
           <select

@@ -7,6 +7,10 @@ import {
   public_ai_router
 } from './routers/ai';
 import { crossword_router } from './routers/crossword';
+import { dvayi_router } from './routers/dvayi';
+import { bhramita_router } from './routers/bhramita';
+import { surupa_router } from './routers/surupa';
+import { anveshi_router } from './routers/anveshi';
 import { user_stats_router } from './routers/user';
 import { catalog_router } from './routers/catalog';
 import { analytics_router } from './routers/analytics';
@@ -14,6 +18,10 @@ import { analytics_router } from './routers/analytics';
 export const appRouter = t.router({
   puzzle: puzzle_router,
   crossword: crossword_router,
+  dvayi: dvayi_router,
+  bhramita: bhramita_router,
+  surupa: surupa_router,
+  anveshi: anveshi_router,
   user: user_stats_router,
   schedules: schedules_router,
   ai_image_gen: ai_image_assets_router,

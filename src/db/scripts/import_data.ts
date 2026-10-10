@@ -28,6 +28,34 @@ export const import_data = async (confirm_env = true) => {
   const crossword_puzzle_tags = await db.query.crossword_puzzle_tags.findMany();
   const padavali_collection_items = await db.query.padavali_collection_items.findMany();
   const crossword_collection_items = await db.query.crossword_collection_items.findMany();
+  const dvayi_puzzles = await db.query.dvayi_puzzles.findMany();
+  const dvayi_redirects = await db.query.dvayi_redirects.findMany();
+  const dvayi_attachments = await db.query.dvayi_attachments.findMany();
+  const dvayi_sessions = await db.query.dvayi_sessions.findMany();
+  const dvayi_gameplay_stats = await db.query.dvayi_gameplay_stats.findMany();
+  const dvayi_puzzle_tags = await db.query.dvayi_puzzle_tags.findMany();
+  const dvayi_collection_items = await db.query.dvayi_collection_items.findMany();
+  const bhramita_puzzles = await db.query.bhramita_puzzles.findMany();
+  const bhramita_redirects = await db.query.bhramita_redirects.findMany();
+  const bhramita_attachments = await db.query.bhramita_attachments.findMany();
+  const bhramita_sessions = await db.query.bhramita_sessions.findMany();
+  const bhramita_gameplay_stats = await db.query.bhramita_gameplay_stats.findMany();
+  const bhramita_puzzle_tags = await db.query.bhramita_puzzle_tags.findMany();
+  const bhramita_collection_items = await db.query.bhramita_collection_items.findMany();
+  const surupa_puzzles = await db.query.surupa_puzzles.findMany();
+  const surupa_redirects = await db.query.surupa_redirects.findMany();
+  const surupa_attachments = await db.query.surupa_attachments.findMany();
+  const surupa_sessions = await db.query.surupa_sessions.findMany();
+  const surupa_gameplay_stats = await db.query.surupa_gameplay_stats.findMany();
+  const surupa_puzzle_tags = await db.query.surupa_puzzle_tags.findMany();
+  const surupa_collection_items = await db.query.surupa_collection_items.findMany();
+  const anveshi_puzzles = await db.query.anveshi_puzzles.findMany();
+  const anveshi_redirects = await db.query.anveshi_redirects.findMany();
+  const anveshi_attachments = await db.query.anveshi_attachments.findMany();
+  const anveshi_sessions = await db.query.anveshi_sessions.findMany();
+  const anveshi_gameplay_stats = await db.query.anveshi_gameplay_stats.findMany();
+  const anveshi_puzzle_tags = await db.query.anveshi_puzzle_tags.findMany();
+  const anveshi_collection_items = await db.query.anveshi_collection_items.findMany();
 
   const json_data = {
     padavali_puzzles,
@@ -50,7 +78,35 @@ export const import_data = async (confirm_env = true) => {
     padavali_puzzle_tags,
     crossword_puzzle_tags,
     padavali_collection_items,
-    crossword_collection_items
+    crossword_collection_items,
+    dvayi_puzzles,
+    dvayi_redirects,
+    dvayi_attachments,
+    dvayi_sessions,
+    dvayi_gameplay_stats,
+    dvayi_puzzle_tags,
+    dvayi_collection_items,
+    bhramita_puzzles,
+    bhramita_redirects,
+    bhramita_attachments,
+    bhramita_sessions,
+    bhramita_gameplay_stats,
+    bhramita_puzzle_tags,
+    bhramita_collection_items,
+    surupa_puzzles,
+    surupa_redirects,
+    surupa_attachments,
+    surupa_sessions,
+    surupa_gameplay_stats,
+    surupa_puzzle_tags,
+    surupa_collection_items,
+    anveshi_puzzles,
+    anveshi_redirects,
+    anveshi_attachments,
+    anveshi_sessions,
+    anveshi_gameplay_stats,
+    anveshi_puzzle_tags,
+    anveshi_collection_items
   };
 
   await make_dir('./out');

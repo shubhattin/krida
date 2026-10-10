@@ -1,6 +1,7 @@
 'use client';
 
 import { useQuery } from '@tanstack/react-query';
+import { Layers, Tag } from 'lucide-react';
 import { useTRPC } from '~/api/client';
 import { Label } from '~/components/ui/label';
 import {
@@ -45,7 +46,10 @@ export function AdminCatalogFilters({
   return (
     <>
       <div className="flex items-center gap-1.5 sm:gap-2">
-        <Label className="px-1 text-xs font-semibold sm:text-sm">Tag</Label>
+        <Label className="px-1 text-xs font-semibold sm:text-sm" title="Tag">
+          <Tag className="size-3.5 sm:size-4" />
+          <span className="sr-only">Tag</span>
+        </Label>
         <Select
           items={tagItems}
           value={tagSlug}
@@ -66,7 +70,10 @@ export function AdminCatalogFilters({
         </Select>
       </div>
       <div className="flex items-center gap-1.5 sm:gap-2">
-        <Label className="px-1 text-xs font-semibold sm:text-sm">Collection</Label>
+        <Label className="px-1 text-xs font-semibold sm:text-sm" title="Collection">
+          <Layers className="size-3.5 sm:size-4" />
+          <span className="sr-only">Collection</span>
+        </Label>
         <Select
           items={collectionItems}
           value={collectionId}
