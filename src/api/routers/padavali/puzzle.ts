@@ -22,7 +22,6 @@ import {
   puzzle_update_slug_input_schema,
   slug_schema
 } from '~/db/db_shared_vals';
-import { NotificationService } from '~/effect/notifications';
 import { insertWithUniqueUid } from '~/util/puzzle/nano_id';
 import {
   createEmptyGridData,
@@ -35,7 +34,6 @@ import { puzzleHasTag, puzzleInCollection, tagsForPuzzleIds } from '~/util/catal
 import { syncPuzzleAttachments } from '~/game_shell/attachments';
 import { createGameSlugHelpers } from '~/game_shell/slug';
 import { BadRequestError, NotFoundError } from '~/effect/errors';
-import { AppConfig } from '~/effect/config';
 import { runTrpcEffect } from '~/effect/run';
 import { padavaliActiveWordsEqual } from '~/util/puzzle/word_list';
 
@@ -60,22 +58,6 @@ const puzzle_in_next_schedule = Effect.fn('padavali.puzzle_in_next_schedule')(fu
 ) {
   const next_schedule = yield* CACHE.padavali.next_schedule.get(NO_CACHE_PARAMS);
   return next_schedule?.puzzle.id === id;
-});
-
-export const notify_for_listed_puzzle = Effect.fn('padavali.notify_for_listed_puzzle')(function* (
-  title: string,
-  slug: string
-) {
-  const config = yield* AppConfig;
-  const notifications = yield* NotificationService;
-  return yield* notifications.send({
-    headings: { en: '🧩 New Listed Puzzle Added! 🎉' },
-    contents: {
-      en: `"${title}" - Listed Puzzle Added, Play Now! 🚀`
-    },
-    name: `new_listed_puzzle:${slug}`,
-    url: `${config.siteUrl}/padavali/${slug}`
-  });
 });
 
 const check_slug_availability_route = protectedAdminProcedure
@@ -183,9 +165,6 @@ const update_puzzle_route = protectedAdminProcedure
           yield* settle(
             invalidate_and_refresh_cache(CACHE.padavali.current_schedule, NO_CACHE_PARAMS)
           );
-        }
-        if (puzzle_data.listed && !prev_listed) {
-          yield* settle(notify_for_listed_puzzle(puzzle_data_rest.title, puzzle_slug));
         }
 
         return {

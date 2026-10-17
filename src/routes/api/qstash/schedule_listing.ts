@@ -8,7 +8,6 @@ import {
 } from '~/util/cache.server/cache_loaders';
 import { padavali_schedules, padavali_puzzles } from '~/db/schema';
 import { and, eq } from 'drizzle-orm';
-import { notify_for_listed_puzzle } from '~/api/routers/padavali';
 import { scheduleListingPayloadSchema, decodeQstashPayload } from '~/effect/qstash';
 import { dbRunHttp, dbTransaction } from '~/effect/database';
 import { runQstashEffect } from '~/effect/run';
@@ -52,7 +51,6 @@ export const Route = createFileRoute('/api/qstash/schedule_listing')({
                     puzzle: {
                       columns: {
                         id: true,
-                        title: true,
                         slug: true
                       }
                     }
@@ -99,8 +97,7 @@ export const Route = createFileRoute('/api/qstash/schedule_listing')({
                     slug: schedule.puzzle.slug
                   })
                 ),
-                ignoreFailure(invalidate_padavali_sitemap()),
-                ignoreFailure(notify_for_listed_puzzle(schedule.puzzle.title, schedule.puzzle.slug))
+                ignoreFailure(invalidate_padavali_sitemap())
               ],
               { discard: true }
             );

@@ -1,7 +1,6 @@
 import { Outlet, createFileRoute } from '@tanstack/react-router';
 import { AppContextProvider } from '~/components/AppDataContext';
 import { getScript$ } from '~/lib/cache_server_route_data';
-import NotificationsOneSignal from '~/components/NotificationsOneSignal';
 
 export const Route = createFileRoute('/padavali')({
   loader: async () => ({ script: await getScript$() }),
@@ -14,7 +13,6 @@ function PadavaliLayout() {
   return (
     <AppContextProvider initialScript={script}>
       <Outlet />
-      <NotificationsOneSignal />
     </AppContextProvider>
   );
 }

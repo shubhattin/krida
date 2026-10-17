@@ -47,14 +47,6 @@ export class QueueError extends Schema.TaggedError<QueueError>()('QueueError', {
   cause: Schema.Unknown
 }) {}
 
-export class NotificationError extends Schema.TaggedError<NotificationError>()(
-  'NotificationError',
-  {
-    operation: Schema.String,
-    cause: Schema.Unknown
-  }
-) {}
-
 export class AuthError extends Schema.TaggedError<AuthError>()('AuthError', {
   operation: Schema.String,
   cause: Schema.Unknown
@@ -104,7 +96,6 @@ export const KnownErrorSchema = Schema.Union([
   BatchError,
   ImageProcessingError,
   QueueError,
-  NotificationError,
   AuthError,
   ConfigError,
   ValidationError,

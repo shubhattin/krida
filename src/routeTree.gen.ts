@@ -32,7 +32,6 @@ import { Route as TagsListRouteImport } from './routes/tags/list'
 import { Route as HubCollectionsSlugRouteImport } from './routes/_hub/collections/$slug'
 import { Route as AnveshiauthAuthRouteImport } from './routes/anveshi/(auth)/_auth'
 import { Route as AnveshipublicPublicRouteImport } from './routes/anveshi/(public)/_public'
-import { Route as ApiQstashNew_puzzle_notificationRouteImport } from './routes/api/qstash/new_puzzle_notification'
 import { Route as ApiQstashSave_ai_batch_resultsRouteImport } from './routes/api/qstash/save_ai_batch_results'
 import { Route as ApiQstashSchedule_listingRouteImport } from './routes/api/qstash/schedule_listing'
 import { Route as ApiTrpcSplatRouteImport } from './routes/api/trpc/$'
@@ -218,12 +217,6 @@ const AnveshipublicPublicRoute = AnveshipublicPublicRouteImport.update({
   id: '/(public)/_public',
   getParentRoute: () => AnveshiRouteRoute,
 } as any)
-const ApiQstashNew_puzzle_notificationRoute =
-  ApiQstashNew_puzzle_notificationRouteImport.update({
-    id: '/api/qstash/new_puzzle_notification',
-    path: '/api/qstash/new_puzzle_notification',
-    getParentRoute: () => rootRouteImport,
-  } as any)
 const ApiQstashSave_ai_batch_resultsRoute =
   ApiQstashSave_ai_batch_resultsRouteImport.update({
     id: '/api/qstash/save_ai_batch_results',
@@ -642,7 +635,6 @@ export interface FileRoutesByFullPath {
   '/crossword/$': typeof CrosswordSplatRoute
   '/tags/list': typeof TagsListRoute
   '/collections/$slug': typeof HubCollectionsSlugRoute
-  '/api/qstash/new_puzzle_notification': typeof ApiQstashNew_puzzle_notificationRoute
   '/api/qstash/save_ai_batch_results': typeof ApiQstashSave_ai_batch_resultsRoute
   '/api/qstash/schedule_listing': typeof ApiQstashSchedule_listingRoute
   '/api/trpc/$': typeof ApiTrpcSplatRoute
@@ -727,7 +719,6 @@ export interface FileRoutesByTo {
   '/tags/list': typeof TagsListRoute
   '/': typeof HubIndexRoute
   '/collections/$slug': typeof HubCollectionsSlugRoute
-  '/api/qstash/new_puzzle_notification': typeof ApiQstashNew_puzzle_notificationRoute
   '/api/qstash/save_ai_batch_results': typeof ApiQstashSave_ai_batch_resultsRoute
   '/api/qstash/schedule_listing': typeof ApiQstashSchedule_listingRoute
   '/api/trpc/$': typeof ApiTrpcSplatRoute
@@ -810,7 +801,6 @@ export interface FileRoutesById {
   '/_hub/collections/$slug': typeof HubCollectionsSlugRoute
   '/anveshi/(auth)/_auth': typeof AnveshiauthAuthRouteWithChildren
   '/anveshi/(public)/_public': typeof AnveshipublicPublicRouteWithChildren
-  '/api/qstash/new_puzzle_notification': typeof ApiQstashNew_puzzle_notificationRoute
   '/api/qstash/save_ai_batch_results': typeof ApiQstashSave_ai_batch_resultsRoute
   '/api/qstash/schedule_listing': typeof ApiQstashSchedule_listingRoute
   '/api/trpc/$': typeof ApiTrpcSplatRoute
@@ -907,7 +897,6 @@ export interface FileRouteTypes {
     | '/crossword/$'
     | '/tags/list'
     | '/collections/$slug'
-    | '/api/qstash/new_puzzle_notification'
     | '/api/qstash/save_ai_batch_results'
     | '/api/qstash/schedule_listing'
     | '/api/trpc/$'
@@ -992,7 +981,6 @@ export interface FileRouteTypes {
     | '/tags/list'
     | '/'
     | '/collections/$slug'
-    | '/api/qstash/new_puzzle_notification'
     | '/api/qstash/save_ai_batch_results'
     | '/api/qstash/schedule_listing'
     | '/api/trpc/$'
@@ -1074,7 +1062,6 @@ export interface FileRouteTypes {
     | '/_hub/collections/$slug'
     | '/anveshi/(auth)/_auth'
     | '/anveshi/(public)/_public'
-    | '/api/qstash/new_puzzle_notification'
     | '/api/qstash/save_ai_batch_results'
     | '/api/qstash/schedule_listing'
     | '/api/trpc/$'
@@ -1168,7 +1155,6 @@ export interface RootRouteChildren {
   CollectionsListRoute: typeof CollectionsListRoute
   CrosswordSplatRoute: typeof CrosswordSplatRoute
   TagsListRoute: typeof TagsListRoute
-  ApiQstashNew_puzzle_notificationRoute: typeof ApiQstashNew_puzzle_notificationRoute
   ApiQstashSave_ai_batch_resultsRoute: typeof ApiQstashSave_ai_batch_resultsRoute
   ApiQstashSchedule_listingRoute: typeof ApiQstashSchedule_listingRoute
   ApiTrpcSplatRoute: typeof ApiTrpcSplatRoute
@@ -1339,13 +1325,6 @@ declare module '@tanstack/react-router' {
       fullPath: '/anveshi'
       preLoaderRoute: typeof AnveshipublicPublicRouteImport
       parentRoute: typeof AnveshiRouteRoute
-    }
-    '/api/qstash/new_puzzle_notification': {
-      id: '/api/qstash/new_puzzle_notification'
-      path: '/api/qstash/new_puzzle_notification'
-      fullPath: '/api/qstash/new_puzzle_notification'
-      preLoaderRoute: typeof ApiQstashNew_puzzle_notificationRouteImport
-      parentRoute: typeof rootRouteImport
     }
     '/api/qstash/save_ai_batch_results': {
       id: '/api/qstash/save_ai_batch_results'
@@ -2200,7 +2179,6 @@ const rootRouteChildren: RootRouteChildren = {
   CollectionsListRoute: CollectionsListRoute,
   CrosswordSplatRoute: CrosswordSplatRoute,
   TagsListRoute: TagsListRoute,
-  ApiQstashNew_puzzle_notificationRoute: ApiQstashNew_puzzle_notificationRoute,
   ApiQstashSave_ai_batch_resultsRoute: ApiQstashSave_ai_batch_resultsRoute,
   ApiQstashSchedule_listingRoute: ApiQstashSchedule_listingRoute,
   ApiTrpcSplatRoute: ApiTrpcSplatRoute,

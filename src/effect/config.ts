@@ -21,9 +21,7 @@ const AppConfigSchema = Schema.Struct({
   isProd: Schema.Boolean,
   isQstashEnabled: Schema.Boolean,
   // optionals
-  turnstileSecretKey: Schema.optional(NonEmptyString),
-  onesignalApiKey: Schema.optional(NonEmptyString),
-  onesignalAppId: Schema.optional(NonEmptyString)
+  turnstileSecretKey: Schema.optional(NonEmptyString)
 });
 
 type AppConfigDecoded = typeof AppConfigSchema.Type;
@@ -36,7 +34,6 @@ type RedactedConfigKeys =
   | 'openaiApiKey'
   | 'openrouterApiKey'
   | 'qstashToken'
-  | 'onesignalApiKey'
   | 'turnstileSecretKey';
 
 /** Service API for the loaded application configuration (secrets held as `Redacted`). */
@@ -47,7 +44,6 @@ export type AppConfigService = Omit<AppConfigDecoded, RedactedConfigKeys> & {
   readonly openaiApiKey: Redacted.Redacted<string>;
   readonly openrouterApiKey: Redacted.Redacted<string>;
   readonly qstashToken: Redacted.Redacted<string>;
-  readonly onesignalApiKey: Redacted.Redacted<string> | undefined;
   readonly turnstileSecretKey: Redacted.Redacted<string> | undefined;
 };
 
@@ -76,8 +72,6 @@ const loadConfig = Effect.fn('loadConfig')(function* () {
     openaiApiKey: env.OPENAI_API_KEY,
     openrouterApiKey: env.OPENROUTER_API_KEY,
     qstashToken: env.QSTASH_TOKEN,
-    onesignalApiKey: env.ONESIGNAL_API_KEY,
-    onesignalAppId: env.VITE_ONESIGNAL_APP_ID,
     turnstileSecretKey: env.TURNSTILE_SECRET_KEY,
     betterAuthUrl: env.VITE_BETTER_AUTH_URL,
     siteUrl: env.VITE_SITE_URL,
@@ -108,8 +102,6 @@ const loadConfig = Effect.fn('loadConfig')(function* () {
     openaiApiKey: Redacted.make(data.openaiApiKey),
     openrouterApiKey: Redacted.make(data.openrouterApiKey),
     qstashToken: Redacted.make(data.qstashToken),
-    onesignalApiKey: data.onesignalApiKey ? Redacted.make(data.onesignalApiKey) : undefined,
-    onesignalAppId: data.onesignalAppId,
     turnstileSecretKey: data.turnstileSecretKey
       ? Redacted.make(data.turnstileSecretKey)
       : undefined,
