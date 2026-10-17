@@ -21,7 +21,8 @@
     "migration:drop": "drizzle-kit drop",
     "migration:export": "drizzle-kit export",
     "migration:push": "drizzle-kit push",
-    "prepare": "./scripts/prepare-effect.sh"
+    "prepare": "./scripts/prepare-effect.sh",
+    "test:run": "vitest run"
   },
   "dependencies": {
     "@ai-sdk/openai": "^3.0.74",

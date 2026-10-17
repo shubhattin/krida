@@ -2,17 +2,17 @@ import { describe, expect, it } from 'vitest';
 import { isUidUniqueViolation, withUniqueUid } from './nano_id';
 
 describe('isUidUniqueViolation', () => {
-  it('matches padavali and crossword uid constraints', () => {
+  it('matches puzzle and collection uid constraints', () => {
     expect(
       isUidUniqueViolation({
         code: '23505',
-        constraint_name: 'padavali_puzzles_uid_unique'
+        constraint_name: 'puzzles_uid_unique'
       })
     ).toBe(true);
     expect(
       isUidUniqueViolation({
         code: '23505',
-        constraint: 'crossword_puzzles_uid_unique'
+        constraint: 'collections_uid_unique'
       })
     ).toBe(true);
   });
@@ -27,7 +27,7 @@ describe('isUidUniqueViolation', () => {
     expect(
       isUidUniqueViolation({
         code: '23503',
-        constraint_name: 'padavali_puzzles_uid_unique'
+        constraint_name: 'puzzles_uid_unique'
       })
     ).toBe(false);
   });
@@ -35,7 +35,7 @@ describe('isUidUniqueViolation', () => {
   it('reads fields copied onto an Error instance', () => {
     const error = Object.assign(new Error('duplicate key'), {
       code: '23505',
-      constraint_name: 'padavali_puzzles_uid_unique'
+      constraint_name: 'puzzles_uid_unique'
     });
     expect(isUidUniqueViolation(error)).toBe(true);
   });
@@ -43,7 +43,7 @@ describe('isUidUniqueViolation', () => {
   it('walks wrapped causes', () => {
     expect(
       isUidUniqueViolation({
-        cause: { code: '23505', constraint_name: 'padavali_puzzles_uid_unique' }
+        cause: { code: '23505', constraint_name: 'puzzles_uid_unique' }
       })
     ).toBe(true);
   });
@@ -67,7 +67,7 @@ describe('withUniqueUid', () => {
       isTaken: async () => false,
       attempt: async (id) => {
         if (id === 'clash1') {
-          throw { code: '23505', constraint_name: 'crossword_puzzles_uid_unique' };
+          throw { code: '23505', constraint_name: 'puzzles_uid_unique' };
         }
         return id;
       }
