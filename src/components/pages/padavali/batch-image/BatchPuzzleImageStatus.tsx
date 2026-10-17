@@ -46,13 +46,10 @@ export function BatchPuzzleImageStatus({
   onRefresh,
   isRefreshing,
   showBatchManagerLink = true,
-  game = 'padavali',
   className
 }: BatchPuzzleImageStatusProps) {
   const is_processing = status.status === 'processing';
-  const resolvedGame = status.game ?? game;
-  const batch_manager_href =
-    resolvedGame === 'crossword' ? '/padajala/batch_manager' : '/padavali/batch_manager';
+  const batch_manager_href = '/padavali/batch_manager';
 
   return (
     <div

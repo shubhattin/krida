@@ -3,9 +3,9 @@ import { z } from 'zod';
 import { protectedAdminProcedure, publicProcedure, t } from '~/api/trpc_init';
 import { dbRunHttp, dbTransaction } from '~/effect/database';
 import {
-  padavali_attachments,
-  padavali_redirects,
   padavali_puzzles,
+  puzzle_redirects,
+  puzzles,
   image_assets
 } from '~/db/schema';
 import { and, asc, count, desc, eq, ilike, or, sql } from 'drizzle-orm';
@@ -42,9 +42,10 @@ const settle = <A, E, R>(effect: Effect.Effect<A, E, R>) =>
 
 const slugHelpers = createGameSlugHelpers({
   kind: 'padavali',
-  tables: { puzzles: padavali_puzzles, redirects: padavali_redirects },
   isValidSlug
 });
+
+const padavaliKind = eq(puzzles.kind, 'padavali');
 
 const puzzle_in_current_schedule = Effect.fn('padavali.puzzle_in_current_schedule')(function* (
   id: number
@@ -76,17 +77,22 @@ const update_puzzle_route = protectedAdminProcedure
   .mutation(({ input: { puzzle_id, puzzle_data, puzzle_slug, image_id } }) =>
     runTrpcEffect(
       Effect.gen(function* () {
-        const existing = yield* dbRunHttp('padavali.find_puzzle_for_update', (client) =>
-          client.query.padavali_puzzles.findFirst({
-            columns: {
-              listed: true,
-              title: true,
-              description: true,
-              word_list: true
-            },
-            where: (tbl, { and, eq }) => and(eq(tbl.id, puzzle_id), eq(tbl.slug, puzzle_slug))
-          })
+        const [existingRow] = yield* dbRunHttp('padavali.find_puzzle_for_update', (client) =>
+          client
+            .select({
+              listed: puzzles.listed,
+              title: puzzles.title,
+              description: puzzles.description,
+              word_list: padavali_puzzles.word_list
+            })
+            .from(puzzles)
+            .innerJoin(padavali_puzzles, eq(padavali_puzzles.id, puzzles.id))
+            .where(
+              and(padavaliKind, eq(puzzles.id, puzzle_id), eq(puzzles.slug, puzzle_slug))
+            )
+            .limit(1)
         );
+        const existing = existingRow;
         if (!existing) {
           return yield* Effect.fail(
             NotFoundError.make({
@@ -105,29 +111,41 @@ const update_puzzle_route = protectedAdminProcedure
         const { updated_count, newly_added_index_ids } = yield* dbTransaction(
           'padavali.update_puzzle',
           async (tx) => {
+            const metaUpdates: Partial<typeof puzzles.$inferInsert> = {
+              title: puzzle_data_rest.title,
+              description: puzzle_data_rest.description,
+              listed: puzzle_data_rest.listed,
+              image_id
+            };
+            if (!prev_listed && puzzle_data.listed) {
+              metaUpdates.last_listed_at = new Date();
+            }
+
             const updated = await tx
-              .update(padavali_puzzles)
-              .set({ ...puzzle_data_rest, image_id })
+              .update(puzzles)
+              .set(metaUpdates)
               .where(
-                and(eq(padavali_puzzles.id, puzzle_id), eq(padavali_puzzles.slug, puzzle_slug))
+                and(padavaliKind, eq(puzzles.id, puzzle_id), eq(puzzles.slug, puzzle_slug))
               )
               .returning();
 
-            if (!prev_listed && puzzle_data.listed) {
+            if (updated.length > 0) {
+              const grid_data = puzzle_data_rest.grid_data;
+              const grid_dimensions: [number, number] = [
+                grid_data.length,
+                grid_data[0]?.length ?? 0
+              ];
               await tx
                 .update(padavali_puzzles)
-                .set({ last_listed_at: new Date() })
-                .where(
-                  and(eq(padavali_puzzles.id, puzzle_id), eq(padavali_puzzles.slug, puzzle_slug))
-                );
+                .set({
+                  word_list: puzzle_data_rest.word_list,
+                  grid_data,
+                  grid_dimensions
+                })
+                .where(eq(padavali_puzzles.id, puzzle_id));
             }
 
-            const attachment_result = await syncPuzzleAttachments(
-              tx,
-              padavali_attachments,
-              puzzle_id,
-              attachments
-            );
+            const attachment_result = await syncPuzzleAttachments(tx, puzzle_id, attachments);
             return {
               updated_count: updated.length,
               newly_added_index_ids: attachment_result.newly_added_index_ids
@@ -184,11 +202,14 @@ const update_puzzle_slug_route = protectedAdminProcedure
           return { success: true as const, slug: new_slug };
         }
 
-        const puzzle = yield* dbRunHttp('padavali.find_puzzle_for_slug_update', (client) =>
-          client.query.padavali_puzzles.findFirst({
-            columns: { id: true, listed: true },
-            where: (tbl, { and, eq }) => and(eq(tbl.id, puzzle_id), eq(tbl.slug, current_slug))
-          })
+        const [puzzle] = yield* dbRunHttp('padavali.find_puzzle_for_slug_update', (client) =>
+          client
+            .select({ id: puzzles.id, listed: puzzles.listed })
+            .from(puzzles)
+            .where(
+              and(padavaliKind, eq(puzzles.id, puzzle_id), eq(puzzles.slug, current_slug))
+            )
+            .limit(1)
         );
         if (!puzzle) {
           return yield* Effect.fail(
@@ -208,9 +229,11 @@ const update_puzzle_slug_route = protectedAdminProcedure
           await slugHelpers.delete_redirect_for_slug(tx, new_slug);
 
           const updated = await tx
-            .update(padavali_puzzles)
+            .update(puzzles)
             .set({ slug: new_slug })
-            .where(and(eq(padavali_puzzles.id, puzzle_id), eq(padavali_puzzles.slug, current_slug)))
+            .where(
+              and(padavaliKind, eq(puzzles.id, puzzle_id), eq(puzzles.slug, current_slug))
+            )
             .returning();
 
           if (updated.length > 0) {
@@ -275,21 +298,27 @@ const add_puzzle_route = protectedAdminProcedure
             await slugHelpers.delete_redirect_for_slug(tx, input.slug);
           }
 
-          return insertWithUniqueUid(tx, padavali_puzzles, (scoped, uid) =>
-            scoped
-              .insert(padavali_puzzles)
+          return insertWithUniqueUid(tx, puzzles, async (scoped, uid) => {
+            const [inserted] = await scoped
+              .insert(puzzles)
               .values({
+                kind: 'padavali',
                 uid,
                 title: input.title,
                 slug: input.slug,
                 description: input.description?.trim() ?? '',
-                word_list: [],
-                grid_data: createEmptyGridData(DEFAULT_GRID_DIMENSIONS),
-                grid_dimensions: DEFAULT_GRID_DIMENSIONS,
                 listed: false
               })
-              .returning()
-          );
+              .returning();
+            if (!inserted) return [];
+            await scoped.insert(padavali_puzzles).values({
+              id: inserted.id,
+              word_list: [],
+              grid_data: createEmptyGridData(DEFAULT_GRID_DIMENSIONS),
+              grid_dimensions: DEFAULT_GRID_DIMENSIONS
+            });
+            return [inserted];
+          });
         });
         const inserted = inserted_puzzles[0];
         if (!inserted) {
@@ -307,13 +336,12 @@ const delete_puzzle_route = protectedAdminProcedure
     runTrpcEffect(
       Effect.gen(function* () {
         const normalizedSlug = normalizeSlug(slug);
-        const puzzle = yield* dbRunHttp('padavali.find_puzzle_for_delete', (client) =>
-          client.query.padavali_puzzles.findFirst({
-            columns: {
-              listed: true
-            },
-            where: (tbl, { and, eq }) => and(eq(tbl.id, id), eq(tbl.slug, normalizedSlug))
-          })
+        const [puzzle] = yield* dbRunHttp('padavali.find_puzzle_for_delete', (client) =>
+          client
+            .select({ listed: puzzles.listed })
+            .from(puzzles)
+            .where(and(padavaliKind, eq(puzzles.id, id), eq(puzzles.slug, normalizedSlug)))
+            .limit(1)
         );
         if (!puzzle) {
           return yield* Effect.fail(
@@ -327,8 +355,8 @@ const delete_puzzle_route = protectedAdminProcedure
 
         yield* dbTransaction('padavali.delete_puzzle', async (tx) => {
           await tx
-            .delete(padavali_puzzles)
-            .where(and(eq(padavali_puzzles.id, id), eq(padavali_puzzles.slug, normalizedSlug)));
+            .delete(puzzles)
+            .where(and(padavaliKind, eq(puzzles.id, id), eq(puzzles.slug, normalizedSlug)));
         });
 
         if (listed) {
@@ -383,50 +411,55 @@ export const get_puzzle_list_page = Effect.fn('padavali.get_puzzle_list_page')(f
   const trimmedSearch = search_title?.trim();
   const conditions = [];
   if (listed_filter !== undefined) {
-    conditions.push(eq(padavali_puzzles.listed, listed_filter));
+    conditions.push(eq(puzzles.listed, listed_filter));
   }
   if (trimmedSearch) {
     for (const token of tokenizeSearchQuery(trimmedSearch)) {
       const pattern = `%${escapeIlikeToken(token)}%`;
       conditions.push(
-        or(ilike(padavali_puzzles.title, pattern), ilike(padavali_puzzles.description, pattern))!
+        or(ilike(puzzles.title, pattern), ilike(puzzles.description, pattern))!
       );
     }
   }
-  if (tag_slug) conditions.push(puzzleHasTag(padavali_puzzles.id, 'padavali', tag_slug));
+  if (tag_slug) conditions.push(puzzleHasTag(puzzles.id, 'padavali', tag_slug));
   if (collection_id !== undefined) {
-    conditions.push(puzzleInCollection(padavali_puzzles.id, 'padavali', collection_id));
+    conditions.push(puzzleInCollection(puzzles.id, 'padavali', collection_id));
   }
   const whereClause = conditions.length > 0 ? and(...conditions) : undefined;
 
   const sortCol =
     sort_by === 'updated_at'
-      ? sql`coalesce(${padavali_puzzles.updated_at}, ${padavali_puzzles.created_at})`
-      : padavali_puzzles.created_at;
+      ? sql`coalesce(${puzzles.updated_at}, ${puzzles.created_at})`
+      : puzzles.created_at;
   const orderPrimary = order_by === 'desc' ? desc(sortCol) : asc(sortCol);
-  const orderTiebreaker =
-    order_by === 'desc' ? desc(padavali_puzzles.id) : asc(padavali_puzzles.id);
+  const orderTiebreaker = order_by === 'desc' ? desc(puzzles.id) : asc(puzzles.id);
+  conditions.unshift(padavaliKind);
   const offset = (page - 1) * size;
 
   const { countResult, rows } = yield* Effect.all({
     countResult: dbRunHttp('padavali.count_puzzle_list_page', (client) =>
-      client.select({ count: count() }).from(padavali_puzzles).where(whereClause)
+      client
+        .select({ count: count() })
+        .from(puzzles)
+        .innerJoin(padavali_puzzles, eq(padavali_puzzles.id, puzzles.id))
+        .where(whereClause)
     ),
     rows: dbRunHttp('padavali.select_puzzle_list_page', (client) =>
       client
         .select({
-          id: padavali_puzzles.id,
-          uid: padavali_puzzles.uid,
-          slug: padavali_puzzles.slug,
-          title: padavali_puzzles.title,
-          description: padavali_puzzles.description,
-          listed: padavali_puzzles.listed,
-          created_at: padavali_puzzles.created_at,
-          updated_at: padavali_puzzles.updated_at,
+          id: puzzles.id,
+          uid: puzzles.uid,
+          slug: puzzles.slug,
+          title: puzzles.title,
+          description: puzzles.description,
+          listed: puzzles.listed,
+          created_at: puzzles.created_at,
+          updated_at: puzzles.updated_at,
           image_s3_key: image_assets.s3_key
         })
-        .from(padavali_puzzles)
-        .leftJoin(image_assets, eq(padavali_puzzles.image_id, image_assets.id))
+        .from(puzzles)
+        .innerJoin(padavali_puzzles, eq(padavali_puzzles.id, puzzles.id))
+        .leftJoin(image_assets, eq(puzzles.image_id, image_assets.id))
         .where(whereClause)
         .orderBy(orderPrimary, orderTiebreaker)
         .limit(size)
@@ -503,17 +536,21 @@ const get_puzzle_slugs_route = protectedAdminProcedure
   .query(({ input: { puzzle_id } }) =>
     runTrpcEffect(
       Effect.gen(function* () {
-        const puzzle = yield* dbRunHttp('padavali.get_puzzle_slugs', (client) =>
-          client.query.padavali_puzzles.findFirst({
-            columns: { slug: true },
-            where: (tbl, { eq }) => eq(tbl.id, puzzle_id),
-            with: {
-              redirects: {
-                columns: { slug: true, created_at: true },
-                orderBy: (tbl, { desc }) => desc(tbl.created_at)
-              }
-            }
-          })
+        const [puzzle] = yield* dbRunHttp('padavali.get_puzzle_slugs', (client) =>
+          client
+            .select({ slug: puzzles.slug })
+            .from(puzzles)
+            .where(and(padavaliKind, eq(puzzles.id, puzzle_id)))
+            .limit(1)
+        );
+        const redirects = yield* dbRunHttp('padavali.get_puzzle_redirects', (client) =>
+          client
+            .select({ slug: puzzle_redirects.slug, created_at: puzzle_redirects.created_at })
+            .from(puzzle_redirects)
+            .where(
+              and(eq(puzzle_redirects.kind, 'padavali'), eq(puzzle_redirects.puzzle_id, puzzle_id))
+            )
+            .orderBy(desc(puzzle_redirects.created_at))
         );
 
         if (!puzzle) {
@@ -525,7 +562,7 @@ const get_puzzle_slugs_route = protectedAdminProcedure
           );
         }
 
-        const redirect_slugs = puzzle.redirects.map((redirect) => redirect.slug);
+        const redirect_slugs = redirects.map((redirect) => redirect.slug);
         const all_slugs = [
           puzzle.slug,
           ...redirect_slugs.filter((redirect_slug) => redirect_slug !== puzzle.slug)
@@ -550,11 +587,12 @@ const delete_redirect_slug_route = protectedAdminProcedure
   .mutation(({ input: { puzzle_id, redirect_slug } }) =>
     runTrpcEffect(
       Effect.gen(function* () {
-        const puzzle = yield* dbRunHttp('padavali.find_puzzle_for_redirect_delete', (client) =>
-          client.query.padavali_puzzles.findFirst({
-            columns: { id: true, slug: true },
-            where: (tbl, { eq }) => eq(tbl.id, puzzle_id)
-          })
+        const [puzzle] = yield* dbRunHttp('padavali.find_puzzle_for_redirect_delete', (client) =>
+          client
+            .select({ id: puzzles.id, slug: puzzles.slug })
+            .from(puzzles)
+            .where(and(padavaliKind, eq(puzzles.id, puzzle_id)))
+            .limit(1)
         );
         if (!puzzle) {
           return yield* Effect.fail(
@@ -572,12 +610,18 @@ const delete_redirect_slug_route = protectedAdminProcedure
           );
         }
 
-        const redirect = yield* dbRunHttp('padavali.find_redirect_for_delete', (client) =>
-          client.query.padavali_redirects.findFirst({
-            columns: { id: true },
-            where: (tbl, { and, eq }) =>
-              and(eq(tbl.slug, redirect_slug), eq(tbl.puzzle_id, puzzle_id))
-          })
+        const [redirect] = yield* dbRunHttp('padavali.find_redirect_for_delete', (client) =>
+          client
+            .select({ id: puzzle_redirects.id })
+            .from(puzzle_redirects)
+            .where(
+              and(
+                eq(puzzle_redirects.kind, 'padavali'),
+                eq(puzzle_redirects.slug, redirect_slug),
+                eq(puzzle_redirects.puzzle_id, puzzle_id)
+              )
+            )
+            .limit(1)
         );
         if (!redirect) {
           return yield* Effect.fail(
@@ -590,12 +634,9 @@ const delete_redirect_slug_route = protectedAdminProcedure
 
         yield* dbRunHttp('padavali.delete_redirect', async (client) => {
           await client
-            .delete(padavali_redirects)
+            .delete(puzzle_redirects)
             .where(
-              and(
-                eq(padavali_redirects.id, redirect.id),
-                eq(padavali_redirects.puzzle_id, puzzle_id)
-              )
+              and(eq(puzzle_redirects.id, redirect.id), eq(puzzle_redirects.puzzle_id, puzzle_id))
             );
         });
 

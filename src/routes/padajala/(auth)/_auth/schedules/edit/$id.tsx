@@ -17,19 +17,24 @@ const loader$ = createServerFn({ method: 'GET' })
 
     const schedule = await runLoaderEffect(
       dbRunHttp('crossword.admin.get_schedule_for_edit', (client) =>
-        client.query.crossword_schedules.findFirst({
+        client.query.puzzle_schedules.findFirst({
           where: (tbl, { eq }) => eq(tbl.id, parsed.data),
           with: {
             puzzle: {
               columns: {
                 title: true,
-                id: true
+                id: true,
+                kind: true
               }
             }
           }
         })
       )
     );
+
+    if (schedule?.puzzle.kind !== 'crossword') {
+      return { schedule: null };
+    }
 
     return { schedule: schedule ?? null };
   });

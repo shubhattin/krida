@@ -5,6 +5,7 @@ import { createCache, type CacheItem, type NoCacheParams } from '~/effect/cache'
 import { dbRunHttp } from '~/effect/database';
 import { CacheError } from '~/effect/errors';
 import { GAME_KINDS, type GameKind } from '~/util/catalog/tags';
+import { PUBLIC_GAME_KINDS } from '~/util/games/kinds';
 
 const collection_item_schema = z.object({
   game: z.enum(GAME_KINDS),
@@ -55,14 +56,13 @@ type ItemPuzzle = {
 };
 
 const toPublicItems = (
-  game: GameKind,
-  rows: { order_index: number; puzzle: ItemPuzzle }[]
+  rows: { order_index: number; puzzle: ItemPuzzle & { kind: GameKind } }[]
 ): ListedCollectionItem[] =>
   rows.flatMap((row) =>
-    row.puzzle.listed
+    row.puzzle.listed && (PUBLIC_GAME_KINDS as readonly string[]).includes(row.puzzle.kind)
       ? [
           {
-            game,
+            game: row.puzzle.kind,
             puzzle_id: row.puzzle.id,
             slug: row.puzzle.slug,
             title: row.puzzle.title,
@@ -91,27 +91,13 @@ const load_listed_collections: CacheItem<NoCacheParams, ListedCollectionsType> =
         orderBy: (tbl, { desc }) => desc(tbl.created_at),
         with: {
           image: { columns: imageColumns },
-          padavali_items: {
+          items: {
             columns: { order_index: true },
             with: {
               puzzle: {
                 columns: {
                   id: true,
-                  slug: true,
-                  title: true,
-                  description: true,
-                  listed: true
-                },
-                with: { image: { columns: imageColumns } }
-              }
-            }
-          },
-          crossword_items: {
-            columns: { order_index: true },
-            with: {
-              puzzle: {
-                columns: {
-                  id: true,
+                  kind: true,
                   slug: true,
                   title: true,
                   description: true,
@@ -132,12 +118,9 @@ const load_listed_collections: CacheItem<NoCacheParams, ListedCollectionsType> =
           title: row.title,
           description: row.description,
           image: row.image,
-          // TODO: include dvayi/bhramita/surupa/anveshi items here once those
-          // games ship on /puzzles. Admin collections already persist them.
-          items: [
-            ...toPublicItems('padavali', row.padavali_items),
-            ...toPublicItems('crossword', row.crossword_items)
-          ].sort((a, b) => a.order_index - b.order_index || a.puzzle_id - b.puzzle_id)
+          items: toPublicItems(row.items).sort(
+            (a, b) => a.order_index - b.order_index || a.puzzle_id - b.puzzle_id
+          )
         }))
       ),
       Effect.mapError(toCacheError('fetchListedCollections', LISTED_COLLECTIONS_KEY))

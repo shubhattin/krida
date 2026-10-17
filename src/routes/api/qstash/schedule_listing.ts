@@ -6,7 +6,7 @@ import {
   invalidate_padavali_sitemap,
   NO_CACHE_PARAMS
 } from '~/util/cache.server/cache_loaders';
-import { padavali_schedules, padavali_puzzles } from '~/db/schema';
+import { puzzle_schedules, puzzles } from '~/db/schema';
 import { and, eq } from 'drizzle-orm';
 import { scheduleListingPayloadSchema, decodeQstashPayload } from '~/effect/qstash';
 import { dbRunHttp, dbTransaction } from '~/effect/database';
@@ -34,28 +34,25 @@ export const Route = createFileRoute('/api/qstash/schedule_listing')({
               body
             );
 
-            const schedule = yield* dbRunHttp(
+            const [schedule] = yield* dbRunHttp(
               'qstash.padavali_schedule_listing.find_schedule',
               (client) =>
-                client.query.padavali_schedules.findFirst({
-                  where: (table, { eq: eqFn, and: andFn }) =>
-                    andFn(
-                      eqFn(table.id, schedule_id),
-                      eqFn(table.puzzle_id, puzzle_id),
-                      eqFn(table.listing_verify_key, listing_verify_key)
-                    ),
-                  columns: {
-                    id: true
-                  },
-                  with: {
-                    puzzle: {
-                      columns: {
-                        id: true,
-                        slug: true
-                      }
-                    }
-                  }
-                })
+                client
+                  .select({
+                    id: puzzle_schedules.id,
+                    slug: puzzles.slug
+                  })
+                  .from(puzzle_schedules)
+                  .innerJoin(puzzles, eq(puzzles.id, puzzle_schedules.puzzle_id))
+                  .where(
+                    and(
+                      eq(puzzles.kind, 'padavali'),
+                      eq(puzzle_schedules.id, schedule_id),
+                      eq(puzzle_schedules.puzzle_id, puzzle_id),
+                      eq(puzzle_schedules.listing_verify_key, listing_verify_key)
+                    )
+                  )
+                  .limit(1)
             );
             if (!schedule) {
               console.error('Invalid or expired request');
@@ -68,21 +65,21 @@ export const Route = createFileRoute('/api/qstash/schedule_listing')({
 
             yield* dbTransaction('qstash.padavali_schedule_listing.apply_listing', async (tx) => {
               await tx
-                .update(padavali_puzzles)
+                .update(puzzles)
                 .set({
                   listed: true,
                   last_listed_at: new Date()
                 })
-                .where(eq(padavali_puzzles.id, puzzle_id));
+                .where(and(eq(puzzles.id, puzzle_id), eq(puzzles.kind, 'padavali')));
               await tx
-                .update(padavali_schedules)
+                .update(puzzle_schedules)
                 .set({
                   listing_verify_key: null
                 })
                 .where(
                   and(
-                    eq(padavali_schedules.id, schedule_id),
-                    eq(padavali_schedules.puzzle_id, puzzle_id)
+                    eq(puzzle_schedules.id, schedule_id),
+                    eq(puzzle_schedules.puzzle_id, puzzle_id)
                   )
                 );
             });
@@ -94,7 +91,7 @@ export const Route = createFileRoute('/api/qstash/schedule_listing')({
                 ),
                 ignoreFailure(
                   invalidate_and_refresh_cache(CACHE.padavali.word_puzzle, {
-                    slug: schedule.puzzle.slug
+                    slug: schedule.slug
                   })
                 ),
                 ignoreFailure(invalidate_padavali_sitemap())

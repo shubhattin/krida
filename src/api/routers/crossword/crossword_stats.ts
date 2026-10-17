@@ -1,6 +1,11 @@
 import { Effect } from 'effect';
 import { protectedAdminProcedure, publicProcedure, t } from '../../trpc_init';
-import { crossword_sessions, crossword_gameplay_stats, crossword_puzzles } from '~/db/schema';
+import {
+  crossword_gameplay_stats,
+  crossword_puzzles,
+  puzzle_sessions,
+  puzzles
+} from '~/db/schema';
 import { dbRunHttp } from '~/effect/database';
 import { and, count, desc, eq, gte, ilike, inArray, isNotNull, lte, sql } from 'drizzle-orm';
 import {
@@ -30,6 +35,10 @@ import { CACHE, invalidate_and_refresh_cache } from '~/util/cache.server/cache_l
 const settle = <A, E, R>(effect: Effect.Effect<A, E, R>) =>
   effect.pipe(Effect.catch(() => Effect.void));
 
+const crosswordKind = eq(puzzles.kind, 'crossword');
+const sessionForKind = and(eq(puzzles.id, puzzle_sessions.puzzle_id), crosswordKind);
+const statForKind = and(eq(puzzles.id, crossword_gameplay_stats.puzzle_id), crosswordKind);
+
 const submit_stats_route = publicProcedure
   .input(crossword_submit_stats_input_schema)
   .mutation(({ input, ctx }) =>
@@ -50,12 +59,18 @@ const submit_stats_route = publicProcedure
           session_id
         } = info;
 
-        const session = yield* dbRunHttp('crossword_stats.find_session', (client) =>
-          client.query.crossword_sessions.findFirst({
-            columns: { id: true },
-            where: (tbl, { and: andFn, eq: eqFn }) =>
-              andFn(eqFn(tbl.id, session_id), eqFn(tbl.puzzle_id, puzzle_id))
-          })
+        const [session] = yield* dbRunHttp('crossword_stats.find_session', (client) =>
+          client
+            .select({ id: puzzle_sessions.id })
+            .from(puzzle_sessions)
+            .innerJoin(puzzles, sessionForKind)
+            .where(
+              and(
+                eq(puzzle_sessions.id, session_id),
+                eq(puzzle_sessions.puzzle_id, puzzle_id)
+              )
+            )
+            .limit(1)
         );
         if (!session) {
           return yield* Effect.fail(
@@ -112,7 +127,7 @@ const update_games_started_route = publicProcedure
         const userFields = sessionUserFields(ctx.user);
         const inserted_sessions = yield* dbRunHttp('crossword_stats.create_session', (client) =>
           client
-            .insert(crossword_sessions)
+            .insert(puzzle_sessions)
             .values({
               puzzle_id: id,
               location,
@@ -154,7 +169,7 @@ const get_stats_data_route = protectedAdminProcedure
         const filterByUsers = selectedUserIds.length > 0;
         const { sessions, stats, puzzles } = yield* Effect.all({
           sessions: dbRunHttp('crossword_stats.list_sessions', (client) =>
-            client.query.crossword_sessions.findMany({
+            client.query.puzzle_sessions.findMany({
               columns: {
                 id: true,
                 created_at: true,
@@ -179,7 +194,7 @@ const get_stats_data_route = protectedAdminProcedure
           ),
           stats: dbRunHttp('crossword_stats.list_gameplay_stats', async (client) => {
             if (filterByUsers) {
-              const conditions = [inArray(crossword_sessions.user_id, selectedUserIds)];
+              const conditions = [inArray(puzzle_sessions.user_id, selectedUserIds)];
               if (puzzle_ids && puzzle_ids.length > 0) {
                 conditions.push(inArray(crossword_gameplay_stats.puzzle_id, puzzle_ids));
               }
@@ -202,8 +217,8 @@ const get_stats_data_route = protectedAdminProcedure
                 })
                 .from(crossword_gameplay_stats)
                 .innerJoin(
-                  crossword_sessions,
-                  eq(crossword_gameplay_stats.session_id, crossword_sessions.id)
+                  puzzle_sessions,
+                  eq(crossword_gameplay_stats.session_id, puzzle_sessions.id)
                 )
                 .where(and(...conditions));
             }
@@ -263,22 +278,22 @@ const get_top_puzzles_route = protectedAdminProcedure
         const dateConditions =
           !all_time && start_date && end_date
             ? [
-                gte(crossword_sessions.created_at, start_date),
-                lte(crossword_sessions.created_at, end_date)
+                gte(puzzle_sessions.created_at, start_date),
+                lte(puzzle_sessions.created_at, end_date)
               ]
             : [];
 
         const topSessions = yield* dbRunHttp('crossword_stats.get_top_sessions', (client) =>
           client
             .select({
-              puzzle_id: crossword_sessions.puzzle_id,
-              title: crossword_puzzles.title,
+              puzzle_id: puzzle_sessions.puzzle_id,
+              title: puzzles.title,
               started: count()
             })
-            .from(crossword_sessions)
-            .innerJoin(crossword_puzzles, eq(crossword_puzzles.id, crossword_sessions.puzzle_id))
-            .where(dateConditions.length > 0 ? and(...dateConditions) : undefined)
-            .groupBy(crossword_sessions.puzzle_id, crossword_puzzles.title)
+            .from(puzzle_sessions)
+            .innerJoin(puzzles, sessionForKind)
+            .where(and(crosswordKind, ...(dateConditions.length > 0 ? dateConditions : [])))
+            .groupBy(puzzle_sessions.puzzle_id, puzzles.title)
             .orderBy(desc(count()))
             .limit(limit)
         );
@@ -313,6 +328,7 @@ const get_top_puzzles_route = protectedAdminProcedure
                 completed: count()
               })
               .from(crossword_gameplay_stats)
+              .innerJoin(puzzles, statForKind)
               .where(
                 and(
                   inArray(crossword_gameplay_stats.puzzle_id, puzzleIds),
@@ -343,24 +359,24 @@ const get_top_users_route = protectedAdminProcedure
   .query(({ input: { all_time, start_date, end_date, limit, puzzle_ids } }) =>
     runTrpcEffect(
       Effect.gen(function* () {
-        const conditions = [isNotNull(crossword_sessions.user_id)];
+        const conditions = [isNotNull(puzzle_sessions.user_id)];
         if (!all_time && start_date && end_date) {
-          conditions.push(gte(crossword_sessions.created_at, start_date));
-          conditions.push(lte(crossword_sessions.created_at, end_date));
+          conditions.push(gte(puzzle_sessions.created_at, start_date));
+          conditions.push(lte(puzzle_sessions.created_at, end_date));
         }
         if (puzzle_ids && puzzle_ids.length > 0) {
-          conditions.push(inArray(crossword_sessions.puzzle_id, puzzle_ids));
+          conditions.push(inArray(puzzle_sessions.puzzle_id, puzzle_ids));
         }
 
         const topSessions = yield* dbRunHttp('crossword_stats.get_top_users', (client) =>
           client
             .select({
-              user_id: crossword_sessions.user_id,
+              user_id: puzzle_sessions.user_id,
               started: count()
             })
-            .from(crossword_sessions)
+            .from(puzzle_sessions)
             .where(and(...conditions))
-            .groupBy(crossword_sessions.user_id)
+            .groupBy(puzzle_sessions.user_id)
             .orderBy(desc(count()))
             .limit(limit)
         );
@@ -384,7 +400,7 @@ const get_top_users_route = protectedAdminProcedure
           return { users };
         }
 
-        const statsConditions = [inArray(crossword_sessions.user_id, userIds)];
+        const statsConditions = [inArray(puzzle_sessions.user_id, userIds)];
         if (!all_time && start_date && end_date) {
           statsConditions.push(gte(crossword_gameplay_stats.created_at, start_date));
           statsConditions.push(lte(crossword_gameplay_stats.created_at, end_date));
@@ -398,16 +414,16 @@ const get_top_users_route = protectedAdminProcedure
           (client) =>
             client
               .select({
-                user_id: crossword_sessions.user_id,
+                user_id: puzzle_sessions.user_id,
                 completed: count()
               })
               .from(crossword_gameplay_stats)
               .innerJoin(
-                crossword_sessions,
-                eq(crossword_gameplay_stats.session_id, crossword_sessions.id)
+                puzzle_sessions,
+                eq(crossword_gameplay_stats.session_id, puzzle_sessions.id)
               )
               .where(and(...statsConditions))
-              .groupBy(crossword_sessions.user_id)
+              .groupBy(puzzle_sessions.user_id)
         );
 
         const completedByUser = new Map(
@@ -439,12 +455,12 @@ const get_user_list_page_route = protectedAdminProcedure
           const idPattern = `%${escapeIlikeToken(trimmedSearch)}%`;
           const localIdRows = yield* dbRunHttp('crossword_stats.search_user_ids', (client) =>
             client
-              .selectDistinct({ user_id: crossword_sessions.user_id })
-              .from(crossword_sessions)
+              .selectDistinct({ user_id: puzzle_sessions.user_id })
+              .from(puzzle_sessions)
               .where(
                 and(
-                  isNotNull(crossword_sessions.user_id),
-                  ilike(crossword_sessions.user_id, idPattern)
+                  isNotNull(puzzle_sessions.user_id),
+                  ilike(puzzle_sessions.user_id, idPattern)
                 )
               )
               .limit(50)
@@ -471,12 +487,12 @@ const get_user_list_page_route = protectedAdminProcedure
           const playRows = yield* dbRunHttp('crossword_stats.list_users_filtered', (client) =>
             client
               .select({
-                user_id: crossword_sessions.user_id,
+                user_id: puzzle_sessions.user_id,
                 plays: count()
               })
-              .from(crossword_sessions)
-              .where(inArray(crossword_sessions.user_id, matchedIds))
-              .groupBy(crossword_sessions.user_id)
+              .from(puzzle_sessions)
+              .where(inArray(puzzle_sessions.user_id, matchedIds))
+              .groupBy(puzzle_sessions.user_id)
               .orderBy(desc(count()))
           );
 
@@ -514,27 +530,27 @@ const get_user_list_page_route = protectedAdminProcedure
           };
         }
 
-        const conditions = [isNotNull(crossword_sessions.user_id)];
+        const conditions = [isNotNull(puzzle_sessions.user_id)];
         const whereClause = and(...conditions);
 
         const { countResult, rows } = yield* Effect.all({
           countResult: dbRunHttp('crossword_stats.count_users', (client) =>
             client
               .select({
-                count: sql<number>`cast(count(distinct ${crossword_sessions.user_id}) as int)`
+                count: sql<number>`cast(count(distinct ${puzzle_sessions.user_id}) as int)`
               })
-              .from(crossword_sessions)
+              .from(puzzle_sessions)
               .where(whereClause)
           ),
           rows: dbRunHttp('crossword_stats.list_users', (client) =>
             client
               .select({
-                user_id: crossword_sessions.user_id,
+                user_id: puzzle_sessions.user_id,
                 plays: count()
               })
-              .from(crossword_sessions)
+              .from(puzzle_sessions)
               .where(whereClause)
-              .groupBy(crossword_sessions.user_id)
+              .groupBy(puzzle_sessions.user_id)
               .orderBy(desc(count()))
               .limit(size)
               .offset(offset)

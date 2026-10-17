@@ -1,6 +1,5 @@
 import { createFileRoute, Link } from '@tanstack/react-router';
 import { createServerFn } from '@tanstack/react-start';
-import { eq } from 'drizzle-orm';
 import { ArrowLeftIcon } from 'lucide-react';
 import { transliterate_node } from 'lipilekhika/node';
 import { z } from 'zod';
@@ -8,7 +7,7 @@ import WordGame from '~/components/pages/padavali/WordGame/WordGameRoot';
 import { get_transliterated_word_game_msgs } from '~/components/pages/padavali/WordGame/msgs';
 import { transliterate_custom } from '~/tools/transliterator';
 import { routeHeadFromPageMeta } from '~/components/tags/getPageMetaTags';
-import { padavali_puzzles } from '~/db/schema';
+import { puzzles } from '~/db/schema';
 import { dbRunHttp } from '~/effect/database';
 import { getScript$ } from '~/lib/cache_server_route_data';
 import { DEFAULT_DATA_SCRIPT } from '~/state/script_list';
@@ -22,9 +21,10 @@ const loader$ = createServerFn({ method: 'GET' })
     const nextSchedulePromise = runLoaderEffect(CACHE.padavali.next_schedule.get(NO_CACHE_PARAMS));
     const row = await runLoaderEffect(
       dbRunHttp('padavali.view.resolve_uid', (client) =>
-        client.query.padavali_puzzles.findFirst({
+        client.query.puzzles.findFirst({
           columns: { slug: true },
-          where: eq(padavali_puzzles.uid, data.nano_id)
+          where: (tbl, { and, eq: eqFn }) =>
+            and(eqFn(tbl.uid, data.nano_id), eqFn(tbl.kind, 'padavali'))
         })
       )
     );

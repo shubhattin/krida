@@ -13,8 +13,7 @@ import {
   ai_batches,
   ai_batch_responses,
   image_assets,
-  padavali_puzzles,
-  crossword_puzzles
+  puzzles
 } from '~/db/schema';
 import { and, desc, eq, inArray, sql } from 'drizzle-orm';
 import {
@@ -295,23 +294,19 @@ export const trigger_batch_puzzle_image_gen = Effect.fn('batch_ai.trigger_batch_
     const puzzle_ids = puzzle_inputs.map((puzzle) => puzzle.puzzle_id);
 
     const db_puzzles = yield* dbRunHttp('batch_ai.find_puzzles_for_trigger', (client) =>
-      game === 'crossword'
-        ? client.query.crossword_puzzles.findMany({
-            columns: {
-              id: true,
-              title: true,
-              description: true
-            },
-            where: (tbl, { inArray: inArr }) => inArr(tbl.id, puzzle_ids)
-          })
-        : client.query.padavali_puzzles.findMany({
-            columns: {
-              id: true,
-              title: true,
-              description: true
-            },
-            where: (tbl, { inArray: inArr }) => inArr(tbl.id, puzzle_ids)
-          })
+      client
+        .select({
+          id: puzzles.id,
+          title: puzzles.title,
+          description: puzzles.description
+        })
+        .from(puzzles)
+        .where(
+          and(
+            eq(puzzles.kind, game),
+            inArray(puzzles.id, puzzle_ids)
+          )
+        )
     );
 
     if (db_puzzles.length !== puzzle_ids.length) {
@@ -572,10 +567,11 @@ export const approve_connect_puzzle_image_id = Effect.fn(
       const game = resolveBatchGame(metadata, custom_id);
 
       if (game === 'crossword') {
-        const puzzle = await tx.query.crossword_puzzles.findFirst({
-          columns: { slug: true, listed: true },
-          where: eq(crossword_puzzles.id, puzzle_id)
-        });
+        const [puzzle] = await tx
+          .select({ slug: puzzles.slug, listed: puzzles.listed })
+          .from(puzzles)
+          .where(and(eq(puzzles.id, puzzle_id), eq(puzzles.kind, 'crossword')))
+          .limit(1);
         if (!puzzle) {
           return {
             ok: false,
@@ -587,11 +583,11 @@ export const approve_connect_puzzle_image_id = Effect.fn(
 
         await Promise.all([
           tx
-            .update(crossword_puzzles)
+            .update(puzzles)
             .set({
               image_id: uploaded_image_id
             })
-            .where(eq(crossword_puzzles.id, puzzle_id)),
+            .where(and(eq(puzzles.id, puzzle_id), eq(puzzles.kind, 'crossword'))),
           tx
             .delete(ai_batch_responses)
             .where(
@@ -613,10 +609,11 @@ export const approve_connect_puzzle_image_id = Effect.fn(
         };
       }
 
-      const puzzle = await tx.query.padavali_puzzles.findFirst({
-        columns: { slug: true, listed: true },
-        where: eq(padavali_puzzles.id, puzzle_id)
-      });
+      const [puzzle] = await tx
+        .select({ slug: puzzles.slug, listed: puzzles.listed })
+        .from(puzzles)
+        .where(and(eq(puzzles.id, puzzle_id), eq(puzzles.kind, 'padavali')))
+        .limit(1);
       if (!puzzle) {
         return {
           ok: false,
@@ -628,11 +625,11 @@ export const approve_connect_puzzle_image_id = Effect.fn(
 
       await Promise.all([
         tx
-          .update(padavali_puzzles)
+          .update(puzzles)
           .set({
             image_id: uploaded_image_id
           })
-          .where(eq(padavali_puzzles.id, puzzle_id)),
+          .where(and(eq(puzzles.id, puzzle_id), eq(puzzles.kind, 'padavali'))),
         tx
           .delete(ai_batch_responses)
           .where(
@@ -1083,7 +1080,7 @@ type EnrichedBatchRow = {
   metadata: BatchMetadata;
   game: PuzzleImageGame;
   puzzle_id: number;
-  puzzle_title: string | null;
+  puzzle_title: string;
   image_asset: {
     id: number;
     s3_key: string;
@@ -1113,24 +1110,15 @@ const enrichBatchRowWithAssetAndPuzzle = Effect.fn('batch_ai.enrichBatchRowWithA
       );
     }
     const game = resolveBatchGame(metadata, row.custom_id);
-    let puzzle_title: string | null = null;
-    if (game === 'crossword') {
-      const puzzle = yield* dbRunHttp('batch_ai.find_crossword_title', (client) =>
-        client.query.crossword_puzzles.findFirst({
-          columns: { title: true },
-          where: eq(crossword_puzzles.id, puzzle_id)
-        })
-      );
-      puzzle_title = puzzle?.title ?? null;
-    } else {
-      const puzzle = yield* dbRunHttp('batch_ai.find_padavali_title', (client) =>
-        client.query.padavali_puzzles.findFirst({
-          columns: { title: true },
-          where: eq(padavali_puzzles.id, puzzle_id)
-        })
-      );
-      puzzle_title = puzzle?.title ?? null;
-    }
+    let puzzle_title = '';
+    const [titleRow] = yield* dbRunHttp('batch_ai.find_puzzle_title', (client) =>
+      client
+        .select({ title: puzzles.title })
+        .from(puzzles)
+        .where(and(eq(puzzles.id, puzzle_id), eq(puzzles.kind, game)))
+        .limit(1)
+    );
+    puzzle_title = titleRow?.title ?? '';
 
     let image_asset: EnrichedBatchRow['image_asset'] = null;
 
@@ -1291,20 +1279,15 @@ export const get_batch_manager_groups = Effect.fn('batch_ai.get_batch_manager_gr
   const { puzzle_ids, image_ids } = collectBatchRowIds(rows);
 
   const puzzle_id_list = [...puzzle_ids];
-  const { puzzles, assets } = yield* Effect.all({
-    puzzles:
+  const { puzzleRows, assets } = yield* Effect.all({
+    puzzleRows:
       // SAFETY: empty list stands in for the findMany rows (id + title) when there are none
       puzzle_id_list.length > 0
         ? dbRunHttp('batch_ai.find_puzzles_for_manager', (client) =>
-            game === 'crossword'
-              ? client.query.crossword_puzzles.findMany({
-                  columns: { id: true, title: true },
-                  where: inArray(crossword_puzzles.id, puzzle_id_list)
-                })
-              : client.query.padavali_puzzles.findMany({
-                  columns: { id: true, title: true },
-                  where: inArray(padavali_puzzles.id, puzzle_id_list)
-                })
+            client
+              .select({ id: puzzles.id, title: puzzles.title })
+              .from(puzzles)
+              .where(and(eq(puzzles.kind, game), inArray(puzzles.id, puzzle_id_list)))
           )
         : Effect.succeed([] as Array<{ id: number; title: string }>),
     assets:
@@ -1333,7 +1316,7 @@ export const get_batch_manager_groups = Effect.fn('batch_ai.get_batch_manager_gr
           )
   });
 
-  const puzzle_by_id = new Map(puzzles.map((puzzle) => [puzzle.id, puzzle]));
+  const puzzle_by_id = new Map(puzzleRows.map((puzzle) => [puzzle.id, puzzle]));
   const asset_by_id = new Map(assets.map((asset) => [asset.id, asset]));
 
   const groups = new Map<string, { batch_id: string; items: EnrichedBatchRow[] }>();
@@ -1343,7 +1326,7 @@ export const get_batch_manager_groups = Effect.fn('batch_ai.get_batch_manager_gr
     const puzzle_id =
       metadata.puzzle_id ?? parsePuzzleIdFromBatchCustomId(row.custom_id)?.puzzle_id;
     if (puzzle_id === undefined) continue;
-    const puzzle_title = puzzle_by_id.get(puzzle_id)?.title ?? null;
+    const puzzle_title = puzzle_by_id.get(puzzle_id)?.title ?? '';
     const image_asset =
       metadata.uploaded_image_id !== undefined
         ? (asset_by_id.get(metadata.uploaded_image_id) ?? null)

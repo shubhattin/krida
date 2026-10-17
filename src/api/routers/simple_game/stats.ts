@@ -2,6 +2,7 @@ import { Effect } from 'effect';
 import { protectedAdminProcedure, publicProcedure, t } from '../../trpc_init';
 import { dbRunHttp } from '~/effect/database';
 import { and, count, desc, eq, gte, ilike, inArray, isNotNull, lte, sql } from 'drizzle-orm';
+import { attempt_gameplay_stats, puzzle_sessions, puzzles } from '~/db/schema';
 import {
   simple_game_submit_stats_input_schema,
   simple_game_update_games_started_input_schema
@@ -28,8 +29,12 @@ import type { SimpleGameTableSet } from '~/db/schema/simple_game_tables';
 
 export function createSimpleGameStatsRouter<TData>(
   kind: SimpleGameKind,
-  tables: SimpleGameTableSet<TData>
+  _tables: SimpleGameTableSet<TData>
 ) {
+  const puzzleKind = eq(puzzles.kind, kind);
+  const sessionForKind = and(eq(puzzles.id, puzzle_sessions.puzzle_id), puzzleKind);
+  const statForKind = and(eq(puzzles.id, attempt_gameplay_stats.puzzle_id), puzzleKind);
+
   const submit_stats_route = publicProcedure
     .input(simple_game_submit_stats_input_schema)
     .mutation(({ input, ctx }) =>
@@ -43,10 +48,14 @@ export function createSimpleGameStatsRouter<TData>(
 
           const [session] = yield* dbRunHttp(`${kind}_stats.find_session`, (client) =>
             client
-              .select({ id: tables.sessions.id })
-              .from(tables.sessions)
+              .select({ id: puzzle_sessions.id })
+              .from(puzzle_sessions)
+              .innerJoin(puzzles, sessionForKind)
               .where(
-                and(eq(tables.sessions.id, session_id), eq(tables.sessions.puzzle_id, puzzle_id))
+                and(
+                  eq(puzzle_sessions.id, session_id),
+                  eq(puzzle_sessions.puzzle_id, puzzle_id)
+                )
               )
               .limit(1)
           );
@@ -58,7 +67,7 @@ export function createSimpleGameStatsRouter<TData>(
 
           yield* dbRunHttp(`${kind}_stats.insert_gameplay_stat`, async (client) => {
             await client
-              .insert(tables.gameplay_stats)
+              .insert(attempt_gameplay_stats)
               .values({
                 puzzle_id,
                 session_id,
@@ -67,7 +76,7 @@ export function createSimpleGameStatsRouter<TData>(
                 correct_attempts,
                 total_attempts
               })
-              .onConflictDoNothing({ target: tables.gameplay_stats.session_id });
+              .onConflictDoNothing({ target: attempt_gameplay_stats.session_id });
           });
 
           return { submitted: true };
@@ -92,7 +101,7 @@ export function createSimpleGameStatsRouter<TData>(
           const userFields = sessionUserFields(ctx.user);
           const inserted_sessions = yield* dbRunHttp(`${kind}_stats.create_session`, (client) =>
             client
-              .insert(tables.sessions)
+              .insert(puzzle_sessions)
               .values({
                 puzzle_id: id,
                 location,
@@ -124,76 +133,82 @@ export function createSimpleGameStatsRouter<TData>(
           const filterByUsers = selectedUserIds.length > 0;
           const { sessions, stats } = yield* Effect.all({
             sessions: dbRunHttp(`${kind}_stats.list_sessions`, (client) => {
-              const conditions = [];
+              const conditions = [puzzleKind];
               if (puzzle_ids && puzzle_ids.length > 0) {
-                conditions.push(inArray(tables.sessions.puzzle_id, puzzle_ids));
+                conditions.push(inArray(puzzle_sessions.puzzle_id, puzzle_ids));
               }
               if (filterByUsers) {
-                conditions.push(inArray(tables.sessions.user_id, selectedUserIds));
+                conditions.push(inArray(puzzle_sessions.user_id, selectedUserIds));
               }
               if (!all_time && start_date && end_date) {
-                conditions.push(gte(tables.sessions.created_at, start_date));
-                conditions.push(lte(tables.sessions.created_at, end_date));
+                conditions.push(gte(puzzle_sessions.created_at, start_date));
+                conditions.push(lte(puzzle_sessions.created_at, end_date));
               }
               return client
                 .select({
-                  id: tables.sessions.id,
-                  created_at: tables.sessions.created_at,
-                  location: tables.sessions.location,
-                  user_id: tables.sessions.user_id,
-                  script: tables.sessions.script
+                  id: puzzle_sessions.id,
+                  created_at: puzzle_sessions.created_at,
+                  location: puzzle_sessions.location,
+                  user_id: puzzle_sessions.user_id,
+                  script: puzzle_sessions.script
                 })
-                .from(tables.sessions)
-                .where(conditions.length > 0 ? and(...conditions) : undefined);
+                .from(puzzle_sessions)
+                .innerJoin(puzzles, sessionForKind)
+                .where(and(...conditions));
             }),
             stats: dbRunHttp(`${kind}_stats.list_gameplay_stats`, (client) => {
               if (filterByUsers) {
-                const conditions = [inArray(tables.sessions.user_id, selectedUserIds)];
+                const conditions = [
+                  puzzleKind,
+                  inArray(puzzle_sessions.user_id, selectedUserIds)
+                ];
                 if (puzzle_ids && puzzle_ids.length > 0) {
-                  conditions.push(inArray(tables.gameplay_stats.puzzle_id, puzzle_ids));
+                  conditions.push(inArray(attempt_gameplay_stats.puzzle_id, puzzle_ids));
                 }
                 if (!all_time && start_date && end_date) {
-                  conditions.push(gte(tables.gameplay_stats.created_at, start_date));
-                  conditions.push(lte(tables.gameplay_stats.created_at, end_date));
+                  conditions.push(gte(attempt_gameplay_stats.created_at, start_date));
+                  conditions.push(lte(attempt_gameplay_stats.created_at, end_date));
                 }
                 return client
                   .select({
-                    id: tables.gameplay_stats.id,
-                    created_at: tables.gameplay_stats.created_at,
-                    session_id: tables.gameplay_stats.session_id,
-                    time_taken: tables.gameplay_stats.time_taken,
-                    accuracy: tables.gameplay_stats.accuracy,
-                    correct_attempts: tables.gameplay_stats.correct_attempts,
-                    total_attempts: tables.gameplay_stats.total_attempts
+                    id: attempt_gameplay_stats.id,
+                    created_at: attempt_gameplay_stats.created_at,
+                    session_id: attempt_gameplay_stats.session_id,
+                    time_taken: attempt_gameplay_stats.time_taken,
+                    accuracy: attempt_gameplay_stats.accuracy,
+                    correct_attempts: attempt_gameplay_stats.correct_attempts,
+                    total_attempts: attempt_gameplay_stats.total_attempts
                   })
-                  .from(tables.gameplay_stats)
+                  .from(attempt_gameplay_stats)
+                  .innerJoin(puzzles, statForKind)
                   .innerJoin(
-                    tables.sessions,
-                    eq(tables.gameplay_stats.session_id, tables.sessions.id)
+                    puzzle_sessions,
+                    eq(attempt_gameplay_stats.session_id, puzzle_sessions.id)
                   )
                   .where(and(...conditions));
               }
 
-              const conditions = [];
+              const conditions = [puzzleKind];
               if (puzzle_ids && puzzle_ids.length > 0) {
-                conditions.push(inArray(tables.gameplay_stats.puzzle_id, puzzle_ids));
+                conditions.push(inArray(attempt_gameplay_stats.puzzle_id, puzzle_ids));
               }
               if (!all_time && start_date && end_date) {
-                conditions.push(gte(tables.gameplay_stats.created_at, start_date));
-                conditions.push(lte(tables.gameplay_stats.created_at, end_date));
+                conditions.push(gte(attempt_gameplay_stats.created_at, start_date));
+                conditions.push(lte(attempt_gameplay_stats.created_at, end_date));
               }
               return client
                 .select({
-                  id: tables.gameplay_stats.id,
-                  created_at: tables.gameplay_stats.created_at,
-                  session_id: tables.gameplay_stats.session_id,
-                  time_taken: tables.gameplay_stats.time_taken,
-                  accuracy: tables.gameplay_stats.accuracy,
-                  correct_attempts: tables.gameplay_stats.correct_attempts,
-                  total_attempts: tables.gameplay_stats.total_attempts
+                  id: attempt_gameplay_stats.id,
+                  created_at: attempt_gameplay_stats.created_at,
+                  session_id: attempt_gameplay_stats.session_id,
+                  time_taken: attempt_gameplay_stats.time_taken,
+                  accuracy: attempt_gameplay_stats.accuracy,
+                  correct_attempts: attempt_gameplay_stats.correct_attempts,
+                  total_attempts: attempt_gameplay_stats.total_attempts
                 })
-                .from(tables.gameplay_stats)
-                .where(conditions.length > 0 ? and(...conditions) : undefined);
+                .from(attempt_gameplay_stats)
+                .innerJoin(puzzles, statForKind)
+                .where(and(...conditions));
             })
           });
 
@@ -210,22 +225,22 @@ export function createSimpleGameStatsRouter<TData>(
           const dateConditions =
             !all_time && start_date && end_date
               ? [
-                  gte(tables.sessions.created_at, start_date),
-                  lte(tables.sessions.created_at, end_date)
+                  gte(puzzle_sessions.created_at, start_date),
+                  lte(puzzle_sessions.created_at, end_date)
                 ]
               : [];
 
           const topSessions = yield* dbRunHttp(`${kind}_stats.get_top_sessions`, (client) =>
             client
               .select({
-                puzzle_id: tables.sessions.puzzle_id,
-                title: tables.puzzles.title,
+                puzzle_id: puzzle_sessions.puzzle_id,
+                title: puzzles.title,
                 started: count()
               })
-              .from(tables.sessions)
-              .innerJoin(tables.puzzles, eq(tables.puzzles.id, tables.sessions.puzzle_id))
-              .where(dateConditions.length > 0 ? and(...dateConditions) : undefined)
-              .groupBy(tables.sessions.puzzle_id, tables.puzzles.title)
+              .from(puzzle_sessions)
+              .innerJoin(puzzles, sessionForKind)
+              .where(and(puzzleKind, ...(dateConditions.length > 0 ? dateConditions : [])))
+              .groupBy(puzzle_sessions.puzzle_id, puzzles.title)
               .orderBy(desc(count()))
               .limit(limit)
           );
@@ -244,8 +259,8 @@ export function createSimpleGameStatsRouter<TData>(
           const statsDateConditions =
             !all_time && start_date && end_date
               ? [
-                  gte(tables.gameplay_stats.created_at, start_date),
-                  lte(tables.gameplay_stats.created_at, end_date)
+                  gte(attempt_gameplay_stats.created_at, start_date),
+                  lte(attempt_gameplay_stats.created_at, end_date)
                 ]
               : [];
 
@@ -254,17 +269,18 @@ export function createSimpleGameStatsRouter<TData>(
             (client) =>
               client
                 .select({
-                  puzzle_id: tables.gameplay_stats.puzzle_id,
+                  puzzle_id: attempt_gameplay_stats.puzzle_id,
                   completed: count()
                 })
-                .from(tables.gameplay_stats)
+                .from(attempt_gameplay_stats)
+                .innerJoin(puzzles, statForKind)
                 .where(
                   and(
-                    inArray(tables.gameplay_stats.puzzle_id, puzzleIds),
+                    inArray(attempt_gameplay_stats.puzzle_id, puzzleIds),
                     ...(statsDateConditions.length > 0 ? statsDateConditions : [])
                   )
                 )
-                .groupBy(tables.gameplay_stats.puzzle_id)
+                .groupBy(attempt_gameplay_stats.puzzle_id)
           );
 
           const completedByPuzzle = new Map(
@@ -288,24 +304,25 @@ export function createSimpleGameStatsRouter<TData>(
     .query(({ input: { all_time, start_date, end_date, limit, puzzle_ids } }) =>
       runTrpcEffect(
         Effect.gen(function* () {
-          const conditions = [isNotNull(tables.sessions.user_id)];
+          const conditions = [puzzleKind, isNotNull(puzzle_sessions.user_id)];
           if (!all_time && start_date && end_date) {
-            conditions.push(gte(tables.sessions.created_at, start_date));
-            conditions.push(lte(tables.sessions.created_at, end_date));
+            conditions.push(gte(puzzle_sessions.created_at, start_date));
+            conditions.push(lte(puzzle_sessions.created_at, end_date));
           }
           if (puzzle_ids && puzzle_ids.length > 0) {
-            conditions.push(inArray(tables.sessions.puzzle_id, puzzle_ids));
+            conditions.push(inArray(puzzle_sessions.puzzle_id, puzzle_ids));
           }
 
           const topSessions = yield* dbRunHttp(`${kind}_stats.get_top_users`, (client) =>
             client
               .select({
-                user_id: tables.sessions.user_id,
+                user_id: puzzle_sessions.user_id,
                 started: count()
               })
-              .from(tables.sessions)
+              .from(puzzle_sessions)
+              .innerJoin(puzzles, sessionForKind)
               .where(and(...conditions))
-              .groupBy(tables.sessions.user_id)
+              .groupBy(puzzle_sessions.user_id)
               .orderBy(desc(count()))
               .limit(limit)
           );
@@ -329,13 +346,16 @@ export function createSimpleGameStatsRouter<TData>(
             return { users };
           }
 
-          const statsConditions = [inArray(tables.sessions.user_id, userIds)];
+          const statsConditions = [
+            puzzleKind,
+            inArray(puzzle_sessions.user_id, userIds)
+          ];
           if (!all_time && start_date && end_date) {
-            statsConditions.push(gte(tables.gameplay_stats.created_at, start_date));
-            statsConditions.push(lte(tables.gameplay_stats.created_at, end_date));
+            statsConditions.push(gte(attempt_gameplay_stats.created_at, start_date));
+            statsConditions.push(lte(attempt_gameplay_stats.created_at, end_date));
           }
           if (puzzle_ids && puzzle_ids.length > 0) {
-            statsConditions.push(inArray(tables.gameplay_stats.puzzle_id, puzzle_ids));
+            statsConditions.push(inArray(attempt_gameplay_stats.puzzle_id, puzzle_ids));
           }
 
           const completionRows = yield* dbRunHttp(
@@ -343,16 +363,17 @@ export function createSimpleGameStatsRouter<TData>(
             (client) =>
               client
                 .select({
-                  user_id: tables.sessions.user_id,
+                  user_id: puzzle_sessions.user_id,
                   completed: count()
                 })
-                .from(tables.gameplay_stats)
+                .from(attempt_gameplay_stats)
+                .innerJoin(puzzles, statForKind)
                 .innerJoin(
-                  tables.sessions,
-                  eq(tables.gameplay_stats.session_id, tables.sessions.id)
+                  puzzle_sessions,
+                  eq(attempt_gameplay_stats.session_id, puzzle_sessions.id)
                 )
                 .where(and(...statsConditions))
-                .groupBy(tables.sessions.user_id)
+                .groupBy(puzzle_sessions.user_id)
           );
 
           const completedByUser = new Map(
@@ -384,10 +405,14 @@ export function createSimpleGameStatsRouter<TData>(
             const idPattern = `%${escapeIlikeToken(trimmedSearch)}%`;
             const localIdRows = yield* dbRunHttp(`${kind}_stats.search_user_ids`, (client) =>
               client
-                .selectDistinct({ user_id: tables.sessions.user_id })
-                .from(tables.sessions)
+                .selectDistinct({ user_id: puzzle_sessions.user_id })
+                .from(puzzle_sessions)
+                .innerJoin(puzzles, sessionForKind)
                 .where(
-                  and(isNotNull(tables.sessions.user_id), ilike(tables.sessions.user_id, idPattern))
+                  and(
+                    isNotNull(puzzle_sessions.user_id),
+                    ilike(puzzle_sessions.user_id, idPattern)
+                  )
                 )
                 .limit(50)
             );
@@ -413,12 +438,13 @@ export function createSimpleGameStatsRouter<TData>(
             const playRows = yield* dbRunHttp(`${kind}_stats.list_users_filtered`, (client) =>
               client
                 .select({
-                  user_id: tables.sessions.user_id,
+                  user_id: puzzle_sessions.user_id,
                   plays: count()
                 })
-                .from(tables.sessions)
-                .where(inArray(tables.sessions.user_id, matchedIds))
-                .groupBy(tables.sessions.user_id)
+                .from(puzzle_sessions)
+                .innerJoin(puzzles, sessionForKind)
+                .where(inArray(puzzle_sessions.user_id, matchedIds))
+                .groupBy(puzzle_sessions.user_id)
                 .orderBy(desc(count()))
             );
 
@@ -454,25 +480,27 @@ export function createSimpleGameStatsRouter<TData>(
             };
           }
 
-          const whereClause = isNotNull(tables.sessions.user_id);
+          const whereClause = and(puzzleKind, isNotNull(puzzle_sessions.user_id));
           const { countResult, rows } = yield* Effect.all({
             countResult: dbRunHttp(`${kind}_stats.count_users`, (client) =>
               client
                 .select({
-                  count: sql<number>`cast(count(distinct ${tables.sessions.user_id}) as int)`
+                  count: sql<number>`cast(count(distinct ${puzzle_sessions.user_id}) as int)`
                 })
-                .from(tables.sessions)
+                .from(puzzle_sessions)
+                .innerJoin(puzzles, sessionForKind)
                 .where(whereClause)
             ),
             rows: dbRunHttp(`${kind}_stats.list_users`, (client) =>
               client
                 .select({
-                  user_id: tables.sessions.user_id,
+                  user_id: puzzle_sessions.user_id,
                   plays: count()
                 })
-                .from(tables.sessions)
+                .from(puzzle_sessions)
+                .innerJoin(puzzles, sessionForKind)
                 .where(whereClause)
-                .groupBy(tables.sessions.user_id)
+                .groupBy(puzzle_sessions.user_id)
                 .orderBy(desc(count()))
                 .limit(size)
                 .offset(offset)

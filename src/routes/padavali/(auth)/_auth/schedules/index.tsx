@@ -1,11 +1,13 @@
 import { createFileRoute, Link } from '@tanstack/react-router';
 import { createServerFn } from '@tanstack/react-start';
+import { and, desc, eq, gte } from 'drizzle-orm';
 import { IoMdArrowRoundBack } from 'react-icons/io';
 import { FiPlus } from 'react-icons/fi';
 import { Button } from '~/components/ui/button';
 import { Card, CardContent } from '~/components/ui/card';
 import { routeHeadFromPageMeta } from '~/components/tags/getPageMetaTags';
 import { adminServerFnMiddleware } from '~/lib/adminServerFn';
+import { puzzle_schedules, puzzles } from '~/db/schema';
 import { dbRunHttp } from '~/effect/database';
 import { runLoaderEffect } from '~/effect/run';
 import ListSchedules, { PastSchedules } from './-ListSchedules';
@@ -14,27 +16,31 @@ const loader$ = createServerFn({ method: 'GET' })
   .middleware([adminServerFnMiddleware])
   .handler(async () => {
     const current_time = new Date();
-    const upcomming_schedules = await runLoaderEffect(
+    const rows = await runLoaderEffect(
       dbRunHttp('padavali.admin.list_upcoming_schedules', (client) =>
-        client.query.padavali_schedules.findMany({
-          columns: {
-            id: true,
-            start_time: true,
-            end_time: true,
-            created_at: true,
-            puzzle_id: true
-          },
-          with: {
-            puzzle: {
-              columns: {
-                title: true
-              }
-            }
-          },
-          orderBy: (schedules, { desc }) => [desc(schedules.created_at)],
-          where: (schedules, { gte }) => gte(schedules.end_time, current_time)
-        })
+        client
+          .select({
+            id: puzzle_schedules.id,
+            start_time: puzzle_schedules.start_time,
+            end_time: puzzle_schedules.end_time,
+            created_at: puzzle_schedules.created_at,
+            puzzle_id: puzzle_schedules.puzzle_id,
+            puzzle_title: puzzles.title
+          })
+          .from(puzzle_schedules)
+          .innerJoin(puzzles, eq(puzzles.id, puzzle_schedules.puzzle_id))
+          .where(
+            and(eq(puzzles.kind, 'padavali'), gte(puzzle_schedules.end_time, current_time))
+          )
+          .orderBy(desc(puzzle_schedules.created_at))
       )
+    );
+
+    const upcomming_schedules = rows.map(
+      ({ puzzle_title, ...schedule }) => ({
+        ...schedule,
+        puzzle: { title: puzzle_title }
+      })
     );
 
     return { upcomming_schedules };
@@ -50,60 +56,28 @@ function PadavaliSchedulesRoute() {
   const { upcomming_schedules } = Route.useLoaderData();
 
   return (
-    <div className="container mx-auto p-4">
-      <div className="my-2 mb-4 px-2">
+    <>
+      <div className="my-2 mb-3.5 flex items-center gap-6 px-2 sm:gap-9">
         <Link
           to="/padavali/list"
           className="inline-flex items-center gap-1.5 text-lg font-semibold"
         >
           <IoMdArrowRoundBack className="size-5 shrink-0" />
-          <span>Main List</span>
+          Main List
+        </Link>
+        <Link to="/padavali/schedules/add">
+          <Button variant="outline" className="gap-2">
+            <FiPlus className="size-4" />
+            Add Schedule
+          </Button>
         </Link>
       </div>
-
-      <div className="mb-6 flex items-center justify-between">
-        <div>
-          <h1 className="text-2xl font-bold">Schedules</h1>
-        </div>
-        <Button
-          render={<Link to="/padavali/schedules/add" className="inline-flex items-center gap-2" />}
-          nativeButton={false}
-          variant={'outline'}
-        >
-          <FiPlus className="size-4 shrink-0" />
-          Add Schedule
-        </Button>
-      </div>
-
-      <div className="mb-8">
-        <h2 className="mb-4 text-xl font-semibold">Upcoming Schedules</h2>
-        {upcomming_schedules.length === 0 ? (
-          <Card>
-            <CardContent className="flex flex-col items-center justify-center py-12 text-center">
-              <div className="mb-4 text-muted-foreground">
-                <FiPlus className="mx-auto mb-2 h-12 w-12 opacity-50" />
-              </div>
-              <h3 className="mb-2 text-lg font-semibold">No Upcoming Schedules</h3>
-              <p className="mb-4 text-muted-foreground">
-                There are no upcoming schedules. Please add a schedule first.
-              </p>
-              <Button
-                render={
-                  <Link to="/padavali/schedules/add" className="inline-flex items-center gap-2" />
-                }
-                nativeButton={false}
-                variant="link"
-              >
-                <FiPlus className="size-4 shrink-0" />
-                Add First Schedule
-              </Button>
-            </CardContent>
-          </Card>
-        ) : (
+      <Card>
+        <CardContent className="pt-6">
           <ListSchedules upcomming_schedules={upcomming_schedules} />
-        )}
-        <PastSchedules />
-      </div>
-    </div>
+          <PastSchedules />
+        </CardContent>
+      </Card>
+    </>
   );
 }

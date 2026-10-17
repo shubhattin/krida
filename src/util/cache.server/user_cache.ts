@@ -1,12 +1,10 @@
 import { Effect } from 'effect';
 import { and, avg, count, desc, eq, inArray, max, min } from 'drizzle-orm';
 import {
+  attempt_gameplay_stats,
   crossword_gameplay_stats,
-  crossword_puzzles,
-  crossword_sessions,
-  padavali_gameplay_stats,
-  padavali_puzzles,
-  padavali_sessions
+  puzzle_sessions,
+  puzzles
 } from '~/db/schema';
 import {
   game_dashboard_stats_schema,
@@ -49,56 +47,62 @@ function toNullableNumber(value: number | string | null | undefined): number | n
 const fetchPadavaliDashboard = Effect.fn('user_cache.padavali_dashboard')(function* (
   userId: string
 ) {
+  const padavaliKind = eq(puzzles.kind, 'padavali');
+  const sessionJoin = and(eq(puzzles.id, puzzle_sessions.puzzle_id), padavaliKind);
+  const statJoin = and(eq(puzzles.id, attempt_gameplay_stats.puzzle_id), padavaliKind);
+
   const { startedRows, completionRows, topStarted, recentRows } = yield* Effect.all({
     startedRows: dbRunHttp('user_cache.padavali_started', (client) =>
       client
         .select({ started: count() })
-        .from(padavali_sessions)
-        .where(eq(padavali_sessions.user_id, userId))
+        .from(puzzle_sessions)
+        .innerJoin(puzzles, sessionJoin)
+        .where(eq(puzzle_sessions.user_id, userId))
     ),
     completionRows: dbRunHttp('user_cache.padavali_completions', (client) =>
       client
         .select({
           completed: count(),
-          best_time_seconds: min(padavali_gameplay_stats.time_taken),
-          best_accuracy: max(padavali_gameplay_stats.accuracy),
-          avg_time_seconds: avg(padavali_gameplay_stats.time_taken),
-          avg_accuracy: avg(padavali_gameplay_stats.accuracy)
+          best_time_seconds: min(attempt_gameplay_stats.time_taken),
+          best_accuracy: max(attempt_gameplay_stats.accuracy),
+          avg_time_seconds: avg(attempt_gameplay_stats.time_taken),
+          avg_accuracy: avg(attempt_gameplay_stats.accuracy)
         })
-        .from(padavali_gameplay_stats)
-        .innerJoin(padavali_sessions, eq(padavali_gameplay_stats.session_id, padavali_sessions.id))
-        .where(eq(padavali_sessions.user_id, userId))
+        .from(attempt_gameplay_stats)
+        .innerJoin(puzzles, statJoin)
+        .innerJoin(puzzle_sessions, eq(attempt_gameplay_stats.session_id, puzzle_sessions.id))
+        .where(eq(puzzle_sessions.user_id, userId))
     ),
     topStarted: dbRunHttp('user_cache.padavali_top_started', (client) =>
       client
         .select({
-          puzzle_id: padavali_sessions.puzzle_id,
-          title: padavali_puzzles.title,
-          slug: padavali_puzzles.slug,
+          puzzle_id: puzzle_sessions.puzzle_id,
+          title: puzzles.title,
+          slug: puzzles.slug,
           started: count()
         })
-        .from(padavali_sessions)
-        .innerJoin(padavali_puzzles, eq(padavali_puzzles.id, padavali_sessions.puzzle_id))
-        .where(eq(padavali_sessions.user_id, userId))
-        .groupBy(padavali_sessions.puzzle_id, padavali_puzzles.title, padavali_puzzles.slug)
+        .from(puzzle_sessions)
+        .innerJoin(puzzles, sessionJoin)
+        .where(eq(puzzle_sessions.user_id, userId))
+        .groupBy(puzzle_sessions.puzzle_id, puzzles.title, puzzles.slug)
         .orderBy(desc(count()))
         .limit(TOP_PUZZLE_LIMIT)
     ),
     recentRows: dbRunHttp('user_cache.padavali_recent', (client) =>
       client
         .select({
-          puzzle_id: padavali_puzzles.id,
-          title: padavali_puzzles.title,
-          slug: padavali_puzzles.slug,
-          time_taken: padavali_gameplay_stats.time_taken,
-          accuracy: padavali_gameplay_stats.accuracy,
-          created_at: padavali_gameplay_stats.created_at
+          puzzle_id: puzzles.id,
+          title: puzzles.title,
+          slug: puzzles.slug,
+          time_taken: attempt_gameplay_stats.time_taken,
+          accuracy: attempt_gameplay_stats.accuracy,
+          created_at: attempt_gameplay_stats.created_at
         })
-        .from(padavali_gameplay_stats)
-        .innerJoin(padavali_sessions, eq(padavali_gameplay_stats.session_id, padavali_sessions.id))
-        .innerJoin(padavali_puzzles, eq(padavali_gameplay_stats.puzzle_id, padavali_puzzles.id))
-        .where(eq(padavali_sessions.user_id, userId))
-        .orderBy(desc(padavali_gameplay_stats.created_at))
+        .from(attempt_gameplay_stats)
+        .innerJoin(puzzles, statJoin)
+        .innerJoin(puzzle_sessions, eq(attempt_gameplay_stats.session_id, puzzle_sessions.id))
+        .where(eq(puzzle_sessions.user_id, userId))
+        .orderBy(desc(attempt_gameplay_stats.created_at))
         .limit(RECENT_LIMIT)
     )
   });
@@ -119,20 +123,21 @@ const fetchPadavaliDashboard = Effect.fn('user_cache.padavali_dashboard')(functi
     const completionByPuzzle = yield* dbRunHttp('user_cache.padavali_top_completed', (client) =>
       client
         .select({
-          puzzle_id: padavali_gameplay_stats.puzzle_id,
+          puzzle_id: attempt_gameplay_stats.puzzle_id,
           completed: count(),
-          best_time_seconds: min(padavali_gameplay_stats.time_taken),
-          best_accuracy: max(padavali_gameplay_stats.accuracy)
+          best_time_seconds: min(attempt_gameplay_stats.time_taken),
+          best_accuracy: max(attempt_gameplay_stats.accuracy)
         })
-        .from(padavali_gameplay_stats)
-        .innerJoin(padavali_sessions, eq(padavali_gameplay_stats.session_id, padavali_sessions.id))
+        .from(attempt_gameplay_stats)
+        .innerJoin(puzzles, statJoin)
+        .innerJoin(puzzle_sessions, eq(attempt_gameplay_stats.session_id, puzzle_sessions.id))
         .where(
           and(
-            eq(padavali_sessions.user_id, userId),
-            inArray(padavali_gameplay_stats.puzzle_id, puzzleIds)
+            eq(puzzle_sessions.user_id, userId),
+            inArray(attempt_gameplay_stats.puzzle_id, puzzleIds)
           )
         )
-        .groupBy(padavali_gameplay_stats.puzzle_id)
+        .groupBy(attempt_gameplay_stats.puzzle_id)
     );
 
     const byPuzzle = new Map(
@@ -178,12 +183,17 @@ const fetchPadavaliDashboard = Effect.fn('user_cache.padavali_dashboard')(functi
 const fetchPadajalaDashboard = Effect.fn('user_cache.padajala_dashboard')(function* (
   userId: string
 ) {
+  const crosswordKind = eq(puzzles.kind, 'crossword');
+  const sessionJoin = and(eq(puzzles.id, puzzle_sessions.puzzle_id), crosswordKind);
+  const statJoin = and(eq(puzzles.id, crossword_gameplay_stats.puzzle_id), crosswordKind);
+
   const { startedRows, completionRows, topStarted, recentRows } = yield* Effect.all({
     startedRows: dbRunHttp('user_cache.padajala_started', (client) =>
       client
         .select({ started: count() })
-        .from(crossword_sessions)
-        .where(eq(crossword_sessions.user_id, userId))
+        .from(puzzle_sessions)
+        .innerJoin(puzzles, sessionJoin)
+        .where(eq(puzzle_sessions.user_id, userId))
     ),
     completionRows: dbRunHttp('user_cache.padajala_completions', (client) =>
       client
@@ -195,44 +205,39 @@ const fetchPadajalaDashboard = Effect.fn('user_cache.padajala_dashboard')(functi
           avg_accuracy: avg(crossword_gameplay_stats.accuracy)
         })
         .from(crossword_gameplay_stats)
-        .innerJoin(
-          crossword_sessions,
-          eq(crossword_gameplay_stats.session_id, crossword_sessions.id)
-        )
-        .where(eq(crossword_sessions.user_id, userId))
+        .innerJoin(puzzles, statJoin)
+        .innerJoin(puzzle_sessions, eq(crossword_gameplay_stats.session_id, puzzle_sessions.id))
+        .where(eq(puzzle_sessions.user_id, userId))
     ),
     topStarted: dbRunHttp('user_cache.padajala_top_started', (client) =>
       client
         .select({
-          puzzle_id: crossword_sessions.puzzle_id,
-          title: crossword_puzzles.title,
-          slug: crossword_puzzles.slug,
+          puzzle_id: puzzle_sessions.puzzle_id,
+          title: puzzles.title,
+          slug: puzzles.slug,
           started: count()
         })
-        .from(crossword_sessions)
-        .innerJoin(crossword_puzzles, eq(crossword_puzzles.id, crossword_sessions.puzzle_id))
-        .where(eq(crossword_sessions.user_id, userId))
-        .groupBy(crossword_sessions.puzzle_id, crossword_puzzles.title, crossword_puzzles.slug)
+        .from(puzzle_sessions)
+        .innerJoin(puzzles, sessionJoin)
+        .where(eq(puzzle_sessions.user_id, userId))
+        .groupBy(puzzle_sessions.puzzle_id, puzzles.title, puzzles.slug)
         .orderBy(desc(count()))
         .limit(TOP_PUZZLE_LIMIT)
     ),
     recentRows: dbRunHttp('user_cache.padajala_recent', (client) =>
       client
         .select({
-          puzzle_id: crossword_puzzles.id,
-          title: crossword_puzzles.title,
-          slug: crossword_puzzles.slug,
+          puzzle_id: puzzles.id,
+          title: puzzles.title,
+          slug: puzzles.slug,
           time_taken: crossword_gameplay_stats.time_taken,
           accuracy: crossword_gameplay_stats.accuracy,
           created_at: crossword_gameplay_stats.created_at
         })
         .from(crossword_gameplay_stats)
-        .innerJoin(
-          crossword_sessions,
-          eq(crossword_gameplay_stats.session_id, crossword_sessions.id)
-        )
-        .innerJoin(crossword_puzzles, eq(crossword_gameplay_stats.puzzle_id, crossword_puzzles.id))
-        .where(eq(crossword_sessions.user_id, userId))
+        .innerJoin(puzzles, statJoin)
+        .innerJoin(puzzle_sessions, eq(crossword_gameplay_stats.session_id, puzzle_sessions.id))
+        .where(eq(puzzle_sessions.user_id, userId))
         .orderBy(desc(crossword_gameplay_stats.created_at))
         .limit(RECENT_LIMIT)
     )
@@ -260,13 +265,11 @@ const fetchPadajalaDashboard = Effect.fn('user_cache.padajala_dashboard')(functi
           best_accuracy: max(crossword_gameplay_stats.accuracy)
         })
         .from(crossword_gameplay_stats)
-        .innerJoin(
-          crossword_sessions,
-          eq(crossword_gameplay_stats.session_id, crossword_sessions.id)
-        )
+        .innerJoin(puzzles, statJoin)
+        .innerJoin(puzzle_sessions, eq(crossword_gameplay_stats.session_id, puzzle_sessions.id))
         .where(
           and(
-            eq(crossword_sessions.user_id, userId),
+            eq(puzzle_sessions.user_id, userId),
             inArray(crossword_gameplay_stats.puzzle_id, puzzleIds)
           )
         )

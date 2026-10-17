@@ -143,7 +143,7 @@ const LIVE_GAMES = [
       { href: '/padajala/list', label: 'Puzzles', icon: List },
       { href: '/padajala/analytics', label: 'Analytics', icon: BarChart3 },
       { href: '/padajala/schedules', label: 'Schedules', icon: Calendar },
-      { href: '/padajala/batch_manager', label: 'Batches', icon: Images }
+      { href: '/padavali/batch_manager', label: 'Batches', icon: Images }
     ]
   }
 ];

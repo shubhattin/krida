@@ -1,12 +1,20 @@
 import { Effect } from 'effect';
-import { sql } from 'drizzle-orm';
+import { and, asc, desc, eq, gt, gte, lte, sql } from 'drizzle-orm';
 import { z } from 'zod';
 import { attachment_schema, image_schema } from '~/db/db_shared_vals';
+import {
+  crossword_puzzles,
+  image_assets,
+  puzzle_attachments,
+  puzzle_schedules,
+  puzzles
+} from '~/db/schema';
 import {
   CrossWordPuzzleWordSchema,
   CrossordPuzzleGridCellSchema,
   type CrossWordPuzzleWord
 } from '~/db/schema_zod';
+import { tagsForPuzzleIds } from '~/util/catalog/list_query';
 import { createCache, type CacheItem, type NoCacheParams } from '~/effect/cache';
 import { dbRunHttp } from '~/effect/database';
 import type { RedisJsonValue } from '~/effect/redis';
@@ -37,7 +45,9 @@ const crossword_puzzle_schema = z.object({
 
 export type CrosswordPuzzleType = z.infer<typeof crossword_puzzle_schema>;
 
-const toPublicCrosswordPuzzle = <T extends { word_list: CrossWordPuzzleWord[] }>(puzzle: T): T => ({
+type CrosswordDbPuzzle = z.infer<typeof crossword_puzzle_schema>;
+
+const toPublicCrosswordPuzzle = (puzzle: CrosswordDbPuzzle): CrosswordPuzzleType => ({
   ...puzzle,
   word_list: crosswordActiveWordList(puzzle.word_list)
 });
@@ -101,7 +111,6 @@ const parseScheduleSentinel =
   <T>(schema: z.ZodType<T>) =>
   (raw: RedisJsonValue): T | undefined | null => {
     if (raw === 'undefined') return undefined;
-    // Non-object payloads fail the object schema itself, mapping to a cache miss.
     const parsed = schema.safeParse(raw);
     return parsed.success ? parsed.data : null;
   };
@@ -119,51 +128,83 @@ const load_current_schedule: CacheItem<NoCacheParams, CrosswordCurrentScheduleTy
       : undefined,
   fetch: () => {
     const currentTime = new Date();
-    return dbRunHttp('crossword.current_schedule', (client) =>
-      client.query.crossword_schedules.findFirst({
-        columns: {
-          id: true,
-          start_time: true,
-          end_time: true
-        },
-        where: (tbl, { and, lte, gte }) =>
-          and(lte(tbl.start_time, currentTime), gte(tbl.end_time, currentTime)),
-        with: {
-          puzzle: {
-            with: {
-              attachments: {
-                columns: {
-                  id: true,
-                  title: true,
-                  type: true,
-                  url: true,
-                  order_index: true
-                },
-                orderBy: (tbl, { asc }) => asc(tbl.order_index)
-              },
-              image: {
-                columns: {
-                  id: true,
-                  s3_key: true,
-                  width: true,
-                  height: true
-                }
+    return dbRunHttp('crossword.current_schedule', async (client) => {
+      const [schedule] = await client
+        .select({
+          id: puzzle_schedules.id,
+          start_time: puzzle_schedules.start_time,
+          end_time: puzzle_schedules.end_time,
+          puzzle_id: puzzles.id,
+          slug: puzzles.slug,
+          title: puzzles.title,
+          created_at: puzzles.created_at,
+          updated_at: puzzles.updated_at,
+          listed: puzzles.listed,
+          description: puzzles.description,
+          word_list: crossword_puzzles.word_list,
+          grid_data: crossword_puzzles.grid_data,
+          grid_dimensions: crossword_puzzles.grid_dimensions,
+          image_id: image_assets.id,
+          image_s3_key: image_assets.s3_key,
+          image_width: image_assets.width,
+          image_height: image_assets.height
+        })
+        .from(puzzle_schedules)
+        .innerJoin(puzzles, eq(puzzles.id, puzzle_schedules.puzzle_id))
+        .innerJoin(crossword_puzzles, eq(crossword_puzzles.id, puzzles.id))
+        .leftJoin(image_assets, eq(image_assets.id, puzzles.image_id))
+        .where(
+          and(
+            eq(puzzles.kind, 'crossword'),
+            lte(puzzle_schedules.start_time, currentTime),
+            gte(puzzle_schedules.end_time, currentTime)
+          )
+        )
+        .limit(1);
+      if (!schedule) return undefined;
+
+      const attachments = await client
+        .select({
+          id: puzzle_attachments.id,
+          title: puzzle_attachments.title,
+          type: puzzle_attachments.type,
+          url: puzzle_attachments.url,
+          order_index: puzzle_attachments.order_index
+        })
+        .from(puzzle_attachments)
+        .where(eq(puzzle_attachments.puzzle_id, schedule.puzzle_id))
+        .orderBy(asc(puzzle_attachments.order_index));
+
+      const dbPuzzle: CrosswordDbPuzzle = {
+        id: schedule.puzzle_id,
+        slug: schedule.slug,
+        title: schedule.title,
+        created_at: schedule.created_at,
+        updated_at: schedule.updated_at,
+        listed: schedule.listed,
+        description: schedule.description,
+        word_list: schedule.word_list as CrossWordPuzzleWord[],
+        grid_data: schedule.grid_data as CrosswordDbPuzzle['grid_data'],
+        grid_dimensions: schedule.grid_dimensions as [number, number],
+        attachments,
+        image:
+          schedule.image_id && schedule.image_s3_key
+            ? {
+                id: schedule.image_id,
+                s3_key: schedule.image_s3_key,
+                width: schedule.image_width!,
+                height: schedule.image_height!
               }
-            }
-          }
-        }
-      })
-    ).pipe(
-      Effect.map((schedule) =>
-        schedule
-          ? {
-              ...schedule,
-              puzzle: toPublicCrosswordPuzzle(schedule.puzzle)
-            }
-          : undefined
-      ),
-      Effect.mapError(toCacheError('fetchCurrentSchedule', CURRENT_SCHEDULE_KEY))
-    );
+            : null
+      };
+
+      return {
+        id: schedule.id,
+        start_time: schedule.start_time,
+        end_time: schedule.end_time,
+        puzzle: toPublicCrosswordPuzzle(dbPuzzle)
+      };
+    }).pipe(Effect.mapError(toCacheError('fetchCurrentSchedule', CURRENT_SCHEDULE_KEY)));
   }
 });
 
@@ -176,23 +217,25 @@ const load_next_schedule: CacheItem<NoCacheParams, CrosswordNextScheduleType> = 
     data ? { exat: Math.floor(data.start_time.getTime() / 1000) } : undefined,
   fetch: () => {
     const currentTime = new Date();
-    return dbRunHttp('crossword.next_schedule', (client) =>
-      client.query.crossword_schedules.findFirst({
-        columns: {
-          id: true,
-          start_time: true
-        },
-        where: (tbl, { gt }) => gt(tbl.start_time, currentTime),
-        orderBy: (tbl, { asc }) => asc(tbl.start_time),
-        with: {
-          puzzle: {
-            columns: {
-              id: true
-            }
-          }
-        }
-      })
-    ).pipe(Effect.mapError(toCacheError('fetchNextSchedule', NEXT_SCHEDULE_KEY)));
+    return dbRunHttp('crossword.next_schedule', async (client) => {
+      const [schedule] = await client
+        .select({
+          id: puzzle_schedules.id,
+          start_time: puzzle_schedules.start_time,
+          puzzle_id: puzzles.id
+        })
+        .from(puzzle_schedules)
+        .innerJoin(puzzles, eq(puzzles.id, puzzle_schedules.puzzle_id))
+        .where(and(eq(puzzles.kind, 'crossword'), gt(puzzle_schedules.start_time, currentTime)))
+        .orderBy(puzzle_schedules.start_time)
+        .limit(1);
+      if (!schedule) return undefined;
+      return {
+        id: schedule.id,
+        start_time: schedule.start_time,
+        puzzle: { id: schedule.puzzle_id }
+      };
+    }).pipe(Effect.mapError(toCacheError('fetchNextSchedule', NEXT_SCHEDULE_KEY)));
   }
 });
 
@@ -201,50 +244,59 @@ const load_listed_puzzle_list: CacheItem<NoCacheParams, CrosswordListedPuzzlesTy
   schema: listed_puzzle_schema.array(),
   fetch: () =>
     dbRunHttp('crossword.listed_puzzle_list', (client) =>
-      client.query.crossword_puzzles.findMany({
-        columns: {
-          id: true,
-          slug: true,
-          title: true,
-          description: true,
-          last_listed_at: true,
-          updated_at: true,
-          created_at: true
-        },
-        with: {
-          image: {
-            columns: {
-              id: true,
-              s3_key: true,
-              width: true,
-              height: true
-            }
-          },
-          puzzle_tags: {
-            columns: { puzzle_id: true, tag_id: true },
-            with: {
-              tag: {
-                columns: {
-                  id: true,
-                  slug: true
-                }
-              }
-            }
-          }
-        },
-        where: ({ listed }, { eq }) => eq(listed, true),
-        orderBy: ({ created_at, updated_at, last_listed_at, id }, { desc }) => [
-          desc(sql`COALESCE(${last_listed_at}, ${updated_at}, ${created_at})`),
-          desc(created_at),
-          desc(id)
-        ]
-      })
+      client
+        .select({
+          id: puzzles.id,
+          slug: puzzles.slug,
+          title: puzzles.title,
+          description: puzzles.description,
+          last_listed_at: puzzles.last_listed_at,
+          updated_at: puzzles.updated_at,
+          created_at: puzzles.created_at,
+          image_id: image_assets.id,
+          image_s3_key: image_assets.s3_key,
+          image_width: image_assets.width,
+          image_height: image_assets.height
+        })
+        .from(puzzles)
+        .innerJoin(crossword_puzzles, eq(crossword_puzzles.id, puzzles.id))
+        .leftJoin(image_assets, eq(image_assets.id, puzzles.image_id))
+        .where(and(eq(puzzles.kind, 'crossword'), eq(puzzles.listed, true)))
+        .orderBy(
+          desc(sql`COALESCE(${puzzles.last_listed_at}, ${puzzles.updated_at}, ${puzzles.created_at})`),
+          desc(puzzles.created_at),
+          desc(puzzles.id)
+        )
     ).pipe(
-      Effect.map((rows) =>
-        rows.map(({ puzzle_tags, ...puzzle }) => ({
-          ...puzzle,
-          tags: puzzle_tags.map((link) => link.tag).sort((a, b) => a.slug.localeCompare(b.slug))
-        }))
+      Effect.flatMap((rows) =>
+        tagsForPuzzleIds(
+          'crossword',
+          rows.map((row) => row.id)
+        ).pipe(
+          Effect.map((tagsByPuzzle) =>
+            rows.map(
+              ({
+                image_id,
+                image_s3_key,
+                image_width,
+                image_height,
+                ...puzzle
+              }) => ({
+                ...puzzle,
+                image:
+                  image_id && image_s3_key
+                    ? {
+                        id: image_id,
+                        s3_key: image_s3_key,
+                        width: image_width!,
+                        height: image_height!
+                      }
+                    : null,
+                tags: tagsByPuzzle.get(puzzle.id) ?? []
+              })
+            )
+          )
+        )
       ),
       Effect.mapError(toCacheError('fetchListedPuzzleList', LISTED_PUZZLE_LIST_KEY))
     )
@@ -256,34 +308,67 @@ const load_word_puzzle: CacheItem<CrosswordPuzzleParams, CrosswordPuzzleType | u
     schema: crossword_puzzle_schema,
     shouldCache: (data) => data !== undefined,
     fetch: ({ slug }) =>
-      dbRunHttp('crossword.word_puzzle', (client) =>
-        client.query.crossword_puzzles.findFirst({
-          where: (tbl, { eq }) => eq(tbl.slug, slug),
-          with: {
-            attachments: {
-              columns: {
-                id: true,
-                title: true,
-                type: true,
-                url: true,
-                order_index: true
-              },
-              orderBy: (tbl, { asc }) => asc(tbl.order_index)
-            },
-            image: {
-              columns: {
-                id: true,
-                s3_key: true,
-                width: true,
-                height: true
-              }
-            }
-          }
-        })
-      ).pipe(
-        Effect.map((puzzle) => (puzzle ? toPublicCrosswordPuzzle(puzzle) : undefined)),
-        Effect.mapError(toCacheError('fetchWordPuzzle', wordPuzzleKey(slug)))
-      )
+      dbRunHttp('crossword.word_puzzle', async (client) => {
+        const [row] = await client
+          .select({
+            id: puzzles.id,
+            slug: puzzles.slug,
+            title: puzzles.title,
+            created_at: puzzles.created_at,
+            updated_at: puzzles.updated_at,
+            listed: puzzles.listed,
+            description: puzzles.description,
+            word_list: crossword_puzzles.word_list,
+            grid_data: crossword_puzzles.grid_data,
+            grid_dimensions: crossword_puzzles.grid_dimensions,
+            image_id: image_assets.id,
+            image_s3_key: image_assets.s3_key,
+            image_width: image_assets.width,
+            image_height: image_assets.height
+          })
+          .from(puzzles)
+          .innerJoin(crossword_puzzles, eq(crossword_puzzles.id, puzzles.id))
+          .leftJoin(image_assets, eq(image_assets.id, puzzles.image_id))
+          .where(and(eq(puzzles.kind, 'crossword'), eq(puzzles.slug, slug)))
+          .limit(1);
+        if (!row) return undefined;
+
+        const attachments = await client
+          .select({
+            id: puzzle_attachments.id,
+            title: puzzle_attachments.title,
+            type: puzzle_attachments.type,
+            url: puzzle_attachments.url,
+            order_index: puzzle_attachments.order_index
+          })
+          .from(puzzle_attachments)
+          .where(eq(puzzle_attachments.puzzle_id, row.id))
+          .orderBy(asc(puzzle_attachments.order_index));
+
+        const dbPuzzle: CrosswordDbPuzzle = {
+          id: row.id,
+          slug: row.slug,
+          title: row.title,
+          created_at: row.created_at,
+          updated_at: row.updated_at,
+          listed: row.listed,
+          description: row.description,
+          word_list: row.word_list as CrossWordPuzzleWord[],
+          grid_data: row.grid_data as CrosswordDbPuzzle['grid_data'],
+          grid_dimensions: row.grid_dimensions as [number, number],
+          attachments,
+          image:
+            row.image_id && row.image_s3_key
+              ? {
+                  id: row.image_id,
+                  s3_key: row.image_s3_key,
+                  width: row.image_width!,
+                  height: row.image_height!
+                }
+              : null
+        };
+        return toPublicCrosswordPuzzle(dbPuzzle);
+      }).pipe(Effect.mapError(toCacheError('fetchWordPuzzle', wordPuzzleKey(slug))))
   });
 
 const load_more_hints: CacheItem<CrosswordPuzzleParams, MoreHintsType> = createCache({

@@ -95,7 +95,20 @@ export const CrossordPuzzleSchemaZod = createSelectSchema(crossword_puzzles, {
   /** mxn grid; blank text cells are boxes, letters are playable */
   grid_data: CrossordPuzzleGridCellSchema.array().array()
 });
-export type CrossordPuzzle = z.infer<typeof CrossordPuzzleSchemaZod>;
+const crosswordListingSchema = z.object({
+  uid: z.string(),
+  slug: z.string(),
+  title: z.string(),
+  description: z.string(),
+  listed: z.boolean(),
+  last_listed_at: z.coerce.date().nullable().optional(),
+  image_id: z.number().int().nullable().optional(),
+  created_at: z.coerce.date(),
+  updated_at: z.coerce.date().nullable().optional()
+});
+/** Joined puzzle the app edits and plays. Listing fields live on `puzzles`. */
+export type CrossordPuzzle = z.infer<typeof CrossordPuzzleSchemaZod> &
+  z.infer<typeof crosswordListingSchema>;
 
 export const AttemptGamePlayStatsSchemaZod = createSelectSchema(attempt_gameplay_stats, {
   created_at: z.coerce.date()

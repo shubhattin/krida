@@ -6,7 +6,7 @@ import {
   invalidate_padajala_sitemap,
   NO_CACHE_PARAMS
 } from '~/util/cache.server/cache_loaders';
-import { crossword_schedules, crossword_puzzles } from '~/db/schema';
+import { crossword_puzzles, puzzle_schedules, puzzles } from '~/db/schema';
 import { and, eq } from 'drizzle-orm';
 import { analyzeWordPlacements } from '~/util/cross_word/placement';
 import { scheduleListingPayloadSchema, decodeQstashPayload } from '~/effect/qstash';
@@ -35,29 +35,29 @@ export const Route = createFileRoute('/api/qstash/crossword/schedule_listing')({
               body
             );
 
-            const schedule = yield* dbRunHttp(
+            const [schedule] = yield* dbRunHttp(
               'qstash.crossword_schedule_listing.find_schedule',
               (client) =>
-                client.query.crossword_schedules.findFirst({
-                  where: (table, { eq: eqFn, and: andFn }) =>
-                    andFn(
-                      eqFn(table.id, schedule_id),
-                      eqFn(table.puzzle_id, puzzle_id),
-                      eqFn(table.listing_verify_key, listing_verify_key)
-                    ),
-                  columns: { id: true },
-                  with: {
-                    puzzle: {
-                      columns: {
-                        id: true,
-                        title: true,
-                        slug: true,
-                        grid_data: true,
-                        word_list: true
-                      }
-                    }
-                  }
-                })
+                client
+                  .select({
+                    id: puzzle_schedules.id,
+                    title: puzzles.title,
+                    slug: puzzles.slug,
+                    grid_data: crossword_puzzles.grid_data,
+                    word_list: crossword_puzzles.word_list
+                  })
+                  .from(puzzle_schedules)
+                  .innerJoin(puzzles, eq(puzzles.id, puzzle_schedules.puzzle_id))
+                  .innerJoin(crossword_puzzles, eq(crossword_puzzles.id, puzzles.id))
+                  .where(
+                    and(
+                      eq(puzzles.kind, 'crossword'),
+                      eq(puzzle_schedules.id, schedule_id),
+                      eq(puzzle_schedules.puzzle_id, puzzle_id),
+                      eq(puzzle_schedules.listing_verify_key, listing_verify_key)
+                    )
+                  )
+                  .limit(1)
             );
             if (!schedule) {
               console.error('Invalid or expired crossword schedule listing request');
@@ -68,10 +68,7 @@ export const Route = createFileRoute('/api/qstash/crossword/schedule_listing')({
               );
             }
 
-            const analysis = analyzeWordPlacements(
-              schedule.puzzle.grid_data,
-              schedule.puzzle.word_list
-            );
+            const analysis = analyzeWordPlacements(schedule.grid_data, schedule.word_list);
             if (!analysis.canList) {
               console.error(
                 `Crossword puzzle ${puzzle_id} cannot be listed: invalid word placements for schedule ${schedule_id}`
@@ -85,19 +82,19 @@ export const Route = createFileRoute('/api/qstash/crossword/schedule_listing')({
 
             yield* dbTransaction('qstash.crossword_schedule_listing.apply_listing', async (tx) => {
               await tx
-                .update(crossword_puzzles)
+                .update(puzzles)
                 .set({
                   listed: true,
                   last_listed_at: new Date()
                 })
-                .where(eq(crossword_puzzles.id, puzzle_id));
+                .where(and(eq(puzzles.id, puzzle_id), eq(puzzles.kind, 'crossword')));
               await tx
-                .update(crossword_schedules)
+                .update(puzzle_schedules)
                 .set({ listing_verify_key: null })
                 .where(
                   and(
-                    eq(crossword_schedules.id, schedule_id),
-                    eq(crossword_schedules.puzzle_id, puzzle_id)
+                    eq(puzzle_schedules.id, schedule_id),
+                    eq(puzzle_schedules.puzzle_id, puzzle_id)
                   )
                 );
             });
@@ -109,7 +106,7 @@ export const Route = createFileRoute('/api/qstash/crossword/schedule_listing')({
                 ),
                 ignoreFailure(
                   invalidate_and_refresh_cache(CACHE.crossword.word_puzzle, {
-                    slug: schedule.puzzle.slug
+                    slug: schedule.slug
                   })
                 ),
                 ignoreFailure(

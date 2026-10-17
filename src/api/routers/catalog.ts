@@ -2,8 +2,14 @@ import { Effect } from 'effect';
 import { and, asc, count, desc, eq, ilike, inArray, or, sql } from 'drizzle-orm';
 import { z } from 'zod';
 import { protectedAdminProcedure, t } from '~/api/trpc_init';
-import { collections, image_assets, tags } from '~/db/schema';
-import { itemTable, puzzleTable, tagLinkTable, TAG_LINK_SQL } from '~/util/catalog/game_tables';
+import {
+  collections,
+  collection_items,
+  image_assets,
+  puzzle_tags,
+  puzzles,
+  tags
+} from '~/db/schema';
 import { dbRunHttp, dbTransaction, type DbTransaction } from '~/effect/database';
 import { BadRequestError, ConflictError, NotFoundError } from '~/effect/errors';
 import { runTrpcEffect } from '~/effect/run';
@@ -13,7 +19,6 @@ import {
   invalidate_padavali_sitemap,
   NO_CACHE_PARAMS
 } from '~/util/cache.server/cache_loaders';
-import { puzzleNotInCollection } from '~/util/catalog/list_query';
 import {
   catalog_slug_schema,
   GAME_KINDS,
@@ -38,40 +43,33 @@ const refreshListedCollections = () =>
   );
 
 const loadTagPuzzleRefs = (tagId: number) =>
-  Effect.gen(function* () {
-    const groups = yield* Effect.all(
-      GAME_KINDS.map((game) => {
-        const link = tagLinkTable[game];
-        return dbRunHttp(`catalog.tag_${game}_ids`, (client) =>
-          client.select({ puzzle_id: link.puzzle_id }).from(link).where(eq(link.tag_id, tagId))
-        ).pipe(
-          Effect.map((rows) => rows.map((row) => ({ game, puzzle_id: row.puzzle_id }) as const))
-        );
-      })
-    );
-    return groups.flat();
-  });
+  dbRunHttp('catalog.tag_puzzle_refs', (client) =>
+    client
+      .select({ game: puzzles.kind, puzzle_id: puzzle_tags.puzzle_id })
+      .from(puzzle_tags)
+      .innerJoin(puzzles, eq(puzzles.id, puzzle_tags.puzzle_id))
+      .where(eq(puzzle_tags.tag_id, tagId))
+  );
 
 const listedPuzzleIdsForGame = (game: GameKind, puzzleIds: number[]) => {
   if (puzzleIds.length === 0) return Effect.succeed<number[]>([]);
-  const puzzles = puzzleTable[game];
   return dbRunHttp(`catalog.listed_tag_puzzles.${game}`, (client) =>
     client
       .select({ id: puzzles.id })
       .from(puzzles)
-      .where(and(inArray(puzzles.id, puzzleIds), eq(puzzles.listed, true)))
+      .where(and(eq(puzzles.kind, game), inArray(puzzles.id, puzzleIds), eq(puzzles.listed, true)))
   ).pipe(Effect.map((rows) => rows.map((row) => row.id)));
 };
 
 const listedCollectionContainsPuzzles = (game: GameKind, puzzleIds: number[]) => {
   if (puzzleIds.length === 0) return Effect.succeed(false);
-  const items = itemTable[game];
   return dbRunHttp(`catalog.listed_collections_for_tag.${game}`, (client) =>
     client
       .select({ id: collections.id })
-      .from(items)
-      .innerJoin(collections, eq(collections.id, items.collection_id))
-      .where(and(inArray(items.puzzle_id, puzzleIds), eq(collections.listed, true)))
+      .from(collection_items)
+      .innerJoin(collections, eq(collections.id, collection_items.collection_id))
+      .innerJoin(puzzles, and(eq(puzzles.id, collection_items.puzzle_id), eq(puzzles.kind, game)))
+      .where(and(inArray(collection_items.puzzle_id, puzzleIds), eq(collections.listed, true)))
       .limit(1)
   ).pipe(Effect.map((rows) => rows.length > 0));
 };
@@ -120,19 +118,13 @@ const imageColumns = {
 } as const;
 
 const nextOrderIndex = async (tx: DbTransaction, collectionId: number) => {
-  const maxima = await Promise.all(
-    GAME_KINDS.map(async (game) => {
-      const items = itemTable[game];
-      const [row] = await tx
-        .select({
-          value: sql<number>`coalesce(max(${items.order_index}), 0)`
-        })
-        .from(items)
-        .where(eq(items.collection_id, collectionId));
-      return Number(row?.value ?? 0);
+  const [row] = await tx
+    .select({
+      value: sql<number>`coalesce(max(${collection_items.order_index}), 0)`
     })
-  );
-  return Math.max(0, ...maxima) + 1;
+    .from(collection_items)
+    .where(eq(collection_items.collection_id, collectionId));
+  return Number(row?.value ?? 0) + 1;
 };
 
 const findCollectionByUid = (uid: string) =>
@@ -161,38 +153,30 @@ const tag_puzzle_input = z.object({
 });
 
 const loadTagPuzzles = (tagId: number) =>
-  Effect.gen(function* () {
-    const load = (game: GameKind) => {
-      const puzzles = puzzleTable[game];
-      const link = tagLinkTable[game];
-      return dbRunHttp(`catalog.tag_games.${game}`, (client) =>
-        client
-          .select({
-            id: puzzles.id,
-            slug: puzzles.slug,
-            title: puzzles.title,
-            description: puzzles.description,
-            listed: puzzles.listed,
-            image_s3_key: image_assets.s3_key
-          })
-          .from(link)
-          .innerJoin(puzzles, eq(puzzles.id, link.puzzle_id))
-          .leftJoin(image_assets, eq(image_assets.id, puzzles.image_id))
-          .where(eq(link.tag_id, tagId))
-          .orderBy(asc(puzzles.title))
-      );
-    };
-
-    const groups = yield* Effect.all(
-      GAME_KINDS.map((game) =>
-        load(game).pipe(Effect.map((rows) => rows.map((row) => ({ game, ...row }))))
-      )
-    );
-    return groups.flat().map(({ image_s3_key, ...row }) => ({
-      ...row,
-      image: image_s3_key ? { s3_key: image_s3_key } : null
-    }));
-  });
+  dbRunHttp('catalog.tag_games', (client) =>
+    client
+      .select({
+        game: puzzles.kind,
+        id: puzzles.id,
+        slug: puzzles.slug,
+        title: puzzles.title,
+        description: puzzles.description,
+        listed: puzzles.listed,
+        image_s3_key: image_assets.s3_key
+      })
+      .from(puzzle_tags)
+      .innerJoin(puzzles, eq(puzzles.id, puzzle_tags.puzzle_id))
+      .leftJoin(image_assets, eq(image_assets.id, puzzles.image_id))
+      .where(eq(puzzle_tags.tag_id, tagId))
+      .orderBy(asc(puzzles.title))
+  ).pipe(
+    Effect.map((rows) =>
+      rows.map(({ image_s3_key, ...row }) => ({
+        ...row,
+        image: image_s3_key ? { s3_key: image_s3_key } : null
+      }))
+    )
+  );
 
 const findTagBySlug = (slug: string) =>
   dbRunHttp('catalog.find_tag_by_slug', (client) =>
@@ -214,12 +198,7 @@ const assertTagSlugAvailable = (tagId: number, slug: string) =>
   });
 
 const tagUsageSql = sql<number>`(
-  (select count(*)::int from padavali_puzzle_tags pt where pt.tag_id = ${tags.id})
-  + (select count(*)::int from crossword_puzzle_tags ct where ct.tag_id = ${tags.id})
-  + (select count(*)::int from dvayi_puzzle_tags dt where dt.tag_id = ${tags.id})
-  + (select count(*)::int from bhramita_puzzle_tags bt where bt.tag_id = ${tags.id})
-  + (select count(*)::int from surupa_puzzle_tags st where st.tag_id = ${tags.id})
-  + (select count(*)::int from anveshi_puzzle_tags at where at.tag_id = ${tags.id})
+  select count(*)::int from puzzle_tags pt where pt.tag_id = ${tags.id}
 )`;
 
 const list_tags_route = protectedAdminProcedure
@@ -412,11 +391,10 @@ const save_tag_route = protectedAdminProcedure
 
         const saved = yield* dbTransaction('catalog.save_tag', async (tx) => {
           for (const item of unique) {
-            const puzzles = puzzleTable[item.game];
             const puzzle = await tx
               .select({ id: puzzles.id })
               .from(puzzles)
-              .where(eq(puzzles.id, item.puzzle_id))
+              .where(and(eq(puzzles.id, item.puzzle_id), eq(puzzles.kind, item.game)))
               .limit(1);
             if (!puzzle[0]) {
               return { ok: false as const, missing: item };
@@ -424,18 +402,14 @@ const save_tag_route = protectedAdminProcedure
           }
 
           await tx.update(tags).set({ slug: input.slug }).where(eq(tags.id, existing.id));
-
-          for (const game of GAME_KINDS) {
-            const link = tagLinkTable[game];
-            await tx.delete(link).where(eq(link.tag_id, existing.id));
-          }
-
-          for (const item of unique) {
-            const link = tagLinkTable[item.game];
-            await tx.insert(link).values({
-              puzzle_id: item.puzzle_id,
-              tag_id: existing.id
-            });
+          await tx.delete(puzzle_tags).where(eq(puzzle_tags.tag_id, existing.id));
+          if (unique.length > 0) {
+            await tx.insert(puzzle_tags).values(
+              unique.map((item) => ({
+                puzzle_id: item.puzzle_id,
+                tag_id: existing.id
+              }))
+            );
           }
 
           return { ok: true as const };
@@ -469,13 +443,16 @@ const puzzle_tags_route = protectedAdminProcedure
   .query(({ input }) =>
     runTrpcEffect(
       Effect.gen(function* () {
-        const link = tagLinkTable[input.game];
         const rows = yield* dbRunHttp('catalog.puzzle_tags', (client) =>
           client
             .select({ id: tags.id, slug: tags.slug })
-            .from(link)
-            .innerJoin(tags, eq(tags.id, link.tag_id))
-            .where(eq(link.puzzle_id, input.puzzle_id))
+            .from(puzzle_tags)
+            .innerJoin(tags, eq(tags.id, puzzle_tags.tag_id))
+            .innerJoin(
+              puzzles,
+              and(eq(puzzles.id, puzzle_tags.puzzle_id), eq(puzzles.kind, input.game))
+            )
+            .where(eq(puzzle_tags.puzzle_id, input.puzzle_id))
             .orderBy(asc(tags.slug))
         );
         return rows;
@@ -494,12 +471,11 @@ const attach_tag_route = protectedAdminProcedure
   .mutation(({ input }) =>
     runTrpcEffect(
       Effect.gen(function* () {
-        const puzzles = puzzleTable[input.game];
         const puzzle = yield* dbRunHttp('catalog.find_puzzle_for_tag', (client) =>
           client
             .select({ id: puzzles.id })
             .from(puzzles)
-            .where(eq(puzzles.id, input.puzzle_id))
+            .where(and(eq(puzzles.id, input.puzzle_id), eq(puzzles.kind, input.game)))
             .limit(1)
         );
         if (!puzzle[0]) {
@@ -512,9 +488,8 @@ const attach_tag_route = protectedAdminProcedure
           const rows = await ensureTagsBySlugs(tx, [input.slug]);
           const row = rows[0];
           if (!row) throw new Error('Failed to create tag');
-          const link = tagLinkTable[input.game];
           await tx
-            .insert(link)
+            .insert(puzzle_tags)
             .values({ puzzle_id: input.puzzle_id, tag_id: row.id })
             .onConflictDoNothing();
           return { id: row.id, slug: row.slug };
@@ -538,10 +513,11 @@ const detach_tag_route = protectedAdminProcedure
     runTrpcEffect(
       Effect.gen(function* () {
         yield* dbRunHttp('catalog.detach_tag', async (client) => {
-          const link = tagLinkTable[input.game];
           await client
-            .delete(link)
-            .where(and(eq(link.puzzle_id, input.puzzle_id), eq(link.tag_id, input.tag_id)));
+            .delete(puzzle_tags)
+            .where(
+              and(eq(puzzle_tags.puzzle_id, input.puzzle_id), eq(puzzle_tags.tag_id, input.tag_id))
+            );
         });
         yield* refreshListedPuzzles(input.game);
         return { success: true };
@@ -652,87 +628,14 @@ const get_collection_route = protectedAdminProcedure
             where: (tbl, { eq: eqFn }) => eqFn(tbl.uid, input.uid),
             with: {
               image: { columns: imageColumns },
-              padavali_items: {
+              items: {
                 columns: { order_index: true },
+                orderBy: (tbl, { asc: ascFn }) => ascFn(tbl.order_index),
                 with: {
                   puzzle: {
                     columns: {
                       id: true,
-                      slug: true,
-                      title: true,
-                      description: true,
-                      listed: true
-                    },
-                    with: { image: { columns: { s3_key: true } } }
-                  }
-                }
-              },
-              crossword_items: {
-                columns: { order_index: true },
-                with: {
-                  puzzle: {
-                    columns: {
-                      id: true,
-                      slug: true,
-                      title: true,
-                      description: true,
-                      listed: true
-                    },
-                    with: { image: { columns: { s3_key: true } } }
-                  }
-                }
-              },
-              dvayi_items: {
-                columns: { order_index: true },
-                with: {
-                  puzzle: {
-                    columns: {
-                      id: true,
-                      slug: true,
-                      title: true,
-                      description: true,
-                      listed: true
-                    },
-                    with: { image: { columns: { s3_key: true } } }
-                  }
-                }
-              },
-              bhramita_items: {
-                columns: { order_index: true },
-                with: {
-                  puzzle: {
-                    columns: {
-                      id: true,
-                      slug: true,
-                      title: true,
-                      description: true,
-                      listed: true
-                    },
-                    with: { image: { columns: { s3_key: true } } }
-                  }
-                }
-              },
-              surupa_items: {
-                columns: { order_index: true },
-                with: {
-                  puzzle: {
-                    columns: {
-                      id: true,
-                      slug: true,
-                      title: true,
-                      description: true,
-                      listed: true
-                    },
-                    with: { image: { columns: { s3_key: true } } }
-                  }
-                }
-              },
-              anveshi_items: {
-                columns: { order_index: true },
-                with: {
-                  puzzle: {
-                    columns: {
-                      id: true,
+                      kind: true,
                       slug: true,
                       title: true,
                       description: true,
@@ -751,38 +654,20 @@ const get_collection_route = protectedAdminProcedure
           );
         }
 
-        const items = [
-          ...collection.padavali_items.map((item) => ({
-            game: 'padavali' as const,
+        const items = collection.items
+          .map((item) => ({
+            game: item.puzzle.kind,
             order_index: item.order_index,
-            puzzle: item.puzzle
-          })),
-          ...collection.crossword_items.map((item) => ({
-            game: 'crossword' as const,
-            order_index: item.order_index,
-            puzzle: item.puzzle
-          })),
-          ...collection.dvayi_items.map((item) => ({
-            game: 'dvayi' as const,
-            order_index: item.order_index,
-            puzzle: item.puzzle
-          })),
-          ...collection.bhramita_items.map((item) => ({
-            game: 'bhramita' as const,
-            order_index: item.order_index,
-            puzzle: item.puzzle
-          })),
-          ...collection.surupa_items.map((item) => ({
-            game: 'surupa' as const,
-            order_index: item.order_index,
-            puzzle: item.puzzle
-          })),
-          ...collection.anveshi_items.map((item) => ({
-            game: 'anveshi' as const,
-            order_index: item.order_index,
-            puzzle: item.puzzle
+            puzzle: {
+              id: item.puzzle.id,
+              slug: item.puzzle.slug,
+              title: item.puzzle.title,
+              description: item.puzzle.description,
+              listed: item.puzzle.listed,
+              image: item.puzzle.image
+            }
           }))
-        ].sort((a, b) => a.order_index - b.order_index || a.puzzle.id - b.puzzle.id);
+          .sort((a, b) => a.order_index - b.order_index || a.puzzle.id - b.puzzle.id);
 
         return {
           id: collection.id,
@@ -889,11 +774,10 @@ const save_collection_route = protectedAdminProcedure
 
         const saved = yield* dbTransaction('catalog.save_collection', async (tx) => {
           for (const item of unique) {
-            const puzzles = puzzleTable[item.game];
             const puzzle = await tx
               .select({ id: puzzles.id })
               .from(puzzles)
-              .where(eq(puzzles.id, item.puzzle_id))
+              .where(and(eq(puzzles.id, item.puzzle_id), eq(puzzles.kind, item.game)))
               .limit(1);
             if (!puzzle[0]) {
               return { ok: false as const, missing: item };
@@ -912,19 +796,16 @@ const save_collection_route = protectedAdminProcedure
             })
             .where(eq(collections.id, existing.id));
 
-          for (const game of GAME_KINDS) {
-            const items = itemTable[game];
-            await tx.delete(items).where(eq(items.collection_id, existing.id));
-          }
+          await tx.delete(collection_items).where(eq(collection_items.collection_id, existing.id));
 
-          for (let i = 0; i < unique.length; i++) {
-            const item = unique[i]!;
-            const items = itemTable[item.game];
-            await tx.insert(items).values({
-              collection_id: existing.id,
-              puzzle_id: item.puzzle_id,
-              order_index: i + 1
-            });
+          if (unique.length > 0) {
+            await tx.insert(collection_items).values(
+              unique.map((item, index) => ({
+                collection_id: existing.id,
+                puzzle_id: item.puzzle_id,
+                order_index: index + 1
+              }))
+            );
           }
 
           return { ok: true as const };
@@ -953,9 +834,12 @@ const add_collection_item = (uid: string, game: GameKind, puzzleId: number) =>
         NotFoundError.make({ resource: 'collection', message: 'Collection not found' })
       );
     }
-    const puzzles = puzzleTable[game];
     const puzzle = yield* dbRunHttp('catalog.find_puzzle_for_collection', (client) =>
-      client.select({ id: puzzles.id }).from(puzzles).where(eq(puzzles.id, puzzleId)).limit(1)
+      client
+        .select({ id: puzzles.id })
+        .from(puzzles)
+        .where(and(eq(puzzles.id, puzzleId), eq(puzzles.kind, game)))
+        .limit(1)
     );
     if (!puzzle[0]) {
       return yield* Effect.fail(
@@ -964,15 +848,19 @@ const add_collection_item = (uid: string, game: GameKind, puzzleId: number) =>
     }
 
     const order_index = yield* dbTransaction('catalog.add_collection_item', async (tx) => {
-      const items = itemTable[game];
       const existing = await tx
-        .select({ order_index: items.order_index })
-        .from(items)
-        .where(and(eq(items.collection_id, collection.id), eq(items.puzzle_id, puzzleId)))
+        .select({ order_index: collection_items.order_index })
+        .from(collection_items)
+        .where(
+          and(
+            eq(collection_items.collection_id, collection.id),
+            eq(collection_items.puzzle_id, puzzleId)
+          )
+        )
         .limit(1);
       if (existing[0]) return existing[0].order_index;
       const orderIndex = await nextOrderIndex(tx, collection.id);
-      await tx.insert(items).values({
+      await tx.insert(collection_items).values({
         collection_id: collection.id,
         puzzle_id: puzzleId,
         order_index: orderIndex
@@ -996,12 +884,11 @@ const set_puzzle_links_route = protectedAdminProcedure
   .mutation(({ input }) =>
     runTrpcEffect(
       Effect.gen(function* () {
-        const puzzles = puzzleTable[input.game];
         const puzzle = yield* dbRunHttp('catalog.find_puzzle_for_links', (client) =>
           client
             .select({ id: puzzles.id })
             .from(puzzles)
-            .where(eq(puzzles.id, input.puzzle_id))
+            .where(and(eq(puzzles.id, input.puzzle_id), eq(puzzles.kind, input.game)))
             .limit(1)
         );
         if (!puzzle[0]) {
@@ -1028,27 +915,24 @@ const set_puzzle_links_route = protectedAdminProcedure
             return { ok: false as const };
           }
           const desiredCollectionIds = new Set(foundCollections.map((row) => row.id));
-          const link = tagLinkTable[input.game];
-          const items = itemTable[input.game];
-
-          await tx.delete(link).where(eq(link.puzzle_id, input.puzzle_id));
+          await tx.delete(puzzle_tags).where(eq(puzzle_tags.puzzle_id, input.puzzle_id));
           if (tagIds.length > 0) {
             await tx
-              .insert(link)
+              .insert(puzzle_tags)
               .values(tagIds.map((tag_id) => ({ puzzle_id: input.puzzle_id, tag_id })));
           }
           const current = await tx
-            .select({ collection_id: items.collection_id })
-            .from(items)
-            .where(eq(items.puzzle_id, input.puzzle_id));
+            .select({ collection_id: collection_items.collection_id })
+            .from(collection_items)
+            .where(eq(collection_items.puzzle_id, input.puzzle_id));
           for (const row of current) {
             if (!desiredCollectionIds.has(row.collection_id)) {
               await tx
-                .delete(items)
+                .delete(collection_items)
                 .where(
                   and(
-                    eq(items.puzzle_id, input.puzzle_id),
-                    eq(items.collection_id, row.collection_id)
+                    eq(collection_items.puzzle_id, input.puzzle_id),
+                    eq(collection_items.collection_id, row.collection_id)
                   )
                 );
             }
@@ -1057,7 +941,7 @@ const set_puzzle_links_route = protectedAdminProcedure
           for (const collectionId of desiredCollectionIds) {
             if (currentIds.has(collectionId)) continue;
             const orderIndex = await nextOrderIndex(tx, collectionId);
-            await tx.insert(items).values({
+            await tx.insert(collection_items).values({
               collection_id: collectionId,
               puzzle_id: input.puzzle_id,
               order_index: orderIndex
@@ -1109,25 +993,26 @@ const add_items_route = protectedAdminProcedure
         const added = yield* dbTransaction('catalog.add_collection_items', async (tx) => {
           let countAdded = 0;
           for (const item of unique) {
-            const puzzles = puzzleTable[item.game];
             const puzzle = await tx
               .select({ id: puzzles.id })
               .from(puzzles)
-              .where(eq(puzzles.id, item.puzzle_id))
+              .where(and(eq(puzzles.id, item.puzzle_id), eq(puzzles.kind, item.game)))
               .limit(1);
             if (!puzzle[0]) continue;
 
-            const items = itemTable[item.game];
             const existing = await tx
-              .select({ puzzle_id: items.puzzle_id })
-              .from(items)
+              .select({ puzzle_id: collection_items.puzzle_id })
+              .from(collection_items)
               .where(
-                and(eq(items.collection_id, collection.id), eq(items.puzzle_id, item.puzzle_id))
+                and(
+                  eq(collection_items.collection_id, collection.id),
+                  eq(collection_items.puzzle_id, item.puzzle_id)
+                )
               )
               .limit(1);
             if (existing[0]) continue;
             const orderIndex = await nextOrderIndex(tx, collection.id);
-            await tx.insert(items).values({
+            await tx.insert(collection_items).values({
               collection_id: collection.id,
               puzzle_id: item.puzzle_id,
               order_index: orderIndex
@@ -1173,11 +1058,13 @@ const remove_item_route = protectedAdminProcedure
           );
         }
         yield* dbRunHttp('catalog.remove_collection_item', async (client) => {
-          const items = itemTable[input.game];
           await client
-            .delete(items)
+            .delete(collection_items)
             .where(
-              and(eq(items.collection_id, collection.id), eq(items.puzzle_id, input.puzzle_id))
+              and(
+                eq(collection_items.collection_id, collection.id),
+                eq(collection_items.puzzle_id, input.puzzle_id)
+              )
             );
         });
         yield* refreshListedCollections();
@@ -1204,16 +1091,12 @@ const reorder_route = protectedAdminProcedure
         }
 
         const result = yield* dbTransaction('catalog.reorder_collection', async (tx) => {
-          const currentKeys: string[] = [];
-          for (const game of GAME_KINDS) {
-            const items = itemTable[game];
-            const rows = await tx
-              .select({ puzzle_id: items.puzzle_id })
-              .from(items)
-              .where(eq(items.collection_id, collection.id));
-            for (const row of rows) currentKeys.push(`${game}:${row.puzzle_id}`);
-          }
-          const current = new Set(currentKeys);
+          const rows = await tx
+            .select({ puzzle_id: collection_items.puzzle_id, kind: puzzles.kind })
+            .from(collection_items)
+            .innerJoin(puzzles, eq(puzzles.id, collection_items.puzzle_id))
+            .where(eq(collection_items.collection_id, collection.id));
+          const current = new Set(rows.map((row) => `${row.kind}:${row.puzzle_id}`));
           const incoming = input.items.map((item) => `${item.game}:${item.puzzle_id}`);
           if (
             incoming.length !== current.size ||
@@ -1225,12 +1108,14 @@ const reorder_route = protectedAdminProcedure
 
           for (let index = 0; index < input.items.length; index++) {
             const item = input.items[index]!;
-            const items = itemTable[item.game];
             await tx
-              .update(items)
+              .update(collection_items)
               .set({ order_index: index + 1 })
               .where(
-                and(eq(items.collection_id, collection.id), eq(items.puzzle_id, item.puzzle_id))
+                and(
+                  eq(collection_items.collection_id, collection.id),
+                  eq(collection_items.puzzle_id, item.puzzle_id)
+                )
               );
           }
           return { ok: true as const };
@@ -1254,7 +1139,6 @@ const puzzle_collections_route = protectedAdminProcedure
   .query(({ input }) =>
     runTrpcEffect(
       Effect.gen(function* () {
-        const items = itemTable[input.game];
         return yield* dbRunHttp('catalog.puzzle_collections', (client) =>
           client
             .select({
@@ -1262,11 +1146,15 @@ const puzzle_collections_route = protectedAdminProcedure
               uid: collections.uid,
               slug: collections.slug,
               title: collections.title,
-              order_index: items.order_index
+              order_index: collection_items.order_index
             })
-            .from(items)
-            .innerJoin(collections, eq(collections.id, items.collection_id))
-            .where(eq(items.puzzle_id, input.puzzle_id))
+            .from(collection_items)
+            .innerJoin(collections, eq(collections.id, collection_items.collection_id))
+            .innerJoin(
+              puzzles,
+              and(eq(puzzles.id, collection_items.puzzle_id), eq(puzzles.kind, input.game))
+            )
+            .where(eq(collection_items.puzzle_id, input.puzzle_id))
             .orderBy(asc(collections.title))
         );
       })
@@ -1288,63 +1176,48 @@ const search_puzzles_route = protectedAdminProcedure
       Effect.gen(function* () {
         const games: GameKind[] = input.game === 'all' ? [...GAME_KINDS] : [input.game];
         const tokens = tokenizeSearchQuery(input.query);
-
-        const load = (game: GameKind) => {
-          const puzzles = puzzleTable[game];
-          const conditions = [];
-          for (const token of tokens) {
-            const pattern = `%${escapeIlikeToken(token)}%`;
-            conditions.push(
-              or(ilike(puzzles.title, pattern), ilike(puzzles.description, pattern))!
-            );
-          }
-          if (input.tag_slug) {
-            conditions.push(
-              sql`exists (
-                select 1 from ${sql.raw(TAG_LINK_SQL[game])} pt
-                inner join tags t on t.id = pt.tag_id
-                where pt.puzzle_id = ${puzzles.id} and t.slug = ${input.tag_slug}
-              )`
-            );
-          }
-          if (input.exclude_collection_id !== undefined) {
-            conditions.push(puzzleNotInCollection(puzzles.id, game, input.exclude_collection_id));
-          }
-          const whereClause = conditions.length > 0 ? and(...conditions) : undefined;
-          return dbRunHttp(`catalog.search_puzzles.${game}`, (client) =>
-            client
-              .select({
-                id: puzzles.id,
-                slug: puzzles.slug,
-                title: puzzles.title,
-                description: puzzles.description,
-                listed: puzzles.listed,
-                created_at: puzzles.created_at,
-                image_s3_key: image_assets.s3_key
-              })
-              .from(puzzles)
-              .leftJoin(image_assets, eq(image_assets.id, puzzles.image_id))
-              .where(whereClause)
-              .orderBy(desc(puzzles.created_at))
-              .limit(input.limit)
-          ).pipe(
-            Effect.map((rows) =>
-              rows.map(({ image_s3_key, created_at, ...row }) => ({
-                ...row,
-                game,
-                created_at,
-                image: image_s3_key ? { s3_key: image_s3_key } : null
-              }))
-            )
-          );
-        };
-
-        const groups = yield* Effect.all(games.map(load));
-        return groups
-          .flat()
-          .sort((a, b) => b.created_at.getTime() - a.created_at.getTime())
-          .slice(0, input.limit)
-          .map(({ created_at: _created_at, ...row }) => row);
+        const conditions = [inArray(puzzles.kind, games)];
+        for (const token of tokens) {
+          const pattern = `%${escapeIlikeToken(token)}%`;
+          conditions.push(or(ilike(puzzles.title, pattern), ilike(puzzles.description, pattern))!);
+        }
+        if (input.tag_slug) {
+          conditions.push(sql`exists (
+            select 1 from puzzle_tags pt
+            inner join tags t on t.id = pt.tag_id
+            where pt.puzzle_id = ${puzzles.id} and t.slug = ${input.tag_slug}
+          )`);
+        }
+        if (input.exclude_collection_id !== undefined) {
+          const collectionId = input.exclude_collection_id;
+          conditions.push(sql`not exists (
+            select 1 from collection_items ci
+            where ci.puzzle_id = ${puzzles.id} and ci.collection_id = ${collectionId}
+          )`);
+        }
+        const rows = yield* dbRunHttp('catalog.search_puzzles', (client) =>
+          client
+            .select({
+              id: puzzles.id,
+              kind: puzzles.kind,
+              slug: puzzles.slug,
+              title: puzzles.title,
+              description: puzzles.description,
+              listed: puzzles.listed,
+              created_at: puzzles.created_at,
+              image_s3_key: image_assets.s3_key
+            })
+            .from(puzzles)
+            .leftJoin(image_assets, eq(image_assets.id, puzzles.image_id))
+            .where(and(...conditions))
+            .orderBy(desc(puzzles.created_at))
+            .limit(input.limit)
+        );
+        return rows.map(({ image_s3_key, created_at: _created_at, kind, ...row }) => ({
+          ...row,
+          game: kind,
+          image: image_s3_key ? { s3_key: image_s3_key } : null
+        }));
       })
     )
   );
@@ -1361,18 +1234,18 @@ const delete_collection_route = protectedAdminProcedure
           );
         }
         const counts = yield* dbRunHttp('catalog.count_collection_items', async (client) => {
-          const entries = await Promise.all(
-            GAME_KINDS.map(async (game) => {
-              const items = itemTable[game];
-              const [row] = await client
-                .select({ count: count() })
-                .from(items)
-                .where(eq(items.collection_id, collection.id));
-              return [game, Number(row?.count ?? 0)] as const;
-            })
-          );
-          // SAFETY: entries are built from GAME_KINDS, so every GameKind key is present.
-          return Object.fromEntries(entries) as Record<GameKind, number>;
+          const rows = await client
+            .select({ kind: puzzles.kind, count: count() })
+            .from(collection_items)
+            .innerJoin(puzzles, eq(puzzles.id, collection_items.puzzle_id))
+            .where(eq(collection_items.collection_id, collection.id))
+            .groupBy(puzzles.kind);
+          const totals = Object.fromEntries(GAME_KINDS.map((game) => [game, 0])) as Record<
+            GameKind,
+            number
+          >;
+          for (const row of rows) totals[row.kind] = Number(row.count);
+          return totals;
         });
         const padavali = counts.padavali;
         const crossword = counts.crossword;

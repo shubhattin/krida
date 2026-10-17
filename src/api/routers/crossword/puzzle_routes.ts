@@ -3,10 +3,11 @@ import { z } from 'zod';
 import { protectedAdminProcedure, publicProcedure, t } from '../../trpc_init';
 import { dbRunHttp, dbTransaction } from '~/effect/database';
 import {
-  crossword_attachments,
   crossword_puzzles,
-  crossword_redirects,
-  image_assets
+  image_assets,
+  puzzle_attachments,
+  puzzle_redirects,
+  puzzles
 } from '~/db/schema';
 import { and, asc, count, desc, eq, ilike, or, sql } from 'drizzle-orm';
 import { escapeIlikeToken, tokenizeSearchQuery } from '~/util/puzzle/search';
@@ -44,6 +45,8 @@ import { runTrpcEffect } from '~/effect/run';
 const settle = <A, E, R>(effect: Effect.Effect<A, E, R>) =>
   effect.pipe(Effect.catch(() => Effect.void));
 
+const crosswordKind = eq(puzzles.kind, 'crossword');
+
 const puzzle_in_current_schedule = Effect.fn('crossword.puzzle_in_current_schedule')(function* (
   id: number
 ) {
@@ -77,31 +80,52 @@ const get_puzzle_by_id_route = protectedAdminProcedure
   .input(z.object({ id: z.number().int() }))
   .query(({ input: { id } }) =>
     runTrpcEffect(
-      dbRunHttp('crossword.get_puzzle_by_id', (client) =>
-        client.query.crossword_puzzles.findFirst({
-          where: (tbl, { eq: eqFn }) => eqFn(tbl.id, id),
-          with: {
-            attachments: {
-              columns: {
-                id: true,
-                title: true,
-                type: true,
-                url: true,
-                order_index: true
-              },
-              orderBy: (tbl, { asc: ascFn }) => ascFn(tbl.order_index)
-            },
-            image: {
-              columns: {
-                id: true,
-                s3_key: true,
-                width: true,
-                height: true
-              }
-            }
-          }
-        })
-      )
+      dbRunHttp('crossword.get_puzzle_by_id', async (client) => {
+        const [puzzle] = await client
+          .select({
+            id: puzzles.id,
+            uid: puzzles.uid,
+            slug: puzzles.slug,
+            title: puzzles.title,
+            description: puzzles.description,
+            listed: puzzles.listed,
+            created_at: puzzles.created_at,
+            updated_at: puzzles.updated_at,
+            grid_dimensions: crossword_puzzles.grid_dimensions,
+            grid_data: crossword_puzzles.grid_data,
+            word_list: crossword_puzzles.word_list,
+            image_id: image_assets.id,
+            image_s3_key: image_assets.s3_key,
+            image_width: image_assets.width,
+            image_height: image_assets.height
+          })
+          .from(puzzles)
+          .innerJoin(crossword_puzzles, eq(crossword_puzzles.id, puzzles.id))
+          .leftJoin(image_assets, eq(image_assets.id, puzzles.image_id))
+          .where(and(crosswordKind, eq(puzzles.id, id)))
+          .limit(1);
+        if (!puzzle) return undefined;
+        const attachments = await client
+          .select({
+            id: puzzle_attachments.id,
+            title: puzzle_attachments.title,
+            type: puzzle_attachments.type,
+            url: puzzle_attachments.url,
+            order_index: puzzle_attachments.order_index
+          })
+          .from(puzzle_attachments)
+          .where(eq(puzzle_attachments.puzzle_id, puzzle.id))
+          .orderBy(asc(puzzle_attachments.order_index));
+        const { image_id, image_s3_key, image_width, image_height, ...rest } = puzzle;
+        return {
+          ...rest,
+          attachments,
+          image:
+            image_id && image_s3_key
+              ? { id: image_id, s3_key: image_s3_key, width: image_width!, height: image_height! }
+              : null
+        };
+      })
     )
   );
 
@@ -122,56 +146,57 @@ const get_puzzle_list_page_route = protectedAdminProcedure
         } = crossword_list_input_schema.parse(input);
 
         const trimmedSearch = search_title?.trim();
-        const conditions = [];
+        const conditions = [crosswordKind];
         if (listed_filter !== undefined) {
-          conditions.push(eq(crossword_puzzles.listed, listed_filter));
+          conditions.push(eq(puzzles.listed, listed_filter));
         }
         if (trimmedSearch) {
           for (const token of tokenizeSearchQuery(trimmedSearch)) {
             const pattern = `%${escapeIlikeToken(token)}%`;
             conditions.push(
-              or(
-                ilike(crossword_puzzles.title, pattern),
-                ilike(crossword_puzzles.description, pattern)
-              )!
+              or(ilike(puzzles.title, pattern), ilike(puzzles.description, pattern))!
             );
           }
         }
-        if (tag_slug) conditions.push(puzzleHasTag(crossword_puzzles.id, 'crossword', tag_slug));
+        if (tag_slug) conditions.push(puzzleHasTag(puzzles.id, 'crossword', tag_slug));
         if (collection_id !== undefined) {
-          conditions.push(puzzleInCollection(crossword_puzzles.id, 'crossword', collection_id));
+          conditions.push(puzzleInCollection(puzzles.id, 'crossword', collection_id));
         }
-        const whereClause = conditions.length > 0 ? and(...conditions) : undefined;
+        const whereClause = and(...conditions);
 
         const sortCol =
           sort_by === 'updated_at'
-            ? sql`coalesce(${crossword_puzzles.updated_at}, ${crossword_puzzles.created_at})`
-            : crossword_puzzles.created_at;
+            ? sql`coalesce(${puzzles.updated_at}, ${puzzles.created_at})`
+            : puzzles.created_at;
         const orderPrimary = order_by === 'desc' ? desc(sortCol) : asc(sortCol);
-        const orderTiebreaker =
-          order_by === 'desc' ? desc(crossword_puzzles.id) : asc(crossword_puzzles.id);
+        const orderTiebreaker = order_by === 'desc' ? desc(puzzles.id) : asc(puzzles.id);
         const offset = (page - 1) * size;
 
         const { countResult, rows } = yield* Effect.all({
           countResult: dbRunHttp('crossword.count_puzzle_list_page', (client) =>
-            client.select({ count: count() }).from(crossword_puzzles).where(whereClause)
+            client
+              .select({ count: count() })
+              .from(puzzles)
+              .innerJoin(crossword_puzzles, eq(crossword_puzzles.id, puzzles.id))
+              .where(whereClause)
           ),
           rows: dbRunHttp('crossword.select_puzzle_list_page', (client) =>
             client
               .select({
-                id: crossword_puzzles.id,
-                uid: crossword_puzzles.uid,
-                slug: crossword_puzzles.slug,
-                title: crossword_puzzles.title,
-                description: crossword_puzzles.description,
-                listed: crossword_puzzles.listed,
+                id: puzzles.id,
+                uid: puzzles.uid,
+                slug: puzzles.slug,
+                title: puzzles.title,
+                description: puzzles.description,
+                listed: puzzles.listed,
                 grid_dimensions: crossword_puzzles.grid_dimensions,
-                created_at: crossword_puzzles.created_at,
-                updated_at: crossword_puzzles.updated_at,
+                created_at: puzzles.created_at,
+                updated_at: puzzles.updated_at,
                 image_s3_key: image_assets.s3_key
               })
-              .from(crossword_puzzles)
-              .leftJoin(image_assets, eq(crossword_puzzles.image_id, image_assets.id))
+              .from(puzzles)
+              .innerJoin(crossword_puzzles, eq(crossword_puzzles.id, puzzles.id))
+              .leftJoin(image_assets, eq(puzzles.image_id, image_assets.id))
               .where(whereClause)
               .orderBy(orderPrimary, orderTiebreaker)
               .limit(size)
@@ -219,21 +244,27 @@ const add_puzzle_route = protectedAdminProcedure
             await delete_redirect_for_slug(tx, input.slug);
           }
 
-          return insertWithUniqueUid(tx, crossword_puzzles, (scoped, uid) =>
-            scoped
-              .insert(crossword_puzzles)
+          return insertWithUniqueUid(tx, puzzles, async (scoped, uid) => {
+            const [inserted] = await scoped
+              .insert(puzzles)
               .values({
+                kind: 'crossword',
                 uid,
                 slug: input.slug,
                 title: input.title.trim(),
                 description: input.description?.trim() ?? '',
-                grid_dimensions: dimensions,
-                grid_data: createEmptyGridData(dimensions),
-                word_list: [],
                 listed: false
               })
-              .returning()
-          );
+              .returning();
+            if (!inserted) return [];
+            await scoped.insert(crossword_puzzles).values({
+              id: inserted.id,
+              grid_dimensions: dimensions,
+              grid_data: createEmptyGridData(dimensions),
+              word_list: []
+            });
+            return [inserted];
+          });
         });
         const inserted = inserted_puzzles[0];
         if (!inserted) {
@@ -253,18 +284,21 @@ const update_puzzle_route = protectedAdminProcedure
   .mutation(({ input: { puzzle_id, puzzle_data, puzzle_slug, image_id } }) =>
     runTrpcEffect(
       Effect.gen(function* () {
-        const existing = yield* dbRunHttp('crossword.find_puzzle_for_update', (client) =>
-          client.query.crossword_puzzles.findFirst({
-            columns: {
-              id: true,
-              listed: true,
-              title: true,
-              description: true,
-              word_list: true
-            },
-            where: (tbl, { and: andFn, eq: eqFn }) =>
-              andFn(eqFn(tbl.id, puzzle_id), eqFn(tbl.slug, puzzle_slug))
-          })
+        const [existing] = yield* dbRunHttp('crossword.find_puzzle_for_update', (client) =>
+          client
+            .select({
+              id: puzzles.id,
+              listed: puzzles.listed,
+              title: puzzles.title,
+              description: puzzles.description,
+              word_list: crossword_puzzles.word_list
+            })
+            .from(puzzles)
+            .innerJoin(crossword_puzzles, eq(crossword_puzzles.id, puzzles.id))
+            .where(
+              and(crosswordKind, eq(puzzles.id, puzzle_id), eq(puzzles.slug, puzzle_slug))
+            )
+            .limit(1)
         );
         if (!existing) {
           return yield* Effect.fail(
@@ -309,27 +343,34 @@ const update_puzzle_route = protectedAdminProcedure
         const { updated_count, newly_added_index_ids } = yield* dbTransaction(
           'crossword.update_puzzle',
           async (tx) => {
-            const updates: Partial<typeof crossword_puzzles.$inferInsert> = {
-              ...puzzle_data_rest,
-              word_list: resolvedWordList,
+            const metaUpdates: Partial<typeof puzzles.$inferInsert> = {
+              title: puzzle_data_rest.title,
+              description: puzzle_data_rest.description,
+              listed: puzzle_data_rest.listed,
               image_id
             };
-            if (becomingListed) updates.last_listed_at = new Date();
+            if (becomingListed) metaUpdates.last_listed_at = new Date();
 
             const updated = await tx
-              .update(crossword_puzzles)
-              .set(updates)
+              .update(puzzles)
+              .set(metaUpdates)
               .where(
-                and(eq(crossword_puzzles.id, puzzle_id), eq(crossword_puzzles.slug, puzzle_slug))
+                and(crosswordKind, eq(puzzles.id, puzzle_id), eq(puzzles.slug, puzzle_slug))
               )
               .returning();
 
-            const attachment_result = await syncPuzzleAttachments(
-              tx,
-              crossword_attachments,
-              puzzle_id,
-              attachments
-            );
+            if (updated.length > 0) {
+              await tx
+                .update(crossword_puzzles)
+                .set({
+                  grid_data: puzzle_data_rest.grid_data,
+                  grid_dimensions: puzzle_data_rest.grid_dimensions,
+                  word_list: resolvedWordList
+                })
+                .where(eq(crossword_puzzles.id, puzzle_id));
+            }
+
+            const attachment_result = await syncPuzzleAttachments(tx, puzzle_id, attachments);
             return {
               updated_count: updated.length,
               newly_added_index_ids: attachment_result.newly_added_index_ids
@@ -388,12 +429,14 @@ const update_puzzle_slug_route = protectedAdminProcedure
           return { success: true as const, slug: new_slug };
         }
 
-        const puzzle = yield* dbRunHttp('crossword.find_puzzle_for_slug_update', (client) =>
-          client.query.crossword_puzzles.findFirst({
-            columns: { id: true, listed: true },
-            where: (tbl, { and: andFn, eq: eqFn }) =>
-              andFn(eqFn(tbl.id, puzzle_id), eqFn(tbl.slug, current_slug))
-          })
+        const [puzzle] = yield* dbRunHttp('crossword.find_puzzle_for_slug_update', (client) =>
+          client
+            .select({ id: puzzles.id, listed: puzzles.listed })
+            .from(puzzles)
+            .where(
+              and(crosswordKind, eq(puzzles.id, puzzle_id), eq(puzzles.slug, current_slug))
+            )
+            .limit(1)
         );
         if (!puzzle) {
           return yield* Effect.fail(
@@ -413,10 +456,10 @@ const update_puzzle_slug_route = protectedAdminProcedure
           await delete_redirect_for_slug(tx, new_slug);
 
           const updated = await tx
-            .update(crossword_puzzles)
+            .update(puzzles)
             .set({ slug: new_slug })
             .where(
-              and(eq(crossword_puzzles.id, puzzle_id), eq(crossword_puzzles.slug, current_slug))
+              and(crosswordKind, eq(puzzles.id, puzzle_id), eq(puzzles.slug, current_slug))
             )
             .returning();
 
@@ -478,10 +521,19 @@ const set_listed_route = protectedAdminProcedure
   .mutation(({ input: { puzzle_id, listed } }) =>
     runTrpcEffect(
       Effect.gen(function* () {
-        const existing = yield* dbRunHttp('crossword.find_puzzle_for_set_listed', (client) =>
-          client.query.crossword_puzzles.findFirst({
-            where: (tbl, { eq: eqFn }) => eqFn(tbl.id, puzzle_id)
-          })
+        const [existing] = yield* dbRunHttp('crossword.find_puzzle_for_set_listed', (client) =>
+          client
+            .select({
+              id: puzzles.id,
+              slug: puzzles.slug,
+              listed: puzzles.listed,
+              grid_data: crossword_puzzles.grid_data,
+              word_list: crossword_puzzles.word_list
+            })
+            .from(puzzles)
+            .innerJoin(crossword_puzzles, eq(crossword_puzzles.id, puzzles.id))
+            .where(and(crosswordKind, eq(puzzles.id, puzzle_id)))
+            .limit(1)
         );
         if (!existing) {
           return yield* Effect.fail(
@@ -506,14 +558,14 @@ const set_listed_route = protectedAdminProcedure
 
         const becomingListed = listed && !existing.listed;
 
-        const updates: Partial<typeof crossword_puzzles.$inferInsert> = { listed };
+        const updates: Partial<typeof puzzles.$inferInsert> = { listed };
         if (becomingListed) updates.last_listed_at = new Date();
 
         yield* dbRunHttp('crossword.set_listed', async (client) => {
           await client
-            .update(crossword_puzzles)
+            .update(puzzles)
             .set(updates)
-            .where(eq(crossword_puzzles.id, puzzle_id));
+            .where(and(crosswordKind, eq(puzzles.id, puzzle_id)));
         });
 
         yield* invalidate_and_refresh_cache(CACHE.crossword.listed_puzzle_list, NO_CACHE_PARAMS);
@@ -533,12 +585,12 @@ const delete_puzzle_route = protectedAdminProcedure
     runTrpcEffect(
       Effect.gen(function* () {
         const normalizedSlug = normalizeSlug(slug);
-        const puzzle = yield* dbRunHttp('crossword.find_puzzle_for_delete', (client) =>
-          client.query.crossword_puzzles.findFirst({
-            columns: { listed: true },
-            where: (tbl, { and: andFn, eq: eqFn }) =>
-              andFn(eqFn(tbl.id, id), eqFn(tbl.slug, normalizedSlug))
-          })
+        const [puzzle] = yield* dbRunHttp('crossword.find_puzzle_for_delete', (client) =>
+          client
+            .select({ listed: puzzles.listed })
+            .from(puzzles)
+            .where(and(crosswordKind, eq(puzzles.id, id), eq(puzzles.slug, normalizedSlug)))
+            .limit(1)
         );
         if (!puzzle) {
           return yield* Effect.fail(
@@ -551,8 +603,8 @@ const delete_puzzle_route = protectedAdminProcedure
 
         yield* dbTransaction('crossword.delete_puzzle', async (tx) => {
           await tx
-            .delete(crossword_puzzles)
-            .where(and(eq(crossword_puzzles.id, id), eq(crossword_puzzles.slug, normalizedSlug)));
+            .delete(puzzles)
+            .where(and(crosswordKind, eq(puzzles.id, id), eq(puzzles.slug, normalizedSlug)));
         });
 
         if (puzzle.listed) {
@@ -589,17 +641,21 @@ const get_puzzle_slugs_route = protectedAdminProcedure
   .query(({ input: { puzzle_id } }) =>
     runTrpcEffect(
       Effect.gen(function* () {
-        const puzzle = yield* dbRunHttp('crossword.get_puzzle_slugs', (client) =>
-          client.query.crossword_puzzles.findFirst({
-            columns: { slug: true },
-            where: (tbl, { eq: eqFn }) => eqFn(tbl.id, puzzle_id),
-            with: {
-              redirects: {
-                columns: { slug: true, created_at: true },
-                orderBy: (tbl, { desc: descFn }) => descFn(tbl.created_at)
-              }
-            }
-          })
+        const [puzzle] = yield* dbRunHttp('crossword.get_puzzle_slugs', (client) =>
+          client
+            .select({ slug: puzzles.slug })
+            .from(puzzles)
+            .where(and(crosswordKind, eq(puzzles.id, puzzle_id)))
+            .limit(1)
+        );
+        const redirects = yield* dbRunHttp('crossword.get_puzzle_redirects', (client) =>
+          client
+            .select({ slug: puzzle_redirects.slug, created_at: puzzle_redirects.created_at })
+            .from(puzzle_redirects)
+            .where(
+              and(eq(puzzle_redirects.kind, 'crossword'), eq(puzzle_redirects.puzzle_id, puzzle_id))
+            )
+            .orderBy(desc(puzzle_redirects.created_at))
         );
 
         if (!puzzle) {
@@ -611,7 +667,7 @@ const get_puzzle_slugs_route = protectedAdminProcedure
           );
         }
 
-        const redirect_slugs = puzzle.redirects.map((redirect) => redirect.slug);
+        const redirect_slugs = redirects.map((redirect) => redirect.slug);
         const all_slugs = [
           puzzle.slug,
           ...redirect_slugs.filter((redirect_slug) => redirect_slug !== puzzle.slug)
@@ -636,11 +692,12 @@ const delete_redirect_slug_route = protectedAdminProcedure
   .mutation(({ input: { puzzle_id, redirect_slug } }) =>
     runTrpcEffect(
       Effect.gen(function* () {
-        const puzzle = yield* dbRunHttp('crossword.find_puzzle_for_redirect_delete', (client) =>
-          client.query.crossword_puzzles.findFirst({
-            columns: { id: true, slug: true },
-            where: (tbl, { eq: eqFn }) => eqFn(tbl.id, puzzle_id)
-          })
+        const [puzzle] = yield* dbRunHttp('crossword.find_puzzle_for_redirect_delete', (client) =>
+          client
+            .select({ id: puzzles.id, slug: puzzles.slug })
+            .from(puzzles)
+            .where(and(crosswordKind, eq(puzzles.id, puzzle_id)))
+            .limit(1)
         );
         if (!puzzle) {
           return yield* Effect.fail(
@@ -658,12 +715,18 @@ const delete_redirect_slug_route = protectedAdminProcedure
           );
         }
 
-        const redirect = yield* dbRunHttp('crossword.find_redirect_for_delete', (client) =>
-          client.query.crossword_redirects.findFirst({
-            columns: { id: true },
-            where: (tbl, { and: andFn, eq: eqFn }) =>
-              andFn(eqFn(tbl.slug, redirect_slug), eqFn(tbl.puzzle_id, puzzle_id))
-          })
+        const [redirect] = yield* dbRunHttp('crossword.find_redirect_for_delete', (client) =>
+          client
+            .select({ id: puzzle_redirects.id })
+            .from(puzzle_redirects)
+            .where(
+              and(
+                eq(puzzle_redirects.kind, 'crossword'),
+                eq(puzzle_redirects.slug, redirect_slug),
+                eq(puzzle_redirects.puzzle_id, puzzle_id)
+              )
+            )
+            .limit(1)
         );
         if (!redirect) {
           return yield* Effect.fail(
@@ -676,12 +739,9 @@ const delete_redirect_slug_route = protectedAdminProcedure
 
         yield* dbRunHttp('crossword.delete_redirect', async (client) => {
           await client
-            .delete(crossword_redirects)
+            .delete(puzzle_redirects)
             .where(
-              and(
-                eq(crossword_redirects.id, redirect.id),
-                eq(crossword_redirects.puzzle_id, puzzle_id)
-              )
+              and(eq(puzzle_redirects.id, redirect.id), eq(puzzle_redirects.puzzle_id, puzzle_id))
             );
         });
 

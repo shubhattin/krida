@@ -1,20 +1,13 @@
 import { Effect } from 'effect';
-import { and, count, gte, isNotNull, lte, sql, type SQL } from 'drizzle-orm';
+import { and, count, eq, gte, isNotNull, lte, sql, type SQL } from 'drizzle-orm';
 import type { AnyPgColumn, AnyPgTable } from 'drizzle-orm/pg-core';
 import {
-  anveshi_gameplay_stats,
-  anveshi_sessions,
-  bhramita_gameplay_stats,
-  bhramita_sessions,
+  attempt_gameplay_stats,
   crossword_gameplay_stats,
-  crossword_sessions,
-  dvayi_gameplay_stats,
-  dvayi_sessions,
-  padavali_gameplay_stats,
-  padavali_sessions,
-  surupa_gameplay_stats,
-  surupa_sessions
+  puzzle_sessions,
+  puzzles
 } from '~/db/schema';
+import type { GameKind } from '~/util/catalog/tags';
 import { dbRunHttp } from '~/effect/database';
 
 export type AdminAnalyticsGameId =
@@ -67,14 +60,14 @@ type GameQueryResult = {
   signals: UserSignals;
 };
 
-type SessionTable = AnyPgTable & {
-  created_at: AnyPgColumn;
-  user_id: AnyPgColumn;
-};
-
 type StatsTable = AnyPgTable & {
   created_at: AnyPgColumn;
+  puzzle_id: AnyPgColumn;
 };
+
+function analyticsKind(game: AdminAnalyticsGameId): GameKind {
+  return game === 'padajala' ? 'crossword' : game;
+}
 
 export const ADMIN_ANALYTICS_GAME_ORDER = [
   'padavali',
@@ -173,41 +166,48 @@ function buildTotals(
 
 const fetchTableStats = Effect.fn('analytics.table_game_stats')(function* (
   label: string,
-  sessions: SessionTable,
+  kind: GameKind,
   gameplay_stats: StatsTable,
   query: AdminAnalyticsQuery
 ) {
-  const sessionConditions = rangeConditions(sessions.created_at, query);
+  const puzzleKind = eq(puzzles.kind, kind);
+  const sessionForKind = and(eq(puzzles.id, puzzle_sessions.puzzle_id), puzzleKind);
+  const statForKind = and(eq(puzzles.id, gameplay_stats.puzzle_id), puzzleKind);
+  const sessionConditions = rangeConditions(puzzle_sessions.created_at, query);
   const statsConditions = rangeConditions(gameplay_stats.created_at, query);
 
   const { startedRows, completedRows, activeRows, firstSeenRows } = yield* Effect.all({
     startedRows: dbRunHttp(`analytics.${label}_started`, (client) =>
       client
         .select({ started: count() })
-        .from(sessions)
-        .where(sessionConditions.length > 0 ? and(...sessionConditions) : undefined)
+        .from(puzzle_sessions)
+        .innerJoin(puzzles, sessionForKind)
+        .where(sessionConditions.length > 0 ? and(...sessionConditions) : puzzleKind)
     ),
     completedRows: dbRunHttp(`analytics.${label}_completed`, (client) =>
       client
         .select({ completed: count() })
         .from(gameplay_stats)
-        .where(statsConditions.length > 0 ? and(...statsConditions) : undefined)
+        .innerJoin(puzzles, statForKind)
+        .where(statsConditions.length > 0 ? and(...statsConditions) : puzzleKind)
     ),
     activeRows: dbRunHttp(`analytics.${label}_active_users`, (client) =>
       client
-        .selectDistinct({ user_id: sessions.user_id })
-        .from(sessions)
-        .where(and(isNotNull(sessions.user_id), ...sessionConditions))
+        .selectDistinct({ user_id: puzzle_sessions.user_id })
+        .from(puzzle_sessions)
+        .innerJoin(puzzles, sessionForKind)
+        .where(and(puzzleKind, isNotNull(puzzle_sessions.user_id), ...sessionConditions))
     ),
     firstSeenRows: dbRunHttp(`analytics.${label}_first_seen`, (client) =>
       client
         .select({
-          user_id: sessions.user_id,
-          first_seen: sql<Date>`min(${sessions.created_at})`
+          user_id: puzzle_sessions.user_id,
+          first_seen: sql<Date>`min(${puzzle_sessions.created_at})`
         })
-        .from(sessions)
-        .where(isNotNull(sessions.user_id))
-        .groupBy(sessions.user_id)
+        .from(puzzle_sessions)
+        .innerJoin(puzzles, sessionForKind)
+        .where(and(puzzleKind, isNotNull(puzzle_sessions.user_id)))
+        .groupBy(puzzle_sessions.user_id)
     )
   });
 
@@ -227,12 +227,12 @@ const fetchTableStats = Effect.fn('analytics.table_game_stats')(function* (
 });
 
 const GAME_TABLES = {
-  padavali: { label: 'padavali', sessions: padavali_sessions, stats: padavali_gameplay_stats },
-  padajala: { label: 'padajala', sessions: crossword_sessions, stats: crossword_gameplay_stats },
-  dvayi: { label: 'dvayi', sessions: dvayi_sessions, stats: dvayi_gameplay_stats },
-  bhramita: { label: 'bhramita', sessions: bhramita_sessions, stats: bhramita_gameplay_stats },
-  surupa: { label: 'surupa', sessions: surupa_sessions, stats: surupa_gameplay_stats },
-  anveshi: { label: 'anveshi', sessions: anveshi_sessions, stats: anveshi_gameplay_stats }
+  padavali: { label: 'padavali', kind: 'padavali' as const, stats: attempt_gameplay_stats },
+  padajala: { label: 'padajala', kind: 'crossword' as const, stats: crossword_gameplay_stats },
+  dvayi: { label: 'dvayi', kind: 'dvayi' as const, stats: attempt_gameplay_stats },
+  bhramita: { label: 'bhramita', kind: 'bhramita' as const, stats: attempt_gameplay_stats },
+  surupa: { label: 'surupa', kind: 'surupa' as const, stats: attempt_gameplay_stats },
+  anveshi: { label: 'anveshi', kind: 'anveshi' as const, stats: attempt_gameplay_stats }
 } as const;
 
 const EMPTY_SIGNALS: UserSignals = { active_user_ids: [], first_seen_by_user: new Map() };
@@ -251,7 +251,7 @@ export const fetchAdminAnalyticsOverview = Effect.fn('analytics.overview')(funct
   const fetched = yield* Effect.all(
     ordered.map((game) => {
       const tables = GAME_TABLES[game];
-      return fetchTableStats(tables.label, tables.sessions, tables.stats, query).pipe(
+      return fetchTableStats(tables.label, analyticsKind(game), tables.stats, query).pipe(
         Effect.map((result) => ({ game, result }))
       );
     }),

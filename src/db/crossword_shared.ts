@@ -112,9 +112,10 @@ export type CrosswordUpdateInput = z.infer<typeof crossword_update_input_schema>
 /** Public card summary — minimize serialized fields */
 export const crossword_public_card_schema = CrossordPuzzleSchemaZod.pick({
   id: true,
-  title: true,
-  description: true,
-  grid_dimensions: true,
-  listed: true,
-  created_at: true
+  grid_dimensions: true
+}).extend({
+  title: z.string(),
+  description: z.string(),
+  listed: z.boolean(),
+  created_at: z.coerce.date()
 });

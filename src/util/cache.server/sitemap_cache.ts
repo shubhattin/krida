@@ -1,6 +1,8 @@
 import { Effect } from 'effect';
 import ms from 'ms';
 import { z } from 'zod';
+import { and, eq } from 'drizzle-orm';
+import { puzzles as puzzlesTable } from '~/db/schema';
 import { createCache, type CacheItem, type NoCacheParams, NO_CACHE_PARAMS } from '~/effect/cache';
 import { AppConfig } from '~/effect/config';
 import { dbRunHttp } from '~/effect/database';
@@ -66,17 +68,17 @@ const load_padavali_sitemap: CacheItem<NoCacheParams, string> = createCache({
       const config = yield* AppConfig;
       const base = config.siteUrl;
 
-      const [puzzles, collections] = yield* Effect.all([
+      const [listedPuzzles, collections] = yield* Effect.all([
         dbRunHttp('sitemap.padavali_listed', (client) =>
-          client.query.padavali_puzzles.findMany({
-            columns: {
-              slug: true,
-              updated_at: true,
-              last_listed_at: true,
-              created_at: true
-            },
-            where: ({ listed }, { eq }) => eq(listed, true)
-          })
+          client
+            .select({
+              slug: puzzlesTable.slug,
+              updated_at: puzzlesTable.updated_at,
+              last_listed_at: puzzlesTable.last_listed_at,
+              created_at: puzzlesTable.created_at
+            })
+            .from(puzzlesTable)
+            .where(and(eq(puzzlesTable.kind, 'padavali'), eq(puzzlesTable.listed, true)))
         ),
         dbRunHttp('sitemap.listed_collections', (client) =>
           client.query.collections.findMany({
@@ -98,7 +100,7 @@ const load_padavali_sitemap: CacheItem<NoCacheParams, string> = createCache({
           loc: joinUrl(base, `/collections/${encodeURIComponent(collection.slug)}`),
           lastmod: collection.updated_at ?? collection.created_at
         })),
-        ...puzzles.map((puzzle) => ({
+        ...listedPuzzles.map((puzzle) => ({
           loc: joinUrl(base, `/padavali/${encodeURIComponent(puzzle.slug)}`),
           lastmod: resolveLastmod(puzzle)
         }))
@@ -117,21 +119,21 @@ const load_padajala_sitemap: CacheItem<NoCacheParams, string> = createCache({
       const config = yield* AppConfig;
       const base = config.siteUrl;
 
-      const puzzles = yield* dbRunHttp('sitemap.padajala_listed', (client) =>
-        client.query.crossword_puzzles.findMany({
-          columns: {
-            slug: true,
-            updated_at: true,
-            last_listed_at: true,
-            created_at: true
-          },
-          where: ({ listed }, { eq }) => eq(listed, true)
-        })
+      const listedPuzzles = yield* dbRunHttp('sitemap.padajala_listed', (client) =>
+        client
+          .select({
+            slug: puzzlesTable.slug,
+            updated_at: puzzlesTable.updated_at,
+            last_listed_at: puzzlesTable.last_listed_at,
+            created_at: puzzlesTable.created_at
+          })
+          .from(puzzlesTable)
+          .where(and(eq(puzzlesTable.kind, 'crossword'), eq(puzzlesTable.listed, true)))
       );
 
       const entries: SitemapUrlEntry[] = [
         { loc: joinUrl(base, '/puzzles?game=crossword') },
-        ...puzzles.map((puzzle) => ({
+        ...listedPuzzles.map((puzzle) => ({
           loc: joinUrl(base, `/padajala/${encodeURIComponent(puzzle.slug)}`),
           lastmod: resolveLastmod(puzzle)
         }))
