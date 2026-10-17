@@ -32,7 +32,7 @@ function List() {
           <BarChart3Icon className="size-4 shrink-0" />
           Analytics
         </Button>
-        <Link to="/padajala/schedules">
+        <Link to="/schedules">
           <Button
             variant={'outline'}
             className="inline-flex items-center gap-2 text-base font-semibold"
@@ -42,7 +42,7 @@ function List() {
           </Button>
         </Link>
         <Button
-          render={<Link to="/padajala/batch_manager" className="inline-flex items-center gap-2" />}
+          render={<Link to="/padavali/batch_manager" className="inline-flex items-center gap-2" />}
           nativeButton={false}
           variant="outline"
           className="text-base font-semibold"

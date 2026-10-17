@@ -1,8 +1,6 @@
 import { createFileRoute, notFound, redirect } from '@tanstack/react-router';
 import { createServerFn } from '@tanstack/react-start';
-import { eq } from 'drizzle-orm';
 import { z } from 'zod';
-import { crossword_puzzles } from '~/db/schema';
 import { parseIdSlugParam } from '~/util/puzzle/slug';
 import { dbRunHttp } from '~/effect/database';
 import { runLoaderEffect } from '~/effect/run';
@@ -15,8 +13,8 @@ const loader$ = createServerFn({ method: 'GET' })
 
     const puzzle = await runLoaderEffect(
       dbRunHttp('crossword.archived.resolve_slug', (client) =>
-        client.query.crossword_puzzles.findFirst({
-          where: eq(crossword_puzzles.id, parsed.id),
+        client.query.puzzles.findFirst({
+          where: (tbl, { and, eq }) => and(eq(tbl.id, parsed.id), eq(tbl.kind, 'crossword')),
           columns: { slug: true }
         })
       )

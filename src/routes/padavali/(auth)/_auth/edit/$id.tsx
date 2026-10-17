@@ -17,11 +17,12 @@ const loader$ = createServerFn({ method: 'GET' })
     const parsed = z.coerce.number().int().safeParse(data.rawId);
     if (!parsed.success) return { word_puzzle: null, catalog: { tags: [], collections: [] } };
 
-    const word_puzzle = await runLoaderEffect(
+    const row = await runLoaderEffect(
       dbRunHttp('padavali.admin.get_edit_puzzle', (client) =>
-        client.query.padavali_puzzles.findFirst({
-          where: (tbl, { eq }) => eq(tbl.id, parsed.data),
+        client.query.puzzles.findFirst({
+          where: (tbl, { and, eq }) => and(eq(tbl.id, parsed.data), eq(tbl.kind, 'padavali')),
           with: {
+            padavali: true,
             attachments: {
               columns: {
                 id: true,
@@ -55,11 +56,18 @@ const loader$ = createServerFn({ method: 'GET' })
       )
     );
 
-    if (!word_puzzle) return { word_puzzle: null, catalog: { tags: [], collections: [] } };
+    if (!row?.padavali) return { word_puzzle: null, catalog: { tags: [], collections: [] } };
 
-    const { puzzle_tags, collection_items, ...puzzle } = word_puzzle;
+    const { padavali, puzzle_tags, collection_items, ...meta } = row;
+    const word_puzzle = {
+      ...meta,
+      word_list: padavali.word_list,
+      grid_data: padavali.grid_data,
+      grid_dimensions: padavali.grid_dimensions
+    };
+
     return {
-      word_puzzle: puzzle,
+      word_puzzle,
       catalog: {
         tags: puzzle_tags.map((link) => link.tag).sort((a, b) => a.slug.localeCompare(b.slug)),
         collections: collection_items

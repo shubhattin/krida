@@ -5,7 +5,7 @@ import { useMutation, useQuery } from '@tanstack/react-query';
 import { useMemo, useState } from 'react';
 import { Image } from '@unpic/react';
 import { Link } from '@tanstack/react-router';
-import { RefreshCw, ExternalLink } from 'lucide-react';
+import { RefreshCw, ExternalLink, ArrowLeftIcon } from 'lucide-react';
 import { toast } from 'sonner';
 import { useTRPC } from '~/api/client';
 import type { AppRouter } from '~/api/trpc_router';
@@ -45,15 +45,14 @@ type BatchManagerGroup = RouterOutput['batch_ai']['get_batch_manager_groups'][nu
 type BatchManagerItem = BatchManagerGroup['items'][number];
 
 type BatchManagerPageProps = {
-  game?: PuzzleImageGame;
+  initialGame?: PuzzleImageGame;
 };
 
 function batchManagerLinks(game: PuzzleImageGame) {
   return {
     list_href: game === 'crossword' ? '/padajala/list' : '/padavali/list',
     edit_href: (puzzle_id: number) =>
-      game === 'crossword' ? `/padajala/edit/${puzzle_id}` : `/padavali/edit/${puzzle_id}`,
-    title: game === 'crossword' ? 'Crossword Batch Manager' : 'Batch Manager'
+      game === 'crossword' ? `/padajala/edit/${puzzle_id}` : `/padavali/edit/${puzzle_id}`
   };
 }
 
@@ -456,13 +455,14 @@ const ReviewDialog = ({
   );
 };
 
-const BatchManagerPage = ({ game = 'padavali' }: BatchManagerPageProps) => {
+const BatchManagerPage = ({ initialGame = 'padavali' }: BatchManagerPageProps) => {
+  const [game, setGame] = useState<PuzzleImageGame>(initialGame);
   const [review_item, setReviewItem] = useState<BatchManagerItem | null>(null);
   const [poll_confirm_batch_id, setPollConfirmBatchId] = useState<string | null>(null);
   const [discard_confirm_item, setDiscardConfirmItem] = useState<BatchManagerItem | null>(null);
   const [discard_delete_image_asset, setDiscardDeleteImageAsset] = useState(false);
 
-  const { list_href, edit_href, title } = batchManagerLinks(game);
+  const { list_href, edit_href } = batchManagerLinks(game);
 
   const { poll_mut, discard_mut } = useBatchManagerMutations(
     game,
@@ -490,21 +490,44 @@ const BatchManagerPage = ({ game = 'padavali' }: BatchManagerPageProps) => {
     <div className="space-y-4">
       <div className="flex flex-wrap items-center justify-between gap-3">
         <div>
-          <h1 className="text-2xl font-bold">{title}</h1>
+          <Link
+            to={list_href}
+            className="mb-2 inline-flex items-center gap-2 text-sm font-medium text-muted-foreground no-underline hover:text-foreground"
+          >
+            <ArrowLeftIcon className="size-4 shrink-0" />
+            Puzzle list
+          </Link>
+          <h1 className="text-2xl font-bold">Image batches</h1>
           <p className="text-sm text-muted-foreground">
             Monitor background puzzle image batches, poll for results, and review generated images.
           </p>
         </div>
-        <Button
-          type="button"
-          variant="outline"
-          className="gap-2"
-          disabled={groups_q.isFetching}
-          onClick={() => void groups_q.refetch()}
-        >
-          <RefreshCw className={groups_q.isFetching ? 'size-4 animate-spin' : 'size-4'} />
-          Refresh
-        </Button>
+        <div className="flex flex-wrap items-center gap-2">
+          <Button
+            type="button"
+            variant={game === 'padavali' ? 'default' : 'outline'}
+            onClick={() => setGame('padavali')}
+          >
+            Padavali
+          </Button>
+          <Button
+            type="button"
+            variant={game === 'crossword' ? 'default' : 'outline'}
+            onClick={() => setGame('crossword')}
+          >
+            Crossword
+          </Button>
+          <Button
+            type="button"
+            variant="outline"
+            className="gap-2"
+            disabled={groups_q.isFetching}
+            onClick={() => void groups_q.refetch()}
+          >
+            <RefreshCw className={groups_q.isFetching ? 'size-4 animate-spin' : 'size-4'} />
+            Refresh
+          </Button>
+        </div>
       </div>
 
       <BatchGroupsStatus

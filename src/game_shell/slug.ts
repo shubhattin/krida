@@ -1,45 +1,20 @@
 import { Effect } from 'effect';
-import { eq } from 'drizzle-orm';
-import type { AnyPgColumn, AnyPgTable } from 'drizzle-orm/pg-core';
+import { and, eq } from 'drizzle-orm';
+import { puzzle_redirects, puzzles } from '~/db/schema';
 import { dbRunHttp, type DbTransaction } from '~/effect/database';
 import { BadRequestError, ConflictError } from '~/effect/errors';
 import { normalizeSlug } from '~/util/puzzle/slug';
+import type { GameKind } from '~/util/catalog/tags';
 
 export type SlugAvailabilityOptions = {
   exclude_puzzle_id?: number;
 };
 
-export type GameSlugTables = {
-  puzzles: AnyPgTable & {
-    id: AnyPgColumn;
-    slug: AnyPgColumn;
-    title: AnyPgColumn;
-  };
-  redirects: AnyPgTable & {
-    id: AnyPgColumn;
-    slug: AnyPgColumn;
-    puzzle_id: AnyPgColumn;
-  };
-};
-
-type PuzzleSlugRow = { id: number; slug: string; title: string };
-
-function asPuzzleSlugRow(row: { id: unknown; slug: unknown; title: unknown }): PuzzleSlugRow {
-  // SAFETY: puzzle tables select serial id here.
-  const id = row.id as number;
-  // SAFETY: puzzle tables select text slug here.
-  const slug = row.slug as string;
-  // SAFETY: puzzle tables select text title here.
-  const title = row.title as string;
-  return { id, slug, title };
-}
-
 export function createGameSlugHelpers(options: {
-  kind: string;
-  tables: GameSlugTables;
+  kind: GameKind;
   isValidSlug: (slug: string) => boolean;
 }) {
-  const { kind, tables, isValidSlug } = options;
+  const { kind, isValidSlug } = options;
 
   const resolve_slug_availability = Effect.fn(`${kind}.resolve_slug_availability`)(function* (
     slug: string,
@@ -55,47 +30,41 @@ export function createGameSlugHelpers(options: {
       existing_puzzle: dbRunHttp(`${kind}_slug.find_puzzle_by_slug`, (client) =>
         client
           .select({
-            id: tables.puzzles.id,
-            slug: tables.puzzles.slug,
-            title: tables.puzzles.title
+            id: puzzles.id,
+            slug: puzzles.slug,
+            title: puzzles.title
           })
-          .from(tables.puzzles)
-          .where(eq(tables.puzzles.slug, normalized))
+          .from(puzzles)
+          .where(and(eq(puzzles.kind, kind), eq(puzzles.slug, normalized)))
           .limit(1)
-          .then((rows) => {
-            const row = rows[0];
-            return row ? asPuzzleSlugRow(row) : undefined;
-          })
+          .then((rows) => rows[0])
       ),
       existing_redirect: dbRunHttp(`${kind}_slug.find_redirect_by_slug`, async (client) => {
         const [redirect] = await client
           .select({
-            id: tables.redirects.id,
-            slug: tables.redirects.slug,
-            puzzle_id: tables.redirects.puzzle_id
+            id: puzzle_redirects.id,
+            slug: puzzle_redirects.slug,
+            puzzle_id: puzzle_redirects.puzzle_id
           })
-          .from(tables.redirects)
-          .where(eq(tables.redirects.slug, normalized))
+          .from(puzzle_redirects)
+          .where(and(eq(puzzle_redirects.kind, kind), eq(puzzle_redirects.slug, normalized)))
           .limit(1);
         if (!redirect) return undefined;
         const [puzzle] = await client
           .select({
-            id: tables.puzzles.id,
-            slug: tables.puzzles.slug,
-            title: tables.puzzles.title
+            id: puzzles.id,
+            slug: puzzles.slug,
+            title: puzzles.title
           })
-          .from(tables.puzzles)
-          .where(eq(tables.puzzles.id, redirect.puzzle_id))
+          .from(puzzles)
+          .where(and(eq(puzzles.id, redirect.puzzle_id), eq(puzzles.kind, kind)))
           .limit(1);
         if (!puzzle) return undefined;
         return {
-          // SAFETY: redirect rows select serial id.
-          id: redirect.id as number,
-          // SAFETY: redirect rows select text slug.
-          slug: redirect.slug as string,
-          // SAFETY: redirect rows select puzzle_id FK.
-          puzzle_id: redirect.puzzle_id as number,
-          puzzle: asPuzzleSlugRow(puzzle)
+          id: redirect.id,
+          slug: redirect.slug,
+          puzzle_id: redirect.puzzle_id,
+          puzzle
         };
       })
     });
@@ -161,7 +130,9 @@ export function createGameSlugHelpers(options: {
   );
 
   const delete_redirect_for_slug = async (tx: DbTransaction, slug: string) => {
-    await tx.delete(tables.redirects).where(eq(tables.redirects.slug, slug));
+    await tx
+      .delete(puzzle_redirects)
+      .where(and(eq(puzzle_redirects.kind, kind), eq(puzzle_redirects.slug, slug)));
   };
 
   const upsert_redirect_for_puzzle = async (
@@ -170,13 +141,14 @@ export function createGameSlugHelpers(options: {
     redirect_slug: string
   ) => {
     await tx
-      .insert(tables.redirects)
+      .insert(puzzle_redirects)
       .values({
         puzzle_id,
+        kind,
         slug: redirect_slug
       })
       .onConflictDoUpdate({
-        target: tables.redirects.slug,
+        target: [puzzle_redirects.kind, puzzle_redirects.slug],
         set: { puzzle_id }
       });
   };

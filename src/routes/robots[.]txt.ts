@@ -14,6 +14,7 @@ Disallow: /tags/list
 Disallow: /tags/edit
 Disallow: /padavali/list
 Disallow: /padavali/edit
+Disallow: /schedules
 Disallow: /padavali/schedules
 Disallow: /padavali/analytics
 Disallow: /padavali/batch_manager

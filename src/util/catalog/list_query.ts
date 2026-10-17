@@ -1,41 +1,15 @@
-import { inArray, sql, type SQL, type SQLWrapper } from 'drizzle-orm';
-import { eq } from 'drizzle-orm';
-import {
-  tags,
-  padavali_puzzle_tags,
-  crossword_puzzle_tags,
-  dvayi_puzzle_tags,
-  bhramita_puzzle_tags,
-  surupa_puzzle_tags,
-  anveshi_puzzle_tags
-} from '~/db/schema';
+import { and, eq, inArray, sql, type SQL, type SQLWrapper } from 'drizzle-orm';
+import { puzzle_tags, puzzles, tags } from '~/db/schema';
 import { dbRunHttp } from '~/effect/database';
 import { Effect } from 'effect';
 import type { GameKind, PublicTag } from './tags';
 
-const LINK_TABLE = {
-  padavali: 'padavali_puzzle_tags',
-  crossword: 'crossword_puzzle_tags',
-  dvayi: 'dvayi_puzzle_tags',
-  bhramita: 'bhramita_puzzle_tags',
-  surupa: 'surupa_puzzle_tags',
-  anveshi: 'anveshi_puzzle_tags'
-} as const;
-
-const ITEM_TABLE = {
-  padavali: 'padavali_collection_items',
-  crossword: 'crossword_collection_items',
-  dvayi: 'dvayi_collection_items',
-  bhramita: 'bhramita_collection_items',
-  surupa: 'surupa_collection_items',
-  anveshi: 'anveshi_collection_items'
-} as const;
-
 export const puzzleHasTag = (puzzleId: SQLWrapper, game: GameKind, slug: string): SQL =>
   sql`exists (
-    select 1 from ${sql.raw(LINK_TABLE[game])} pt
+    select 1 from puzzle_tags pt
     inner join tags t on t.id = pt.tag_id
-    where pt.puzzle_id = ${puzzleId} and t.slug = ${slug}
+    inner join puzzles p on p.id = pt.puzzle_id
+    where pt.puzzle_id = ${puzzleId} and p.kind = ${game} and t.slug = ${slug}
   )`;
 
 export const puzzleInCollection = (
@@ -44,8 +18,11 @@ export const puzzleInCollection = (
   collectionId: number
 ): SQL =>
   sql`exists (
-    select 1 from ${sql.raw(ITEM_TABLE[game])} ci
-    where ci.puzzle_id = ${puzzleId} and ci.collection_id = ${collectionId}
+    select 1 from collection_items ci
+    inner join puzzles p on p.id = ci.puzzle_id
+    where ci.puzzle_id = ${puzzleId}
+      and p.kind = ${game}
+      and ci.collection_id = ${collectionId}
   )`;
 
 export const puzzleNotInCollection = (
@@ -54,34 +31,28 @@ export const puzzleNotInCollection = (
   collectionId: number
 ): SQL =>
   sql`not exists (
-    select 1 from ${sql.raw(ITEM_TABLE[game])} ci
-    where ci.puzzle_id = ${puzzleId} and ci.collection_id = ${collectionId}
+    select 1 from collection_items ci
+    inner join puzzles p on p.id = ci.puzzle_id
+    where ci.puzzle_id = ${puzzleId}
+      and p.kind = ${game}
+      and ci.collection_id = ${collectionId}
   )`;
-
-const linkTable = {
-  padavali: padavali_puzzle_tags,
-  crossword: crossword_puzzle_tags,
-  dvayi: dvayi_puzzle_tags,
-  bhramita: bhramita_puzzle_tags,
-  surupa: surupa_puzzle_tags,
-  anveshi: anveshi_puzzle_tags
-} as const;
 
 export const tagsForPuzzleIds = (game: GameKind, puzzleIds: number[]) => {
   if (puzzleIds.length === 0) {
     return Effect.succeed(new Map<number, PublicTag[]>());
   }
-  const link = linkTable[game];
   return dbRunHttp(`${game}.tags_for_puzzle_ids`, (client) =>
     client
       .select({
-        puzzle_id: link.puzzle_id,
+        puzzle_id: puzzle_tags.puzzle_id,
         id: tags.id,
         slug: tags.slug
       })
-      .from(link)
-      .innerJoin(tags, eq(tags.id, link.tag_id))
-      .where(inArray(link.puzzle_id, puzzleIds))
+      .from(puzzle_tags)
+      .innerJoin(tags, eq(tags.id, puzzle_tags.tag_id))
+      .innerJoin(puzzles, and(eq(puzzles.id, puzzle_tags.puzzle_id), eq(puzzles.kind, game)))
+      .where(inArray(puzzle_tags.puzzle_id, puzzleIds))
       .orderBy(tags.slug)
   ).pipe(
     Effect.map((rows) => {

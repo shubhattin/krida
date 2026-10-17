@@ -1,4 +1,4 @@
-import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
+import { afterEach, beforeEach, describe, expect, it } from 'vitest';
 import {
   GUEST_AUTH_PROMPT_KEY,
   GUEST_AUTH_PROMPT_SESSION_SHOWN_KEY,
@@ -35,20 +35,47 @@ function memoryStorage(): Storage {
   };
 }
 
+const savedLocalStorage = globalThis.localStorage;
+const savedSessionStorage = globalThis.sessionStorage;
+const savedWindow = globalThis.window;
+
+function defineGlobal(key: 'localStorage' | 'sessionStorage' | 'window', value: Storage | Window) {
+  Object.defineProperty(globalThis, key, { configurable: true, writable: true, value });
+}
+
+function installBrowser() {
+  const local = memoryStorage();
+  const session = memoryStorage();
+  defineGlobal('localStorage', local);
+  defineGlobal('sessionStorage', session);
+  // SAFETY: these tests only read window.localStorage and window.sessionStorage.
+  defineGlobal('window', { localStorage: local, sessionStorage: session } as Window);
+}
+
+function restoreBrowser() {
+  defineGlobal('localStorage', savedLocalStorage);
+  defineGlobal('sessionStorage', savedSessionStorage);
+  defineGlobal('window', savedWindow);
+}
+
+const realDateNow = Date.now;
+const START = '2026-01-01T00:00:00.000Z';
+let nowMs = Date.parse(START);
+
+function setNow(iso: string) {
+  nowMs = Date.parse(iso);
+}
+
 describe('guest_auth_prompt', () => {
   beforeEach(() => {
-    const localStorage = memoryStorage();
-    const sessionStorage = memoryStorage();
-    vi.stubGlobal('localStorage', localStorage);
-    vi.stubGlobal('sessionStorage', sessionStorage);
-    vi.stubGlobal('window', { localStorage, sessionStorage });
-    vi.useFakeTimers();
-    vi.setSystemTime(new Date('2026-01-01T00:00:00.000Z'));
+    installBrowser();
+    setNow(START);
+    Date.now = () => nowMs;
   });
 
   afterEach(() => {
-    vi.useRealTimers();
-    vi.unstubAllGlobals();
+    Date.now = realDateNow;
+    restoreBrowser();
   });
 
   it('allows the first auto-open', () => {
@@ -68,31 +95,31 @@ describe('guest_auth_prompt', () => {
     expect(readGuestAuthPromptState().shownCount).toBe(1);
     expect(canShowGuestAuthPrompt()).toBe(false);
 
-    vi.setSystemTime(new Date('2026-01-01T12:00:00.000Z'));
+    setNow('2026-01-01T12:00:00.000Z');
     expect(canShowGuestAuthPrompt()).toBe(false);
 
-    vi.setSystemTime(new Date('2026-01-02T00:00:00.000Z'));
+    setNow('2026-01-02T00:00:00.000Z');
     expect(canShowGuestAuthPrompt()).toBe(true);
 
     markGuestAuthPromptShown('complete');
     sessionStorage.removeItem(GUEST_AUTH_PROMPT_SESSION_SHOWN_KEY);
-    vi.setSystemTime(new Date('2026-01-04T00:00:00.000Z'));
+    setNow('2026-01-04T00:00:00.000Z');
     expect(canShowGuestAuthPrompt()).toBe(false);
 
-    vi.setSystemTime(new Date('2026-01-05T00:00:00.000Z'));
+    setNow('2026-01-05T00:00:00.000Z');
     expect(canShowGuestAuthPrompt()).toBe(true);
 
     markGuestAuthPromptShown('return_visit');
     sessionStorage.removeItem(GUEST_AUTH_PROMPT_SESSION_SHOWN_KEY);
-    vi.setSystemTime(new Date('2026-01-11T00:00:00.000Z'));
+    setNow('2026-01-11T00:00:00.000Z');
     expect(canShowGuestAuthPrompt()).toBe(false);
 
-    vi.setSystemTime(new Date('2026-01-12T00:00:00.000Z'));
+    setNow('2026-01-12T00:00:00.000Z');
     expect(canShowGuestAuthPrompt()).toBe(true);
 
     markGuestAuthPromptShown('play_start');
     sessionStorage.removeItem(GUEST_AUTH_PROMPT_SESSION_SHOWN_KEY);
-    vi.setSystemTime(new Date('2027-01-01T00:00:00.000Z'));
+    setNow('2027-01-01T00:00:00.000Z');
     expect(canShowGuestAuthPrompt()).toBe(false);
     expect(readGuestAuthPromptState().shownCount).toBe(4);
   });
@@ -100,14 +127,14 @@ describe('guest_auth_prompt', () => {
   it('uses dismissedAt for backoff when present', () => {
     markGuestAuthPromptShown('play_start');
     sessionStorage.removeItem(GUEST_AUTH_PROMPT_SESSION_SHOWN_KEY);
-    vi.setSystemTime(new Date('2026-01-01T01:00:00.000Z'));
+    setNow('2026-01-01T01:00:00.000Z');
     markGuestAuthPromptDismissed();
     expect(canShowGuestAuthPrompt()).toBe(false);
 
-    vi.setSystemTime(new Date('2026-01-02T00:59:00.000Z'));
+    setNow('2026-01-02T00:59:00.000Z');
     expect(canShowGuestAuthPrompt()).toBe(false);
 
-    vi.setSystemTime(new Date('2026-01-02T01:00:00.000Z'));
+    setNow('2026-01-02T01:00:00.000Z');
     expect(canShowGuestAuthPrompt()).toBe(true);
   });
 

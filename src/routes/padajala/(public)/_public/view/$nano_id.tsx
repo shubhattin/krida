@@ -1,11 +1,9 @@
 import { createFileRoute, Link, notFound } from '@tanstack/react-router';
 import { createServerFn } from '@tanstack/react-start';
-import { eq } from 'drizzle-orm';
 import { ArrowLeftIcon } from 'lucide-react';
 import { z } from 'zod';
 import CrossWordGameRoot from '~/components/pages/cross_word/CrossWordGame/CrossWordGameRoot';
 import { routeHeadFromPageMeta } from '~/components/tags/getPageMetaTags';
-import { crossword_puzzles } from '~/db/schema';
 import { dbRunHttp } from '~/effect/database';
 import { CACHE } from '~/util/cache.server/cache_loaders';
 import { runLoaderEffect } from '~/effect/run';
@@ -16,9 +14,9 @@ const loader$ = createServerFn({ method: 'GET' })
   .handler(async ({ data }) => {
     const row = await runLoaderEffect(
       dbRunHttp('crossword.view.resolve_uid', (client) =>
-        client.query.crossword_puzzles.findFirst({
+        client.query.puzzles.findFirst({
           columns: { slug: true },
-          where: eq(crossword_puzzles.uid, data.nano_id)
+          where: (tbl, { and, eq }) => and(eq(tbl.uid, data.nano_id), eq(tbl.kind, 'crossword'))
         })
       )
     );

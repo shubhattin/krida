@@ -1,7 +1,7 @@
 import { and, eq, inArray, sql } from 'drizzle-orm';
-import type { AnyPgColumn, AnyPgTable } from 'drizzle-orm/pg-core';
 import type { DbTransaction } from '~/effect/database';
 import type { attachment_list_type } from '~/db/db_shared_vals';
+import { puzzle_attachments } from '~/db/schema';
 
 export type PuzzleAttachmentInput = {
   id: number | null;
@@ -11,21 +11,12 @@ export type PuzzleAttachmentInput = {
   order_index: number;
 };
 
-export type GameAttachmentTable = AnyPgTable & {
-  id: AnyPgColumn;
-  puzzle_id: AnyPgColumn;
-  type: AnyPgColumn;
-  url: AnyPgColumn;
-  title: AnyPgColumn;
-  order_index: AnyPgColumn;
-};
-
 export async function syncPuzzleAttachments(
   tx: DbTransaction,
-  table: GameAttachmentTable,
   puzzle_id: number,
   attachments: PuzzleAttachmentInput[]
 ) {
+  const table = puzzle_attachments;
   const current_attachments = (
     await tx.select({ id: table.id }).from(table).where(eq(table.puzzle_id, puzzle_id))
   ).map((row) => ({

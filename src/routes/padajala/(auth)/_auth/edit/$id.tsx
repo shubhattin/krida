@@ -4,7 +4,7 @@ import { Provider as JotaiProvider } from 'jotai';
 import { IoMdArrowRoundBack } from 'react-icons/io';
 import { FaPlay } from 'react-icons/fa';
 import { z } from 'zod';
-import { CrossordPuzzleSchemaZod, CrosswordAttachmentSchemaZod } from '~/db/schema_zod';
+import { CrossordPuzzleSchemaZod, PuzzleAttachmentSchemaZod } from '~/db/schema_zod';
 import { adminServerFnMiddleware } from '~/lib/adminServerFn';
 import { routeHeadFromPageMeta } from '~/components/tags/getPageMetaTags';
 import { dbRunHttp } from '~/effect/database';
@@ -20,9 +20,10 @@ const loader$ = createServerFn({ method: 'GET' })
 
     const row = await runLoaderEffect(
       dbRunHttp('crossword.admin.get_edit_puzzle', (client) =>
-        client.query.crossword_puzzles.findFirst({
-          where: (tbl, { eq }) => eq(tbl.id, parsed.data),
+        client.query.puzzles.findFirst({
+          where: (tbl, { and, eq }) => and(eq(tbl.id, parsed.data), eq(tbl.kind, 'crossword')),
           with: {
+            crossword: true,
             attachments: {
               columns: {
                 id: true,
@@ -56,13 +57,12 @@ const loader$ = createServerFn({ method: 'GET' })
       )
     );
 
-    if (!row) return { puzzle: null, catalog: { tags: [], collections: [] } };
+    if (!row?.crossword) return { puzzle: null, catalog: { tags: [], collections: [] } };
 
-    const { puzzle_tags, collection_items, ...rest } = row;
-
-    const puzzle = CrossordPuzzleSchemaZod.parse(rest);
+    const { crossword, puzzle_tags, collection_items, ...meta } = row;
+    const payload = CrossordPuzzleSchemaZod.parse(crossword);
     const attachments = row.attachments.map((a) =>
-      CrosswordAttachmentSchemaZod.pick({
+      PuzzleAttachmentSchemaZod.pick({
         id: true,
         type: true,
         url: true,
@@ -73,7 +73,16 @@ const loader$ = createServerFn({ method: 'GET' })
 
     return {
       puzzle: {
-        ...puzzle,
+        ...payload,
+        uid: meta.uid,
+        slug: meta.slug,
+        title: meta.title,
+        description: meta.description,
+        listed: meta.listed,
+        last_listed_at: meta.last_listed_at,
+        image_id: meta.image_id,
+        created_at: meta.created_at,
+        updated_at: meta.updated_at,
         attachments,
         image: row.image
       },

@@ -6,6 +6,8 @@ import CrossWordGameRoot from '~/components/pages/cross_word/CrossWordGame/Cross
 import { routeHeadFromPageMeta, shareImageInfoFromAsset } from '~/components/tags/getPageMetaTags';
 import { CACHE, NO_CACHE_PARAMS } from '~/util/cache.server/cache_loaders';
 import type { CrosswordPuzzleType } from '~/util/cache.server/crossword_cache';
+import { and, eq } from 'drizzle-orm';
+import { puzzle_redirects, puzzles } from '~/db/schema';
 import { dbRunHttp } from '~/effect/database';
 import { runLoaderEffect } from '~/effect/run';
 
@@ -20,21 +22,19 @@ const resolve_puzzle_slug = async (slug: string): Promise<SlugResolution> => {
     return { type: 'puzzle', puzzle: word_puzzle };
   }
 
-  const redirect_entry = await runLoaderEffect(
+  const [redirect_entry] = await runLoaderEffect(
     dbRunHttp('crossword.resolve_puzzle_slug_redirect', (client) =>
-      client.query.crossword_redirects.findFirst({
-        where: (tbl, { eq }) => eq(tbl.slug, slug),
-        with: {
-          puzzle: {
-            columns: { slug: true }
-          }
-        }
-      })
+      client
+        .select({ targetSlug: puzzles.slug })
+        .from(puzzle_redirects)
+        .innerJoin(puzzles, eq(puzzle_redirects.puzzle_id, puzzles.id))
+        .where(and(eq(puzzle_redirects.kind, 'crossword'), eq(puzzle_redirects.slug, slug)))
+        .limit(1)
     )
   );
 
-  if (redirect_entry?.puzzle?.slug) {
-    return { type: 'redirect', targetSlug: redirect_entry.puzzle.slug };
+  if (redirect_entry?.targetSlug) {
+    return { type: 'redirect', targetSlug: redirect_entry.targetSlug };
   }
 
   return { type: 'not_found' };

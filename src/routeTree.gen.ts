@@ -20,6 +20,7 @@ import { Route as ExploreRouteImport } from './routes/explore'
 import { Route as PadajalaRouteRouteImport } from './routes/padajala/route'
 import { Route as PadavaliRouteRouteImport } from './routes/padavali/route'
 import { Route as RobotsDottxtRouteImport } from './routes/robots[.]txt'
+import { Route as SchedulesRouteImport } from './routes/schedules'
 import { Route as Sitemap0DotxmlRouteImport } from './routes/sitemap-0[.]xml'
 import { Route as Sitemap1DotxmlRouteImport } from './routes/sitemap-1[.]xml'
 import { Route as SitemapIndexDotxmlRouteImport } from './routes/sitemap-index[.]xml'
@@ -157,6 +158,11 @@ const PadavaliRouteRoute = PadavaliRouteRouteImport.update({
 const RobotsDottxtRoute = RobotsDottxtRouteImport.update({
   id: '/robots.txt',
   path: '/robots.txt',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const SchedulesRoute = SchedulesRouteImport.update({
+  id: '/schedules',
+  path: '/schedules',
   getParentRoute: () => rootRouteImport,
 } as any)
 const Sitemap0DotxmlRoute = Sitemap0DotxmlRouteImport.update({
@@ -627,6 +633,7 @@ export interface FileRoutesByFullPath {
   '/dashboard': typeof DashboardRoute
   '/explore': typeof ExploreRoute
   '/robots.txt': typeof RobotsDottxtRoute
+  '/schedules': typeof SchedulesRoute
   '/sitemap-0.xml': typeof Sitemap0DotxmlRoute
   '/sitemap-1.xml': typeof Sitemap1DotxmlRoute
   '/sitemap-index.xml': typeof SitemapIndexDotxmlRoute
@@ -710,6 +717,7 @@ export interface FileRoutesByTo {
   '/dashboard': typeof DashboardRoute
   '/explore': typeof ExploreRoute
   '/robots.txt': typeof RobotsDottxtRoute
+  '/schedules': typeof SchedulesRoute
   '/sitemap-0.xml': typeof Sitemap0DotxmlRoute
   '/sitemap-1.xml': typeof Sitemap1DotxmlRoute
   '/sitemap-index.xml': typeof SitemapIndexDotxmlRoute
@@ -790,6 +798,7 @@ export interface FileRoutesById {
   '/dashboard': typeof DashboardRoute
   '/explore': typeof ExploreRoute
   '/robots.txt': typeof RobotsDottxtRoute
+  '/schedules': typeof SchedulesRoute
   '/sitemap-0.xml': typeof Sitemap0DotxmlRoute
   '/sitemap-1.xml': typeof Sitemap1DotxmlRoute
   '/sitemap-index.xml': typeof SitemapIndexDotxmlRoute
@@ -889,6 +898,7 @@ export interface FileRouteTypes {
     | '/dashboard'
     | '/explore'
     | '/robots.txt'
+    | '/schedules'
     | '/sitemap-0.xml'
     | '/sitemap-1.xml'
     | '/sitemap-index.xml'
@@ -972,6 +982,7 @@ export interface FileRouteTypes {
     | '/dashboard'
     | '/explore'
     | '/robots.txt'
+    | '/schedules'
     | '/sitemap-0.xml'
     | '/sitemap-1.xml'
     | '/sitemap-index.xml'
@@ -1051,6 +1062,7 @@ export interface FileRouteTypes {
     | '/dashboard'
     | '/explore'
     | '/robots.txt'
+    | '/schedules'
     | '/sitemap-0.xml'
     | '/sitemap-1.xml'
     | '/sitemap-index.xml'
@@ -1149,6 +1161,7 @@ export interface RootRouteChildren {
   DashboardRoute: typeof DashboardRoute
   ExploreRoute: typeof ExploreRoute
   RobotsDottxtRoute: typeof RobotsDottxtRoute
+  SchedulesRoute: typeof SchedulesRoute
   Sitemap0DotxmlRoute: typeof Sitemap0DotxmlRoute
   Sitemap1DotxmlRoute: typeof Sitemap1DotxmlRoute
   SitemapIndexDotxmlRoute: typeof SitemapIndexDotxmlRoute
@@ -1240,6 +1253,13 @@ declare module '@tanstack/react-router' {
       path: '/robots.txt'
       fullPath: '/robots.txt'
       preLoaderRoute: typeof RobotsDottxtRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/schedules': {
+      id: '/schedules'
+      path: '/schedules'
+      fullPath: '/schedules'
+      preLoaderRoute: typeof SchedulesRouteImport
       parentRoute: typeof rootRouteImport
     }
     '/sitemap-0.xml': {
@@ -2173,6 +2193,7 @@ const rootRouteChildren: RootRouteChildren = {
   DashboardRoute: DashboardRoute,
   ExploreRoute: ExploreRoute,
   RobotsDottxtRoute: RobotsDottxtRoute,
+  SchedulesRoute: SchedulesRoute,
   Sitemap0DotxmlRoute: Sitemap0DotxmlRoute,
   Sitemap1DotxmlRoute: Sitemap1DotxmlRoute,
   SitemapIndexDotxmlRoute: SitemapIndexDotxmlRoute,

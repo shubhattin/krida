@@ -1,7 +1,15 @@
 import { createServerFn } from '@tanstack/react-start';
-import { eq } from 'drizzle-orm';
+import { and, asc, eq } from 'drizzle-orm';
 import { z } from 'zod';
-import { collections, tags } from '~/db/schema';
+import {
+  collection_items,
+  collections,
+  puzzle_attachments,
+  puzzle_redirects,
+  puzzle_tags,
+  puzzles,
+  tags
+} from '~/db/schema';
 import { adminServerFnMiddleware } from '~/lib/adminServerFn';
 import { dbRunHttp } from '~/effect/database';
 import { runLoaderEffect } from '~/effect/run';
@@ -53,14 +61,13 @@ async function resolveSimpleGameSlug(
   const puzzle = await loadCachedPuzzle(kind, slug);
   if (puzzle) return { type: 'puzzle', puzzle };
 
-  const tables = tablesFor(kind);
   const [redirect] = await runLoaderEffect(
     dbRunHttp(`${kind}.resolve_puzzle_slug_redirect`, (client) =>
       client
-        .select({ targetSlug: tables.puzzles.slug })
-        .from(tables.redirects)
-        .innerJoin(tables.puzzles, eq(tables.redirects.puzzle_id, tables.puzzles.id))
-        .where(eq(tables.redirects.slug, slug))
+        .select({ targetSlug: puzzles.slug })
+        .from(puzzle_redirects)
+        .innerJoin(puzzles, eq(puzzle_redirects.puzzle_id, puzzles.id))
+        .where(and(eq(puzzle_redirects.kind, kind), eq(puzzle_redirects.slug, slug)))
         .limit(1)
     )
   );
@@ -82,16 +89,17 @@ export const loadSimpleGameEdit$ = createServerFn({ method: 'GET' })
       dbRunHttp(`${data.kind}.admin.get_edit_puzzle`, (client) =>
         client
           .select({
-            id: tables.puzzles.id,
-            uid: tables.puzzles.uid,
-            slug: tables.puzzles.slug,
-            title: tables.puzzles.title,
-            description: tables.puzzles.description,
-            listed: tables.puzzles.listed,
+            id: puzzles.id,
+            uid: puzzles.uid,
+            slug: puzzles.slug,
+            title: puzzles.title,
+            description: puzzles.description,
+            listed: puzzles.listed,
             puzzle_data: tables.puzzles.puzzle_data
           })
-          .from(tables.puzzles)
-          .where(eq(tables.puzzles.id, puzzleId))
+          .from(puzzles)
+          .innerJoin(tables.puzzles, eq(tables.puzzles.id, puzzles.id))
+          .where(and(eq(puzzles.kind, data.kind), eq(puzzles.id, puzzleId)))
           .limit(1)
       )
     );
@@ -102,24 +110,25 @@ export const loadSimpleGameEdit$ = createServerFn({ method: 'GET' })
         dbRunHttp(`${data.kind}.admin.get_edit_attachments`, (client) =>
           client
             .select({
-              id: tables.attachments.id,
-              type: tables.attachments.type,
-              url: tables.attachments.url,
-              title: tables.attachments.title,
-              order_index: tables.attachments.order_index
+              id: puzzle_attachments.id,
+              type: puzzle_attachments.type,
+              url: puzzle_attachments.url,
+              title: puzzle_attachments.title,
+              order_index: puzzle_attachments.order_index
             })
-            .from(tables.attachments)
-            .where(eq(tables.attachments.puzzle_id, puzzleId))
-            .orderBy(tables.attachments.order_index)
+            .from(puzzle_attachments)
+            .where(eq(puzzle_attachments.puzzle_id, puzzleId))
+            .orderBy(asc(puzzle_attachments.order_index))
         )
       ),
       runLoaderEffect(
         dbRunHttp(`${data.kind}.admin.get_edit_tags`, (client) =>
           client
             .select({ id: tags.id, slug: tags.slug })
-            .from(tables.puzzle_tags)
-            .innerJoin(tags, eq(tables.puzzle_tags.tag_id, tags.id))
-            .where(eq(tables.puzzle_tags.puzzle_id, puzzleId))
+            .from(puzzle_tags)
+            .innerJoin(tags, eq(puzzle_tags.tag_id, tags.id))
+            .innerJoin(puzzles, eq(puzzles.id, puzzle_tags.puzzle_id))
+            .where(and(eq(puzzles.kind, data.kind), eq(puzzle_tags.puzzle_id, puzzleId)))
         )
       ),
       runLoaderEffect(
@@ -131,9 +140,10 @@ export const loadSimpleGameEdit$ = createServerFn({ method: 'GET' })
               slug: collections.slug,
               title: collections.title
             })
-            .from(tables.collection_items)
-            .innerJoin(collections, eq(tables.collection_items.collection_id, collections.id))
-            .where(eq(tables.collection_items.puzzle_id, puzzleId))
+            .from(collection_items)
+            .innerJoin(collections, eq(collection_items.collection_id, collections.id))
+            .innerJoin(puzzles, eq(puzzles.id, collection_items.puzzle_id))
+            .where(and(eq(puzzles.kind, data.kind), eq(collection_items.puzzle_id, puzzleId)))
         )
       )
     ]);
@@ -170,13 +180,12 @@ export const loadSimpleGameBySlug$ = createServerFn({ method: 'GET' })
 export const loadSimpleGameByUid$ = createServerFn({ method: 'GET' })
   .validator(z.object({ kind: kind_schema, nano_id: z.string() }))
   .handler(async ({ data }) => {
-    const tables = tablesFor(data.kind);
     const [row] = await runLoaderEffect(
       dbRunHttp(`${data.kind}.view.resolve_uid`, (client) =>
         client
-          .select({ slug: tables.puzzles.slug })
-          .from(tables.puzzles)
-          .where(eq(tables.puzzles.uid, data.nano_id))
+          .select({ slug: puzzles.slug })
+          .from(puzzles)
+          .where(and(eq(puzzles.kind, data.kind), eq(puzzles.uid, data.nano_id)))
           .limit(1)
       )
     );

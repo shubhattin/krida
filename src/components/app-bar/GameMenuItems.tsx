@@ -185,7 +185,7 @@ export function PadavaliMenuItems({ onNavigate }: { onNavigate?: () => void }) {
         </div>
         <span className="truncate">List</span>
       </Link>
-      <Link to="/padavali/schedules" onClick={onNavigate} className={accountMenuLinkClass}>
+      <Link to="/schedules" onClick={onNavigate} className={accountMenuLinkClass}>
         <div className={`${accountMenuIconClass} from-emerald-500 to-teal-600`}>
           <Calendar className="size-3 text-white" />
         </div>
@@ -236,7 +236,7 @@ export function CrosswordMenuItems({ onNavigate }: { onNavigate?: () => void }) 
         </div>
         <span className="truncate">List</span>
       </Link>
-      <Link to="/padajala/schedules" onClick={onNavigate} className={accountMenuLinkClass}>
+      <Link to="/schedules" onClick={onNavigate} className={accountMenuLinkClass}>
         <div className={`${accountMenuIconClass} from-emerald-500 to-teal-600`}>
           <Calendar className="size-3 text-white" />
         </div>
@@ -248,7 +248,7 @@ export function CrosswordMenuItems({ onNavigate }: { onNavigate?: () => void }) 
         </div>
         <span className="truncate">Analytics</span>
       </Link>
-      <Link to="/padajala/batch_manager" onClick={onNavigate} className={accountMenuLinkClass}>
+      <Link to="/padavali/batch_manager" onClick={onNavigate} className={accountMenuLinkClass}>
         <div className={`${accountMenuIconClass} from-fuchsia-500 to-pink-600`}>
           <Images className="size-3 text-white" />
         </div>

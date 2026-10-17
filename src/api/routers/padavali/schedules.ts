@@ -2,8 +2,8 @@ import { protectedAdminProcedure, t } from '~/api/trpc_init';
 import { Effect } from 'effect';
 import { z } from 'zod';
 import { dbRunHttp, dbTransaction } from '~/effect/database';
-import { padavali_schedules } from '~/db/schema';
-import { and, eq } from 'drizzle-orm';
+import { puzzle_schedules, puzzles } from '~/db/schema';
+import { and, asc, desc, eq, gte, ilike, inArray, lt, lte, ne, or } from 'drizzle-orm';
 import {
   CACHE,
   invalidate_and_refresh_cache,
@@ -12,13 +12,15 @@ import {
 import { QStashPublisher, qstashDelaySeconds } from '~/effect/qstash';
 import { generateRandomAlphanumeric } from '~/tools/kry';
 import { runTrpcEffect } from '~/effect/run';
-import { DatabaseError } from '~/effect/errors';
+import { DatabaseError, NotFoundError } from '~/effect/errors';
 import { reportSwallowedError } from '~/effect/report';
+import { GAME_KINDS, isGameKind, type GameKind } from '~/util/catalog/tags';
+import { escapeIlikeToken, tokenizeSearchQuery } from '~/util/puzzle/search';
 
 const settle = <A, E, R>(effect: Effect.Effect<A, E, R>) =>
   effect.pipe(
     Effect.catch((error) =>
-      reportSwallowedError('padavali.schedule.side_effect')(error).pipe(
+      reportSwallowedError('schedules.side_effect')(error).pipe(
         Effect.andThen(
           Effect.logWarning('Schedule post-commit side effect failed').pipe(
             Effect.annotateLogs({ error }),
@@ -29,19 +31,110 @@ const settle = <A, E, R>(effect: Effect.Effect<A, E, R>) =>
     )
   );
 
-const refreshScheduleCaches = Effect.fn('padavaliSchedules.refreshScheduleCaches')(function* () {
-  yield* invalidate_and_refresh_cache(CACHE.padavali.current_schedule, NO_CACHE_PARAMS);
-  yield* invalidate_and_refresh_cache(CACHE.padavali.next_schedule, NO_CACHE_PARAMS);
-});
+const refreshScheduleCaches = (kind: GameKind) =>
+  Effect.gen(function* () {
+    if (kind === 'padavali') {
+      yield* invalidate_and_refresh_cache(CACHE.padavali.current_schedule, NO_CACHE_PARAMS);
+      yield* invalidate_and_refresh_cache(CACHE.padavali.next_schedule, NO_CACHE_PARAMS);
+    } else if (kind === 'crossword') {
+      yield* invalidate_and_refresh_cache(CACHE.crossword.current_schedule, NO_CACHE_PARAMS);
+      yield* invalidate_and_refresh_cache(CACHE.crossword.next_schedule, NO_CACHE_PARAMS);
+    }
+  });
 
-const add_puzzle_schedule_route = protectedAdminProcedure
+const publishListing = (
+  kind: GameKind,
+  data: { puzzle_id: number; schedule_id: number; listing_verify_key: string },
+  start_time: Date
+) =>
+  Effect.gen(function* () {
+    const qstash = yield* QStashPublisher;
+    const delay = qstashDelaySeconds((start_time.getTime() - Date.now()) / 1000 - 4);
+    if (kind === 'crossword') {
+      yield* qstash.publishCrosswordScheduleListing(data, delay);
+    } else {
+      yield* qstash.publishScheduleListing(data, delay);
+    }
+  });
+
+const puzzleKind = (puzzleId: number) =>
+  dbRunHttp('schedules.puzzle_kind', async (client) => {
+    const [row] = await client
+      .select({ kind: puzzles.kind })
+      .from(puzzles)
+      .where(eq(puzzles.id, puzzleId))
+      .limit(1);
+    return row?.kind;
+  });
+
+const requireKind = (kind: string | undefined) =>
+  Effect.gen(function* () {
+    if (!kind || !isGameKind(kind)) {
+      return yield* Effect.fail(
+        NotFoundError.make({ resource: 'puzzle', message: 'Puzzle not found' })
+      );
+    }
+    return kind;
+  });
+
+const scheduleWindow = z
+  .object({
+    puzzle_id: z.number().int(),
+    start_time: z.coerce.date(),
+    end_time: z.coerce.date()
+  })
+  .refine((value) => value.start_time < value.end_time, {
+    message: 'Start time must be before end time',
+    path: ['end_time']
+  });
+
+const list_schedules_route = protectedAdminProcedure
   .input(
     z.object({
-      puzzle_id: z.number().int(),
-      start_time: z.coerce.date(),
-      end_time: z.coerce.date()
+      kinds: z.array(z.enum(GAME_KINDS)).max(GAME_KINDS.length).default([]),
+      query: z.string().max(200).default(''),
+      when: z.enum(['upcoming', 'past']).default('upcoming')
     })
   )
+  .query(({ input }) =>
+    runTrpcEffect(
+      dbRunHttp('schedules.list', (client) => {
+        const now = new Date();
+        const conditions = [
+          input.when === 'upcoming'
+            ? gte(puzzle_schedules.end_time, now)
+            : lt(puzzle_schedules.end_time, now)
+        ];
+        if (input.kinds.length > 0) conditions.push(inArray(puzzles.kind, input.kinds));
+        for (const token of tokenizeSearchQuery(input.query)) {
+          const pattern = `%${escapeIlikeToken(token)}%`;
+          conditions.push(or(ilike(puzzles.title, pattern), ilike(puzzles.slug, pattern))!);
+        }
+        return client
+          .select({
+            id: puzzle_schedules.id,
+            puzzle_id: puzzle_schedules.puzzle_id,
+            kind: puzzles.kind,
+            title: puzzles.title,
+            slug: puzzles.slug,
+            start_time: puzzle_schedules.start_time,
+            end_time: puzzle_schedules.end_time,
+            created_at: puzzle_schedules.created_at
+          })
+          .from(puzzle_schedules)
+          .innerJoin(puzzles, eq(puzzles.id, puzzle_schedules.puzzle_id))
+          .where(and(...conditions))
+          .orderBy(
+            input.when === 'upcoming'
+              ? asc(puzzle_schedules.start_time)
+              : desc(puzzle_schedules.end_time)
+          );
+      })
+    )
+  );
+
+const add_puzzle_schedule_route = protectedAdminProcedure
+  .input(scheduleWindow)
   .output(
     z.discriminatedUnion('success', [
       z.object({
@@ -58,62 +151,52 @@ const add_puzzle_schedule_route = protectedAdminProcedure
     runTrpcEffect(
       Effect.gen(function* () {
         const { puzzle_id, start_time, end_time } = input;
-        const existing_schedule = yield* dbRunHttp(
-          'padavali_schedules.find_overlapping_schedule',
-          (client) =>
-            client.query.padavali_schedules.findFirst({
-              columns: {
-                id: true
-              },
-              where: (table, { and, gte, lte }) =>
-                and(lte(table.start_time, end_time), gte(table.end_time, start_time))
-            })
+        const kind = yield* requireKind(yield* puzzleKind(puzzle_id));
+        const [existing_schedule] = yield* dbRunHttp('schedules.find_overlapping', (client) =>
+          client
+            .select({ id: puzzle_schedules.id })
+            .from(puzzle_schedules)
+            .innerJoin(puzzles, eq(puzzles.id, puzzle_schedules.puzzle_id))
+            .where(
+              and(
+                eq(puzzles.kind, kind),
+                lte(puzzle_schedules.start_time, end_time),
+                gte(puzzle_schedules.end_time, start_time)
+              )
+            )
+            .limit(1)
         );
         if (existing_schedule) {
           return { success: false as const, error_code: 'already_exists_in_time_range' as const };
         }
 
         const listing_verify_key = generateRandomAlphanumeric(32);
-        const inserted_schedules = yield* dbTransaction(
-          'padavali_schedules.insert_schedule',
-          (tx) =>
-            tx
-              .insert(padavali_schedules)
-              .values({
-                puzzle_id,
-                start_time,
-                end_time,
-                listing_verify_key
-              })
-              .returning()
+        const inserted_schedules = yield* dbTransaction('schedules.insert', (tx) =>
+          tx
+            .insert(puzzle_schedules)
+            .values({ puzzle_id, start_time, end_time, listing_verify_key })
+            .returning()
         );
         const schedule = inserted_schedules[0];
         if (!schedule) {
           return yield* Effect.fail(
             DatabaseError.make({
-              operation: 'padavali_schedules.insert_schedule',
+              operation: 'schedules.insert',
               cause: new Error('Failed to create schedule')
             })
           );
         }
 
-        yield* settle(refreshScheduleCaches());
-        const qstash = yield* QStashPublisher;
+        yield* settle(refreshScheduleCaches(kind));
         yield* settle(
-          qstash.publishScheduleListing(
-            {
-              puzzle_id,
-              schedule_id: schedule.id,
-              listing_verify_key
-            },
-            qstashDelaySeconds((schedule.start_time.getTime() - new Date().getTime()) / 1000 - 4)
+          publishListing(
+            kind,
+            { puzzle_id, schedule_id: schedule.id, listing_verify_key },
+            schedule.start_time
           )
         );
 
-        return {
-          success: true as const,
-          schedule_id: schedule.id
-        };
+        return { success: true as const, schedule_id: schedule.id };
       })
     )
   );
@@ -123,92 +206,111 @@ const delete_puzzle_schedule_route = protectedAdminProcedure
   .mutation(({ input: { schedule_id } }) =>
     runTrpcEffect(
       Effect.gen(function* () {
-        yield* dbTransaction('padavali_schedules.delete_schedule', async (tx) => {
-          await tx.delete(padavali_schedules).where(eq(padavali_schedules.id, schedule_id));
+        const [existing] = yield* dbRunHttp('schedules.kind_for_delete', (client) =>
+          client
+            .select({ kind: puzzles.kind })
+            .from(puzzle_schedules)
+            .innerJoin(puzzles, eq(puzzles.id, puzzle_schedules.puzzle_id))
+            .where(eq(puzzle_schedules.id, schedule_id))
+            .limit(1)
+        );
+        yield* dbTransaction('schedules.delete', async (tx) => {
+          await tx.delete(puzzle_schedules).where(eq(puzzle_schedules.id, schedule_id));
         });
-
-        yield* refreshScheduleCaches();
-
+        if (existing && isGameKind(existing.kind)) {
+          yield* refreshScheduleCaches(existing.kind);
+        }
         return { success: true };
       })
     )
   );
 
 const update_puzzle_schedule_route = protectedAdminProcedure
-  .input(
-    z.object({
-      schedule_id: z.number().int(),
-      puzzle_id: z.number().int(),
-      start_time: z.coerce.date(),
-      end_time: z.coerce.date()
-    })
-  )
+  .input(scheduleWindow.and(z.object({ schedule_id: z.number().int() })))
   .mutation(({ input: { schedule_id, puzzle_id, start_time, end_time } }) =>
     runTrpcEffect(
       Effect.gen(function* () {
-        const listing_verify_key = generateRandomAlphanumeric(32);
-        yield* dbTransaction('padavali_schedules.update_schedule', async (tx) => {
-          await tx
-            .update(padavali_schedules)
-            .set({ start_time, end_time, listing_verify_key })
+        const kind = yield* requireKind(yield* puzzleKind(puzzle_id));
+        const [previous] = yield* dbRunHttp('schedules.kind_before_update', (client) =>
+          client
+            .select({ kind: puzzles.kind })
+            .from(puzzle_schedules)
+            .innerJoin(puzzles, eq(puzzles.id, puzzle_schedules.puzzle_id))
+            .where(eq(puzzle_schedules.id, schedule_id))
+            .limit(1)
+        );
+        const previousKind = previous && isGameKind(previous.kind) ? previous.kind : undefined;
+        const [overlap] = yield* dbRunHttp('schedules.find_overlapping_update', (client) =>
+          client
+            .select({ id: puzzle_schedules.id })
+            .from(puzzle_schedules)
+            .innerJoin(puzzles, eq(puzzles.id, puzzle_schedules.puzzle_id))
             .where(
               and(
-                eq(padavali_schedules.id, schedule_id),
-                eq(padavali_schedules.puzzle_id, puzzle_id)
+                eq(puzzles.kind, kind),
+                ne(puzzle_schedules.id, schedule_id),
+                lte(puzzle_schedules.start_time, end_time),
+                gte(puzzle_schedules.end_time, start_time)
               )
-            );
+            )
+            .limit(1)
+        );
+        if (overlap) {
+          return { success: false as const, error_code: 'already_exists_in_time_range' as const };
+        }
+
+        const listing_verify_key = generateRandomAlphanumeric(32);
+        yield* dbTransaction('schedules.update', async (tx) => {
+          await tx
+            .update(puzzle_schedules)
+            .set({ start_time, end_time, listing_verify_key, puzzle_id })
+            .where(eq(puzzle_schedules.id, schedule_id));
         });
 
-        const qstash = yield* QStashPublisher;
         yield* settle(
-          qstash.publishScheduleListing(
-            {
-              puzzle_id,
-              schedule_id,
-              listing_verify_key
-            },
-            qstashDelaySeconds((start_time.getTime() - new Date().getTime()) / 1000 - 4)
-          )
+          publishListing(kind, { puzzle_id, schedule_id, listing_verify_key }, start_time)
         );
-        yield* settle(refreshScheduleCaches());
-
-        return { success: true };
+        yield* settle(refreshScheduleCaches(kind));
+        if (previousKind && previousKind !== kind) {
+          yield* settle(refreshScheduleCaches(previousKind));
+        }
+        return { success: true as const };
       })
     )
   );
 
 const get_past_schedules_route = protectedAdminProcedure.query(() =>
   runTrpcEffect(
-    Effect.gen(function* () {
-      yield* Effect.sleep('500 millis');
-      const current_time = new Date();
-      const past_schedules = yield* dbRunHttp('padavali_schedules.list_past_schedules', (client) =>
-        client.query.padavali_schedules.findMany({
-          columns: {
-            id: true,
-            start_time: true,
-            end_time: true,
-            created_at: true,
-            puzzle_id: true
-          },
-          with: {
-            puzzle: {
-              columns: {
-                title: true
-              }
-            }
-          },
-          orderBy: (schedules, { desc }) => [desc(schedules.created_at)],
-          where: (schedules, { lt }) => lt(schedules.end_time, current_time)
+    dbRunHttp('schedules.list_past_padavali', (client) =>
+      client
+        .select({
+          id: puzzle_schedules.id,
+          start_time: puzzle_schedules.start_time,
+          end_time: puzzle_schedules.end_time,
+          created_at: puzzle_schedules.created_at,
+          puzzle_id: puzzle_schedules.puzzle_id,
+          puzzle_title: puzzles.title
         })
-      );
-
-      return past_schedules;
-    })
+        .from(puzzle_schedules)
+        .innerJoin(
+          puzzles,
+          and(eq(puzzles.id, puzzle_schedules.puzzle_id), eq(puzzles.kind, 'padavali'))
+        )
+        .where(lt(puzzle_schedules.end_time, new Date()))
+        .orderBy(puzzle_schedules.created_at)
+    ).pipe(
+      Effect.map((rows) =>
+        rows.map(({ puzzle_title, ...schedule }) => ({
+          ...schedule,
+          puzzle: { title: puzzle_title }
+        }))
+      )
+    )
   )
 );
 
 export const schedules_router = t.router({
+  list_schedules: list_schedules_route,
   add_puzzle_schedule: add_puzzle_schedule_route,
   delete_puzzle_schedule: delete_puzzle_schedule_route,
   get_past_schedules: get_past_schedules_route,

@@ -11,6 +11,12 @@ export type PublicTag = z.infer<typeof public_tag_schema>;
 export const GAME_KINDS = ['padavali', 'crossword', ...SIMPLE_GAME_KINDS] as const;
 export type GameKind = (typeof GAME_KINDS)[number];
 
+const GAME_KIND_SET: ReadonlySet<string> = new Set(GAME_KINDS);
+
+export function isGameKind(value: string): value is GameKind {
+  return GAME_KIND_SET.has(value);
+}
+
 /** Lowercase slug: spaces become hyphens, anything outside `[a-z0-9_-]` is dropped. */
 export const normalizeTagSlug = (input: string) =>
   input
