@@ -135,8 +135,7 @@ export const padavali_schedules = pgTable(
     end_time: timestamp({ withTimezone: true }).notNull(),
     created_at: timestamp({ withTimezone: true }).notNull().defaultNow(),
     updated_at: timestamp({ withTimezone: true }).$onUpdate(() => new Date()),
-    listing_verify_key: text(),
-    notification_key: text()
+    listing_verify_key: text()
   },
   (table) => [
     index('padavali_schedules_start_time_end_time_idx').on(table.start_time, table.end_time),

@@ -3,8 +3,7 @@ import { Effect } from 'effect';
 import {
   aiBatchResultsPayloadSchema,
   decodeQstashPayload,
-  scheduleListingPayloadSchema,
-  scheduledPuzzleNotificationPayloadSchema
+  scheduleListingPayloadSchema
 } from './qstash';
 
 const KEY32 = 'abcdefghijklmnopqrstuvwxyz012345';
@@ -26,16 +25,7 @@ describe('decodeQstashPayload', () => {
     });
   });
 
-  it('decodes notification and ai-batch payloads', async () => {
-    const notification = await Effect.runPromise(
-      decodeQstashPayload(scheduledPuzzleNotificationPayloadSchema, {
-        puzzle_id: 1,
-        schedule_id: 2,
-        notification_key: KEY32
-      })
-    );
-    expect(notification.notification_key).toBe(KEY32);
-
+  it('decodes an ai-batch payload', async () => {
     const batch = await Effect.runPromise(
       decodeQstashPayload(aiBatchResultsPayloadSchema, {
         batch_id: 'batch_abc',

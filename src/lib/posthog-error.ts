@@ -107,7 +107,6 @@ function describeOperationError(error: KnownError): string | undefined {
     case 'RedisError':
     case 'ImageProcessingError':
     case 'QueueError':
-    case 'NotificationError':
     case 'AuthError':
       return withNestedCause(`${error._tag} ${error.operation}`, error.cause);
     case 'CacheError':
@@ -168,7 +167,6 @@ export function effectFields(error: KnownError): EffectFields {
     case 'RedisError':
     case 'ImageProcessingError':
     case 'QueueError':
-    case 'NotificationError':
     case 'AuthError':
       fields.operation = error.operation;
       assignCauseMessage(fields, error.cause);

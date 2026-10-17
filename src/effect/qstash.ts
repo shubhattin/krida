@@ -14,20 +14,12 @@ export const scheduleListingPayloadSchema = Schema.Struct({
   listing_verify_key: Key32
 });
 
-export const scheduledPuzzleNotificationPayloadSchema = Schema.Struct({
-  puzzle_id: PositiveInt,
-  schedule_id: PositiveInt,
-  notification_key: Key32
-});
-
 export const aiBatchResultsPayloadSchema = Schema.Struct({
   batch_id: NonEmptyString,
   poll_attempt: NonNegInt
 });
 
 export type ScheduleListingPayload = typeof scheduleListingPayloadSchema.Type;
-export type ScheduledPuzzleNotificationPayload =
-  typeof scheduledPuzzleNotificationPayloadSchema.Type;
 export type AiBatchResultsPayload = typeof aiBatchResultsPayloadSchema.Type;
 
 /** QStash rejects negative/fractional delays; clamp after computing start_time − now − skew. */
@@ -48,10 +40,6 @@ export class QStashPublisher extends Context.Service<
     ) => Effect.Effect<void, QueueError>;
     readonly publishCrosswordScheduleListing: (
       data: ScheduleListingPayload,
-      delay_s: number
-    ) => Effect.Effect<void, QueueError>;
-    readonly publishScheduledPuzzleNotification: (
-      data: ScheduledPuzzleNotificationPayload,
       delay_s: number
     ) => Effect.Effect<void, QueueError>;
     readonly publishAiBatchResults: (
@@ -89,8 +77,6 @@ export class QStashPublisher extends Context.Service<
           publish('schedule_listing', '/schedule_listing', data, delay_s),
         publishCrosswordScheduleListing: (data, delay_s) =>
           publish('crossword_schedule_listing', '/crossword/schedule_listing', data, delay_s),
-        publishScheduledPuzzleNotification: (data, delay_s) =>
-          publish('new_puzzle_notification', '/new_puzzle_notification', data, delay_s),
         publishAiBatchResults: (data, delay_s) =>
           publish('save_ai_batch_results', '/save_ai_batch_results', data, delay_s)
       };

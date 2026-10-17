@@ -7,7 +7,6 @@ import { AiProvider, OpenAiBatchClient } from './ai';
 import { ImageProcessor } from './image';
 import { BackgroundWork } from './background';
 import { QStashPublisher } from './qstash';
-import { NotificationService } from './notifications';
 
 const InfrastructureLayer = Layer.mergeAll(ImageProcessor.Live, BackgroundWork.Live);
 
@@ -19,8 +18,7 @@ const ConfigDependentLayer = Layer.mergeAll(
   ObjectStorage.Live,
   AiProvider.Live,
   OpenAiBatchClient.Live,
-  QStashPublisher.Live,
-  NotificationService.Live
+  QStashPublisher.Live
 ).pipe(Layer.provide(AppConfig.Live));
 
 // Layers are cached and executed lazily when needed

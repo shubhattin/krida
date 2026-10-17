@@ -1,7 +1,7 @@
 import { protectedAdminProcedure, t } from '~/api/trpc_init';
 import { Effect } from 'effect';
 import { z } from 'zod';
-import { dbRunHttp, dbTransaction, type DbTransaction } from '~/effect/database';
+import { dbRunHttp, dbTransaction } from '~/effect/database';
 import { padavali_schedules } from '~/db/schema';
 import { and, eq } from 'drizzle-orm';
 import {
@@ -11,10 +11,7 @@ import {
 } from '~/util/cache.server/cache_loaders';
 import { QStashPublisher, qstashDelaySeconds } from '~/effect/qstash';
 import { generateRandomAlphanumeric } from '~/tools/kry';
-import { NotificationService } from '~/effect/notifications';
-import { DEFAULT_SHARE_IMAGE_INFO } from '~/components/tags/getPageMetaTags';
 import { runTrpcEffect } from '~/effect/run';
-import { AppConfig } from '~/effect/config';
 import { DatabaseError } from '~/effect/errors';
 import { reportSwallowedError } from '~/effect/report';
 
@@ -31,85 +28,6 @@ const settle = <A, E, R>(effect: Effect.Effect<A, E, R>) =>
       )
     )
   );
-
-export const notify_for_new_scheduled_puzzle = Effect.fn(
-  'padavaliSchedules.notify_for_new_scheduled_puzzle'
-)(function* (title: string) {
-  const config = yield* AppConfig;
-  const notifications = yield* NotificationService;
-  return yield* notifications.send({
-    headings: { en: '🧩 New Puzzle Added ! 🎉' },
-    contents: { en: `"${title}" - Puzzle Added, Play Now! 🚀` },
-    name: 'new_scheduled_puzzle',
-    url: `${config.siteUrl}/padavali`,
-    chrome_web_image: DEFAULT_SHARE_IMAGE_INFO.url
-  });
-});
-
-const set_schedule_notification_key = async (
-  tx: DbTransaction,
-  puzzle_id: number,
-  schedule_id: number,
-  notification_key: string | null
-) => {
-  await tx
-    .update(padavali_schedules)
-    .set({ notification_key })
-    .where(
-      and(eq(padavali_schedules.id, schedule_id), eq(padavali_schedules.puzzle_id, puzzle_id))
-    );
-};
-
-const notify_new_puzzle = Effect.fn('padavaliSchedules.notify_new_puzzle')(function* (
-  puzzle_id: number,
-  schedule_id: number,
-  start_time: Date
-) {
-  const current_time = new Date();
-  if (current_time < start_time) {
-    const delay_s = qstashDelaySeconds((start_time.getTime() - current_time.getTime()) / 1000 - 2); // 2 seconds prior notification
-    const notification_key = generateRandomAlphanumeric(32);
-    yield* dbTransaction('padavali_schedules.set_notification_key', async (tx) => {
-      await set_schedule_notification_key(tx, puzzle_id, schedule_id, notification_key);
-    });
-    const qstash = yield* QStashPublisher;
-    yield* qstash.publishScheduledPuzzleNotification(
-      {
-        puzzle_id,
-        schedule_id,
-        notification_key
-      },
-      delay_s
-    );
-    return 'scheduled';
-  }
-
-  const prev_schedule = yield* dbRunHttp('padavali_schedules.find_current_schedule', (client) =>
-    client.query.padavali_schedules.findFirst({
-      where: (table, { eq, and }) => and(eq(table.id, schedule_id), eq(table.puzzle_id, puzzle_id)),
-      columns: {
-        start_time: true
-      }
-    })
-  );
-  if (!prev_schedule || current_time >= prev_schedule.start_time) return 'skipped';
-
-  const puzzle = yield* dbRunHttp('padavali_schedules.find_puzzle_title', (client) =>
-    client.query.padavali_puzzles.findFirst({
-      where: (table, { eq }) => eq(table.id, puzzle_id),
-      columns: {
-        title: true
-      }
-    })
-  );
-  if (!puzzle) return 'skipped';
-
-  yield* notify_for_new_scheduled_puzzle(puzzle.title);
-  yield* dbTransaction('padavali_schedules.clear_notification_key', async (tx) => {
-    await set_schedule_notification_key(tx, puzzle_id, schedule_id, null);
-  });
-  return 'done';
-});
 
 const refreshScheduleCaches = Effect.fn('padavaliSchedules.refreshScheduleCaches')(function* () {
   yield* invalidate_and_refresh_cache(CACHE.padavali.current_schedule, NO_CACHE_PARAMS);
@@ -180,7 +98,6 @@ const add_puzzle_schedule_route = protectedAdminProcedure
         }
 
         yield* settle(refreshScheduleCaches());
-        yield* settle(notify_new_puzzle(puzzle_id, schedule.id, start_time));
         const qstash = yield* QStashPublisher;
         yield* settle(
           qstash.publishScheduleListing(
@@ -242,7 +159,6 @@ const update_puzzle_schedule_route = protectedAdminProcedure
             );
         });
 
-        yield* settle(notify_new_puzzle(puzzle_id, schedule_id, start_time));
         const qstash = yield* QStashPublisher;
         yield* settle(
           qstash.publishScheduleListing(

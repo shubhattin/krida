@@ -1,0 +1,1 @@
+ALTER TABLE "padavali_schedules" DROP COLUMN "notification_key";

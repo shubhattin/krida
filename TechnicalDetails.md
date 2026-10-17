@@ -12,7 +12,7 @@
 - **Transliteration**: [`lipilekhika`](https://lipilekhika.in)
 - **AI**: OpenAI image generation for puzzle/collection art, OpenRouter for prompt + metadata generation
 - **Storage**: S3 (assets) + CloudFront (delivery)
-- **Scheduling**: QStash (listing schedules, notifications)
+- **Scheduling**: QStash (listing schedules)
 - **Analytics**: PostHog
 - **Charts**: Recharts
 - **Animations**: Framer Motion

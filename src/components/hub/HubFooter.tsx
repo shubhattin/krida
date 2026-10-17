@@ -6,17 +6,14 @@ import { PWAInstallButton } from '~/components/PWA/PWAInit';
 
 export function HubFooter({
   showPwa = false,
-  showOneSignal = false,
   children
 }: {
   showPwa?: boolean;
-  showOneSignal?: boolean;
   children?: ReactNode;
 }) {
   return (
     <footer className="border-t border-border/70 bg-background px-4 py-12">
       <div className="mx-auto flex max-w-5xl flex-col items-center gap-8">
-        {showOneSignal ? <div className="onesignal-customlink-container" /> : null}
         {showPwa ? <PWAInstallButton /> : null}
         {children}
 

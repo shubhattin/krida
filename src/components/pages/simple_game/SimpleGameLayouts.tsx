@@ -32,7 +32,7 @@ export function SimpleGamePublicLayout({
     <div className="public-canvas flex min-h-dvh flex-col">
       <HubHeader showPwaControls gameMenuItems={<SimpleGameMenuItems kind={kind} />} />
       <div className="flex-1">{children}</div>
-      <HubFooter showPwa showOneSignal />
+      <HubFooter showPwa />
     </div>
   );
 }
