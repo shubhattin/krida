@@ -234,6 +234,8 @@ const list_tags_route = protectedAdminProcedure
         const orderBy = input.order === 'desc' ? desc(sortColumn) : asc(sortColumn);
         const offset = (input.page - 1) * input.size;
 
+        // One round trip per query (Neon HTTP in prod): keep the counts as
+        // correlated subqueries rather than extra group-by queries.
         const { countResult, rows } = yield* Effect.all({
           countResult: dbRunHttp('catalog.count_tags', (client) =>
             client.select({ count: count() }).from(tags).where(whereClause)
@@ -244,16 +246,19 @@ const list_tags_route = protectedAdminProcedure
                 id: tags.id,
                 slug: tags.slug,
                 padavali_count: sql<number>`(
-                  select count(*)::int from padavali_puzzle_tags pt where pt.tag_id = ${tags.id}
+                  select count(*)::int from puzzle_tags pt
+                  inner join puzzles p on p.id = pt.puzzle_id
+                  where pt.tag_id = ${tags.id} and p.kind = 'padavali'
                 )`,
                 crossword_count: sql<number>`(
-                  select count(*)::int from crossword_puzzle_tags ct where ct.tag_id = ${tags.id}
+                  select count(*)::int from puzzle_tags ct
+                  inner join puzzles p on p.id = ct.puzzle_id
+                  where ct.tag_id = ${tags.id} and p.kind = 'crossword'
                 )`,
                 extra_count: sql<number>`(
-                  (select count(*)::int from dvayi_puzzle_tags dt where dt.tag_id = ${tags.id})
-                  + (select count(*)::int from bhramita_puzzle_tags bt where bt.tag_id = ${tags.id})
-                  + (select count(*)::int from surupa_puzzle_tags st where st.tag_id = ${tags.id})
-                  + (select count(*)::int from anveshi_puzzle_tags at where at.tag_id = ${tags.id})
+                  select count(*)::int from puzzle_tags et
+                  inner join puzzles p on p.id = et.puzzle_id
+                  where et.tag_id = ${tags.id} and p.kind in ('dvayi', 'bhramita', 'surupa', 'anveshi')
                 )`
               })
               .from(tags)
@@ -513,6 +518,22 @@ const detach_tag_route = protectedAdminProcedure
   .mutation(({ input }) =>
     runTrpcEffect(
       Effect.gen(function* () {
+        // The link table is shared now — confirm the row belongs to this game first.
+        const [link] = yield* dbRunHttp('catalog.find_tag_link', (client) =>
+          client
+            .select({ kind: puzzles.kind })
+            .from(puzzle_tags)
+            .innerJoin(puzzles, eq(puzzles.id, puzzle_tags.puzzle_id))
+            .where(
+              and(eq(puzzle_tags.puzzle_id, input.puzzle_id), eq(puzzle_tags.tag_id, input.tag_id))
+            )
+            .limit(1)
+        );
+        if (!link || !isGameKind(link.kind) || link.kind !== input.game) {
+          return yield* Effect.fail(
+            NotFoundError.make({ resource: 'tag', message: 'Tag link not found' })
+          );
+        }
         yield* dbRunHttp('catalog.detach_tag', async (client) => {
           await client
             .delete(puzzle_tags)
@@ -520,7 +541,7 @@ const detach_tag_route = protectedAdminProcedure
               and(eq(puzzle_tags.puzzle_id, input.puzzle_id), eq(puzzle_tags.tag_id, input.tag_id))
             );
         });
-        yield* refreshListedPuzzles(input.game);
+        yield* refreshListedPuzzles(link.kind);
         return { success: true };
       })
     )
@@ -528,6 +549,8 @@ const detach_tag_route = protectedAdminProcedure
 
 const list_collections_route = protectedAdminProcedure.query(() =>
   runTrpcEffect(
+    // Single round trip (Neon HTTP in prod): keep the counts as correlated
+    // subqueries rather than an extra group-by query.
     dbRunHttp('catalog.list_collections', (client) =>
       client
         .select({
@@ -541,18 +564,19 @@ const list_collections_route = protectedAdminProcedure.query(() =>
           updated_at: collections.updated_at,
           image_s3_key: image_assets.s3_key,
           padavali_count: sql<number>`(
-            select count(*)::int from padavali_collection_items pi
-            where pi.collection_id = ${collections.id}
+            select count(*)::int from collection_items pi
+            inner join puzzles p on p.id = pi.puzzle_id
+            where pi.collection_id = ${collections.id} and p.kind = 'padavali'
           )`,
           crossword_count: sql<number>`(
-            select count(*)::int from crossword_collection_items ci
-            where ci.collection_id = ${collections.id}
+            select count(*)::int from collection_items ci
+            inner join puzzles p on p.id = ci.puzzle_id
+            where ci.collection_id = ${collections.id} and p.kind = 'crossword'
           )`,
           extra_count: sql<number>`(
-            (select count(*)::int from dvayi_collection_items di where di.collection_id = ${collections.id})
-            + (select count(*)::int from bhramita_collection_items bi where bi.collection_id = ${collections.id})
-            + (select count(*)::int from surupa_collection_items si where si.collection_id = ${collections.id})
-            + (select count(*)::int from anveshi_collection_items ai where ai.collection_id = ${collections.id})
+            select count(*)::int from collection_items ei
+            inner join puzzles p on p.id = ei.puzzle_id
+            where ei.collection_id = ${collections.id} and p.kind in ('dvayi', 'bhramita', 'surupa', 'anveshi')
           )`
         })
         .from(collections)
@@ -1056,6 +1080,25 @@ const remove_item_route = protectedAdminProcedure
         if (!collection) {
           return yield* Effect.fail(
             NotFoundError.make({ resource: 'collection', message: 'Collection not found' })
+          );
+        }
+        // Membership rows are shared now — confirm the row belongs to this game first.
+        const [item] = yield* dbRunHttp('catalog.find_collection_item', (client) =>
+          client
+            .select({ kind: puzzles.kind })
+            .from(collection_items)
+            .innerJoin(puzzles, eq(puzzles.id, collection_items.puzzle_id))
+            .where(
+              and(
+                eq(collection_items.collection_id, collection.id),
+                eq(collection_items.puzzle_id, input.puzzle_id)
+              )
+            )
+            .limit(1)
+        );
+        if (!item || !isGameKind(item.kind) || item.kind !== input.game) {
+          return yield* Effect.fail(
+            NotFoundError.make({ resource: 'collection', message: 'Collection item not found' })
           );
         }
         yield* dbRunHttp('catalog.remove_collection_item', async (client) => {

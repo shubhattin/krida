@@ -3,7 +3,7 @@ import { Effect } from 'effect';
 import { z } from 'zod';
 import { dbRunHttp, dbTransaction } from '~/effect/database';
 import { puzzle_schedules, puzzles } from '~/db/schema';
-import { and, desc, eq, gte, lt, lte } from 'drizzle-orm';
+import { and, desc, eq, gte, lt, lte, ne } from 'drizzle-orm';
 import {
   CACHE,
   invalidate_and_refresh_cache,
@@ -214,6 +214,27 @@ const update_puzzle_schedule_route = protectedAdminProcedure
               message: 'Schedule not found'
             })
           );
+        }
+
+        const [overlap] = yield* dbRunHttp(
+          'crossword_schedules.find_overlapping_update',
+          (client) =>
+            client
+              .select({ id: puzzle_schedules.id })
+              .from(puzzle_schedules)
+              .innerJoin(puzzles, eq(puzzles.id, puzzle_schedules.puzzle_id))
+              .where(
+                and(
+                  crosswordKind,
+                  ne(puzzle_schedules.id, schedule_id),
+                  lte(puzzle_schedules.start_time, end_time),
+                  gte(puzzle_schedules.end_time, start_time)
+                )
+              )
+              .limit(1)
+        );
+        if (overlap) {
+          return { success: false as const, error_code: 'already_exists_in_time_range' as const };
         }
 
         const listing_verify_key = generateRandomAlphanumeric(32);

@@ -7,7 +7,7 @@ import {
   NO_CACHE_PARAMS
 } from '~/util/cache.server/cache_loaders';
 import { puzzle_schedules, puzzles } from '~/db/schema';
-import { and, eq } from 'drizzle-orm';
+import { and, eq, ne } from 'drizzle-orm';
 import { scheduleListingPayloadSchema, decodeQstashPayload } from '~/effect/qstash';
 import { dbRunHttp, dbTransaction } from '~/effect/database';
 import { runQstashEffect } from '~/effect/run';
@@ -45,6 +45,8 @@ export const Route = createFileRoute('/api/qstash/schedule_listing')({
                 .innerJoin(puzzles, eq(puzzles.id, puzzle_schedules.puzzle_id))
                 .where(
                   and(
+                    // Crossword has its own publisher + placement gate; never list it here.
+                    ne(puzzles.kind, 'crossword'),
                     eq(puzzle_schedules.id, schedule_id),
                     eq(puzzle_schedules.puzzle_id, puzzle_id),
                     eq(puzzle_schedules.listing_verify_key, listing_verify_key)
@@ -68,7 +70,7 @@ export const Route = createFileRoute('/api/qstash/schedule_listing')({
                   listed: true,
                   last_listed_at: new Date()
                 })
-                .where(eq(puzzles.id, puzzle_id));
+                .where(and(eq(puzzles.id, puzzle_id), eq(puzzles.kind, schedule.kind)));
               await tx
                 .update(puzzle_schedules)
                 .set({
@@ -77,7 +79,8 @@ export const Route = createFileRoute('/api/qstash/schedule_listing')({
                 .where(
                   and(
                     eq(puzzle_schedules.id, schedule_id),
-                    eq(puzzle_schedules.puzzle_id, puzzle_id)
+                    eq(puzzle_schedules.puzzle_id, puzzle_id),
+                    eq(puzzle_schedules.listing_verify_key, listing_verify_key)
                   )
                 );
             });

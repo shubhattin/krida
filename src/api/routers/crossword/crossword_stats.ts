@@ -7,7 +7,7 @@ import {
   crossword_submit_stats_input_schema,
   crossword_update_games_started_input_schema
 } from '~/db/crossword_shared';
-import { BadRequestError } from '~/effect/errors';
+import { BadRequestError, NotFoundError } from '~/effect/errors';
 import { runTrpcEffect } from '~/effect/run';
 import { crosswordActiveWords } from '~/util/puzzle/word_list';
 import {
@@ -115,6 +115,21 @@ const update_games_started_route = publicProcedure
         yield* requireTurnstileIfGuest(turnstile_token, ctx.user).pipe(
           Effect.tapError(() => releasePlaySessionClaim('crossword', client_play_id))
         );
+
+        // Sessions are shared across games now — reject ids from other kinds.
+        const [puzzle] = yield* dbRunHttp('crossword_stats.find_puzzle', (client) =>
+          client
+            .select({ id: puzzles.id })
+            .from(puzzles)
+            .where(and(eq(puzzles.id, id), eq(puzzles.kind, 'crossword')))
+            .limit(1)
+        );
+        if (!puzzle) {
+          yield* releasePlaySessionClaim('crossword', client_play_id);
+          return yield* Effect.fail(
+            NotFoundError.make({ resource: 'crossword_puzzle', message: 'Puzzle not found' })
+          );
+        }
 
         const userFields = sessionUserFields(ctx.user);
         const inserted_sessions = yield* dbRunHttp('crossword_stats.create_session', (client) =>

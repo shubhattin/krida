@@ -35,10 +35,28 @@ export const puzzlesRelations = relations(puzzles, ({ many, one }) => ({
   sessions: many(puzzle_sessions),
   attempt_stats: many(attempt_gameplay_stats),
   crossword_stats: many(crossword_gameplay_stats),
-  padavali: one(padavali_puzzles),
-  crossword: one(crossword_puzzles),
-  dvayi: one(dvayi_puzzles),
-  bhramita: one(bhramita_puzzles),
-  surupa: one(surupa_puzzles),
-  anveshi: one(anveshi_puzzles)
+  padavali: one(padavali_puzzles, {
+    fields: [puzzles.id],
+    references: [padavali_puzzles.id]
+  }),
+  crossword: one(crossword_puzzles, {
+    fields: [puzzles.id],
+    references: [crossword_puzzles.id]
+  }),
+  dvayi: one(dvayi_puzzles, {
+    fields: [puzzles.id],
+    references: [dvayi_puzzles.id]
+  }),
+  bhramita: one(bhramita_puzzles, {
+    fields: [puzzles.id],
+    references: [bhramita_puzzles.id]
+  }),
+  surupa: one(surupa_puzzles, {
+    fields: [puzzles.id],
+    references: [surupa_puzzles.id]
+  }),
+  anveshi: one(anveshi_puzzles, {
+    fields: [puzzles.id],
+    references: [anveshi_puzzles.id]
+  })
 }));

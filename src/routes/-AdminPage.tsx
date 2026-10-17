@@ -128,9 +128,7 @@ const LIVE_GAMES = [
     border: 'border-blue-200/70 dark:border-blue-800/50',
     actions: [
       { href: '/padavali/list', label: 'Puzzles', icon: List },
-      { href: '/padavali/analytics', label: 'Analytics', icon: BarChart3 },
-      { href: '/schedules', label: 'Schedules', icon: Calendar },
-      { href: '/padavali/batch_manager', label: 'Batches', icon: Images }
+      { href: '/padavali/analytics', label: 'Analytics', icon: BarChart3 }
     ]
   },
   {
@@ -141,9 +139,7 @@ const LIVE_GAMES = [
     border: 'border-amber-200/70 dark:border-amber-800/50',
     actions: [
       { href: '/padajala/list', label: 'Puzzles', icon: List },
-      { href: '/padajala/analytics', label: 'Analytics', icon: BarChart3 },
-      { href: '/schedules', label: 'Schedules', icon: Calendar },
-      { href: '/padavali/batch_manager', label: 'Batches', icon: Images }
+      { href: '/padajala/analytics', label: 'Analytics', icon: BarChart3 }
     ]
   }
 ];
@@ -163,7 +159,7 @@ export default function AdminPage() {
 
         <section
           aria-label="Catalog and analytics"
-          className="grid gap-2 sm:grid-cols-2 lg:grid-cols-4"
+          className="grid gap-2 sm:grid-cols-2 lg:grid-cols-5"
         >
           <AdminToolCard
             href="/analytics"
@@ -188,6 +184,14 @@ export default function AdminPage() {
             icon={Calendar}
             wash="from-emerald-50/90 to-teal-50/70 dark:from-emerald-950/40 dark:to-teal-950/30"
             iconClass="from-emerald-500 to-teal-600 shadow-emerald-500/25"
+          />
+          <AdminToolCard
+            href="/padavali/batch_manager"
+            label="Batches"
+            hint="AI image batches for puzzles"
+            icon={Images}
+            wash="from-orange-50/90 to-amber-50/70 dark:from-orange-950/40 dark:to-amber-950/30"
+            iconClass="from-orange-500 to-amber-600 shadow-orange-500/25"
           />
           <AdminToolCard
             href="/tags/list"

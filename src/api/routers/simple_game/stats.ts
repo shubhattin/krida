@@ -7,7 +7,7 @@ import {
   simple_game_submit_stats_input_schema,
   simple_game_update_games_started_input_schema
 } from '~/db/simple_game_shared';
-import { BadRequestError } from '~/effect/errors';
+import { BadRequestError, NotFoundError } from '~/effect/errors';
 import { runTrpcEffect } from '~/effect/run';
 import {
   claimPlaySession,
@@ -94,6 +94,21 @@ export function createSimpleGameStatsRouter<TData>(
           yield* requireTurnstileIfGuest(turnstile_token, ctx.user).pipe(
             Effect.tapError(() => releasePlaySessionClaim(kind, client_play_id))
           );
+
+          // Sessions are shared across games now — reject ids from other kinds.
+          const [puzzle] = yield* dbRunHttp(`${kind}_stats.find_puzzle`, (client) =>
+            client
+              .select({ id: puzzles.id })
+              .from(puzzles)
+              .where(and(eq(puzzles.id, id), puzzleKind))
+              .limit(1)
+          );
+          if (!puzzle) {
+            yield* releasePlaySessionClaim(kind, client_play_id);
+            return yield* Effect.fail(
+              NotFoundError.make({ resource: 'puzzle', message: 'Puzzle not found' })
+            );
+          }
 
           const userFields = sessionUserFields(ctx.user);
           const inserted_sessions = yield* dbRunHttp(`${kind}_stats.create_session`, (client) =>

@@ -6,7 +6,7 @@ import { dbRunHttp } from '~/effect/database';
 import { location_list_enum } from '~/db/types';
 import { script_list_enum } from '~/state/script_list';
 import { and, count, desc, eq, gte, ilike, inArray, isNotNull, lte, sql } from 'drizzle-orm';
-import { BadRequestError } from '~/effect/errors';
+import { BadRequestError, NotFoundError } from '~/effect/errors';
 import { runTrpcEffect } from '~/effect/run';
 import { padavaliActiveWords } from '~/util/puzzle/word_list';
 import {
@@ -148,6 +148,21 @@ const update_games_started_route = publicProcedure
             Effect.tapError(() => releasePlaySessionClaim('padavali', client_play_id))
           );
 
+          // Sessions are shared across games now — reject ids from other kinds.
+          const [puzzle] = yield* dbRunHttp('padavali_stats.find_puzzle', (client) =>
+            client
+              .select({ id: puzzles.id })
+              .from(puzzles)
+              .where(and(eq(puzzles.id, id), padavaliKind))
+              .limit(1)
+          );
+          if (!puzzle) {
+            yield* releasePlaySessionClaim('padavali', client_play_id);
+            return yield* Effect.fail(
+              NotFoundError.make({ resource: 'padavali_puzzle', message: 'Puzzle not found' })
+            );
+          }
+
           const userFields = sessionUserFields(ctx.user);
           const inserted_sessions = yield* dbRunHttp('padavali_stats.create_session', (client) =>
             client
@@ -191,13 +206,31 @@ const update_session_practice_mode_route = publicProcedure
     z.object({
       turnstile_token: optional_turnstile_token_schema,
       session_id: z.number().int(),
+      puzzle_id: z.number().int(),
       practice_mode: z.boolean()
     })
   )
-  .mutation(({ input: { turnstile_token, session_id, practice_mode }, ctx }) =>
+  .mutation(({ input: { turnstile_token, session_id, puzzle_id, practice_mode }, ctx }) =>
     runTrpcEffect(
       Effect.gen(function* () {
         yield* requireTurnstileIfGuest(turnstile_token, ctx.user);
+
+        // Sessions are shared across games now — only touch this game's own session.
+        const [session] = yield* dbRunHttp('padavali_stats.find_session_for_update', (client) =>
+          client
+            .select({ id: puzzle_sessions.id })
+            .from(puzzle_sessions)
+            .innerJoin(puzzles, sessionForKind)
+            .where(
+              and(eq(puzzle_sessions.id, session_id), eq(puzzle_sessions.puzzle_id, puzzle_id))
+            )
+            .limit(1)
+        );
+        if (!session) {
+          return yield* Effect.fail(
+            BadRequestError.make({ message: 'Invalid session for puzzle' })
+          );
+        }
 
         yield* dbRunHttp('padavali_stats.update_session_practice_mode', async (client) => {
           await client

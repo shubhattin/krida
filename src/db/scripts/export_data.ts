@@ -151,7 +151,9 @@ async function insertAll(tx: ExportTx, data: ExportData): Promise<void> {
     tx,
     ai_batches,
     data.ai_batches.flatMap((row) => {
-      if (row.type !== 'image' && row.type !== 'text' && row.type !== 'object') return [];
+      if (row.type !== 'image' && row.type !== 'text' && row.type !== 'object') {
+        throw new Error(`AI batch ${row.batch_id} has unsupported type ${row.type}`);
+      }
       return [{ ...row, type: row.type }];
     }),
     'ai_batches'

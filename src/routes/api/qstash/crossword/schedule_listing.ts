@@ -94,7 +94,8 @@ export const Route = createFileRoute('/api/qstash/crossword/schedule_listing')({
                 .where(
                   and(
                     eq(puzzle_schedules.id, schedule_id),
-                    eq(puzzle_schedules.puzzle_id, puzzle_id)
+                    eq(puzzle_schedules.puzzle_id, puzzle_id),
+                    eq(puzzle_schedules.listing_verify_key, listing_verify_key)
                   )
                 );
             });
