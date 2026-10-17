@@ -1,6 +1,6 @@
 import { Effect } from 'effect';
 import { protectedAdminProcedure, publicProcedure, t } from '../../trpc_init';
-import { crossword_gameplay_stats, crossword_puzzles, puzzle_sessions, puzzles } from '~/db/schema';
+import { crossword_gameplay_stats, puzzle_sessions, puzzles } from '~/db/schema';
 import { dbRunHttp } from '~/effect/database';
 import { and, count, desc, eq, gte, ilike, inArray, isNotNull, lte, sql } from 'drizzle-orm';
 import {

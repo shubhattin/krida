@@ -123,7 +123,7 @@ const crosswordStatsRow = z.object({
   incorrect_entry_attempts: z.number().int()
 });
 
-function simpleGameShape<T extends z.ZodType>(puzzleData: T) {
+function simpleGameRowSchemas<T extends z.ZodType>(puzzleData: T) {
   return {
     puzzles: z.array(z.object({ ...listingFields, puzzle_data: puzzleData })).default([]),
     redirects: z.array(redirectRow).default([]),
@@ -135,10 +135,10 @@ function simpleGameShape<T extends z.ZodType>(puzzleData: T) {
   };
 }
 
-const dvayiShape = simpleGameShape(dvayi_puzzle_data_schema);
-const bhramitaShape = simpleGameShape(bhramita_puzzle_data_schema);
-const surupaShape = simpleGameShape(surupa_puzzle_data_schema);
-const anveshiShape = simpleGameShape(anveshi_puzzle_data_schema);
+const dvayiRowSchemas = simpleGameRowSchemas(dvayi_puzzle_data_schema);
+const bhramitaRowSchemas = simpleGameRowSchemas(bhramita_puzzle_data_schema);
+const surupaRowSchemas = simpleGameRowSchemas(surupa_puzzle_data_schema);
+const anveshiRowSchemas = simpleGameRowSchemas(anveshi_puzzle_data_schema);
 
 export const LegacyDumpSchema = z.object({
   padavali_puzzles: z.array(
@@ -222,34 +222,34 @@ export const LegacyDumpSchema = z.object({
   crossword_puzzle_tags: z.array(tagLinkRow).default([]),
   padavali_collection_items: z.array(collectionItemRow).default([]),
   crossword_collection_items: z.array(collectionItemRow).default([]),
-  dvayi_puzzles: dvayiShape.puzzles,
-  dvayi_redirects: dvayiShape.redirects,
-  dvayi_attachments: dvayiShape.attachments,
-  dvayi_sessions: dvayiShape.sessions,
-  dvayi_gameplay_stats: dvayiShape.gameplay_stats,
-  dvayi_puzzle_tags: dvayiShape.puzzle_tags,
-  dvayi_collection_items: dvayiShape.collection_items,
-  bhramita_puzzles: bhramitaShape.puzzles,
-  bhramita_redirects: bhramitaShape.redirects,
-  bhramita_attachments: bhramitaShape.attachments,
-  bhramita_sessions: bhramitaShape.sessions,
-  bhramita_gameplay_stats: bhramitaShape.gameplay_stats,
-  bhramita_puzzle_tags: bhramitaShape.puzzle_tags,
-  bhramita_collection_items: bhramitaShape.collection_items,
-  surupa_puzzles: surupaShape.puzzles,
-  surupa_redirects: surupaShape.redirects,
-  surupa_attachments: surupaShape.attachments,
-  surupa_sessions: surupaShape.sessions,
-  surupa_gameplay_stats: surupaShape.gameplay_stats,
-  surupa_puzzle_tags: surupaShape.puzzle_tags,
-  surupa_collection_items: surupaShape.collection_items,
-  anveshi_puzzles: anveshiShape.puzzles,
-  anveshi_redirects: anveshiShape.redirects,
-  anveshi_attachments: anveshiShape.attachments,
-  anveshi_sessions: anveshiShape.sessions,
-  anveshi_gameplay_stats: anveshiShape.gameplay_stats,
-  anveshi_puzzle_tags: anveshiShape.puzzle_tags,
-  anveshi_collection_items: anveshiShape.collection_items
+  dvayi_puzzles: dvayiRowSchemas.puzzles,
+  dvayi_redirects: dvayiRowSchemas.redirects,
+  dvayi_attachments: dvayiRowSchemas.attachments,
+  dvayi_sessions: dvayiRowSchemas.sessions,
+  dvayi_gameplay_stats: dvayiRowSchemas.gameplay_stats,
+  dvayi_puzzle_tags: dvayiRowSchemas.puzzle_tags,
+  dvayi_collection_items: dvayiRowSchemas.collection_items,
+  bhramita_puzzles: bhramitaRowSchemas.puzzles,
+  bhramita_redirects: bhramitaRowSchemas.redirects,
+  bhramita_attachments: bhramitaRowSchemas.attachments,
+  bhramita_sessions: bhramitaRowSchemas.sessions,
+  bhramita_gameplay_stats: bhramitaRowSchemas.gameplay_stats,
+  bhramita_puzzle_tags: bhramitaRowSchemas.puzzle_tags,
+  bhramita_collection_items: bhramitaRowSchemas.collection_items,
+  surupa_puzzles: surupaRowSchemas.puzzles,
+  surupa_redirects: surupaRowSchemas.redirects,
+  surupa_attachments: surupaRowSchemas.attachments,
+  surupa_sessions: surupaRowSchemas.sessions,
+  surupa_gameplay_stats: surupaRowSchemas.gameplay_stats,
+  surupa_puzzle_tags: surupaRowSchemas.puzzle_tags,
+  surupa_collection_items: surupaRowSchemas.collection_items,
+  anveshi_puzzles: anveshiRowSchemas.puzzles,
+  anveshi_redirects: anveshiRowSchemas.redirects,
+  anveshi_attachments: anveshiRowSchemas.attachments,
+  anveshi_sessions: anveshiRowSchemas.sessions,
+  anveshi_gameplay_stats: anveshiRowSchemas.gameplay_stats,
+  anveshi_puzzle_tags: anveshiRowSchemas.puzzle_tags,
+  anveshi_collection_items: anveshiRowSchemas.collection_items
 });
 
 export type LegacyDump = z.infer<typeof LegacyDumpSchema>;

@@ -46,28 +46,28 @@ import { Input } from '~/components/ui/input';
 import { Label } from '~/components/ui/label';
 import { Switch } from '~/components/ui/switch';
 import { cn } from '~/lib/utils';
-import { GAME_KINDS, type GameKind } from '~/util/catalog/tags';
+import { GAME_KINDS, isGameKind, type GameKind } from '~/util/catalog/tags';
 import { gameKindLabel } from '~/util/games/labels';
 
 dayjs.extend(relativeTime);
 
-const KIND_CHIP: Record<GameKind, string> = {
+const KIND_CHIP = {
   padavali: 'data-[on=true]:bg-sky-600 data-[on=true]:text-white',
   crossword: 'data-[on=true]:bg-amber-600 data-[on=true]:text-white',
   dvayi: 'data-[on=true]:bg-violet-600 data-[on=true]:text-white',
   bhramita: 'data-[on=true]:bg-emerald-600 data-[on=true]:text-white',
   surupa: 'data-[on=true]:bg-rose-600 data-[on=true]:text-white',
   anveshi: 'data-[on=true]:bg-indigo-600 data-[on=true]:text-white'
-};
+} satisfies Record<GameKind, string>;
 
-const KIND_BADGE: Record<GameKind, string> = {
+const KIND_BADGE = {
   padavali: 'bg-sky-500/15 text-sky-800 dark:text-sky-200',
   crossword: 'bg-amber-500/15 text-amber-900 dark:text-amber-100',
   dvayi: 'bg-violet-500/15 text-violet-800 dark:text-violet-200',
   bhramita: 'bg-emerald-500/15 text-emerald-800 dark:text-emerald-200',
   surupa: 'bg-rose-500/15 text-rose-800 dark:text-rose-200',
   anveshi: 'bg-indigo-500/15 text-indigo-800 dark:text-indigo-200'
-};
+} satisfies Record<GameKind, string>;
 
 type ScheduleRow = {
   id: number;
@@ -117,6 +117,11 @@ function istParts(value: Date) {
     day: `${pick('year')}-${pick('month')}-${pick('day')}`,
     time: `${pick('hour')}:${pick('minute')}`
   };
+}
+
+function dayAfter(day: string) {
+  const [year = 0, month = 1, date = 1] = day.split('-').map(Number);
+  return new Date(Date.UTC(year, month - 1, date + 1)).toISOString().slice(0, 10);
 }
 
 function formatRange(start: Date, end: Date) {
@@ -263,7 +268,9 @@ export function SchedulesManager() {
     })
   );
 
-  const rows = (list.data ?? []) as ScheduleRow[];
+  const rows = (list.data ?? []).flatMap((row) =>
+    isGameKind(row.kind) ? [{ ...row, kind: row.kind }] : []
+  );
 
   return (
     <div className="flex flex-col gap-4">
@@ -388,6 +395,7 @@ export function SchedulesManager() {
       )}
 
       <ScheduleDialog
+        key={editor == null ? 'closed' : editor === 'new' ? 'new' : String(editor.id)}
         open={editor != null}
         schedule={editor === 'new' ? null : editor}
         kinds={kinds}
@@ -412,46 +420,27 @@ function ScheduleDialog({
 }) {
   const trpc = useTRPC();
   const queryClient = useQueryClient();
+  const openedStart = schedule ? istParts(schedule.start_time) : istParts(new Date());
+  const openedEnd = schedule
+    ? istParts(schedule.end_time)
+    : { day: dayAfter(openedStart.day), time: '21:00' };
   const [pickerKinds, setPickerKinds] = useState<GameKind[]>(kinds);
   const [search, setSearch] = useState('');
   const [debounced, setDebounced] = useState('');
-  const [puzzle, setPuzzle] = useState<PuzzleHit | null>(null);
-  const initial = schedule ? istParts(schedule.start_time) : null;
-  const initialEnd = schedule ? istParts(schedule.end_time) : null;
-  const [startDay, setStartDay] = useState(initial?.day ?? '');
-  const [startTime, setStartTime] = useState(initial?.time ?? '21:00');
-  const [endDay, setEndDay] = useState(initialEnd?.day ?? '');
-  const [endTime, setEndTime] = useState(initialEnd?.time ?? '21:00');
-
-  useEffect(() => {
-    if (!open) return;
-    setPickerKinds(kinds);
-    setSearch('');
-    setDebounced('');
-    if (schedule) {
-      const start = istParts(schedule.start_time);
-      const end = istParts(schedule.end_time);
-      setPuzzle({
-        id: schedule.puzzle_id,
-        game: schedule.kind,
-        title: schedule.title,
-        slug: schedule.slug
-      });
-      setStartDay(start.day);
-      setStartTime(start.time);
-      setEndDay(end.day);
-      setEndTime(end.time);
-    } else {
-      setPuzzle(null);
-      const start = istParts(new Date());
-      const tomorrow = new Date(Date.now() + 24 * 60 * 60 * 1000);
-      const end = istParts(tomorrow);
-      setStartDay(start.day);
-      setStartTime('21:00');
-      setEndDay(end.day);
-      setEndTime('21:00');
-    }
-  }, [open, schedule, kinds]);
+  const [puzzle, setPuzzle] = useState<PuzzleHit | null>(
+    schedule
+      ? {
+          id: schedule.puzzle_id,
+          game: schedule.kind,
+          title: schedule.title,
+          slug: schedule.slug
+        }
+      : null
+  );
+  const [startDay, setStartDay] = useState(openedStart.day);
+  const [startTime, setStartTime] = useState(schedule ? openedStart.time : '21:00');
+  const [endDay, setEndDay] = useState(openedEnd.day);
+  const [endTime, setEndTime] = useState(schedule ? openedEnd.time : '21:00');
 
   useEffect(() => {
     const timer = setTimeout(() => setDebounced(search), 280);

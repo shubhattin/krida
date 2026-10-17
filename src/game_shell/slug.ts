@@ -1,16 +1,14 @@
 import { Effect } from 'effect';
 import { and, eq } from 'drizzle-orm';
-import type { GameKind } from '~/util/catalog/tags';
 import { puzzle_redirects, puzzles } from '~/db/schema';
 import { dbRunHttp, type DbTransaction } from '~/effect/database';
 import { BadRequestError, ConflictError } from '~/effect/errors';
 import { normalizeSlug } from '~/util/puzzle/slug';
+import type { GameKind } from '~/util/catalog/tags';
 
 export type SlugAvailabilityOptions = {
   exclude_puzzle_id?: number;
 };
-
-type PuzzleSlugRow = { id: number; slug: string; title: string };
 
 export function createGameSlugHelpers(options: {
   kind: GameKind;
@@ -39,7 +37,7 @@ export function createGameSlugHelpers(options: {
           .from(puzzles)
           .where(and(eq(puzzles.kind, kind), eq(puzzles.slug, normalized)))
           .limit(1)
-          .then((rows) => rows[0] as PuzzleSlugRow | undefined)
+          .then((rows) => rows[0])
       ),
       existing_redirect: dbRunHttp(`${kind}_slug.find_redirect_by_slug`, async (client) => {
         const [redirect] = await client

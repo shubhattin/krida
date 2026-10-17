@@ -175,6 +175,7 @@ const load_current_schedule: CacheItem<NoCacheParams, CrosswordCurrentScheduleTy
         .where(eq(puzzle_attachments.puzzle_id, schedule.puzzle_id))
         .orderBy(asc(puzzle_attachments.order_index));
 
+      // SAFETY: jsonb columns are stored as the crossword payload written by the editor.
       const dbPuzzle: CrosswordDbPuzzle = {
         id: schedule.puzzle_id,
         slug: schedule.slug,
@@ -339,6 +340,7 @@ const load_word_puzzle: CacheItem<CrosswordPuzzleParams, CrosswordPuzzleType | u
           .where(eq(puzzle_attachments.puzzle_id, row.id))
           .orderBy(asc(puzzle_attachments.order_index));
 
+        // SAFETY: jsonb columns are stored as the crossword payload written by the editor.
         const dbPuzzle: CrosswordDbPuzzle = {
           id: row.id,
           slug: row.slug,

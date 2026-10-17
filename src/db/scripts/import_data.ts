@@ -85,7 +85,7 @@ export const import_data = async (confirm_env = true) => {
 
 if (require.main === module) {
   import_data()
-    .catch((error: unknown) => {
+    .catch((error) => {
       console.error(error);
       process.exitCode = 1;
     })

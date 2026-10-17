@@ -248,6 +248,17 @@ const DUMP_TABLES: DumpTable[] = [
   ...SIMPLE_GAMES.flatMap(simpleGameTables)
 ];
 
+type LegacyDumpCell =
+  | string
+  | number
+  | boolean
+  | null
+  | Date
+  | LegacyDumpCell[]
+  | { readonly [column: string]: LegacyDumpCell };
+
+type LegacyDumpRow = { [column: string]: LegacyDumpCell };
+
 function quoteIdent(name: string): string {
   if (!/^[a-z_][a-z0-9_]*$/i.test(name)) {
     throw new Error(`Refusing to query unexpected identifier \`${name}\``);
@@ -255,13 +266,13 @@ function quoteIdent(name: string): string {
   return `"${name}"`;
 }
 
-async function selectTable(table: DumpTable): Promise<Record<string, unknown>[]> {
+async function selectTable(table: DumpTable): Promise<LegacyDumpRow[]> {
   const columns = table.columns.map(quoteIdent).join(', ');
   const result = await sql.unsafe(
     `select ${columns} from ${quoteIdent(table.key)} order by ${table.orderBy}`
   );
   return result.map((row) => {
-    const out: Record<string, unknown> = {};
+    const out: LegacyDumpRow = {};
     for (const column of table.columns) {
       if (!Object.hasOwn(row, column)) {
         throw new Error(`Column ${table.key}.${column} was not returned`);
@@ -276,7 +287,7 @@ export async function backup_json(confirm_env = true) {
   if (confirm_env && !(await confirm_environment())) return;
 
   console.log(`Fetching legacy tables from ${dbMode} with raw SQL...`);
-  const json_data: Record<string, Record<string, unknown>[]> = {};
+  const json_data: { [table: string]: LegacyDumpRow[] } = {};
   for (const table of DUMP_TABLES) {
     json_data[table.key] = await selectTable(table);
     console.log(`${table.key}: ${json_data[table.key]!.length}`);
@@ -289,7 +300,7 @@ export async function backup_json(confirm_env = true) {
 
 if (require.main === module) {
   backup_json()
-    .catch((error: unknown) => {
+    .catch((error) => {
       console.error(error);
       process.exitCode = 1;
     })

@@ -150,10 +150,10 @@ async function insertAll(tx: ExportTx, data: ExportData): Promise<void> {
   await insertIfAny(
     tx,
     ai_batches,
-    data.ai_batches.map((row) => ({
-      ...row,
-      type: row.type as 'image' | 'text' | 'object'
-    })),
+    data.ai_batches.flatMap((row) => {
+      if (row.type !== 'image' && row.type !== 'text' && row.type !== 'object') return [];
+      return [{ ...row, type: row.type }];
+    }),
     'ai_batches'
   );
   await insertIfAny(
@@ -221,7 +221,7 @@ const main = async () => {
 };
 
 main()
-  .catch((error: unknown) => {
+  .catch((error) => {
     console.error(chalk.red('✗ Export failed:'), error);
     process.exitCode = 1;
   })

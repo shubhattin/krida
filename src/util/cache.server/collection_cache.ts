@@ -5,7 +5,7 @@ import { createCache, type CacheItem, type NoCacheParams } from '~/effect/cache'
 import { dbRunHttp } from '~/effect/database';
 import { CacheError } from '~/effect/errors';
 import { GAME_KINDS, type GameKind } from '~/util/catalog/tags';
-import { PUBLIC_GAME_KINDS } from '~/util/games/kinds';
+import { isPublicGameKind } from '~/util/games/kinds';
 
 const collection_item_schema = z.object({
   game: z.enum(GAME_KINDS),
@@ -59,7 +59,7 @@ const toPublicItems = (
   rows: { order_index: number; puzzle: ItemPuzzle & { kind: GameKind } }[]
 ): ListedCollectionItem[] =>
   rows.flatMap((row) =>
-    row.puzzle.listed && (PUBLIC_GAME_KINDS as readonly string[]).includes(row.puzzle.kind)
+    row.puzzle.listed && isPublicGameKind(row.puzzle.kind)
       ? [
           {
             game: row.puzzle.kind,

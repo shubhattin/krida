@@ -80,7 +80,7 @@ const main = async () => {
 };
 
 main()
-  .catch((error: unknown) => {
+  .catch((error) => {
     console.error(chalk.red('✗ Patch failed:'), error);
     process.exitCode = 1;
   })

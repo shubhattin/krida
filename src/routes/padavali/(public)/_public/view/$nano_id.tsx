@@ -7,7 +7,6 @@ import WordGame from '~/components/pages/padavali/WordGame/WordGameRoot';
 import { get_transliterated_word_game_msgs } from '~/components/pages/padavali/WordGame/msgs';
 import { transliterate_custom } from '~/tools/transliterator';
 import { routeHeadFromPageMeta } from '~/components/tags/getPageMetaTags';
-import { puzzles } from '~/db/schema';
 import { dbRunHttp } from '~/effect/database';
 import { getScript$ } from '~/lib/cache_server_route_data';
 import { DEFAULT_DATA_SCRIPT } from '~/state/script_list';

@@ -1,7 +1,6 @@
 import { createFileRoute, notFound, redirect } from '@tanstack/react-router';
 import { createServerFn } from '@tanstack/react-start';
 import { z } from 'zod';
-import { puzzles } from '~/db/schema';
 import { parseIdSlugParam } from '~/util/puzzle/slug';
 import { dbRunHttp } from '~/effect/database';
 import { runLoaderEffect } from '~/effect/run';

@@ -159,6 +159,7 @@ const load_current_schedule: CacheItem<NoCacheParams, PadavaliCurrentScheduleTyp
         .where(eq(puzzle_attachments.puzzle_id, schedule.puzzle_id))
         .orderBy(asc(puzzle_attachments.order_index));
 
+      // SAFETY: jsonb columns are stored as the padavali payload written by the editor.
       const dbPuzzle: PadavaliDbPuzzle = {
         id: schedule.puzzle_id,
         slug: schedule.slug,
@@ -323,6 +324,7 @@ const load_word_puzzle: CacheItem<PadavaliPuzzleParams, PadavaliPuzzleType | und
           .where(eq(puzzle_attachments.puzzle_id, row.id))
           .orderBy(asc(puzzle_attachments.order_index));
 
+        // SAFETY: jsonb columns are stored as the padavali payload written by the editor.
         const dbPuzzle: PadavaliDbPuzzle = {
           id: row.id,
           slug: row.slug,

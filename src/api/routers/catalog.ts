@@ -22,6 +22,7 @@ import {
 import {
   catalog_slug_schema,
   GAME_KINDS,
+  isGameKind,
   tag_slug_schema,
   type GameKind
 } from '~/util/catalog/tags';
@@ -1246,11 +1247,18 @@ const delete_collection_route = protectedAdminProcedure
             .innerJoin(puzzles, eq(puzzles.id, collection_items.puzzle_id))
             .where(eq(collection_items.collection_id, collection.id))
             .groupBy(puzzles.kind);
-          const totals = Object.fromEntries(GAME_KINDS.map((game) => [game, 0])) as Record<
-            GameKind,
-            number
-          >;
-          for (const row of rows) totals[row.kind] = Number(row.count);
+          const totals = {
+            padavali: 0,
+            crossword: 0,
+            dvayi: 0,
+            bhramita: 0,
+            surupa: 0,
+            anveshi: 0
+          } satisfies Record<GameKind, number>;
+          for (const row of rows) {
+            if (!isGameKind(row.kind)) continue;
+            totals[row.kind] = Number(row.count);
+          }
           return totals;
         });
         const padavali = counts.padavali;
