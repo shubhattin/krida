@@ -159,10 +159,7 @@ const update_puzzle_schedule_route = protectedAdminProcedure
             .update(puzzle_schedules)
             .set({ start_time, end_time, listing_verify_key })
             .where(
-              and(
-                eq(puzzle_schedules.id, schedule_id),
-                eq(puzzle_schedules.puzzle_id, puzzle_id)
-              )
+              and(eq(puzzle_schedules.id, schedule_id), eq(puzzle_schedules.puzzle_id, puzzle_id))
             );
         });
 

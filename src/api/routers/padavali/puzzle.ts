@@ -2,12 +2,7 @@ import { Effect } from 'effect';
 import { z } from 'zod';
 import { protectedAdminProcedure, publicProcedure, t } from '~/api/trpc_init';
 import { dbRunHttp, dbTransaction } from '~/effect/database';
-import {
-  padavali_puzzles,
-  puzzle_redirects,
-  puzzles,
-  image_assets
-} from '~/db/schema';
+import { padavali_puzzles, puzzle_redirects, puzzles, image_assets } from '~/db/schema';
 import { and, asc, count, desc, eq, ilike, or, sql } from 'drizzle-orm';
 import { padavali_stats_router } from './padavali_stats';
 import {
@@ -87,9 +82,7 @@ const update_puzzle_route = protectedAdminProcedure
             })
             .from(puzzles)
             .innerJoin(padavali_puzzles, eq(padavali_puzzles.id, puzzles.id))
-            .where(
-              and(padavaliKind, eq(puzzles.id, puzzle_id), eq(puzzles.slug, puzzle_slug))
-            )
+            .where(and(padavaliKind, eq(puzzles.id, puzzle_id), eq(puzzles.slug, puzzle_slug)))
             .limit(1)
         );
         const existing = existingRow;
@@ -124,9 +117,7 @@ const update_puzzle_route = protectedAdminProcedure
             const updated = await tx
               .update(puzzles)
               .set(metaUpdates)
-              .where(
-                and(padavaliKind, eq(puzzles.id, puzzle_id), eq(puzzles.slug, puzzle_slug))
-              )
+              .where(and(padavaliKind, eq(puzzles.id, puzzle_id), eq(puzzles.slug, puzzle_slug)))
               .returning();
 
             if (updated.length > 0) {
@@ -206,9 +197,7 @@ const update_puzzle_slug_route = protectedAdminProcedure
           client
             .select({ id: puzzles.id, listed: puzzles.listed })
             .from(puzzles)
-            .where(
-              and(padavaliKind, eq(puzzles.id, puzzle_id), eq(puzzles.slug, current_slug))
-            )
+            .where(and(padavaliKind, eq(puzzles.id, puzzle_id), eq(puzzles.slug, current_slug)))
             .limit(1)
         );
         if (!puzzle) {
@@ -231,9 +220,7 @@ const update_puzzle_slug_route = protectedAdminProcedure
           const updated = await tx
             .update(puzzles)
             .set({ slug: new_slug })
-            .where(
-              and(padavaliKind, eq(puzzles.id, puzzle_id), eq(puzzles.slug, current_slug))
-            )
+            .where(and(padavaliKind, eq(puzzles.id, puzzle_id), eq(puzzles.slug, current_slug)))
             .returning();
 
           if (updated.length > 0) {
@@ -416,9 +403,7 @@ export const get_puzzle_list_page = Effect.fn('padavali.get_puzzle_list_page')(f
   if (trimmedSearch) {
     for (const token of tokenizeSearchQuery(trimmedSearch)) {
       const pattern = `%${escapeIlikeToken(token)}%`;
-      conditions.push(
-        or(ilike(puzzles.title, pattern), ilike(puzzles.description, pattern))!
-      );
+      conditions.push(or(ilike(puzzles.title, pattern), ilike(puzzles.description, pattern))!);
     }
   }
   if (tag_slug) conditions.push(puzzleHasTag(puzzles.id, 'padavali', tag_slug));

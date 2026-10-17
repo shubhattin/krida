@@ -295,9 +295,7 @@ const update_puzzle_route = protectedAdminProcedure
             })
             .from(puzzles)
             .innerJoin(crossword_puzzles, eq(crossword_puzzles.id, puzzles.id))
-            .where(
-              and(crosswordKind, eq(puzzles.id, puzzle_id), eq(puzzles.slug, puzzle_slug))
-            )
+            .where(and(crosswordKind, eq(puzzles.id, puzzle_id), eq(puzzles.slug, puzzle_slug)))
             .limit(1)
         );
         if (!existing) {
@@ -354,9 +352,7 @@ const update_puzzle_route = protectedAdminProcedure
             const updated = await tx
               .update(puzzles)
               .set(metaUpdates)
-              .where(
-                and(crosswordKind, eq(puzzles.id, puzzle_id), eq(puzzles.slug, puzzle_slug))
-              )
+              .where(and(crosswordKind, eq(puzzles.id, puzzle_id), eq(puzzles.slug, puzzle_slug)))
               .returning();
 
             if (updated.length > 0) {
@@ -433,9 +429,7 @@ const update_puzzle_slug_route = protectedAdminProcedure
           client
             .select({ id: puzzles.id, listed: puzzles.listed })
             .from(puzzles)
-            .where(
-              and(crosswordKind, eq(puzzles.id, puzzle_id), eq(puzzles.slug, current_slug))
-            )
+            .where(and(crosswordKind, eq(puzzles.id, puzzle_id), eq(puzzles.slug, current_slug)))
             .limit(1)
         );
         if (!puzzle) {
@@ -458,9 +452,7 @@ const update_puzzle_slug_route = protectedAdminProcedure
           const updated = await tx
             .update(puzzles)
             .set({ slug: new_slug })
-            .where(
-              and(crosswordKind, eq(puzzles.id, puzzle_id), eq(puzzles.slug, current_slug))
-            )
+            .where(and(crosswordKind, eq(puzzles.id, puzzle_id), eq(puzzles.slug, current_slug)))
             .returning();
 
           if (updated.length > 0) {

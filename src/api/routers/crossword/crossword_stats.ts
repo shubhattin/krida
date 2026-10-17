@@ -1,11 +1,6 @@
 import { Effect } from 'effect';
 import { protectedAdminProcedure, publicProcedure, t } from '../../trpc_init';
-import {
-  crossword_gameplay_stats,
-  crossword_puzzles,
-  puzzle_sessions,
-  puzzles
-} from '~/db/schema';
+import { crossword_gameplay_stats, crossword_puzzles, puzzle_sessions, puzzles } from '~/db/schema';
 import { dbRunHttp } from '~/effect/database';
 import { and, count, desc, eq, gte, ilike, inArray, isNotNull, lte, sql } from 'drizzle-orm';
 import {
@@ -65,10 +60,7 @@ const submit_stats_route = publicProcedure
             .from(puzzle_sessions)
             .innerJoin(puzzles, sessionForKind)
             .where(
-              and(
-                eq(puzzle_sessions.id, session_id),
-                eq(puzzle_sessions.puzzle_id, puzzle_id)
-              )
+              and(eq(puzzle_sessions.id, session_id), eq(puzzle_sessions.puzzle_id, puzzle_id))
             )
             .limit(1)
         );
@@ -458,10 +450,7 @@ const get_user_list_page_route = protectedAdminProcedure
               .selectDistinct({ user_id: puzzle_sessions.user_id })
               .from(puzzle_sessions)
               .where(
-                and(
-                  isNotNull(puzzle_sessions.user_id),
-                  ilike(puzzle_sessions.user_id, idPattern)
-                )
+                and(isNotNull(puzzle_sessions.user_id), ilike(puzzle_sessions.user_id, idPattern))
               )
               .limit(50)
           );

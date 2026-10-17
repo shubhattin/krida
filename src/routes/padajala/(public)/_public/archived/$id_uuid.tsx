@@ -14,8 +14,7 @@ const loader$ = createServerFn({ method: 'GET' })
     const puzzle = await runLoaderEffect(
       dbRunHttp('crossword.archived.resolve_slug', (client) =>
         client.query.puzzles.findFirst({
-          where: (tbl, { and, eq }) =>
-            and(eq(tbl.id, parsed.id), eq(tbl.kind, 'crossword')),
+          where: (tbl, { and, eq }) => and(eq(tbl.id, parsed.id), eq(tbl.kind, 'crossword')),
           columns: { slug: true }
         })
       )

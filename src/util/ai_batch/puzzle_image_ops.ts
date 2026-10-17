@@ -9,12 +9,7 @@ import {
 } from '~/util/ai/image_gen';
 import { createAiBatch, getAiBatchResult, type AiBatchInput } from '~/util/ai_batch';
 import type { AiBatchPollingStatus } from '~/util/ai_batch/types';
-import {
-  ai_batches,
-  ai_batch_responses,
-  image_assets,
-  puzzles
-} from '~/db/schema';
+import { ai_batches, ai_batch_responses, image_assets, puzzles } from '~/db/schema';
 import { and, desc, eq, inArray, sql } from 'drizzle-orm';
 import {
   BATCH_POLLING_INTERVAL_S,
@@ -301,12 +296,7 @@ export const trigger_batch_puzzle_image_gen = Effect.fn('batch_ai.trigger_batch_
           description: puzzles.description
         })
         .from(puzzles)
-        .where(
-          and(
-            eq(puzzles.kind, game),
-            inArray(puzzles.id, puzzle_ids)
-          )
-        )
+        .where(and(eq(puzzles.kind, game), inArray(puzzles.id, puzzle_ids)))
     );
 
     if (db_puzzles.length !== puzzle_ids.length) {

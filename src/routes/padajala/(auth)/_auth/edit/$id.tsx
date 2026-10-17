@@ -21,8 +21,7 @@ const loader$ = createServerFn({ method: 'GET' })
     const row = await runLoaderEffect(
       dbRunHttp('crossword.admin.get_edit_puzzle', (client) =>
         client.query.puzzles.findFirst({
-          where: (tbl, { and, eq }) =>
-            and(eq(tbl.id, parsed.data), eq(tbl.kind, 'crossword')),
+          where: (tbl, { and, eq }) => and(eq(tbl.id, parsed.data), eq(tbl.kind, 'crossword')),
           with: {
             crossword: true,
             attachments: {

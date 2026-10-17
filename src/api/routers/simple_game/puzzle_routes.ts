@@ -256,9 +256,7 @@ export function createSimpleGameRouter<TData>(options: {
                 listed: puzzles.listed
               })
               .from(puzzles)
-              .where(
-                and(puzzleKind, eq(puzzles.id, puzzle_id), eq(puzzles.slug, puzzle_slug))
-              )
+              .where(and(puzzleKind, eq(puzzles.id, puzzle_id), eq(puzzles.slug, puzzle_slug)))
               .limit(1)
           );
           if (!existing) {
@@ -304,9 +302,7 @@ export function createSimpleGameRouter<TData>(options: {
               const updated = await tx
                 .update(puzzles)
                 .set(metaUpdates)
-                .where(
-                  and(puzzleKind, eq(puzzles.id, puzzle_id), eq(puzzles.slug, puzzle_slug))
-                )
+                .where(and(puzzleKind, eq(puzzles.id, puzzle_id), eq(puzzles.slug, puzzle_slug)))
                 .returning();
 
               if (updated.length > 0) {
@@ -356,9 +352,7 @@ export function createSimpleGameRouter<TData>(options: {
             client
               .select({ id: puzzles.id, listed: puzzles.listed })
               .from(puzzles)
-              .where(
-                and(puzzleKind, eq(puzzles.id, puzzle_id), eq(puzzles.slug, current_slug))
-              )
+              .where(and(puzzleKind, eq(puzzles.id, puzzle_id), eq(puzzles.slug, current_slug)))
               .limit(1)
           );
           if (!puzzle) {
@@ -380,9 +374,7 @@ export function createSimpleGameRouter<TData>(options: {
             const updated = await tx
               .update(puzzles)
               .set({ slug: new_slug })
-              .where(
-                and(puzzleKind, eq(puzzles.id, puzzle_id), eq(puzzles.slug, current_slug))
-              )
+              .where(and(puzzleKind, eq(puzzles.id, puzzle_id), eq(puzzles.slug, current_slug)))
               .returning();
             if (updated.length > 0) {
               await slugHelpers.upsert_redirect_for_puzzle(tx, puzzle_id, current_slug);
@@ -418,9 +410,7 @@ export function createSimpleGameRouter<TData>(options: {
             client
               .select({ listed: puzzles.listed })
               .from(puzzles)
-              .where(
-                and(puzzleKind, eq(puzzles.id, id), eq(puzzles.slug, normalizedSlug))
-              )
+              .where(and(puzzleKind, eq(puzzles.id, id), eq(puzzles.slug, normalizedSlug)))
               .limit(1)
           );
           if (!puzzle) {
@@ -539,10 +529,7 @@ export function createSimpleGameRouter<TData>(options: {
             await client
               .delete(puzzle_redirects)
               .where(
-                and(
-                  eq(puzzle_redirects.id, redirect.id),
-                  eq(puzzle_redirects.puzzle_id, puzzle_id)
-                )
+                and(eq(puzzle_redirects.id, redirect.id), eq(puzzle_redirects.puzzle_id, puzzle_id))
               );
           });
 

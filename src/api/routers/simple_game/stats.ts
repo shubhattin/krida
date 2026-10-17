@@ -52,10 +52,7 @@ export function createSimpleGameStatsRouter<TData>(
               .from(puzzle_sessions)
               .innerJoin(puzzles, sessionForKind)
               .where(
-                and(
-                  eq(puzzle_sessions.id, session_id),
-                  eq(puzzle_sessions.puzzle_id, puzzle_id)
-                )
+                and(eq(puzzle_sessions.id, session_id), eq(puzzle_sessions.puzzle_id, puzzle_id))
               )
               .limit(1)
           );
@@ -158,10 +155,7 @@ export function createSimpleGameStatsRouter<TData>(
             }),
             stats: dbRunHttp(`${kind}_stats.list_gameplay_stats`, (client) => {
               if (filterByUsers) {
-                const conditions = [
-                  puzzleKind,
-                  inArray(puzzle_sessions.user_id, selectedUserIds)
-                ];
+                const conditions = [puzzleKind, inArray(puzzle_sessions.user_id, selectedUserIds)];
                 if (puzzle_ids && puzzle_ids.length > 0) {
                   conditions.push(inArray(attempt_gameplay_stats.puzzle_id, puzzle_ids));
                 }
@@ -346,10 +340,7 @@ export function createSimpleGameStatsRouter<TData>(
             return { users };
           }
 
-          const statsConditions = [
-            puzzleKind,
-            inArray(puzzle_sessions.user_id, userIds)
-          ];
+          const statsConditions = [puzzleKind, inArray(puzzle_sessions.user_id, userIds)];
           if (!all_time && start_date && end_date) {
             statsConditions.push(gte(attempt_gameplay_stats.created_at, start_date));
             statsConditions.push(lte(attempt_gameplay_stats.created_at, end_date));
@@ -409,10 +400,7 @@ export function createSimpleGameStatsRouter<TData>(
                 .from(puzzle_sessions)
                 .innerJoin(puzzles, sessionForKind)
                 .where(
-                  and(
-                    isNotNull(puzzle_sessions.user_id),
-                    ilike(puzzle_sessions.user_id, idPattern)
-                  )
+                  and(isNotNull(puzzle_sessions.user_id), ilike(puzzle_sessions.user_id, idPattern))
                 )
                 .limit(50)
             );

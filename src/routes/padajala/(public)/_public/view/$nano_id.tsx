@@ -16,8 +16,7 @@ const loader$ = createServerFn({ method: 'GET' })
       dbRunHttp('crossword.view.resolve_uid', (client) =>
         client.query.puzzles.findFirst({
           columns: { slug: true },
-          where: (tbl, { and, eq }) =>
-            and(eq(tbl.uid, data.nano_id), eq(tbl.kind, 'crossword'))
+          where: (tbl, { and, eq }) => and(eq(tbl.uid, data.nano_id), eq(tbl.kind, 'crossword'))
         })
       )
     );

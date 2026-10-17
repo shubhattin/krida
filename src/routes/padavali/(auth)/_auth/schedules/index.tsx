@@ -29,19 +29,15 @@ const loader$ = createServerFn({ method: 'GET' })
           })
           .from(puzzle_schedules)
           .innerJoin(puzzles, eq(puzzles.id, puzzle_schedules.puzzle_id))
-          .where(
-            and(eq(puzzles.kind, 'padavali'), gte(puzzle_schedules.end_time, current_time))
-          )
+          .where(and(eq(puzzles.kind, 'padavali'), gte(puzzle_schedules.end_time, current_time)))
           .orderBy(desc(puzzle_schedules.created_at))
       )
     );
 
-    const upcomming_schedules = rows.map(
-      ({ puzzle_title, ...schedule }) => ({
-        ...schedule,
-        puzzle: { title: puzzle_title }
-      })
-    );
+    const upcomming_schedules = rows.map(({ puzzle_title, ...schedule }) => ({
+      ...schedule,
+      puzzle: { title: puzzle_title }
+    }));
 
     return { upcomming_schedules };
   });

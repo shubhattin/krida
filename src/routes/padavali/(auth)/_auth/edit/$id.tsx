@@ -20,8 +20,7 @@ const loader$ = createServerFn({ method: 'GET' })
     const row = await runLoaderEffect(
       dbRunHttp('padavali.admin.get_edit_puzzle', (client) =>
         client.query.puzzles.findFirst({
-          where: (tbl, { and, eq }) =>
-            and(eq(tbl.id, parsed.data), eq(tbl.kind, 'padavali')),
+          where: (tbl, { and, eq }) => and(eq(tbl.id, parsed.data), eq(tbl.kind, 'padavali')),
           with: {
             padavali: true,
             attachments: {

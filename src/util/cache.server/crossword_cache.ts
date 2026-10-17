@@ -263,7 +263,9 @@ const load_listed_puzzle_list: CacheItem<NoCacheParams, CrosswordListedPuzzlesTy
         .leftJoin(image_assets, eq(image_assets.id, puzzles.image_id))
         .where(and(eq(puzzles.kind, 'crossword'), eq(puzzles.listed, true)))
         .orderBy(
-          desc(sql`COALESCE(${puzzles.last_listed_at}, ${puzzles.updated_at}, ${puzzles.created_at})`),
+          desc(
+            sql`COALESCE(${puzzles.last_listed_at}, ${puzzles.updated_at}, ${puzzles.created_at})`
+          ),
           desc(puzzles.created_at),
           desc(puzzles.id)
         )
@@ -274,27 +276,19 @@ const load_listed_puzzle_list: CacheItem<NoCacheParams, CrosswordListedPuzzlesTy
           rows.map((row) => row.id)
         ).pipe(
           Effect.map((tagsByPuzzle) =>
-            rows.map(
-              ({
-                image_id,
-                image_s3_key,
-                image_width,
-                image_height,
-                ...puzzle
-              }) => ({
-                ...puzzle,
-                image:
-                  image_id && image_s3_key
-                    ? {
-                        id: image_id,
-                        s3_key: image_s3_key,
-                        width: image_width!,
-                        height: image_height!
-                      }
-                    : null,
-                tags: tagsByPuzzle.get(puzzle.id) ?? []
-              })
-            )
+            rows.map(({ image_id, image_s3_key, image_width, image_height, ...puzzle }) => ({
+              ...puzzle,
+              image:
+                image_id && image_s3_key
+                  ? {
+                      id: image_id,
+                      s3_key: image_s3_key,
+                      width: image_width!,
+                      height: image_height!
+                    }
+                  : null,
+              tags: tagsByPuzzle.get(puzzle.id) ?? []
+            }))
           )
         )
       ),

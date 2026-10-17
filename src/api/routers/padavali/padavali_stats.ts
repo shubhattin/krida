@@ -1,12 +1,7 @@
 import { Effect } from 'effect';
 import { protectedAdminProcedure, publicProcedure, t } from '~/api/trpc_init';
 import { z } from 'zod';
-import {
-  attempt_gameplay_stats,
-  padavali_puzzles,
-  puzzle_sessions,
-  puzzles
-} from '~/db/schema';
+import { attempt_gameplay_stats, padavali_puzzles, puzzle_sessions, puzzles } from '~/db/schema';
 import { dbRunHttp } from '~/effect/database';
 import { location_list_enum } from '~/db/types';
 import { script_list_enum } from '~/state/script_list';
@@ -78,10 +73,7 @@ const submit_stats_route = publicProcedure
             .from(puzzle_sessions)
             .innerJoin(puzzles, sessionForKind)
             .where(
-              and(
-                eq(puzzle_sessions.id, session_id),
-                eq(puzzle_sessions.puzzle_id, puzzle_id)
-              )
+              and(eq(puzzle_sessions.id, session_id), eq(puzzle_sessions.puzzle_id, puzzle_id))
             )
             .limit(1)
         );
@@ -474,10 +466,7 @@ const get_top_users_route = protectedAdminProcedure
                 completed: count()
               })
               .from(attempt_gameplay_stats)
-              .innerJoin(
-                puzzle_sessions,
-                eq(attempt_gameplay_stats.session_id, puzzle_sessions.id)
-              )
+              .innerJoin(puzzle_sessions, eq(attempt_gameplay_stats.session_id, puzzle_sessions.id))
               .where(and(...statsConditions))
               .groupBy(puzzle_sessions.user_id)
         );
@@ -514,10 +503,7 @@ const get_user_list_page_route = protectedAdminProcedure
               .selectDistinct({ user_id: puzzle_sessions.user_id })
               .from(puzzle_sessions)
               .where(
-                and(
-                  isNotNull(puzzle_sessions.user_id),
-                  ilike(puzzle_sessions.user_id, idPattern)
-                )
+                and(isNotNull(puzzle_sessions.user_id), ilike(puzzle_sessions.user_id, idPattern))
               )
               .limit(50)
           );
