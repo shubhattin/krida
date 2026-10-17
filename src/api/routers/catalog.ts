@@ -1166,6 +1166,7 @@ const search_puzzles_route = protectedAdminProcedure
     z.object({
       query: z.string().max(200).default(''),
       tag_slug: z.string().min(1).max(80).optional(),
+      kinds: z.array(z.enum(GAME_KINDS)).optional(),
       game: z.enum(['all', ...GAME_KINDS]).default('all'),
       limit: z.number().int().min(1).max(60).default(36),
       exclude_collection_id: z.number().int().optional()
@@ -1174,7 +1175,12 @@ const search_puzzles_route = protectedAdminProcedure
   .query(({ input }) =>
     runTrpcEffect(
       Effect.gen(function* () {
-        const games: GameKind[] = input.game === 'all' ? [...GAME_KINDS] : [input.game];
+        const games: GameKind[] =
+          input.kinds && input.kinds.length > 0
+            ? input.kinds
+            : input.game === 'all'
+              ? [...GAME_KINDS]
+              : [input.game];
         const tokens = tokenizeSearchQuery(input.query);
         const conditions = [inArray(puzzles.kind, games)];
         for (const token of tokens) {

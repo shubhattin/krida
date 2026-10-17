@@ -129,7 +129,7 @@ const LIVE_GAMES = [
     actions: [
       { href: '/padavali/list', label: 'Puzzles', icon: List },
       { href: '/padavali/analytics', label: 'Analytics', icon: BarChart3 },
-      { href: '/padavali/schedules', label: 'Schedules', icon: Calendar },
+      { href: '/schedules', label: 'Schedules', icon: Calendar },
       { href: '/padavali/batch_manager', label: 'Batches', icon: Images }
     ]
   },
@@ -142,7 +142,7 @@ const LIVE_GAMES = [
     actions: [
       { href: '/padajala/list', label: 'Puzzles', icon: List },
       { href: '/padajala/analytics', label: 'Analytics', icon: BarChart3 },
-      { href: '/padajala/schedules', label: 'Schedules', icon: Calendar },
+      { href: '/schedules', label: 'Schedules', icon: Calendar },
       { href: '/padavali/batch_manager', label: 'Batches', icon: Images }
     ]
   }
@@ -161,7 +161,10 @@ export default function AdminPage() {
           <p className="text-sm text-muted-foreground">Puzzles, catalog, and play analytics.</p>
         </header>
 
-        <section aria-label="Catalog and analytics" className="grid gap-2 sm:grid-cols-3">
+        <section
+          aria-label="Catalog and analytics"
+          className="grid gap-2 sm:grid-cols-2 lg:grid-cols-4"
+        >
           <AdminToolCard
             href="/analytics"
             label="Analytics"
@@ -177,6 +180,14 @@ export default function AdminPage() {
             icon={Layers}
             wash="from-violet-50/90 to-indigo-50/70 dark:from-violet-950/40 dark:to-indigo-950/30"
             iconClass="from-violet-500 to-indigo-600 shadow-violet-500/25"
+          />
+          <AdminToolCard
+            href="/schedules"
+            label="Schedules"
+            hint="Queue puzzles across every game"
+            icon={Calendar}
+            wash="from-emerald-50/90 to-teal-50/70 dark:from-emerald-950/40 dark:to-teal-950/30"
+            iconClass="from-emerald-500 to-teal-600 shadow-emerald-500/25"
           />
           <AdminToolCard
             href="/tags/list"

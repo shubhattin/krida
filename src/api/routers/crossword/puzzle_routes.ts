@@ -29,18 +29,24 @@ import {
   NO_CACHE_PARAMS
 } from '~/util/cache.server/cache_loaders';
 import { normalizeSlug } from '~/util/puzzle/slug';
-import {
-  assert_slug_usable_for_mutation,
-  delete_redirect_for_slug,
-  resolve_slug_availability,
-  upsert_redirect_for_puzzle
-} from './slug_helpers';
+import { createGameSlugHelpers } from '~/game_shell/slug';
+import { isValidCrosswordSlug } from '~/util/puzzle/slug';
 import { crossword_stats_router } from './crossword_stats';
 import { crossword_schedules_router } from './crossword_schedules';
 import { more_hints_inputs_equal } from '~/util/ai/more_hints';
 import { syncPuzzleAttachments } from '~/game_shell/attachments';
 import { BadRequestError, NotFoundError } from '~/effect/errors';
 import { runTrpcEffect } from '~/effect/run';
+
+const {
+  assert_slug_usable_for_mutation,
+  delete_redirect_for_slug,
+  resolve_slug_availability,
+  upsert_redirect_for_puzzle
+} = createGameSlugHelpers({
+  kind: 'crossword',
+  isValidSlug: isValidCrosswordSlug
+});
 
 const settle = <A, E, R>(effect: Effect.Effect<A, E, R>) =>
   effect.pipe(Effect.catch(() => Effect.void));

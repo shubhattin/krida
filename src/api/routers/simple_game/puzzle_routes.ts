@@ -13,13 +13,12 @@ import {
   simpleGameUpdateInputSchema
 } from '~/db/simple_game_shared';
 import { insertWithUniqueUid } from '~/util/puzzle/nano_id';
-import { simple_game_slug_schema } from '~/util/puzzle/slug';
+import { isValidSimpleGameSlug, normalizeSlug, simple_game_slug_schema } from '~/util/puzzle/slug';
 import {
   CACHE,
   invalidate_and_refresh_cache,
   NO_CACHE_PARAMS
 } from '~/util/cache.server/cache_loaders';
-import { normalizeSlug } from '~/util/puzzle/slug';
 import { syncPuzzleAttachments } from '~/game_shell/attachments';
 import { BadRequestError, NotFoundError } from '~/effect/errors';
 import { runTrpcEffect } from '~/effect/run';
@@ -27,7 +26,7 @@ import type { SimpleGameKind } from '~/util/games/kinds';
 import type { SimpleGameTableSet } from '~/db/schema/simple_game_tables';
 import type { SimpleGameCacheLoaders } from '~/util/cache.server/simple_game_cache';
 import type { GameAnalysis } from '~/util/games/issues';
-import { createSimpleGameSlugHelpers } from './slug_helpers';
+import { createGameSlugHelpers } from '~/game_shell/slug';
 import { createSimpleGameStatsRouter } from './stats';
 
 const settle = <A, E, R>(effect: Effect.Effect<A, E, R>) =>
@@ -47,7 +46,10 @@ export function createSimpleGameRouter<TData>(options: {
   const { kind, tables, cache: puzzleCache, dataSchema, emptyData, infer, analyze } = options;
   const puzzleKind = eq(puzzles.kind, kind);
   const updateSchema = simpleGameUpdateInputSchema(dataSchema);
-  const slugHelpers = createSimpleGameSlugHelpers(kind);
+  const slugHelpers = createGameSlugHelpers({
+    kind,
+    isValidSlug: isValidSimpleGameSlug
+  });
   const stats = createSimpleGameStatsRouter(kind, tables);
 
   const refreshListed = () =>

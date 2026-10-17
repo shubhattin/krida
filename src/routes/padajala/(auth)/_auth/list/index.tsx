@@ -32,7 +32,7 @@ function List() {
           <BarChart3Icon className="size-4 shrink-0" />
           Analytics
         </Button>
-        <Link to="/padajala/schedules">
+        <Link to="/schedules">
           <Button
             variant={'outline'}
             className="inline-flex items-center gap-2 text-base font-semibold"

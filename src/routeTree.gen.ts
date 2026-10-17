@@ -27,6 +27,7 @@ import { Route as SurupaRouteRouteImport } from './routes/surupa/route'
 import { Route as HubIndexRouteImport } from './routes/_hub/index'
 import { Route as HubPuzzlesRouteImport } from './routes/_hub/puzzles'
 import { Route as CollectionsListRouteImport } from './routes/collections/list'
+import { Route as SchedulesRouteImport } from './routes/schedules'
 import { Route as CrosswordSplatRouteImport } from './routes/crossword.$'
 import { Route as TagsListRouteImport } from './routes/tags/list'
 import { Route as HubCollectionsSlugRouteImport } from './routes/_hub/collections/$slug'
@@ -192,6 +193,11 @@ const HubPuzzlesRoute = HubPuzzlesRouteImport.update({
 const CollectionsListRoute = CollectionsListRouteImport.update({
   id: '/collections/list',
   path: '/collections/list',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const SchedulesRoute = SchedulesRouteImport.update({
+  id: '/schedules',
+  path: '/schedules',
   getParentRoute: () => rootRouteImport,
 } as any)
 const CrosswordSplatRoute = CrosswordSplatRouteImport.update({
@@ -632,6 +638,7 @@ export interface FileRoutesByFullPath {
   '/sitemap-index.xml': typeof SitemapIndexDotxmlRoute
   '/puzzles': typeof HubPuzzlesRoute
   '/collections/list': typeof CollectionsListRoute
+  '/schedules': typeof SchedulesRoute
   '/crossword/$': typeof CrosswordSplatRoute
   '/tags/list': typeof TagsListRoute
   '/collections/$slug': typeof HubCollectionsSlugRoute
@@ -715,6 +722,7 @@ export interface FileRoutesByTo {
   '/sitemap-index.xml': typeof SitemapIndexDotxmlRoute
   '/puzzles': typeof HubPuzzlesRoute
   '/collections/list': typeof CollectionsListRoute
+  '/schedules': typeof SchedulesRoute
   '/crossword/$': typeof CrosswordSplatRoute
   '/tags/list': typeof TagsListRoute
   '/': typeof HubIndexRoute
@@ -795,6 +803,7 @@ export interface FileRoutesById {
   '/sitemap-index.xml': typeof SitemapIndexDotxmlRoute
   '/_hub/puzzles': typeof HubPuzzlesRoute
   '/collections/list': typeof CollectionsListRoute
+  '/schedules': typeof SchedulesRoute
   '/crossword/$': typeof CrosswordSplatRoute
   '/tags/list': typeof TagsListRoute
   '/_hub/': typeof HubIndexRoute
@@ -894,6 +903,7 @@ export interface FileRouteTypes {
     | '/sitemap-index.xml'
     | '/puzzles'
     | '/collections/list'
+    | '/schedules'
     | '/crossword/$'
     | '/tags/list'
     | '/collections/$slug'
@@ -977,6 +987,7 @@ export interface FileRouteTypes {
     | '/sitemap-index.xml'
     | '/puzzles'
     | '/collections/list'
+    | '/schedules'
     | '/crossword/$'
     | '/tags/list'
     | '/'
@@ -1056,6 +1067,7 @@ export interface FileRouteTypes {
     | '/sitemap-index.xml'
     | '/_hub/puzzles'
     | '/collections/list'
+    | '/schedules'
     | '/crossword/$'
     | '/tags/list'
     | '/_hub/'
@@ -1153,6 +1165,7 @@ export interface RootRouteChildren {
   Sitemap1DotxmlRoute: typeof Sitemap1DotxmlRoute
   SitemapIndexDotxmlRoute: typeof SitemapIndexDotxmlRoute
   CollectionsListRoute: typeof CollectionsListRoute
+  SchedulesRoute: typeof SchedulesRoute
   CrosswordSplatRoute: typeof CrosswordSplatRoute
   TagsListRoute: typeof TagsListRoute
   ApiQstashSave_ai_batch_resultsRoute: typeof ApiQstashSave_ai_batch_resultsRoute
@@ -1289,6 +1302,13 @@ declare module '@tanstack/react-router' {
       path: '/collections/list'
       fullPath: '/collections/list'
       preLoaderRoute: typeof CollectionsListRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/schedules': {
+      id: '/schedules'
+      path: '/schedules'
+      fullPath: '/schedules'
+      preLoaderRoute: typeof SchedulesRouteImport
       parentRoute: typeof rootRouteImport
     }
     '/crossword/$': {
@@ -2177,6 +2197,7 @@ const rootRouteChildren: RootRouteChildren = {
   Sitemap1DotxmlRoute: Sitemap1DotxmlRoute,
   SitemapIndexDotxmlRoute: SitemapIndexDotxmlRoute,
   CollectionsListRoute: CollectionsListRoute,
+  SchedulesRoute: SchedulesRoute,
   CrosswordSplatRoute: CrosswordSplatRoute,
   TagsListRoute: TagsListRoute,
   ApiQstashSave_ai_batch_resultsRoute: ApiQstashSave_ai_batch_resultsRoute,

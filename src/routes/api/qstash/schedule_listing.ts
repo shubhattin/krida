@@ -34,25 +34,23 @@ export const Route = createFileRoute('/api/qstash/schedule_listing')({
               body
             );
 
-            const [schedule] = yield* dbRunHttp(
-              'qstash.padavali_schedule_listing.find_schedule',
-              (client) =>
-                client
-                  .select({
-                    id: puzzle_schedules.id,
-                    slug: puzzles.slug
-                  })
-                  .from(puzzle_schedules)
-                  .innerJoin(puzzles, eq(puzzles.id, puzzle_schedules.puzzle_id))
-                  .where(
-                    and(
-                      eq(puzzles.kind, 'padavali'),
-                      eq(puzzle_schedules.id, schedule_id),
-                      eq(puzzle_schedules.puzzle_id, puzzle_id),
-                      eq(puzzle_schedules.listing_verify_key, listing_verify_key)
-                    )
+            const [schedule] = yield* dbRunHttp('qstash.schedule_listing.find_schedule', (client) =>
+              client
+                .select({
+                  id: puzzle_schedules.id,
+                  slug: puzzles.slug,
+                  kind: puzzles.kind
+                })
+                .from(puzzle_schedules)
+                .innerJoin(puzzles, eq(puzzles.id, puzzle_schedules.puzzle_id))
+                .where(
+                  and(
+                    eq(puzzle_schedules.id, schedule_id),
+                    eq(puzzle_schedules.puzzle_id, puzzle_id),
+                    eq(puzzle_schedules.listing_verify_key, listing_verify_key)
                   )
-                  .limit(1)
+                )
+                .limit(1)
             );
             if (!schedule) {
               console.error('Invalid or expired request');
@@ -63,14 +61,14 @@ export const Route = createFileRoute('/api/qstash/schedule_listing')({
               );
             }
 
-            yield* dbTransaction('qstash.padavali_schedule_listing.apply_listing', async (tx) => {
+            yield* dbTransaction('qstash.schedule_listing.apply_listing', async (tx) => {
               await tx
                 .update(puzzles)
                 .set({
                   listed: true,
                   last_listed_at: new Date()
                 })
-                .where(and(eq(puzzles.id, puzzle_id), eq(puzzles.kind, 'padavali')));
+                .where(eq(puzzles.id, puzzle_id));
               await tx
                 .update(puzzle_schedules)
                 .set({
@@ -84,17 +82,57 @@ export const Route = createFileRoute('/api/qstash/schedule_listing')({
                 );
             });
 
+            const kind = schedule.kind;
+            const listedRefresh =
+              kind === 'padavali'
+                ? invalidate_and_refresh_cache(CACHE.padavali.listed_puzzle_list, NO_CACHE_PARAMS)
+                : kind === 'crossword'
+                  ? invalidate_and_refresh_cache(
+                      CACHE.crossword.listed_puzzle_list,
+                      NO_CACHE_PARAMS
+                    )
+                  : kind === 'dvayi'
+                    ? invalidate_and_refresh_cache(CACHE.dvayi.listed_puzzle_list, NO_CACHE_PARAMS)
+                    : kind === 'bhramita'
+                      ? invalidate_and_refresh_cache(
+                          CACHE.bhramita.listed_puzzle_list,
+                          NO_CACHE_PARAMS
+                        )
+                      : kind === 'surupa'
+                        ? invalidate_and_refresh_cache(
+                            CACHE.surupa.listed_puzzle_list,
+                            NO_CACHE_PARAMS
+                          )
+                        : invalidate_and_refresh_cache(
+                            CACHE.anveshi.listed_puzzle_list,
+                            NO_CACHE_PARAMS
+                          );
+            const wordRefresh =
+              kind === 'padavali'
+                ? invalidate_and_refresh_cache(CACHE.padavali.word_puzzle, { slug: schedule.slug })
+                : kind === 'crossword'
+                  ? invalidate_and_refresh_cache(CACHE.crossword.word_puzzle, {
+                      slug: schedule.slug
+                    })
+                  : kind === 'dvayi'
+                    ? invalidate_and_refresh_cache(CACHE.dvayi.word_puzzle, { slug: schedule.slug })
+                    : kind === 'bhramita'
+                      ? invalidate_and_refresh_cache(CACHE.bhramita.word_puzzle, {
+                          slug: schedule.slug
+                        })
+                      : kind === 'surupa'
+                        ? invalidate_and_refresh_cache(CACHE.surupa.word_puzzle, {
+                            slug: schedule.slug
+                          })
+                        : invalidate_and_refresh_cache(CACHE.anveshi.word_puzzle, {
+                            slug: schedule.slug
+                          });
+
             yield* Effect.all(
               [
-                ignoreFailure(
-                  invalidate_and_refresh_cache(CACHE.padavali.listed_puzzle_list, NO_CACHE_PARAMS)
-                ),
-                ignoreFailure(
-                  invalidate_and_refresh_cache(CACHE.padavali.word_puzzle, {
-                    slug: schedule.slug
-                  })
-                ),
-                ignoreFailure(invalidate_padavali_sitemap())
+                ignoreFailure(listedRefresh),
+                ignoreFailure(wordRefresh),
+                kind === 'padavali' ? ignoreFailure(invalidate_padavali_sitemap()) : Effect.void
               ],
               { discard: true }
             );
