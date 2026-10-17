@@ -1,4 +1,3 @@
-CREATE TYPE "public"."puzzle_kind" AS ENUM('padavali', 'crossword', 'dvayi', 'bhramita', 'surupa', 'anveshi');--> statement-breakpoint
 CREATE TABLE "attempt_gameplay_stats" (
 	"id" serial PRIMARY KEY NOT NULL,
 	"puzzle_id" integer NOT NULL,
@@ -32,7 +31,7 @@ CREATE TABLE "puzzle_attachments" (
 CREATE TABLE "puzzle_redirects" (
 	"id" serial PRIMARY KEY NOT NULL,
 	"puzzle_id" integer NOT NULL,
-	"kind" "puzzle_kind" NOT NULL,
+	"kind" text NOT NULL,
 	"slug" text NOT NULL,
 	"created_at" timestamp with time zone DEFAULT now() NOT NULL
 );
@@ -65,7 +64,7 @@ CREATE TABLE "puzzle_tags" (
 --> statement-breakpoint
 CREATE TABLE "puzzles" (
 	"id" serial PRIMARY KEY NOT NULL,
-	"kind" "puzzle_kind" NOT NULL,
+	"kind" text NOT NULL,
 	"uid" text NOT NULL,
 	"slug" text NOT NULL,
 	"title" text NOT NULL,

@@ -1,5 +1,5 @@
 {
-  "id": "a31eb733-ab64-450a-ae3f-757984011c96",
+  "id": "9e0aa314-7ddf-44e5-8aa3-1999e6850b5e",
   "prevId": "98d79ccb-d066-4fb5-9f07-b5437656ccc0",
   "version": "7",
   "dialect": "postgresql",
@@ -850,8 +850,7 @@
         },
         "kind": {
           "name": "kind",
-          "type": "puzzle_kind",
-          "typeSchema": "public",
+          "type": "text",
           "primaryKey": false,
           "notNull": true
         },
@@ -1317,8 +1316,7 @@
         },
         "kind": {
           "name": "kind",
-          "type": "puzzle_kind",
-          "typeSchema": "public",
+          "type": "text",
           "primaryKey": false,
           "notNull": true
         },
@@ -1805,18 +1803,6 @@
         "youtube_video",
         "youtube_playlist",
         "youtube_embed"
-      ]
-    },
-    "public.puzzle_kind": {
-      "name": "puzzle_kind",
-      "schema": "public",
-      "values": [
-        "padavali",
-        "crossword",
-        "dvayi",
-        "bhramita",
-        "surupa",
-        "anveshi"
       ]
     }
   },
