@@ -90,6 +90,22 @@ const add_puzzle_schedule_route = protectedAdminProcedure
           return { success: false as const, error_code: 'already_exists_in_time_range' as const };
         }
 
+        const [puzzle] = yield* dbRunHttp('crossword_schedules.find_puzzle', (client) =>
+          client
+            .select({ id: puzzles.id })
+            .from(puzzles)
+            .where(and(eq(puzzles.id, puzzle_id), crosswordKind))
+            .limit(1)
+        );
+        if (!puzzle) {
+          return yield* Effect.fail(
+            NotFoundError.make({
+              resource: 'crossword_puzzle',
+              message: 'Crossword puzzle not found'
+            })
+          );
+        }
+
         const listing_verify_key = generateRandomAlphanumeric(32);
         const inserted_schedules = yield* dbTransaction(
           'crossword_schedules.insert_schedule',
@@ -137,6 +153,23 @@ const delete_puzzle_schedule_route = protectedAdminProcedure
   .mutation(({ input: { schedule_id } }) =>
     runTrpcEffect(
       Effect.gen(function* () {
+        const [existing] = yield* dbRunHttp('crossword_schedules.find_schedule', (client) =>
+          client
+            .select({ id: puzzle_schedules.id })
+            .from(puzzle_schedules)
+            .innerJoin(puzzles, and(eq(puzzles.id, puzzle_schedules.puzzle_id), crosswordKind))
+            .where(eq(puzzle_schedules.id, schedule_id))
+            .limit(1)
+        );
+        if (!existing) {
+          return yield* Effect.fail(
+            NotFoundError.make({
+              resource: 'crossword_schedule',
+              message: 'Schedule not found'
+            })
+          );
+        }
+
         yield* dbTransaction('crossword_schedules.delete_schedule', async (tx) => {
           await tx.delete(puzzle_schedules).where(eq(puzzle_schedules.id, schedule_id));
         });
@@ -162,6 +195,27 @@ const update_puzzle_schedule_route = protectedAdminProcedure
   .mutation(({ input: { schedule_id, puzzle_id, start_time, end_time } }) =>
     runTrpcEffect(
       Effect.gen(function* () {
+        const [existing] = yield* dbRunHttp(
+          'crossword_schedules.find_schedule_for_update',
+          (client) =>
+            client
+              .select({ id: puzzle_schedules.id })
+              .from(puzzle_schedules)
+              .innerJoin(puzzles, and(eq(puzzles.id, puzzle_schedules.puzzle_id), crosswordKind))
+              .where(
+                and(eq(puzzle_schedules.id, schedule_id), eq(puzzle_schedules.puzzle_id, puzzle_id))
+              )
+              .limit(1)
+        );
+        if (!existing) {
+          return yield* Effect.fail(
+            NotFoundError.make({
+              resource: 'crossword_schedule',
+              message: 'Schedule not found'
+            })
+          );
+        }
+
         const listing_verify_key = generateRandomAlphanumeric(32);
         const updated_schedules = yield* dbTransaction(
           'crossword_schedules.update_schedule',

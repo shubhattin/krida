@@ -396,7 +396,7 @@ export const get_puzzle_list_page = Effect.fn('padavali.get_puzzle_list_page')(f
     get_puzzle_list_input_schema.parse(input);
 
   const trimmedSearch = search_title?.trim();
-  const conditions = [];
+  const conditions = [padavaliKind];
   if (listed_filter !== undefined) {
     conditions.push(eq(puzzles.listed, listed_filter));
   }
@@ -410,7 +410,7 @@ export const get_puzzle_list_page = Effect.fn('padavali.get_puzzle_list_page')(f
   if (collection_id !== undefined) {
     conditions.push(puzzleInCollection(puzzles.id, 'padavali', collection_id));
   }
-  const whereClause = conditions.length > 0 ? and(...conditions) : undefined;
+  const whereClause = and(...conditions);
 
   const sortCol =
     sort_by === 'updated_at'
@@ -418,7 +418,6 @@ export const get_puzzle_list_page = Effect.fn('padavali.get_puzzle_list_page')(f
       : puzzles.created_at;
   const orderPrimary = order_by === 'desc' ? desc(sortCol) : asc(sortCol);
   const orderTiebreaker = order_by === 'desc' ? desc(puzzles.id) : asc(puzzles.id);
-  conditions.unshift(padavaliKind);
   const offset = (page - 1) * size;
 
   const { countResult, rows } = yield* Effect.all({

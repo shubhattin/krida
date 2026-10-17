@@ -161,8 +161,6 @@ ALTER TABLE "padavali_puzzles" DROP CONSTRAINT "padavali_puzzles_image_id_image_
 --> statement-breakpoint
 ALTER TABLE "crossword_gameplay_stats" DROP CONSTRAINT "crossword_gameplay_stats_puzzle_id_crossword_puzzles_id_fk";
 --> statement-breakpoint
-ALTER TABLE "crossword_gameplay_stats" DROP CONSTRAINT "crossword_gameplay_stats_session_id_crossword_sessions_id_fk";
---> statement-breakpoint
 ALTER TABLE "crossword_puzzles" DROP CONSTRAINT "crossword_puzzles_image_id_image_assets_id_fk";
 --> statement-breakpoint
 ALTER TABLE "dvayi_puzzles" DROP CONSTRAINT "dvayi_puzzles_image_id_image_assets_id_fk";
@@ -208,6 +206,7 @@ ALTER TABLE "attempt_gameplay_stats" ADD CONSTRAINT "attempt_gameplay_stats_sess
 ALTER TABLE "collection_items" ADD CONSTRAINT "collection_items_collection_id_collections_id_fk" FOREIGN KEY ("collection_id") REFERENCES "public"."collections"("id") ON DELETE cascade ON UPDATE no action;--> statement-breakpoint
 ALTER TABLE "collection_items" ADD CONSTRAINT "collection_items_puzzle_id_puzzles_id_fk" FOREIGN KEY ("puzzle_id") REFERENCES "public"."puzzles"("id") ON DELETE cascade ON UPDATE no action;--> statement-breakpoint
 ALTER TABLE "puzzle_attachments" ADD CONSTRAINT "puzzle_attachments_puzzle_id_puzzles_id_fk" FOREIGN KEY ("puzzle_id") REFERENCES "public"."puzzles"("id") ON DELETE cascade ON UPDATE no action;--> statement-breakpoint
+CREATE UNIQUE INDEX "puzzles_id_kind_idx" ON "puzzles" USING btree ("id","kind");--> statement-breakpoint
 ALTER TABLE "puzzle_redirects" ADD CONSTRAINT "puzzle_redirects_puzzle_id_kind_fk" FOREIGN KEY ("puzzle_id","kind") REFERENCES "public"."puzzles"("id","kind") ON DELETE cascade ON UPDATE no action;--> statement-breakpoint
 ALTER TABLE "puzzle_schedules" ADD CONSTRAINT "puzzle_schedules_puzzle_id_puzzles_id_fk" FOREIGN KEY ("puzzle_id") REFERENCES "public"."puzzles"("id") ON DELETE cascade ON UPDATE no action;--> statement-breakpoint
 ALTER TABLE "puzzle_sessions" ADD CONSTRAINT "puzzle_sessions_puzzle_id_puzzles_id_fk" FOREIGN KEY ("puzzle_id") REFERENCES "public"."puzzles"("id") ON DELETE cascade ON UPDATE no action;--> statement-breakpoint
@@ -230,7 +229,6 @@ CREATE INDEX "puzzle_sessions_user_id_created_at_idx" ON "puzzle_sessions" USING
 CREATE INDEX "puzzle_sessions_user_id_puzzle_id_idx" ON "puzzle_sessions" USING btree ("user_id","puzzle_id");--> statement-breakpoint
 CREATE INDEX "puzzle_sessions_puzzle_id_user_id_idx" ON "puzzle_sessions" USING btree ("puzzle_id","user_id");--> statement-breakpoint
 CREATE INDEX "puzzle_tags_tag_id_idx" ON "puzzle_tags" USING btree ("tag_id");--> statement-breakpoint
-CREATE UNIQUE INDEX "puzzles_id_kind_idx" ON "puzzles" USING btree ("id","kind");--> statement-breakpoint
 CREATE UNIQUE INDEX "puzzles_kind_slug_idx" ON "puzzles" USING btree ("kind","slug");--> statement-breakpoint
 CREATE INDEX "puzzles_listed_created_at_idx" ON "puzzles" USING btree ("listed","created_at");--> statement-breakpoint
 CREATE INDEX "puzzles_listed_updated_at_idx" ON "puzzles" USING btree ("listed","updated_at");--> statement-breakpoint

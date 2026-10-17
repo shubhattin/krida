@@ -70,6 +70,7 @@ const main = async () => {
     await deleteAllTables(tx);
     await insertKeptIds(tx, data);
     const puzzleIds = await insertPuzzles(tx, data);
+    await insertBatchResponses(tx, data, puzzleIds);
     await insertPayloads(tx, data, puzzleIds);
     await insertCatalog(tx, data, puzzleIds);
     await insertSatellites(tx, data, puzzleIds);
@@ -123,16 +124,32 @@ async function insertKeptIds(tx: PatchTx, data: LegacyDump): Promise<void> {
   if (data.tags.length > 0) await tx.insert(tags).values(data.tags);
   if (data.collections.length > 0) await tx.insert(collections).values(data.collections);
   if (data.ai_batches.length > 0) await tx.insert(ai_batches).values(data.ai_batches);
-  if (data.ai_batch_responses.length > 0) {
-    await tx.insert(ai_batch_responses).values(
-      data.ai_batch_responses.map((row) => {
-        if (row.metadata == null) {
-          throw new Error(`AI batch response ${row.batch_id}/${row.custom_id} is missing metadata`);
-        }
-        return { ...row, metadata: row.metadata };
-      })
-    );
-  }
+}
+
+async function insertBatchResponses(
+  tx: PatchTx,
+  data: LegacyDump,
+  puzzleIds: IdMap
+): Promise<void> {
+  if (data.ai_batch_responses.length === 0) return;
+  await tx.insert(ai_batch_responses).values(
+    data.ai_batch_responses.map((row) => {
+      if (row.metadata == null) {
+        throw new Error(`AI batch response ${row.batch_id}/${row.custom_id} is missing metadata`);
+      }
+      const puzzle_id = puzzleIds.get(key(row.metadata.game, row.metadata.puzzle_id));
+      if (puzzle_id == null) {
+        throw new Error(
+          `AI batch response ${row.batch_id}/${row.custom_id} has no remapped ${row.metadata.game} puzzle ${row.metadata.puzzle_id}`
+        );
+      }
+      return {
+        ...row,
+        custom_id: row.custom_id,
+        metadata: { ...row.metadata, puzzle_id }
+      };
+    })
+  );
 }
 
 async function insertPuzzles(tx: PatchTx, data: LegacyDump): Promise<IdMap> {
@@ -230,14 +247,38 @@ async function insertCatalog(tx: PatchTx, data: LegacyDump, puzzleIds: IdMap): P
       tag_id: row.tag_id
     }))
   );
-  const itemRows = GAMES.flatMap((kind) =>
+  const mergedItems = GAMES.flatMap((kind, gameOrder) =>
     collectionLinks(data, kind).map((row) => ({
       collection_id: row.collection_id,
-      puzzle_id: must(puzzleIds, kind, row.puzzle_id),
+      legacy_puzzle_id: row.puzzle_id,
+      kind,
+      gameOrder,
       order_index: row.order_index,
       created_at: row.created_at
     }))
+  ).toSorted(
+    (a, b) =>
+      a.collection_id - b.collection_id ||
+      a.order_index - b.order_index ||
+      a.legacy_puzzle_id - b.legacy_puzzle_id ||
+      a.gameOrder - b.gameOrder
   );
+  let lastCollection = -1;
+  let nextIndex = 0;
+  const itemRows = mergedItems.map((row) => {
+    if (row.collection_id !== lastCollection) {
+      lastCollection = row.collection_id;
+      nextIndex = 0;
+    }
+    const order_index = nextIndex;
+    nextIndex += 1;
+    return {
+      collection_id: row.collection_id,
+      puzzle_id: must(puzzleIds, row.kind, row.legacy_puzzle_id),
+      order_index,
+      created_at: row.created_at
+    };
+  });
   if (tagRows.length > 0) await tx.insert(puzzle_tags).values(tagRows);
   if (itemRows.length > 0) await tx.insert(collection_items).values(itemRows);
   console.log(chalk.green('✓ Catalog links'), tagRows.length, itemRows.length);

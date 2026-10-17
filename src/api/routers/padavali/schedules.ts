@@ -231,6 +231,15 @@ const update_puzzle_schedule_route = protectedAdminProcedure
     runTrpcEffect(
       Effect.gen(function* () {
         const kind = yield* requireKind(yield* puzzleKind(puzzle_id));
+        const [previous] = yield* dbRunHttp('schedules.kind_before_update', (client) =>
+          client
+            .select({ kind: puzzles.kind })
+            .from(puzzle_schedules)
+            .innerJoin(puzzles, eq(puzzles.id, puzzle_schedules.puzzle_id))
+            .where(eq(puzzle_schedules.id, schedule_id))
+            .limit(1)
+        );
+        const previousKind = previous && isGameKind(previous.kind) ? previous.kind : undefined;
         const [overlap] = yield* dbRunHttp('schedules.find_overlapping_update', (client) =>
           client
             .select({ id: puzzle_schedules.id })
@@ -262,6 +271,9 @@ const update_puzzle_schedule_route = protectedAdminProcedure
           publishListing(kind, { puzzle_id, schedule_id, listing_verify_key }, start_time)
         );
         yield* settle(refreshScheduleCaches(kind));
+        if (previousKind && previousKind !== kind) {
+          yield* settle(refreshScheduleCaches(previousKind));
+        }
         return { success: true as const };
       })
     )

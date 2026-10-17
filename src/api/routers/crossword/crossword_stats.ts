@@ -159,87 +159,68 @@ const get_stats_data_route = protectedAdminProcedure
       Effect.gen(function* () {
         const selectedUserIds = user_ids ?? [];
         const filterByUsers = selectedUserIds.length > 0;
-        const { sessions, stats, puzzles } = yield* Effect.all({
-          sessions: dbRunHttp('crossword_stats.list_sessions', (client) =>
-            client.query.puzzle_sessions.findMany({
-              columns: {
-                id: true,
-                created_at: true,
-                location: true,
-                user_id: true
-              },
-              where: (tbl, { and: andFn, gte: gteFn, lte: lteFn, inArray: inArrayFn }) => {
-                const conditions = [];
-                if (puzzle_ids && puzzle_ids.length > 0) {
-                  conditions.push(inArrayFn(tbl.puzzle_id, puzzle_ids));
-                }
-                if (filterByUsers) {
-                  conditions.push(inArrayFn(tbl.user_id, selectedUserIds));
-                }
-                if (!all_time && start_date && end_date) {
-                  conditions.push(gteFn(tbl.created_at, start_date));
-                  conditions.push(lteFn(tbl.created_at, end_date));
-                }
-                return conditions.length > 0 ? andFn(...conditions) : undefined;
-              }
-            })
-          ),
-          stats: dbRunHttp('crossword_stats.list_gameplay_stats', async (client) => {
-            if (filterByUsers) {
-              const conditions = [inArray(puzzle_sessions.user_id, selectedUserIds)];
-              if (puzzle_ids && puzzle_ids.length > 0) {
-                conditions.push(inArray(crossword_gameplay_stats.puzzle_id, puzzle_ids));
-              }
-              if (!all_time && start_date && end_date) {
-                conditions.push(gte(crossword_gameplay_stats.created_at, start_date));
-                conditions.push(lte(crossword_gameplay_stats.created_at, end_date));
-              }
-              return client
-                .select({
-                  id: crossword_gameplay_stats.id,
-                  created_at: crossword_gameplay_stats.created_at,
-                  session_id: crossword_gameplay_stats.session_id,
-                  time_taken: crossword_gameplay_stats.time_taken,
-                  accuracy: crossword_gameplay_stats.accuracy,
-                  total_entries: crossword_gameplay_stats.total_entries,
-                  total_cells: crossword_gameplay_stats.total_cells,
-                  prefilled_cells: crossword_gameplay_stats.prefilled_cells,
-                  letter_inputs: crossword_gameplay_stats.letter_inputs,
-                  incorrect_entry_attempts: crossword_gameplay_stats.incorrect_entry_attempts
-                })
-                .from(crossword_gameplay_stats)
-                .innerJoin(
-                  puzzle_sessions,
-                  eq(crossword_gameplay_stats.session_id, puzzle_sessions.id)
-                )
-                .where(and(...conditions));
+        const {
+          sessions,
+          stats,
+          puzzles: puzzleWordRows
+        } = yield* Effect.all({
+          sessions: dbRunHttp('crossword_stats.list_sessions', (client) => {
+            const conditions = [crosswordKind];
+            if (puzzle_ids && puzzle_ids.length > 0) {
+              conditions.push(inArray(puzzle_sessions.puzzle_id, puzzle_ids));
             }
-
-            return client.query.crossword_gameplay_stats.findMany({
-              columns: {
-                id: true,
-                created_at: true,
-                session_id: true,
-                time_taken: true,
-                accuracy: true,
-                total_entries: true,
-                total_cells: true,
-                prefilled_cells: true,
-                letter_inputs: true,
-                incorrect_entry_attempts: true
-              },
-              where: (tbl, { and: andFn, gte: gteFn, lte: lteFn, inArray: inArrayFn }) => {
-                const conditions = [];
-                if (puzzle_ids && puzzle_ids.length > 0) {
-                  conditions.push(inArrayFn(tbl.puzzle_id, puzzle_ids));
-                }
-                if (!all_time && start_date && end_date) {
-                  conditions.push(gteFn(tbl.created_at, start_date));
-                  conditions.push(lteFn(tbl.created_at, end_date));
-                }
-                return conditions.length > 0 ? andFn(...conditions) : undefined;
-              }
-            });
+            if (filterByUsers) {
+              conditions.push(inArray(puzzle_sessions.user_id, selectedUserIds));
+            }
+            if (!all_time && start_date && end_date) {
+              conditions.push(gte(puzzle_sessions.created_at, start_date));
+              conditions.push(lte(puzzle_sessions.created_at, end_date));
+            }
+            return client
+              .select({
+                id: puzzle_sessions.id,
+                created_at: puzzle_sessions.created_at,
+                location: puzzle_sessions.location,
+                user_id: puzzle_sessions.user_id
+              })
+              .from(puzzle_sessions)
+              .innerJoin(puzzles, sessionForKind)
+              .where(and(...conditions));
+          }),
+          stats: dbRunHttp('crossword_stats.list_gameplay_stats', async (client) => {
+            const conditions = [crosswordKind];
+            if (filterByUsers) {
+              conditions.push(inArray(puzzle_sessions.user_id, selectedUserIds));
+            }
+            if (puzzle_ids && puzzle_ids.length > 0) {
+              conditions.push(inArray(crossword_gameplay_stats.puzzle_id, puzzle_ids));
+            }
+            if (!all_time && start_date && end_date) {
+              conditions.push(gte(crossword_gameplay_stats.created_at, start_date));
+              conditions.push(lte(crossword_gameplay_stats.created_at, end_date));
+            }
+            const query = client
+              .select({
+                id: crossword_gameplay_stats.id,
+                created_at: crossword_gameplay_stats.created_at,
+                session_id: crossword_gameplay_stats.session_id,
+                time_taken: crossword_gameplay_stats.time_taken,
+                accuracy: crossword_gameplay_stats.accuracy,
+                total_entries: crossword_gameplay_stats.total_entries,
+                total_cells: crossword_gameplay_stats.total_cells,
+                prefilled_cells: crossword_gameplay_stats.prefilled_cells,
+                letter_inputs: crossword_gameplay_stats.letter_inputs,
+                incorrect_entry_attempts: crossword_gameplay_stats.incorrect_entry_attempts
+              })
+              .from(crossword_gameplay_stats)
+              .innerJoin(puzzles, statForKind);
+            if (!filterByUsers) return query.where(and(...conditions));
+            return query
+              .innerJoin(
+                puzzle_sessions,
+                eq(crossword_gameplay_stats.session_id, puzzle_sessions.id)
+              )
+              .where(and(...conditions));
           }),
           puzzles: dbRunHttp('crossword_stats.list_puzzles_for_word_count', (client) =>
             client.query.crossword_puzzles.findMany({
@@ -252,7 +233,7 @@ const get_stats_data_route = protectedAdminProcedure
           )
         });
 
-        const total_words = puzzles.reduce(
+        const total_words = puzzleWordRows.reduce(
           (sum, puzzle) => sum + crosswordActiveWords(puzzle.word_list).length,
           0
         );
@@ -351,7 +332,7 @@ const get_top_users_route = protectedAdminProcedure
   .query(({ input: { all_time, start_date, end_date, limit, puzzle_ids } }) =>
     runTrpcEffect(
       Effect.gen(function* () {
-        const conditions = [isNotNull(puzzle_sessions.user_id)];
+        const conditions = [crosswordKind, isNotNull(puzzle_sessions.user_id)];
         if (!all_time && start_date && end_date) {
           conditions.push(gte(puzzle_sessions.created_at, start_date));
           conditions.push(lte(puzzle_sessions.created_at, end_date));
@@ -367,6 +348,7 @@ const get_top_users_route = protectedAdminProcedure
               started: count()
             })
             .from(puzzle_sessions)
+            .innerJoin(puzzles, sessionForKind)
             .where(and(...conditions))
             .groupBy(puzzle_sessions.user_id)
             .orderBy(desc(count()))
@@ -392,7 +374,7 @@ const get_top_users_route = protectedAdminProcedure
           return { users };
         }
 
-        const statsConditions = [inArray(puzzle_sessions.user_id, userIds)];
+        const statsConditions = [crosswordKind, inArray(puzzle_sessions.user_id, userIds)];
         if (!all_time && start_date && end_date) {
           statsConditions.push(gte(crossword_gameplay_stats.created_at, start_date));
           statsConditions.push(lte(crossword_gameplay_stats.created_at, end_date));
@@ -414,6 +396,7 @@ const get_top_users_route = protectedAdminProcedure
                 puzzle_sessions,
                 eq(crossword_gameplay_stats.session_id, puzzle_sessions.id)
               )
+              .innerJoin(puzzles, sessionForKind)
               .where(and(...statsConditions))
               .groupBy(puzzle_sessions.user_id)
         );
@@ -449,8 +432,13 @@ const get_user_list_page_route = protectedAdminProcedure
             client
               .selectDistinct({ user_id: puzzle_sessions.user_id })
               .from(puzzle_sessions)
+              .innerJoin(puzzles, sessionForKind)
               .where(
-                and(isNotNull(puzzle_sessions.user_id), ilike(puzzle_sessions.user_id, idPattern))
+                and(
+                  crosswordKind,
+                  isNotNull(puzzle_sessions.user_id),
+                  ilike(puzzle_sessions.user_id, idPattern)
+                )
               )
               .limit(50)
           );
@@ -480,7 +468,8 @@ const get_user_list_page_route = protectedAdminProcedure
                 plays: count()
               })
               .from(puzzle_sessions)
-              .where(inArray(puzzle_sessions.user_id, matchedIds))
+              .innerJoin(puzzles, sessionForKind)
+              .where(and(crosswordKind, inArray(puzzle_sessions.user_id, matchedIds)))
               .groupBy(puzzle_sessions.user_id)
               .orderBy(desc(count()))
           );
@@ -519,7 +508,7 @@ const get_user_list_page_route = protectedAdminProcedure
           };
         }
 
-        const conditions = [isNotNull(puzzle_sessions.user_id)];
+        const conditions = [crosswordKind, isNotNull(puzzle_sessions.user_id)];
         const whereClause = and(...conditions);
 
         const { countResult, rows } = yield* Effect.all({
@@ -529,6 +518,7 @@ const get_user_list_page_route = protectedAdminProcedure
                 count: sql<number>`cast(count(distinct ${puzzle_sessions.user_id}) as int)`
               })
               .from(puzzle_sessions)
+              .innerJoin(puzzles, sessionForKind)
               .where(whereClause)
           ),
           rows: dbRunHttp('crossword_stats.list_users', (client) =>
@@ -538,6 +528,7 @@ const get_user_list_page_route = protectedAdminProcedure
                 plays: count()
               })
               .from(puzzle_sessions)
+              .innerJoin(puzzles, sessionForKind)
               .where(whereClause)
               .groupBy(puzzle_sessions.user_id)
               .orderBy(desc(count()))

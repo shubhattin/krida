@@ -407,7 +407,7 @@ const get_top_users_route = protectedAdminProcedure
   .query(({ input: { all_time, start_date, end_date, limit, puzzle_ids } }) =>
     runTrpcEffect(
       Effect.gen(function* () {
-        const conditions = [isNotNull(puzzle_sessions.user_id)];
+        const conditions = [padavaliKind, isNotNull(puzzle_sessions.user_id)];
         if (!all_time && start_date && end_date) {
           conditions.push(gte(puzzle_sessions.created_at, start_date));
           conditions.push(lte(puzzle_sessions.created_at, end_date));
@@ -423,6 +423,7 @@ const get_top_users_route = protectedAdminProcedure
               started: count()
             })
             .from(puzzle_sessions)
+            .innerJoin(puzzles, sessionForKind)
             .where(and(...conditions))
             .groupBy(puzzle_sessions.user_id)
             .orderBy(desc(count()))
@@ -448,7 +449,7 @@ const get_top_users_route = protectedAdminProcedure
           return { users };
         }
 
-        const statsConditions = [inArray(puzzle_sessions.user_id, userIds)];
+        const statsConditions = [padavaliKind, inArray(puzzle_sessions.user_id, userIds)];
         if (!all_time && start_date && end_date) {
           statsConditions.push(gte(attempt_gameplay_stats.created_at, start_date));
           statsConditions.push(lte(attempt_gameplay_stats.created_at, end_date));
@@ -467,6 +468,7 @@ const get_top_users_route = protectedAdminProcedure
               })
               .from(attempt_gameplay_stats)
               .innerJoin(puzzle_sessions, eq(attempt_gameplay_stats.session_id, puzzle_sessions.id))
+              .innerJoin(puzzles, statForKind)
               .where(and(...statsConditions))
               .groupBy(puzzle_sessions.user_id)
         );
@@ -502,8 +504,13 @@ const get_user_list_page_route = protectedAdminProcedure
             client
               .selectDistinct({ user_id: puzzle_sessions.user_id })
               .from(puzzle_sessions)
+              .innerJoin(puzzles, sessionForKind)
               .where(
-                and(isNotNull(puzzle_sessions.user_id), ilike(puzzle_sessions.user_id, idPattern))
+                and(
+                  padavaliKind,
+                  isNotNull(puzzle_sessions.user_id),
+                  ilike(puzzle_sessions.user_id, idPattern)
+                )
               )
               .limit(50)
           );
@@ -533,7 +540,8 @@ const get_user_list_page_route = protectedAdminProcedure
                 plays: count()
               })
               .from(puzzle_sessions)
-              .where(inArray(puzzle_sessions.user_id, matchedIds))
+              .innerJoin(puzzles, sessionForKind)
+              .where(and(padavaliKind, inArray(puzzle_sessions.user_id, matchedIds)))
               .groupBy(puzzle_sessions.user_id)
               .orderBy(desc(count()))
           );
@@ -572,7 +580,7 @@ const get_user_list_page_route = protectedAdminProcedure
           };
         }
 
-        const conditions = [isNotNull(puzzle_sessions.user_id)];
+        const conditions = [padavaliKind, isNotNull(puzzle_sessions.user_id)];
         const whereClause = and(...conditions);
 
         const { countResult, rows } = yield* Effect.all({
@@ -582,6 +590,7 @@ const get_user_list_page_route = protectedAdminProcedure
                 count: sql<number>`cast(count(distinct ${puzzle_sessions.user_id}) as int)`
               })
               .from(puzzle_sessions)
+              .innerJoin(puzzles, sessionForKind)
               .where(whereClause)
           ),
           rows: dbRunHttp('padavali_stats.list_users', (client) =>
@@ -591,6 +600,7 @@ const get_user_list_page_route = protectedAdminProcedure
                 plays: count()
               })
               .from(puzzle_sessions)
+              .innerJoin(puzzles, sessionForKind)
               .where(whereClause)
               .groupBy(puzzle_sessions.user_id)
               .orderBy(desc(count()))

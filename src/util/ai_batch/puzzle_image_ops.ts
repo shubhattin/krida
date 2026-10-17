@@ -1070,7 +1070,7 @@ type EnrichedBatchRow = {
   metadata: BatchMetadata;
   game: PuzzleImageGame;
   puzzle_id: number;
-  puzzle_title: string;
+  puzzle_title: string | null;
   image_asset: {
     id: number;
     s3_key: string;
@@ -1100,7 +1100,6 @@ const enrichBatchRowWithAssetAndPuzzle = Effect.fn('batch_ai.enrichBatchRowWithA
       );
     }
     const game = resolveBatchGame(metadata, row.custom_id);
-    let puzzle_title = '';
     const [titleRow] = yield* dbRunHttp('batch_ai.find_puzzle_title', (client) =>
       client
         .select({ title: puzzles.title })
@@ -1108,7 +1107,7 @@ const enrichBatchRowWithAssetAndPuzzle = Effect.fn('batch_ai.enrichBatchRowWithA
         .where(and(eq(puzzles.id, puzzle_id), eq(puzzles.kind, game)))
         .limit(1)
     );
-    puzzle_title = titleRow?.title ?? '';
+    const puzzle_title: string | null = titleRow?.title ?? null;
 
     let image_asset: EnrichedBatchRow['image_asset'] = null;
 
@@ -1131,7 +1130,7 @@ const enrichBatchRowWithAssetAndPuzzle = Effect.fn('batch_ai.enrichBatchRowWithA
       }
     }
 
-    return {
+    const enriched: EnrichedBatchRow = {
       batch_id: row.batch_id,
       custom_id: row.custom_id,
       output_resolved: row.output_resolved,
@@ -1142,7 +1141,8 @@ const enrichBatchRowWithAssetAndPuzzle = Effect.fn('batch_ai.enrichBatchRowWithA
       puzzle_title,
       image_asset,
       status: derivePuzzleImageBatchUiStatus(row.output_resolved, metadata, row.auto_approved)
-    } satisfies EnrichedBatchRow;
+    };
+    return enriched;
   }
 );
 
@@ -1316,7 +1316,7 @@ export const get_batch_manager_groups = Effect.fn('batch_ai.get_batch_manager_gr
     const puzzle_id =
       metadata.puzzle_id ?? parsePuzzleIdFromBatchCustomId(row.custom_id)?.puzzle_id;
     if (puzzle_id === undefined) continue;
-    const puzzle_title = puzzle_by_id.get(puzzle_id)?.title ?? '';
+    const puzzle_title = puzzle_by_id.get(puzzle_id)?.title ?? null;
     const image_asset =
       metadata.uploaded_image_id !== undefined
         ? (asset_by_id.get(metadata.uploaded_image_id) ?? null)
