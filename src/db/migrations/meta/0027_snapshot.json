@@ -1379,27 +1379,6 @@
         }
       },
       "indexes": {
-        "puzzles_id_kind_idx": {
-          "name": "puzzles_id_kind_idx",
-          "columns": [
-            {
-              "expression": "id",
-              "isExpression": false,
-              "asc": true,
-              "nulls": "last"
-            },
-            {
-              "expression": "kind",
-              "isExpression": false,
-              "asc": true,
-              "nulls": "last"
-            }
-          ],
-          "isUnique": true,
-          "concurrently": false,
-          "method": "btree",
-          "with": {}
-        },
         "puzzles_kind_slug_idx": {
           "name": "puzzles_kind_slug_idx",
           "columns": [
@@ -1528,6 +1507,14 @@
           "nullsNotDistinct": false,
           "columns": [
             "uid"
+          ]
+        },
+        "puzzles_id_kind_idx": {
+          "name": "puzzles_id_kind_idx",
+          "nullsNotDistinct": false,
+          "columns": [
+            "id",
+            "kind"
           ]
         }
       },

@@ -9,6 +9,7 @@ import {
   smallint,
   text,
   timestamp,
+  unique,
   uniqueIndex,
   varchar
 } from 'drizzle-orm/pg-core';
@@ -36,7 +37,7 @@ export const puzzles = pgTable(
   },
   (table) => [
     /** Composite target so redirects can require `kind` to match the puzzle row. */
-    uniqueIndex('puzzles_id_kind_idx').on(table.id, table.kind),
+    unique('puzzles_id_kind_idx').on(table.id, table.kind),
     uniqueIndex('puzzles_kind_slug_idx').on(table.kind, table.slug),
     index('puzzles_listed_created_at_idx').on(table.listed, table.created_at),
     index('puzzles_listed_updated_at_idx').on(table.listed, table.updated_at),

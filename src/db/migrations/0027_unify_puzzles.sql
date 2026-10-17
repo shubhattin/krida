@@ -206,7 +206,7 @@ ALTER TABLE "attempt_gameplay_stats" ADD CONSTRAINT "attempt_gameplay_stats_sess
 ALTER TABLE "collection_items" ADD CONSTRAINT "collection_items_collection_id_collections_id_fk" FOREIGN KEY ("collection_id") REFERENCES "public"."collections"("id") ON DELETE cascade ON UPDATE no action;--> statement-breakpoint
 ALTER TABLE "collection_items" ADD CONSTRAINT "collection_items_puzzle_id_puzzles_id_fk" FOREIGN KEY ("puzzle_id") REFERENCES "public"."puzzles"("id") ON DELETE cascade ON UPDATE no action;--> statement-breakpoint
 ALTER TABLE "puzzle_attachments" ADD CONSTRAINT "puzzle_attachments_puzzle_id_puzzles_id_fk" FOREIGN KEY ("puzzle_id") REFERENCES "public"."puzzles"("id") ON DELETE cascade ON UPDATE no action;--> statement-breakpoint
-CREATE UNIQUE INDEX "puzzles_id_kind_idx" ON "puzzles" USING btree ("id","kind");--> statement-breakpoint
+ALTER TABLE "puzzles" ADD CONSTRAINT "puzzles_id_kind_idx" UNIQUE("id","kind");--> statement-breakpoint
 ALTER TABLE "puzzle_redirects" ADD CONSTRAINT "puzzle_redirects_puzzle_id_kind_fk" FOREIGN KEY ("puzzle_id","kind") REFERENCES "public"."puzzles"("id","kind") ON DELETE cascade ON UPDATE no action;--> statement-breakpoint
 ALTER TABLE "puzzle_schedules" ADD CONSTRAINT "puzzle_schedules_puzzle_id_puzzles_id_fk" FOREIGN KEY ("puzzle_id") REFERENCES "public"."puzzles"("id") ON DELETE cascade ON UPDATE no action;--> statement-breakpoint
 ALTER TABLE "puzzle_sessions" ADD CONSTRAINT "puzzle_sessions_puzzle_id_puzzles_id_fk" FOREIGN KEY ("puzzle_id") REFERENCES "public"."puzzles"("id") ON DELETE cascade ON UPDATE no action;--> statement-breakpoint
