@@ -8,7 +8,6 @@ import {
 } from '~/util/ai/image_gen';
 import { Button } from '~/components/ui/button';
 import { Input } from '~/components/ui/input';
-import { Textarea } from '~/components/ui/textarea';
 import { Badge } from '~/components/ui/badge';
 import {
   Accordion,
@@ -38,6 +37,7 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from '~/components/ui/tabs';
 import { Copy, Lock, Plus, Trash2 } from 'lucide-react';
 import { toast } from 'sonner';
 import { Streamdown } from 'streamdown';
+import { MarkdownTextarea } from '~/components/ui/markdown-textarea';
 import type { ImagePromptSubject } from './SystemPromptPicker';
 
 const SUBJECT_TABS: Array<{ value: ImagePromptSubject | 'all'; label: string }> = [
@@ -300,7 +300,7 @@ export function SystemPromptsPage() {
                               <TabsTrigger value="view">Preview</TabsTrigger>
                             </TabsList>
                             <TabsContent value="edit">
-                              <Textarea
+                              <MarkdownTextarea
                                 value={edit_content}
                                 onChange={(e) => setEditContent(e.currentTarget.value)}
                                 rows={12}
