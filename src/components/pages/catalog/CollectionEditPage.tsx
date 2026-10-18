@@ -40,6 +40,7 @@ import {
 } from '~/components/pages/catalog/GameKindIcon';
 import { formatGameCounts } from '~/util/games/labels';
 import { AddGamesDialog } from '~/components/pages/catalog/AddGamesDialog';
+import { SystemPromptPicker } from '~/components/pages/system_prompts/SystemPromptPicker';
 import { invalidateCatalogQueries } from '~/components/pages/catalog/invalidateCatalogQueries';
 import { EditorActionDock } from '~/components/pages/puzzle/EditorActionDock';
 import { Button } from '~/components/ui/button';
@@ -423,6 +424,8 @@ function CollectionCoverDialog({
   const [instructions, setInstructions] = useState('');
   const [phase, setPhase] = useState<CoverPhase>({ state: 'idle' });
   const [selected, setSelected] = useState<CoverImageInfo | null>(null);
+  /** null = built-in default system prompt */
+  const [system_prompt_template_id, setSystemPromptTemplateId] = useState<number | null>(null);
   const progress = useGenerationProgress(phase.state === 'generating');
 
   const resetCreate = () => {
@@ -466,6 +469,7 @@ function CollectionCoverDialog({
       description: description.trim(),
       game: KRIDAS[0],
       subject: 'collection',
+      system_prompt_template_id,
       extra_instructions: instructions.trim() || undefined
     });
   };
@@ -543,6 +547,12 @@ function CollectionCoverDialog({
                     className="min-h-24"
                   />
                 </div>
+                <SystemPromptPicker
+                  subject="collection"
+                  selected_template_id={system_prompt_template_id}
+                  onChange={setSystemPromptTemplateId}
+                  disabled={isWorking}
+                />
                 <Button
                   type="button"
                   disabled={isWorking || !title.trim()}

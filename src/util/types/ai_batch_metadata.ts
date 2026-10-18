@@ -24,6 +24,9 @@ const image_batch_metadata_base = z.object({
   image_prompt: z.string(),
   file_name: z.string(),
   image_description: z.string(),
+  /** Snapshot of the system prompt used to generate this batch item */
+  system_prompt_template_id: z.number().int().nullable().optional(),
+  system_prompt_used: z.string().optional(),
   /** to be edited upon batch completion */
   success: z.boolean().optional(),
   /** image_assets id (upload after successful batch completion) */

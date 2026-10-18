@@ -35,7 +35,14 @@ export const OPENAI_MODELS = {
   image_generation: 'gpt-image-2.5-sunburst'
 } as const;
 
-const IMAGE_PROMPT_SYSTEM = `
+/**
+ * Built-in default system prompts for image-prompt generation.
+ * Selectable as "Default (built-in)" in the picker; the fixed part (output
+ * schema contract below) always stays in code while template rows in
+ * `image_system_prompt_templates` provide the injectable alternative.
+ */
+export const DEFAULT_IMAGE_PROMPT_SYSTEM_TITLE = 'Default (built-in)';
+export const DEFAULT_IMAGE_PROMPT_SYSTEM = `
 You are an expert at crafting image generation prompts for Sanskrit language-learning puzzle cards.
 
 Your task is to create a detailed, vivid image prompt for a given Sanskrit puzzle title/theme.
@@ -65,7 +72,8 @@ Your task is to create a detailed, vivid image prompt for a given Sanskrit puzzl
 - image_prompt: A single, detailed English paragraph (≤ 150 words) suitable for direct use in an image model.
 `.trim();
 
-const COLLECTION_IMAGE_PROMPT_SYSTEM = `
+export const DEFAULT_COLLECTION_IMAGE_PROMPT_SYSTEM_TITLE = 'Default (built-in)';
+export const DEFAULT_COLLECTION_IMAGE_PROMPT_SYSTEM = `
 You are an expert at crafting image generation prompts for covers of curated Sanskrit puzzle collections.
 
 Your task is to create a detailed, vivid image prompt for a collection title and description. The image represents the collection as a whole, not one puzzle.
@@ -128,6 +136,8 @@ export const generate_puzzle_image_input_schema = z.object({
   extra_instructions: z.string().optional(),
   /** Supply a pre-written image prompt to skip the prompt-generation step */
   existing_image_prompt: z.string().optional(),
+  /** DB template id; null/omitted = built-in default for the subject. */
+  system_prompt_template_id: z.number().int().nullable().optional(),
   /** Which game the image belongs to — controls the S3 subdirectory for puzzle images. */
   game: z.enum(KRIDAS),
   /** Collection covers use a different prompt and the `collections` S3 folder. */
@@ -141,7 +151,10 @@ export const generate_puzzle_image_output_schema = z.discriminatedUnion('success
     id: z.int(),
     s3_key: z.string(),
     image_prompt: z.string(),
-    description: z.string().optional()
+    description: z.string().optional(),
+    /** Snapshot of the system prompt used for this generation */
+    system_prompt_template_id: z.int().nullable().optional(),
+    system_prompt_used: z.string().optional()
   }),
   z.object({
     success: z.literal(false),
@@ -175,6 +188,9 @@ type GeneratedImageState = {
   readonly file_name: string;
   readonly image_description: string;
   readonly image_b64: string;
+  /** Snapshot of the system prompt used (undefined when a pre-written prompt skipped generation) */
+  readonly system_prompt_template_id?: number | null;
+  readonly system_prompt_used?: string;
 };
 
 type FailedGeneratePuzzleImageOutput = Extract<GeneratePuzzleImageOutput, { success: false }>;
@@ -219,19 +235,40 @@ const generatePuzzleCardImage = Effect.fn('generatePuzzleCardImage')(function* (
   });
 });
 
+/** Fetch an editable template row; null when id absent or row deleted (caller falls back to default). */
+const fetchSystemPromptTemplate = (template_id: number) =>
+  dbRunHttp('fetchSystemPromptTemplate', (client) =>
+    client.query.image_system_prompt_templates.findFirst({
+      where: (tbl, { eq: eqOp }) => eqOp(tbl.id, template_id)
+    })
+  );
+
+/** Resolve the injectable system-prompt base: template content or built-in default. */
+export const resolveImageSystemPrompt = (
+  template_content: string | null | undefined,
+  subject: 'puzzle' | 'collection' = 'puzzle'
+): string => {
+  const trimmed = template_content?.trim();
+  if (trimmed) return trimmed;
+  return subject === 'collection'
+    ? DEFAULT_COLLECTION_IMAGE_PROMPT_SYSTEM
+    : DEFAULT_IMAGE_PROMPT_SYSTEM;
+};
+
 export const generateImagePrompt = Effect.fn('generateImagePrompt')(function* (
   title: string,
   description?: string,
   words?: string[],
   extra_instructions?: string,
-  subject: 'puzzle' | 'collection' = 'puzzle'
+  subject: 'puzzle' | 'collection' = 'puzzle',
+  system_prompt_override?: string
 ) {
   const ai = yield* AiProvider;
   const response = yield* ai.generateObject({
     operation: 'generate_image_prompt',
     provider: 'openrouter',
     model: ai.openrouterModel(OPENROUTER_MODELS.image_prompt),
-    system: subject === 'collection' ? COLLECTION_IMAGE_PROMPT_SYSTEM : IMAGE_PROMPT_SYSTEM,
+    system: resolveImageSystemPrompt(system_prompt_override, subject),
     prompt: buildImagePromptUserPrompt(title, description, words, extra_instructions, subject),
     schema: image_prompt_response_schema
   });
@@ -312,7 +349,14 @@ const resolveGeneratedImageState = Effect.fn('resolveGeneratedImageState')(funct
   existing_image_b64?: string,
   existing_file_name_description?: FileNameDescription
 ) {
-  const { title, description, words, extra_instructions, existing_image_prompt } = input;
+  const {
+    title,
+    description,
+    words,
+    extra_instructions,
+    existing_image_prompt,
+    system_prompt_template_id
+  } = input;
   const subject = input.subject ?? 'puzzle';
 
   if (existing_image_b64 && existing_image_b64.length > 0) {
@@ -324,9 +368,33 @@ const resolveGeneratedImageState = Effect.fn('resolveGeneratedImageState')(funct
     } satisfies GeneratedImageState;
   }
 
-  const image_prompt = existing_image_prompt
-    ? existing_image_prompt
-    : yield* generateImagePrompt(title, description, words, extra_instructions, subject);
+  // Pre-supplied prompts skip only the prompt-generation LLM step (filename +
+  // image generation still run); no template snapshot applies to them.
+  let image_prompt: string;
+  let resolved_template_id: number | null | undefined;
+  let system_prompt_used: string | undefined;
+  if (existing_image_prompt) {
+    image_prompt = existing_image_prompt;
+  } else {
+    let system_prompt_override: string | undefined;
+    if (system_prompt_template_id != null) {
+      const template = yield* fetchSystemPromptTemplate(system_prompt_template_id);
+      if (template) {
+        system_prompt_override = template.content;
+        resolved_template_id = template.id;
+      }
+    }
+
+    image_prompt = yield* generateImagePrompt(
+      title,
+      description,
+      words,
+      extra_instructions,
+      subject,
+      system_prompt_override
+    );
+    system_prompt_used = resolveImageSystemPrompt(system_prompt_override, subject);
+  }
 
   const file_name_description = yield* generateFileNameAndDescription(image_prompt);
   const image_b64 = yield* generatePuzzleCardImage(image_prompt);
@@ -335,7 +403,9 @@ const resolveGeneratedImageState = Effect.fn('resolveGeneratedImageState')(funct
     image_prompt,
     file_name: file_name_description.file_name,
     image_description: file_name_description.description,
-    image_b64
+    image_b64,
+    system_prompt_template_id: resolved_template_id,
+    system_prompt_used
   } satisfies GeneratedImageState;
 });
 
@@ -458,6 +528,8 @@ export const generateSavePuzzleImage = Effect.fn('generateSavePuzzleImage')(func
     id: db_record.id,
     s3_key,
     image_prompt: generated_image.value.image_prompt,
-    description: generated_image.value.image_description
+    description: generated_image.value.image_description,
+    system_prompt_template_id: generated_image.value.system_prompt_template_id,
+    system_prompt_used: generated_image.value.system_prompt_used
   } satisfies Extract<GeneratePuzzleImageOutput, { success: true }>;
 });

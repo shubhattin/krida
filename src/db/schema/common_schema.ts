@@ -10,7 +10,8 @@ import {
   boolean,
   primaryKey,
   index,
-  integer
+  integer,
+  unique
 } from 'drizzle-orm/pg-core';
 import { ATTACHMENT_TYPE_LIST } from '../db_shared_vals';
 import type { BatchMetadata } from '~/util/types/ai_batch_metadata';
@@ -33,6 +34,29 @@ export const image_assets = pgTable(
     // extension (add `CREATE EXTENSION IF NOT EXISTS "pg_trgm";` manually to
     // the generated migration — drizzle-kit does not manage extensions).
     index('image_assets_description_trgm_idx').using('gin', table.description.op('gin_trgm_ops'))
+  ]
+);
+
+/**
+ * Editable system-prompt templates for image-prompt generation.
+ * Built-in defaults live statically in code (`DEFAULT_IMAGE_PROMPT_SYSTEM_TITLE`
+ * etc. in `~/util/ai/image_gen`); rows here are user-created alternatives.
+ * The fixed part (output-schema contract) stays in code; template content is
+ * the injectable part. `subject` scopes a template to puzzle cards or
+ * collection covers.
+ */
+export const image_system_prompt_templates = pgTable(
+  'image_system_prompt_templates',
+  {
+    id: serial().primaryKey(),
+    subject: text().notNull().default('puzzle').$type<'puzzle' | 'collection'>(),
+    title: text().notNull(),
+    content: text().notNull().default(''),
+    created_at: timestamp({ withTimezone: true }).notNull().defaultNow(),
+    updated_at: timestamp({ withTimezone: true })
+  },
+  (table) => [
+    unique('image_system_prompt_templates_subject_title_unique').on(table.subject, table.title)
   ]
 );
 

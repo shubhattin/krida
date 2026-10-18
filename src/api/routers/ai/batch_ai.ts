@@ -26,6 +26,8 @@ const trigger_batch_puzzle_image_gen_route = protectedAdminProcedure
     z.object({
       game: puzzle_image_game_enum.default('padavali'),
       auto_approved: z.boolean().default(true),
+      /** DB template id; null/omitted = built-in default. Stored per-row as a snapshot. */
+      system_prompt_template_id: z.number().int().nullable().optional(),
       puzzles: z.array(trigger_puzzle_input_schema).min(1)
     })
   )

@@ -2,7 +2,16 @@
 
 import type { LucideIcon } from 'lucide-react';
 import type { ReactNode } from 'react';
-import { BarChart3, Calendar, ChartNoAxesCombined, Images, Layers, List, Tag } from 'lucide-react';
+import {
+  BarChart3,
+  Calendar,
+  ChartNoAxesCombined,
+  Images,
+  Layers,
+  List,
+  Tag,
+  Wand2
+} from 'lucide-react';
 import { AllGamesMenuItems } from '~/components/app-bar/GameMenuItems';
 import { GameAppIcon } from '~/components/GameAppIcon';
 import { HubHeader } from '~/components/hub/HubHeader';
@@ -200,6 +209,14 @@ export default function AdminPage() {
             icon={Tag}
             wash="from-teal-50/90 to-cyan-50/70 dark:from-teal-950/40 dark:to-cyan-950/30"
             iconClass="from-teal-500 to-cyan-600 shadow-teal-500/25"
+          />
+          <AdminToolCard
+            href="/system-prompts"
+            label="System Prompts"
+            hint="Image-prompt templates for puzzles"
+            icon={Wand2}
+            wash="from-fuchsia-50/90 to-pink-50/70 dark:from-fuchsia-950/40 dark:to-pink-950/30"
+            iconClass="from-fuchsia-500 to-pink-600 shadow-fuchsia-500/25"
           />
         </section>
 
