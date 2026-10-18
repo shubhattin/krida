@@ -14,7 +14,6 @@ import { HubPuzzleCard } from './HubPuzzleCard';
 import { HubCollectionCard } from './HubCollectionCard';
 import { HubTodayCard } from './HubTodayCard';
 import { HubGameShowcase } from './HubGameShowcase';
-import { Carousel, CarouselContent, CarouselItem } from '~/components/ui/carousel';
 import { tagsByPopularity } from './hub_puzzles';
 import { useHubPuzzles } from './useHubPuzzles';
 import type { PublicGameKind } from '~/util/games/kinds';
@@ -270,32 +269,22 @@ export default function HubHome({ data }: { data: HubData }) {
                 </Button>
               }
             />
-            <Carousel
-              opts={{ align: 'start', dragFree: true, loop: false, containScroll: 'trimSnaps' }}
-              aria-label="Collections"
-              className="cursor-grab select-none active:cursor-grabbing"
-            >
-              <CarouselContent className="-ml-4 [&_img]:pointer-events-none">
-                {data.collections.map((collection, index) => (
-                  <CarouselItem
-                    key={collection.uid}
-                    className="basis-[16rem] pl-4 sm:basis-[18rem]"
-                  >
-                    <motion.div
-                      initial={reduceMotion ? false : { opacity: 0, y: 8 }}
-                      animate={{ opacity: 1, y: 0 }}
-                      transition={{
-                        duration: 0.28,
-                        delay: reduceMotion ? 0 : index * 0.05
-                      }}
-                      className="h-full"
-                    >
-                      <HubCollectionCard collection={collection} className="h-full" />
-                    </motion.div>
-                  </CarouselItem>
-                ))}
-              </CarouselContent>
-            </Carousel>
+            <div className="flex snap-x snap-mandatory scrollbar-none gap-4 overflow-x-auto pb-2">
+              {data.collections.map((collection, index) => (
+                <motion.div
+                  key={collection.uid}
+                  initial={reduceMotion ? false : { opacity: 0, y: 8 }}
+                  animate={{ opacity: 1, y: 0 }}
+                  transition={{
+                    duration: 0.28,
+                    delay: reduceMotion ? 0 : index * 0.05
+                  }}
+                  className="w-64 shrink-0 snap-start sm:w-72"
+                >
+                  <HubCollectionCard collection={collection} />
+                </motion.div>
+              ))}
+            </div>
           </section>
         ) : null}
 
