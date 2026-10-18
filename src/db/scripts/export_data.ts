@@ -3,7 +3,7 @@ import chalk from 'chalk';
 import { sql } from 'drizzle-orm';
 import type { PgTable } from 'drizzle-orm/pg-core';
 import { z } from 'zod';
-import { dbClient_ext, dbDataFileName, queryClient } from './client';
+import { dbClient_ext, dbDataFilePath, queryClient } from './client';
 import { dbMode, take_input } from '~/tools/kry.server';
 import {
   ai_batch_responses,
@@ -211,9 +211,7 @@ const main = async () => {
   if (!(await confirm_environment())) return;
 
   console.log(`Inserting data into ${dbMode} database...`);
-  const data = ExportDataSchema.parse(
-    JSON.parse((await readFile(`./out/${dbDataFileName}`)).toString())
-  );
+  const data = ExportDataSchema.parse(JSON.parse((await readFile(dbDataFilePath)).toString()));
 
   await dbClient_ext.transaction(async (tx) => {
     await deleteAllTables(tx);

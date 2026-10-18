@@ -1,5 +1,6 @@
 import { writeFile } from 'node:fs/promises';
-import { dbClient_ext as db, dbDataFileName, queryClient } from './client';
+import path from 'node:path';
+import { dbClient_ext as db, dbDataFilePath, queryClient } from './client';
 import { dbMode, make_dir, take_input } from '~/tools/kry.server';
 
 /**
@@ -79,8 +80,8 @@ export const import_data = async (confirm_env = true) => {
     padajala_gameplay_stats
   };
 
-  await make_dir('./out');
-  await writeFile(`./out/${dbDataFileName}`, JSON.stringify(json_data, null, 2));
+  await make_dir(path.dirname(dbDataFilePath));
+  await writeFile(dbDataFilePath, JSON.stringify(json_data, null, 2));
 };
 
 if (require.main === module) {

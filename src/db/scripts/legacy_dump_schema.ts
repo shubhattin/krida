@@ -8,13 +8,38 @@ import { bhramita_puzzle_data_schema } from '~/util/bhramita/data';
 import { dvayi_puzzle_data_schema } from '~/util/dvayi/data';
 import { padavali_word_candidate_list_schema } from '~/util/puzzle/word_list';
 import { surupa_puzzle_data_schema } from '~/util/surupa/data';
-import { batch_metadata_schema } from '~/util/types/ai_batch_metadata';
+import { batch_metadata_schema, type BatchMetadata } from '~/util/types/ai_batch_metadata';
 
 /**
  * Row shapes of the per-game dump written by `import_data.ts` before the
  * `puzzles` supertype, and by `backup_json.ts` afterwards. These schemas are
- * hand-written so they do not follow the current Drizzle tables.
+ * hand-written so they do not follow the current Drizzle tables. Dump keys
+ * keep the legacy per-game layout (`crossword_*` for the padajala game).
  */
+
+/**
+ * Legacy batch metadata: pre-rename dumps use `type: 'crossword-puzzle-image'`
+ * with `game: 'crossword'`. Parse the legacy tag, retag, and re-validate
+ * through the current schema so downstream code only sees `BatchMetadata`.
+ */
+const legacy_crossword_batch_metadata_schema = z
+  .object({
+    type: z.literal('crossword-puzzle-image'),
+    game: z.literal('crossword')
+  })
+  .catchall(z.unknown());
+
+const legacy_batch_metadata_schema = z.union([
+  batch_metadata_schema,
+  legacy_crossword_batch_metadata_schema.transform((row): BatchMetadata => {
+    const { type: _legacyType, game: _legacyGame, ...rest } = row;
+    return batch_metadata_schema.parse({
+      ...rest,
+      type: 'padajala-puzzle-image',
+      game: 'padajala'
+    });
+  })
+]);
 
 const nullableDate = z.coerce.date().nullable();
 
@@ -101,7 +126,7 @@ const simpleSessionRow = z.object({
   user_id: z.string().nullable()
 });
 
-const padajalaSessionRow = z.object({
+const crosswordSessionRow = z.object({
   id: z.number().int(),
   puzzle_id: z.number().int(),
   created_at: z.coerce.date(),
@@ -109,7 +134,7 @@ const padajalaSessionRow = z.object({
   user_id: z.string().nullable()
 });
 
-const padajalaStatsRow = z.object({
+const crosswordStatsRow = z.object({
   id: z.number().int(),
   puzzle_id: z.number().int(),
   session_id: z.number().int(),
@@ -158,7 +183,7 @@ export const LegacyDumpSchema = z.object({
       batch_id: z.string(),
       custom_id: z.string(),
       auto_approved: z.boolean(),
-      metadata: batch_metadata_schema.nullable().optional()
+      metadata: legacy_batch_metadata_schema.nullable().optional()
     })
   ),
   ai_batches: z.array(
@@ -181,7 +206,7 @@ export const LegacyDumpSchema = z.object({
       created_at: z.coerce.date()
     })
   ),
-  padajala_puzzles: z.array(
+  crossword_puzzles: z.array(
     z.object({
       ...listingFields,
       grid_dimensions: z.tuple([z.number(), z.number()]),
@@ -189,11 +214,11 @@ export const LegacyDumpSchema = z.object({
       word_list: z.array(PadajalaPuzzleWordSchema)
     })
   ),
-  padajala_redirects: z.array(redirectRow).default([]),
-  padajala_attachments: z.array(attachmentRow).default([]),
-  padajala_sessions: z.array(padajalaSessionRow).default([]),
-  padajala_gameplay_stats: z.array(padajalaStatsRow).default([]),
-  padajala_schedules: z.array(scheduleRow).default([]),
+  crossword_redirects: z.array(redirectRow).default([]),
+  crossword_attachments: z.array(attachmentRow).default([]),
+  crossword_sessions: z.array(crosswordSessionRow).default([]),
+  crossword_gameplay_stats: z.array(crosswordStatsRow).default([]),
+  crossword_schedules: z.array(scheduleRow).default([]),
   tags: z
     .array(
       z.object({
@@ -219,9 +244,9 @@ export const LegacyDumpSchema = z.object({
     )
     .default([]),
   padavali_puzzle_tags: z.array(tagLinkRow).default([]),
-  padajala_puzzle_tags: z.array(tagLinkRow).default([]),
+  crossword_puzzle_tags: z.array(tagLinkRow).default([]),
   padavali_collection_items: z.array(collectionItemRow).default([]),
-  padajala_collection_items: z.array(collectionItemRow).default([]),
+  crossword_collection_items: z.array(collectionItemRow).default([]),
   dvayi_puzzles: dvayiRowSchemas.puzzles,
   dvayi_redirects: dvayiRowSchemas.redirects,
   dvayi_attachments: dvayiRowSchemas.attachments,

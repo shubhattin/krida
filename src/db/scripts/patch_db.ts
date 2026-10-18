@@ -1,7 +1,7 @@
 import { readFile } from 'node:fs/promises';
 import chalk from 'chalk';
 import { sql } from 'drizzle-orm';
-import { dbClient_ext, dbDataFileName, queryClient } from './client';
+import { dbClient_ext, dbDataFilePath, queryClient } from './client';
 import { LegacyDumpSchema, type LegacyDump } from './legacy_dump_schema';
 import { dbMode, take_input } from '~/tools/kry.server';
 import type { GameKind } from '~/util/catalog/tags';
@@ -32,9 +32,13 @@ import {
  * Loads a pre-unification JSON dump (`backup_json.ts` / old `import_data.ts`)
  * into the shared puzzle tables.
  *
- * `--prod` / `--preview` select both the database and `./out/db_data_*.json`,
- * same as the other scripts. The database must already be migrated to the new
- * schema.
+ * `--prod` / `--preview` select both the database and the dump file (resolved
+ * under repo-root `out/` regardless of cwd). The database must already be
+ * migrated to the new schema.
+ *
+ * The dump keeps the legacy per-game layout, so the `padajala` game still
+ * reads `crossword_*` dump keys and legacy batch metadata (`type:
+ * 'crossword-puzzle-image'`, normalized by `legacy_dump_schema.ts`).
  *
  * Merged tables get fresh ids reassigned from 1 in deterministic dump order,
  * with legacy→new maps tracked for cross-references (`puzzles`,
@@ -64,10 +68,8 @@ const SERIAL_TABLES = [
 ] as const;
 
 const main = async () => {
-  console.log(`Patching ${dbMode} from ./out/${dbDataFileName}...`);
-  const data = LegacyDumpSchema.parse(
-    JSON.parse((await readFile(`./out/${dbDataFileName}`)).toString())
-  );
+  console.log(`Patching ${dbMode} from ${dbDataFilePath}...`);
+  const data = LegacyDumpSchema.parse(JSON.parse((await readFile(dbDataFilePath)).toString()));
   // Fail before touching the database: every check here aborts prior to the
   // destructive wipe inside the transaction below.
   validateDump(data);
@@ -103,7 +105,7 @@ async function confirm_environment(summary: string) {
   }
   console.log(summary);
   const confirmation = await take_input(
-    `Are you sure PATCH ${dbMode} from ./out/${dbDataFileName} ? Type "yes" to proceed: `
+    `Are you sure PATCH ${dbMode} from ${dbDataFilePath} ? Type "yes" to proceed: `
   );
   return confirmation.trim().toLowerCase() === 'yes';
 }
@@ -139,7 +141,7 @@ function dumpSummary(data: LegacyDump): string {
   const parts = GAMES.map((kind) => `${kind}=${listingRows(data, kind).length}`);
   const sessions =
     ATTEMPT_GAMES.reduce((sum, kind) => sum + sessionsOf(data, kind).length, 0) +
-    data.padajala_sessions.length;
+    data.crossword_sessions.length;
   return `Dump counts: puzzles { ${parts.join(', ')} }, sessions=${sessions}, batches=${data.ai_batches.length}`;
 }
 
@@ -243,9 +245,9 @@ async function insertPayloads(tx: PatchTx, data: LegacyDump, puzzleIds: IdMap): 
       }))
     );
   }
-  if (data.padajala_puzzles.length > 0) {
+  if (data.crossword_puzzles.length > 0) {
     await tx.insert(padajala_puzzles).values(
-      data.padajala_puzzles.map((row) => ({
+      data.crossword_puzzles.map((row) => ({
         id: must(puzzleIds, 'padajala', row.id),
         grid_dimensions: row.grid_dimensions,
         grid_data: row.grid_data,
@@ -425,12 +427,12 @@ async function insertPlayHistory(tx: PatchTx, data: LegacyDump, puzzleIds: IdMap
   const padajalaSessionIds = await insertSessions(
     tx,
     'padajala',
-    data.padajala_sessions,
+    data.crossword_sessions,
     puzzleIds,
     sessionCounter
   );
   let nextPadajalaStatId = 1;
-  for (const chunk of chunkArray(data.padajala_gameplay_stats, 2000)) {
+  for (const chunk of chunkArray(data.crossword_gameplay_stats, 2000)) {
     if (chunk.length === 0) continue;
     await tx.insert(padajala_gameplay_stats).values(
       chunk.map((row) => ({
@@ -504,7 +506,7 @@ function listingRows(data: LegacyDump, kind: GameKind) {
     case 'padavali':
       return data.padavali_puzzles;
     case 'padajala':
-      return data.padajala_puzzles;
+      return data.crossword_puzzles;
     case 'dvayi':
       return data.dvayi_puzzles;
     case 'bhramita':
@@ -521,7 +523,7 @@ function tagLinks(data: LegacyDump, kind: GameKind) {
     case 'padavali':
       return data.padavali_puzzle_tags;
     case 'padajala':
-      return data.padajala_puzzle_tags;
+      return data.crossword_puzzle_tags;
     case 'dvayi':
       return data.dvayi_puzzle_tags;
     case 'bhramita':
@@ -538,7 +540,7 @@ function collectionLinks(data: LegacyDump, kind: GameKind) {
     case 'padavali':
       return data.padavali_collection_items;
     case 'padajala':
-      return data.padajala_collection_items;
+      return data.crossword_collection_items;
     case 'dvayi':
       return data.dvayi_collection_items;
     case 'bhramita':
@@ -555,7 +557,7 @@ function redirectsOf(data: LegacyDump, kind: GameKind) {
     case 'padavali':
       return data.padavali_redirects;
     case 'padajala':
-      return data.padajala_redirects;
+      return data.crossword_redirects;
     case 'dvayi':
       return data.dvayi_redirects;
     case 'bhramita':
@@ -572,7 +574,7 @@ function attachmentsOf(data: LegacyDump, kind: GameKind) {
     case 'padavali':
       return data.padavali_attachments;
     case 'padajala':
-      return data.padajala_attachments;
+      return data.crossword_attachments;
     case 'dvayi':
       return data.dvayi_attachments;
     case 'bhramita':
@@ -585,7 +587,7 @@ function attachmentsOf(data: LegacyDump, kind: GameKind) {
 }
 
 function schedulesOf(data: LegacyDump, kind: 'padavali' | 'padajala') {
-  return kind === 'padavali' ? data.padavali_schedules : data.padajala_schedules;
+  return kind === 'padavali' ? data.padavali_schedules : data.crossword_schedules;
 }
 
 function sessionsOf(data: LegacyDump, kind: (typeof ATTEMPT_GAMES)[number]) {

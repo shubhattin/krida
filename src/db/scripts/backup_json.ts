@@ -166,7 +166,7 @@ const DUMP_TABLES: DumpTable[] = [
     orderBy: '"id"'
   },
   {
-    key: 'padajala_puzzles',
+    key: 'crossword_puzzles',
     columns: [
       'id',
       'uid',
@@ -184,15 +184,15 @@ const DUMP_TABLES: DumpTable[] = [
     ],
     orderBy: '"id"'
   },
-  { key: 'padajala_redirects', columns: redirectColumns, orderBy: '"id"' },
-  { key: 'padajala_attachments', columns: attachmentColumns, orderBy: '"id"' },
+  { key: 'crossword_redirects', columns: redirectColumns, orderBy: '"id"' },
+  { key: 'crossword_attachments', columns: attachmentColumns, orderBy: '"id"' },
   {
-    key: 'padajala_sessions',
+    key: 'crossword_sessions',
     columns: ['id', 'puzzle_id', 'created_at', 'location', 'user_id'],
     orderBy: '"id"'
   },
   {
-    key: 'padajala_gameplay_stats',
+    key: 'crossword_gameplay_stats',
     columns: [
       'id',
       'puzzle_id',
@@ -208,7 +208,7 @@ const DUMP_TABLES: DumpTable[] = [
     ],
     orderBy: '"id"'
   },
-  { key: 'padajala_schedules', columns: scheduleColumns, orderBy: '"id"' },
+  { key: 'crossword_schedules', columns: scheduleColumns, orderBy: '"id"' },
   { key: 'tags', columns: ['id', 'slug', 'created_at'], orderBy: '"id"' },
   {
     key: 'collections',
@@ -231,7 +231,7 @@ const DUMP_TABLES: DumpTable[] = [
     orderBy: '"puzzle_id", "tag_id"'
   },
   {
-    key: 'padajala_puzzle_tags',
+    key: 'crossword_puzzle_tags',
     columns: tagLinkColumns,
     orderBy: '"puzzle_id", "tag_id"'
   },
@@ -241,7 +241,7 @@ const DUMP_TABLES: DumpTable[] = [
     orderBy: '"collection_id", "puzzle_id"'
   },
   {
-    key: 'padajala_collection_items',
+    key: 'crossword_collection_items',
     columns: collectionItemColumns,
     orderBy: '"collection_id", "puzzle_id"'
   },
@@ -293,9 +293,10 @@ export async function backup_json(confirm_env = true) {
     console.log(`${table.key}: ${json_data[table.key]!.length}`);
   }
 
-  await make_dir('./out');
-  await writeFile(`./out/${dbDataFileName}`, JSON.stringify(json_data, null, 2));
-  console.log(`Wrote ./out/${dbDataFileName}`);
+  const outPath = path.resolve(import.meta.dirname, '../../../out', dbDataFileName);
+  await make_dir(path.dirname(outPath));
+  await writeFile(outPath, JSON.stringify(json_data, null, 2));
+  console.log(`Wrote ${outPath}`);
 }
 
 if (require.main === module) {
