@@ -13,9 +13,9 @@ export const Route = createFileRoute('/system-prompts')({
   },
   head: () =>
     routeHeadFromPageMeta({
-      title: 'System Prompts | Krida',
+      title: 'Image System Prompts | Krida',
       project: 'landing_page',
-      description: 'Manage image-generation system prompt templates.',
+      description: 'Manage image system prompt templates for image generation.',
       robots: 'noindex'
     }),
   component: SystemPromptsPageRoute

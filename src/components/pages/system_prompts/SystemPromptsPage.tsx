@@ -3,9 +3,10 @@ import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import { useTRPC } from '~/api/client';
 import {
   DEFAULT_COLLECTION_IMAGE_PROMPT_SYSTEM,
+  DEFAULT_COLLECTION_IMAGE_PROMPT_SYSTEM_TITLE,
   DEFAULT_IMAGE_PROMPT_SYSTEM,
   DEFAULT_IMAGE_PROMPT_SYSTEM_TITLE
-} from '~/util/ai/image_gen';
+} from '~/util/ai/image_prompt_defaults';
 import { Button } from '~/components/ui/button';
 import { Input } from '~/components/ui/input';
 import { Badge } from '~/components/ui/badge';
@@ -36,8 +37,8 @@ import {
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '~/components/ui/tabs';
 import { Copy, Lock, Plus, Trash2 } from 'lucide-react';
 import { toast } from 'sonner';
-import { Streamdown } from 'streamdown';
-import { MarkdownTextarea } from '~/components/ui/markdown-textarea';
+import { MarkdownView } from '~/components/ui/markdown-view';
+import { PromptMarkdownEditor } from './PromptMarkdownEditor';
 import type { ImagePromptSubject } from './SystemPromptPicker';
 
 const SUBJECT_TABS: Array<{ value: ImagePromptSubject | 'all'; label: string }> = [
@@ -51,10 +52,10 @@ const DEFAULT_PROMPTS = {
   collection: DEFAULT_COLLECTION_IMAGE_PROMPT_SYSTEM
 } satisfies Record<ImagePromptSubject, string>;
 
-const DEFAULT_LABELS: Record<ImagePromptSubject, string> = {
+const DEFAULT_LABELS = {
   puzzle: `${DEFAULT_IMAGE_PROMPT_SYSTEM_TITLE} — puzzle cards`,
-  collection: `${DEFAULT_IMAGE_PROMPT_SYSTEM_TITLE} — collection covers`
-};
+  collection: `${DEFAULT_COLLECTION_IMAGE_PROMPT_SYSTEM_TITLE} — collection covers`
+} satisfies Record<ImagePromptSubject, string>;
 
 const char_hint = (content: string) =>
   content.trim() ? `${content.trim().length} chars` : 'empty';
@@ -171,7 +172,7 @@ export function SystemPromptsPage() {
     <div className="mx-auto flex w-full max-w-4xl flex-col gap-5 px-4 py-6">
       <div className="flex flex-wrap items-center justify-between gap-3">
         <div>
-          <h1 className="text-xl font-bold">System Prompts</h1>
+          <h1 className="text-xl font-bold">Image System Prompts</h1>
           <p className="text-sm text-muted-foreground">
             Image-prompt templates for puzzle cards and collection covers. The built-in defaults are
             static in code; templates here are selectable in the image tool (single + batch).
@@ -249,7 +250,7 @@ export function SystemPromptsPage() {
                     </Button>
                   </div>
                   <div className="max-h-80 overflow-y-auto rounded-lg border bg-muted/20 p-4 text-sm leading-relaxed">
-                    <Streamdown>{DEFAULT_PROMPTS[subject]}</Streamdown>
+                    <MarkdownView>{DEFAULT_PROMPTS[subject]}</MarkdownView>
                   </div>
                 </div>
               </AccordionContent>
@@ -300,19 +301,16 @@ export function SystemPromptsPage() {
                               <TabsTrigger value="view">Preview</TabsTrigger>
                             </TabsList>
                             <TabsContent value="edit">
-                              <MarkdownTextarea
+                              <PromptMarkdownEditor
                                 value={edit_content}
-                                onChange={(e) => setEditContent(e.currentTarget.value)}
-                                rows={12}
-                                spellCheck={false}
-                                className="font-mono text-xs"
+                                onChange={setEditContent}
                                 placeholder="System prompt markdown…"
                               />
                             </TabsContent>
                             <TabsContent value="view">
                               <div className="max-h-80 overflow-y-auto rounded-lg border bg-muted/20 p-4 text-sm leading-relaxed">
                                 {edit_content.trim() ? (
-                                  <Streamdown>{edit_content}</Streamdown>
+                                  <MarkdownView>{edit_content}</MarkdownView>
                                 ) : (
                                   <p className="text-muted-foreground">Nothing to preview.</p>
                                 )}
@@ -372,7 +370,7 @@ export function SystemPromptsPage() {
                           </div>
                           <div className="max-h-80 overflow-y-auto rounded-lg border bg-muted/20 p-4 text-sm leading-relaxed">
                             {template.content.trim() ? (
-                              <Streamdown>{template.content}</Streamdown>
+                              <MarkdownView>{template.content}</MarkdownView>
                             ) : (
                               <p className="text-muted-foreground">
                                 Empty template — click Edit to write the prompt.

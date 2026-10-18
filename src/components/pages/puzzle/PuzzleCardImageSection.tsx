@@ -57,6 +57,7 @@ import {
 } from '~/components/ui/pagination';
 import { InputGroup, InputGroupAddon, InputGroupInput } from '~/components/ui/input-group';
 import { SystemPromptPicker } from '~/components/pages/system_prompts/SystemPromptPicker';
+import { useStoredTemplateId } from '~/util/system_prompt_storage';
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import { client, useTRPC } from '~/api/client';
 import { getCDNUrl } from '~/constants';
@@ -1003,8 +1004,8 @@ function AIImageDialogContent({
   const [include_word_meanings, setIncludeWordMeanings] = useState(false);
   const [include_custom_instructions, setIncludeCustomInstructions] = useState(false);
   const [custom_instructions, setCustomInstructions] = useState('');
-  /** null = built-in default system prompt */
-  const [system_prompt_template_id, setSystemPromptTemplateId] = useState<number | null>(null);
+  /** null = built-in default system prompt; restored from last session (SSR-safe) */
+  const [system_prompt_template_id, setSystemPromptTemplateId] = useStoredTemplateId('puzzle');
 
   const progress = useGenerationProgress(phase.state === 'generating');
 
