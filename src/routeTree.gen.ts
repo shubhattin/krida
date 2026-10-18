@@ -25,6 +25,7 @@ import { Route as Sitemap0DotxmlRouteImport } from './routes/sitemap-0[.]xml'
 import { Route as Sitemap1DotxmlRouteImport } from './routes/sitemap-1[.]xml'
 import { Route as SitemapIndexDotxmlRouteImport } from './routes/sitemap-index[.]xml'
 import { Route as SurupaRouteRouteImport } from './routes/surupa/route'
+import { Route as SystemPromptsRouteImport } from './routes/system-prompts'
 import { Route as HubIndexRouteImport } from './routes/_hub/index'
 import { Route as HubPuzzlesRouteImport } from './routes/_hub/puzzles'
 import { Route as CollectionsListRouteImport } from './routes/collections/list'
@@ -183,6 +184,11 @@ const SitemapIndexDotxmlRoute = SitemapIndexDotxmlRouteImport.update({
 const SurupaRouteRoute = SurupaRouteRouteImport.update({
   id: '/surupa',
   path: '/surupa',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const SystemPromptsRoute = SystemPromptsRouteImport.update({
+  id: '/system-prompts',
+  path: '/system-prompts',
   getParentRoute: () => rootRouteImport,
 } as any)
 const HubIndexRoute = HubIndexRouteImport.update({
@@ -637,6 +643,7 @@ export interface FileRoutesByFullPath {
   '/sitemap-0.xml': typeof Sitemap0DotxmlRoute
   '/sitemap-1.xml': typeof Sitemap1DotxmlRoute
   '/sitemap-index.xml': typeof SitemapIndexDotxmlRoute
+  '/system-prompts': typeof SystemPromptsRoute
   '/puzzles': typeof HubPuzzlesRoute
   '/collections/list': typeof CollectionsListRoute
   '/crossword/$': typeof CrosswordSplatRoute
@@ -721,6 +728,7 @@ export interface FileRoutesByTo {
   '/sitemap-0.xml': typeof Sitemap0DotxmlRoute
   '/sitemap-1.xml': typeof Sitemap1DotxmlRoute
   '/sitemap-index.xml': typeof SitemapIndexDotxmlRoute
+  '/system-prompts': typeof SystemPromptsRoute
   '/puzzles': typeof HubPuzzlesRoute
   '/collections/list': typeof CollectionsListRoute
   '/crossword/$': typeof CrosswordSplatRoute
@@ -802,6 +810,7 @@ export interface FileRoutesById {
   '/sitemap-0.xml': typeof Sitemap0DotxmlRoute
   '/sitemap-1.xml': typeof Sitemap1DotxmlRoute
   '/sitemap-index.xml': typeof SitemapIndexDotxmlRoute
+  '/system-prompts': typeof SystemPromptsRoute
   '/_hub/puzzles': typeof HubPuzzlesRoute
   '/collections/list': typeof CollectionsListRoute
   '/crossword/$': typeof CrosswordSplatRoute
@@ -902,6 +911,7 @@ export interface FileRouteTypes {
     | '/sitemap-0.xml'
     | '/sitemap-1.xml'
     | '/sitemap-index.xml'
+    | '/system-prompts'
     | '/puzzles'
     | '/collections/list'
     | '/crossword/$'
@@ -986,6 +996,7 @@ export interface FileRouteTypes {
     | '/sitemap-0.xml'
     | '/sitemap-1.xml'
     | '/sitemap-index.xml'
+    | '/system-prompts'
     | '/puzzles'
     | '/collections/list'
     | '/crossword/$'
@@ -1066,6 +1077,7 @@ export interface FileRouteTypes {
     | '/sitemap-0.xml'
     | '/sitemap-1.xml'
     | '/sitemap-index.xml'
+    | '/system-prompts'
     | '/_hub/puzzles'
     | '/collections/list'
     | '/crossword/$'
@@ -1165,6 +1177,7 @@ export interface RootRouteChildren {
   Sitemap0DotxmlRoute: typeof Sitemap0DotxmlRoute
   Sitemap1DotxmlRoute: typeof Sitemap1DotxmlRoute
   SitemapIndexDotxmlRoute: typeof SitemapIndexDotxmlRoute
+  SystemPromptsRoute: typeof SystemPromptsRoute
   CollectionsListRoute: typeof CollectionsListRoute
   CrosswordSplatRoute: typeof CrosswordSplatRoute
   TagsListRoute: typeof TagsListRoute
@@ -1288,6 +1301,13 @@ declare module '@tanstack/react-router' {
       path: '/surupa'
       fullPath: '/surupa'
       preLoaderRoute: typeof SurupaRouteRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/system-prompts': {
+      id: '/system-prompts'
+      path: '/system-prompts'
+      fullPath: '/system-prompts'
+      preLoaderRoute: typeof SystemPromptsRouteImport
       parentRoute: typeof rootRouteImport
     }
     '/_hub/': {
@@ -2197,6 +2217,7 @@ const rootRouteChildren: RootRouteChildren = {
   Sitemap0DotxmlRoute: Sitemap0DotxmlRoute,
   Sitemap1DotxmlRoute: Sitemap1DotxmlRoute,
   SitemapIndexDotxmlRoute: SitemapIndexDotxmlRoute,
+  SystemPromptsRoute: SystemPromptsRoute,
   CollectionsListRoute: CollectionsListRoute,
   CrosswordSplatRoute: CrosswordSplatRoute,
   TagsListRoute: TagsListRoute,

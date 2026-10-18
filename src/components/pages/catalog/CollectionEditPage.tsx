@@ -40,9 +40,12 @@ import {
 } from '~/components/pages/catalog/GameKindIcon';
 import { formatGameCounts } from '~/util/games/labels';
 import { AddGamesDialog } from '~/components/pages/catalog/AddGamesDialog';
+import { SystemPromptPicker } from '~/components/pages/system_prompts/SystemPromptPicker';
+import { useStoredTemplateId } from '~/util/system_prompt_storage';
 import { invalidateCatalogQueries } from '~/components/pages/catalog/invalidateCatalogQueries';
 import { EditorActionDock } from '~/components/pages/puzzle/EditorActionDock';
 import { Button } from '~/components/ui/button';
+import { Checkbox } from '~/components/ui/checkbox';
 import {
   Dialog,
   DialogContent,
@@ -421,12 +424,16 @@ function CollectionCoverDialog({
   const trpc = useTRPC();
   const [tab, setTab] = useState<'create' | 'existing'>('create');
   const [instructions, setInstructions] = useState('');
+  const [show_instructions, setShowInstructions] = useState(false);
   const [phase, setPhase] = useState<CoverPhase>({ state: 'idle' });
   const [selected, setSelected] = useState<CoverImageInfo | null>(null);
+  /** null = built-in default system prompt; restored from last session (SSR-safe) */
+  const [system_prompt_template_id, setSystemPromptTemplateId] = useStoredTemplateId('collection');
   const progress = useGenerationProgress(phase.state === 'generating');
 
   const resetCreate = () => {
     setInstructions('');
+    setShowInstructions(false);
     setPhase({ state: 'idle' });
   };
 
@@ -461,12 +468,14 @@ function CollectionCoverDialog({
 
   const startGenerate = () => {
     setPhase({ state: 'generating' });
+    const trimmed = instructions.trim();
     generate_mut.mutate({
       title: title.trim(),
       description: description.trim(),
       game: KRIDAS[0],
       subject: 'collection',
-      extra_instructions: instructions.trim() || undefined
+      system_prompt_template_id,
+      extra_instructions: show_instructions && trimmed ? trimmed : undefined
     });
   };
 
@@ -530,19 +539,33 @@ function CollectionCoverDialog({
           </TabsList>
           <TabsContent value="create">
             {phase.state === 'idle' ? (
-              <div className="space-y-3">
+              <div className="mx-auto w-full max-w-xl space-y-3">
                 <div className="space-y-2">
-                  <Label htmlFor="collection-cover-extra">
-                    Custom instructions <span className="font-normal">(optional)</span>
-                  </Label>
-                  <Textarea
-                    id="collection-cover-extra"
-                    value={instructions}
-                    onChange={(event) => setInstructions(event.currentTarget.value)}
-                    placeholder="Optional guidance for the cover image"
-                    className="min-h-24"
-                  />
+                  <label className="flex items-center gap-2 text-sm">
+                    <Checkbox
+                      checked={show_instructions}
+                      onCheckedChange={(checked) => setShowInstructions(checked === true)}
+                      disabled={isWorking}
+                    />
+                    Custom instructions
+                  </label>
+                  {show_instructions ? (
+                    <Textarea
+                      id="collection-cover-extra"
+                      value={instructions}
+                      onChange={(event) => setInstructions(event.currentTarget.value)}
+                      placeholder="Optional guidance for the cover image"
+                      className="min-h-24"
+                      disabled={isWorking}
+                    />
+                  ) : null}
                 </div>
+                <SystemPromptPicker
+                  subject="collection"
+                  selected_template_id={system_prompt_template_id}
+                  onChange={setSystemPromptTemplateId}
+                  disabled={isWorking}
+                />
                 <Button
                   type="button"
                   disabled={isWorking || !title.trim()}

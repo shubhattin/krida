@@ -2,7 +2,16 @@
 
 import type { LucideIcon } from 'lucide-react';
 import type { ReactNode } from 'react';
-import { BarChart3, Calendar, ChartNoAxesCombined, Images, Layers, List, Tag } from 'lucide-react';
+import {
+  BarChart3,
+  Calendar,
+  ChartNoAxesCombined,
+  Images,
+  Layers,
+  List,
+  Tag,
+  Wand2
+} from 'lucide-react';
 import { AllGamesMenuItems } from '~/components/app-bar/GameMenuItems';
 import { GameAppIcon } from '~/components/GameAppIcon';
 import { HubHeader } from '~/components/hub/HubHeader';
@@ -159,7 +168,7 @@ export default function AdminPage() {
 
         <section
           aria-label="Catalog and analytics"
-          className="grid gap-2 sm:grid-cols-2 lg:grid-cols-5"
+          className="grid gap-2 sm:grid-cols-2 lg:grid-cols-4"
         >
           <AdminToolCard
             href="/analytics"
@@ -178,6 +187,14 @@ export default function AdminPage() {
             iconClass="from-violet-500 to-indigo-600 shadow-violet-500/25"
           />
           <AdminToolCard
+            href="/tags/list"
+            label="Tags"
+            hint="Topics to filter and organize"
+            icon={Tag}
+            wash="from-teal-50/90 to-cyan-50/70 dark:from-teal-950/40 dark:to-cyan-950/30"
+            iconClass="from-teal-500 to-cyan-600 shadow-teal-500/25"
+          />
+          <AdminToolCard
             href="/schedules"
             label="Schedules"
             hint="Queue puzzles across every game"
@@ -185,21 +202,20 @@ export default function AdminPage() {
             wash="from-emerald-50/90 to-teal-50/70 dark:from-emerald-950/40 dark:to-teal-950/30"
             iconClass="from-emerald-500 to-teal-600 shadow-emerald-500/25"
           />
-          <AdminToolCard
+        </section>
+
+        <section aria-label="Secondary tools" className="flex flex-wrap justify-center gap-1.5">
+          <AdminActionChip
             href="/padavali/batch_manager"
             label="Batches"
-            hint="AI image batches for puzzles"
             icon={Images}
-            wash="from-orange-50/90 to-amber-50/70 dark:from-orange-950/40 dark:to-amber-950/30"
-            iconClass="from-orange-500 to-amber-600 shadow-orange-500/25"
+            name="Admin"
           />
-          <AdminToolCard
-            href="/tags/list"
-            label="Tags"
-            hint="Topics to filter and organize"
-            icon={Tag}
-            wash="from-teal-50/90 to-cyan-50/70 dark:from-teal-950/40 dark:to-cyan-950/30"
-            iconClass="from-teal-500 to-cyan-600 shadow-teal-500/25"
+          <AdminActionChip
+            href="/system-prompts"
+            label="Image System Prompts"
+            icon={Wand2}
+            name="Admin"
           />
         </section>
 

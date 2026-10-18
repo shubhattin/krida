@@ -6,7 +6,7 @@ import { dbRunHttp, type TxOrDb } from '~/effect/database';
 import { PROJECT_S3_ALIAS, KRIDAS } from '~/constants';
 import { AiProvider } from '~/effect/ai';
 import { ImageProcessor } from '~/effect/image';
-import { DatabaseError } from '~/effect/errors';
+import { DatabaseError, NotFoundError, BadRequestError } from '~/effect/errors';
 import { reportSwallowedError } from '~/effect/report';
 import { ObjectStorage, type AssetLocation } from '~/effect/storage';
 import crypto from 'node:crypto';
@@ -35,63 +35,18 @@ export const OPENAI_MODELS = {
   image_generation: 'gpt-image-2.5-sunburst'
 } as const;
 
-const IMAGE_PROMPT_SYSTEM = `
-You are an expert at crafting image generation prompts for Sanskrit language-learning puzzle cards.
+import {
+  DEFAULT_COLLECTION_IMAGE_PROMPT_SYSTEM,
+  DEFAULT_IMAGE_PROMPT_SYSTEM
+} from '~/util/ai/image_prompt_defaults';
 
-Your task is to create a detailed, vivid image prompt for a given Sanskrit puzzle title/theme.
-
-**Art style rules:**
-- Modern flat-illustration style with rich, warm color palettes (saffron, ochre, deep teal, ivory, crimson, gold).
-- Inspired by Indian miniature painting aesthetics combined with clean modern graphic design.
-- Picture-book illustration quality — bold outlines, no photo-realism.
-- NO text, letters, or inscriptions anywhere in the image.
-- NO borders, frames, or decorative margins.
-- Do not mess up the gender of the subject (devi, deva, etc.).
-- Make sure to also include the subject even you include things related to it. That describe it or so
-- You dont always have to include a temple in background only do if it its needed and fits/suits the theme.
-
-**Composition rules:**
-- LANDSCAPE orientation (wider than tall, 3:2 aspect ratio).
-- Primary subject must be strongly centered — both vertically and horizontally — so it remains prominent even if the image is cropped to a square.
-- The composition should still use the full width: flanking elements (decorative motifs, background scenery) can extend to the edges, but must not compete with the center subject.
-- Foreground should have depth; avoid flat, single-layer compositions.
-
-**Indian-context guardrails:**
-- All visual references must be drawn from Indian/Hindu Dharma traditions: deities, temples, nature, Sanskrit wisdom themes, Vedic motifs, classical Indian music/dance, Indian flora/fauna, traditional crafts, etc.
-- Avoid any Western, Chinese, or non-Indian cultural symbols.
-- Use Indian cities, landscapes, or architectural styles when context suggests it.
-
-**Output schema:**
-- image_prompt: A single, detailed English paragraph (≤ 150 words) suitable for direct use in an image model.
-`.trim();
-
-const COLLECTION_IMAGE_PROMPT_SYSTEM = `
-You are an expert at crafting image generation prompts for covers of curated Sanskrit puzzle collections.
-
-Your task is to create a detailed, vivid image prompt for a collection title and description. The image represents the collection as a whole, not one puzzle.
-
-**Art style rules:**
-- Modern flat-illustration style with rich, warm color palettes (saffron, ochre, deep teal, ivory, crimson, gold).
-- Inspired by Indian miniature painting aesthetics combined with clean modern graphic design.
-- Picture-book illustration quality — bold outlines, no photo-realism.
-- NO text, letters, or inscriptions anywhere in the image.
-- NO borders, frames, or decorative margins.
-- Do not mess up the gender of the subject (devi, deva, etc.).
-- Include the central subject, not only symbols that stand in for it.
-- Include a temple in the background only when it fits the theme.
-
-**Composition rules:**
-- LANDSCAPE orientation (wider than tall, 3:2 aspect ratio).
-- Primary subject must be strongly centered — both vertically and horizontally — so it remains prominent even if the image is cropped to a square.
-- The composition should still use the full width: flanking elements can extend to the edges, but must not compete with the center subject.
-
-**Indian-context guardrails:**
-- All visual references must be drawn from Indian/Hindu Dharma traditions.
-- Avoid any Western, Chinese, or non-Indian cultural symbols.
-
-**Output schema:**
-- image_prompt: A single, detailed English paragraph (≤ 150 words) suitable for direct use in an image model.
-`.trim();
+/** Re-exported for existing importers; browser code must import the defaults module directly. */
+export {
+  DEFAULT_COLLECTION_IMAGE_PROMPT_SYSTEM_TITLE,
+  DEFAULT_COLLECTION_IMAGE_PROMPT_SYSTEM,
+  DEFAULT_IMAGE_PROMPT_SYSTEM_TITLE,
+  DEFAULT_IMAGE_PROMPT_SYSTEM
+} from '~/util/ai/image_prompt_defaults';
 
 const IMAGE_PROMPT_USER = `
 Generate an image prompt for the following Sanskrit puzzle:
@@ -128,6 +83,8 @@ export const generate_puzzle_image_input_schema = z.object({
   extra_instructions: z.string().optional(),
   /** Supply a pre-written image prompt to skip the prompt-generation step */
   existing_image_prompt: z.string().optional(),
+  /** DB template id; null/omitted = built-in default for the subject. */
+  system_prompt_template_id: z.number().int().nullable().optional(),
   /** Which game the image belongs to — controls the S3 subdirectory for puzzle images. */
   game: z.enum(KRIDAS),
   /** Collection covers use a different prompt and the `collections` S3 folder. */
@@ -141,7 +98,10 @@ export const generate_puzzle_image_output_schema = z.discriminatedUnion('success
     id: z.int(),
     s3_key: z.string(),
     image_prompt: z.string(),
-    description: z.string().optional()
+    description: z.string().optional(),
+    /** Snapshot of the system prompt used for this generation */
+    system_prompt_template_id: z.int().nullable().optional(),
+    system_prompt_used: z.string().optional()
   }),
   z.object({
     success: z.literal(false),
@@ -175,6 +135,9 @@ type GeneratedImageState = {
   readonly file_name: string;
   readonly image_description: string;
   readonly image_b64: string;
+  /** Snapshot of the system prompt used (undefined when a pre-written prompt skipped generation) */
+  readonly system_prompt_template_id?: number | null;
+  readonly system_prompt_used?: string;
 };
 
 type FailedGeneratePuzzleImageOutput = Extract<GeneratePuzzleImageOutput, { success: false }>;
@@ -219,19 +182,40 @@ const generatePuzzleCardImage = Effect.fn('generatePuzzleCardImage')(function* (
   });
 });
 
+/** Fetch an editable template row (null when the id does not exist; callers fail fast). */
+const fetchSystemPromptTemplate = (template_id: number) =>
+  dbRunHttp('fetchSystemPromptTemplate', (client) =>
+    client.query.image_system_prompt_templates.findFirst({
+      where: (tbl, { eq: eqOp }) => eqOp(tbl.id, template_id)
+    })
+  );
+
+/** Resolve the injectable system-prompt base: template content or built-in default. */
+export const resolveImageSystemPrompt = (
+  template_content: string | null | undefined,
+  subject: 'puzzle' | 'collection' = 'puzzle'
+): string => {
+  const trimmed = template_content?.trim();
+  if (trimmed) return trimmed;
+  return subject === 'collection'
+    ? DEFAULT_COLLECTION_IMAGE_PROMPT_SYSTEM
+    : DEFAULT_IMAGE_PROMPT_SYSTEM;
+};
+
 export const generateImagePrompt = Effect.fn('generateImagePrompt')(function* (
   title: string,
   description?: string,
   words?: string[],
   extra_instructions?: string,
-  subject: 'puzzle' | 'collection' = 'puzzle'
+  subject: 'puzzle' | 'collection' = 'puzzle',
+  system_prompt_override?: string
 ) {
   const ai = yield* AiProvider;
   const response = yield* ai.generateObject({
     operation: 'generate_image_prompt',
     provider: 'openrouter',
     model: ai.openrouterModel(OPENROUTER_MODELS.image_prompt),
-    system: subject === 'collection' ? COLLECTION_IMAGE_PROMPT_SYSTEM : IMAGE_PROMPT_SYSTEM,
+    system: resolveImageSystemPrompt(system_prompt_override, subject),
     prompt: buildImagePromptUserPrompt(title, description, words, extra_instructions, subject),
     schema: image_prompt_response_schema
   });
@@ -312,7 +296,14 @@ const resolveGeneratedImageState = Effect.fn('resolveGeneratedImageState')(funct
   existing_image_b64?: string,
   existing_file_name_description?: FileNameDescription
 ) {
-  const { title, description, words, extra_instructions, existing_image_prompt } = input;
+  const {
+    title,
+    description,
+    words,
+    extra_instructions,
+    existing_image_prompt,
+    system_prompt_template_id
+  } = input;
   const subject = input.subject ?? 'puzzle';
 
   if (existing_image_b64 && existing_image_b64.length > 0) {
@@ -324,9 +315,60 @@ const resolveGeneratedImageState = Effect.fn('resolveGeneratedImageState')(funct
     } satisfies GeneratedImageState;
   }
 
-  const image_prompt = existing_image_prompt
-    ? existing_image_prompt
-    : yield* generateImagePrompt(title, description, words, extra_instructions, subject);
+  // Pre-supplied prompts skip only the prompt-generation LLM step (filename +
+  // image generation still run); no template snapshot applies to them.
+  let image_prompt: string;
+  let resolved_template_id: number | null | undefined;
+  let system_prompt_used: string | undefined;
+  if (existing_image_prompt) {
+    image_prompt = existing_image_prompt;
+  } else {
+    // Fail fast on a deleted, empty, or cross-subject template: silently falling
+    // back would burn real model spend on the wrong prompt while metadata claims
+    // the template id.
+    let system_prompt_override: string | undefined;
+    if (system_prompt_template_id != null) {
+      const template = yield* fetchSystemPromptTemplate(system_prompt_template_id);
+      if (!template) {
+        return yield* Effect.fail(
+          NotFoundError.make({
+            resource: 'system_prompt_template',
+            message: 'System prompt template not found'
+          })
+        );
+      }
+      if (template.subject !== subject) {
+        return yield* Effect.fail(
+          BadRequestError.make({
+            message: `System prompt template "${template.title}" is for ${template.subject} images`
+          })
+        );
+      }
+      const trimmed = template.content.trim();
+      if (!trimmed) {
+        return yield* Effect.fail(
+          BadRequestError.make({
+            message: `System prompt template "${template.title}" is empty`
+          })
+        );
+      }
+      system_prompt_override = trimmed;
+      resolved_template_id = template.id;
+    }
+
+    image_prompt = yield* generateImagePrompt(
+      title,
+      description,
+      words,
+      extra_instructions,
+      subject,
+      system_prompt_override
+    );
+    // Snapshot only for template rows (default lives in code) — matches batch metadata.
+    if (resolved_template_id != null) {
+      system_prompt_used = resolveImageSystemPrompt(system_prompt_override, subject);
+    }
+  }
 
   const file_name_description = yield* generateFileNameAndDescription(image_prompt);
   const image_b64 = yield* generatePuzzleCardImage(image_prompt);
@@ -335,7 +377,9 @@ const resolveGeneratedImageState = Effect.fn('resolveGeneratedImageState')(funct
     image_prompt,
     file_name: file_name_description.file_name,
     image_description: file_name_description.description,
-    image_b64
+    image_b64,
+    system_prompt_template_id: resolved_template_id,
+    system_prompt_used
   } satisfies GeneratedImageState;
 });
 
@@ -458,6 +502,8 @@ export const generateSavePuzzleImage = Effect.fn('generateSavePuzzleImage')(func
     id: db_record.id,
     s3_key,
     image_prompt: generated_image.value.image_prompt,
-    description: generated_image.value.image_description
+    description: generated_image.value.image_description,
+    system_prompt_template_id: generated_image.value.system_prompt_template_id,
+    system_prompt_used: generated_image.value.system_prompt_used
   } satisfies Extract<GeneratePuzzleImageOutput, { success: true }>;
 });

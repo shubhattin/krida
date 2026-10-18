@@ -4,6 +4,7 @@ import {
   generateImagePrompt,
   generateFileNameAndDescription,
   generateSavePuzzleImage,
+  resolveImageSystemPrompt,
   OPENAI_MODELS,
   IMAGE_CONFIG
 } from '~/util/ai/image_gen';
@@ -59,6 +60,8 @@ export type TriggerBatchPuzzleImageGenInput = {
   game: PuzzleImageGame;
   auto_approved: boolean;
   puzzles: TriggerPuzzleImageInput[];
+  /** DB template id; null/omitted = built-in default. Stored per-row as a snapshot. */
+  system_prompt_template_id?: number | null;
 };
 
 export function parseBatchMetadata(metadata: BatchMetadata): BatchMetadata {
@@ -80,6 +83,9 @@ export function buildImageBatchMetadata(args: {
   image_prompt: string;
   file_name: string;
   image_description: string;
+  /** Snapshot of the system prompt used to generate this batch item */
+  system_prompt_template_id?: number | null;
+  system_prompt_used?: string;
 }): BatchMetadata {
   if (args.game === 'padajala') {
     return {
@@ -88,7 +94,9 @@ export function buildImageBatchMetadata(args: {
       puzzle_id: args.puzzle_id,
       image_prompt: args.image_prompt,
       file_name: args.file_name,
-      image_description: args.image_description
+      image_description: args.image_description,
+      system_prompt_template_id: args.system_prompt_template_id,
+      system_prompt_used: args.system_prompt_used
     };
   }
   return {
@@ -97,7 +105,9 @@ export function buildImageBatchMetadata(args: {
     puzzle_id: args.puzzle_id,
     image_prompt: args.image_prompt,
     file_name: args.file_name,
-    image_description: args.image_description
+    image_description: args.image_description,
+    system_prompt_template_id: args.system_prompt_template_id,
+    system_prompt_used: args.system_prompt_used
   };
 }
 
@@ -285,7 +295,7 @@ export const tryClaimBatchRow = Effect.fn('batch_ai.tryClaimBatchRow')(function*
 
 export const trigger_batch_puzzle_image_gen = Effect.fn('batch_ai.trigger_batch_puzzle_image_gen')(
   function* (input: TriggerBatchPuzzleImageGenInput) {
-    const { game, auto_approved, puzzles: puzzle_inputs } = input;
+    const { game, auto_approved, puzzles: puzzle_inputs, system_prompt_template_id } = input;
     const puzzle_ids = puzzle_inputs.map((puzzle) => puzzle.puzzle_id);
 
     const db_puzzles = yield* dbRunHttp('batch_ai.find_puzzles_for_trigger', (client) =>
@@ -333,13 +343,58 @@ export const trigger_batch_puzzle_image_gen = Effect.fn('batch_ai.trigger_batch_
       });
     }
 
+    // Resolve the selected template once — every row in this batch shares it,
+    // and each row stores it as a snapshot in its metadata. Fail fast on a
+    // deleted, empty, or cross-subject template before any model spend.
+    // Default-generated rows store no snapshot (the default lives in code).
+    let system_prompt_override: string | undefined;
+    let resolved_template_id: number | null | undefined;
+    if (system_prompt_template_id != null) {
+      const template = yield* dbRunHttp('batch_ai.fetch_prompt_template', (client) =>
+        client.query.image_system_prompt_templates.findFirst({
+          where: (tbl, { eq: eqOp }) => eqOp(tbl.id, system_prompt_template_id)
+        })
+      );
+      if (!template) {
+        return yield* Effect.fail(
+          NotFoundError.make({
+            resource: 'system_prompt_template',
+            message: 'System prompt template not found'
+          })
+        );
+      }
+      if (template.subject !== 'puzzle') {
+        return yield* Effect.fail(
+          BadRequestError.make({
+            message: `System prompt template "${template.title}" is for ${template.subject} images`
+          })
+        );
+      }
+      const trimmed = template.content.trim();
+      if (!trimmed) {
+        return yield* Effect.fail(
+          BadRequestError.make({
+            message: `System prompt template "${template.title}" is empty`
+          })
+        );
+      }
+      system_prompt_override = trimmed;
+      resolved_template_id = template.id;
+    }
+    const system_prompt_used =
+      resolved_template_id != null
+        ? resolveImageSystemPrompt(system_prompt_override, 'puzzle')
+        : undefined;
+
     const image_prompts = yield* Effect.all(
       resolved_puzzles.map((puzzle) =>
         generateImagePrompt(
           puzzle.title,
           puzzle.description,
           puzzle.words,
-          puzzle.extra_instructions
+          puzzle.extra_instructions,
+          'puzzle',
+          system_prompt_override
         )
       ),
       { concurrency: BATCH_EFFECT_CONCURRENCY }
@@ -380,7 +435,9 @@ export const trigger_batch_puzzle_image_gen = Effect.fn('batch_ai.trigger_batch_
               puzzle_id: puzzle.id,
               image_prompt: image_prompts[index],
               file_name: file_name_descriptions[index].file_name,
-              image_description: file_name_descriptions[index].description
+              image_description: file_name_descriptions[index].description,
+              system_prompt_template_id: resolved_template_id,
+              system_prompt_used
             })
           }))
         );

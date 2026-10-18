@@ -56,6 +56,8 @@ import {
   PaginationPrevious
 } from '~/components/ui/pagination';
 import { InputGroup, InputGroupAddon, InputGroupInput } from '~/components/ui/input-group';
+import { SystemPromptPicker } from '~/components/pages/system_prompts/SystemPromptPicker';
+import { useStoredTemplateId } from '~/util/system_prompt_storage';
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import { client, useTRPC } from '~/api/client';
 import { getCDNUrl } from '~/constants';
@@ -775,7 +777,9 @@ const CreateNewImageTab = ({
   include_custom_instructions,
   onIncludeCustomInstructionsChange,
   custom_instructions,
-  onCustomInstructionsChange
+  onCustomInstructionsChange,
+  system_prompt_template_id,
+  onSystemPromptChange
 }: {
   phase: GenerationPhase;
   custom_prompt: string;
@@ -796,6 +800,9 @@ const CreateNewImageTab = ({
   onIncludeCustomInstructionsChange: (checked: boolean) => void;
   custom_instructions: string;
   onCustomInstructionsChange: (value: string) => void;
+  /** null = built-in default; shared with single + batch generation */
+  system_prompt_template_id: number | null;
+  onSystemPromptChange: (id: number | null) => void;
 }) => {
   const batch_disabled = isWorking || isBatchQueuing;
 
@@ -859,6 +866,15 @@ const CreateNewImageTab = ({
                 disabled={isWorking}
               />
             ) : null}
+            <SystemPromptPicker
+              subject="puzzle"
+              selected_template_id={system_prompt_template_id}
+              onChange={onSystemPromptChange}
+              disabled={isWorking}
+            />
+            <p className="-mt-1 text-[11px] text-muted-foreground">
+              Applies when generating the prompt. Already-written prompts are used as-is.
+            </p>
           </div>
           <Button onClick={onStartGeneration} disabled={isWorking} className="gap-2">
             <Wand2 className="size-4" />
@@ -988,6 +1004,8 @@ function AIImageDialogContent({
   const [include_word_meanings, setIncludeWordMeanings] = useState(false);
   const [include_custom_instructions, setIncludeCustomInstructions] = useState(false);
   const [custom_instructions, setCustomInstructions] = useState('');
+  /** null = built-in default system prompt; restored from last session (SSR-safe) */
+  const [system_prompt_template_id, setSystemPromptTemplateId] = useStoredTemplateId('puzzle');
 
   const progress = useGenerationProgress(phase.state === 'generating');
 
@@ -1070,6 +1088,7 @@ function AIImageDialogContent({
       description,
       game,
       ...buildOptionalPromptContext(),
+      system_prompt_template_id,
       existing_image_prompt: existing_image_prompt || undefined
     });
   };
@@ -1086,7 +1105,8 @@ function AIImageDialogContent({
               title,
               description,
               game,
-              ...buildOptionalPromptContext()
+              ...buildOptionalPromptContext(),
+              system_prompt_template_id
             });
           },
           onError: () => {
@@ -1112,6 +1132,7 @@ function AIImageDialogContent({
               description,
               game,
               ...buildOptionalPromptContext(),
+              system_prompt_template_id,
               existing_image_prompt: promptToUse || undefined
             });
           },
@@ -1159,6 +1180,7 @@ function AIImageDialogContent({
     batch_trigger_mut.mutate({
       game,
       auto_approved,
+      system_prompt_template_id,
       puzzles: [
         {
           puzzle_id,
@@ -1216,6 +1238,8 @@ function AIImageDialogContent({
             onIncludeCustomInstructionsChange={setIncludeCustomInstructions}
             custom_instructions={custom_instructions}
             onCustomInstructionsChange={setCustomInstructions}
+            system_prompt_template_id={system_prompt_template_id}
+            onSystemPromptChange={setSystemPromptTemplateId}
           />
         </TabsContent>
 
