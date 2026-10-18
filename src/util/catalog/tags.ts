@@ -9,12 +9,11 @@ export const public_tag_schema = z.object({
 export type PublicTag = z.infer<typeof public_tag_schema>;
 
 export const GAME_KINDS = ['padavali', 'crossword', ...SIMPLE_GAME_KINDS] as const;
-export type GameKind = (typeof GAME_KINDS)[number];
-
-const GAME_KIND_SET: ReadonlySet<string> = new Set(GAME_KINDS);
+export const game_kind_schema = z.enum(GAME_KINDS);
+export type GameKind = z.infer<typeof game_kind_schema>;
 
 export function isGameKind(value: string): value is GameKind {
-  return GAME_KIND_SET.has(value);
+  return game_kind_schema.safeParse(value).success;
 }
 
 /** Lowercase slug: spaces become hyphens, anything outside `[a-z0-9_-]` is dropped. */

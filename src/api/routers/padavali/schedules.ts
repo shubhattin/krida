@@ -12,7 +12,7 @@ import {
 import { QStashPublisher, qstashDelaySeconds } from '~/effect/qstash';
 import { generateRandomAlphanumeric } from '~/tools/kry';
 import { runTrpcEffect } from '~/effect/run';
-import { DatabaseError, NotFoundError } from '~/effect/errors';
+import { BadRequestError, DatabaseError, NotFoundError } from '~/effect/errors';
 import { reportSwallowedError } from '~/effect/report';
 import { GAME_KINDS, isGameKind, type GameKind } from '~/util/catalog/tags';
 import { escapeIlikeToken, tokenizeSearchQuery } from '~/util/puzzle/search';
@@ -152,6 +152,13 @@ const add_puzzle_schedule_route = protectedAdminProcedure
       Effect.gen(function* () {
         const { puzzle_id, start_time, end_time } = input;
         const kind = yield* requireKind(yield* puzzleKind(puzzle_id));
+        if (kind === 'crossword') {
+          return yield* Effect.fail(
+            BadRequestError.make({
+              message: 'Use the crossword schedule manager for crossword puzzles'
+            })
+          );
+        }
         const [existing_schedule] = yield* dbRunHttp('schedules.find_overlapping', (client) =>
           client
             .select({ id: puzzle_schedules.id })
@@ -231,6 +238,13 @@ const update_puzzle_schedule_route = protectedAdminProcedure
     runTrpcEffect(
       Effect.gen(function* () {
         const kind = yield* requireKind(yield* puzzleKind(puzzle_id));
+        if (kind === 'crossword') {
+          return yield* Effect.fail(
+            BadRequestError.make({
+              message: 'Use the crossword schedule manager for crossword puzzles'
+            })
+          );
+        }
         const [previous] = yield* dbRunHttp('schedules.kind_before_update', (client) =>
           client
             .select({ kind: puzzles.kind })
@@ -239,7 +253,12 @@ const update_puzzle_schedule_route = protectedAdminProcedure
             .where(eq(puzzle_schedules.id, schedule_id))
             .limit(1)
         );
-        const previousKind = previous && isGameKind(previous.kind) ? previous.kind : undefined;
+        if (!previous) {
+          return yield* Effect.fail(
+            NotFoundError.make({ resource: 'schedule', message: 'Schedule not found' })
+          );
+        }
+        const previousKind = isGameKind(previous.kind) ? previous.kind : undefined;
         const [overlap] = yield* dbRunHttp('schedules.find_overlapping_update', (client) =>
           client
             .select({ id: puzzle_schedules.id })

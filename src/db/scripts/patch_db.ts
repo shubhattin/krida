@@ -34,8 +34,14 @@ import {
  *
  * `--prod` / `--preview` select both the database and `./out/db_data_*.json`,
  * same as the other scripts. The database must already be migrated to the new
- * schema. Puzzle and session ids are remapped; image, tag, collection, and
- * batch ids are kept.
+ * schema.
+ *
+ * Merged tables get fresh ids reassigned from 1 in deterministic dump order,
+ * with legacy→new maps tracked for cross-references (`puzzles`,
+ * `puzzle_sessions`). Leaf satellites (`puzzle_redirects`,
+ * `puzzle_attachments`, `puzzle_schedules`, `attempt_gameplay_stats`,
+ * `crossword_gameplay_stats`) also get explicit ids from 1 per table.
+ * Image, tag, collection, and batch ids are kept.
  */
 
 type PatchTx = Parameters<Parameters<typeof dbClient_ext.transaction>[0]>[0];
@@ -58,12 +64,14 @@ const SERIAL_TABLES = [
 ] as const;
 
 const main = async () => {
-  if (!(await confirm_environment())) return;
-
   console.log(`Patching ${dbMode} from ./out/${dbDataFileName}...`);
   const data = LegacyDumpSchema.parse(
     JSON.parse((await readFile(`./out/${dbDataFileName}`)).toString())
   );
+  // Fail before touching the database: every check here aborts prior to the
+  // destructive wipe inside the transaction below.
+  validateDump(data);
+  if (!(await confirm_environment(dumpSummary(data)))) return;
 
   await dbClient_ext.transaction(async (tx) => {
     await tx.execute(sql`select 1 from "puzzles" limit 0`);
@@ -89,11 +97,50 @@ main()
     void queryClient.end();
   });
 
-async function confirm_environment() {
+async function confirm_environment(summary: string) {
+  if (!process.stdin.isTTY) {
+    throw new Error('Refusing to patch without an interactive terminal (stdin is not a TTY)');
+  }
+  console.log(summary);
   const confirmation = await take_input(
-    `Are you sure PATCH ${dbMode} from ./out/${dbDataFileName} ? `
+    `Are you sure PATCH ${dbMode} from ./out/${dbDataFileName} ? Type "yes" to proceed: `
   );
-  return ['yes', 'y'].includes(confirmation);
+  return confirmation.trim().toLowerCase() === 'yes';
+}
+
+/** Pre-transaction semantic checks. Throws before any row is deleted. */
+function validateDump(data: LegacyDump): void {
+  const totalPuzzles = GAMES.reduce((sum, kind) => sum + listingRows(data, kind).length, 0);
+  if (totalPuzzles === 0) {
+    throw new Error('Refusing to wipe the target database for a dump containing zero puzzles');
+  }
+  const missingMetadata = data.ai_batch_responses
+    .filter((row) => row.metadata == null)
+    .map((row) => `${row.batch_id}/${row.custom_id}`);
+  if (missingMetadata.length > 0) {
+    throw new Error(
+      `AI batch responses missing metadata (would abort the reload): ${missingMetadata.join(', ')}`
+    );
+  }
+  // puzzles.uid is globally unique post-unification; per-game dumps may collide.
+  const seenUids = new Map<string, string>();
+  for (const kind of GAMES) {
+    for (const row of listingRows(data, kind)) {
+      const owner = seenUids.get(row.uid);
+      if (owner !== undefined) {
+        throw new Error(`Duplicate puzzle uid "${row.uid}" in ${owner} and ${kind} dumps`);
+      }
+      seenUids.set(row.uid, kind);
+    }
+  }
+}
+
+function dumpSummary(data: LegacyDump): string {
+  const parts = GAMES.map((kind) => `${kind}=${listingRows(data, kind).length}`);
+  const sessions =
+    ATTEMPT_GAMES.reduce((sum, kind) => sum + sessionsOf(data, kind).length, 0) +
+    data.crossword_sessions.length;
+  return `Dump counts: puzzles { ${parts.join(', ')} }, sessions=${sessions}, batches=${data.ai_batches.length}`;
 }
 
 async function deleteAllTables(tx: PatchTx): Promise<void> {
@@ -154,31 +201,31 @@ async function insertBatchResponses(
 
 async function insertPuzzles(tx: PatchTx, data: LegacyDump): Promise<IdMap> {
   const puzzleIds: IdMap = new Map();
+  let nextId = 1;
   for (const kind of GAMES) {
     const rows = listingRows(data, kind);
     if (rows.length === 0) continue;
-    const inserted = await tx
-      .insert(puzzles)
-      .values(
-        rows.map((row) => ({
-          kind,
-          uid: row.uid,
-          slug: row.slug,
-          title: row.title,
-          description: row.description,
-          listed: row.listed,
-          last_listed_at: row.last_listed_at,
-          image_id: row.image_id,
-          created_at: row.created_at,
-          updated_at: row.updated_at
-        }))
-      )
-      .returning({ id: puzzles.id, uid: puzzles.uid });
-    const idByUid = new Map(inserted.map((row) => [row.uid, row.id]));
-    for (const row of rows) {
-      const id = idByUid.get(row.uid);
-      if (id == null) throw new Error(`No new id for ${kind} puzzle uid ${row.uid}`);
+    const rowsWithIds = rows.map((row) => {
+      const id = nextId;
+      nextId += 1;
       puzzleIds.set(key(kind, row.id), id);
+      return {
+        id,
+        kind,
+        uid: row.uid,
+        slug: row.slug,
+        title: row.title,
+        description: row.description,
+        listed: row.listed,
+        last_listed_at: row.last_listed_at,
+        image_id: row.image_id,
+        created_at: row.created_at,
+        updated_at: row.updated_at
+      };
+    });
+    for (const chunk of chunkArray(rowsWithIds, 2000)) {
+      if (chunk.length === 0) continue;
+      await tx.insert(puzzles).values(chunk);
     }
     console.log(chalk.green('✓ Puzzles'), chalk.blue(kind), rows.length);
   }
@@ -279,22 +326,34 @@ async function insertCatalog(tx: PatchTx, data: LegacyDump, puzzleIds: IdMap): P
       created_at: row.created_at
     };
   });
-  if (tagRows.length > 0) await tx.insert(puzzle_tags).values(tagRows);
-  if (itemRows.length > 0) await tx.insert(collection_items).values(itemRows);
+  if (tagRows.length > 0) {
+    for (const chunk of chunkArray(tagRows, 2000)) {
+      await tx.insert(puzzle_tags).values(chunk);
+    }
+  }
+  if (itemRows.length > 0) {
+    for (const chunk of chunkArray(itemRows, 2000)) {
+      await tx.insert(collection_items).values(chunk);
+    }
+  }
   console.log(chalk.green('✓ Catalog links'), tagRows.length, itemRows.length);
 }
 
 async function insertSatellites(tx: PatchTx, data: LegacyDump, puzzleIds: IdMap): Promise<void> {
+  let nextRedirectId = 1;
   const redirectRows = GAMES.flatMap((kind) =>
     redirectsOf(data, kind).map((row) => ({
+      id: nextRedirectId++,
       puzzle_id: must(puzzleIds, kind, row.puzzle_id),
       kind,
       slug: row.slug,
       created_at: row.created_at
     }))
   );
+  let nextAttachmentId = 1;
   const attachmentRows = GAMES.flatMap((kind) =>
     attachmentsOf(data, kind).map((row) => ({
+      id: nextAttachmentId++,
       puzzle_id: must(puzzleIds, kind, row.puzzle_id),
       type: row.type,
       url: row.url,
@@ -304,8 +363,10 @@ async function insertSatellites(tx: PatchTx, data: LegacyDump, puzzleIds: IdMap)
       updated_at: row.updated_at
     }))
   );
+  let nextScheduleId = 1;
   const scheduleRows = (['padavali', 'crossword'] as const).flatMap((kind) =>
     schedulesOf(data, kind).map((row) => ({
+      id: nextScheduleId++,
       puzzle_id: must(puzzleIds, kind, row.puzzle_id),
       start_time: row.start_time,
       end_time: row.end_time,
@@ -314,19 +375,40 @@ async function insertSatellites(tx: PatchTx, data: LegacyDump, puzzleIds: IdMap)
       listing_verify_key: row.listing_verify_key
     }))
   );
-  if (redirectRows.length > 0) await tx.insert(puzzle_redirects).values(redirectRows);
-  if (attachmentRows.length > 0) await tx.insert(puzzle_attachments).values(attachmentRows);
-  if (scheduleRows.length > 0) await tx.insert(puzzle_schedules).values(scheduleRows);
+  if (redirectRows.length > 0) {
+    for (const chunk of chunkArray(redirectRows, 2000)) {
+      await tx.insert(puzzle_redirects).values(chunk);
+    }
+  }
+  if (attachmentRows.length > 0) {
+    for (const chunk of chunkArray(attachmentRows, 2000)) {
+      await tx.insert(puzzle_attachments).values(chunk);
+    }
+  }
+  if (scheduleRows.length > 0) {
+    for (const chunk of chunkArray(scheduleRows, 2000)) {
+      await tx.insert(puzzle_schedules).values(chunk);
+    }
+  }
 }
 
 async function insertPlayHistory(tx: PatchTx, data: LegacyDump, puzzleIds: IdMap): Promise<void> {
+  const sessionCounter = { next: 1 };
+  let nextAttemptStatId = 1;
   for (const kind of ATTEMPT_GAMES) {
-    const sessionIds = await insertSessions(tx, kind, sessionsOf(data, kind), puzzleIds);
+    const sessionIds = await insertSessions(
+      tx,
+      kind,
+      sessionsOf(data, kind),
+      puzzleIds,
+      sessionCounter
+    );
     const stats = attemptStatsOf(data, kind);
     for (const chunk of chunkArray(stats, 2000)) {
       if (chunk.length === 0) continue;
       await tx.insert(attempt_gameplay_stats).values(
         chunk.map((row) => ({
+          id: nextAttemptStatId++,
           puzzle_id: must(puzzleIds, kind, row.puzzle_id),
           session_id: must(sessionIds, kind, row.session_id),
           created_at: row.created_at,
@@ -344,12 +426,15 @@ async function insertPlayHistory(tx: PatchTx, data: LegacyDump, puzzleIds: IdMap
     tx,
     'crossword',
     data.crossword_sessions,
-    puzzleIds
+    puzzleIds,
+    sessionCounter
   );
+  let nextCrosswordStatId = 1;
   for (const chunk of chunkArray(data.crossword_gameplay_stats, 2000)) {
     if (chunk.length === 0) continue;
     await tx.insert(crossword_gameplay_stats).values(
       chunk.map((row) => ({
+        id: nextCrosswordStatId++,
         puzzle_id: must(puzzleIds, 'crossword', row.puzzle_id),
         session_id: must(crosswordSessionIds, 'crossword', row.session_id),
         created_at: row.created_at,
@@ -379,30 +464,27 @@ async function insertSessions(
   tx: PatchTx,
   kind: GameKind,
   rows: readonly SessionSource[],
-  puzzleIds: IdMap
+  puzzleIds: IdMap,
+  sessionCounter: { next: number }
 ): Promise<IdMap> {
   const sessionIds: IdMap = new Map();
-  for (const chunk of chunkArray([...rows], 2000)) {
+  const rowsWithIds = [...rows].map((row) => {
+    const id = sessionCounter.next;
+    sessionCounter.next += 1;
+    sessionIds.set(key(kind, row.id), id);
+    return {
+      id,
+      puzzle_id: must(puzzleIds, kind, row.puzzle_id),
+      created_at: row.created_at,
+      practice_mode: row.practice_mode ?? false,
+      location: row.location,
+      script: row.script ?? null,
+      user_id: row.user_id
+    };
+  });
+  for (const chunk of chunkArray(rowsWithIds, 2000)) {
     if (chunk.length === 0) continue;
-    const inserted = await tx
-      .insert(puzzle_sessions)
-      .values(
-        chunk.map((row) => ({
-          puzzle_id: must(puzzleIds, kind, row.puzzle_id),
-          created_at: row.created_at,
-          practice_mode: row.practice_mode ?? false,
-          location: row.location,
-          script: row.script ?? null,
-          user_id: row.user_id
-        }))
-      )
-      .returning({ id: puzzle_sessions.id });
-    if (inserted.length !== chunk.length) {
-      throw new Error(`Session insert for ${kind} returned ${inserted.length} ids`);
-    }
-    chunk.forEach((row, index) => {
-      sessionIds.set(key(kind, row.id), inserted[index]!.id);
-    });
+    await tx.insert(puzzle_sessions).values(chunk);
   }
   return sessionIds;
 }

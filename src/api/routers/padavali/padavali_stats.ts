@@ -90,7 +90,9 @@ const submit_stats_route = publicProcedure
             await client
               .update(puzzle_sessions)
               .set({ practice_mode: true })
-              .where(eq(puzzle_sessions.id, session_id));
+              .where(
+                and(eq(puzzle_sessions.id, session_id), eq(puzzle_sessions.puzzle_id, puzzle_id))
+              );
           });
         }
 
@@ -236,7 +238,9 @@ const update_session_practice_mode_route = publicProcedure
           await client
             .update(puzzle_sessions)
             .set({ practice_mode })
-            .where(eq(puzzle_sessions.id, session_id));
+            .where(
+              and(eq(puzzle_sessions.id, session_id), eq(puzzle_sessions.puzzle_id, puzzle_id))
+            );
         });
 
         return { success: true };

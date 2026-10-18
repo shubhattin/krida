@@ -1,12 +1,19 @@
 import { createFileRoute, redirect } from '@tanstack/react-router';
+import { z } from 'zod';
 import { CalendarIcon } from 'lucide-react';
 import { AllGamesMenuItems } from '~/components/app-bar/GameMenuItems';
 import { HubHeader } from '~/components/hub/HubHeader';
 import { SchedulesManager } from '~/components/pages/schedules/SchedulesManager';
 import { routeHeadFromPageMeta } from '~/components/tags/getPageMetaTags';
 import { getUserSession$ } from '~/lib/get_auth_from_cookie';
+import { GAME_KINDS } from '~/util/catalog/tags';
+
+const schedules_search_schema = z.object({
+  kinds: z.array(z.enum(GAME_KINDS)).catch([])
+});
 
 export const Route = createFileRoute('/schedules')({
+  validateSearch: schedules_search_schema,
   beforeLoad: async () => {
     const session = await getUserSession$();
     if (!session?.user || session.user.role !== 'admin') {
@@ -25,6 +32,7 @@ export const Route = createFileRoute('/schedules')({
 });
 
 function SchedulesRoute() {
+  const { kinds } = Route.useSearch();
   return (
     <div className="public-canvas flex min-h-dvh flex-col">
       <HubHeader gameMenuItems={<AllGamesMenuItems />} />
@@ -39,7 +47,7 @@ function SchedulesRoute() {
             crossword slots.
           </p>
         </header>
-        <SchedulesManager />
+        <SchedulesManager key={kinds.join(',')} initialKinds={kinds} />
       </main>
     </div>
   );

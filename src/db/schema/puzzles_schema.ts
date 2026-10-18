@@ -3,6 +3,7 @@ import {
   foreignKey,
   index,
   integer,
+  pgEnum,
   pgTable,
   primaryKey,
   serial,
@@ -14,17 +15,18 @@ import {
   varchar
 } from 'drizzle-orm/pg-core';
 import { relations } from 'drizzle-orm';
-import type { GameKind } from '~/util/catalog/tags';
+import { GAME_KINDS } from '~/util/catalog/tags';
 import type { location_list_type } from '../types';
 import type { ScriptType } from '~/state/script_list';
 import { attachment_type_enum, collections, image_assets, tags } from './common_schema';
+
+export const game_kind_enum = pgEnum('game_kind', GAME_KINDS);
 
 export const puzzles = pgTable(
   'puzzles',
   {
     id: serial().primaryKey(),
-    /** Game id. Text so a new game does not need an enum migration. */
-    kind: text().notNull().$type<GameKind>(),
+    kind: game_kind_enum().notNull(),
     uid: text().notNull().unique(),
     slug: text().notNull(),
     title: text().notNull(),
@@ -91,7 +93,7 @@ export const puzzle_redirects = pgTable(
   {
     id: serial().primaryKey(),
     puzzle_id: integer().notNull(),
-    kind: text().notNull().$type<GameKind>(),
+    kind: game_kind_enum().notNull(),
     slug: text().notNull(),
     created_at: timestamp({ withTimezone: true }).notNull().defaultNow()
   },

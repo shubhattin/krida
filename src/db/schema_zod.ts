@@ -26,7 +26,7 @@ import { location_list_enum } from './types';
 import { script_list_enum } from '~/state/script_list';
 import { batch_metadata_schema } from '~/util/types/ai_batch_metadata';
 
-import { GAME_KINDS } from '~/util/catalog/tags';
+import { game_kind_schema } from '~/util/catalog/tags';
 import { padavali_word_candidate_list_schema } from '~/util/puzzle/word_list';
 import { dvayi_puzzle_data_schema } from '~/util/dvayi/data';
 import { bhramita_puzzle_data_schema } from '~/util/bhramita/data';
@@ -41,7 +41,7 @@ const puzzleDates = {
 
 export const PuzzleSchemaZod = createSelectSchema(puzzles, {
   ...puzzleDates,
-  kind: z.enum(GAME_KINDS)
+  kind: game_kind_schema
 });
 
 export const PadavaliPuzzleSchemaZod = createSelectSchema(padavali_puzzles, {
@@ -140,7 +140,7 @@ export const AiBatchSchemaZod = createSelectSchema(ai_batches);
 
 export const PuzzleRedirectSchemaZod = createSelectSchema(puzzle_redirects, {
   created_at: z.coerce.date(),
-  kind: z.enum(GAME_KINDS)
+  kind: game_kind_schema
 });
 
 export const ImageAssetSchemaZod = createSelectSchema(image_assets, {

@@ -236,10 +236,10 @@ function SearchField({
   );
 }
 
-export function SchedulesManager() {
+export function SchedulesManager({ initialKinds = [] }: { initialKinds?: GameKind[] }) {
   const trpc = useTRPC();
   const queryClient = useQueryClient();
-  const [kinds, setKinds] = useState<GameKind[]>([]);
+  const [kinds, setKinds] = useState<GameKind[]>(initialKinds);
   const [query, setQuery] = useState('');
   const [debounced, setDebounced] = useState('');
   const [when, setWhen] = useState<'upcoming' | 'past'>('upcoming');
@@ -472,8 +472,36 @@ function ScheduleDialog({
       onError: () => toast.error('Could not add the schedule')
     })
   );
+  const addCrossword = useMutation(
+    trpc.crossword.schedules.add_puzzle_schedule.mutationOptions({
+      onSuccess: async (data) => {
+        if (!data.success) {
+          toast.error('Another schedule for this game already covers that time');
+          return;
+        }
+        toast.success('Schedule added');
+        await queryClient.invalidateQueries(trpc.schedules.list_schedules.queryFilter());
+        onOpenChange(false);
+      },
+      onError: () => toast.error('Could not add the schedule')
+    })
+  );
   const update = useMutation(
     trpc.schedules.update_puzzle_schedule.mutationOptions({
+      onSuccess: async (data) => {
+        if (!data.success) {
+          toast.error('Another schedule for this game already covers that time');
+          return;
+        }
+        toast.success('Schedule updated');
+        await queryClient.invalidateQueries(trpc.schedules.list_schedules.queryFilter());
+        onOpenChange(false);
+      },
+      onError: () => toast.error('Could not update the schedule')
+    })
+  );
+  const updateCrossword = useMutation(
+    trpc.crossword.schedules.update_puzzle_schedule.mutationOptions({
       onSuccess: async (data) => {
         if (!data.success) {
           toast.error('Another schedule for this game already covers that time');
@@ -495,10 +523,15 @@ function ScheduleDialog({
       toast.error('Start time has to be before the end');
       return;
     }
+    const targetGame = puzzle.game;
     if (schedule) {
-      update.mutate({ schedule_id: schedule.id, puzzle_id: puzzle.id, start_time, end_time });
+      const input = { schedule_id: schedule.id, puzzle_id: puzzle.id, start_time, end_time };
+      if (targetGame === 'crossword') updateCrossword.mutate(input);
+      else update.mutate(input);
     } else {
-      add.mutate({ puzzle_id: puzzle.id, start_time, end_time });
+      const input = { puzzle_id: puzzle.id, start_time, end_time };
+      if (targetGame === 'crossword') addCrossword.mutate(input);
+      else add.mutate(input);
     }
   };
 
@@ -598,7 +631,13 @@ function ScheduleDialog({
           </Button>
           <Button
             type="button"
-            disabled={!puzzle || add.isPending || update.isPending}
+            disabled={
+              !puzzle ||
+              add.isPending ||
+              update.isPending ||
+              addCrossword.isPending ||
+              updateCrossword.isPending
+            }
             onClick={save}
           >
             {schedule ? 'Save' : 'Add schedule'}

@@ -1,3 +1,4 @@
+CREATE TYPE "public"."game_kind" AS ENUM('padavali', 'crossword', 'dvayi', 'bhramita', 'surupa', 'anveshi');--> statement-breakpoint
 CREATE TABLE "attempt_gameplay_stats" (
 	"id" serial PRIMARY KEY NOT NULL,
 	"puzzle_id" integer NOT NULL,
@@ -31,7 +32,7 @@ CREATE TABLE "puzzle_attachments" (
 CREATE TABLE "puzzle_redirects" (
 	"id" serial PRIMARY KEY NOT NULL,
 	"puzzle_id" integer NOT NULL,
-	"kind" text NOT NULL,
+	"kind" "game_kind" NOT NULL,
 	"slug" text NOT NULL,
 	"created_at" timestamp with time zone DEFAULT now() NOT NULL
 );
@@ -64,7 +65,7 @@ CREATE TABLE "puzzle_tags" (
 --> statement-breakpoint
 CREATE TABLE "puzzles" (
 	"id" serial PRIMARY KEY NOT NULL,
-	"kind" text NOT NULL,
+	"kind" "game_kind" NOT NULL,
 	"uid" text NOT NULL,
 	"slug" text NOT NULL,
 	"title" text NOT NULL,
@@ -74,7 +75,8 @@ CREATE TABLE "puzzles" (
 	"image_id" integer,
 	"created_at" timestamp with time zone DEFAULT now() NOT NULL,
 	"updated_at" timestamp with time zone,
-	CONSTRAINT "puzzles_uid_unique" UNIQUE("uid")
+	CONSTRAINT "puzzles_uid_unique" UNIQUE("uid"),
+	CONSTRAINT "puzzles_id_kind_idx" UNIQUE("id","kind")
 );
 --> statement-breakpoint
 ALTER TABLE "padavali_attachments" DISABLE ROW LEVEL SECURITY;--> statement-breakpoint
@@ -161,6 +163,8 @@ ALTER TABLE "padavali_puzzles" DROP CONSTRAINT "padavali_puzzles_image_id_image_
 --> statement-breakpoint
 ALTER TABLE "crossword_gameplay_stats" DROP CONSTRAINT "crossword_gameplay_stats_puzzle_id_crossword_puzzles_id_fk";
 --> statement-breakpoint
+ALTER TABLE "crossword_gameplay_stats" DROP CONSTRAINT "crossword_gameplay_stats_session_id_crossword_sessions_id_fk";
+--> statement-breakpoint
 ALTER TABLE "crossword_puzzles" DROP CONSTRAINT "crossword_puzzles_image_id_image_assets_id_fk";
 --> statement-breakpoint
 ALTER TABLE "dvayi_puzzles" DROP CONSTRAINT "dvayi_puzzles_image_id_image_assets_id_fk";
@@ -206,7 +210,6 @@ ALTER TABLE "attempt_gameplay_stats" ADD CONSTRAINT "attempt_gameplay_stats_sess
 ALTER TABLE "collection_items" ADD CONSTRAINT "collection_items_collection_id_collections_id_fk" FOREIGN KEY ("collection_id") REFERENCES "public"."collections"("id") ON DELETE cascade ON UPDATE no action;--> statement-breakpoint
 ALTER TABLE "collection_items" ADD CONSTRAINT "collection_items_puzzle_id_puzzles_id_fk" FOREIGN KEY ("puzzle_id") REFERENCES "public"."puzzles"("id") ON DELETE cascade ON UPDATE no action;--> statement-breakpoint
 ALTER TABLE "puzzle_attachments" ADD CONSTRAINT "puzzle_attachments_puzzle_id_puzzles_id_fk" FOREIGN KEY ("puzzle_id") REFERENCES "public"."puzzles"("id") ON DELETE cascade ON UPDATE no action;--> statement-breakpoint
-ALTER TABLE "puzzles" ADD CONSTRAINT "puzzles_id_kind_idx" UNIQUE("id","kind");--> statement-breakpoint
 ALTER TABLE "puzzle_redirects" ADD CONSTRAINT "puzzle_redirects_puzzle_id_kind_fk" FOREIGN KEY ("puzzle_id","kind") REFERENCES "public"."puzzles"("id","kind") ON DELETE cascade ON UPDATE no action;--> statement-breakpoint
 ALTER TABLE "puzzle_schedules" ADD CONSTRAINT "puzzle_schedules_puzzle_id_puzzles_id_fk" FOREIGN KEY ("puzzle_id") REFERENCES "public"."puzzles"("id") ON DELETE cascade ON UPDATE no action;--> statement-breakpoint
 ALTER TABLE "puzzle_sessions" ADD CONSTRAINT "puzzle_sessions_puzzle_id_puzzles_id_fk" FOREIGN KEY ("puzzle_id") REFERENCES "public"."puzzles"("id") ON DELETE cascade ON UPDATE no action;--> statement-breakpoint
@@ -234,21 +237,6 @@ CREATE INDEX "puzzles_listed_created_at_idx" ON "puzzles" USING btree ("listed",
 CREATE INDEX "puzzles_listed_updated_at_idx" ON "puzzles" USING btree ("listed","updated_at");--> statement-breakpoint
 CREATE INDEX "puzzles_listed_last_listed_at_idx" ON "puzzles" USING btree ("listed","last_listed_at");--> statement-breakpoint
 CREATE INDEX "puzzles_kind_listed_idx" ON "puzzles" USING btree ("kind","listed");--> statement-breakpoint
--- Old puzzle ids overlap across games, so these rows cannot stay.
--- Reload them with src/db/scripts/patch_db.ts from the legacy JSON dump.
-DELETE FROM "crossword_gameplay_stats";--> statement-breakpoint
-DELETE FROM "padavali_puzzles";--> statement-breakpoint
-DELETE FROM "crossword_puzzles";--> statement-breakpoint
-DELETE FROM "dvayi_puzzles";--> statement-breakpoint
-DELETE FROM "bhramita_puzzles";--> statement-breakpoint
-DELETE FROM "surupa_puzzles";--> statement-breakpoint
-DELETE FROM "anveshi_puzzles";--> statement-breakpoint
-ALTER TABLE "padavali_puzzles" ALTER COLUMN "id" DROP DEFAULT;--> statement-breakpoint
-ALTER TABLE "crossword_puzzles" ALTER COLUMN "id" DROP DEFAULT;--> statement-breakpoint
-ALTER TABLE "dvayi_puzzles" ALTER COLUMN "id" DROP DEFAULT;--> statement-breakpoint
-ALTER TABLE "bhramita_puzzles" ALTER COLUMN "id" DROP DEFAULT;--> statement-breakpoint
-ALTER TABLE "surupa_puzzles" ALTER COLUMN "id" DROP DEFAULT;--> statement-breakpoint
-ALTER TABLE "anveshi_puzzles" ALTER COLUMN "id" DROP DEFAULT;--> statement-breakpoint
 ALTER TABLE "padavali_puzzles" ADD CONSTRAINT "padavali_puzzles_id_puzzles_id_fk" FOREIGN KEY ("id") REFERENCES "public"."puzzles"("id") ON DELETE cascade ON UPDATE no action;--> statement-breakpoint
 ALTER TABLE "crossword_gameplay_stats" ADD CONSTRAINT "crossword_gameplay_stats_puzzle_id_puzzles_id_fk" FOREIGN KEY ("puzzle_id") REFERENCES "public"."puzzles"("id") ON DELETE cascade ON UPDATE no action;--> statement-breakpoint
 ALTER TABLE "crossword_gameplay_stats" ADD CONSTRAINT "crossword_gameplay_stats_session_id_puzzle_sessions_id_fk" FOREIGN KEY ("session_id") REFERENCES "public"."puzzle_sessions"("id") ON DELETE cascade ON UPDATE no action;--> statement-breakpoint
