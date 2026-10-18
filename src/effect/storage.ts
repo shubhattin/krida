@@ -13,11 +13,18 @@ import { StorageError } from './errors';
 
 const ASSET_ROOTS = [...KRIDAS, 'collections'] as const;
 
+/** Pre-rename uploads live under `crossword/`; deletable but never written again. */
+const LEGACY_ASSET_ROOTS = [...ASSET_ROOTS, 'crossword'] as const;
+
 export type AssetLocation =
   `${typeof PROJECT_S3_ALIAS}/${(typeof ASSET_ROOTS)[number]}/image_assets/${string}.webp`;
 
 const ASSET_KEY_PATTERN = new RegExp(
   `^${PROJECT_S3_ALIAS}/(?:${ASSET_ROOTS.join('|')})/image_assets/[\\w.-]+\\.webp$`
+);
+
+const DELETE_KEY_PATTERN = new RegExp(
+  `^${PROJECT_S3_ALIAS}/(?:${LEGACY_ASSET_ROOTS.join('|')})/image_assets/[\\w.-]+\\.webp$`
 );
 
 const tryStorage = <A>(operation: string, key: string | undefined, run: () => Promise<A>) =>
@@ -65,7 +72,7 @@ export class ObjectStorage extends Context.Service<
           }),
         deleteAssetFile: (key) =>
           tryStorage('deleteAssetFile', key, async () => {
-            if (!ASSET_KEY_PATTERN.test(key)) {
+            if (!DELETE_KEY_PATTERN.test(key)) {
               throw new Error(`Invalid asset key: ${key}`);
             }
             return s3.send(
