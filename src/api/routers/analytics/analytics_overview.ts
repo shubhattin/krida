@@ -3,20 +3,14 @@ import { and, count, eq, gte, isNotNull, lte, sql, type SQL } from 'drizzle-orm'
 import type { AnyPgColumn, AnyPgTable } from 'drizzle-orm/pg-core';
 import {
   attempt_gameplay_stats,
-  crossword_gameplay_stats,
+  padajala_gameplay_stats,
   puzzle_sessions,
   puzzles
 } from '~/db/schema';
 import type { GameKind } from '~/util/catalog/tags';
 import { dbRunHttp } from '~/effect/database';
 
-export type AdminAnalyticsGameId =
-  | 'padavali'
-  | 'padajala'
-  | 'dvayi'
-  | 'bhramita'
-  | 'surupa'
-  | 'anveshi';
+export type AdminAnalyticsGameId = GameKind;
 
 /** One game row of the cross-game admin overview. */
 export type AdminAnalyticsGameRow = {
@@ -64,10 +58,6 @@ type StatsTable = AnyPgTable & {
   created_at: AnyPgColumn;
   puzzle_id: AnyPgColumn;
 };
-
-function analyticsKind(game: AdminAnalyticsGameId): GameKind {
-  return game === 'padajala' ? 'crossword' : game;
-}
 
 export const ADMIN_ANALYTICS_GAME_ORDER = [
   'padavali',
@@ -228,7 +218,7 @@ const fetchTableStats = Effect.fn('analytics.table_game_stats')(function* (
 
 const GAME_TABLES = {
   padavali: { label: 'padavali', kind: 'padavali' as const, stats: attempt_gameplay_stats },
-  padajala: { label: 'padajala', kind: 'crossword' as const, stats: crossword_gameplay_stats },
+  padajala: { label: 'padajala', kind: 'padajala' as const, stats: padajala_gameplay_stats },
   dvayi: { label: 'dvayi', kind: 'dvayi' as const, stats: attempt_gameplay_stats },
   bhramita: { label: 'bhramita', kind: 'bhramita' as const, stats: attempt_gameplay_stats },
   surupa: { label: 'surupa', kind: 'surupa' as const, stats: attempt_gameplay_stats },
@@ -251,7 +241,7 @@ export const fetchAdminAnalyticsOverview = Effect.fn('analytics.overview')(funct
   const fetched = yield* Effect.all(
     ordered.map((game) => {
       const tables = GAME_TABLES[game];
-      return fetchTableStats(tables.label, analyticsKind(game), tables.stats, query).pipe(
+      return fetchTableStats(tables.label, tables.kind, tables.stats, query).pipe(
         Effect.map((result) => ({ game, result }))
       );
     }),

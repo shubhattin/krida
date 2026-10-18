@@ -7,7 +7,7 @@ import { robotoSans } from '../fonts';
 import SupportOptions from '~/components/app-bar/SupportOptions';
 import { GAME_APP_ICON_SRC, type GameAppIconId } from '~/components/GameAppIcon';
 
-export type AppGame = 'padavali' | 'crossword';
+export type AppGame = 'padavali' | 'padajala';
 
 const GAME_DEFAULTS = {
   padavali: {
@@ -17,9 +17,9 @@ const GAME_DEFAULTS = {
     iconGame: 'padavali',
     showPwaControls: true
   },
-  crossword: {
+  padajala: {
     title: 'Padajāla',
-    description: 'Crossword Puzzles',
+    description: 'Padajala Puzzles',
     href: '/padajala',
     iconGame: 'padajala',
     showPwaControls: false

@@ -47,7 +47,7 @@ const get_puzzle_word_meanings_route = publicProcedure
     )
   );
 
-const get_crossword_more_hints_route = publicProcedure
+const get_padajala_more_hints_route = publicProcedure
   .input(
     z.object({
       puzzle_id: z.number().int(),
@@ -58,22 +58,22 @@ const get_crossword_more_hints_route = publicProcedure
   .query(({ input: { puzzle_id, puzzle_slug } }) =>
     runTrpcEffect(
       Effect.gen(function* () {
-        const puzzle = yield* CACHE.crossword.word_puzzle.get({ slug: puzzle_slug });
+        const puzzle = yield* CACHE.padajala.word_puzzle.get({ slug: puzzle_slug });
         if (!puzzle || puzzle.id !== puzzle_id) {
           return yield* Effect.fail(
             NotFoundError.make({
-              resource: 'crossword_puzzle',
-              message: 'Crossword puzzle not found'
+              resource: 'padajala_puzzle',
+              message: 'Padajala puzzle not found'
             })
           );
         }
 
-        return yield* CACHE.crossword.more_hints.get({ slug: puzzle_slug });
+        return yield* CACHE.padajala.more_hints.get({ slug: puzzle_slug });
       })
     )
   );
 
 export const public_ai_router = t.router({
   get_puzzle_word_meanings: get_puzzle_word_meanings_route,
-  get_crossword_more_hints: get_crossword_more_hints_route
+  get_padajala_more_hints: get_padajala_more_hints_route
 });

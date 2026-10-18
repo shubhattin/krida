@@ -157,7 +157,7 @@ export const puzzle_sessions = pgTable(
     /** Padavali only. Other games store false. */
     practice_mode: boolean().notNull().default(false),
     location: varchar({ length: 25 }).$type<location_list_type>(),
-    /** Padavali and the simple games. Crossword stores null. */
+    /** Padavali and the simple games. Padajala stores null. */
     script: text().$type<ScriptType>(),
     /** Better Auth user id; null for anonymous plays */
     user_id: text()
@@ -194,8 +194,8 @@ export const attempt_gameplay_stats = pgTable(
 );
 
 /** Grid-entry stats. Columns do not match `attempt_gameplay_stats`. */
-export const crossword_gameplay_stats = pgTable(
-  'crossword_gameplay_stats',
+export const padajala_gameplay_stats = pgTable(
+  'padajala_gameplay_stats',
   {
     id: serial().primaryKey(),
     puzzle_id: integer()
@@ -215,11 +215,8 @@ export const crossword_gameplay_stats = pgTable(
     incorrect_entry_attempts: integer().notNull()
   },
   (table) => [
-    index('crossword_gameplay_stats_puzzle_id_created_at_idx').on(
-      table.puzzle_id,
-      table.created_at
-    ),
-    uniqueIndex('crossword_gameplay_stats_session_id_idx').on(table.session_id)
+    index('padajala_gameplay_stats_puzzle_id_created_at_idx').on(table.puzzle_id, table.created_at),
+    uniqueIndex('padajala_gameplay_stats_session_id_idx').on(table.session_id)
   ]
 );
 
@@ -272,7 +269,7 @@ export const puzzle_sessionsRelations = relations(puzzle_sessions, ({ one }) => 
     references: [puzzles.id]
   }),
   attempt_stats: one(attempt_gameplay_stats),
-  crossword_stats: one(crossword_gameplay_stats)
+  padajala_stats: one(padajala_gameplay_stats)
 }));
 
 export const attempt_gameplay_statsRelations = relations(attempt_gameplay_stats, ({ one }) => ({
@@ -286,13 +283,13 @@ export const attempt_gameplay_statsRelations = relations(attempt_gameplay_stats,
   })
 }));
 
-export const crossword_gameplay_statsRelations = relations(crossword_gameplay_stats, ({ one }) => ({
+export const padajala_gameplay_statsRelations = relations(padajala_gameplay_stats, ({ one }) => ({
   puzzle: one(puzzles, {
-    fields: [crossword_gameplay_stats.puzzle_id],
+    fields: [padajala_gameplay_stats.puzzle_id],
     references: [puzzles.id]
   }),
   session: one(puzzle_sessions, {
-    fields: [crossword_gameplay_stats.session_id],
+    fields: [padajala_gameplay_stats.session_id],
     references: [puzzle_sessions.id]
   })
 }));

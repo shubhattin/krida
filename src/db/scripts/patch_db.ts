@@ -13,8 +13,8 @@ import {
   bhramita_puzzles,
   collection_items,
   collections,
-  crossword_gameplay_stats,
-  crossword_puzzles,
+  padajala_gameplay_stats,
+  padajala_puzzles,
   dvayi_puzzles,
   image_assets,
   padavali_puzzles,
@@ -40,14 +40,14 @@ import {
  * with legacy→new maps tracked for cross-references (`puzzles`,
  * `puzzle_sessions`). Leaf satellites (`puzzle_redirects`,
  * `puzzle_attachments`, `puzzle_schedules`, `attempt_gameplay_stats`,
- * `crossword_gameplay_stats`) also get explicit ids from 1 per table.
+ * `padajala_gameplay_stats`) also get explicit ids from 1 per table.
  * Image, tag, collection, and batch ids are kept.
  */
 
 type PatchTx = Parameters<Parameters<typeof dbClient_ext.transaction>[0]>[0];
 type IdMap = Map<string, number>;
 
-const GAMES = ['padavali', 'crossword', 'dvayi', 'bhramita', 'surupa', 'anveshi'] as const;
+const GAMES = ['padavali', 'padajala', 'dvayi', 'bhramita', 'surupa', 'anveshi'] as const;
 const ATTEMPT_GAMES = ['padavali', 'dvayi', 'bhramita', 'surupa', 'anveshi'] as const;
 
 const SERIAL_TABLES = [
@@ -60,7 +60,7 @@ const SERIAL_TABLES = [
   'puzzle_schedules',
   'puzzle_sessions',
   'attempt_gameplay_stats',
-  'crossword_gameplay_stats'
+  'padajala_gameplay_stats'
 ] as const;
 
 const main = async () => {
@@ -139,13 +139,13 @@ function dumpSummary(data: LegacyDump): string {
   const parts = GAMES.map((kind) => `${kind}=${listingRows(data, kind).length}`);
   const sessions =
     ATTEMPT_GAMES.reduce((sum, kind) => sum + sessionsOf(data, kind).length, 0) +
-    data.crossword_sessions.length;
+    data.padajala_sessions.length;
   return `Dump counts: puzzles { ${parts.join(', ')} }, sessions=${sessions}, batches=${data.ai_batches.length}`;
 }
 
 async function deleteAllTables(tx: PatchTx): Promise<void> {
   await tx.delete(attempt_gameplay_stats);
-  await tx.delete(crossword_gameplay_stats);
+  await tx.delete(padajala_gameplay_stats);
   await tx.delete(puzzle_sessions);
   await tx.delete(puzzle_schedules);
   await tx.delete(puzzle_attachments);
@@ -153,7 +153,7 @@ async function deleteAllTables(tx: PatchTx): Promise<void> {
   await tx.delete(puzzle_tags);
   await tx.delete(collection_items);
   await tx.delete(padavali_puzzles);
-  await tx.delete(crossword_puzzles);
+  await tx.delete(padajala_puzzles);
   await tx.delete(dvayi_puzzles);
   await tx.delete(bhramita_puzzles);
   await tx.delete(surupa_puzzles);
@@ -243,10 +243,10 @@ async function insertPayloads(tx: PatchTx, data: LegacyDump, puzzleIds: IdMap): 
       }))
     );
   }
-  if (data.crossword_puzzles.length > 0) {
-    await tx.insert(crossword_puzzles).values(
-      data.crossword_puzzles.map((row) => ({
-        id: must(puzzleIds, 'crossword', row.id),
+  if (data.padajala_puzzles.length > 0) {
+    await tx.insert(padajala_puzzles).values(
+      data.padajala_puzzles.map((row) => ({
+        id: must(puzzleIds, 'padajala', row.id),
         grid_dimensions: row.grid_dimensions,
         grid_data: row.grid_data,
         word_list: row.word_list
@@ -364,7 +364,7 @@ async function insertSatellites(tx: PatchTx, data: LegacyDump, puzzleIds: IdMap)
     }))
   );
   let nextScheduleId = 1;
-  const scheduleRows = (['padavali', 'crossword'] as const).flatMap((kind) =>
+  const scheduleRows = (['padavali', 'padajala'] as const).flatMap((kind) =>
     schedulesOf(data, kind).map((row) => ({
       id: nextScheduleId++,
       puzzle_id: must(puzzleIds, kind, row.puzzle_id),
@@ -422,21 +422,21 @@ async function insertPlayHistory(tx: PatchTx, data: LegacyDump, puzzleIds: IdMap
     console.log(chalk.green('✓ Play history'), chalk.blue(kind), sessionsOf(data, kind).length);
   }
 
-  const crosswordSessionIds = await insertSessions(
+  const padajalaSessionIds = await insertSessions(
     tx,
-    'crossword',
-    data.crossword_sessions,
+    'padajala',
+    data.padajala_sessions,
     puzzleIds,
     sessionCounter
   );
-  let nextCrosswordStatId = 1;
-  for (const chunk of chunkArray(data.crossword_gameplay_stats, 2000)) {
+  let nextPadajalaStatId = 1;
+  for (const chunk of chunkArray(data.padajala_gameplay_stats, 2000)) {
     if (chunk.length === 0) continue;
-    await tx.insert(crossword_gameplay_stats).values(
+    await tx.insert(padajala_gameplay_stats).values(
       chunk.map((row) => ({
-        id: nextCrosswordStatId++,
-        puzzle_id: must(puzzleIds, 'crossword', row.puzzle_id),
-        session_id: must(crosswordSessionIds, 'crossword', row.session_id),
+        id: nextPadajalaStatId++,
+        puzzle_id: must(puzzleIds, 'padajala', row.puzzle_id),
+        session_id: must(padajalaSessionIds, 'padajala', row.session_id),
         created_at: row.created_at,
         time_taken: row.time_taken,
         accuracy: row.accuracy,
@@ -503,8 +503,8 @@ function listingRows(data: LegacyDump, kind: GameKind) {
   switch (kind) {
     case 'padavali':
       return data.padavali_puzzles;
-    case 'crossword':
-      return data.crossword_puzzles;
+    case 'padajala':
+      return data.padajala_puzzles;
     case 'dvayi':
       return data.dvayi_puzzles;
     case 'bhramita':
@@ -520,8 +520,8 @@ function tagLinks(data: LegacyDump, kind: GameKind) {
   switch (kind) {
     case 'padavali':
       return data.padavali_puzzle_tags;
-    case 'crossword':
-      return data.crossword_puzzle_tags;
+    case 'padajala':
+      return data.padajala_puzzle_tags;
     case 'dvayi':
       return data.dvayi_puzzle_tags;
     case 'bhramita':
@@ -537,8 +537,8 @@ function collectionLinks(data: LegacyDump, kind: GameKind) {
   switch (kind) {
     case 'padavali':
       return data.padavali_collection_items;
-    case 'crossword':
-      return data.crossword_collection_items;
+    case 'padajala':
+      return data.padajala_collection_items;
     case 'dvayi':
       return data.dvayi_collection_items;
     case 'bhramita':
@@ -554,8 +554,8 @@ function redirectsOf(data: LegacyDump, kind: GameKind) {
   switch (kind) {
     case 'padavali':
       return data.padavali_redirects;
-    case 'crossword':
-      return data.crossword_redirects;
+    case 'padajala':
+      return data.padajala_redirects;
     case 'dvayi':
       return data.dvayi_redirects;
     case 'bhramita':
@@ -571,8 +571,8 @@ function attachmentsOf(data: LegacyDump, kind: GameKind) {
   switch (kind) {
     case 'padavali':
       return data.padavali_attachments;
-    case 'crossword':
-      return data.crossword_attachments;
+    case 'padajala':
+      return data.padajala_attachments;
     case 'dvayi':
       return data.dvayi_attachments;
     case 'bhramita':
@@ -584,8 +584,8 @@ function attachmentsOf(data: LegacyDump, kind: GameKind) {
   }
 }
 
-function schedulesOf(data: LegacyDump, kind: 'padavali' | 'crossword') {
-  return kind === 'padavali' ? data.padavali_schedules : data.crossword_schedules;
+function schedulesOf(data: LegacyDump, kind: 'padavali' | 'padajala') {
+  return kind === 'padavali' ? data.padavali_schedules : data.padajala_schedules;
 }
 
 function sessionsOf(data: LegacyDump, kind: (typeof ATTEMPT_GAMES)[number]) {

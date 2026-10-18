@@ -1,0 +1,115 @@
+'use client';
+
+import { Provider, createStore } from 'jotai';
+import { useMemo } from 'react';
+import type { z } from 'zod';
+import { PadajalaGame } from './PadajalaGame';
+import {
+  celebration_fired_atom,
+  clearing_cells_atom,
+  completed_atom,
+  game_session_nonce_atom,
+  incorrect_entry_attempts_atom,
+  incorrect_entry_ids_atom,
+  letter_inputs_atom,
+  numbered_entries_atom,
+  player_grid_atom,
+  puzzle_atom,
+  seconds_atom,
+  solved_entry_ids_atom,
+  started_atom,
+  active_focus_atom,
+  pending_navigation_url_atom,
+  reveals_used_atom,
+  revealing_entry_id_atom,
+  revealing_cells_atom
+} from './game_state';
+import {
+  createEmptyPlayerGrid,
+  numberEntries,
+  type PadajalaGamePuzzle
+} from '~/util/padajala/game_model';
+import type { CrossordPuzzle } from '~/db/schema_zod';
+import { toPadajalaGamePuzzle } from '~/util/padajala/adapter';
+import type { attachment_schema, image_schema } from '~/db/db_shared_vals';
+import type { location_list_type } from '~/db/types';
+import type { PadajalaPuzzleType } from '~/util/cache.server/padajala_cache';
+import { resolveAttachmentsWithDefaults } from '~/util/puzzle/attachments';
+import PadajalaMetricsCollector, { ActivePadajalaRegistrar } from './PadajalaMetricsCollector';
+
+export type PadajalaGameRootProps = {
+  puzzle: CrossordPuzzle | PadajalaPuzzleType | PadajalaGamePuzzle;
+  location?: location_list_type;
+  attachments?: z.infer<typeof attachment_schema>[];
+  image?: z.infer<typeof image_schema> | null;
+};
+
+type DbLikePuzzle = CrossordPuzzle | PadajalaPuzzleType;
+
+function isDbPuzzle(puzzle: PadajalaGameRootProps['puzzle']): puzzle is DbLikePuzzle {
+  return 'grid_data' in puzzle && 'word_list' in puzzle;
+}
+
+export default function PadajalaGameRoot({
+  puzzle: raw,
+  location = 'main_page',
+  attachments: attachmentsProp,
+  image
+}: PadajalaGameRootProps) {
+  const puzzleId = raw.id;
+  const listed = isDbPuzzle(raw) ? raw.listed : false;
+  const puzzleSlug = isDbPuzzle(raw) ? raw.slug : null;
+
+  const attachments = useMemo(() => {
+    const source =
+      attachmentsProp ?? (isDbPuzzle(raw) && 'attachments' in raw ? raw.attachments : []);
+    return resolveAttachmentsWithDefaults(source ?? []);
+    // eslint-disable-next-line react-hooks/exhaustive-deps -- refresh with puzzle identity / explicit prop
+  }, [attachmentsProp, puzzleId]);
+
+  void image;
+
+  // Recreate the jotai store only when switching puzzles. Calling
+  // `toPadajalaGamePuzzle(raw)` every render yields a new object; using that as a
+  // useMemo dep wiped started/completed right after Start.
+  const jotaiStore = useMemo(() => {
+    // SAFETY: both db puzzle variants share the same grid_data/word_list schema the adapter reads
+    const puzzle = isDbPuzzle(raw) ? toPadajalaGamePuzzle(raw as CrossordPuzzle) : raw;
+    const store = createStore();
+    store.set(puzzle_atom, puzzle);
+    store.set(numbered_entries_atom, numberEntries(puzzle.entries));
+    store.set(player_grid_atom, createEmptyPlayerGrid(puzzle.grid));
+    store.set(started_atom, false);
+    store.set(completed_atom, false);
+    store.set(seconds_atom, 0);
+    store.set(game_session_nonce_atom, 0);
+    store.set(active_focus_atom, null);
+    store.set(solved_entry_ids_atom, []);
+    store.set(incorrect_entry_ids_atom, []);
+    store.set(celebration_fired_atom, false);
+    store.set(letter_inputs_atom, 0);
+    store.set(incorrect_entry_attempts_atom, 0);
+    store.set(pending_navigation_url_atom, null);
+    store.set(reveals_used_atom, 0);
+    store.set(revealing_entry_id_atom, null);
+    store.set(revealing_cells_atom, []);
+    store.set(clearing_cells_atom, []);
+    return store;
+    // eslint-disable-next-line react-hooks/exhaustive-deps -- reset only when puzzleId changes
+  }, [puzzleId]);
+
+  return (
+    <>
+      <ActivePadajalaRegistrar puzzleId={puzzleId} />
+      <Provider store={jotaiStore} key={String(puzzleId)}>
+        <PadajalaMetricsCollector puzzle_id={puzzleId} location={location} />
+        <PadajalaGame
+          attachments={attachments}
+          listed={listed}
+          puzzleSlug={puzzleSlug}
+          location={location}
+        />
+      </Provider>
+    </>
+  );
+}

@@ -141,9 +141,9 @@ function GameLinks() {
       <GameLinkCard
         game="padajala"
         name="Padajāla"
-        subtitle="Crossword"
+        subtitle="Padajala"
         playTo="/padajala"
-        puzzlesGame="crossword"
+        puzzlesGame="padajala"
       />
     </div>
   );
@@ -160,7 +160,7 @@ function GameLinkCard({
   name: string;
   subtitle: string;
   playTo: '/padavali' | '/padajala';
-  puzzlesGame: 'padavali' | 'crossword';
+  puzzlesGame: 'padavali' | 'padajala';
 }) {
   const chrome = GAME_CHROME[game];
 

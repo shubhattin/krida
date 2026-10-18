@@ -45,8 +45,8 @@ export const Route = createFileRoute('/api/qstash/schedule_listing')({
                 .innerJoin(puzzles, eq(puzzles.id, puzzle_schedules.puzzle_id))
                 .where(
                   and(
-                    // Crossword has its own publisher + placement gate; never list it here.
-                    ne(puzzles.kind, 'crossword'),
+                    // Padajala has its own publisher + placement gate; never list it here.
+                    ne(puzzles.kind, 'padajala'),
                     eq(puzzle_schedules.id, schedule_id),
                     eq(puzzle_schedules.puzzle_id, puzzle_id),
                     eq(puzzle_schedules.listing_verify_key, listing_verify_key)
@@ -89,11 +89,8 @@ export const Route = createFileRoute('/api/qstash/schedule_listing')({
             const listedRefresh =
               kind === 'padavali'
                 ? invalidate_and_refresh_cache(CACHE.padavali.listed_puzzle_list, NO_CACHE_PARAMS)
-                : kind === 'crossword'
-                  ? invalidate_and_refresh_cache(
-                      CACHE.crossword.listed_puzzle_list,
-                      NO_CACHE_PARAMS
-                    )
+                : kind === 'padajala'
+                  ? invalidate_and_refresh_cache(CACHE.padajala.listed_puzzle_list, NO_CACHE_PARAMS)
                   : kind === 'dvayi'
                     ? invalidate_and_refresh_cache(CACHE.dvayi.listed_puzzle_list, NO_CACHE_PARAMS)
                     : kind === 'bhramita'
@@ -113,8 +110,8 @@ export const Route = createFileRoute('/api/qstash/schedule_listing')({
             const wordRefresh =
               kind === 'padavali'
                 ? invalidate_and_refresh_cache(CACHE.padavali.word_puzzle, { slug: schedule.slug })
-                : kind === 'crossword'
-                  ? invalidate_and_refresh_cache(CACHE.crossword.word_puzzle, {
+                : kind === 'padajala'
+                  ? invalidate_and_refresh_cache(CACHE.padajala.word_puzzle, {
                       slug: schedule.slug
                     })
                   : kind === 'dvayi'

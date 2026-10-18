@@ -11,7 +11,7 @@ const SHARED_RESERVED_SLUGS = ['analytics', 'edit', 'list', 'puzzle', 'puzzles',
 export const RESERVED_SLUGS = new Set<string>([...SHARED_RESERVED_SLUGS, 'archived', 'schedules']);
 
 /** First-segment paths under `/padajala/*` that must not be used as puzzle slugs. */
-export const CROSSWORD_RESERVED_SLUGS = new Set<string>([
+export const PADAJALA_RESERVED_SLUGS = new Set<string>([
   ...SHARED_RESERVED_SLUGS,
   'archived',
   'batch_manager',
@@ -23,7 +23,7 @@ export const SIMPLE_GAME_RESERVED_SLUGS = new Set<string>(SHARED_RESERVED_SLUGS)
 
 export const isReservedSlug = (slug: string) => RESERVED_SLUGS.has(slug);
 
-export const isReservedCrosswordSlug = (slug: string) => CROSSWORD_RESERVED_SLUGS.has(slug);
+export const isReservedPadajalaSlug = (slug: string) => PADAJALA_RESERVED_SLUGS.has(slug);
 
 export const normalizeSlug = (input: string) => input.trim().toLowerCase();
 
@@ -38,16 +38,16 @@ export const slug_schema = z.string().transform(normalizeSlug).refine(isValidSlu
     'Slug may only contain lowercase letters, numbers, underscores, and dashes, and cannot match a reserved route name'
 });
 
-export const isValidCrosswordSlug = (slug: string) =>
+export const isValidPadajalaSlug = (slug: string) =>
   slug.length > 0 &&
   slug.length <= MAX_SLUG_LENGTH &&
   SLUG_REGEX.test(slug) &&
-  !isReservedCrosswordSlug(slug);
+  !isReservedPadajalaSlug(slug);
 
-export const crossword_slug_schema = z
+export const padajala_slug_schema = z
   .string()
   .transform(normalizeSlug)
-  .refine(isValidCrosswordSlug, {
+  .refine(isValidPadajalaSlug, {
     message:
       'Slug may only contain lowercase letters, numbers, underscores, and dashes, and cannot match a reserved route name'
   });

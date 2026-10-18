@@ -7,8 +7,8 @@ import {
   bhramita_puzzles,
   collection_items,
   collections,
-  crossword_gameplay_stats,
-  crossword_puzzles,
+  padajala_gameplay_stats,
+  padajala_puzzles,
   dvayi_puzzles,
   image_assets,
   padavali_puzzles,
@@ -50,7 +50,7 @@ export const PadavaliPuzzleSchemaZod = createSelectSchema(padavali_puzzles, {
   grid_dimensions: z.tuple([z.number().int().min(3), z.number().int().min(3)])
 });
 
-export const CrossWordPuzzleWordSchema = z
+export const PadajalaPuzzleWordSchema = z
   .object({
     /** Only word is filled in manually, location and direction are calculated auto */
     word: z.string(),
@@ -86,16 +86,16 @@ export const CrossordPuzzleGridCellSchema = z.object({
   /** When true, the letter is shown to the player as a prefilled hint */
   is_visible: z.boolean().default(false)
 });
-export type CrossWordPuzzleWord = z.infer<typeof CrossWordPuzzleWordSchema>;
+export type PadajalaPuzzleWord = z.infer<typeof PadajalaPuzzleWordSchema>;
 export type CrossordPuzzleGridCell = z.infer<typeof CrossordPuzzleGridCellSchema>;
-export const CrossordPuzzleSchemaZod = createSelectSchema(crossword_puzzles, {
+export const CrossordPuzzleSchemaZod = createSelectSchema(padajala_puzzles, {
   /** (m,n) */
   grid_dimensions: z.tuple([z.number().int().min(3), z.number().int().min(3)]),
-  word_list: CrossWordPuzzleWordSchema.array(),
+  word_list: PadajalaPuzzleWordSchema.array(),
   /** mxn grid; blank text cells are boxes, letters are playable */
   grid_data: CrossordPuzzleGridCellSchema.array().array()
 });
-const crosswordListingSchema = z.object({
+const padajalaListingSchema = z.object({
   uid: z.string(),
   slug: z.string(),
   title: z.string(),
@@ -108,7 +108,7 @@ const crosswordListingSchema = z.object({
 });
 /** Joined puzzle the app edits and plays. Listing fields live on `puzzles`. */
 export type CrossordPuzzle = z.infer<typeof CrossordPuzzleSchemaZod> &
-  z.infer<typeof crosswordListingSchema>;
+  z.infer<typeof padajalaListingSchema>;
 
 export const AttemptGamePlayStatsSchemaZod = createSelectSchema(attempt_gameplay_stats, {
   created_at: z.coerce.date()
@@ -147,7 +147,7 @@ export const ImageAssetSchemaZod = createSelectSchema(image_assets, {
   created_at: z.coerce.date()
 });
 
-export const CrosswordGamePlayStatsSchemaZod = createSelectSchema(crossword_gameplay_stats, {
+export const PadajalaGamePlayStatsSchemaZod = createSelectSchema(padajala_gameplay_stats, {
   created_at: z.coerce.date()
 });
 

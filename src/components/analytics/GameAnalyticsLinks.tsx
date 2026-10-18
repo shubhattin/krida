@@ -16,8 +16,8 @@ const GAME_LINK_META = {
   },
   padajala: {
     href: '/padajala/analytics',
-    name: HUB_GAMES.crossword.name,
-    subtitle: 'Crossword'
+    name: HUB_GAMES.padajala.name,
+    subtitle: 'Padajala'
   },
   dvayi: {
     href: simpleGameAnalyticsHref('dvayi'),

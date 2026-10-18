@@ -132,9 +132,9 @@ const LIVE_GAMES = [
     ]
   },
   {
-    name: HUB_GAMES.crossword.name,
-    subtitle: HUB_GAMES.crossword.subtitle,
-    icon: <GameAppIcon game="padajala" name={HUB_GAMES.crossword.name} size="sm" />,
+    name: HUB_GAMES.padajala.name,
+    subtitle: HUB_GAMES.padajala.subtitle,
+    icon: <GameAppIcon game="padajala" name={HUB_GAMES.padajala.name} size="sm" />,
     wash: 'from-amber-50/90 via-orange-50/40 to-amber-50/70 dark:from-amber-950/40 dark:via-stone-950/20 dark:to-orange-950/30',
     border: 'border-amber-200/70 dark:border-amber-800/50',
     actions: [

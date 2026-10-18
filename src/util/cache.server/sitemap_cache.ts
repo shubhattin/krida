@@ -128,11 +128,11 @@ const load_padajala_sitemap: CacheItem<NoCacheParams, string> = createCache({
             created_at: puzzlesTable.created_at
           })
           .from(puzzlesTable)
-          .where(and(eq(puzzlesTable.kind, 'crossword'), eq(puzzlesTable.listed, true)))
+          .where(and(eq(puzzlesTable.kind, 'padajala'), eq(puzzlesTable.listed, true)))
       );
 
       const entries: SitemapUrlEntry[] = [
-        { loc: joinUrl(base, '/puzzles?game=crossword') },
+        { loc: joinUrl(base, '/puzzles?game=padajala') },
         ...listedPuzzles.map((puzzle) => ({
           loc: joinUrl(base, `/padajala/${encodeURIComponent(puzzle.slug)}`),
           lastmod: resolveLastmod(puzzle)

@@ -2,13 +2,13 @@ import { relations } from 'drizzle-orm';
 import { image_assets } from './common_schema';
 import { anveshi_puzzles } from './anveshi_schema';
 import { bhramita_puzzles } from './bhramita_schema';
-import { crossword_puzzles } from './crossword_schema';
+import { padajala_puzzles } from './padajala_schema';
 import { dvayi_puzzles } from './dvayi_schema';
 import { padavali_puzzles } from './padavali_schema';
 import {
   attempt_gameplay_stats,
   collection_items,
-  crossword_gameplay_stats,
+  padajala_gameplay_stats,
   puzzle_attachments,
   puzzle_redirects,
   puzzle_schedules,
@@ -34,14 +34,14 @@ export const puzzlesRelations = relations(puzzles, ({ many, one }) => ({
   schedules: many(puzzle_schedules),
   sessions: many(puzzle_sessions),
   attempt_stats: many(attempt_gameplay_stats),
-  crossword_stats: many(crossword_gameplay_stats),
+  padajala_stats: many(padajala_gameplay_stats),
   padavali: one(padavali_puzzles, {
     fields: [puzzles.id],
     references: [padavali_puzzles.id]
   }),
-  crossword: one(crossword_puzzles, {
+  padajala: one(padajala_puzzles, {
     fields: [puzzles.id],
-    references: [crossword_puzzles.id]
+    references: [padajala_puzzles.id]
   }),
   dvayi: one(dvayi_puzzles, {
     fields: [puzzles.id],

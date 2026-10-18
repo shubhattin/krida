@@ -43,8 +43,8 @@ function SchedulesRoute() {
             Schedules
           </h1>
           <p className="text-sm text-muted-foreground">
-            Queue a puzzle for any game. The home page still shows the current Padavali and
-            crossword slots.
+            Queue a puzzle for any game. The home page still shows the current Padavali and padajala
+            slots.
           </p>
         </header>
         <SchedulesManager key={kinds.join(',')} initialKinds={kinds} />

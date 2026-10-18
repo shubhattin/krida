@@ -51,7 +51,7 @@ type TagRow = {
   id: number;
   slug: string;
   padavali_count: number;
-  crossword_count: number;
+  padajala_count: number;
   total_count: number;
 };
 

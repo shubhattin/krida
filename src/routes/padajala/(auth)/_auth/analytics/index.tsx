@@ -4,11 +4,11 @@ import { ArrowLeftIcon, ChartNoAxesCombinedIcon } from 'lucide-react';
 import { Skeleton } from '~/components/ui/skeleton';
 import { routeHeadFromPageMeta } from '~/components/tags/getPageMetaTags';
 
-const CrosswordPuzzleStats = lazy(() => import('../edit/-CrosswordPuzzleStats'));
+const PadajalaPuzzleStats = lazy(() => import('../edit/-PadajalaPuzzleStats'));
 
 export const Route = createFileRoute('/padajala/(auth)/_auth/analytics/')({
   head: () =>
-    routeHeadFromPageMeta({ title: 'Crossword Analytics', project: 'padajala', robots: 'noindex' }),
+    routeHeadFromPageMeta({ title: 'Padajala Analytics', project: 'padajala', robots: 'noindex' }),
   component: AnalyticsPage
 });
 
@@ -42,7 +42,7 @@ function AnalyticsPage() {
           </div>
         }
       >
-        <CrosswordPuzzleStats />
+        <PadajalaPuzzleStats />
       </Suspense>
     </div>
   );

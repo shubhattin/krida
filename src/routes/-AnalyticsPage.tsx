@@ -76,7 +76,7 @@ const GAME_ACCENT = {
 
 const GAME_PRESENTATION = {
   padavali: { name: HUB_GAMES.padavali.name },
-  padajala: { name: HUB_GAMES.crossword.name },
+  padajala: { name: HUB_GAMES.padajala.name },
   dvayi: { name: 'Dvayī' },
   bhramita: { name: 'Bhramitā' },
   surupa: { name: 'Surūpa' },
@@ -86,7 +86,7 @@ const GAME_PRESENTATION = {
 const GAME_TABS = [
   { value: 'all', label: 'All games' },
   { value: 'padavali', label: HUB_GAMES.padavali.name },
-  { value: 'padajala', label: HUB_GAMES.crossword.name },
+  { value: 'padajala', label: HUB_GAMES.padajala.name },
   { value: 'dvayi', label: 'Dvayī' },
   { value: 'bhramita', label: 'Bhramitā' },
   { value: 'surupa', label: 'Surūpa' },
@@ -213,7 +213,7 @@ function useTopPlayedQueries(game: GameFilter, range: AnalyticsRange, isReady: b
     )
   );
   const padajala = useQuery(
-    trpc.crossword.stats.get_top_puzzles.queryOptions(
+    trpc.padajala.stats.get_top_puzzles.queryOptions(
       { ...range, limit: 10 },
       { enabled: includesGame(game, 'padajala') && isReady }
     )

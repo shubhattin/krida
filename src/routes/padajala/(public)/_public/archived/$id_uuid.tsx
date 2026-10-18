@@ -12,9 +12,9 @@ const loader$ = createServerFn({ method: 'GET' })
     if (!parsed) return { slug: null };
 
     const puzzle = await runLoaderEffect(
-      dbRunHttp('crossword.archived.resolve_slug', (client) =>
+      dbRunHttp('padajala.archived.resolve_slug', (client) =>
         client.query.puzzles.findFirst({
-          where: (tbl, { and, eq }) => and(eq(tbl.id, parsed.id), eq(tbl.kind, 'crossword')),
+          where: (tbl, { and, eq }) => and(eq(tbl.id, parsed.id), eq(tbl.kind, 'padajala')),
           columns: { slug: true }
         })
       )

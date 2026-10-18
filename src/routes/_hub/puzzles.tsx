@@ -7,7 +7,7 @@ const hubRoute = getRouteApi('/_hub');
 
 const puzzles_search_schema = z.object({
   // TODO: add dvayi/bhramita/surupa/anveshi to this public filter once those games ship.
-  game: z.enum(['all', 'padavali', 'crossword']).catch('all').default('all'),
+  game: z.enum(['all', 'padavali', 'padajala']).catch('all').default('all'),
   view: z.enum(['puzzles', 'collections']).catch('puzzles').default('puzzles'),
   tag: z.string().max(80).optional().catch(undefined),
   q: z.string().max(200).optional().catch(undefined),
@@ -32,19 +32,19 @@ function puzzlesMetaForGame(game: PuzzlesSearch['game']): PuzzlesPageMeta {
         'Browse Sanskrit word-search puzzles from Padāvalī — find hidden words across Indian scripts.'
     };
   }
-  if (game === 'crossword') {
+  if (game === 'padajala') {
     return {
       title: 'Padajāla Puzzles | Krida',
       project: 'padajala',
       description:
-        'Browse Sanskrit crossword puzzles from Padajāla — solve grids and grow your vocabulary.'
+        'Browse Sanskrit padajala puzzles from Padajāla — solve grids and grow your vocabulary.'
     };
   }
   return {
     title: 'Sanskrit Puzzles | Krida',
     project: 'landing_page',
     description:
-      'Browse every Sanskrit word-search and crossword puzzle, curated collections, and topics in one place.'
+      'Browse every Sanskrit word-search and padajala puzzle, curated collections, and topics in one place.'
   };
 }
 

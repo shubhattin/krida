@@ -1,5 +1,5 @@
 {
-  "id": "886c4b8f-7565-4dcc-986d-31fe836462cc",
+  "id": "5aef49e0-f0a3-4396-acf7-23a2501bc4a0",
   "prevId": "98d79ccb-d066-4fb5-9f07-b5437656ccc0",
   "version": "7",
   "dialect": "postgresql",
@@ -594,8 +594,8 @@
       "checkConstraints": {},
       "isRLSEnabled": false
     },
-    "public.crossword_gameplay_stats": {
-      "name": "crossword_gameplay_stats",
+    "public.padajala_gameplay_stats": {
+      "name": "padajala_gameplay_stats",
       "schema": "",
       "columns": {
         "id": {
@@ -667,8 +667,8 @@
         }
       },
       "indexes": {
-        "crossword_gameplay_stats_puzzle_id_created_at_idx": {
-          "name": "crossword_gameplay_stats_puzzle_id_created_at_idx",
+        "padajala_gameplay_stats_puzzle_id_created_at_idx": {
+          "name": "padajala_gameplay_stats_puzzle_id_created_at_idx",
           "columns": [
             {
               "expression": "puzzle_id",
@@ -688,8 +688,8 @@
           "method": "btree",
           "with": {}
         },
-        "crossword_gameplay_stats_session_id_idx": {
-          "name": "crossword_gameplay_stats_session_id_idx",
+        "padajala_gameplay_stats_session_id_idx": {
+          "name": "padajala_gameplay_stats_session_id_idx",
           "columns": [
             {
               "expression": "session_id",
@@ -705,9 +705,9 @@
         }
       },
       "foreignKeys": {
-        "crossword_gameplay_stats_puzzle_id_puzzles_id_fk": {
-          "name": "crossword_gameplay_stats_puzzle_id_puzzles_id_fk",
-          "tableFrom": "crossword_gameplay_stats",
+        "padajala_gameplay_stats_puzzle_id_puzzles_id_fk": {
+          "name": "padajala_gameplay_stats_puzzle_id_puzzles_id_fk",
+          "tableFrom": "padajala_gameplay_stats",
           "tableTo": "puzzles",
           "columnsFrom": [
             "puzzle_id"
@@ -718,9 +718,9 @@
           "onDelete": "cascade",
           "onUpdate": "no action"
         },
-        "crossword_gameplay_stats_session_id_puzzle_sessions_id_fk": {
-          "name": "crossword_gameplay_stats_session_id_puzzle_sessions_id_fk",
-          "tableFrom": "crossword_gameplay_stats",
+        "padajala_gameplay_stats_session_id_puzzle_sessions_id_fk": {
+          "name": "padajala_gameplay_stats_session_id_puzzle_sessions_id_fk",
+          "tableFrom": "padajala_gameplay_stats",
           "tableTo": "puzzle_sessions",
           "columnsFrom": [
             "session_id"
@@ -1575,8 +1575,8 @@
       "checkConstraints": {},
       "isRLSEnabled": false
     },
-    "public.crossword_puzzles": {
-      "name": "crossword_puzzles",
+    "public.padajala_puzzles": {
+      "name": "padajala_puzzles",
       "schema": "",
       "columns": {
         "id": {
@@ -1606,9 +1606,9 @@
       },
       "indexes": {},
       "foreignKeys": {
-        "crossword_puzzles_id_puzzles_id_fk": {
-          "name": "crossword_puzzles_id_puzzles_id_fk",
-          "tableFrom": "crossword_puzzles",
+        "padajala_puzzles_id_puzzles_id_fk": {
+          "name": "padajala_puzzles_id_puzzles_id_fk",
+          "tableFrom": "padajala_puzzles",
           "tableTo": "puzzles",
           "columnsFrom": [
             "id"
@@ -1799,7 +1799,7 @@
       "schema": "public",
       "values": [
         "padavali",
-        "crossword",
+        "padajala",
         "dvayi",
         "bhramita",
         "surupa",

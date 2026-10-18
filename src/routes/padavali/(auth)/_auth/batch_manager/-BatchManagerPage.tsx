@@ -50,9 +50,9 @@ type BatchManagerPageProps = {
 
 function batchManagerLinks(game: PuzzleImageGame) {
   return {
-    list_href: game === 'crossword' ? '/padajala/list' : '/padavali/list',
+    list_href: game === 'padajala' ? '/padajala/list' : '/padavali/list',
     edit_href: (puzzle_id: number) =>
-      game === 'crossword' ? `/padajala/edit/${puzzle_id}` : `/padavali/edit/${puzzle_id}`
+      game === 'padajala' ? `/padajala/edit/${puzzle_id}` : `/padavali/edit/${puzzle_id}`
   };
 }
 
@@ -512,10 +512,10 @@ const BatchManagerPage = ({ initialGame = 'padavali' }: BatchManagerPageProps) =
           </Button>
           <Button
             type="button"
-            variant={game === 'crossword' ? 'default' : 'outline'}
-            onClick={() => setGame('crossword')}
+            variant={game === 'padajala' ? 'default' : 'outline'}
+            onClick={() => setGame('padajala')}
           >
-            Crossword
+            Padajala
           </Button>
           <Button
             type="button"

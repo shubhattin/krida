@@ -1,6 +1,6 @@
 'use client';
 
-import { CrosswordPreviewCard } from '~/components/pages/cross_word/CrosswordPreviewCard';
+import { PadajalaPreviewCard } from '~/components/pages/padajala/PadajalaPreviewCard';
 import { PuzzlePreviewCard } from '~/components/pages/padavali/PuzzlePreviewCard';
 import type { HubPuzzle } from './hub_puzzles';
 import { HubGameBadge } from './HubGameBadge';
@@ -36,7 +36,7 @@ export function HubPuzzleCard({
       {puzzle.game === 'padavali' ? (
         <PuzzlePreviewCard puzzle={puzzle.source} compact={compact} />
       ) : (
-        <CrosswordPreviewCard puzzle={puzzle.source} compact={compact} />
+        <PadajalaPreviewCard puzzle={puzzle.source} compact={compact} />
       )}
     </div>
   );

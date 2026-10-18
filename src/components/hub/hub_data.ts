@@ -46,21 +46,21 @@ const toScheduled = (
 export const hubData$ = createServerFn({ method: 'GET' }).handler(async () => {
   const [
     padavali_listed,
-    crossword_listed,
+    padajala_listed,
     collections,
     padavali_current,
     padavali_next,
-    crossword_current,
-    crossword_next,
+    padajala_current,
+    padajala_next,
     script
   ] = await Promise.all([
     runLoaderEffect(CACHE.padavali.listed_puzzle_list.get(NO_CACHE_PARAMS)),
-    runLoaderEffect(CACHE.crossword.listed_puzzle_list.get(NO_CACHE_PARAMS)),
+    runLoaderEffect(CACHE.padajala.listed_puzzle_list.get(NO_CACHE_PARAMS)),
     runLoaderEffect(CACHE.catalog.listed_collections.get(NO_CACHE_PARAMS)),
     runLoaderEffect(CACHE.padavali.current_schedule.get(NO_CACHE_PARAMS)),
     runLoaderEffect(CACHE.padavali.next_schedule.get(NO_CACHE_PARAMS)),
-    runLoaderEffect(CACHE.crossword.current_schedule.get(NO_CACHE_PARAMS)),
-    runLoaderEffect(CACHE.crossword.next_schedule.get(NO_CACHE_PARAMS)),
+    runLoaderEffect(CACHE.padajala.current_schedule.get(NO_CACHE_PARAMS)),
+    runLoaderEffect(CACHE.padajala.next_schedule.get(NO_CACHE_PARAMS)),
     getScript$()
   ]);
 
@@ -104,10 +104,10 @@ export const hubData$ = createServerFn({ method: 'GET' }).handler(async () => {
           : padavali_today,
       next_start: padavali_next?.start_time ?? null
     },
-    crossword: {
-      listed: crossword_listed,
-      today: toScheduled(crossword_current),
-      next_start: crossword_next?.start_time ?? null
+    padajala: {
+      listed: padajala_listed,
+      today: toScheduled(padajala_current),
+      next_start: padajala_next?.start_time ?? null
     }
   };
 });

@@ -2,11 +2,11 @@ import { createFileRoute, Link } from '@tanstack/react-router';
 import { ArrowLeftIcon, BarChart3Icon, CalendarIcon, LayersIcon } from 'lucide-react';
 import { Button } from '~/components/ui/button';
 import { routeHeadFromPageMeta } from '~/components/tags/getPageMetaTags';
-import AddCrosswordDialog from './-AddCrosswordDialog';
-import CrosswordListPage from './-CrosswordListPage';
+import AddPadajalaDialog from './-AddPadajalaDialog';
+import PadajalaListPage from './-PadajalaListPage';
 
 export const Route = createFileRoute('/padajala/(auth)/_auth/list/')({
-  head: () => routeHeadFromPageMeta({ title: 'Crossword List', project: 'padajala' }),
+  head: () => routeHeadFromPageMeta({ title: 'Padajala List', project: 'padajala' }),
   component: List
 });
 
@@ -32,7 +32,7 @@ function List() {
           <BarChart3Icon className="size-4 shrink-0" />
           Analytics
         </Button>
-        <Link to="/schedules" search={{ kinds: ['crossword'] }}>
+        <Link to="/schedules" search={{ kinds: ['padajala'] }}>
           <Button
             variant={'outline'}
             className="inline-flex items-center gap-2 text-base font-semibold"
@@ -45,7 +45,7 @@ function List() {
           render={
             <Link
               to="/padavali/batch_manager"
-              search={{ game: 'crossword' }}
+              search={{ game: 'padajala' }}
               className="inline-flex items-center gap-2"
             />
           }
@@ -56,9 +56,9 @@ function List() {
           <LayersIcon className="size-4 shrink-0" />
           Batch Manager
         </Button>
-        <AddCrosswordDialog />
+        <AddPadajalaDialog />
       </div>
-      <CrosswordListPage />
+      <PadajalaListPage />
     </div>
   );
 }

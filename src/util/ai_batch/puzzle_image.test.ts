@@ -7,20 +7,20 @@ describe('getPuzzleImageBatchCustomId', () => {
     expect(getPuzzleImageBatchCustomId(12, 'padavali')).toBe('puzzle-image-12');
   });
 
-  it('namespaces crossword ids', () => {
-    expect(getPuzzleImageBatchCustomId(7, 'crossword')).toBe('crossword-puzzle-image-7');
+  it('namespaces padajala ids', () => {
+    expect(getPuzzleImageBatchCustomId(7, 'padajala')).toBe('padajala-puzzle-image-7');
   });
 });
 
 describe('parsePuzzleIdFromBatchCustomId', () => {
-  it('parses padavali and crossword namespaces', () => {
+  it('parses padavali and padajala namespaces', () => {
     expect(parsePuzzleIdFromBatchCustomId('puzzle-image-42')).toEqual({
       puzzle_id: 42,
       game: 'padavali'
     });
-    expect(parsePuzzleIdFromBatchCustomId('crossword-puzzle-image-9')).toEqual({
+    expect(parsePuzzleIdFromBatchCustomId('padajala-puzzle-image-9')).toEqual({
       puzzle_id: 9,
-      game: 'crossword'
+      game: 'padajala'
     });
   });
 

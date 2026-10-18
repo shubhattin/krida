@@ -1,7 +1,7 @@
 import { z } from 'zod';
 import { ATTACHMENT_TYPE_LIST } from '~/db/db_shared_vals';
 import { location_list_enum } from '~/db/types';
-import { CrossWordPuzzleWordSchema, CrossordPuzzleGridCellSchema } from '~/db/schema_zod';
+import { PadajalaPuzzleWordSchema, CrossordPuzzleGridCellSchema } from '~/db/schema_zod';
 import { script_list_enum } from '~/state/script_list';
 import { anveshi_puzzle_data_schema } from '~/util/anveshi/data';
 import { bhramita_puzzle_data_schema } from '~/util/bhramita/data';
@@ -101,7 +101,7 @@ const simpleSessionRow = z.object({
   user_id: z.string().nullable()
 });
 
-const crosswordSessionRow = z.object({
+const padajalaSessionRow = z.object({
   id: z.number().int(),
   puzzle_id: z.number().int(),
   created_at: z.coerce.date(),
@@ -109,7 +109,7 @@ const crosswordSessionRow = z.object({
   user_id: z.string().nullable()
 });
 
-const crosswordStatsRow = z.object({
+const padajalaStatsRow = z.object({
   id: z.number().int(),
   puzzle_id: z.number().int(),
   session_id: z.number().int(),
@@ -181,19 +181,19 @@ export const LegacyDumpSchema = z.object({
       created_at: z.coerce.date()
     })
   ),
-  crossword_puzzles: z.array(
+  padajala_puzzles: z.array(
     z.object({
       ...listingFields,
       grid_dimensions: z.tuple([z.number(), z.number()]),
       grid_data: z.array(z.array(CrossordPuzzleGridCellSchema)),
-      word_list: z.array(CrossWordPuzzleWordSchema)
+      word_list: z.array(PadajalaPuzzleWordSchema)
     })
   ),
-  crossword_redirects: z.array(redirectRow).default([]),
-  crossword_attachments: z.array(attachmentRow).default([]),
-  crossword_sessions: z.array(crosswordSessionRow).default([]),
-  crossword_gameplay_stats: z.array(crosswordStatsRow).default([]),
-  crossword_schedules: z.array(scheduleRow).default([]),
+  padajala_redirects: z.array(redirectRow).default([]),
+  padajala_attachments: z.array(attachmentRow).default([]),
+  padajala_sessions: z.array(padajalaSessionRow).default([]),
+  padajala_gameplay_stats: z.array(padajalaStatsRow).default([]),
+  padajala_schedules: z.array(scheduleRow).default([]),
   tags: z
     .array(
       z.object({
@@ -219,9 +219,9 @@ export const LegacyDumpSchema = z.object({
     )
     .default([]),
   padavali_puzzle_tags: z.array(tagLinkRow).default([]),
-  crossword_puzzle_tags: z.array(tagLinkRow).default([]),
+  padajala_puzzle_tags: z.array(tagLinkRow).default([]),
   padavali_collection_items: z.array(collectionItemRow).default([]),
-  crossword_collection_items: z.array(collectionItemRow).default([]),
+  padajala_collection_items: z.array(collectionItemRow).default([]),
   dvayi_puzzles: dvayiRowSchemas.puzzles,
   dvayi_redirects: dvayiRowSchemas.redirects,
   dvayi_attachments: dvayiRowSchemas.attachments,

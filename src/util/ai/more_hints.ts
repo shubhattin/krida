@@ -1,25 +1,25 @@
 import { Effect } from 'effect';
 import { z } from 'zod';
-import type { CrossWordPuzzleWord } from '~/db/schema_zod';
+import type { PadajalaPuzzleWord } from '~/db/schema_zod';
 import { AiProvider, aiRetryPolicy } from '~/effect/ai';
 import { AiProviderError } from '~/effect/errors';
 import { OPENROUTER_MODELS } from '~/util/ai/image_gen';
-import { crosswordActiveWords } from '~/util/puzzle/word_list';
+import { padajalaActiveWords } from '~/util/puzzle/word_list';
 
 /** Minimal puzzle shape needed to generate more hints. */
 type MoreHintsPuzzleInput = {
   slug: string;
   title: string;
   description: string;
-  word_list: CrossWordPuzzleWord[];
+  word_list: PadajalaPuzzleWord[];
 };
 
 const SYSTEM_PROMPT = `
-You are an expert crossword clue writer for Indian cultural, mythological, historical, and Sanskrit-themed puzzles.
+You are an expert padajala clue writer for Indian cultural, mythological, historical, and Sanskrit-themed puzzles.
 
 You will be given:
-- Title: The crossword puzzle title
-- Description: The crossword puzzle description
+- Title: The padajala puzzle title
+- Description: The padajala puzzle description
 - Entries: A numbered list of answer words with their existing short clues
 
 Your task: For EACH entry, write ONE short, concise "more hint" that helps the solver without revealing the answer.
@@ -44,16 +44,16 @@ export const more_hints_schema = z.object({
         .string()
         .trim()
         .min(1)
-        .describe('Short enriched hint for one crossword entry; must not reveal the answer')
+        .describe('Short enriched hint for one padajala entry; must not reveal the answer')
     )
-    .describe('One enriched hint per crossword entry, in the same order as the input entries')
+    .describe('One enriched hint per padajala entry, in the same order as the input entries')
 });
 
 export type MoreHintsType = z.infer<typeof more_hints_schema>;
 
 /** Fields that affect AI more-hints generation (placement is ignored). */
-export type MoreHintsInputWord = Pick<CrossWordPuzzleWord, 'word' | 'description'> &
-  Partial<Pick<CrossWordPuzzleWord, 'added'>>;
+export type MoreHintsInputWord = Pick<PadajalaPuzzleWord, 'word' | 'description'> &
+  Partial<Pick<PadajalaPuzzleWord, 'added'>>;
 
 export const more_hints_inputs_equal = (
   a: { title: string; description: string; word_list: MoreHintsInputWord[] },
@@ -68,11 +68,11 @@ export const more_hints_inputs_equal = (
   );
 };
 
-export const get_crossword_more_hints = Effect.fn('get_crossword_more_hints')(function* (
+export const get_padajala_more_hints = Effect.fn('get_padajala_more_hints')(function* (
   puzzle: MoreHintsPuzzleInput
 ) {
   const ai = yield* AiProvider;
-  const activeWords = crosswordActiveWords(puzzle.word_list);
+  const activeWords = padajalaActiveWords(puzzle.word_list);
   const entries = activeWords
     .map((entry, i) => `${i + 1}. Answer: ${entry.word}\n   Short clue: ${entry.description}`)
     .join('\n');
@@ -106,4 +106,4 @@ export const get_crossword_more_hints = Effect.fn('get_crossword_more_hints')(fu
   return output;
 });
 
-export type GetCrosswordMoreHintsError = AiProviderError;
+export type GetPadajalaMoreHintsError = AiProviderError;

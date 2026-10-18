@@ -13,8 +13,8 @@ import {
   bhramita_puzzles,
   collection_items,
   collections,
-  crossword_gameplay_stats,
-  crossword_puzzles,
+  padajala_gameplay_stats,
+  padajala_puzzles,
   dvayi_puzzles,
   image_assets,
   padavali_puzzles,
@@ -35,7 +35,7 @@ import {
   BhramitaPuzzleSchemaZod,
   CollectionItemSchemaZod,
   CollectionSchemaZod,
-  CrosswordGamePlayStatsSchemaZod,
+  PadajalaGamePlayStatsSchemaZod,
   CrossordPuzzleSchemaZod,
   DvayiPuzzleSchemaZod,
   ImageAssetSchemaZod,
@@ -60,7 +60,7 @@ const ExportDataSchema = z.object({
   ai_batch_responses: z.array(AiBatchResponseSchemaZod),
   puzzles: z.array(PuzzleSchemaZod),
   padavali_puzzles: z.array(PadavaliPuzzleSchemaZod),
-  crossword_puzzles: z.array(CrossordPuzzleSchemaZod),
+  padajala_puzzles: z.array(CrossordPuzzleSchemaZod),
   dvayi_puzzles: z.array(DvayiPuzzleSchemaZod),
   bhramita_puzzles: z.array(BhramitaPuzzleSchemaZod),
   surupa_puzzles: z.array(SurupaPuzzleSchemaZod),
@@ -72,7 +72,7 @@ const ExportDataSchema = z.object({
   puzzle_schedules: z.array(PuzzleScheduleSchemaZod),
   puzzle_sessions: z.array(PuzzleSessionSchemaZod),
   attempt_gameplay_stats: z.array(AttemptGamePlayStatsSchemaZod),
-  crossword_gameplay_stats: z.array(CrosswordGamePlayStatsSchemaZod)
+  padajala_gameplay_stats: z.array(PadajalaGamePlayStatsSchemaZod)
 });
 
 type ExportData = z.infer<typeof ExportDataSchema>;
@@ -87,12 +87,12 @@ const SERIAL_TABLES = [
   'puzzle_schedules',
   'puzzle_sessions',
   'attempt_gameplay_stats',
-  'crossword_gameplay_stats'
+  'padajala_gameplay_stats'
 ] as const;
 
 async function deleteAllTables(tx: ExportTx): Promise<void> {
   await tx.delete(attempt_gameplay_stats);
-  await tx.delete(crossword_gameplay_stats);
+  await tx.delete(padajala_gameplay_stats);
   await tx.delete(puzzle_sessions);
   await tx.delete(puzzle_schedules);
   await tx.delete(puzzle_attachments);
@@ -100,7 +100,7 @@ async function deleteAllTables(tx: ExportTx): Promise<void> {
   await tx.delete(puzzle_tags);
   await tx.delete(collection_items);
   await tx.delete(padavali_puzzles);
-  await tx.delete(crossword_puzzles);
+  await tx.delete(padajala_puzzles);
   await tx.delete(dvayi_puzzles);
   await tx.delete(bhramita_puzzles);
   await tx.delete(surupa_puzzles);
@@ -137,7 +137,7 @@ async function insertIfAny<T extends PgTable>(
   const chunked =
     name === 'puzzle_sessions' ||
     name === 'attempt_gameplay_stats' ||
-    name === 'crossword_gameplay_stats';
+    name === 'padajala_gameplay_stats';
   if (chunked) await insertChunked(tx, table, rows);
   else await tx.insert(table).values(rows);
   console.log(chalk.green('✓ Inserted'), chalk.blue(`\`${name}\``), rows.length);
@@ -171,7 +171,7 @@ async function insertAll(tx: ExportTx, data: ExportData): Promise<void> {
   );
   await insertIfAny(tx, puzzles, data.puzzles, 'puzzles');
   await insertIfAny(tx, padavali_puzzles, data.padavali_puzzles, 'padavali_puzzles');
-  await insertIfAny(tx, crossword_puzzles, data.crossword_puzzles, 'crossword_puzzles');
+  await insertIfAny(tx, padajala_puzzles, data.padajala_puzzles, 'padajala_puzzles');
   await insertIfAny(tx, dvayi_puzzles, data.dvayi_puzzles, 'dvayi_puzzles');
   await insertIfAny(tx, bhramita_puzzles, data.bhramita_puzzles, 'bhramita_puzzles');
   await insertIfAny(tx, surupa_puzzles, data.surupa_puzzles, 'surupa_puzzles');
@@ -190,9 +190,9 @@ async function insertAll(tx: ExportTx, data: ExportData): Promise<void> {
   );
   await insertIfAny(
     tx,
-    crossword_gameplay_stats,
-    data.crossword_gameplay_stats,
-    'crossword_gameplay_stats'
+    padajala_gameplay_stats,
+    data.padajala_gameplay_stats,
+    'padajala_gameplay_stats'
   );
 }
 

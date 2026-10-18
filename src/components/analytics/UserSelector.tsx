@@ -61,7 +61,7 @@ function useUserSelectorListQuery(
         search: search !== '' ? search : undefined
       };
       if (game === 'padavali') return client.puzzle.stats.get_user_list_page.query(input);
-      if (game === 'padajala') return client.crossword.stats.get_user_list_page.query(input);
+      if (game === 'padajala') return client.padajala.stats.get_user_list_page.query(input);
       return client[game].stats.get_user_list_page.query(input);
     },
     enabled: open,

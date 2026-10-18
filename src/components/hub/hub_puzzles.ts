@@ -1,4 +1,4 @@
-import type { CrosswordListedPuzzle } from '~/components/pages/cross_word/CrosswordPreviewCard';
+import type { PadajalaListedPuzzle } from '~/components/pages/padajala/PadajalaPreviewCard';
 import type { DisplayPuzzle } from '~/components/pages/padavali/listed_puzzle_display';
 import type {
   ListedCollectionItem,
@@ -26,7 +26,7 @@ type HubPuzzleBase = {
 /** One listed puzzle from any game, keeping the original row for the game's own card. */
 export type HubPuzzle =
   | (HubPuzzleBase & { game: 'padavali'; source: DisplayPuzzle })
-  | (HubPuzzleBase & { game: 'crossword'; source: CrosswordListedPuzzle });
+  | (HubPuzzleBase & { game: 'padajala'; source: PadajalaListedPuzzle });
 
 export const hubPuzzleKey = (game: GameKind, id: number) => `${game}:${id}`;
 
@@ -56,7 +56,7 @@ export function sortHubPuzzles<T extends HubPuzzle>(puzzles: T[]): T[] {
 
 export function toHubPuzzles(
   padavali: DisplayPuzzle[],
-  crossword: CrosswordListedPuzzle[]
+  padajala: PadajalaListedPuzzle[]
 ): HubPuzzle[] {
   const merged: HubPuzzle[] = [
     ...padavali.map((puzzle): HubPuzzle => ({
@@ -72,16 +72,16 @@ export function toHubPuzzles(
       sortTime: hubSortTimestamp(puzzle),
       source: puzzle
     })),
-    ...crossword.map((puzzle): HubPuzzle => ({
-      game: 'crossword',
-      key: hubPuzzleKey('crossword', puzzle.id),
+    ...padajala.map((puzzle): HubPuzzle => ({
+      game: 'padajala',
+      key: hubPuzzleKey('padajala', puzzle.id),
       id: puzzle.id,
       slug: puzzle.slug,
       title: puzzle.title,
       description: puzzle.description,
       image: puzzle.image,
       tags: puzzle.tags,
-      href: puzzleHref('crossword', puzzle.slug),
+      href: puzzleHref('padajala', puzzle.slug),
       sortTime: hubSortTimestamp(puzzle),
       source: puzzle
     }))
@@ -101,7 +101,7 @@ export function resolveCollectionItems(
     items
       .toSorted((a, b) => a.order_index - b.order_index || a.puzzle_id - b.puzzle_id)
       // TODO: drop this public-kind filter once dvayi/bhramita/surupa/anveshi ship on /puzzles.
-      .filter((item) => item.game === 'padavali' || item.game === 'crossword')
+      .filter((item) => item.game === 'padavali' || item.game === 'padajala')
       .map((item) => {
         const found = byKey.get(hubPuzzleKey(item.game, item.puzzle_id));
         if (found) return found;
@@ -133,7 +133,7 @@ export function resolveCollectionItems(
             }
           : {
               ...base,
-              game: 'crossword' as const,
+              game: 'padajala' as const,
               source: {
                 id: item.puzzle_id,
                 slug: item.slug,
@@ -150,7 +150,7 @@ export function resolveCollectionItems(
 export function collectionGames(collection: ListedCollectionsType[number]): PublicGameKind[] {
   const games = new Set(collection.items.map((item) => item.game));
   // TODO: include SIMPLE_GAME_KINDS once those games ship on /puzzles.
-  return (['padavali', 'crossword'] as const).filter((game) => games.has(game));
+  return (['padavali', 'padajala'] as const).filter((game) => games.has(game));
 }
 
 export type HubPuzzleFilter = {

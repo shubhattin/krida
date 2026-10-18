@@ -19,11 +19,11 @@ const loader$ = createServerFn({ method: 'GET' })
     if (!parsed.success) return { puzzle: null, catalog: { tags: [], collections: [] } };
 
     const row = await runLoaderEffect(
-      dbRunHttp('crossword.admin.get_edit_puzzle', (client) =>
+      dbRunHttp('padajala.admin.get_edit_puzzle', (client) =>
         client.query.puzzles.findFirst({
-          where: (tbl, { and, eq }) => and(eq(tbl.id, parsed.data), eq(tbl.kind, 'crossword')),
+          where: (tbl, { and, eq }) => and(eq(tbl.id, parsed.data), eq(tbl.kind, 'padajala')),
           with: {
-            crossword: true,
+            padajala: true,
             attachments: {
               columns: {
                 id: true,
@@ -57,10 +57,10 @@ const loader$ = createServerFn({ method: 'GET' })
       )
     );
 
-    if (!row?.crossword) return { puzzle: null, catalog: { tags: [], collections: [] } };
+    if (!row?.padajala) return { puzzle: null, catalog: { tags: [], collections: [] } };
 
-    const { crossword, puzzle_tags, collection_items, ...meta } = row;
-    const payload = CrossordPuzzleSchemaZod.parse(crossword);
+    const { padajala, puzzle_tags, collection_items, ...meta } = row;
+    const payload = CrossordPuzzleSchemaZod.parse(padajala);
     const attachments = row.attachments.map((a) =>
       PuzzleAttachmentSchemaZod.pick({
         id: true,
@@ -106,10 +106,10 @@ export const Route = createFileRoute('/padajala/(auth)/_auth/edit/$id')({
       title: loaderData ? `${loaderData.puzzle.title} - Edit` : 'Not Found',
       project: 'padajala'
     }),
-  component: CrosswordEditRoute
+  component: PadajalaEditRoute
 });
 
-function CrosswordEditRoute() {
+function PadajalaEditRoute() {
   const { puzzle, catalog } = Route.useLoaderData();
 
   return (
@@ -133,7 +133,7 @@ function CrosswordEditRoute() {
           Preview Puzzle
         </Link>
       </div>
-      <JotaiProvider key={`crossword_edit_${puzzle.id}`}>
+      <JotaiProvider key={`padajala_edit_${puzzle.id}`}>
         <MainEditPage puzzle={puzzle} catalog={catalog} key={puzzle.id} />
       </JotaiProvider>
     </>

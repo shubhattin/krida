@@ -250,10 +250,10 @@ const list_tags_route = protectedAdminProcedure
                   inner join puzzles p on p.id = pt.puzzle_id
                   where pt.tag_id = ${tags.id} and p.kind = 'padavali'
                 )`,
-                crossword_count: sql<number>`(
+                padajala_count: sql<number>`(
                   select count(*)::int from puzzle_tags ct
                   inner join puzzles p on p.id = ct.puzzle_id
-                  where ct.tag_id = ${tags.id} and p.kind = 'crossword'
+                  where ct.tag_id = ${tags.id} and p.kind = 'padajala'
                 )`,
                 extra_count: sql<number>`(
                   select count(*)::int from puzzle_tags et
@@ -272,9 +272,8 @@ const list_tags_route = protectedAdminProcedure
         const list = rows.map(({ extra_count, ...row }) => ({
           ...row,
           padavali_count: Number(row.padavali_count),
-          crossword_count: Number(row.crossword_count),
-          total_count:
-            Number(row.padavali_count) + Number(row.crossword_count) + Number(extra_count)
+          padajala_count: Number(row.padajala_count),
+          total_count: Number(row.padavali_count) + Number(row.padajala_count) + Number(extra_count)
         }));
         const total = Number(countResult[0]?.count ?? 0);
         const pageCount = Math.max(1, Math.ceil(total / input.size));
@@ -568,10 +567,10 @@ const list_collections_route = protectedAdminProcedure.query(() =>
             inner join puzzles p on p.id = pi.puzzle_id
             where pi.collection_id = ${collections.id} and p.kind = 'padavali'
           )`,
-          crossword_count: sql<number>`(
+          padajala_count: sql<number>`(
             select count(*)::int from collection_items ci
             inner join puzzles p on p.id = ci.puzzle_id
-            where ci.collection_id = ${collections.id} and p.kind = 'crossword'
+            where ci.collection_id = ${collections.id} and p.kind = 'padajala'
           )`,
           extra_count: sql<number>`(
             select count(*)::int from collection_items ei
@@ -584,10 +583,10 @@ const list_collections_route = protectedAdminProcedure.query(() =>
         .orderBy(desc(collections.created_at))
     ).pipe(
       Effect.map((rows) =>
-        rows.map(({ image_s3_key, padavali_count, crossword_count, extra_count, ...row }) => ({
+        rows.map(({ image_s3_key, padavali_count, padajala_count, extra_count, ...row }) => ({
           ...row,
           image: image_s3_key ? { s3_key: image_s3_key } : null,
-          item_count: Number(padavali_count) + Number(crossword_count) + Number(extra_count)
+          item_count: Number(padavali_count) + Number(padajala_count) + Number(extra_count)
         }))
       )
     )
@@ -1292,7 +1291,7 @@ const delete_collection_route = protectedAdminProcedure
             .groupBy(puzzles.kind);
           const totals = {
             padavali: 0,
-            crossword: 0,
+            padajala: 0,
             dvayi: 0,
             bhramita: 0,
             surupa: 0,
@@ -1305,14 +1304,14 @@ const delete_collection_route = protectedAdminProcedure
           return totals;
         });
         const padavali = counts.padavali;
-        const crossword = counts.crossword;
+        const padajala = counts.padajala;
         const total = GAME_KINDS.reduce((sum, game) => sum + counts[game], 0);
         yield* dbRunHttp('catalog.delete_collection', async (client) => {
           await client.delete(collections).where(eq(collections.id, collection.id));
         });
         yield* refreshListedCollections();
         // Membership rows cascade; puzzles and cover images are never deleted here.
-        return { success: true as const, padavali, crossword, total };
+        return { success: true as const, padavali, padajala, total };
       })
     )
   );
@@ -1336,14 +1335,14 @@ const delete_tag_route = protectedAdminProcedure
         }
         const previous = yield* loadTagPuzzleRefs(tag.id);
         const padavali = previous.filter((item) => item.game === 'padavali').length;
-        const crossword = previous.filter((item) => item.game === 'crossword').length;
+        const padajala = previous.filter((item) => item.game === 'padajala').length;
         const total = previous.length;
         yield* dbRunHttp('catalog.delete_tag', async (client) => {
           await client.delete(tags).where(eq(tags.id, input.tag_id));
         });
         yield* refreshPublicCachesForTagPuzzles(previous);
         // Tag links cascade; puzzles themselves are never deleted here.
-        return { success: true as const, padavali, crossword, total };
+        return { success: true as const, padavali, padajala, total };
       })
     )
   );

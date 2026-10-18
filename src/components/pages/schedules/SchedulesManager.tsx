@@ -53,7 +53,7 @@ dayjs.extend(relativeTime);
 
 const KIND_CHIP = {
   padavali: 'data-[on=true]:bg-sky-600 data-[on=true]:text-white',
-  crossword: 'data-[on=true]:bg-amber-600 data-[on=true]:text-white',
+  padajala: 'data-[on=true]:bg-amber-600 data-[on=true]:text-white',
   dvayi: 'data-[on=true]:bg-violet-600 data-[on=true]:text-white',
   bhramita: 'data-[on=true]:bg-emerald-600 data-[on=true]:text-white',
   surupa: 'data-[on=true]:bg-rose-600 data-[on=true]:text-white',
@@ -62,7 +62,7 @@ const KIND_CHIP = {
 
 const KIND_BADGE = {
   padavali: 'bg-sky-500/15 text-sky-800 dark:text-sky-200',
-  crossword: 'bg-amber-500/15 text-amber-900 dark:text-amber-100',
+  padajala: 'bg-amber-500/15 text-amber-900 dark:text-amber-100',
   dvayi: 'bg-violet-500/15 text-violet-800 dark:text-violet-200',
   bhramita: 'bg-emerald-500/15 text-emerald-800 dark:text-emerald-200',
   surupa: 'bg-rose-500/15 text-rose-800 dark:text-rose-200',
@@ -319,7 +319,7 @@ export function SchedulesManager({ initialKinds = [] }: { initialKinds?: GameKin
           <p className="text-base font-semibold">No {when} schedules</p>
           <p className="max-w-sm text-sm text-muted-foreground">
             Try another puzzle type, or schedule one. The public home page still shows only the
-            current Padavali and crossword slots.
+            current Padavali and padajala slots.
           </p>
         </div>
       ) : (
@@ -472,8 +472,8 @@ function ScheduleDialog({
       onError: () => toast.error('Could not add the schedule')
     })
   );
-  const addCrossword = useMutation(
-    trpc.crossword.schedules.add_puzzle_schedule.mutationOptions({
+  const addPadajala = useMutation(
+    trpc.padajala.schedules.add_puzzle_schedule.mutationOptions({
       onSuccess: async (data) => {
         if (!data.success) {
           toast.error('Another schedule for this game already covers that time');
@@ -500,8 +500,8 @@ function ScheduleDialog({
       onError: () => toast.error('Could not update the schedule')
     })
   );
-  const updateCrossword = useMutation(
-    trpc.crossword.schedules.update_puzzle_schedule.mutationOptions({
+  const updatePadajala = useMutation(
+    trpc.padajala.schedules.update_puzzle_schedule.mutationOptions({
       onSuccess: async (data) => {
         if (!data.success) {
           toast.error('Another schedule for this game already covers that time');
@@ -526,11 +526,11 @@ function ScheduleDialog({
     const targetGame = puzzle.game;
     if (schedule) {
       const input = { schedule_id: schedule.id, puzzle_id: puzzle.id, start_time, end_time };
-      if (targetGame === 'crossword') updateCrossword.mutate(input);
+      if (targetGame === 'padajala') updatePadajala.mutate(input);
       else update.mutate(input);
     } else {
       const input = { puzzle_id: puzzle.id, start_time, end_time };
-      if (targetGame === 'crossword') addCrossword.mutate(input);
+      if (targetGame === 'padajala') addPadajala.mutate(input);
       else add.mutate(input);
     }
   };
@@ -542,7 +542,7 @@ function ScheduleDialog({
           <DialogTitle>{schedule ? 'Edit schedule' : 'Schedule a puzzle'}</DialogTitle>
           <DialogDescription>
             Times are India Standard Time. Overlap is checked per puzzle type, so Padavali and
-            crossword can run in the same window.
+            padajala can run in the same window.
           </DialogDescription>
         </DialogHeader>
 
@@ -635,8 +635,8 @@ function ScheduleDialog({
               !puzzle ||
               add.isPending ||
               update.isPending ||
-              addCrossword.isPending ||
-              updateCrossword.isPending
+              addPadajala.isPending ||
+              updatePadajala.isPending
             }
             onClick={save}
           >

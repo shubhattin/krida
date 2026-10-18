@@ -8,7 +8,7 @@ export const public_tag_schema = z.object({
 
 export type PublicTag = z.infer<typeof public_tag_schema>;
 
-export const GAME_KINDS = ['padavali', 'crossword', ...SIMPLE_GAME_KINDS] as const;
+export const GAME_KINDS = ['padavali', 'padajala', ...SIMPLE_GAME_KINDS] as const;
 export const game_kind_schema = z.enum(GAME_KINDS);
 export type GameKind = z.infer<typeof game_kind_schema>;
 

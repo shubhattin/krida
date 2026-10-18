@@ -9,7 +9,7 @@ export const GAME_APP_ICON_SRC = {
   padajala: '/img/padajala_icons/icon_128_no_pad.png'
 } satisfies Record<GameAppIconId, string>;
 
-/** Per-game plate — complements each mark (blue puzzle / amber crossword). */
+/** Per-game plate — complements each mark (blue puzzle / amber padajala). */
 const GAME_APP_ICON_SHELL = {
   padavali: cn(
     'flex shrink-0 items-center justify-center rounded-2xl',

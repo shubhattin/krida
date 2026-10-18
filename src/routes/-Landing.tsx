@@ -36,9 +36,9 @@ const GRID_ROWS = MOCK_GRID.length;
 const GRID_COLS = MOCK_GRID[0]!.length;
 
 // ─── Padajala Mini Demo Constants ─────────────────────────
-// A simplified crossword shape for visual preview
+// A simplified padajala shape for visual preview
 // 1 = filled cell, 0 = empty
-const CROSSWORD_GRID = [
+const PADAJALA_GRID = [
   [0, 0, 0, 0, 0], // Row 0
   [0, 1, 1, 1, 1], // Row 1: . Y O G A
   [0, 0, 0, 1, 0], // Row 2: . . . I .
@@ -46,7 +46,7 @@ const CROSSWORD_GRID = [
   [1, 1, 1, 1, 0] // Row 4: V E D A .
 ];
 
-const CROSSWORD_LETTERS = [
+const PADAJALA_LETTERS = [
   ['', '', '', '', ''],
   ['', 'Y', 'O', 'G', 'A'],
   ['', '', '', 'I', ''],
@@ -58,14 +58,14 @@ const CROSSWORD_LETTERS = [
 // - YOGA is complete at filledCount >= 4
 // - GITA is complete at filledCount >= 10
 // - VEDA (and GITA) are complete at filledCount >= 10
-function crosswordCellWordComplete(index: number, filledCount: number): boolean {
+function padajalaCellWordComplete(index: number, filledCount: number): boolean {
   if (index <= 3) return filledCount >= 4;
   if (index <= 5) return filledCount >= 10;
   if (index <= 9) return filledCount >= 10;
   return false;
 }
 
-const CrosswordPreviewCell = ({
+const PadajalaPreviewCell = ({
   row,
   col,
   index,
@@ -77,8 +77,8 @@ const CrosswordPreviewCell = ({
   filledCount: number;
 }) => {
   const isFilled = index < filledCount;
-  const letter = CROSSWORD_LETTERS[row]?.[col] || '';
-  const isWordComplete = crosswordCellWordComplete(index, filledCount);
+  const letter = PADAJALA_LETTERS[row]?.[col] || '';
+  const isWordComplete = padajalaCellWordComplete(index, filledCount);
 
   return (
     <div
@@ -171,10 +171,10 @@ export const GAMES = [
   {
     id: 'padajala' as const,
     name: 'Padajāla',
-    subtitle: 'Crossword',
-    description: 'Solve Sanskrit crossword puzzles and expand your vocabulary.',
+    subtitle: 'Padajala',
+    description: 'Solve Sanskrit padajala puzzles and expand your vocabulary.',
     playHref: '/padajala',
-    puzzlesGame: 'crossword' as const,
+    puzzlesGame: 'padajala' as const,
     gradient: {
       from: 'from-amber-500',
       to: 'to-orange-600',
@@ -698,10 +698,10 @@ export function PadavaliMiniPreview({ compact = false }: { compact?: boolean }) 
   );
 }
 
-// ─── Padajala Mini Crossword Preview ──────────────────────
+// ─── Padajala Mini Padajala Preview ──────────────────────
 export function PadajalaMiniPreview({ compact = false }: { compact?: boolean }) {
   const [filledCount, setFilledCount] = useState(0);
-  const totalCells = CROSSWORD_GRID.flat().filter(Boolean).length;
+  const totalCells = PADAJALA_GRID.flat().filter(Boolean).length;
 
   useEffect(() => {
     let timer: NodeJS.Timeout;
@@ -776,10 +776,10 @@ export function PadajalaMiniPreview({ compact = false }: { compact?: boolean }) 
         </div>
       </div>
 
-      {/* Crossword Grid */}
+      {/* Padajala Grid */}
       <div className={cn('mx-auto w-full', compact ? 'max-w-[16.5rem]' : 'max-w-[20.5rem]')}>
         <div className={cn('grid grid-cols-5', compact ? 'gap-1.5' : 'gap-2')}>
-          {CROSSWORD_GRID.map((row, rIdx) =>
+          {PADAJALA_GRID.map((row, rIdx) =>
             row.map((cell, cIdx) => {
               if (!cell) {
                 return (
@@ -791,7 +791,7 @@ export function PadajalaMiniPreview({ compact = false }: { compact?: boolean }) 
               }
 
               return (
-                <CrosswordPreviewCell
+                <PadajalaPreviewCell
                   key={`cell-${rIdx}-${cIdx}`}
                   row={rIdx}
                   col={cIdx}
@@ -977,7 +977,7 @@ export default function LandingPage() {
               variants={itemVariants}
             >
               Discover the elegance and depth of Sanskrit with interactive word puzzles and
-              crosswords. Switch instantly across 6+ Indian scripts and build your vocabulary
+              padajalas. Switch instantly across 6+ Indian scripts and build your vocabulary
               dynamically.
             </motion.p>
 
@@ -1095,7 +1095,7 @@ export default function LandingPage() {
                 Puzzles
               </h3>
               <p className="text-sm text-slate-500 dark:text-slate-400">
-                Browse and play from our full collection of word search and crossword puzzles.
+                Browse and play from our full collection of word search and padajala puzzles.
               </p>
             </div>
 
@@ -1113,7 +1113,7 @@ export default function LandingPage() {
               </p>
             </div>
 
-            {/* Feature 4 — New for Crossword */}
+            {/* Feature 4 — New for Padajala */}
             <div className="group relative rounded-2xl border border-slate-200/60 bg-white/40 p-6 text-left shadow-sm transition-all duration-200 hover:-translate-y-0.5 hover:shadow-md dark:border-slate-800/60 dark:bg-slate-900/40">
               <div className="mb-4 flex size-10 items-center justify-center rounded-xl bg-amber-100 text-amber-600 dark:bg-amber-950/60 dark:text-amber-400">
                 <Grid3X3 className="h-5 w-5" />
@@ -1122,7 +1122,7 @@ export default function LandingPage() {
                 Two Game Modes
               </h3>
               <p className="text-sm text-slate-500 dark:text-slate-400">
-                Word search for pattern recognition, crossword for deep vocabulary — two ways to
+                Word search for pattern recognition, padajala for deep vocabulary — two ways to
                 master Sanskrit.
               </p>
             </div>

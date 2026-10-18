@@ -20,7 +20,7 @@ export const import_data = async (confirm_env = true) => {
     ai_batch_responses,
     puzzles,
     padavali_puzzles,
-    crossword_puzzles,
+    padajala_puzzles,
     dvayi_puzzles,
     bhramita_puzzles,
     surupa_puzzles,
@@ -32,7 +32,7 @@ export const import_data = async (confirm_env = true) => {
     puzzle_schedules,
     puzzle_sessions,
     attempt_gameplay_stats,
-    crossword_gameplay_stats
+    padajala_gameplay_stats
   ] = await Promise.all([
     db.query.image_assets.findMany(),
     db.query.tags.findMany(),
@@ -41,7 +41,7 @@ export const import_data = async (confirm_env = true) => {
     db.query.ai_batch_responses.findMany(),
     db.query.puzzles.findMany(),
     db.query.padavali_puzzles.findMany(),
-    db.query.crossword_puzzles.findMany(),
+    db.query.padajala_puzzles.findMany(),
     db.query.dvayi_puzzles.findMany(),
     db.query.bhramita_puzzles.findMany(),
     db.query.surupa_puzzles.findMany(),
@@ -53,7 +53,7 @@ export const import_data = async (confirm_env = true) => {
     db.query.puzzle_schedules.findMany(),
     db.query.puzzle_sessions.findMany(),
     db.query.attempt_gameplay_stats.findMany(),
-    db.query.crossword_gameplay_stats.findMany()
+    db.query.padajala_gameplay_stats.findMany()
   ]);
 
   const json_data = {
@@ -64,7 +64,7 @@ export const import_data = async (confirm_env = true) => {
     ai_batch_responses,
     puzzles,
     padavali_puzzles,
-    crossword_puzzles,
+    padajala_puzzles,
     dvayi_puzzles,
     bhramita_puzzles,
     surupa_puzzles,
@@ -76,7 +76,7 @@ export const import_data = async (confirm_env = true) => {
     puzzle_schedules,
     puzzle_sessions,
     attempt_gameplay_stats,
-    crossword_gameplay_stats
+    padajala_gameplay_stats
   };
 
   await make_dir('./out');

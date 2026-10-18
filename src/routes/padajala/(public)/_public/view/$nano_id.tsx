@@ -2,7 +2,7 @@ import { createFileRoute, Link, notFound } from '@tanstack/react-router';
 import { createServerFn } from '@tanstack/react-start';
 import { ArrowLeftIcon } from 'lucide-react';
 import { z } from 'zod';
-import CrossWordGameRoot from '~/components/pages/cross_word/CrossWordGame/CrossWordGameRoot';
+import PadajalaGameRoot from '~/components/pages/padajala/PadajalaGame/PadajalaGameRoot';
 import { routeHeadFromPageMeta } from '~/components/tags/getPageMetaTags';
 import { dbRunHttp } from '~/effect/database';
 import { CACHE } from '~/util/cache.server/cache_loaders';
@@ -13,16 +13,16 @@ const loader$ = createServerFn({ method: 'GET' })
   .validator(z.object({ nano_id: z.string() }))
   .handler(async ({ data }) => {
     const row = await runLoaderEffect(
-      dbRunHttp('crossword.view.resolve_uid', (client) =>
+      dbRunHttp('padajala.view.resolve_uid', (client) =>
         client.query.puzzles.findFirst({
           columns: { slug: true },
-          where: (tbl, { and, eq }) => and(eq(tbl.uid, data.nano_id), eq(tbl.kind, 'crossword'))
+          where: (tbl, { and, eq }) => and(eq(tbl.uid, data.nano_id), eq(tbl.kind, 'padajala'))
         })
       )
     );
     if (!row) return { word_puzzle: null };
 
-    const word_puzzle = await runLoaderEffect(CACHE.crossword.word_puzzle.get({ slug: row.slug }));
+    const word_puzzle = await runLoaderEffect(CACHE.padajala.word_puzzle.get({ slug: row.slug }));
     if (!word_puzzle) return { word_puzzle: null };
 
     return { word_puzzle };
@@ -36,15 +36,15 @@ export const Route = createFileRoute('/padajala/(public)/_public/view/$nano_id')
   },
   head: ({ loaderData }) =>
     routeHeadFromPageMeta({
-      title: loaderData ? `${loaderData.word_puzzle.title} | Crossword` : 'Not Found',
+      title: loaderData ? `${loaderData.word_puzzle.title} | Padajala` : 'Not Found',
       description: loaderData ? loaderData.word_puzzle.description : null,
       project: 'padajala',
       robots: 'noindex'
     }),
-  component: CrosswordPreviewPage
+  component: PadajalaPreviewPage
 });
 
-function CrosswordPreviewPage() {
+function PadajalaPreviewPage() {
   const { word_puzzle } = Route.useLoaderData();
 
   return (
@@ -59,7 +59,7 @@ function CrosswordPreviewPage() {
           Home Page
         </Link>
       </div>
-      <CrossWordGameRoot
+      <PadajalaGameRoot
         puzzle={word_puzzle}
         location="view_page"
         attachments={word_puzzle.attachments}

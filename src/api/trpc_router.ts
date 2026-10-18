@@ -6,7 +6,7 @@ import {
   image_assets_router,
   public_ai_router
 } from './routers/ai';
-import { crossword_router } from './routers/crossword';
+import { padajala_router } from './routers/padajala';
 import { dvayi_router } from './routers/dvayi';
 import { bhramita_router } from './routers/bhramita';
 import { surupa_router } from './routers/surupa';
@@ -17,7 +17,7 @@ import { analytics_router } from './routers/analytics';
 
 export const appRouter = t.router({
   puzzle: puzzle_router,
-  crossword: crossword_router,
+  padajala: padajala_router,
   dvayi: dvayi_router,
   bhramita: bhramita_router,
   surupa: surupa_router,

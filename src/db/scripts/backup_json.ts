@@ -166,7 +166,7 @@ const DUMP_TABLES: DumpTable[] = [
     orderBy: '"id"'
   },
   {
-    key: 'crossword_puzzles',
+    key: 'padajala_puzzles',
     columns: [
       'id',
       'uid',
@@ -184,15 +184,15 @@ const DUMP_TABLES: DumpTable[] = [
     ],
     orderBy: '"id"'
   },
-  { key: 'crossword_redirects', columns: redirectColumns, orderBy: '"id"' },
-  { key: 'crossword_attachments', columns: attachmentColumns, orderBy: '"id"' },
+  { key: 'padajala_redirects', columns: redirectColumns, orderBy: '"id"' },
+  { key: 'padajala_attachments', columns: attachmentColumns, orderBy: '"id"' },
   {
-    key: 'crossword_sessions',
+    key: 'padajala_sessions',
     columns: ['id', 'puzzle_id', 'created_at', 'location', 'user_id'],
     orderBy: '"id"'
   },
   {
-    key: 'crossword_gameplay_stats',
+    key: 'padajala_gameplay_stats',
     columns: [
       'id',
       'puzzle_id',
@@ -208,7 +208,7 @@ const DUMP_TABLES: DumpTable[] = [
     ],
     orderBy: '"id"'
   },
-  { key: 'crossword_schedules', columns: scheduleColumns, orderBy: '"id"' },
+  { key: 'padajala_schedules', columns: scheduleColumns, orderBy: '"id"' },
   { key: 'tags', columns: ['id', 'slug', 'created_at'], orderBy: '"id"' },
   {
     key: 'collections',
@@ -231,7 +231,7 @@ const DUMP_TABLES: DumpTable[] = [
     orderBy: '"puzzle_id", "tag_id"'
   },
   {
-    key: 'crossword_puzzle_tags',
+    key: 'padajala_puzzle_tags',
     columns: tagLinkColumns,
     orderBy: '"puzzle_id", "tag_id"'
   },
@@ -241,7 +241,7 @@ const DUMP_TABLES: DumpTable[] = [
     orderBy: '"collection_id", "puzzle_id"'
   },
   {
-    key: 'crossword_collection_items',
+    key: 'padajala_collection_items',
     columns: collectionItemColumns,
     orderBy: '"collection_id", "puzzle_id"'
   },

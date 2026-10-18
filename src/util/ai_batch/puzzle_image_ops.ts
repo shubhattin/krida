@@ -81,10 +81,10 @@ export function buildImageBatchMetadata(args: {
   file_name: string;
   image_description: string;
 }): BatchMetadata {
-  if (args.game === 'crossword') {
+  if (args.game === 'padajala') {
     return {
-      type: 'crossword-puzzle-image',
-      game: 'crossword',
+      type: 'padajala-puzzle-image',
+      game: 'padajala',
       puzzle_id: args.puzzle_id,
       image_prompt: args.image_prompt,
       file_name: args.file_name,
@@ -556,17 +556,17 @@ export const approve_connect_puzzle_image_id = Effect.fn(
       const { uploaded_image_id, puzzle_id } = metadata;
       const game = resolveBatchGame(metadata, custom_id);
 
-      if (game === 'crossword') {
+      if (game === 'padajala') {
         const [puzzle] = await tx
           .select({ slug: puzzles.slug, listed: puzzles.listed })
           .from(puzzles)
-          .where(and(eq(puzzles.id, puzzle_id), eq(puzzles.kind, 'crossword')))
+          .where(and(eq(puzzles.id, puzzle_id), eq(puzzles.kind, 'padajala')))
           .limit(1);
         if (!puzzle) {
           return {
             ok: false,
             kind: 'not_found',
-            resource: 'crossword_puzzle',
+            resource: 'padajala_puzzle',
             message: `Puzzle not found for batch_id ${batch_id} and custom_id ${custom_id}`
           };
         }
@@ -577,7 +577,7 @@ export const approve_connect_puzzle_image_id = Effect.fn(
             .set({
               image_id: uploaded_image_id
             })
-            .where(and(eq(puzzles.id, puzzle_id), eq(puzzles.kind, 'crossword'))),
+            .where(and(eq(puzzles.id, puzzle_id), eq(puzzles.kind, 'padajala'))),
           tx
             .delete(ai_batch_responses)
             .where(
@@ -656,16 +656,16 @@ export const approve_connect_puzzle_image_id = Effect.fn(
 
   const result = tx_result;
 
-  if (result.game === 'crossword') {
-    const current_schedule = yield* CACHE.crossword.current_schedule.get(NO_CACHE_PARAMS);
+  if (result.game === 'padajala') {
+    const current_schedule = yield* CACHE.padajala.current_schedule.get(NO_CACHE_PARAMS);
     yield* Effect.all(
       [
         current_schedule?.puzzle.id === result.puzzle_id
-          ? invalidate_and_refresh_cache(CACHE.crossword.current_schedule, NO_CACHE_PARAMS)
+          ? invalidate_and_refresh_cache(CACHE.padajala.current_schedule, NO_CACHE_PARAMS)
           : Effect.void,
-        invalidate_and_refresh_cache(CACHE.crossword.word_puzzle, { slug: result.slug }),
+        invalidate_and_refresh_cache(CACHE.padajala.word_puzzle, { slug: result.slug }),
         result.listed
-          ? invalidate_and_refresh_cache(CACHE.crossword.listed_puzzle_list, NO_CACHE_PARAMS)
+          ? invalidate_and_refresh_cache(CACHE.padajala.listed_puzzle_list, NO_CACHE_PARAMS)
           : Effect.void,
         result.listed ? invalidate_padajala_sitemap() : Effect.void
       ],

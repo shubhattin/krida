@@ -36,9 +36,9 @@ const refreshScheduleCaches = (kind: GameKind) =>
     if (kind === 'padavali') {
       yield* invalidate_and_refresh_cache(CACHE.padavali.current_schedule, NO_CACHE_PARAMS);
       yield* invalidate_and_refresh_cache(CACHE.padavali.next_schedule, NO_CACHE_PARAMS);
-    } else if (kind === 'crossword') {
-      yield* invalidate_and_refresh_cache(CACHE.crossword.current_schedule, NO_CACHE_PARAMS);
-      yield* invalidate_and_refresh_cache(CACHE.crossword.next_schedule, NO_CACHE_PARAMS);
+    } else if (kind === 'padajala') {
+      yield* invalidate_and_refresh_cache(CACHE.padajala.current_schedule, NO_CACHE_PARAMS);
+      yield* invalidate_and_refresh_cache(CACHE.padajala.next_schedule, NO_CACHE_PARAMS);
     }
   });
 
@@ -50,8 +50,8 @@ const publishListing = (
   Effect.gen(function* () {
     const qstash = yield* QStashPublisher;
     const delay = qstashDelaySeconds((start_time.getTime() - Date.now()) / 1000 - 4);
-    if (kind === 'crossword') {
-      yield* qstash.publishCrosswordScheduleListing(data, delay);
+    if (kind === 'padajala') {
+      yield* qstash.publishPadajalaScheduleListing(data, delay);
     } else {
       yield* qstash.publishScheduleListing(data, delay);
     }
@@ -152,10 +152,10 @@ const add_puzzle_schedule_route = protectedAdminProcedure
       Effect.gen(function* () {
         const { puzzle_id, start_time, end_time } = input;
         const kind = yield* requireKind(yield* puzzleKind(puzzle_id));
-        if (kind === 'crossword') {
+        if (kind === 'padajala') {
           return yield* Effect.fail(
             BadRequestError.make({
-              message: 'Use the crossword schedule manager for crossword puzzles'
+              message: 'Use the padajala schedule manager for padajala puzzles'
             })
           );
         }
@@ -238,10 +238,10 @@ const update_puzzle_schedule_route = protectedAdminProcedure
     runTrpcEffect(
       Effect.gen(function* () {
         const kind = yield* requireKind(yield* puzzleKind(puzzle_id));
-        if (kind === 'crossword') {
+        if (kind === 'padajala') {
           return yield* Effect.fail(
             BadRequestError.make({
-              message: 'Use the crossword schedule manager for crossword puzzles'
+              message: 'Use the padajala schedule manager for padajala puzzles'
             })
           );
         }
