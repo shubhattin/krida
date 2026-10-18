@@ -255,6 +255,21 @@ CREATE INDEX "puzzles_listed_created_at_idx" ON "puzzles" USING btree ("listed",
 CREATE INDEX "puzzles_listed_updated_at_idx" ON "puzzles" USING btree ("listed","updated_at");--> statement-breakpoint
 CREATE INDEX "puzzles_listed_last_listed_at_idx" ON "puzzles" USING btree ("listed","last_listed_at");--> statement-breakpoint
 CREATE INDEX "puzzles_kind_listed_idx" ON "puzzles" USING btree ("kind","listed");--> statement-breakpoint
+-- Old per-game ids overlap across games while `puzzles` starts empty, so
+-- these rows cannot stay. Delete them BEFORE the payload FKs below are added
+-- (adding the FKs first fails with a foreign-key violation on existing rows).
+-- Reload them with src/db/scripts/patch_db.ts from the legacy JSON dump
+-- taken with backup_json.ts before migrating.
+DELETE FROM "padavali_puzzles";--> statement-breakpoint
+DELETE FROM "dvayi_puzzles";--> statement-breakpoint
+DELETE FROM "bhramita_puzzles";--> statement-breakpoint
+DELETE FROM "surupa_puzzles";--> statement-breakpoint
+DELETE FROM "anveshi_puzzles";--> statement-breakpoint
+ALTER TABLE "padavali_puzzles" ALTER COLUMN "id" DROP DEFAULT;--> statement-breakpoint
+ALTER TABLE "dvayi_puzzles" ALTER COLUMN "id" DROP DEFAULT;--> statement-breakpoint
+ALTER TABLE "bhramita_puzzles" ALTER COLUMN "id" DROP DEFAULT;--> statement-breakpoint
+ALTER TABLE "surupa_puzzles" ALTER COLUMN "id" DROP DEFAULT;--> statement-breakpoint
+ALTER TABLE "anveshi_puzzles" ALTER COLUMN "id" DROP DEFAULT;--> statement-breakpoint
 ALTER TABLE "padavali_puzzles" ADD CONSTRAINT "padavali_puzzles_id_puzzles_id_fk" FOREIGN KEY ("id") REFERENCES "public"."puzzles"("id") ON DELETE cascade ON UPDATE no action;--> statement-breakpoint
 ALTER TABLE "dvayi_puzzles" ADD CONSTRAINT "dvayi_puzzles_id_puzzles_id_fk" FOREIGN KEY ("id") REFERENCES "public"."puzzles"("id") ON DELETE cascade ON UPDATE no action;--> statement-breakpoint
 ALTER TABLE "bhramita_puzzles" ADD CONSTRAINT "bhramita_puzzles_id_puzzles_id_fk" FOREIGN KEY ("id") REFERENCES "public"."puzzles"("id") ON DELETE cascade ON UPDATE no action;--> statement-breakpoint
