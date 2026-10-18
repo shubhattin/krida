@@ -1,7 +1,11 @@
 import { useState } from 'react';
 import { useQuery } from '@tanstack/react-query';
 import { useTRPC } from '~/api/client';
-import { DEFAULT_IMAGE_PROMPT_SYSTEM_TITLE } from '~/util/ai/image_gen';
+import {
+  DEFAULT_COLLECTION_IMAGE_PROMPT_SYSTEM,
+  DEFAULT_IMAGE_PROMPT_SYSTEM,
+  DEFAULT_IMAGE_PROMPT_SYSTEM_TITLE
+} from '~/util/ai/image_gen';
 import { Button } from '~/components/ui/button';
 import {
   Select,
@@ -50,16 +54,24 @@ export function SystemPromptPicker({
     selected_template_id != null
       ? (templates.find((t) => t.id === selected_template_id) ?? null)
       : null;
+  /** Selected id missing from the subject-scoped list (deleted or other subject). */
+  const selection_unavailable = selected_template_id != null && selected_template == null;
+  const default_prompt =
+    subject === 'collection' ? DEFAULT_COLLECTION_IMAGE_PROMPT_SYSTEM : DEFAULT_IMAGE_PROMPT_SYSTEM;
   const preview_title = selected_template
     ? selected_template.title
-    : DEFAULT_IMAGE_PROMPT_SYSTEM_TITLE;
+    : selection_unavailable
+      ? 'Template unavailable'
+      : `${DEFAULT_IMAGE_PROMPT_SYSTEM_TITLE} — ${subject === 'collection' ? 'collection covers' : 'puzzle cards'}`;
+
+  const default_option_label = `${DEFAULT_IMAGE_PROMPT_SYSTEM_TITLE} — ${subject === 'collection' ? 'collection' : 'puzzle'}`;
 
   return (
     <div className="flex flex-wrap items-center gap-2">
       <span className="text-xs font-semibold text-muted-foreground">System prompt</span>
       <Select
         items={[
-          { label: DEFAULT_IMAGE_PROMPT_SYSTEM_TITLE, value: DEFAULT_OPTION_VALUE },
+          { label: default_option_label, value: DEFAULT_OPTION_VALUE },
           ...templates.map((t) => ({ label: t.title, value: String(t.id) }))
         ]}
         value={selected_template_id != null ? String(selected_template_id) : DEFAULT_OPTION_VALUE}
@@ -73,7 +85,7 @@ export function SystemPromptPicker({
           <SelectValue />
         </SelectTrigger>
         <SelectContent>
-          <SelectItem value={DEFAULT_OPTION_VALUE}>{DEFAULT_IMAGE_PROMPT_SYSTEM_TITLE}</SelectItem>
+          <SelectItem value={DEFAULT_OPTION_VALUE}>{default_option_label}</SelectItem>
           {templates.map((t) => (
             <SelectItem key={t.id} value={String(t.id)}>
               {t.title}
@@ -99,14 +111,18 @@ export function SystemPromptPicker({
         <PopoverContent className="w-96 max-w-[min(24rem,90vw)] space-y-2 p-3" align="start">
           <p className="text-xs font-semibold">{preview_title}</p>
           <div className="max-h-[50vh] overflow-y-auto rounded-md border bg-muted/20 p-3 text-sm leading-relaxed">
-            {selected_template_id == null ? (
-              <p className="text-xs text-muted-foreground">
-                Built-in default (static in code). Pick a template to customize, or{' '}
-                <a href="/system-prompts" target="_blank" rel="noreferrer" className="underline">
-                  manage templates
-                </a>
-                .
-              </p>
+            {selection_unavailable ? (
+              <div className="space-y-2">
+                <p className="text-xs text-muted-foreground">
+                  This template is unavailable (deleted or for another image type). Generation would
+                  fail — reset to the default.
+                </p>
+                <Button type="button" size="sm" variant="outline" onClick={() => onChange(null)}>
+                  Reset to default
+                </Button>
+              </div>
+            ) : selected_template_id == null ? (
+              <Streamdown>{default_prompt}</Streamdown>
             ) : selected_template?.content.trim() ? (
               <Streamdown>{selected_template.content}</Streamdown>
             ) : (

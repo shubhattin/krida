@@ -6,7 +6,7 @@ import { dbRunHttp, type TxOrDb } from '~/effect/database';
 import { PROJECT_S3_ALIAS, KRIDAS } from '~/constants';
 import { AiProvider } from '~/effect/ai';
 import { ImageProcessor } from '~/effect/image';
-import { DatabaseError } from '~/effect/errors';
+import { DatabaseError, NotFoundError, BadRequestError } from '~/effect/errors';
 import { reportSwallowedError } from '~/effect/report';
 import { ObjectStorage, type AssetLocation } from '~/effect/storage';
 import crypto from 'node:crypto';
@@ -376,13 +376,37 @@ const resolveGeneratedImageState = Effect.fn('resolveGeneratedImageState')(funct
   if (existing_image_prompt) {
     image_prompt = existing_image_prompt;
   } else {
+    // Fail fast on a deleted, empty, or cross-subject template: silently falling
+    // back would burn real model spend on the wrong prompt while metadata claims
+    // the template id.
     let system_prompt_override: string | undefined;
     if (system_prompt_template_id != null) {
       const template = yield* fetchSystemPromptTemplate(system_prompt_template_id);
-      if (template) {
-        system_prompt_override = template.content;
-        resolved_template_id = template.id;
+      if (!template) {
+        return yield* Effect.fail(
+          NotFoundError.make({
+            resource: 'system_prompt_template',
+            message: 'System prompt template not found'
+          })
+        );
       }
+      if (template.subject !== subject) {
+        return yield* Effect.fail(
+          BadRequestError.make({
+            message: `System prompt template "${template.title}" is for ${template.subject} images`
+          })
+        );
+      }
+      const trimmed = template.content.trim();
+      if (!trimmed) {
+        return yield* Effect.fail(
+          BadRequestError.make({
+            message: `System prompt template "${template.title}" is empty`
+          })
+        );
+      }
+      system_prompt_override = trimmed;
+      resolved_template_id = template.id;
     }
 
     image_prompt = yield* generateImagePrompt(

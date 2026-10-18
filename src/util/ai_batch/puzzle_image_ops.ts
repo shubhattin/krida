@@ -344,7 +344,9 @@ export const trigger_batch_puzzle_image_gen = Effect.fn('batch_ai.trigger_batch_
     }
 
     // Resolve the selected template once — every row in this batch shares it,
-    // and each row stores it as a snapshot in its metadata.
+    // and each row stores it as a snapshot in its metadata. Fail fast on a
+    // deleted, empty, or cross-subject template before any model spend.
+    // Default-generated rows store no snapshot (the default lives in code).
     let system_prompt_override: string | undefined;
     let resolved_template_id: number | null | undefined;
     if (system_prompt_template_id != null) {
@@ -353,13 +355,34 @@ export const trigger_batch_puzzle_image_gen = Effect.fn('batch_ai.trigger_batch_
           where: (tbl, { eq: eqOp }) => eqOp(tbl.id, system_prompt_template_id)
         })
       );
-      if (template) {
-        system_prompt_override = template.content;
-        resolved_template_id = template.id;
+      if (!template) {
+        return yield* Effect.fail(
+          NotFoundError.make({
+            resource: 'system_prompt_template',
+            message: 'System prompt template not found'
+          })
+        );
       }
+      if (template.subject !== 'puzzle') {
+        return yield* Effect.fail(
+          BadRequestError.make({
+            message: `System prompt template "${template.title}" is for ${template.subject} images`
+          })
+        );
+      }
+      const trimmed = template.content.trim();
+      if (!trimmed) {
+        return yield* Effect.fail(
+          BadRequestError.make({
+            message: `System prompt template "${template.title}" is empty`
+          })
+        );
+      }
+      system_prompt_override = trimmed;
+      resolved_template_id = template.id;
     }
     const system_prompt_used =
-      system_prompt_override !== undefined || resolved_template_id !== undefined
+      resolved_template_id != null
         ? resolveImageSystemPrompt(system_prompt_override, 'puzzle')
         : undefined;
 

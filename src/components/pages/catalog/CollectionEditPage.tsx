@@ -430,6 +430,7 @@ function CollectionCoverDialog({
 
   const resetCreate = () => {
     setInstructions('');
+    setSystemPromptTemplateId(null);
     setPhase({ state: 'idle' });
   };
 

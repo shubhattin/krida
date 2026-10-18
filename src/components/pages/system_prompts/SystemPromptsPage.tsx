@@ -85,6 +85,9 @@ export function SystemPromptsPage() {
         toast.success(`Template “${row.title}” created`);
         setNewTitle('');
         setAddOpen(false);
+        // Unfilter so the new card is visible and highlightable.
+        setSubjectFilter('all');
+        setSearch('');
         setHighlightedId(`template-${row.id}`);
         void invalidate();
       },
@@ -123,8 +126,12 @@ export function SystemPromptsPage() {
   });
 
   const copy_text = async (text: string) => {
-    await navigator.clipboard.writeText(text);
-    toast.success('Copied to clipboard');
+    try {
+      await navigator.clipboard.writeText(text);
+      toast.success('Copied to clipboard');
+    } catch {
+      toast.error('Copy failed');
+    }
   };
 
   return (
@@ -315,7 +322,7 @@ export function SystemPromptsPage() {
                     </Button>
                     <Button
                       size="sm"
-                      disabled={update_mut.isPending}
+                      disabled={update_mut.isPending || !edit_title.trim()}
                       onClick={() =>
                         update_mut.mutate({
                           id: template.id,
