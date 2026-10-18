@@ -7,7 +7,7 @@ import { type DataTableColumnDef } from '~/components/ui/data-table';
 
 dayjs.extend(relativeTime);
 
-export type CrosswordListItem = {
+export type PadajalaListItem = {
   id: number;
   uid: string;
   slug: string;
@@ -21,7 +21,7 @@ export type CrosswordListItem = {
   tags?: { id: number; slug: string }[];
 };
 
-export const crosswordListTableColumns: DataTableColumnDef<CrosswordListItem>[] = [
+export const padajalaListTableColumns: DataTableColumnDef<PadajalaListItem>[] = [
   {
     accessorKey: 'id',
     header: 'ID',

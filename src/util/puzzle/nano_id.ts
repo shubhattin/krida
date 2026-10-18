@@ -1,15 +1,7 @@
 import { eq } from 'drizzle-orm';
 import { customAlphabet } from 'nanoid';
 import { z } from 'zod';
-import {
-  anveshi_puzzles,
-  bhramita_puzzles,
-  collections,
-  crossword_puzzles,
-  dvayi_puzzles,
-  padavali_puzzles,
-  surupa_puzzles
-} from '~/db/schema';
+import { collections, puzzles } from '~/db/schema';
 import type { DbTransaction } from '~/effect/database';
 
 const UID_LENGTH = 5;
@@ -18,24 +10,9 @@ const MAX_UID_ATTEMPTS = 8;
 
 const createUid = customAlphabet(UID_ALPHABET, UID_LENGTH);
 
-const UID_UNIQUE_CONSTRAINTS = new Set([
-  'padavali_puzzles_uid_unique',
-  'crossword_puzzles_uid_unique',
-  'dvayi_puzzles_uid_unique',
-  'bhramita_puzzles_uid_unique',
-  'surupa_puzzles_uid_unique',
-  'anveshi_puzzles_uid_unique',
-  'collections_uid_unique'
-]);
+const UID_UNIQUE_CONSTRAINTS = new Set(['puzzles_uid_unique', 'collections_uid_unique']);
 
-type PuzzleTable =
-  | typeof padavali_puzzles
-  | typeof crossword_puzzles
-  | typeof dvayi_puzzles
-  | typeof bhramita_puzzles
-  | typeof surupa_puzzles
-  | typeof anveshi_puzzles
-  | typeof collections;
+type UidTable = typeof puzzles | typeof collections;
 
 const driverErrorSchema = z
   .object({
@@ -97,7 +74,7 @@ export async function withUniqueUid<T>(options: {
  */
 export function insertWithUniqueUid<T>(
   tx: DbTransaction,
-  table: PuzzleTable,
+  table: UidTable,
   insert: (tx: DbTransaction, uid: string) => Promise<T>
 ): Promise<T> {
   return withUniqueUid({

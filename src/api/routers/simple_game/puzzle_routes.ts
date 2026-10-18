@@ -3,6 +3,7 @@ import { z } from 'zod';
 import { protectedAdminProcedure, publicProcedure, t } from '../../trpc_init';
 import { dbRunHttp, dbTransaction } from '~/effect/database';
 import { and, asc, count, desc, eq, ilike, or, sql } from 'drizzle-orm';
+import { puzzle_attachments, puzzle_redirects, puzzles } from '~/db/schema';
 import { escapeIlikeToken, tokenizeSearchQuery } from '~/util/puzzle/search';
 import { puzzleHasTag, puzzleInCollection, tagsForPuzzleIds } from '~/util/catalog/list_query';
 import {
@@ -12,13 +13,12 @@ import {
   simpleGameUpdateInputSchema
 } from '~/db/simple_game_shared';
 import { insertWithUniqueUid } from '~/util/puzzle/nano_id';
-import { simple_game_slug_schema } from '~/util/puzzle/slug';
+import { isValidSimpleGameSlug, normalizeSlug, simple_game_slug_schema } from '~/util/puzzle/slug';
 import {
   CACHE,
   invalidate_and_refresh_cache,
   NO_CACHE_PARAMS
 } from '~/util/cache.server/cache_loaders';
-import { normalizeSlug } from '~/util/puzzle/slug';
 import { syncPuzzleAttachments } from '~/game_shell/attachments';
 import { BadRequestError, NotFoundError } from '~/effect/errors';
 import { runTrpcEffect } from '~/effect/run';
@@ -26,7 +26,7 @@ import type { SimpleGameKind } from '~/util/games/kinds';
 import type { SimpleGameTableSet } from '~/db/schema/simple_game_tables';
 import type { SimpleGameCacheLoaders } from '~/util/cache.server/simple_game_cache';
 import type { GameAnalysis } from '~/util/games/issues';
-import { createSimpleGameSlugHelpers } from './slug_helpers';
+import { createGameSlugHelpers } from '~/game_shell/slug';
 import { createSimpleGameStatsRouter } from './stats';
 
 const settle = <A, E, R>(effect: Effect.Effect<A, E, R>) =>
@@ -44,8 +44,12 @@ export function createSimpleGameRouter<TData>(options: {
   analyze: (data: TData) => GameAnalysis;
 }) {
   const { kind, tables, cache: puzzleCache, dataSchema, emptyData, infer, analyze } = options;
+  const puzzleKind = eq(puzzles.kind, kind);
   const updateSchema = simpleGameUpdateInputSchema(dataSchema);
-  const slugHelpers = createSimpleGameSlugHelpers(kind, tables);
+  const slugHelpers = createGameSlugHelpers({
+    kind,
+    isValidSlug: isValidSimpleGameSlug
+  });
   const stats = createSimpleGameStatsRouter(kind, tables);
 
   const refreshListed = () =>
@@ -72,22 +76,31 @@ export function createSimpleGameRouter<TData>(options: {
       runTrpcEffect(
         dbRunHttp(`${kind}.get_puzzle_by_id`, async (client) => {
           const [puzzle] = await client
-            .select()
-            .from(tables.puzzles)
-            .where(eq(tables.puzzles.id, id))
+            .select({
+              id: puzzles.id,
+              uid: puzzles.uid,
+              slug: puzzles.slug,
+              title: puzzles.title,
+              description: puzzles.description,
+              listed: puzzles.listed,
+              puzzle_data: tables.puzzles.puzzle_data
+            })
+            .from(puzzles)
+            .innerJoin(tables.puzzles, eq(tables.puzzles.id, puzzles.id))
+            .where(and(puzzleKind, eq(puzzles.id, id)))
             .limit(1);
           if (!puzzle) return undefined;
           const attachments = await client
             .select({
-              id: tables.attachments.id,
-              title: tables.attachments.title,
-              type: tables.attachments.type,
-              url: tables.attachments.url,
-              order_index: tables.attachments.order_index
+              id: puzzle_attachments.id,
+              title: puzzle_attachments.title,
+              type: puzzle_attachments.type,
+              url: puzzle_attachments.url,
+              order_index: puzzle_attachments.order_index
             })
-            .from(tables.attachments)
-            .where(eq(tables.attachments.puzzle_id, id))
-            .orderBy(asc(tables.attachments.order_index));
+            .from(puzzle_attachments)
+            .where(eq(puzzle_attachments.puzzle_id, id))
+            .orderBy(asc(puzzle_attachments.order_index));
           return { ...puzzle, attachments };
         })
       )
@@ -110,53 +123,54 @@ export function createSimpleGameRouter<TData>(options: {
           } = simple_game_list_input_schema.parse(input);
 
           const trimmedSearch = search_title?.trim();
-          const conditions = [];
+          const conditions = [puzzleKind];
           if (listed_filter !== undefined) {
-            conditions.push(eq(tables.puzzles.listed, listed_filter));
+            conditions.push(eq(puzzles.listed, listed_filter));
           }
           if (trimmedSearch) {
             for (const token of tokenizeSearchQuery(trimmedSearch)) {
               const pattern = `%${escapeIlikeToken(token)}%`;
               conditions.push(
-                or(
-                  ilike(tables.puzzles.title, pattern),
-                  ilike(tables.puzzles.description, pattern)
-                )!
+                or(ilike(puzzles.title, pattern), ilike(puzzles.description, pattern))!
               );
             }
           }
-          if (tag_slug) conditions.push(puzzleHasTag(tables.puzzles.id, kind, tag_slug));
+          if (tag_slug) conditions.push(puzzleHasTag(puzzles.id, kind, tag_slug));
           if (collection_id !== undefined) {
-            conditions.push(puzzleInCollection(tables.puzzles.id, kind, collection_id));
+            conditions.push(puzzleInCollection(puzzles.id, kind, collection_id));
           }
-          const whereClause = conditions.length > 0 ? and(...conditions) : undefined;
+          const whereClause = and(...conditions);
 
           const sortCol =
             sort_by === 'updated_at'
-              ? sql`coalesce(${tables.puzzles.updated_at}, ${tables.puzzles.created_at})`
-              : tables.puzzles.created_at;
+              ? sql`coalesce(${puzzles.updated_at}, ${puzzles.created_at})`
+              : puzzles.created_at;
           const orderPrimary = order_by === 'desc' ? desc(sortCol) : asc(sortCol);
-          const orderTiebreaker =
-            order_by === 'desc' ? desc(tables.puzzles.id) : asc(tables.puzzles.id);
+          const orderTiebreaker = order_by === 'desc' ? desc(puzzles.id) : asc(puzzles.id);
           const offset = (page - 1) * size;
 
           const { countResult, rows } = yield* Effect.all({
             countResult: dbRunHttp(`${kind}.count_puzzle_list_page`, (client) =>
-              client.select({ count: count() }).from(tables.puzzles).where(whereClause)
+              client
+                .select({ count: count() })
+                .from(puzzles)
+                .innerJoin(tables.puzzles, eq(tables.puzzles.id, puzzles.id))
+                .where(whereClause)
             ),
             rows: dbRunHttp(`${kind}.select_puzzle_list_page`, (client) =>
               client
                 .select({
-                  id: tables.puzzles.id,
-                  uid: tables.puzzles.uid,
-                  slug: tables.puzzles.slug,
-                  title: tables.puzzles.title,
-                  description: tables.puzzles.description,
-                  listed: tables.puzzles.listed,
-                  created_at: tables.puzzles.created_at,
-                  updated_at: tables.puzzles.updated_at
+                  id: puzzles.id,
+                  uid: puzzles.uid,
+                  slug: puzzles.slug,
+                  title: puzzles.title,
+                  description: puzzles.description,
+                  listed: puzzles.listed,
+                  created_at: puzzles.created_at,
+                  updated_at: puzzles.updated_at
                 })
-                .from(tables.puzzles)
+                .from(puzzles)
+                .innerJoin(tables.puzzles, eq(tables.puzzles.id, puzzles.id))
                 .where(whereClause)
                 .orderBy(orderPrimary, orderTiebreaker)
                 .limit(size)
@@ -201,28 +215,25 @@ export function createSimpleGameRouter<TData>(options: {
               await slugHelpers.delete_redirect_for_slug(tx, input.slug);
             }
 
-            // SAFETY: tables.puzzles is always one of the concrete PuzzleTable
-            // members; the generic SimpleGameTableSet factory erases that union.
-            return insertWithUniqueUid<{ id: number }[]>(
-              tx,
-              tables.puzzles as never,
-              async (scoped, uid) => {
-                const rows = await scoped
-                  .insert(tables.puzzles)
-                  .values({
-                    uid,
-                    slug: input.slug,
-                    title: input.title.trim(),
-                    description: input.description?.trim() ?? '',
-                    puzzle_data: emptyData,
-                    listed: false
-                  })
-                  .returning();
-                // SAFETY: returning() always includes serial id on this puzzle table.
-                const insertedRows: { id: number }[] = rows;
-                return insertedRows;
-              }
-            );
+            return insertWithUniqueUid<{ id: number }[]>(tx, puzzles, async (scoped, uid) => {
+              const [inserted] = await scoped
+                .insert(puzzles)
+                .values({
+                  kind,
+                  uid,
+                  slug: input.slug,
+                  title: input.title.trim(),
+                  description: input.description?.trim() ?? '',
+                  listed: false
+                })
+                .returning();
+              if (!inserted) return [];
+              await scoped.insert(tables.puzzles).values({
+                id: inserted.id,
+                puzzle_data: emptyData
+              });
+              return [inserted];
+            });
           });
           const inserted = inserted_puzzles[0];
           if (!inserted) {
@@ -243,11 +254,11 @@ export function createSimpleGameRouter<TData>(options: {
           const [existing] = yield* dbRunHttp(`${kind}.find_puzzle_for_update`, (client) =>
             client
               .select({
-                id: tables.puzzles.id,
-                listed: tables.puzzles.listed
+                id: puzzles.id,
+                listed: puzzles.listed
               })
-              .from(tables.puzzles)
-              .where(and(eq(tables.puzzles.id, puzzle_id), eq(tables.puzzles.slug, puzzle_slug)))
+              .from(puzzles)
+              .where(and(puzzleKind, eq(puzzles.id, puzzle_id), eq(puzzles.slug, puzzle_slug)))
               .limit(1)
           );
           if (!existing) {
@@ -283,26 +294,27 @@ export function createSimpleGameRouter<TData>(options: {
           const { updated_count, newly_added_index_ids } = yield* dbTransaction(
             `${kind}.update_puzzle`,
             async (tx) => {
-              const updates: Partial<typeof tables.puzzles.$inferInsert> = {
+              const metaUpdates: Partial<typeof puzzles.$inferInsert> = {
                 title: puzzle_data_rest.title,
                 description: puzzle_data_rest.description,
-                listed: puzzle_data_rest.listed,
-                puzzle_data: inferred
+                listed: puzzle_data_rest.listed
               };
-              if (becomingListed) updates.last_listed_at = new Date();
+              if (becomingListed) metaUpdates.last_listed_at = new Date();
 
               const updated = await tx
-                .update(tables.puzzles)
-                .set(updates)
-                .where(and(eq(tables.puzzles.id, puzzle_id), eq(tables.puzzles.slug, puzzle_slug)))
+                .update(puzzles)
+                .set(metaUpdates)
+                .where(and(puzzleKind, eq(puzzles.id, puzzle_id), eq(puzzles.slug, puzzle_slug)))
                 .returning();
 
-              const attachment_result = await syncPuzzleAttachments(
-                tx,
-                tables.attachments,
-                puzzle_id,
-                attachments
-              );
+              if (updated.length > 0) {
+                await tx
+                  .update(tables.puzzles)
+                  .set({ puzzle_data: inferred })
+                  .where(eq(tables.puzzles.id, puzzle_id));
+              }
+
+              const attachment_result = await syncPuzzleAttachments(tx, puzzle_id, attachments);
               return {
                 updated_count: updated.length,
                 newly_added_index_ids: attachment_result.newly_added_index_ids
@@ -340,9 +352,9 @@ export function createSimpleGameRouter<TData>(options: {
 
           const [puzzle] = yield* dbRunHttp(`${kind}.find_puzzle_for_slug_update`, (client) =>
             client
-              .select({ id: tables.puzzles.id, listed: tables.puzzles.listed })
-              .from(tables.puzzles)
-              .where(and(eq(tables.puzzles.id, puzzle_id), eq(tables.puzzles.slug, current_slug)))
+              .select({ id: puzzles.id, listed: puzzles.listed })
+              .from(puzzles)
+              .where(and(puzzleKind, eq(puzzles.id, puzzle_id), eq(puzzles.slug, current_slug)))
               .limit(1)
           );
           if (!puzzle) {
@@ -362,9 +374,9 @@ export function createSimpleGameRouter<TData>(options: {
           const updated_count = yield* dbTransaction(`${kind}.update_puzzle_slug`, async (tx) => {
             await slugHelpers.delete_redirect_for_slug(tx, new_slug);
             const updated = await tx
-              .update(tables.puzzles)
+              .update(puzzles)
               .set({ slug: new_slug })
-              .where(and(eq(tables.puzzles.id, puzzle_id), eq(tables.puzzles.slug, current_slug)))
+              .where(and(puzzleKind, eq(puzzles.id, puzzle_id), eq(puzzles.slug, current_slug)))
               .returning();
             if (updated.length > 0) {
               await slugHelpers.upsert_redirect_for_puzzle(tx, puzzle_id, current_slug);
@@ -398,9 +410,9 @@ export function createSimpleGameRouter<TData>(options: {
           const normalizedSlug = normalizeSlug(slug);
           const [puzzle] = yield* dbRunHttp(`${kind}.find_puzzle_for_delete`, (client) =>
             client
-              .select({ listed: tables.puzzles.listed })
-              .from(tables.puzzles)
-              .where(and(eq(tables.puzzles.id, id), eq(tables.puzzles.slug, normalizedSlug)))
+              .select({ listed: puzzles.listed })
+              .from(puzzles)
+              .where(and(puzzleKind, eq(puzzles.id, id), eq(puzzles.slug, normalizedSlug)))
               .limit(1)
           );
           if (!puzzle) {
@@ -411,8 +423,8 @@ export function createSimpleGameRouter<TData>(options: {
 
           yield* dbTransaction(`${kind}.delete_puzzle`, async (tx) => {
             await tx
-              .delete(tables.puzzles)
-              .where(and(eq(tables.puzzles.id, id), eq(tables.puzzles.slug, normalizedSlug)));
+              .delete(puzzles)
+              .where(and(puzzleKind, eq(puzzles.id, id), eq(puzzles.slug, normalizedSlug)));
           });
 
           if (puzzle.listed) yield* refreshListed();
@@ -430,9 +442,9 @@ export function createSimpleGameRouter<TData>(options: {
         Effect.gen(function* () {
           const [puzzle] = yield* dbRunHttp(`${kind}.get_puzzle_slugs`, (client) =>
             client
-              .select({ slug: tables.puzzles.slug })
-              .from(tables.puzzles)
-              .where(eq(tables.puzzles.id, puzzle_id))
+              .select({ slug: puzzles.slug })
+              .from(puzzles)
+              .where(and(puzzleKind, eq(puzzles.id, puzzle_id)))
               .limit(1)
           );
           if (!puzzle) {
@@ -442,10 +454,15 @@ export function createSimpleGameRouter<TData>(options: {
           }
           const redirects = yield* dbRunHttp(`${kind}.get_puzzle_redirects`, (client) =>
             client
-              .select({ slug: tables.redirects.slug, created_at: tables.redirects.created_at })
-              .from(tables.redirects)
-              .where(eq(tables.redirects.puzzle_id, puzzle_id))
-              .orderBy(desc(tables.redirects.created_at))
+              .select({
+                slug: puzzle_redirects.slug,
+                created_at: puzzle_redirects.created_at
+              })
+              .from(puzzle_redirects)
+              .where(
+                and(eq(puzzle_redirects.kind, kind), eq(puzzle_redirects.puzzle_id, puzzle_id))
+              )
+              .orderBy(desc(puzzle_redirects.created_at))
           );
           const redirect_slugs = redirects.map((row) => row.slug);
           return {
@@ -472,9 +489,9 @@ export function createSimpleGameRouter<TData>(options: {
         Effect.gen(function* () {
           const [puzzle] = yield* dbRunHttp(`${kind}.find_puzzle_for_redirect_delete`, (client) =>
             client
-              .select({ id: tables.puzzles.id, slug: tables.puzzles.slug })
-              .from(tables.puzzles)
-              .where(eq(tables.puzzles.id, puzzle_id))
+              .select({ id: puzzles.id, slug: puzzles.slug })
+              .from(puzzles)
+              .where(and(puzzleKind, eq(puzzles.id, puzzle_id)))
               .limit(1)
           );
           if (!puzzle) {
@@ -490,12 +507,13 @@ export function createSimpleGameRouter<TData>(options: {
 
           const [redirect] = yield* dbRunHttp(`${kind}.find_redirect_for_delete`, (client) =>
             client
-              .select({ id: tables.redirects.id })
-              .from(tables.redirects)
+              .select({ id: puzzle_redirects.id })
+              .from(puzzle_redirects)
               .where(
                 and(
-                  eq(tables.redirects.slug, redirect_slug),
-                  eq(tables.redirects.puzzle_id, puzzle_id)
+                  eq(puzzle_redirects.kind, kind),
+                  eq(puzzle_redirects.slug, redirect_slug),
+                  eq(puzzle_redirects.puzzle_id, puzzle_id)
                 )
               )
               .limit(1)
@@ -511,9 +529,9 @@ export function createSimpleGameRouter<TData>(options: {
 
           yield* dbRunHttp(`${kind}.delete_redirect`, async (client) => {
             await client
-              .delete(tables.redirects)
+              .delete(puzzle_redirects)
               .where(
-                and(eq(tables.redirects.id, redirect.id), eq(tables.redirects.puzzle_id, puzzle_id))
+                and(eq(puzzle_redirects.id, redirect.id), eq(puzzle_redirects.puzzle_id, puzzle_id))
               );
           });
 

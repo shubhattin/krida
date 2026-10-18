@@ -1,8 +1,8 @@
 import { z } from 'zod';
-import { crossword_slug_schema, slug_schema } from '~/util/puzzle/slug';
+import { padajala_slug_schema, slug_schema } from '~/util/puzzle/slug';
 import { padavali_word_candidate_list_schema } from '~/util/puzzle/word_list';
 
-export { crossword_slug_schema, slug_schema };
+export { padajala_slug_schema, slug_schema };
 export {
   padavali_word_candidate_schema,
   padavali_word_candidate_list_schema,

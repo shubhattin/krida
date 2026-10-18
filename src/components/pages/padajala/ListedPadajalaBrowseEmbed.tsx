@@ -1,0 +1,107 @@
+'use client';
+
+import { useMemo, useState } from 'react';
+import { Link } from '@tanstack/react-router';
+import Fuse from 'fuse.js';
+import { motion } from 'framer-motion';
+import { ExternalLinkIcon, SearchIcon } from 'lucide-react';
+import { InputGroup, InputGroupAddon, InputGroupInput } from '~/components/ui/input-group';
+import type { PadajalaListedPuzzlesType } from '~/util/cache.server/padajala_cache';
+import { PadajalaPreviewCard } from '~/components/pages/padajala/PadajalaPreviewCard';
+import { usePadajalaListedPuzzles } from '~/components/pages/padajala/usePadajalaListedPuzzles';
+
+const EMBED_PAGE_LIMIT = 12;
+
+type Props = {
+  listed_puzzles: PadajalaListedPuzzlesType;
+};
+
+export function ListedPadajalaBrowseEmbed({ listed_puzzles: listed_puzzles_init }: Props) {
+  const [query, setQuery] = useState('');
+  const listed_puzzles = usePadajalaListedPuzzles(listed_puzzles_init);
+
+  const fuse = useMemo(
+    () =>
+      new Fuse(listed_puzzles, {
+        keys: ['title', 'description'],
+        threshold: 0.35,
+        ignoreLocation: true
+      }),
+    [listed_puzzles]
+  );
+
+  const filtered = useMemo(() => {
+    const trimmed = query.trim();
+    if (!trimmed) return listed_puzzles;
+    return fuse.search(trimmed).map((result) => result.item);
+  }, [fuse, listed_puzzles, query]);
+
+  const visible = filtered.slice(0, EMBED_PAGE_LIMIT);
+
+  if (listed_puzzles.length === 0) return null;
+
+  return (
+    <div className="mx-auto w-full max-w-6xl px-4 pb-8">
+      <div className="mb-4 flex items-center justify-center gap-2">
+        <h2 className="text-lg font-semibold text-slate-800 sm:text-xl dark:text-slate-100">
+          Browse puzzles
+        </h2>
+        <Link
+          to="/puzzles"
+          search={{ game: 'padajala' }}
+          className="flex items-center justify-center gap-0.5 rounded-full border border-blue-200/70 bg-blue-50/80 px-2 py-0.5 text-xs leading-none font-medium text-blue-600 no-underline transition-all duration-150 hover:bg-blue-100 hover:text-blue-700 dark:border-blue-700/50 dark:bg-blue-950/40 dark:text-blue-400 dark:hover:bg-blue-900/50"
+        >
+          <ExternalLinkIcon className="relative size-3 shrink-0 translate-y-[-1.5px]" />
+          <span>View all</span>
+        </Link>
+      </div>
+
+      <div className="mb-6">
+        <InputGroup>
+          <InputGroupAddon>
+            <SearchIcon className="size-4 text-muted-foreground" />
+          </InputGroupAddon>
+          <InputGroupInput
+            value={query}
+            onChange={(e) => setQuery(e.target.value)}
+            placeholder="Search by title or description…"
+            aria-label="Search puzzles"
+          />
+        </InputGroup>
+      </div>
+
+      {filtered.length === 0 ? (
+        <p className="py-8 text-center text-sm text-slate-500 dark:text-slate-400">
+          No puzzles match your search
+        </p>
+      ) : (
+        <div className="grid grid-cols-2 gap-3 sm:gap-4 lg:grid-cols-3 xl:grid-cols-4">
+          {visible.map((puzzle, index) => (
+            <motion.div
+              key={puzzle.id}
+              initial={{ opacity: 0, y: 12 }}
+              animate={{ opacity: 1, y: 0 }}
+              transition={{ duration: 0.3, delay: index * 0.04 }}
+              className="h-full"
+            >
+              <PadajalaPreviewCard puzzle={puzzle} />
+            </motion.div>
+          ))}
+        </div>
+      )}
+
+      {filtered.length > EMBED_PAGE_LIMIT ? (
+        <p className="mt-4 text-center text-sm text-slate-500 dark:text-slate-400">
+          Showing {EMBED_PAGE_LIMIT} of {filtered.length} matches.{' '}
+          <Link
+            to="/puzzles"
+            search={{ game: 'padajala' }}
+            className="font-medium text-blue-600 hover:underline dark:text-blue-400"
+          >
+            View all
+          </Link>
+        </p>
+      ) : null}
+    </div>
+  );
+}

@@ -1,5 +1,5 @@
-import type { CrosswordCacheLoaders } from './crossword_cache';
-import { crossword_cache_loaders } from './crossword_cache';
+import type { PadajalaCacheLoaders } from './padajala_cache';
+import { padajala_cache_loaders } from './padajala_cache';
 import type { PadavaliCacheLoaders } from './padavali_cache';
 import { padavali_cache_loaders } from './padavali_cache';
 import type { SitemapCacheLoaders } from './sitemap_cache';
@@ -30,7 +30,7 @@ export { CACHE_AI_OUTSIDE_PROD } from './ai_cache_options';
 
 export type CacheLoaderRegistry = {
   padavali: PadavaliCacheLoaders;
-  crossword: CrosswordCacheLoaders;
+  padajala: PadajalaCacheLoaders;
   dvayi: SimpleGameCacheLoaders<DvayiPuzzleData>;
   bhramita: SimpleGameCacheLoaders<BhramitaPuzzleData>;
   surupa: SimpleGameCacheLoaders<SurupaPuzzleData>;
@@ -42,7 +42,7 @@ export type CacheLoaderRegistry = {
 
 export const CACHE: CacheLoaderRegistry = {
   padavali: padavali_cache_loaders,
-  crossword: crossword_cache_loaders,
+  padajala: padajala_cache_loaders,
   dvayi: dvayi_cache_loaders,
   bhramita: bhramita_cache_loaders,
   surupa: surupa_cache_loaders,

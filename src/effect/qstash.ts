@@ -38,7 +38,7 @@ export class QStashPublisher extends Context.Service<
       data: ScheduleListingPayload,
       delay_s: number
     ) => Effect.Effect<void, QueueError>;
-    readonly publishCrosswordScheduleListing: (
+    readonly publishPadajalaScheduleListing: (
       data: ScheduleListingPayload,
       delay_s: number
     ) => Effect.Effect<void, QueueError>;
@@ -75,8 +75,8 @@ export class QStashPublisher extends Context.Service<
       return {
         publishScheduleListing: (data, delay_s) =>
           publish('schedule_listing', '/schedule_listing', data, delay_s),
-        publishCrosswordScheduleListing: (data, delay_s) =>
-          publish('crossword_schedule_listing', '/crossword/schedule_listing', data, delay_s),
+        publishPadajalaScheduleListing: (data, delay_s) =>
+          publish('padajala_schedule_listing', '/padajala/schedule_listing', data, delay_s),
         publishAiBatchResults: (data, delay_s) =>
           publish('save_ai_batch_results', '/save_ai_batch_results', data, delay_s)
       };

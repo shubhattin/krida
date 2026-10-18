@@ -3,7 +3,7 @@ import { SIMPLE_GAME_META } from './kinds';
 
 export const GAME_KIND_LABEL = {
   padavali: 'Padavali',
-  crossword: 'Padajala',
+  padajala: 'Padajala',
   dvayi: SIMPLE_GAME_META.dvayi.name,
   bhramita: SIMPLE_GAME_META.bhramita.name,
   surupa: SIMPLE_GAME_META.surupa.name,

@@ -25,7 +25,7 @@ import {
   type SimpleGameKind
 } from '~/util/games/kinds';
 import { active_puzzle_id_atom } from '~/components/pages/padavali/WordGame/game_state';
-import { active_crossword_id_atom } from '~/components/pages/cross_word/CrossWordGame/game_state';
+import { active_padajala_id_atom } from '~/components/pages/padajala/PadajalaGame/game_state';
 import { active_collection_atom } from '~/components/pages/catalog/catalog_admin_state';
 import { useSession } from '~/lib/auth-client';
 import { cn } from '~/lib/utils';
@@ -185,7 +185,12 @@ export function PadavaliMenuItems({ onNavigate }: { onNavigate?: () => void }) {
         </div>
         <span className="truncate">List</span>
       </Link>
-      <Link to="/padavali/schedules" onClick={onNavigate} className={accountMenuLinkClass}>
+      <Link
+        to="/schedules"
+        search={{ kinds: ['padavali'] }}
+        onClick={onNavigate}
+        className={accountMenuLinkClass}
+      >
         <div className={`${accountMenuIconClass} from-emerald-500 to-teal-600`}>
           <Calendar className="size-3 text-white" />
         </div>
@@ -208,25 +213,25 @@ export function PadavaliMenuItems({ onNavigate }: { onNavigate?: () => void }) {
   );
 }
 
-/** Padajāla routes — edit current crossword, admin hub, then game tools. */
-export function CrosswordMenuItems({ onNavigate }: { onNavigate?: () => void }) {
+/** Padajāla routes — edit current padajala, admin hub, then game tools. */
+export function PadajalaMenuItems({ onNavigate }: { onNavigate?: () => void }) {
   const isAdmin = useIsAdmin();
-  const [activeCrosswordId] = useAtom(active_crossword_id_atom);
+  const [activePadajalaId] = useAtom(active_padajala_id_atom);
   if (!isAdmin) return null;
 
   return (
     <>
-      {activeCrosswordId != null ? (
+      {activePadajalaId != null ? (
         <Link
           to="/padajala/edit/$id"
-          params={{ id: String(activeCrosswordId) }}
+          params={{ id: String(activePadajalaId) }}
           onClick={onNavigate}
           className={cn(accountMenuLinkClass, 'col-span-2')}
         >
           <div className={`${accountMenuIconClass} from-amber-500 to-orange-600`}>
             <Pencil className="size-3 text-white" />
           </div>
-          <span className="truncate">Edit puzzle #{activeCrosswordId}</span>
+          <span className="truncate">Edit puzzle #{activePadajalaId}</span>
         </Link>
       ) : null}
       <AdminPageMenuLink onNavigate={onNavigate} prominent />
@@ -236,7 +241,12 @@ export function CrosswordMenuItems({ onNavigate }: { onNavigate?: () => void }) 
         </div>
         <span className="truncate">List</span>
       </Link>
-      <Link to="/padajala/schedules" onClick={onNavigate} className={accountMenuLinkClass}>
+      <Link
+        to="/schedules"
+        search={{ kinds: ['padajala'] }}
+        onClick={onNavigate}
+        className={accountMenuLinkClass}
+      >
         <div className={`${accountMenuIconClass} from-emerald-500 to-teal-600`}>
           <Calendar className="size-3 text-white" />
         </div>
@@ -248,7 +258,12 @@ export function CrosswordMenuItems({ onNavigate }: { onNavigate?: () => void }) 
         </div>
         <span className="truncate">Analytics</span>
       </Link>
-      <Link to="/padajala/batch_manager" onClick={onNavigate} className={accountMenuLinkClass}>
+      <Link
+        to="/padavali/batch_manager"
+        search={{ game: 'padajala' }}
+        onClick={onNavigate}
+        className={accountMenuLinkClass}
+      >
         <div className={`${accountMenuIconClass} from-fuchsia-500 to-pink-600`}>
           <Images className="size-3 text-white" />
         </div>

@@ -21,7 +21,8 @@
     "migration:drop": "drizzle-kit drop",
     "migration:export": "drizzle-kit export",
     "migration:push": "drizzle-kit push",
-    "prepare": "./scripts/prepare-effect.sh"
+    "prepare": "./scripts/prepare-effect.sh",
+    "test:run": "vitest run"
   },
   "dependencies": {
     "@ai-sdk/openai": "^3.0.74",
@@ -84,7 +85,7 @@
     "lipilekhika": "^1.0.13",
     "lucide-react": "^0.510.0",
     "ms": "^2.1.3",
-    "nanoid": "^6.0.1",
+    "nanoid": "^6.0.2",
     "openai": "^6.45.0",
     "posthog-js": "^1.395.0",
     "posthog-node": "^5.52.4",

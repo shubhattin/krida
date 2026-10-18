@@ -1,7 +1,8 @@
 import { Effect } from 'effect';
-import { eq, sql } from 'drizzle-orm';
+import { and, asc, eq, sql } from 'drizzle-orm';
 import { z } from 'zod';
 import { attachment_schema } from '~/db/db_shared_vals';
+import { puzzle_attachments, puzzles } from '~/db/schema';
 import { createCache, type CacheItem, type NoCacheParams } from '~/effect/cache';
 import { dbRunHttp } from '~/effect/database';
 import { CacheError } from '~/effect/errors';
@@ -76,20 +77,21 @@ export function createSimpleGameCacheLoaders<T>(
       dbRunHttp(`${kind}.listed_puzzle_list`, (client) =>
         client
           .select({
-            id: tables.puzzles.id,
-            slug: tables.puzzles.slug,
-            title: tables.puzzles.title,
-            description: tables.puzzles.description,
-            last_listed_at: tables.puzzles.last_listed_at,
-            updated_at: tables.puzzles.updated_at,
-            created_at: tables.puzzles.created_at
+            id: puzzles.id,
+            slug: puzzles.slug,
+            title: puzzles.title,
+            description: puzzles.description,
+            last_listed_at: puzzles.last_listed_at,
+            updated_at: puzzles.updated_at,
+            created_at: puzzles.created_at
           })
-          .from(tables.puzzles)
-          .where(eq(tables.puzzles.listed, true))
+          .from(puzzles)
+          .innerJoin(tables.puzzles, eq(tables.puzzles.id, puzzles.id))
+          .where(and(eq(puzzles.kind, kind), eq(puzzles.listed, true)))
           .orderBy(
-            sql`COALESCE(${tables.puzzles.last_listed_at}, ${tables.puzzles.updated_at}, ${tables.puzzles.created_at}) DESC`,
-            sql`${tables.puzzles.created_at} DESC`,
-            sql`${tables.puzzles.id} DESC`
+            sql`COALESCE(${puzzles.last_listed_at}, ${puzzles.updated_at}, ${puzzles.created_at}) DESC`,
+            sql`${puzzles.created_at} DESC`,
+            sql`${puzzles.id} DESC`
           )
       ).pipe(
         Effect.flatMap((rows) =>
@@ -126,31 +128,32 @@ export function createSimpleGameCacheLoaders<T>(
         dbRunHttp(`${kind}.word_puzzle`, async (client) => {
           const [puzzle] = await client
             .select({
-              id: tables.puzzles.id,
-              uid: tables.puzzles.uid,
-              slug: tables.puzzles.slug,
-              title: tables.puzzles.title,
-              created_at: tables.puzzles.created_at,
-              updated_at: tables.puzzles.updated_at,
-              listed: tables.puzzles.listed,
-              description: tables.puzzles.description,
+              id: puzzles.id,
+              uid: puzzles.uid,
+              slug: puzzles.slug,
+              title: puzzles.title,
+              created_at: puzzles.created_at,
+              updated_at: puzzles.updated_at,
+              listed: puzzles.listed,
+              description: puzzles.description,
               puzzle_data: tables.puzzles.puzzle_data
             })
-            .from(tables.puzzles)
-            .where(eq(tables.puzzles.slug, slug))
+            .from(puzzles)
+            .innerJoin(tables.puzzles, eq(tables.puzzles.id, puzzles.id))
+            .where(and(eq(puzzles.kind, kind), eq(puzzles.slug, slug)))
             .limit(1);
           if (!puzzle) return undefined;
           const attachments = await client
             .select({
-              id: tables.attachments.id,
-              title: tables.attachments.title,
-              type: tables.attachments.type,
-              url: tables.attachments.url,
-              order_index: tables.attachments.order_index
+              id: puzzle_attachments.id,
+              title: puzzle_attachments.title,
+              type: puzzle_attachments.type,
+              url: puzzle_attachments.url,
+              order_index: puzzle_attachments.order_index
             })
-            .from(tables.attachments)
-            .where(eq(tables.attachments.puzzle_id, puzzle.id))
-            .orderBy(tables.attachments.order_index);
+            .from(puzzle_attachments)
+            .where(eq(puzzle_attachments.puzzle_id, puzzle.id))
+            .orderBy(asc(puzzle_attachments.order_index));
           // SAFETY: selected puzzle columns plus attachments match SimpleGamePuzzle<T>.
           const wordPuzzle: SimpleGamePuzzle<T> = { ...puzzle, attachments };
           return wordPuzzle;

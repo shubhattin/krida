@@ -4,7 +4,7 @@ import { z } from 'zod';
 import { execSync } from 'child_process';
 import { import_data } from './import_data';
 import * as dotenv from 'dotenv';
-import { dbDataFileName, dbUrl, queryClient } from './client';
+import { dbDataFilePath, dbUrl, queryClient } from './client';
 import { dbMode } from '../../tools/kry.server';
 import {
   S3Client,
@@ -67,7 +67,7 @@ async function backup_data() {
 
   await import_data(false).then(() => {
     queryClient.end();
-    fs.copyFileSync(`./out/${dbDataFileName}`, './backup/db_data.json');
+    fs.copyFileSync(dbDataFilePath, './backup/db_data.json');
   });
 
   console.log('Zipping backup files');

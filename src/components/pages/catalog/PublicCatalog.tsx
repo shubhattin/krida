@@ -3,8 +3,8 @@
 import { useMemo, useState } from 'react';
 import { Image } from '@unpic/react';
 import { Layers as LayersIcon, Puzzle as PuzzleIcon, SearchIcon } from 'lucide-react';
-import { CrosswordPreviewCard } from '~/components/pages/cross_word/CrosswordPreviewCard';
-import type { CrosswordListedPuzzle } from '~/components/pages/cross_word/CrosswordPreviewCard';
+import { PadajalaPreviewCard } from '~/components/pages/padajala/PadajalaPreviewCard';
+import type { PadajalaListedPuzzle } from '~/components/pages/padajala/PadajalaPreviewCard';
 import { PuzzlePreviewCard } from '~/components/pages/padavali/PuzzlePreviewCard';
 import type { DisplayPuzzle } from '~/components/pages/padavali/listed_puzzle_display';
 import { Button } from '~/components/ui/button';
@@ -145,9 +145,9 @@ type PublicCollectionsProps =
       puzzles: DisplayPuzzle[];
     }
   | {
-      game: 'crossword';
+      game: 'padajala';
       collections: ListedCollectionsType;
-      puzzles: CrosswordListedPuzzle[];
+      puzzles: PadajalaListedPuzzle[];
     };
 
 export function PublicCollections(props: PublicCollectionsProps) {
@@ -162,7 +162,7 @@ export function PublicCollections(props: PublicCollectionsProps) {
   }
   return (
     <PublicCollectionsView
-      game="crossword"
+      game="padajala"
       collections={props.collections}
       puzzles={props.puzzles}
     />
@@ -230,7 +230,7 @@ function PublicCollectionsView(props: PublicCollectionsProps) {
       ) : game === 'padavali' ? (
         <PadavaliCollectionItems items={selected.items} puzzles={props.puzzles} />
       ) : (
-        <CrosswordCollectionItems items={selected.items} puzzles={props.puzzles} />
+        <PadajalaCollectionItems items={selected.items} puzzles={props.puzzles} />
       )}
     </div>
   );
@@ -269,12 +269,12 @@ function PadavaliCollectionItems({
   );
 }
 
-function CrosswordCollectionItems({
+function PadajalaCollectionItems({
   items,
   puzzles
 }: {
   items: ListedCollectionItem[];
-  puzzles: CrosswordListedPuzzle[];
+  puzzles: PadajalaListedPuzzle[];
 }) {
   const puzzlesById = useMemo(
     () => new Map(puzzles.map((puzzle) => [puzzle.id, puzzle])),
@@ -293,8 +293,8 @@ function CrosswordCollectionItems({
             description: item.description,
             image: item.image,
             tags: []
-          } satisfies CrosswordListedPuzzle);
-        return <CrosswordPreviewCard key={`crossword-${item.puzzle_id}`} puzzle={puzzle} />;
+          } satisfies PadajalaListedPuzzle);
+        return <PadajalaPreviewCard key={`padajala-${item.puzzle_id}`} puzzle={puzzle} />;
       })}
     </div>
   );

@@ -20,6 +20,13 @@ export const dbDataFileName = {
   LOCAL: 'db_data.json'
 }[dbMode];
 
+/**
+ * Repo-root `out/` dump file. Resolved from this file's location so scripts
+ * behave identically regardless of the working directory they are launched
+ * from (a cwd-relative `./out/` silently picks the wrong dump otherwise).
+ */
+export const dbDataFilePath = path.resolve(import.meta.dirname, '../../../out', dbDataFileName);
+
 if (!dbUrl) {
   throw new Error(
     `Database URL is not configured for ${dbMode} scripts (PG_DATABASE_URL / PG_DATABASE_URL1 / PG_DATABASE_URL2)`

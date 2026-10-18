@@ -63,7 +63,7 @@ function useIsClient() {
   );
 }
 
-function dashboardGameId(game: 'padavali' | 'crossword'): DashboardGameId {
+function dashboardGameId(game: 'padavali' | 'padajala'): DashboardGameId {
   return game === 'padavali' ? 'padavali' : 'padajala';
 }
 
@@ -96,7 +96,7 @@ export function UserProfileChip({
   game,
   gameLabel
 }: {
-  game: 'padavali' | 'crossword';
+  game: 'padavali' | 'padajala';
   gameLabel: string;
 }) {
   const { data: session, isPending } = useSession();
@@ -126,7 +126,7 @@ export function UserProfileChip({
           'size-8 shrink-0',
           prompt.pulsing && chipStyles.pulse,
           prompt.pulsing &&
-            (game === 'padavali' ? chipStyles.pulsePadavali : chipStyles.pulseCrossword)
+            (game === 'padavali' ? chipStyles.pulsePadavali : chipStyles.pulsePadajala)
         )}
       >
         <Popover open={prompt.open} onOpenChange={prompt.onOpenChange}>
@@ -164,7 +164,7 @@ export function UserProfileChip({
               popoverClass,
               prompt.autoOpen && chipStyles.glow,
               prompt.autoOpen &&
-                (game === 'padavali' ? chipStyles.glowPadavali : chipStyles.glowCrossword)
+                (game === 'padavali' ? chipStyles.glowPadavali : chipStyles.glowPadajala)
             )}
           >
             {user ? (
@@ -231,7 +231,7 @@ function GuestCard({
   trigger,
   onSignedIn
 }: {
-  game: 'padavali' | 'crossword';
+  game: 'padavali' | 'padajala';
   trigger: GuestAuthPromptTrigger | null;
   onSignedIn: () => void;
 }) {
@@ -284,7 +284,7 @@ function SignedInCard({
   onNavigate,
   onLogout
 }: {
-  game: 'padavali' | 'crossword';
+  game: 'padavali' | 'padajala';
   gameLabel: string;
   name: string | null | undefined;
   image: string | null | undefined;

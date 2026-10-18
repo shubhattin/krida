@@ -71,7 +71,7 @@ const GAME_CARD_ACTIVE = {
     card: 'border-blue-300 bg-blue-50 shadow-sm dark:border-blue-500/45 dark:bg-blue-950/55',
     check: 'text-blue-600 dark:text-blue-300'
   },
-  crossword: {
+  padajala: {
     card: 'border-amber-300 bg-amber-50 shadow-sm dark:border-amber-500/45 dark:bg-amber-950/40',
     check: 'text-amber-600 dark:text-amber-300'
   }
@@ -80,7 +80,7 @@ const GAME_CARD_ACTIVE = {
 const SWITCHER_TRIGGER_GAME = {
   padavali:
     'border-blue-300 bg-blue-50 text-slate-900 dark:border-blue-500/50 dark:bg-blue-950/70 dark:text-slate-50',
-  crossword:
+  padajala:
     'border-amber-300 bg-amber-50 text-slate-900 dark:border-amber-500/50 dark:bg-amber-950/60 dark:text-slate-50'
 } as const;
 
@@ -175,7 +175,7 @@ function SwitcherTriggerLabel({ activeGame }: { activeGame: HubGameMeta | null }
 export function HubNavSwitcher({ active }: { active: HubNavId }) {
   const [open, setOpen] = useState(false);
   useCloseOnNavigate(() => setOpen(false));
-  const activeGame = active === 'padavali' || active === 'crossword' ? HUB_GAMES[active] : null;
+  const activeGame = active === 'padavali' || active === 'padajala' ? HUB_GAMES[active] : null;
   const triggerLabel = activeGame
     ? `Switch game, currently ${activeGame.name}`
     : 'Open games and pages';

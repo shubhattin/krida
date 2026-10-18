@@ -9,13 +9,7 @@ import {
 } from '~/util/ai/image_gen';
 import { createAiBatch, getAiBatchResult, type AiBatchInput } from '~/util/ai_batch';
 import type { AiBatchPollingStatus } from '~/util/ai_batch/types';
-import {
-  ai_batches,
-  ai_batch_responses,
-  image_assets,
-  padavali_puzzles,
-  crossword_puzzles
-} from '~/db/schema';
+import { ai_batches, ai_batch_responses, image_assets, puzzles } from '~/db/schema';
 import { and, desc, eq, inArray, sql } from 'drizzle-orm';
 import {
   BATCH_POLLING_INTERVAL_S,
@@ -87,10 +81,10 @@ export function buildImageBatchMetadata(args: {
   file_name: string;
   image_description: string;
 }): BatchMetadata {
-  if (args.game === 'crossword') {
+  if (args.game === 'padajala') {
     return {
-      type: 'crossword-puzzle-image',
-      game: 'crossword',
+      type: 'padajala-puzzle-image',
+      game: 'padajala',
       puzzle_id: args.puzzle_id,
       image_prompt: args.image_prompt,
       file_name: args.file_name,
@@ -295,23 +289,14 @@ export const trigger_batch_puzzle_image_gen = Effect.fn('batch_ai.trigger_batch_
     const puzzle_ids = puzzle_inputs.map((puzzle) => puzzle.puzzle_id);
 
     const db_puzzles = yield* dbRunHttp('batch_ai.find_puzzles_for_trigger', (client) =>
-      game === 'crossword'
-        ? client.query.crossword_puzzles.findMany({
-            columns: {
-              id: true,
-              title: true,
-              description: true
-            },
-            where: (tbl, { inArray: inArr }) => inArr(tbl.id, puzzle_ids)
-          })
-        : client.query.padavali_puzzles.findMany({
-            columns: {
-              id: true,
-              title: true,
-              description: true
-            },
-            where: (tbl, { inArray: inArr }) => inArr(tbl.id, puzzle_ids)
-          })
+      client
+        .select({
+          id: puzzles.id,
+          title: puzzles.title,
+          description: puzzles.description
+        })
+        .from(puzzles)
+        .where(and(eq(puzzles.kind, game), inArray(puzzles.id, puzzle_ids)))
     );
 
     if (db_puzzles.length !== puzzle_ids.length) {
@@ -571,27 +556,28 @@ export const approve_connect_puzzle_image_id = Effect.fn(
       const { uploaded_image_id, puzzle_id } = metadata;
       const game = resolveBatchGame(metadata, custom_id);
 
-      if (game === 'crossword') {
-        const puzzle = await tx.query.crossword_puzzles.findFirst({
-          columns: { slug: true, listed: true },
-          where: eq(crossword_puzzles.id, puzzle_id)
-        });
+      if (game === 'padajala') {
+        const [puzzle] = await tx
+          .select({ slug: puzzles.slug, listed: puzzles.listed })
+          .from(puzzles)
+          .where(and(eq(puzzles.id, puzzle_id), eq(puzzles.kind, 'padajala')))
+          .limit(1);
         if (!puzzle) {
           return {
             ok: false,
             kind: 'not_found',
-            resource: 'crossword_puzzle',
+            resource: 'padajala_puzzle',
             message: `Puzzle not found for batch_id ${batch_id} and custom_id ${custom_id}`
           };
         }
 
         await Promise.all([
           tx
-            .update(crossword_puzzles)
+            .update(puzzles)
             .set({
               image_id: uploaded_image_id
             })
-            .where(eq(crossword_puzzles.id, puzzle_id)),
+            .where(and(eq(puzzles.id, puzzle_id), eq(puzzles.kind, 'padajala'))),
           tx
             .delete(ai_batch_responses)
             .where(
@@ -613,10 +599,11 @@ export const approve_connect_puzzle_image_id = Effect.fn(
         };
       }
 
-      const puzzle = await tx.query.padavali_puzzles.findFirst({
-        columns: { slug: true, listed: true },
-        where: eq(padavali_puzzles.id, puzzle_id)
-      });
+      const [puzzle] = await tx
+        .select({ slug: puzzles.slug, listed: puzzles.listed })
+        .from(puzzles)
+        .where(and(eq(puzzles.id, puzzle_id), eq(puzzles.kind, 'padavali')))
+        .limit(1);
       if (!puzzle) {
         return {
           ok: false,
@@ -628,11 +615,11 @@ export const approve_connect_puzzle_image_id = Effect.fn(
 
       await Promise.all([
         tx
-          .update(padavali_puzzles)
+          .update(puzzles)
           .set({
             image_id: uploaded_image_id
           })
-          .where(eq(padavali_puzzles.id, puzzle_id)),
+          .where(and(eq(puzzles.id, puzzle_id), eq(puzzles.kind, 'padavali'))),
         tx
           .delete(ai_batch_responses)
           .where(
@@ -669,16 +656,16 @@ export const approve_connect_puzzle_image_id = Effect.fn(
 
   const result = tx_result;
 
-  if (result.game === 'crossword') {
-    const current_schedule = yield* CACHE.crossword.current_schedule.get(NO_CACHE_PARAMS);
+  if (result.game === 'padajala') {
+    const current_schedule = yield* CACHE.padajala.current_schedule.get(NO_CACHE_PARAMS);
     yield* Effect.all(
       [
         current_schedule?.puzzle.id === result.puzzle_id
-          ? invalidate_and_refresh_cache(CACHE.crossword.current_schedule, NO_CACHE_PARAMS)
+          ? invalidate_and_refresh_cache(CACHE.padajala.current_schedule, NO_CACHE_PARAMS)
           : Effect.void,
-        invalidate_and_refresh_cache(CACHE.crossword.word_puzzle, { slug: result.slug }),
+        invalidate_and_refresh_cache(CACHE.padajala.word_puzzle, { slug: result.slug }),
         result.listed
-          ? invalidate_and_refresh_cache(CACHE.crossword.listed_puzzle_list, NO_CACHE_PARAMS)
+          ? invalidate_and_refresh_cache(CACHE.padajala.listed_puzzle_list, NO_CACHE_PARAMS)
           : Effect.void,
         result.listed ? invalidate_padajala_sitemap() : Effect.void
       ],
@@ -1113,24 +1100,14 @@ const enrichBatchRowWithAssetAndPuzzle = Effect.fn('batch_ai.enrichBatchRowWithA
       );
     }
     const game = resolveBatchGame(metadata, row.custom_id);
-    let puzzle_title: string | null = null;
-    if (game === 'crossword') {
-      const puzzle = yield* dbRunHttp('batch_ai.find_crossword_title', (client) =>
-        client.query.crossword_puzzles.findFirst({
-          columns: { title: true },
-          where: eq(crossword_puzzles.id, puzzle_id)
-        })
-      );
-      puzzle_title = puzzle?.title ?? null;
-    } else {
-      const puzzle = yield* dbRunHttp('batch_ai.find_padavali_title', (client) =>
-        client.query.padavali_puzzles.findFirst({
-          columns: { title: true },
-          where: eq(padavali_puzzles.id, puzzle_id)
-        })
-      );
-      puzzle_title = puzzle?.title ?? null;
-    }
+    const [titleRow] = yield* dbRunHttp('batch_ai.find_puzzle_title', (client) =>
+      client
+        .select({ title: puzzles.title })
+        .from(puzzles)
+        .where(and(eq(puzzles.id, puzzle_id), eq(puzzles.kind, game)))
+        .limit(1)
+    );
+    const puzzle_title: string | null = titleRow?.title ?? null;
 
     let image_asset: EnrichedBatchRow['image_asset'] = null;
 
@@ -1153,7 +1130,7 @@ const enrichBatchRowWithAssetAndPuzzle = Effect.fn('batch_ai.enrichBatchRowWithA
       }
     }
 
-    return {
+    const enriched: EnrichedBatchRow = {
       batch_id: row.batch_id,
       custom_id: row.custom_id,
       output_resolved: row.output_resolved,
@@ -1164,7 +1141,8 @@ const enrichBatchRowWithAssetAndPuzzle = Effect.fn('batch_ai.enrichBatchRowWithA
       puzzle_title,
       image_asset,
       status: derivePuzzleImageBatchUiStatus(row.output_resolved, metadata, row.auto_approved)
-    } satisfies EnrichedBatchRow;
+    };
+    return enriched;
   }
 );
 
@@ -1291,20 +1269,15 @@ export const get_batch_manager_groups = Effect.fn('batch_ai.get_batch_manager_gr
   const { puzzle_ids, image_ids } = collectBatchRowIds(rows);
 
   const puzzle_id_list = [...puzzle_ids];
-  const { puzzles, assets } = yield* Effect.all({
-    puzzles:
+  const { puzzleRows, assets } = yield* Effect.all({
+    puzzleRows:
       // SAFETY: empty list stands in for the findMany rows (id + title) when there are none
       puzzle_id_list.length > 0
         ? dbRunHttp('batch_ai.find_puzzles_for_manager', (client) =>
-            game === 'crossword'
-              ? client.query.crossword_puzzles.findMany({
-                  columns: { id: true, title: true },
-                  where: inArray(crossword_puzzles.id, puzzle_id_list)
-                })
-              : client.query.padavali_puzzles.findMany({
-                  columns: { id: true, title: true },
-                  where: inArray(padavali_puzzles.id, puzzle_id_list)
-                })
+            client
+              .select({ id: puzzles.id, title: puzzles.title })
+              .from(puzzles)
+              .where(and(eq(puzzles.kind, game), inArray(puzzles.id, puzzle_id_list)))
           )
         : Effect.succeed([] as Array<{ id: number; title: string }>),
     assets:
@@ -1333,7 +1306,7 @@ export const get_batch_manager_groups = Effect.fn('batch_ai.get_batch_manager_gr
           )
   });
 
-  const puzzle_by_id = new Map(puzzles.map((puzzle) => [puzzle.id, puzzle]));
+  const puzzle_by_id = new Map(puzzleRows.map((puzzle) => [puzzle.id, puzzle]));
   const asset_by_id = new Map(assets.map((asset) => [asset.id, asset]));
 
   const groups = new Map<string, { batch_id: string; items: EnrichedBatchRow[] }>();

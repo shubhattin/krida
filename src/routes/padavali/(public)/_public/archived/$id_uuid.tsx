@@ -1,8 +1,6 @@
 import { createFileRoute, notFound, redirect } from '@tanstack/react-router';
 import { createServerFn } from '@tanstack/react-start';
-import { eq } from 'drizzle-orm';
 import { z } from 'zod';
-import { padavali_puzzles } from '~/db/schema';
 import { parseIdSlugParam } from '~/util/puzzle/slug';
 import { dbRunHttp } from '~/effect/database';
 import { runLoaderEffect } from '~/effect/run';
@@ -15,8 +13,9 @@ const loader$ = createServerFn({ method: 'GET' })
 
     const puzzle = await runLoaderEffect(
       dbRunHttp('padavali.archived.resolve_slug', (client) =>
-        client.query.padavali_puzzles.findFirst({
-          where: eq(padavali_puzzles.id, parsed.id),
+        client.query.puzzles.findFirst({
+          where: (tbl, { and, eq: eqFn }) =>
+            and(eqFn(tbl.id, parsed.id), eqFn(tbl.kind, 'padavali')),
           columns: { slug: true }
         })
       )

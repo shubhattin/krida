@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import { crosswordActiveWords, padavaliActiveWords, padavaliActiveWordsEqual } from './word_list';
+import { padajalaActiveWords, padavaliActiveWords, padavaliActiveWordsEqual } from './word_list';
 
 describe('padavaliActiveWords', () => {
   it('returns only enabled words in order', () => {
@@ -40,10 +40,10 @@ describe('padavaliActiveWordsEqual', () => {
   });
 });
 
-describe('crosswordActiveWords', () => {
+describe('padajalaActiveWords', () => {
   it('filters to added entries', () => {
     expect(
-      crosswordActiveWords([
+      padajalaActiveWords([
         { word: 'CAT', added: true },
         { word: 'DOG', added: false }
       ])
@@ -51,7 +51,7 @@ describe('crosswordActiveWords', () => {
   });
 
   it('keeps entries when added is missing', () => {
-    expect(crosswordActiveWords([{ word: 'CAT' }, { word: 'DOG', added: false }])).toEqual([
+    expect(padajalaActiveWords([{ word: 'CAT' }, { word: 'DOG', added: false }])).toEqual([
       { word: 'CAT' }
     ]);
   });

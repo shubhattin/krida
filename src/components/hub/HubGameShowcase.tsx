@@ -57,7 +57,7 @@ export function HubGameShowcase() {
             <span className="krida-hero-wordmark">Krida</span>
           </h1>
           <p className="mt-0.5 text-xs text-slate-500 sm:text-sm dark:text-slate-400">
-            Sanskrit Games — a word search and crossword.
+            Sanskrit Games — a word search and padajala.
           </p>
         </div>
         <div className="flex shrink-0 items-center gap-1 sm:hidden">

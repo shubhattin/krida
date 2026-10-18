@@ -1,7 +1,7 @@
 import { describe, expect, it } from 'vitest';
 import {
-  crossword_slug_schema,
-  isValidCrosswordSlug,
+  padajala_slug_schema,
+  isValidPadajalaSlug,
   isValidSlug,
   normalizeSlug,
   parseIdSlugParam,
@@ -40,16 +40,16 @@ describe('isValidSlug', () => {
   });
 });
 
-describe('isValidCrosswordSlug', () => {
-  it('accepts valid crossword slugs', () => {
-    expect(isValidCrosswordSlug('daily-grid')).toBe(true);
+describe('isValidPadajalaSlug', () => {
+  it('accepts valid padajala slugs', () => {
+    expect(isValidPadajalaSlug('daily-grid')).toBe(true);
   });
 
-  it('rejects crossword reserved routes including puzzle and batch_manager', () => {
-    expect(isValidCrosswordSlug('puzzle')).toBe(false);
-    expect(isValidCrosswordSlug('puzzles')).toBe(false);
-    expect(isValidCrosswordSlug('batch_manager')).toBe(false);
-    expect(isValidCrosswordSlug('analytics')).toBe(false);
+  it('rejects padajala reserved routes including puzzle and batch_manager', () => {
+    expect(isValidPadajalaSlug('puzzle')).toBe(false);
+    expect(isValidPadajalaSlug('puzzles')).toBe(false);
+    expect(isValidPadajalaSlug('batch_manager')).toBe(false);
+    expect(isValidPadajalaSlug('analytics')).toBe(false);
   });
 });
 
@@ -65,9 +65,9 @@ describe('slug_schema', () => {
   });
 });
 
-describe('crossword_slug_schema', () => {
-  it('rejects reserved crossword route names after normalize', () => {
-    expect(() => crossword_slug_schema.parse('  Batch_Manager  ')).toThrow();
+describe('padajala_slug_schema', () => {
+  it('rejects reserved padajala route names after normalize', () => {
+    expect(() => padajala_slug_schema.parse('  Batch_Manager  ')).toThrow();
   });
 });
 

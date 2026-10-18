@@ -18,7 +18,7 @@ export function HubHeader({
 }) {
   const pathname = useRouterState({ select: (state) => state.location.pathname });
   const active = hubNavFromPath(pathname);
-  const activeGame = active === 'padavali' || active === 'crossword' ? HUB_GAMES[active] : null;
+  const activeGame = active === 'padavali' || active === 'padajala' ? HUB_GAMES[active] : null;
   const profileGame = activeGame?.kind ?? 'padavali';
   const profileLabel = activeGame?.name ?? 'Krida';
 

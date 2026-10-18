@@ -32,7 +32,7 @@ function PadavaliListRoute() {
           <BarChart3Icon className="size-4 shrink-0" />
           Analytics
         </Button>
-        <Link to="/padavali/schedules">
+        <Link to="/schedules" search={{ kinds: ['padavali'] }}>
           <Button
             variant={'outline'}
             className="inline-flex items-center gap-2 text-base font-semibold"

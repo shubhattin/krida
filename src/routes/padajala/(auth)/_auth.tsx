@@ -1,5 +1,5 @@
 import { Outlet, createFileRoute, redirect } from '@tanstack/react-router';
-import { CrosswordMenuItems } from '~/components/app-bar/GameMenuItems';
+import { PadajalaMenuItems } from '~/components/app-bar/GameMenuItems';
 import { HubHeader } from '~/components/hub/HubHeader';
 import { getUserSession$ } from '@/lib/get_auth_from_cookie';
 
@@ -17,7 +17,7 @@ export const Route = createFileRoute('/padajala/(auth)/_auth')({
 function AuthLayout() {
   return (
     <div className="public-canvas flex min-h-dvh flex-col">
-      <HubHeader gameMenuItems={<CrosswordMenuItems />} />
+      <HubHeader gameMenuItems={<PadajalaMenuItems />} />
       <div className="mx-2 flex-1">
         <Outlet />
       </div>

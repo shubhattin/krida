@@ -222,6 +222,7 @@ const GameMetricsCollector = ({
     syncSessionPracticeMode({
       turnstile_token: token,
       session_id: sessionId,
+      puzzle_id,
       practice_mode: true
     });
   });

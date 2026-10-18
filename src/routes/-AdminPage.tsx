@@ -128,22 +128,18 @@ const LIVE_GAMES = [
     border: 'border-blue-200/70 dark:border-blue-800/50',
     actions: [
       { href: '/padavali/list', label: 'Puzzles', icon: List },
-      { href: '/padavali/analytics', label: 'Analytics', icon: BarChart3 },
-      { href: '/padavali/schedules', label: 'Schedules', icon: Calendar },
-      { href: '/padavali/batch_manager', label: 'Batches', icon: Images }
+      { href: '/padavali/analytics', label: 'Analytics', icon: BarChart3 }
     ]
   },
   {
-    name: HUB_GAMES.crossword.name,
-    subtitle: HUB_GAMES.crossword.subtitle,
-    icon: <GameAppIcon game="padajala" name={HUB_GAMES.crossword.name} size="sm" />,
+    name: HUB_GAMES.padajala.name,
+    subtitle: HUB_GAMES.padajala.subtitle,
+    icon: <GameAppIcon game="padajala" name={HUB_GAMES.padajala.name} size="sm" />,
     wash: 'from-amber-50/90 via-orange-50/40 to-amber-50/70 dark:from-amber-950/40 dark:via-stone-950/20 dark:to-orange-950/30',
     border: 'border-amber-200/70 dark:border-amber-800/50',
     actions: [
       { href: '/padajala/list', label: 'Puzzles', icon: List },
-      { href: '/padajala/analytics', label: 'Analytics', icon: BarChart3 },
-      { href: '/padajala/schedules', label: 'Schedules', icon: Calendar },
-      { href: '/padajala/batch_manager', label: 'Batches', icon: Images }
+      { href: '/padajala/analytics', label: 'Analytics', icon: BarChart3 }
     ]
   }
 ];
@@ -161,7 +157,10 @@ export default function AdminPage() {
           <p className="text-sm text-muted-foreground">Puzzles, catalog, and play analytics.</p>
         </header>
 
-        <section aria-label="Catalog and analytics" className="grid gap-2 sm:grid-cols-3">
+        <section
+          aria-label="Catalog and analytics"
+          className="grid gap-2 sm:grid-cols-2 lg:grid-cols-5"
+        >
           <AdminToolCard
             href="/analytics"
             label="Analytics"
@@ -177,6 +176,22 @@ export default function AdminPage() {
             icon={Layers}
             wash="from-violet-50/90 to-indigo-50/70 dark:from-violet-950/40 dark:to-indigo-950/30"
             iconClass="from-violet-500 to-indigo-600 shadow-violet-500/25"
+          />
+          <AdminToolCard
+            href="/schedules"
+            label="Schedules"
+            hint="Queue puzzles across every game"
+            icon={Calendar}
+            wash="from-emerald-50/90 to-teal-50/70 dark:from-emerald-950/40 dark:to-teal-950/30"
+            iconClass="from-emerald-500 to-teal-600 shadow-emerald-500/25"
+          />
+          <AdminToolCard
+            href="/padavali/batch_manager"
+            label="Batches"
+            hint="AI image batches for puzzles"
+            icon={Images}
+            wash="from-orange-50/90 to-amber-50/70 dark:from-orange-950/40 dark:to-amber-950/30"
+            iconClass="from-orange-500 to-amber-600 shadow-orange-500/25"
           />
           <AdminToolCard
             href="/tags/list"

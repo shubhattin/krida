@@ -1,5 +1,5 @@
 import { z } from 'zod';
-import type { CrossWordPuzzleWord } from '~/db/schema_zod';
+import type { PadajalaPuzzleWord } from '~/db/schema_zod';
 
 /** Padavali editor/DB word candidate */
 export const padavali_word_candidate_schema = z.object({
@@ -24,8 +24,8 @@ export function padavaliActiveWords(
   return wordList.filter(isWordAdded).map((entry) => entry.word);
 }
 
-/** Active crossword entries for public play / listing validation */
-export function crosswordActiveWords<T extends { added?: boolean }>(wordList: readonly T[]): T[] {
+/** Active padajala entries for public play / listing validation */
+export function padajalaActiveWords<T extends { added?: boolean }>(wordList: readonly T[]): T[] {
   return wordList.filter(isWordAdded);
 }
 
@@ -39,9 +39,9 @@ export function padavaliActiveWordsEqual(
   return left.length === right.length && left.every((word, i) => word === right[i]);
 }
 
-/** Project a DB/editor crossword word list down to public-facing active entries */
-export function crosswordActiveWordList(
-  wordList: readonly CrossWordPuzzleWord[]
-): CrossWordPuzzleWord[] {
-  return crosswordActiveWords(wordList);
+/** Project a DB/editor padajala word list down to public-facing active entries */
+export function padajalaActiveWordList(
+  wordList: readonly PadajalaPuzzleWord[]
+): PadajalaPuzzleWord[] {
+  return padajalaActiveWords(wordList);
 }

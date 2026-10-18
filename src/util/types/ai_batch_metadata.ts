@@ -13,10 +13,10 @@ export const BATCH_POLLING_INTERVAL_S = ms('3mins') / 1000;
 /** OpenAI batch completion window is 24h; stop QStash retries after that. */
 export const MAX_BATCH_POLL_ATTEMPTS = Math.ceil((24 * 60 * 60) / BATCH_POLLING_INTERVAL_S);
 
-export const puzzle_image_game_enum = z.enum(['padavali', 'crossword']);
+export const puzzle_image_game_enum = z.enum(['padavali', 'padajala']);
 export type PuzzleImageGame = z.infer<typeof puzzle_image_game_enum>;
 
-/** Shared fields for puzzle-card image batch rows (padavali or crossword). */
+/** Shared fields for puzzle-card image batch rows (padavali or padajala). */
 const image_batch_metadata_base = z.object({
   puzzle_id: z.number().int(),
   /** Which game owns this puzzle_id. Defaults to padavali for older rows. */
@@ -41,10 +41,10 @@ export const padavali_image_batch_metadata_schema = image_batch_metadata_base.ex
   game: z.literal('padavali').default('padavali')
 });
 
-/** Crossword puzzle-image batch metadata — uses a dedicated type discriminator. */
-export const crossword_image_batch_metadata_schema = image_batch_metadata_base.extend({
-  type: z.literal('crossword-puzzle-image'),
-  game: z.literal('crossword').default('crossword')
+/** Padajala puzzle-image batch metadata — uses a dedicated type discriminator. */
+export const padajala_image_batch_metadata_schema = image_batch_metadata_base.extend({
+  type: z.literal('padajala-puzzle-image'),
+  game: z.literal('padajala').default('padajala')
 });
 
 /** @deprecated Prefer padavali_image_batch_metadata_schema; kept as alias for existing imports. */
@@ -52,6 +52,6 @@ export const image_batch_metadata_schema = padavali_image_batch_metadata_schema;
 
 export const batch_metadata_schema = z.discriminatedUnion('type', [
   padavali_image_batch_metadata_schema,
-  crossword_image_batch_metadata_schema
+  padajala_image_batch_metadata_schema
 ]);
 export type BatchMetadata = z.infer<typeof batch_metadata_schema>;

@@ -1,12 +1,12 @@
 import { Effect } from 'effect';
 import { protectedAdminProcedure, publicProcedure, t } from '~/api/trpc_init';
 import { z } from 'zod';
-import { padavali_sessions, padavali_gameplay_stats, padavali_puzzles } from '~/db/schema';
+import { attempt_gameplay_stats, padavali_puzzles, puzzle_sessions, puzzles } from '~/db/schema';
 import { dbRunHttp } from '~/effect/database';
 import { location_list_enum } from '~/db/types';
 import { script_list_enum } from '~/state/script_list';
 import { and, count, desc, eq, gte, ilike, inArray, isNotNull, lte, sql } from 'drizzle-orm';
-import { BadRequestError } from '~/effect/errors';
+import { BadRequestError, NotFoundError } from '~/effect/errors';
 import { runTrpcEffect } from '~/effect/run';
 import { padavaliActiveWords } from '~/util/puzzle/word_list';
 import {
@@ -31,6 +31,10 @@ import { CACHE, invalidate_and_refresh_cache } from '~/util/cache.server/cache_l
 
 const settle = <A, E, R>(effect: Effect.Effect<A, E, R>) =>
   effect.pipe(Effect.catch(() => Effect.void));
+
+const padavaliKind = eq(puzzles.kind, 'padavali');
+const sessionForKind = and(eq(puzzles.id, puzzle_sessions.puzzle_id), padavaliKind);
+const statForKind = and(eq(puzzles.id, attempt_gameplay_stats.puzzle_id), padavaliKind);
 
 const submit_stats_route = publicProcedure
   .input(
@@ -63,12 +67,15 @@ const submit_stats_route = publicProcedure
           practice_mode
         } = info;
 
-        const session = yield* dbRunHttp('padavali_stats.find_session', (client) =>
-          client.query.padavali_sessions.findFirst({
-            columns: { id: true },
-            where: (tbl, { and: andFn, eq: eqFn }) =>
-              andFn(eqFn(tbl.id, session_id), eqFn(tbl.puzzle_id, puzzle_id))
-          })
+        const [session] = yield* dbRunHttp('padavali_stats.find_session', (client) =>
+          client
+            .select({ id: puzzle_sessions.id })
+            .from(puzzle_sessions)
+            .innerJoin(puzzles, sessionForKind)
+            .where(
+              and(eq(puzzle_sessions.id, session_id), eq(puzzle_sessions.puzzle_id, puzzle_id))
+            )
+            .limit(1)
         );
         if (!session) {
           return yield* Effect.fail(
@@ -81,15 +88,17 @@ const submit_stats_route = publicProcedure
         if (practice_mode) {
           yield* dbRunHttp('padavali_stats.mark_practice_session', async (client) => {
             await client
-              .update(padavali_sessions)
+              .update(puzzle_sessions)
               .set({ practice_mode: true })
-              .where(eq(padavali_sessions.id, session_id));
+              .where(
+                and(eq(puzzle_sessions.id, session_id), eq(puzzle_sessions.puzzle_id, puzzle_id))
+              );
           });
         }
 
         yield* dbRunHttp('padavali_stats.insert_gameplay_stat', async (client) => {
           await client
-            .insert(padavali_gameplay_stats)
+            .insert(attempt_gameplay_stats)
             .values({
               puzzle_id,
               session_id,
@@ -98,7 +107,7 @@ const submit_stats_route = publicProcedure
               correct_attempts,
               total_attempts
             })
-            .onConflictDoNothing({ target: padavali_gameplay_stats.session_id });
+            .onConflictDoNothing({ target: attempt_gameplay_stats.session_id });
         });
 
         if (ctx.user?.id) {
@@ -141,10 +150,25 @@ const update_games_started_route = publicProcedure
             Effect.tapError(() => releasePlaySessionClaim('padavali', client_play_id))
           );
 
+          // Sessions are shared across games now — reject ids from other kinds.
+          const [puzzle] = yield* dbRunHttp('padavali_stats.find_puzzle', (client) =>
+            client
+              .select({ id: puzzles.id })
+              .from(puzzles)
+              .where(and(eq(puzzles.id, id), padavaliKind))
+              .limit(1)
+          );
+          if (!puzzle) {
+            yield* releasePlaySessionClaim('padavali', client_play_id);
+            return yield* Effect.fail(
+              NotFoundError.make({ resource: 'padavali_puzzle', message: 'Puzzle not found' })
+            );
+          }
+
           const userFields = sessionUserFields(ctx.user);
           const inserted_sessions = yield* dbRunHttp('padavali_stats.create_session', (client) =>
             client
-              .insert(padavali_sessions)
+              .insert(puzzle_sessions)
               .values({
                 puzzle_id: id,
                 location,
@@ -184,19 +208,39 @@ const update_session_practice_mode_route = publicProcedure
     z.object({
       turnstile_token: optional_turnstile_token_schema,
       session_id: z.number().int(),
+      puzzle_id: z.number().int(),
       practice_mode: z.boolean()
     })
   )
-  .mutation(({ input: { turnstile_token, session_id, practice_mode }, ctx }) =>
+  .mutation(({ input: { turnstile_token, session_id, puzzle_id, practice_mode }, ctx }) =>
     runTrpcEffect(
       Effect.gen(function* () {
         yield* requireTurnstileIfGuest(turnstile_token, ctx.user);
 
+        // Sessions are shared across games now — only touch this game's own session.
+        const [session] = yield* dbRunHttp('padavali_stats.find_session_for_update', (client) =>
+          client
+            .select({ id: puzzle_sessions.id })
+            .from(puzzle_sessions)
+            .innerJoin(puzzles, sessionForKind)
+            .where(
+              and(eq(puzzle_sessions.id, session_id), eq(puzzle_sessions.puzzle_id, puzzle_id))
+            )
+            .limit(1)
+        );
+        if (!session) {
+          return yield* Effect.fail(
+            BadRequestError.make({ message: 'Invalid session for puzzle' })
+          );
+        }
+
         yield* dbRunHttp('padavali_stats.update_session_practice_mode', async (client) => {
           await client
-            .update(padavali_sessions)
+            .update(puzzle_sessions)
             .set({ practice_mode })
-            .where(eq(padavali_sessions.id, session_id));
+            .where(
+              and(eq(puzzle_sessions.id, session_id), eq(puzzle_sessions.puzzle_id, puzzle_id))
+            );
         });
 
         return { success: true };
@@ -211,96 +255,97 @@ const get_stats_data_route = protectedAdminProcedure
       Effect.gen(function* () {
         const selectedUserIds = user_ids ?? [];
         const filterByUsers = selectedUserIds.length > 0;
-        const { sessions, stats, puzzles } = yield* Effect.all({
-          sessions: dbRunHttp('padavali_stats.list_sessions', (client) =>
-            client.query.padavali_sessions.findMany({
-              columns: {
-                id: true,
-                created_at: true,
-                practice_mode: true,
-                location: true,
-                script: true,
-                user_id: true
-              },
-              where: (tbl, { and: andFn, gte: gteFn, lte: lteFn, inArray: inArrayFn }) => {
-                const conditions = [];
-                if (puzzle_ids && puzzle_ids.length > 0) {
-                  conditions.push(inArrayFn(tbl.puzzle_id, puzzle_ids));
-                }
-                if (filterByUsers) {
-                  conditions.push(inArrayFn(tbl.user_id, selectedUserIds));
-                }
-                if (!all_time && start_date && end_date) {
-                  conditions.push(gteFn(tbl.created_at, start_date));
-                  conditions.push(lteFn(tbl.created_at, end_date));
-                }
-                return conditions.length > 0 ? andFn(...conditions) : undefined;
-              }
-            })
-          ),
-          stats: dbRunHttp('padavali_stats.list_gameplay_stats', async (client) => {
+        const { sessions, stats, puzzleWordRows } = yield* Effect.all({
+          sessions: dbRunHttp('padavali_stats.list_sessions', (client) => {
+            const conditions = [padavaliKind];
+            if (puzzle_ids && puzzle_ids.length > 0) {
+              conditions.push(inArray(puzzle_sessions.puzzle_id, puzzle_ids));
+            }
             if (filterByUsers) {
-              const conditions = [inArray(padavali_sessions.user_id, selectedUserIds)];
+              conditions.push(inArray(puzzle_sessions.user_id, selectedUserIds));
+            }
+            if (!all_time && start_date && end_date) {
+              conditions.push(gte(puzzle_sessions.created_at, start_date));
+              conditions.push(lte(puzzle_sessions.created_at, end_date));
+            }
+            return client
+              .select({
+                id: puzzle_sessions.id,
+                created_at: puzzle_sessions.created_at,
+                practice_mode: puzzle_sessions.practice_mode,
+                location: puzzle_sessions.location,
+                script: puzzle_sessions.script,
+                user_id: puzzle_sessions.user_id
+              })
+              .from(puzzle_sessions)
+              .innerJoin(puzzles, sessionForKind)
+              .where(and(...conditions));
+          }),
+          stats: dbRunHttp('padavali_stats.list_gameplay_stats', (client) => {
+            if (filterByUsers) {
+              const conditions = [padavaliKind, inArray(puzzle_sessions.user_id, selectedUserIds)];
               if (puzzle_ids && puzzle_ids.length > 0) {
-                conditions.push(inArray(padavali_gameplay_stats.puzzle_id, puzzle_ids));
+                conditions.push(inArray(attempt_gameplay_stats.puzzle_id, puzzle_ids));
               }
               if (!all_time && start_date && end_date) {
-                conditions.push(gte(padavali_gameplay_stats.created_at, start_date));
-                conditions.push(lte(padavali_gameplay_stats.created_at, end_date));
+                conditions.push(gte(attempt_gameplay_stats.created_at, start_date));
+                conditions.push(lte(attempt_gameplay_stats.created_at, end_date));
               }
               return client
                 .select({
-                  id: padavali_gameplay_stats.id,
-                  created_at: padavali_gameplay_stats.created_at,
-                  session_id: padavali_gameplay_stats.session_id,
-                  time_taken: padavali_gameplay_stats.time_taken,
-                  accuracy: padavali_gameplay_stats.accuracy,
-                  correct_attempts: padavali_gameplay_stats.correct_attempts,
-                  total_attempts: padavali_gameplay_stats.total_attempts
+                  id: attempt_gameplay_stats.id,
+                  created_at: attempt_gameplay_stats.created_at,
+                  session_id: attempt_gameplay_stats.session_id,
+                  time_taken: attempt_gameplay_stats.time_taken,
+                  accuracy: attempt_gameplay_stats.accuracy,
+                  correct_attempts: attempt_gameplay_stats.correct_attempts,
+                  total_attempts: attempt_gameplay_stats.total_attempts
                 })
-                .from(padavali_gameplay_stats)
+                .from(attempt_gameplay_stats)
+                .innerJoin(puzzles, statForKind)
                 .innerJoin(
-                  padavali_sessions,
-                  eq(padavali_gameplay_stats.session_id, padavali_sessions.id)
+                  puzzle_sessions,
+                  eq(attempt_gameplay_stats.session_id, puzzle_sessions.id)
                 )
                 .where(and(...conditions));
             }
 
-            return client.query.padavali_gameplay_stats.findMany({
-              columns: {
-                id: true,
-                created_at: true,
-                session_id: true,
-                time_taken: true,
-                accuracy: true,
-                correct_attempts: true,
-                total_attempts: true
-              },
-              where: (tbl, { and: andFn, gte: gteFn, lte: lteFn, inArray: inArrayFn }) => {
-                const conditions = [];
-                if (puzzle_ids && puzzle_ids.length > 0) {
-                  conditions.push(inArrayFn(tbl.puzzle_id, puzzle_ids));
-                }
-                if (!all_time && start_date && end_date) {
-                  conditions.push(gteFn(tbl.created_at, start_date));
-                  conditions.push(lteFn(tbl.created_at, end_date));
-                }
-                return conditions.length > 0 ? andFn(...conditions) : undefined;
-              }
-            });
+            const conditions = [padavaliKind];
+            if (puzzle_ids && puzzle_ids.length > 0) {
+              conditions.push(inArray(attempt_gameplay_stats.puzzle_id, puzzle_ids));
+            }
+            if (!all_time && start_date && end_date) {
+              conditions.push(gte(attempt_gameplay_stats.created_at, start_date));
+              conditions.push(lte(attempt_gameplay_stats.created_at, end_date));
+            }
+            return client
+              .select({
+                id: attempt_gameplay_stats.id,
+                created_at: attempt_gameplay_stats.created_at,
+                session_id: attempt_gameplay_stats.session_id,
+                time_taken: attempt_gameplay_stats.time_taken,
+                accuracy: attempt_gameplay_stats.accuracy,
+                correct_attempts: attempt_gameplay_stats.correct_attempts,
+                total_attempts: attempt_gameplay_stats.total_attempts
+              })
+              .from(attempt_gameplay_stats)
+              .innerJoin(puzzles, statForKind)
+              .where(and(...conditions));
           }),
-          puzzles: dbRunHttp('padavali_stats.list_puzzles_for_word_count', (client) =>
-            client.query.padavali_puzzles.findMany({
-              columns: { word_list: true },
-              where:
+          puzzleWordRows: dbRunHttp('padavali_stats.list_puzzles_for_word_count', (client) =>
+            client
+              .select({ word_list: padavali_puzzles.word_list })
+              .from(padavali_puzzles)
+              .innerJoin(puzzles, and(eq(puzzles.id, padavali_puzzles.id), padavaliKind))
+              .where(
                 puzzle_ids && puzzle_ids.length > 0
-                  ? (tbl, { inArray: inArrayFn }) => inArrayFn(tbl.id, puzzle_ids)
+                  ? inArray(padavali_puzzles.id, puzzle_ids)
                   : undefined
-            })
+              )
           )
         });
 
-        const total_words = puzzles.reduce(
+        const total_words = puzzleWordRows.reduce(
           (sum, puzzle) => sum + padavaliActiveWords(puzzle.word_list).length,
           0
         );
@@ -318,22 +363,22 @@ const get_top_puzzles_route = protectedAdminProcedure
         const dateConditions =
           !all_time && start_date && end_date
             ? [
-                gte(padavali_sessions.created_at, start_date),
-                lte(padavali_sessions.created_at, end_date)
+                gte(puzzle_sessions.created_at, start_date),
+                lte(puzzle_sessions.created_at, end_date)
               ]
             : [];
 
         const topSessions = yield* dbRunHttp('padavali_stats.get_top_sessions', (client) =>
           client
             .select({
-              puzzle_id: padavali_sessions.puzzle_id,
-              title: padavali_puzzles.title,
+              puzzle_id: puzzle_sessions.puzzle_id,
+              title: puzzles.title,
               started: count()
             })
-            .from(padavali_sessions)
-            .innerJoin(padavali_puzzles, eq(padavali_puzzles.id, padavali_sessions.puzzle_id))
-            .where(dateConditions.length > 0 ? and(...dateConditions) : undefined)
-            .groupBy(padavali_sessions.puzzle_id, padavali_puzzles.title)
+            .from(puzzle_sessions)
+            .innerJoin(puzzles, sessionForKind)
+            .where(and(padavaliKind, ...(dateConditions.length > 0 ? dateConditions : [])))
+            .groupBy(puzzle_sessions.puzzle_id, puzzles.title)
             .orderBy(desc(count()))
             .limit(limit)
         );
@@ -354,8 +399,8 @@ const get_top_puzzles_route = protectedAdminProcedure
         const statsDateConditions =
           !all_time && start_date && end_date
             ? [
-                gte(padavali_gameplay_stats.created_at, start_date),
-                lte(padavali_gameplay_stats.created_at, end_date)
+                gte(attempt_gameplay_stats.created_at, start_date),
+                lte(attempt_gameplay_stats.created_at, end_date)
               ]
             : [];
 
@@ -364,17 +409,18 @@ const get_top_puzzles_route = protectedAdminProcedure
           (client) =>
             client
               .select({
-                puzzle_id: padavali_gameplay_stats.puzzle_id,
+                puzzle_id: attempt_gameplay_stats.puzzle_id,
                 completed: count()
               })
-              .from(padavali_gameplay_stats)
+              .from(attempt_gameplay_stats)
+              .innerJoin(puzzles, statForKind)
               .where(
                 and(
-                  inArray(padavali_gameplay_stats.puzzle_id, puzzleIds),
+                  inArray(attempt_gameplay_stats.puzzle_id, puzzleIds),
                   ...(statsDateConditions.length > 0 ? statsDateConditions : [])
                 )
               )
-              .groupBy(padavali_gameplay_stats.puzzle_id)
+              .groupBy(attempt_gameplay_stats.puzzle_id)
         );
 
         const completedByPuzzle = new Map(
@@ -398,24 +444,25 @@ const get_top_users_route = protectedAdminProcedure
   .query(({ input: { all_time, start_date, end_date, limit, puzzle_ids } }) =>
     runTrpcEffect(
       Effect.gen(function* () {
-        const conditions = [isNotNull(padavali_sessions.user_id)];
+        const conditions = [padavaliKind, isNotNull(puzzle_sessions.user_id)];
         if (!all_time && start_date && end_date) {
-          conditions.push(gte(padavali_sessions.created_at, start_date));
-          conditions.push(lte(padavali_sessions.created_at, end_date));
+          conditions.push(gte(puzzle_sessions.created_at, start_date));
+          conditions.push(lte(puzzle_sessions.created_at, end_date));
         }
         if (puzzle_ids && puzzle_ids.length > 0) {
-          conditions.push(inArray(padavali_sessions.puzzle_id, puzzle_ids));
+          conditions.push(inArray(puzzle_sessions.puzzle_id, puzzle_ids));
         }
 
         const topSessions = yield* dbRunHttp('padavali_stats.get_top_users', (client) =>
           client
             .select({
-              user_id: padavali_sessions.user_id,
+              user_id: puzzle_sessions.user_id,
               started: count()
             })
-            .from(padavali_sessions)
+            .from(puzzle_sessions)
+            .innerJoin(puzzles, sessionForKind)
             .where(and(...conditions))
-            .groupBy(padavali_sessions.user_id)
+            .groupBy(puzzle_sessions.user_id)
             .orderBy(desc(count()))
             .limit(limit)
         );
@@ -439,13 +486,13 @@ const get_top_users_route = protectedAdminProcedure
           return { users };
         }
 
-        const statsConditions = [inArray(padavali_sessions.user_id, userIds)];
+        const statsConditions = [padavaliKind, inArray(puzzle_sessions.user_id, userIds)];
         if (!all_time && start_date && end_date) {
-          statsConditions.push(gte(padavali_gameplay_stats.created_at, start_date));
-          statsConditions.push(lte(padavali_gameplay_stats.created_at, end_date));
+          statsConditions.push(gte(attempt_gameplay_stats.created_at, start_date));
+          statsConditions.push(lte(attempt_gameplay_stats.created_at, end_date));
         }
         if (puzzle_ids && puzzle_ids.length > 0) {
-          statsConditions.push(inArray(padavali_gameplay_stats.puzzle_id, puzzle_ids));
+          statsConditions.push(inArray(attempt_gameplay_stats.puzzle_id, puzzle_ids));
         }
 
         const completionRows = yield* dbRunHttp(
@@ -453,16 +500,14 @@ const get_top_users_route = protectedAdminProcedure
           (client) =>
             client
               .select({
-                user_id: padavali_sessions.user_id,
+                user_id: puzzle_sessions.user_id,
                 completed: count()
               })
-              .from(padavali_gameplay_stats)
-              .innerJoin(
-                padavali_sessions,
-                eq(padavali_gameplay_stats.session_id, padavali_sessions.id)
-              )
+              .from(attempt_gameplay_stats)
+              .innerJoin(puzzle_sessions, eq(attempt_gameplay_stats.session_id, puzzle_sessions.id))
+              .innerJoin(puzzles, statForKind)
               .where(and(...statsConditions))
-              .groupBy(padavali_sessions.user_id)
+              .groupBy(puzzle_sessions.user_id)
         );
 
         const completedByUser = new Map(
@@ -494,12 +539,14 @@ const get_user_list_page_route = protectedAdminProcedure
           const idPattern = `%${escapeIlikeToken(trimmedSearch)}%`;
           const localIdRows = yield* dbRunHttp('padavali_stats.search_user_ids', (client) =>
             client
-              .selectDistinct({ user_id: padavali_sessions.user_id })
-              .from(padavali_sessions)
+              .selectDistinct({ user_id: puzzle_sessions.user_id })
+              .from(puzzle_sessions)
+              .innerJoin(puzzles, sessionForKind)
               .where(
                 and(
-                  isNotNull(padavali_sessions.user_id),
-                  ilike(padavali_sessions.user_id, idPattern)
+                  padavaliKind,
+                  isNotNull(puzzle_sessions.user_id),
+                  ilike(puzzle_sessions.user_id, idPattern)
                 )
               )
               .limit(50)
@@ -526,12 +573,13 @@ const get_user_list_page_route = protectedAdminProcedure
           const playRows = yield* dbRunHttp('padavali_stats.list_users_filtered', (client) =>
             client
               .select({
-                user_id: padavali_sessions.user_id,
+                user_id: puzzle_sessions.user_id,
                 plays: count()
               })
-              .from(padavali_sessions)
-              .where(inArray(padavali_sessions.user_id, matchedIds))
-              .groupBy(padavali_sessions.user_id)
+              .from(puzzle_sessions)
+              .innerJoin(puzzles, sessionForKind)
+              .where(and(padavaliKind, inArray(puzzle_sessions.user_id, matchedIds)))
+              .groupBy(puzzle_sessions.user_id)
               .orderBy(desc(count()))
           );
 
@@ -569,27 +617,29 @@ const get_user_list_page_route = protectedAdminProcedure
           };
         }
 
-        const conditions = [isNotNull(padavali_sessions.user_id)];
+        const conditions = [padavaliKind, isNotNull(puzzle_sessions.user_id)];
         const whereClause = and(...conditions);
 
         const { countResult, rows } = yield* Effect.all({
           countResult: dbRunHttp('padavali_stats.count_users', (client) =>
             client
               .select({
-                count: sql<number>`cast(count(distinct ${padavali_sessions.user_id}) as int)`
+                count: sql<number>`cast(count(distinct ${puzzle_sessions.user_id}) as int)`
               })
-              .from(padavali_sessions)
+              .from(puzzle_sessions)
+              .innerJoin(puzzles, sessionForKind)
               .where(whereClause)
           ),
           rows: dbRunHttp('padavali_stats.list_users', (client) =>
             client
               .select({
-                user_id: padavali_sessions.user_id,
+                user_id: puzzle_sessions.user_id,
                 plays: count()
               })
-              .from(padavali_sessions)
+              .from(puzzle_sessions)
+              .innerJoin(puzzles, sessionForKind)
               .where(whereClause)
-              .groupBy(padavali_sessions.user_id)
+              .groupBy(puzzle_sessions.user_id)
               .orderBy(desc(count()))
               .limit(size)
               .offset(offset)

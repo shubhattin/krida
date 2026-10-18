@@ -7,7 +7,7 @@ const hubRoute = getRouteApi('/_hub');
 
 /** Home deep-link / SSR filter for the puzzles section (`/?game=padavali#padavali`). */
 const home_search_schema = z.object({
-  game: z.enum(['padavali', 'crossword']).optional().catch(undefined)
+  game: z.enum(['padavali', 'padajala']).optional().catch(undefined)
 });
 
 export type HomeSearch = z.infer<typeof home_search_schema>;
@@ -19,7 +19,7 @@ export const Route = createFileRoute('/_hub/')({
       title: 'Krida | Play, Learn, Grow',
       project: 'landing_page',
       description:
-        'Sanskrit Games — play word-search and crossword puzzles, learn across Indian scripts, and grow your vocabulary through fun challenges. Padavali and Padajala help you learn Sanskrit through games.'
+        'Sanskrit Games — play word-search and padajala puzzles, learn across Indian scripts, and grow your vocabulary through fun challenges. Padavali and Padajala help you learn Sanskrit through games.'
     }),
   component: Home
 });

@@ -1,0 +1,765 @@
+'use client';
+
+import { Card, CardDescription, CardHeader, CardTitle } from '~/components/ui/card';
+import {
+  CalendarIcon,
+  SearchIcon,
+  List,
+  FilterIcon,
+  ArrowUpDownIcon,
+  LayoutGridIcon,
+  TableIcon,
+  Link2Icon
+} from 'lucide-react';
+import { Image } from '@unpic/react';
+import { Link } from '@tanstack/react-router';
+import dayjs from 'dayjs';
+import relativeTime from 'dayjs/plugin/relativeTime';
+import { useEffect, useRef, useSyncExternalStore, useState } from 'react';
+import { client } from '~/api/client';
+import { Skeleton } from '~/components/ui/skeleton';
+import { Label } from '~/components/ui/label';
+import {
+  Pagination,
+  PaginationContent,
+  PaginationEllipsis,
+  PaginationItem,
+  PaginationLink,
+  PaginationNext,
+  PaginationPrevious
+} from '~/components/ui/pagination';
+import { cn } from '@/lib/utils';
+import { scrollPaginationListToStart } from '~/lib/pagination-scroll';
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue
+} from '~/components/ui/select';
+import { InputGroup, InputGroupAddon, InputGroupInput } from '~/components/ui/input-group';
+import { useQuery } from '@tanstack/react-query';
+import { Button } from '~/components/ui/button';
+import { DataTable } from '~/components/ui/data-table';
+import { getCDNUrl } from '~/constants';
+import { padajalaListTableColumns, type PadajalaListItem } from './-list-table-columns';
+import { fetchEveryListPage } from '~/components/pages/fetch-every-list-page';
+import { AdminCatalogFilters } from '~/components/pages/catalog/AdminCatalogFilters';
+import { CatalogAdminLinks } from '~/components/pages/catalog/CatalogAdminLinks';
+
+dayjs.extend(relativeTime);
+
+type ListLayout = 'cards' | 'table' | 'links';
+
+const ALL_LINKS_PAGE_SIZE = 50;
+
+const PUZZLE_FETCH_LIMIT = 12;
+
+const LISTED_FILTER_ITEMS = [
+  { label: 'All', value: 'all' as const },
+  { label: 'Listed', value: 'listed' as const },
+  { label: 'Unlisted', value: 'unlisted' as const }
+];
+
+const SORT_BY_ITEMS = [
+  { label: 'Created', value: 'created_at' as const },
+  { label: 'Updated', value: 'updated_at' as const }
+];
+
+const ORDER_BY_ITEMS = [
+  { label: 'Latest', value: 'desc' as const },
+  { label: 'Oldest', value: 'asc' as const }
+];
+
+function getVisiblePages(current: number, total: number): (number | 'ellipsis')[] {
+  if (total <= 5) {
+    return Array.from({ length: total }, (_, i) => i + 1);
+  }
+
+  const pages = new Set<number>([1, total, current]);
+  if (current > 1) pages.add(current - 1);
+  if (current < total) pages.add(current + 1);
+
+  const sorted = [...pages].sort((a, b) => a - b);
+  const result: (number | 'ellipsis')[] = [];
+
+  for (let i = 0; i < sorted.length; i++) {
+    if (i > 0 && sorted[i]! - sorted[i - 1]! > 1) {
+      result.push('ellipsis');
+    }
+    result.push(sorted[i]!);
+  }
+
+  return result;
+}
+
+const PUZZLE_LIST_SKELETON_COUNT = PUZZLE_FETCH_LIMIT;
+
+type ListLoadingSkeletonProps = {
+  show: boolean;
+  layout: ListLayout;
+};
+
+const ListLoadingSkeleton = ({ show, layout }: ListLoadingSkeletonProps) => (
+  <>
+    {show ? (
+      layout === 'cards' ? (
+        <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4">
+          {Array.from({ length: PUZZLE_LIST_SKELETON_COUNT }).map((_, index) => (
+            <Skeleton key={index} className="h-24 w-full" />
+          ))}
+        </div>
+      ) : (
+        <div className="flex flex-col gap-2 rounded-xl border border-slate-200/60 p-2 dark:border-slate-700/40">
+          {Array.from({ length: PUZZLE_LIST_SKELETON_COUNT }).map((_, index) => (
+            <Skeleton key={index} className="h-10 w-full" />
+          ))}
+        </div>
+      )
+    ) : null}
+  </>
+);
+
+/** SSR-safe "has mounted" flag so the list only renders after hydration. */
+function useIsMounted() {
+  return useSyncExternalStore(
+    () => () => {},
+    () => true,
+    () => false
+  );
+}
+
+const DEBOUNCE_TIME = 400;
+
+/** Debounced mirror of the search box; also resets paging back to the first page. */
+function useDebouncedSearch(search_title: string) {
+  const [debouncedSearchTitle, setDebouncedSearchTitle] = useState(search_title);
+
+  useEffect(() => {
+    const timeoutId = setTimeout(() => {
+      setDebouncedSearchTitle(search_title);
+    }, DEBOUNCE_TIME);
+    return () => clearTimeout(timeoutId);
+  }, [search_title]);
+
+  return debouncedSearchTitle;
+}
+
+const fetchPadajalaListPage = async (
+  page: number,
+  search_title: string,
+  listed_filter: boolean | undefined,
+  sort_by: 'created_at' | 'updated_at',
+  order_by: 'asc' | 'desc',
+  size = PUZZLE_FETCH_LIMIT,
+  tag_slug?: string,
+  collection_id?: number
+) =>
+  client.padajala.get_puzzle_list_page.query({
+    page,
+    size,
+    listed_filter,
+    sort_by,
+    search_title: search_title !== '' ? search_title : undefined,
+    order_by,
+    tag_slug,
+    collection_id
+  });
+
+function usePadajalaListQuery(
+  page: number,
+  search_title: string,
+  listed_filter_type: 'all' | 'listed' | 'unlisted',
+  listed_filter: boolean | undefined,
+  sort_by: 'created_at' | 'updated_at',
+  order_by: 'asc' | 'desc',
+  tag_slug?: string,
+  collection_id?: number
+) {
+  const puzzle_list_q = useQuery({
+    queryKey: [
+      'padajala_list',
+      page,
+      search_title,
+      listed_filter_type,
+      listed_filter,
+      sort_by,
+      order_by,
+      tag_slug,
+      collection_id
+    ],
+    queryFn: () =>
+      fetchPadajalaListPage(
+        page,
+        search_title,
+        listed_filter,
+        sort_by,
+        order_by,
+        PUZZLE_FETCH_LIMIT,
+        tag_slug,
+        collection_id
+      ),
+    placeholderData: (prev) => prev,
+    refetchOnWindowFocus: false
+  });
+
+  return {
+    isSuccess: puzzle_list_q.isSuccess,
+    isFetching: puzzle_list_q.isFetching,
+    total: puzzle_list_q.data?.total,
+    puzzle_list: puzzle_list_q.data?.list ?? [],
+    pageCount: puzzle_list_q.data?.pageCount ?? 1,
+    hasPrev: puzzle_list_q.data?.hasPrev ?? false,
+    hasNext: puzzle_list_q.data?.hasNext ?? false,
+    isInitialLoading: puzzle_list_q.isLoading && !puzzle_list_q.data
+  };
+}
+
+const SelectDropdown = ({ items }: { items: { label: string; value: string }[] }) => (
+  <SelectContent alignItemWithTrigger={false}>
+    {items.map((item) => (
+      <SelectItem key={item.value} value={item.value}>
+        {item.label}
+      </SelectItem>
+    ))}
+  </SelectContent>
+);
+
+const ListFilterBar = ({
+  search_title,
+  onSearchChange,
+  listed_filter_type,
+  onListedFilterChange,
+  sort_by,
+  onSortByChange,
+  order_by,
+  onOrderByChange,
+  layout,
+  onLayoutChange,
+  tag_slug,
+  onTagSlugChange,
+  collection_id,
+  onCollectionIdChange
+}: {
+  search_title: string;
+  onSearchChange: (value: string) => void;
+  listed_filter_type: 'all' | 'listed' | 'unlisted';
+  onListedFilterChange: (value: 'all' | 'listed' | 'unlisted') => void;
+  sort_by: 'created_at' | 'updated_at';
+  onSortByChange: (value: 'created_at' | 'updated_at') => void;
+  order_by: 'asc' | 'desc';
+  onOrderByChange: (value: 'asc' | 'desc') => void;
+  layout: ListLayout;
+  onLayoutChange: (layout: ListLayout) => void;
+  tag_slug: string;
+  onTagSlugChange: (value: string) => void;
+  collection_id: string;
+  onCollectionIdChange: (value: string) => void;
+}) => (
+  <div className="rounded-xl border border-slate-200/60 bg-white/50 p-3 shadow-sm backdrop-blur-sm sm:p-4 dark:border-slate-700/40 dark:bg-slate-800/30">
+    <div className="flex flex-col items-center gap-3">
+      <InputGroup className="w-full sm:w-64 lg:w-80">
+        <InputGroupAddon>
+          <SearchIcon />
+        </InputGroupAddon>
+        <InputGroupInput
+          className="text-sm"
+          value={search_title}
+          onChange={(e) => onSearchChange(e.currentTarget.value)}
+          placeholder="Search Puzzles"
+        />
+      </InputGroup>
+      <div className="flex flex-wrap items-center justify-center gap-2 sm:gap-4">
+        <div className="flex items-center gap-1.5 sm:gap-2">
+          <Label className="px-1 text-xs font-semibold sm:text-sm" title="Listed filter">
+            <List className="size-3.5 sm:size-4" />
+          </Label>
+          <Select
+            items={LISTED_FILTER_ITEMS}
+            value={listed_filter_type}
+            onValueChange={(value) => {
+              if (value) onListedFilterChange(value);
+            }}
+          >
+            <SelectTrigger size="sm" className="w-24 text-xs sm:text-sm" aria-label="Listed filter">
+              <SelectValue />
+            </SelectTrigger>
+            <SelectDropdown items={LISTED_FILTER_ITEMS} />
+          </Select>
+        </div>
+        <div className="flex items-center gap-1.5 sm:gap-2">
+          <Label className="px-1 text-xs font-semibold sm:text-sm" title="Sort field">
+            <FilterIcon className="size-3.5 sm:size-4" />
+          </Label>
+          <Select
+            items={SORT_BY_ITEMS}
+            value={sort_by}
+            onValueChange={(value) => {
+              if (value) onSortByChange(value);
+            }}
+          >
+            <SelectTrigger size="sm" className="w-28 text-xs sm:text-sm" aria-label="Sort field">
+              <SelectValue />
+            </SelectTrigger>
+            <SelectDropdown items={SORT_BY_ITEMS} />
+          </Select>
+        </div>
+        <div className="flex items-center gap-1.5 sm:gap-2">
+          <Label className="px-1 text-xs font-semibold sm:text-sm" title="Order">
+            <ArrowUpDownIcon className="size-3.5 sm:size-4" />
+          </Label>
+          <Select
+            items={ORDER_BY_ITEMS}
+            value={order_by}
+            onValueChange={(value) => {
+              if (value) onOrderByChange(value);
+            }}
+          >
+            <SelectTrigger size="sm" className="w-28 text-xs sm:text-sm" aria-label="Order">
+              <SelectValue />
+            </SelectTrigger>
+            <SelectDropdown items={ORDER_BY_ITEMS} />
+          </Select>
+        </div>
+        <div className="flex items-center gap-1 rounded-lg border border-slate-200/60 p-0.5 dark:border-slate-700/40">
+          <Button
+            type="button"
+            variant={layout === 'cards' ? 'secondary' : 'ghost'}
+            size="icon-sm"
+            aria-label="Card layout"
+            aria-pressed={layout === 'cards'}
+            onClick={() => onLayoutChange('cards')}
+          >
+            <LayoutGridIcon />
+          </Button>
+          <Button
+            type="button"
+            variant={layout === 'table' ? 'secondary' : 'ghost'}
+            size="icon-sm"
+            aria-label="Table layout"
+            aria-pressed={layout === 'table'}
+            onClick={() => onLayoutChange('table')}
+          >
+            <TableIcon />
+          </Button>
+          <Button
+            type="button"
+            variant={layout === 'links' ? 'secondary' : 'ghost'}
+            size="icon-sm"
+            aria-label="All puzzle links"
+            aria-pressed={layout === 'links'}
+            onClick={() => onLayoutChange('links')}
+          >
+            <Link2Icon />
+          </Button>
+        </div>
+        <AdminCatalogFilters
+          tagSlug={tag_slug}
+          collectionId={collection_id}
+          onTagSlugChange={onTagSlugChange}
+          onCollectionIdChange={onCollectionIdChange}
+        />
+      </div>
+    </div>
+  </div>
+);
+
+const PadajalaCardGrid = ({
+  isSuccess,
+  isInitialLoading,
+  layout,
+  puzzle_list
+}: {
+  isSuccess: boolean;
+  isInitialLoading: boolean;
+  layout: ListLayout;
+  puzzle_list: PadajalaListItem[];
+}) => {
+  if (!isSuccess || isInitialLoading || layout !== 'cards' || puzzle_list.length === 0) return null;
+
+  return (
+    <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4">
+      {puzzle_list.map((item) => (
+        <div key={item.id} className="relative">
+          {item.image?.s3_key ? (
+            <div className="pointer-events-none absolute top-3 right-3 z-10 size-14 overflow-hidden rounded-md border border-border/80 bg-muted shadow-sm">
+              <Image
+                src={getCDNUrl(item.image.s3_key)}
+                alt=""
+                width={56}
+                height={56}
+                className="size-full object-cover"
+              />
+            </div>
+          ) : null}
+          <Link to="/padajala/edit/$id" params={{ id: String(item.id) }}>
+            <Card
+              className={cn(
+                'group border-l-3 border-l-blue-500/40 p-2 shadow-sm transition-all duration-200 hover:translate-x-0.5 hover:border-l-blue-500 hover:bg-slate-50 hover:shadow-md dark:border-l-blue-400/40 dark:hover:border-l-blue-400 dark:hover:bg-slate-800/60',
+                item.image?.s3_key && 'pr-20'
+              )}
+            >
+              <CardHeader>
+                <CardTitle>{item.title}</CardTitle>
+                <CardDescription className="flex flex-col gap-1">
+                  <span className="text-xs text-muted-foreground">
+                    {item.grid_dimensions[0]}×{item.grid_dimensions[1]} grid
+                  </span>
+                  <span className="flex flex-wrap items-center gap-x-2 gap-y-1">
+                    {item.updated_at &&
+                      item.updated_at.getTime() !== item.created_at.getTime() &&
+                      item.updated_at.getTime() !== 0 && (
+                        <span className="inline-flex items-center text-sm text-muted-foreground">
+                          Updated: {dayjs(item.updated_at).fromNow()}
+                        </span>
+                      )}
+                    <span className="inline-flex items-center gap-1 text-sm text-muted-foreground">
+                      <CalendarIcon className="size-3 shrink-0" />
+                      {dayjs(item.created_at).format('MMM D, YYYY')}
+                    </span>
+                  </span>
+                </CardDescription>
+              </CardHeader>
+            </Card>
+          </Link>
+        </div>
+      ))}
+    </div>
+  );
+};
+
+const PadajalaTableView = ({
+  isSuccess,
+  isInitialLoading,
+  layout,
+  columns,
+  data
+}: {
+  isSuccess: boolean;
+  isInitialLoading: boolean;
+  layout: ListLayout;
+  columns: typeof padajalaListTableColumns;
+  data: PadajalaListItem[];
+}) => {
+  if (!isSuccess || isInitialLoading || layout !== 'table' || data.length === 0) return null;
+
+  return <DataTable columns={columns} data={data} getRowId={(row) => String(row.id)} />;
+};
+
+const ListEmptyState = ({
+  isEmpty,
+  isInitialLoading,
+  isFetching
+}: {
+  isEmpty: boolean;
+  isInitialLoading: boolean;
+  isFetching: boolean;
+}) => {
+  if (!isEmpty || isInitialLoading) return null;
+
+  return (
+    <div className="flex items-center justify-center">
+      {!isFetching ? (
+        <p className="text-lg font-semibold text-slate-500 dark:text-slate-400">No puzzles found</p>
+      ) : (
+        <p className="font-semibold text-slate-500 dark:text-slate-400">Loading...</p>
+      )}
+    </div>
+  );
+};
+
+const ListPagination = ({
+  page,
+  pageCount,
+  hasPrev,
+  hasNext,
+  isFetching,
+  total,
+  onPageChange
+}: {
+  page: number;
+  pageCount: number;
+  hasPrev: boolean;
+  hasNext: boolean;
+  isFetching: boolean;
+  total?: number;
+  onPageChange: (page: number) => void;
+}) => {
+  if (!(pageCount > 1 || total)) return <></>;
+
+  return (
+    <Pagination>
+      <PaginationContent>
+        <PaginationItem>
+          <PaginationPrevious
+            href="#"
+            text="Prev"
+            onClick={(e) => {
+              e.preventDefault();
+              if (hasPrev && !isFetching) onPageChange(page - 1);
+            }}
+            aria-disabled={!hasPrev || isFetching}
+            className={cn(!hasPrev || isFetching ? 'pointer-events-none opacity-50' : undefined)}
+          />
+        </PaginationItem>
+        {getVisiblePages(page, pageCount).map((pageNumber, index) =>
+          pageNumber === 'ellipsis' ? (
+            <PaginationItem key={`ellipsis-${index}`}>
+              <PaginationEllipsis />
+            </PaginationItem>
+          ) : (
+            <PaginationItem key={pageNumber}>
+              <PaginationLink
+                href="#"
+                isActive={pageNumber === page}
+                onClick={(e) => {
+                  e.preventDefault();
+                  if (!isFetching) onPageChange(pageNumber);
+                }}
+                aria-disabled={isFetching}
+                className={cn(isFetching ? 'pointer-events-none opacity-50' : undefined)}
+              >
+                {pageNumber}
+              </PaginationLink>
+            </PaginationItem>
+          )
+        )}
+        <PaginationItem>
+          <PaginationNext
+            href="#"
+            onClick={(e) => {
+              e.preventDefault();
+              if (hasNext && !isFetching) onPageChange(page + 1);
+            }}
+            aria-disabled={!hasNext || isFetching}
+            className={cn(!hasNext || isFetching ? 'pointer-events-none opacity-50' : undefined)}
+          />
+        </PaginationItem>
+      </PaginationContent>
+    </Pagination>
+  );
+};
+
+const PadajalaListResults = ({
+  layout,
+  isSuccess,
+  isFetching,
+  isInitialLoading,
+  puzzle_list,
+  links,
+  linksLoading,
+  linksFetching,
+  page,
+  pageCount,
+  hasPrev,
+  hasNext,
+  total,
+  onPageChange
+}: {
+  layout: ListLayout;
+  isSuccess: boolean;
+  isFetching: boolean;
+  isInitialLoading: boolean;
+  puzzle_list: PadajalaListItem[];
+  links: PadajalaListItem[];
+  linksLoading: boolean;
+  linksFetching: boolean;
+  page: number;
+  pageCount: number;
+  hasPrev: boolean;
+  hasNext: boolean;
+  total?: number;
+  onPageChange: (page: number) => void;
+}) => {
+  const listRef = useRef<HTMLDivElement>(null);
+  const isLinks = layout === 'links';
+
+  return (
+    <>
+      <ListLoadingSkeleton show={isInitialLoading && !isLinks} layout={layout} />
+      {isLinks && linksLoading ? <ListLoadingSkeleton show layout="table" /> : null}
+      <div ref={listRef} className="flex flex-col gap-4">
+        {isLinks && !linksLoading && links.length > 0 ? (
+          <>
+            <p className="text-center text-sm text-muted-foreground">
+              {links.length} puzzle{links.length === 1 ? '' : 's'}
+            </p>
+            <DataTable
+              scrollable
+              columns={padajalaListTableColumns}
+              data={links}
+              getRowId={(row) => String(row.id)}
+            />
+          </>
+        ) : null}
+        <PadajalaCardGrid
+          isSuccess={isSuccess}
+          isInitialLoading={isInitialLoading}
+          layout={layout}
+          puzzle_list={puzzle_list}
+        />
+        <PadajalaTableView
+          isSuccess={isSuccess}
+          isInitialLoading={isInitialLoading}
+          layout={layout}
+          columns={padajalaListTableColumns}
+          data={puzzle_list}
+        />
+        <ListEmptyState
+          isEmpty={isLinks ? !linksLoading && links.length === 0 : puzzle_list.length === 0}
+          isInitialLoading={isLinks ? false : isInitialLoading}
+          isFetching={isLinks ? linksFetching : isFetching}
+        />
+      </div>
+      {isLinks ? null : (
+        <ListPagination
+          page={page}
+          pageCount={pageCount}
+          hasPrev={hasPrev}
+          hasNext={hasNext}
+          isFetching={isFetching}
+          total={total}
+          onPageChange={(nextPage) => {
+            onPageChange(nextPage);
+            scrollPaginationListToStart(listRef.current);
+          }}
+        />
+      )}
+    </>
+  );
+};
+
+const PadajalaListPage = () => {
+  const mounted = useIsMounted();
+  const [page, setPage] = useState(1);
+  const [search_title, setSearchTitle] = useState('');
+  const [listed_filter_type, setListedFilterType] = useState<'all' | 'listed' | 'unlisted'>('all');
+  const [sort_by, setSortBy] = useState<'created_at' | 'updated_at'>('created_at');
+  const [order_by, setOrderBy] = useState<'asc' | 'desc'>('desc');
+  const [layout, setLayout] = useState<ListLayout>('cards');
+  const [tag_slug, setTagSlug] = useState('all');
+  const [collection_id, setCollectionId] = useState('all');
+
+  const debouncedSearchTitle = useDebouncedSearch(search_title);
+
+  const listed_filter = { all: undefined, listed: true, unlisted: false }[listed_filter_type];
+  const tagSlugFilter = tag_slug === 'all' ? undefined : tag_slug;
+  const collectionIdFilter = collection_id === 'all' ? undefined : Number(collection_id);
+
+  const {
+    isSuccess,
+    isFetching,
+    total,
+    puzzle_list,
+    pageCount,
+    hasPrev,
+    hasNext,
+    isInitialLoading
+  } = usePadajalaListQuery(
+    page,
+    debouncedSearchTitle,
+    listed_filter_type,
+    listed_filter,
+    sort_by,
+    order_by,
+    tagSlugFilter,
+    collectionIdFilter
+  );
+
+  const all_links_q = useQuery({
+    queryKey: [
+      'padajala_list_links',
+      debouncedSearchTitle,
+      listed_filter_type,
+      listed_filter,
+      sort_by,
+      order_by,
+      tagSlugFilter,
+      collectionIdFilter
+    ],
+    enabled: layout === 'links',
+    queryFn: () =>
+      fetchEveryListPage(
+        (page, size) =>
+          fetchPadajalaListPage(
+            page,
+            debouncedSearchTitle,
+            listed_filter,
+            sort_by,
+            order_by,
+            size,
+            tagSlugFilter,
+            collectionIdFilter
+          ),
+        ALL_LINKS_PAGE_SIZE
+      ),
+    refetchOnWindowFocus: false
+  });
+
+  function handle_listed_filter_change(value: 'all' | 'listed' | 'unlisted') {
+    setListedFilterType(value);
+    setPage(1);
+  }
+
+  function handle_sort_by_change(value: 'created_at' | 'updated_at') {
+    setSortBy(value);
+    setPage(1);
+  }
+
+  function handle_order_by_change(value: 'asc' | 'desc') {
+    setOrderBy(value);
+    setPage(1);
+  }
+
+  if (!mounted) {
+    return <ListLoadingSkeleton show layout="cards" />;
+  }
+
+  return (
+    <div className="flex flex-col gap-4">
+      <CatalogAdminLinks />
+      <div className="flex flex-col gap-4">
+        <ListFilterBar
+          search_title={search_title}
+          onSearchChange={setSearchTitle}
+          listed_filter_type={listed_filter_type}
+          onListedFilterChange={handle_listed_filter_change}
+          sort_by={sort_by}
+          onSortByChange={handle_sort_by_change}
+          order_by={order_by}
+          onOrderByChange={handle_order_by_change}
+          layout={layout}
+          onLayoutChange={setLayout}
+          tag_slug={tag_slug}
+          onTagSlugChange={(value) => {
+            setTagSlug(value);
+            setPage(1);
+          }}
+          collection_id={collection_id}
+          onCollectionIdChange={(value) => {
+            setCollectionId(value);
+            setPage(1);
+          }}
+        />
+        <PadajalaListResults
+          layout={layout}
+          isSuccess={isSuccess}
+          isFetching={isFetching}
+          isInitialLoading={isInitialLoading}
+          puzzle_list={puzzle_list}
+          links={all_links_q.data ?? []}
+          linksLoading={all_links_q.isLoading}
+          linksFetching={all_links_q.isFetching}
+          page={page}
+          pageCount={pageCount}
+          hasPrev={hasPrev}
+          hasNext={hasNext}
+          total={total}
+          onPageChange={setPage}
+        />
+      </div>
+    </div>
+  );
+};
+
+export default PadajalaListPage;

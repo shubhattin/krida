@@ -1,5 +1,5 @@
 /** Games that are live on the public hub catalog. */
-export const PUBLIC_GAME_KINDS = ['padavali', 'crossword'] as const;
+export const PUBLIC_GAME_KINDS = ['padavali', 'padajala'] as const;
 export type PublicGameKind = (typeof PUBLIC_GAME_KINDS)[number];
 
 /** In-development games — admin, collections, tags, and analytics only. */

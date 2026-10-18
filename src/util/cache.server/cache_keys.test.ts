@@ -1,7 +1,7 @@
 import { describe, expect, it } from 'vitest';
 import { z } from 'zod';
 import type { RedisJsonValue } from '~/effect/redis';
-import { crosswordCacheKeys } from '~/util/cache.server/crossword_cache';
+import { padajalaCacheKeys } from '~/util/cache.server/padajala_cache';
 import { padavaliCacheKeys } from '~/util/cache.server/padavali_cache';
 import { sitemapCacheKeys } from '~/util/cache.server/sitemap_cache';
 import { simpleGameCacheKeys } from '~/util/cache.server/simple_game_cache';
@@ -18,12 +18,12 @@ const parseScheduleSentinel =
   };
 
 describe('cache keys', () => {
-  it('uses padavali and crossword prefixes without version segments', () => {
+  it('uses padavali and padajala prefixes without version segments', () => {
     expect(padavaliCacheKeys.current_schedule()).toBe('padavali:current_schedule');
     expect(padavaliCacheKeys.word_meanings('abc')).toBe('padavali:word_meanings:abc');
-    expect(crosswordCacheKeys.word_puzzle('xyz')).toBe('crossword:word_puzzle:xyz');
-    expect(crosswordCacheKeys.more_hints('xyz')).toBe('crossword:puzzle_more_hints:xyz');
-    expect(crosswordCacheKeys).not.toHaveProperty('word_meanings');
+    expect(padajalaCacheKeys.word_puzzle('xyz')).toBe('padajala:word_puzzle:xyz');
+    expect(padajalaCacheKeys.more_hints('xyz')).toBe('padajala:puzzle_more_hints:xyz');
+    expect(padajalaCacheKeys).not.toHaveProperty('word_meanings');
   });
 
   it('uses simple-game prefixes for listed lists and word puzzles', () => {
@@ -43,8 +43,8 @@ describe('cache keys', () => {
     expect(redisGenerationKey(padavaliCacheKeys.word_meanings('abc'))).toBe(
       'padavali:word_meanings:abc:gen'
     );
-    expect(redisGenerationKey(crosswordCacheKeys.more_hints('abc'))).toBe(
-      'crossword:puzzle_more_hints:abc:gen'
+    expect(redisGenerationKey(padajalaCacheKeys.more_hints('abc'))).toBe(
+      'padajala:puzzle_more_hints:abc:gen'
     );
   });
 });

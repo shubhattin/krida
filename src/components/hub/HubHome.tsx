@@ -59,9 +59,9 @@ const PUZZLE_FILTERS: {
     icon: GAME_APP_ICON_SRC[HUB_GAMES.padavali.icon]
   },
   {
-    value: 'crossword',
-    label: HUB_GAMES.crossword.name,
-    icon: GAME_APP_ICON_SRC[HUB_GAMES.crossword.icon]
+    value: 'padajala',
+    label: HUB_GAMES.padajala.name,
+    icon: GAME_APP_ICON_SRC[HUB_GAMES.padajala.icon]
   }
 ];
 
@@ -204,7 +204,7 @@ export default function HubHome({ data }: { data: HubData }) {
   const tags = tagsByPopularity(puzzles).slice(0, 24);
   const reduceMotion = useReducedMotion();
   const todayGames = HUB_GAME_LIST.filter((game) =>
-    game.kind === 'padavali' ? data.padavali.today : data.crossword.today
+    game.kind === 'padavali' ? data.padavali.today : data.padajala.today
   );
 
   return (
@@ -234,9 +234,9 @@ export default function HubHome({ data }: { data: HubData }) {
                 <HubTodayCard
                   key={game.kind}
                   game={game}
-                  puzzle={game.kind === 'padavali' ? data.padavali.today : data.crossword.today}
+                  puzzle={game.kind === 'padavali' ? data.padavali.today : data.padajala.today}
                   nextStart={
-                    game.kind === 'padavali' ? data.padavali.next_start : data.crossword.next_start
+                    game.kind === 'padavali' ? data.padavali.next_start : data.padajala.next_start
                   }
                 />
               ))}

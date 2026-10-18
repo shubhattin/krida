@@ -20,6 +20,7 @@ import { Route as ExploreRouteImport } from './routes/explore'
 import { Route as PadajalaRouteRouteImport } from './routes/padajala/route'
 import { Route as PadavaliRouteRouteImport } from './routes/padavali/route'
 import { Route as RobotsDottxtRouteImport } from './routes/robots[.]txt'
+import { Route as SchedulesRouteImport } from './routes/schedules'
 import { Route as Sitemap0DotxmlRouteImport } from './routes/sitemap-0[.]xml'
 import { Route as Sitemap1DotxmlRouteImport } from './routes/sitemap-1[.]xml'
 import { Route as SitemapIndexDotxmlRouteImport } from './routes/sitemap-index[.]xml'
@@ -49,7 +50,7 @@ import { Route as SurupapublicPublicRouteImport } from './routes/surupa/(public)
 import { Route as TagsEditSlugRouteImport } from './routes/tags/edit/$slug'
 import { Route as AnveshipublicPublicIndexRouteImport } from './routes/anveshi/(public)/_public/index'
 import { Route as AnveshipublicPublicSlugRouteImport } from './routes/anveshi/(public)/_public/$slug'
-import { Route as ApiQstashCrosswordSchedule_listingRouteImport } from './routes/api/qstash/crossword/schedule_listing'
+import { Route as ApiQstashPadajalaSchedule_listingRouteImport } from './routes/api/qstash/padajala/schedule_listing'
 import { Route as BhramitapublicPublicIndexRouteImport } from './routes/bhramita/(public)/_public/index'
 import { Route as BhramitapublicPublicSlugRouteImport } from './routes/bhramita/(public)/_public/$slug'
 import { Route as DvayipublicPublicIndexRouteImport } from './routes/dvayi/(public)/_public/index'
@@ -157,6 +158,11 @@ const PadavaliRouteRoute = PadavaliRouteRouteImport.update({
 const RobotsDottxtRoute = RobotsDottxtRouteImport.update({
   id: '/robots.txt',
   path: '/robots.txt',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const SchedulesRoute = SchedulesRouteImport.update({
+  id: '/schedules',
+  path: '/schedules',
   getParentRoute: () => rootRouteImport,
 } as any)
 const Sitemap0DotxmlRoute = Sitemap0DotxmlRouteImport.update({
@@ -295,10 +301,10 @@ const AnveshipublicPublicSlugRoute = AnveshipublicPublicSlugRouteImport.update({
   path: '/$slug',
   getParentRoute: () => AnveshipublicPublicRoute,
 } as any)
-const ApiQstashCrosswordSchedule_listingRoute =
-  ApiQstashCrosswordSchedule_listingRouteImport.update({
-    id: '/api/qstash/crossword/schedule_listing',
-    path: '/api/qstash/crossword/schedule_listing',
+const ApiQstashPadajalaSchedule_listingRoute =
+  ApiQstashPadajalaSchedule_listingRouteImport.update({
+    id: '/api/qstash/padajala/schedule_listing',
+    path: '/api/qstash/padajala/schedule_listing',
     getParentRoute: () => rootRouteImport,
   } as any)
 const BhramitapublicPublicIndexRoute =
@@ -627,6 +633,7 @@ export interface FileRoutesByFullPath {
   '/dashboard': typeof DashboardRoute
   '/explore': typeof ExploreRoute
   '/robots.txt': typeof RobotsDottxtRoute
+  '/schedules': typeof SchedulesRoute
   '/sitemap-0.xml': typeof Sitemap0DotxmlRoute
   '/sitemap-1.xml': typeof Sitemap1DotxmlRoute
   '/sitemap-index.xml': typeof SitemapIndexDotxmlRoute
@@ -641,7 +648,7 @@ export interface FileRoutesByFullPath {
   '/collections/edit/$uid': typeof CollectionsEditUidRoute
   '/tags/edit/$slug': typeof TagsEditSlugRoute
   '/anveshi/$slug': typeof AnveshipublicPublicSlugRoute
-  '/api/qstash/crossword/schedule_listing': typeof ApiQstashCrosswordSchedule_listingRoute
+  '/api/qstash/padajala/schedule_listing': typeof ApiQstashPadajalaSchedule_listingRoute
   '/bhramita/$slug': typeof BhramitapublicPublicSlugRoute
   '/dvayi/$slug': typeof DvayipublicPublicSlugRoute
   '/padajala/$slug': typeof PadajalapublicPublicSlugRoute
@@ -710,6 +717,7 @@ export interface FileRoutesByTo {
   '/dashboard': typeof DashboardRoute
   '/explore': typeof ExploreRoute
   '/robots.txt': typeof RobotsDottxtRoute
+  '/schedules': typeof SchedulesRoute
   '/sitemap-0.xml': typeof Sitemap0DotxmlRoute
   '/sitemap-1.xml': typeof Sitemap1DotxmlRoute
   '/sitemap-index.xml': typeof SitemapIndexDotxmlRoute
@@ -725,7 +733,7 @@ export interface FileRoutesByTo {
   '/collections/edit/$uid': typeof CollectionsEditUidRoute
   '/tags/edit/$slug': typeof TagsEditSlugRoute
   '/anveshi/$slug': typeof AnveshipublicPublicSlugRoute
-  '/api/qstash/crossword/schedule_listing': typeof ApiQstashCrosswordSchedule_listingRoute
+  '/api/qstash/padajala/schedule_listing': typeof ApiQstashPadajalaSchedule_listingRoute
   '/bhramita/$slug': typeof BhramitapublicPublicSlugRoute
   '/dvayi/$slug': typeof DvayipublicPublicSlugRoute
   '/padajala/$slug': typeof PadajalapublicPublicSlugRoute
@@ -790,6 +798,7 @@ export interface FileRoutesById {
   '/dashboard': typeof DashboardRoute
   '/explore': typeof ExploreRoute
   '/robots.txt': typeof RobotsDottxtRoute
+  '/schedules': typeof SchedulesRoute
   '/sitemap-0.xml': typeof Sitemap0DotxmlRoute
   '/sitemap-1.xml': typeof Sitemap1DotxmlRoute
   '/sitemap-index.xml': typeof SitemapIndexDotxmlRoute
@@ -817,7 +826,7 @@ export interface FileRoutesById {
   '/surupa/(public)/_public': typeof SurupapublicPublicRouteWithChildren
   '/tags/edit/$slug': typeof TagsEditSlugRoute
   '/anveshi/(public)/_public/$slug': typeof AnveshipublicPublicSlugRoute
-  '/api/qstash/crossword/schedule_listing': typeof ApiQstashCrosswordSchedule_listingRoute
+  '/api/qstash/padajala/schedule_listing': typeof ApiQstashPadajalaSchedule_listingRoute
   '/bhramita/(public)/_public/$slug': typeof BhramitapublicPublicSlugRoute
   '/dvayi/(public)/_public/$slug': typeof DvayipublicPublicSlugRoute
   '/padajala/(public)/_public/$slug': typeof PadajalapublicPublicSlugRoute
@@ -889,6 +898,7 @@ export interface FileRouteTypes {
     | '/dashboard'
     | '/explore'
     | '/robots.txt'
+    | '/schedules'
     | '/sitemap-0.xml'
     | '/sitemap-1.xml'
     | '/sitemap-index.xml'
@@ -903,7 +913,7 @@ export interface FileRouteTypes {
     | '/collections/edit/$uid'
     | '/tags/edit/$slug'
     | '/anveshi/$slug'
-    | '/api/qstash/crossword/schedule_listing'
+    | '/api/qstash/padajala/schedule_listing'
     | '/bhramita/$slug'
     | '/dvayi/$slug'
     | '/padajala/$slug'
@@ -972,6 +982,7 @@ export interface FileRouteTypes {
     | '/dashboard'
     | '/explore'
     | '/robots.txt'
+    | '/schedules'
     | '/sitemap-0.xml'
     | '/sitemap-1.xml'
     | '/sitemap-index.xml'
@@ -987,7 +998,7 @@ export interface FileRouteTypes {
     | '/collections/edit/$uid'
     | '/tags/edit/$slug'
     | '/anveshi/$slug'
-    | '/api/qstash/crossword/schedule_listing'
+    | '/api/qstash/padajala/schedule_listing'
     | '/bhramita/$slug'
     | '/dvayi/$slug'
     | '/padajala/$slug'
@@ -1051,6 +1062,7 @@ export interface FileRouteTypes {
     | '/dashboard'
     | '/explore'
     | '/robots.txt'
+    | '/schedules'
     | '/sitemap-0.xml'
     | '/sitemap-1.xml'
     | '/sitemap-index.xml'
@@ -1078,7 +1090,7 @@ export interface FileRouteTypes {
     | '/surupa/(public)/_public'
     | '/tags/edit/$slug'
     | '/anveshi/(public)/_public/$slug'
-    | '/api/qstash/crossword/schedule_listing'
+    | '/api/qstash/padajala/schedule_listing'
     | '/bhramita/(public)/_public/$slug'
     | '/dvayi/(public)/_public/$slug'
     | '/padajala/(public)/_public/$slug'
@@ -1149,6 +1161,7 @@ export interface RootRouteChildren {
   DashboardRoute: typeof DashboardRoute
   ExploreRoute: typeof ExploreRoute
   RobotsDottxtRoute: typeof RobotsDottxtRoute
+  SchedulesRoute: typeof SchedulesRoute
   Sitemap0DotxmlRoute: typeof Sitemap0DotxmlRoute
   Sitemap1DotxmlRoute: typeof Sitemap1DotxmlRoute
   SitemapIndexDotxmlRoute: typeof SitemapIndexDotxmlRoute
@@ -1160,7 +1173,7 @@ export interface RootRouteChildren {
   ApiTrpcSplatRoute: typeof ApiTrpcSplatRoute
   CollectionsEditUidRoute: typeof CollectionsEditUidRoute
   TagsEditSlugRoute: typeof TagsEditSlugRoute
-  ApiQstashCrosswordSchedule_listingRoute: typeof ApiQstashCrosswordSchedule_listingRoute
+  ApiQstashPadajalaSchedule_listingRoute: typeof ApiQstashPadajalaSchedule_listingRoute
 }
 
 declare module '@tanstack/react-router' {
@@ -1240,6 +1253,13 @@ declare module '@tanstack/react-router' {
       path: '/robots.txt'
       fullPath: '/robots.txt'
       preLoaderRoute: typeof RobotsDottxtRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/schedules': {
+      id: '/schedules'
+      path: '/schedules'
+      fullPath: '/schedules'
+      preLoaderRoute: typeof SchedulesRouteImport
       parentRoute: typeof rootRouteImport
     }
     '/sitemap-0.xml': {
@@ -1445,11 +1465,11 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof AnveshipublicPublicSlugRouteImport
       parentRoute: typeof AnveshipublicPublicRoute
     }
-    '/api/qstash/crossword/schedule_listing': {
-      id: '/api/qstash/crossword/schedule_listing'
-      path: '/api/qstash/crossword/schedule_listing'
-      fullPath: '/api/qstash/crossword/schedule_listing'
-      preLoaderRoute: typeof ApiQstashCrosswordSchedule_listingRouteImport
+    '/api/qstash/padajala/schedule_listing': {
+      id: '/api/qstash/padajala/schedule_listing'
+      path: '/api/qstash/padajala/schedule_listing'
+      fullPath: '/api/qstash/padajala/schedule_listing'
+      preLoaderRoute: typeof ApiQstashPadajalaSchedule_listingRouteImport
       parentRoute: typeof rootRouteImport
     }
     '/bhramita/(public)/_public/': {
@@ -2173,6 +2193,7 @@ const rootRouteChildren: RootRouteChildren = {
   DashboardRoute: DashboardRoute,
   ExploreRoute: ExploreRoute,
   RobotsDottxtRoute: RobotsDottxtRoute,
+  SchedulesRoute: SchedulesRoute,
   Sitemap0DotxmlRoute: Sitemap0DotxmlRoute,
   Sitemap1DotxmlRoute: Sitemap1DotxmlRoute,
   SitemapIndexDotxmlRoute: SitemapIndexDotxmlRoute,
@@ -2184,8 +2205,8 @@ const rootRouteChildren: RootRouteChildren = {
   ApiTrpcSplatRoute: ApiTrpcSplatRoute,
   CollectionsEditUidRoute: CollectionsEditUidRoute,
   TagsEditSlugRoute: TagsEditSlugRoute,
-  ApiQstashCrosswordSchedule_listingRoute:
-    ApiQstashCrosswordSchedule_listingRoute,
+  ApiQstashPadajalaSchedule_listingRoute:
+    ApiQstashPadajalaSchedule_listingRoute,
 }
 export const routeTree = rootRouteImport
   ._addFileChildren(rootRouteChildren)

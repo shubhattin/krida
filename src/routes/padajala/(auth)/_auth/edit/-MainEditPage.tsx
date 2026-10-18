@@ -1,19 +1,19 @@
 'use client';
 
 import { lazy, Suspense } from 'react';
-import ViewEditCrossword, {
-  type ViewEditCrosswordProps
-} from '~/components/pages/cross_word/ViewEditCrossword';
+import ViewEditPadajala, {
+  type ViewEditPadajalaProps
+} from '~/components/pages/padajala/ViewEditPadajala';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '~/components/ui/tabs';
 
-const CrosswordPuzzleStats = lazy(() => import('./-CrosswordPuzzleStats'));
+const PadajalaPuzzleStats = lazy(() => import('./-PadajalaPuzzleStats'));
 
 const MainEditPage = ({
   puzzle,
   catalog
 }: {
-  puzzle: ViewEditCrosswordProps['puzzle'];
-  catalog: ViewEditCrosswordProps['catalog'];
+  puzzle: ViewEditPadajalaProps['puzzle'];
+  catalog: ViewEditPadajalaProps['catalog'];
 }) => {
   return (
     <Tabs defaultValue="edit">
@@ -22,11 +22,11 @@ const MainEditPage = ({
         <TabsTrigger value="stats">Puzzle Stats</TabsTrigger>
       </TabsList>
       <TabsContent value="edit">
-        <ViewEditCrossword puzzle={puzzle} catalog={catalog} key={puzzle.id} />
+        <ViewEditPadajala puzzle={puzzle} catalog={catalog} key={puzzle.id} />
       </TabsContent>
       <TabsContent value="stats">
         <Suspense fallback={<div></div>}>
-          <CrosswordPuzzleStats puzzleId={puzzle.id} puzzleTitle={puzzle.title} />
+          <PadajalaPuzzleStats puzzleId={puzzle.id} puzzleTitle={puzzle.title} />
         </Suspense>
       </TabsContent>
     </Tabs>

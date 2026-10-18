@@ -2,7 +2,7 @@
 
 import { useMemo } from 'react';
 import { useListedPuzzlesDisplay } from '~/components/pages/padavali/useListedPuzzlesDisplay';
-import { useCrosswordListedPuzzles } from '~/components/pages/cross_word/useCrosswordListedPuzzles';
+import { usePadajalaListedPuzzles } from '~/components/pages/padajala/usePadajalaListedPuzzles';
 import type { HubData } from './hub_data';
 import { toHubPuzzles, type HubPuzzle } from './hub_puzzles';
 
@@ -12,13 +12,13 @@ export function useHubPuzzles(data: HubData) {
     data.padavali.listed,
     data.padavali.listed_init_transliterated
   );
-  const crossword = useCrosswordListedPuzzles(data.crossword.listed);
+  const padajala = usePadajalaListedPuzzles(data.padajala.listed);
 
-  const puzzles = useMemo(() => toHubPuzzles(padavali, crossword), [padavali, crossword]);
+  const puzzles = useMemo(() => toHubPuzzles(padavali, padajala), [padavali, padajala]);
   const byKey = useMemo(
     () => new Map<string, HubPuzzle>(puzzles.map((puzzle) => [puzzle.key, puzzle])),
     [puzzles]
   );
 
-  return { puzzles, byKey, padavali, crossword };
+  return { puzzles, byKey, padavali, padajala };
 }

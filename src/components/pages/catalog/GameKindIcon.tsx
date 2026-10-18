@@ -76,7 +76,7 @@ export function PuzzleEditLink({
       </Link>
     );
   }
-  if (game === 'crossword') {
+  if (game === 'padajala') {
     return (
       <Link to="/padajala/edit/$id" params={{ id: String(id) }} {...shared}>
         {children}

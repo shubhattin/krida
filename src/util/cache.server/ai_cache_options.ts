@@ -1,5 +1,5 @@
 /**
- * Redis-cache AI results (padavali word meanings, crossword more hints) even outside
+ * Redis-cache AI results (padavali word meanings, padajala more hints) even outside
  * production. Production always caches regardless of this flag.
  *
  * Set to `false` while iterating on AI prompts so every request hits the model.

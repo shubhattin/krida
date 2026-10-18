@@ -59,7 +59,7 @@ const PAGE_LIMIT = 12;
 const GAME_FILTERS: { value: 'all' | PublicGameKind; label: string }[] = [
   { value: 'all', label: 'All games' },
   { value: 'padavali', label: HUB_GAMES.padavali.name },
-  { value: 'crossword', label: HUB_GAMES.crossword.name }
+  { value: 'padajala', label: HUB_GAMES.padajala.name }
 ];
 
 type GameCounts = Record<'all' | PublicGameKind, number>;
@@ -533,7 +533,7 @@ export default function HubPuzzles({ data }: { data: HubData }) {
     () => ({
       all: basePuzzles.length,
       padavali: basePuzzles.filter((puzzle) => puzzle.game === 'padavali').length,
-      crossword: basePuzzles.filter((puzzle) => puzzle.game === 'crossword').length
+      padajala: basePuzzles.filter((puzzle) => puzzle.game === 'padajala').length
     }),
     [basePuzzles]
   );
