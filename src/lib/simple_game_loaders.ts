@@ -58,9 +58,13 @@ async function resolveSimpleGameSlug(
   kind: SimpleGameKind,
   slug: string
 ): Promise<SimpleGameSlugResolution> {
-  const slug_map = await runLoaderEffect(CACHE.slug_map.slug_map.get(NO_CACHE_PARAMS));
-  const verdict = resolvePuzzleSlug(slug_map, kind, slug);
-  if (verdict.type === 'redirect') {
+  // Degraded but serving: if the slug map is unavailable, fall back to the
+  // authoritative word_puzzle lookup with no redirect fast-path.
+  const slug_map = await runLoaderEffect(CACHE.slug_map.slug_map.get(NO_CACHE_PARAMS)).catch(
+    () => null
+  );
+  const verdict = slug_map ? resolvePuzzleSlug(slug_map, kind, slug) : null;
+  if (verdict?.type === 'redirect') {
     return { type: 'redirect', targetSlug: verdict.targetSlug };
   }
 

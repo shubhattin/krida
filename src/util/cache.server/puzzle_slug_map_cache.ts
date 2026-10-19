@@ -11,7 +11,7 @@ import {
 } from '~/effect/cache';
 import { dbRunHttp } from '~/effect/database';
 import { CacheError } from '~/effect/errors';
-import { GAME_KINDS, game_kind_schema, type GameKind } from '~/util/catalog/tags';
+import { GAME_KINDS, game_kind_schema, isGameKind, type GameKind } from '~/util/catalog/tags';
 
 const SLUG_MAP_KEY = 'puzzle:slug_map';
 
@@ -54,12 +54,16 @@ const emptySlugMap = (): PuzzleSlugMap =>
     ])
   ) as PuzzleSlugMap;
 
-const toSlugMap = (payload: SlugMapPayload): PuzzleSlugMap => {
+export const toSlugMap = (payload: SlugMapPayload): PuzzleSlugMap => {
   const map = emptySlugMap();
   for (const row of payload.live) {
+    // Runtime guard: `game_kind` is a PG enum, but rows from a foreign/dumped
+    // payload must not throw the transform for every slug route.
+    if (!isGameKind(row.kind)) continue;
     map[row.kind].liveSlugs.add(row.slug);
   }
   for (const row of payload.redirects) {
+    if (!isGameKind(row.kind)) continue;
     if (row.slug !== row.target) {
       map[row.kind].redirectTo.set(row.slug, row.target);
     }
@@ -78,6 +82,10 @@ const load_slug_map: CacheItem<NoCacheParams, PuzzleSlugMap> = createCache<
   getKey: () => SLUG_MAP_KEY,
   schema: slug_map_payload_schema,
   transform: toSlugMap,
+  // Single key + many concurrent readers: converge cold misses onto one fetch,
+  // and drop late writes from overlapping background refreshes.
+  useSingleFlight: true,
+  useGenerationGuard: true,
   fetch: () =>
     dbRunHttp('puzzle_slug_map.fetch', async (client) => {
       const [live, redirects] = await Promise.all([
@@ -116,8 +124,11 @@ export function resolvePuzzleSlug(
   const entry = map[kind];
   if (entry.liveSlugs.has(slug)) return { type: 'live' };
   const targetSlug = entry.redirectTo.get(slug);
-  if (targetSlug) return { type: 'redirect', targetSlug };
-  return { type: 'unknown' };
+  if (!targetSlug) return { type: 'unknown' };
+  // Stale-map hardening: a redirect whose target is not a known live slug
+  // falls through to the authoritative word_puzzle lookup instead of 301→404.
+  if (!entry.liveSlugs.has(targetSlug)) return { type: 'unknown' };
+  return { type: 'redirect', targetSlug };
 }
 
 /** Invalidate + background-refresh the slug map after slug/redirect mutations. */

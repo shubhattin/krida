@@ -218,7 +218,40 @@ const main = async () => {
     await insertAll(tx, data);
     await resetSerialSequences(tx);
   });
+
+  // The restore rewrites `puzzles`/`puzzle_redirects` out-of-band; drop the
+  // cached slug map so public routes rebuild it instead of serving stale 301s.
+  await flushRedirectMapKeys(['puzzle:slug_map']);
 };
+
+/**
+ * Best-effort Upstash REST `DEL` for cache keys the restore invalidates.
+ * Never throws — on failure the operator must flush the keys manually.
+ */
+async function flushRedirectMapKeys(keys: string[]): Promise<void> {
+  const url = process.env.UPSTASH_REDIS_REST_URL?.replace(/\/$/, '');
+  const token = process.env.UPSTASH_REDIS_REST_TOKEN;
+  if (!url || !token) {
+    console.log(
+      chalk.yellow('! UPSTASH_REDIS_REST_URL/TOKEN not set — flush Redis keys manually:'),
+      chalk.yellow(keys.join(', '))
+    );
+    return;
+  }
+  try {
+    const res = await fetch(`${url}/del/${keys.map(encodeURIComponent).join('/')}`, {
+      headers: { Authorization: `Bearer ${token}` }
+    });
+    if (!res.ok) throw new Error(`HTTP ${res.status}`);
+    console.log(chalk.green('✓ Flushed Redis keys:'), chalk.blue(keys.join(', ')));
+  } catch (error) {
+    console.log(
+      chalk.red('✗ Redis flush failed — flush manually:'),
+      chalk.yellow(keys.join(', ')),
+      error
+    );
+  }
+}
 
 main()
   .catch((error) => {
