@@ -28,6 +28,7 @@ import { escapeIlikeToken, tokenizeSearchQuery } from '~/util/puzzle/search';
 import { puzzleHasTag, puzzleInCollection, tagsForPuzzleIds } from '~/util/catalog/list_query';
 import { syncPuzzleAttachments } from '~/game_shell/attachments';
 import { createGameSlugHelpers } from '~/game_shell/slug';
+import { refreshPuzzleSlugMap } from '~/util/cache.server/puzzle_slug_map_cache';
 import { BadRequestError, NotFoundError } from '~/effect/errors';
 import { runTrpcEffect } from '~/effect/run';
 import { padavaliActiveWordsEqual } from '~/util/puzzle/word_list';
@@ -266,6 +267,8 @@ const update_puzzle_slug_route = protectedAdminProcedure
           );
         }
 
+        yield* settle(refreshPuzzleSlugMap());
+
         return { success: true as const, slug: new_slug };
       })
     )
@@ -311,6 +314,8 @@ const add_puzzle_route = protectedAdminProcedure
         if (!inserted) {
           throw new Error('Failed to create puzzle');
         }
+
+        yield* settle(refreshPuzzleSlugMap());
 
         return { id: inserted.id };
       })
@@ -371,6 +376,7 @@ const delete_puzzle_route = protectedAdminProcedure
             invalidate_and_refresh_cache(CACHE.padavali.next_schedule, NO_CACHE_PARAMS)
           );
         }
+        yield* settle(refreshPuzzleSlugMap());
         return {
           success: true
         };
@@ -626,6 +632,7 @@ const delete_redirect_slug_route = protectedAdminProcedure
 
         yield* settle(CACHE.padavali.word_puzzle.delete({ slug: redirect_slug }));
         yield* settle(CACHE.padavali.word_meanings.delete({ slug: redirect_slug }));
+        yield* settle(refreshPuzzleSlugMap());
 
         return { success: true as const };
       })

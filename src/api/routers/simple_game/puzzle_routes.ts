@@ -27,6 +27,7 @@ import type { SimpleGameTableSet } from '~/db/schema/simple_game_tables';
 import type { SimpleGameCacheLoaders } from '~/util/cache.server/simple_game_cache';
 import type { GameAnalysis } from '~/util/games/issues';
 import { createGameSlugHelpers } from '~/game_shell/slug';
+import { refreshPuzzleSlugMap } from '~/util/cache.server/puzzle_slug_map_cache';
 import { createSimpleGameStatsRouter } from './stats';
 
 const settle = <A, E, R>(effect: Effect.Effect<A, E, R>) =>
@@ -241,6 +242,7 @@ export function createSimpleGameRouter<TData>(options: {
           }
 
           yield* refreshListed();
+          yield* settle(refreshPuzzleSlugMap());
           return { id: inserted.id };
         })
       )
@@ -397,6 +399,7 @@ export function createSimpleGameRouter<TData>(options: {
           yield* settle(puzzleCache.word_puzzle.delete({ slug: current_slug }));
           if (puzzle.listed) yield* refreshListed();
           yield* refreshCollections();
+          yield* settle(refreshPuzzleSlugMap());
           return { success: true as const, slug: new_slug };
         })
       )
@@ -430,6 +433,7 @@ export function createSimpleGameRouter<TData>(options: {
           if (puzzle.listed) yield* refreshListed();
           yield* refreshCollections();
           yield* refreshPuzzle(normalizedSlug);
+          yield* settle(refreshPuzzleSlugMap());
           return { success: true };
         })
       )
@@ -536,6 +540,7 @@ export function createSimpleGameRouter<TData>(options: {
           });
 
           yield* settle(puzzleCache.word_puzzle.delete({ slug: redirect_slug }));
+          yield* settle(refreshPuzzleSlugMap());
           return { success: true as const };
         })
       )

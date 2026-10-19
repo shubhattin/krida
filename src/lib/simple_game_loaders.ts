@@ -5,7 +5,6 @@ import {
   collection_items,
   collections,
   puzzle_attachments,
-  puzzle_redirects,
   puzzle_tags,
   puzzles,
   tags
@@ -15,6 +14,7 @@ import { dbRunHttp } from '~/effect/database';
 import { runLoaderEffect } from '~/effect/run';
 import { SIMPLE_GAME_TABLES } from '~/util/catalog/simple_game_tables';
 import { CACHE, NO_CACHE_PARAMS } from '~/util/cache.server/cache_loaders';
+import { resolvePuzzleSlug } from '~/util/cache.server/puzzle_slug_map_cache';
 import type {
   SimpleGameCacheLoaders,
   SimpleGamePuzzle
@@ -58,20 +58,18 @@ async function resolveSimpleGameSlug(
   kind: SimpleGameKind,
   slug: string
 ): Promise<SimpleGameSlugResolution> {
+  // Degraded but serving: if the slug map is unavailable, fall back to the
+  // authoritative word_puzzle lookup with no redirect fast-path.
+  const slug_map = await runLoaderEffect(CACHE.slug_map.slug_map.get(NO_CACHE_PARAMS)).catch(
+    () => null
+  );
+  const verdict = slug_map ? resolvePuzzleSlug(slug_map, kind, slug) : null;
+  if (verdict?.type === 'redirect') {
+    return { type: 'redirect', targetSlug: verdict.targetSlug };
+  }
+
   const puzzle = await loadCachedPuzzle(kind, slug);
   if (puzzle) return { type: 'puzzle', puzzle };
-
-  const [redirect] = await runLoaderEffect(
-    dbRunHttp(`${kind}.resolve_puzzle_slug_redirect`, (client) =>
-      client
-        .select({ targetSlug: puzzles.slug })
-        .from(puzzle_redirects)
-        .innerJoin(puzzles, eq(puzzle_redirects.puzzle_id, puzzles.id))
-        .where(and(eq(puzzle_redirects.kind, kind), eq(puzzle_redirects.slug, slug)))
-        .limit(1)
-    )
-  );
-  if (redirect?.targetSlug) return { type: 'redirect', targetSlug: redirect.targetSlug };
   return { type: 'not_found' };
 }
 

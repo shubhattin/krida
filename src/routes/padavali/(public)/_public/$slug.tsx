@@ -11,9 +11,7 @@ import { getScript$ } from '~/lib/cache_server_route_data';
 import { DEFAULT_DATA_SCRIPT } from '~/state/script_list';
 import { CACHE, NO_CACHE_PARAMS } from '~/util/cache.server/cache_loaders';
 import type { PadavaliPuzzleType } from '~/util/cache.server/padavali_cache';
-import { and, eq } from 'drizzle-orm';
-import { puzzle_redirects, puzzles } from '~/db/schema';
-import { dbRunHttp } from '~/effect/database';
+import { resolvePuzzleSlug } from '~/util/cache.server/puzzle_slug_map_cache';
 import { runLoaderEffect } from '~/effect/run';
 
 type SlugResolution =
@@ -22,24 +20,19 @@ type SlugResolution =
   | { type: 'not_found' };
 
 const resolve_puzzle_slug = async (slug: string): Promise<SlugResolution> => {
+  // Degraded but serving: if the slug map is unavailable, fall back to the
+  // authoritative word_puzzle lookup with no redirect fast-path.
+  const slug_map = await runLoaderEffect(CACHE.slug_map.slug_map.get(NO_CACHE_PARAMS)).catch(
+    () => null
+  );
+  const verdict = slug_map ? resolvePuzzleSlug(slug_map, 'padavali', slug) : null;
+  if (verdict?.type === 'redirect') {
+    return { type: 'redirect', targetSlug: verdict.targetSlug };
+  }
+
   const word_puzzle = await runLoaderEffect(CACHE.padavali.word_puzzle.get({ slug }));
   if (word_puzzle) {
     return { type: 'puzzle', puzzle: word_puzzle };
-  }
-
-  const [redirect_entry] = await runLoaderEffect(
-    dbRunHttp('padavali.resolve_puzzle_slug_redirect', (client) =>
-      client
-        .select({ targetSlug: puzzles.slug })
-        .from(puzzle_redirects)
-        .innerJoin(puzzles, eq(puzzle_redirects.puzzle_id, puzzles.id))
-        .where(and(eq(puzzle_redirects.kind, 'padavali'), eq(puzzle_redirects.slug, slug)))
-        .limit(1)
-    )
-  );
-
-  if (redirect_entry?.targetSlug) {
-    return { type: 'redirect', targetSlug: redirect_entry.targetSlug };
   }
 
   return { type: 'not_found' };
