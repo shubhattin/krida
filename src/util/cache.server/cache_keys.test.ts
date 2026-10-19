@@ -3,6 +3,7 @@ import { z } from 'zod';
 import type { RedisJsonValue } from '~/effect/redis';
 import { padajalaCacheKeys } from '~/util/cache.server/padajala_cache';
 import { padavaliCacheKeys } from '~/util/cache.server/padavali_cache';
+import { puzzleSlugMapCacheKeys } from '~/util/cache.server/puzzle_slug_map_cache';
 import { sitemapCacheKeys } from '~/util/cache.server/sitemap_cache';
 import { simpleGameCacheKeys } from '~/util/cache.server/simple_game_cache';
 
@@ -32,6 +33,10 @@ describe('cache keys', () => {
     expect(simpleGameCacheKeys('bhramita').word_puzzle('xyz')).toBe('bhramita:word_puzzle:xyz');
     expect(simpleGameCacheKeys('surupa').listed_puzzle_list()).toBe('surupa:listed_puzzle_list');
     expect(simpleGameCacheKeys('anveshi').word_puzzle('mcq')).toBe('anveshi:word_puzzle:mcq');
+  });
+
+  it('uses a single key for the cross-game puzzle slug map', () => {
+    expect(puzzleSlugMapCacheKeys.slug_map()).toBe('puzzle:slug_map');
   });
 
   it('uses sitemap keys for padavali and padajala', () => {

@@ -13,6 +13,8 @@ import { bhramita_cache_loaders } from './bhramita_cache';
 import { surupa_cache_loaders } from './surupa_cache';
 import { anveshi_cache_loaders } from './anveshi_cache';
 import type { SimpleGameCacheLoaders } from './simple_game_cache';
+import type { PuzzleSlugMapCacheLoaders } from './puzzle_slug_map_cache';
+import { puzzle_slug_map_cache_loaders } from './puzzle_slug_map_cache';
 import type { DvayiPuzzleData } from '~/util/dvayi/data';
 import type { BhramitaPuzzleData } from '~/util/bhramita/data';
 import type { SurupaPuzzleData } from '~/util/surupa/data';
@@ -38,6 +40,7 @@ export type CacheLoaderRegistry = {
   user: UserCacheLoaders;
   sitemap: SitemapCacheLoaders;
   catalog: CollectionCacheLoaders;
+  slug_map: PuzzleSlugMapCacheLoaders;
 };
 
 export const CACHE: CacheLoaderRegistry = {
@@ -49,5 +52,6 @@ export const CACHE: CacheLoaderRegistry = {
   anveshi: anveshi_cache_loaders,
   user: user_cache_loaders,
   sitemap: sitemap_cache_loaders,
-  catalog: collection_cache_loaders
+  catalog: collection_cache_loaders,
+  slug_map: puzzle_slug_map_cache_loaders
 };

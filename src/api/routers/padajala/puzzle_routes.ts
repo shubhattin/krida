@@ -30,6 +30,7 @@ import {
 } from '~/util/cache.server/cache_loaders';
 import { normalizeSlug } from '~/util/puzzle/slug';
 import { createGameSlugHelpers } from '~/game_shell/slug';
+import { refreshPuzzleSlugMap } from '~/util/cache.server/puzzle_slug_map_cache';
 import { isValidPadajalaSlug } from '~/util/puzzle/slug';
 import { padajala_stats_router } from './padajala_stats';
 import { padajala_schedules_router } from './padajala_schedules';
@@ -280,6 +281,7 @@ const add_puzzle_route = protectedAdminProcedure
         yield* settle(
           invalidate_and_refresh_cache(CACHE.padajala.listed_puzzle_list, NO_CACHE_PARAMS)
         );
+        yield* settle(refreshPuzzleSlugMap());
         return { id: inserted.id };
       })
     )
@@ -502,6 +504,8 @@ const update_puzzle_slug_route = protectedAdminProcedure
           );
         }
 
+        yield* settle(refreshPuzzleSlugMap());
+
         return { success: true as const, slug: new_slug };
       })
     )
@@ -627,6 +631,8 @@ const delete_puzzle_route = protectedAdminProcedure
           );
         }
 
+        yield* settle(refreshPuzzleSlugMap());
+
         return { success: true };
       })
     )
@@ -743,6 +749,7 @@ const delete_redirect_slug_route = protectedAdminProcedure
 
         yield* settle(CACHE.padajala.word_puzzle.delete({ slug: redirect_slug }));
         yield* settle(CACHE.padajala.more_hints.delete({ slug: redirect_slug }));
+        yield* settle(refreshPuzzleSlugMap());
 
         return { success: true as const };
       })

@@ -6,9 +6,7 @@ import PadajalaGameRoot from '~/components/pages/padajala/PadajalaGame/PadajalaG
 import { routeHeadFromPageMeta, shareImageInfoFromAsset } from '~/components/tags/getPageMetaTags';
 import { CACHE, NO_CACHE_PARAMS } from '~/util/cache.server/cache_loaders';
 import type { PadajalaPuzzleType } from '~/util/cache.server/padajala_cache';
-import { and, eq } from 'drizzle-orm';
-import { puzzle_redirects, puzzles } from '~/db/schema';
-import { dbRunHttp } from '~/effect/database';
+import { resolvePuzzleSlug } from '~/util/cache.server/puzzle_slug_map_cache';
 import { runLoaderEffect } from '~/effect/run';
 
 type SlugResolution =
@@ -17,24 +15,15 @@ type SlugResolution =
   | { type: 'not_found' };
 
 const resolve_puzzle_slug = async (slug: string): Promise<SlugResolution> => {
+  const slug_map = await runLoaderEffect(CACHE.slug_map.slug_map.get(NO_CACHE_PARAMS));
+  const verdict = resolvePuzzleSlug(slug_map, 'padajala', slug);
+  if (verdict.type === 'redirect') {
+    return { type: 'redirect', targetSlug: verdict.targetSlug };
+  }
+
   const word_puzzle = await runLoaderEffect(CACHE.padajala.word_puzzle.get({ slug }));
   if (word_puzzle) {
     return { type: 'puzzle', puzzle: word_puzzle };
-  }
-
-  const [redirect_entry] = await runLoaderEffect(
-    dbRunHttp('padajala.resolve_puzzle_slug_redirect', (client) =>
-      client
-        .select({ targetSlug: puzzles.slug })
-        .from(puzzle_redirects)
-        .innerJoin(puzzles, eq(puzzle_redirects.puzzle_id, puzzles.id))
-        .where(and(eq(puzzle_redirects.kind, 'padajala'), eq(puzzle_redirects.slug, slug)))
-        .limit(1)
-    )
-  );
-
-  if (redirect_entry?.targetSlug) {
-    return { type: 'redirect', targetSlug: redirect_entry.targetSlug };
   }
 
   return { type: 'not_found' };
