@@ -1,8 +1,9 @@
 'use client';
 
-import { useState, useSyncExternalStore, type ReactNode } from 'react';
+import { useState, useSyncExternalStore, type CSSProperties, type ReactNode } from 'react';
 import { useQuery } from '@tanstack/react-query';
 import { Link } from '@tanstack/react-router';
+import { Image } from '@unpic/react';
 import {
   ArrowRight,
   CheckCircle2,
@@ -15,7 +16,7 @@ import {
 } from 'lucide-react';
 import pretty_ms from 'pretty-ms';
 import { useTRPC } from '~/api/client';
-import type { DashboardGameId, GameDashboardStats } from '~/api/routers/user/user_dashboard';
+import type { GameDashboardStats } from '~/api/routers/user/user_dashboard';
 import { Avatar, AvatarFallback, AvatarImage } from '~/components/ui/avatar';
 import { Button } from '~/components/ui/button';
 import {
@@ -38,19 +39,89 @@ import {
 } from '~/components/ui/popover';
 import { Skeleton } from '~/components/ui/skeleton';
 import { GoogleIcon } from '~/components/icons';
+import { GAME_APP_ICON_SRC } from '~/components/GameAppIcon';
+import { HUB_GAME_ACCENT, HUB_GAMES } from '~/components/hub/hub_games';
 import Icon from '~/tools/Icon';
 import { signIn, signOut, useSession } from '~/lib/auth-client';
 import { resetPosthog } from '~/components/tags/PosthogInit';
 import type { GuestAuthPromptTrigger } from '~/lib/guest_auth_prompt';
 import { cn } from '~/lib/utils';
+import {
+  isPublicGameKind,
+  isSimpleGameKind,
+  SIMPLE_GAME_META,
+  type PublicGameKind,
+  type SimpleGameKind
+} from '~/util/games/kinds';
 import { useGuestAuthPrompt } from '~/components/app-bar/useGuestAuthPrompt';
 import chipStyles from '~/components/app-bar/user-profile-chip.module.css';
+
+/** Where the chip is rendered — drives accent colours and the header label. */
+export type ProfileContext = 'krida' | PublicGameKind | SimpleGameKind;
+
+/** Resolve the profile context from the first path segment (`/padajala/...`, `/dvayi/...`). */
+export function profileContextFromPath(pathname: string): ProfileContext {
+  const segment = pathname.split('/')[1] ?? '';
+  if (isPublicGameKind(segment) || isSimpleGameKind(segment)) return segment;
+  return 'krida';
+}
+
+type ProfileAccent = {
+  label: string;
+  /** Gradient stops for avatar / guest icon. */
+  gradient: string;
+  /** Soft header wash behind the signed-in card. */
+  wash: string;
+  /** Box-shadow colour for the guest prompt pulse / glow. */
+  pulse: string;
+};
+
+const SIMPLE_PULSE = {
+  dvayi: 'rgb(244 63 94 / 0.45)',
+  bhramita: 'rgb(16 185 129 / 0.45)',
+  surupa: 'rgb(139 92 246 / 0.45)',
+  anveshi: 'rgb(14 165 233 / 0.45)'
+} satisfies Record<SimpleGameKind, string>;
+
+function profileAccent(context: ProfileContext): ProfileAccent {
+  if (context === 'padavali') {
+    return {
+      label: HUB_GAMES.padavali.name,
+      gradient: 'from-blue-500 to-indigo-600',
+      wash: 'from-blue-50 via-sky-50 to-indigo-100 dark:from-blue-950/70 dark:via-slate-900 dark:to-indigo-950/80',
+      pulse: 'rgb(59 130 246 / 0.45)'
+    };
+  }
+  if (context === 'padajala') {
+    return {
+      label: HUB_GAMES.padajala.name,
+      gradient: 'from-amber-500 to-orange-600',
+      wash: 'from-amber-50 via-orange-50 to-amber-100 dark:from-amber-950/70 dark:via-stone-900 dark:to-orange-950/80',
+      pulse: 'rgb(245 158 11 / 0.5)'
+    };
+  }
+  if (context === 'krida') {
+    return {
+      label: 'Krida',
+      gradient: 'from-violet-500 to-indigo-600',
+      wash: 'from-violet-50 via-indigo-50 to-blue-100 dark:from-violet-950/60 dark:via-slate-900 dark:to-indigo-950/80',
+      pulse: 'rgb(139 92 246 / 0.45)'
+    };
+  }
+  const meta = SIMPLE_GAME_META[context];
+  return {
+    label: meta.name,
+    gradient: `${meta.accent.from} ${meta.accent.to}`,
+    wash: meta.accent.wash,
+    pulse: SIMPLE_PULSE[context]
+  };
+}
 
 const chipButtonClass =
   'relative size-8 shrink-0 overflow-hidden rounded-full border-slate-300/60 bg-white/80 p-0 shadow-sm backdrop-blur-sm transition-all duration-200 hover:scale-105 hover:bg-slate-100/80 aria-expanded:bg-slate-100/80 active:scale-95 dark:border-slate-600/60 dark:bg-slate-800/80 dark:hover:bg-slate-700/80 dark:aria-expanded:bg-slate-700/80';
 
 const popoverClass =
-  'w-80 overflow-hidden border-slate-200/80 bg-white/95 p-0 shadow-xl backdrop-blur-md dark:border-slate-700/80 dark:bg-slate-800/95';
+  'w-84 max-w-[calc(100vw-1rem)] overflow-hidden border-slate-200/80 bg-white/95 p-0 shadow-xl backdrop-blur-md dark:border-slate-700/80 dark:bg-slate-800/95';
 
 const emptySubscribe = () => () => {};
 
@@ -61,10 +132,6 @@ function useIsClient() {
     () => true,
     () => false
   );
-}
-
-function dashboardGameId(game: 'padavali' | 'padajala'): DashboardGameId {
-  return game === 'padavali' ? 'padavali' : 'padajala';
 }
 
 function formatSeconds(seconds: number | null | undefined): string {
@@ -92,22 +159,15 @@ function ProfileChipSkeleton() {
   );
 }
 
-export function UserProfileChip({
-  game,
-  gameLabel
-}: {
-  game: 'padavali' | 'padajala';
-  gameLabel: string;
-}) {
+export function UserProfileChip({ context }: { context: ProfileContext }) {
   const { data: session, isPending } = useSession();
   const user = session?.user;
   const [logoutOpen, setLogoutOpen] = useState(false);
   const isClient = useIsClient();
-  const dashboardGame = dashboardGameId(game);
   const trpc = useTRPC();
   const prompt = useGuestAuthPrompt(!!user, isClient && !isPending);
   const statsQuery = useQuery({
-    ...trpc.user.get_dashboard.queryOptions({ game: dashboardGame }),
+    ...trpc.user.get_dashboard.queryOptions({ game: 'all' }),
     // Fetch only when the popover opens. Gameplay mutations mark this stale.
     enabled: prompt.open && !!user
   });
@@ -116,19 +176,13 @@ export function UserProfileChip({
     return <ProfileChipSkeleton />;
   }
 
-  const stats =
-    dashboardGame === 'padavali' ? statsQuery.data?.padavali : statsQuery.data?.padajala;
+  const accent = profileAccent(context);
+  // SAFETY: CSSProperties has no index signature for custom properties; the key is a valid CSS var.
+  const pulseStyle = { '--guest-auth-pulse': accent.pulse } as CSSProperties;
 
   return (
     <>
-      <div
-        className={cn(
-          'size-8 shrink-0',
-          prompt.pulsing && chipStyles.pulse,
-          prompt.pulsing &&
-            (game === 'padavali' ? chipStyles.pulsePadavali : chipStyles.pulsePadajala)
-        )}
-      >
+      <div className={cn('size-8 shrink-0', prompt.pulsing && chipStyles.pulse)} style={pulseStyle}>
         <Popover open={prompt.open} onOpenChange={prompt.onOpenChange}>
           <PopoverTrigger
             render={
@@ -145,10 +199,8 @@ export function UserProfileChip({
                 {user.image ? <AvatarImage src={user.image} alt="" /> : null}
                 <AvatarFallback
                   className={cn(
-                    'text-xs font-semibold text-white',
-                    game === 'padavali'
-                      ? 'bg-linear-to-br from-blue-500 to-indigo-600'
-                      : 'bg-linear-to-br from-amber-500 to-orange-600'
+                    'bg-linear-to-br text-xs font-semibold text-white',
+                    accent.gradient
                   )}
                 >
                   {initialsFromName(user.name)}
@@ -160,20 +212,16 @@ export function UserProfileChip({
           </PopoverTrigger>
           <PopoverContent
             align="end"
-            className={cn(
-              popoverClass,
-              prompt.autoOpen && chipStyles.glow,
-              prompt.autoOpen &&
-                (game === 'padavali' ? chipStyles.glowPadavali : chipStyles.glowPadajala)
-            )}
+            className={cn(popoverClass, prompt.autoOpen && chipStyles.glow)}
+            style={pulseStyle}
           >
             {user ? (
               <SignedInCard
-                game={game}
-                gameLabel={gameLabel}
+                context={context}
+                accent={accent}
                 name={user.name}
                 image={user.image}
-                stats={stats}
+                data={statsQuery.data}
                 loading={statsQuery.isLoading}
                 error={statsQuery.isError}
                 onNavigate={() => prompt.onOpenChange(false)}
@@ -183,7 +231,7 @@ export function UserProfileChip({
                 }}
               />
             ) : (
-              <GuestCard game={game} trigger={prompt.trigger} onSignedIn={prompt.onSignIn} />
+              <GuestCard accent={accent} trigger={prompt.trigger} onSignedIn={prompt.onSignIn} />
             )}
           </PopoverContent>
         </Popover>
@@ -222,16 +270,16 @@ function guestCopy(trigger: GuestAuthPromptTrigger | null) {
   }
   return {
     title: 'Save your progress',
-    description: 'Continue with Google to keep scores and unlock more features.'
+    description: 'Continue with Google to keep scores across every game.'
   };
 }
 
 function GuestCard({
-  game,
+  accent,
   trigger,
   onSignedIn
 }: {
-  game: 'padavali' | 'padajala';
+  accent: ProfileAccent;
   trigger: GuestAuthPromptTrigger | null;
   onSignedIn: () => void;
 }) {
@@ -240,10 +288,8 @@ function GuestCard({
     <div className="flex flex-col items-center gap-4 p-5 text-center">
       <div
         className={cn(
-          'flex size-11 items-center justify-center rounded-2xl text-white shadow-lg',
-          game === 'padavali'
-            ? 'bg-linear-to-br from-blue-500 to-indigo-600 shadow-blue-500/30'
-            : 'bg-linear-to-br from-amber-500 to-orange-600 shadow-amber-500/30'
+          'flex size-11 items-center justify-center rounded-2xl bg-linear-to-br text-white shadow-lg',
+          accent.gradient
         )}
       >
         <User className="size-5" />
@@ -273,53 +319,64 @@ function GuestCard({
   );
 }
 
+type DashboardData = {
+  totals: {
+    started: number;
+    completed: number;
+    completion_rate: number;
+    best_time_seconds: number | null;
+    best_accuracy: number | null;
+  };
+  padavali: GameDashboardStats;
+  padajala: GameDashboardStats;
+};
+
 function SignedInCard({
-  game,
-  gameLabel,
+  context,
+  accent,
   name,
   image,
-  stats,
+  data,
   loading,
   error,
   onNavigate,
   onLogout
 }: {
-  game: 'padavali' | 'padajala';
-  gameLabel: string;
+  context: ProfileContext;
+  accent: ProfileAccent;
   name: string | null | undefined;
   image: string | null | undefined;
-  stats: GameDashboardStats | undefined;
+  data: DashboardData | undefined;
   loading: boolean;
   error: boolean;
   onNavigate: () => void;
   onLogout: () => void;
 }) {
+  // Current game first so its row sits right under the overview.
+  const gameOrder: PublicGameKind[] =
+    context === 'padajala' ? ['padajala', 'padavali'] : ['padavali', 'padajala'];
+
   return (
     <div>
       <div
         className={cn(
-          'relative flex items-center gap-3 px-4 py-3.5 pr-11',
-          game === 'padavali'
-            ? 'bg-linear-to-br from-blue-50 via-sky-50 to-indigo-100 dark:from-blue-950/70 dark:via-slate-900 dark:to-indigo-950/80'
-            : 'bg-linear-to-br from-amber-50 via-orange-50 to-amber-100 dark:from-amber-950/70 dark:via-stone-900 dark:to-orange-950/80'
+          'relative flex items-center gap-3 bg-linear-to-br px-4 py-3.5 pr-11',
+          accent.wash
         )}
       >
         <Avatar>
           {image ? <AvatarImage src={image} alt="" /> : null}
           <AvatarFallback
-            className={cn(
-              'font-semibold text-white',
-              game === 'padavali'
-                ? 'bg-linear-to-br from-blue-500 to-indigo-600'
-                : 'bg-linear-to-br from-amber-500 to-orange-600'
-            )}
+            className={cn('bg-linear-to-br font-semibold text-white', accent.gradient)}
           >
             {initialsFromName(name)}
           </AvatarFallback>
         </Avatar>
         <PopoverHeader className="min-w-0 flex-1 gap-0.5">
           <PopoverTitle className="truncate text-base">{name || 'Player'}</PopoverTitle>
-          <PopoverDescription className="truncate">{gameLabel}</PopoverDescription>
+          <PopoverDescription className="truncate">
+            {context === 'krida' ? 'All your Krida games' : `Playing ${accent.label}`}
+          </PopoverDescription>
         </PopoverHeader>
         <Button
           type="button"
@@ -336,40 +393,61 @@ function SignedInCard({
       <div className="flex flex-col gap-3 p-3.5">
         {loading ? <StatsSkeleton /> : null}
         {error ? <p className="text-sm text-destructive">Could not load your stats</p> : null}
-        {stats ? (
+        {data ? (
           <>
-            <div className="grid grid-cols-2 gap-2">
-              <StatTile
-                label="Played"
-                value={String(stats.started)}
-                icon={<Play className="size-3.5" />}
-                iconClass="from-sky-500 to-blue-600 shadow-sky-500/25"
-              />
-              <StatTile
-                label="Completed"
-                value={String(stats.completed)}
-                icon={<CheckCircle2 className="size-3.5" />}
-                iconClass="from-emerald-500 to-teal-600 shadow-emerald-500/25"
-              />
-              <StatTile
-                label="Best time"
-                value={formatSeconds(stats.best_time_seconds)}
-                icon={<Clock3 className="size-3.5" />}
-                iconClass="from-amber-500 to-orange-600 shadow-amber-500/25"
-              />
-              <StatTile
-                label="Best acc."
-                value={formatAccuracy(stats.best_accuracy)}
-                icon={<Target className="size-3.5" />}
-                iconClass="from-violet-500 to-indigo-600 shadow-violet-500/25"
-              />
+            <div className="flex flex-col gap-2">
+              <div className="flex items-center justify-between px-0.5">
+                <p className="text-[11px] font-semibold tracking-wide text-muted-foreground uppercase">
+                  All games
+                </p>
+                {data.totals.started > 0 ? (
+                  <p className="text-[11px] text-muted-foreground tabular-nums">
+                    {data.totals.completion_rate}% completed
+                  </p>
+                ) : null}
+              </div>
+              <div className="grid grid-cols-2 gap-2">
+                <StatTile
+                  label="Played"
+                  value={String(data.totals.started)}
+                  icon={<Play className="size-3.5" />}
+                  iconClass="from-sky-500 to-blue-600 shadow-sky-500/25"
+                />
+                <StatTile
+                  label="Completed"
+                  value={String(data.totals.completed)}
+                  icon={<CheckCircle2 className="size-3.5" />}
+                  iconClass="from-emerald-500 to-teal-600 shadow-emerald-500/25"
+                />
+                <StatTile
+                  label="Best time"
+                  value={formatSeconds(data.totals.best_time_seconds)}
+                  icon={<Clock3 className="size-3.5" />}
+                  iconClass="from-amber-500 to-orange-600 shadow-amber-500/25"
+                />
+                <StatTile
+                  label="Best acc."
+                  value={formatAccuracy(data.totals.best_accuracy)}
+                  icon={<Target className="size-3.5" />}
+                  iconClass="from-violet-500 to-indigo-600 shadow-violet-500/25"
+                />
+              </div>
             </div>
-            {stats.completed > 0 ? (
-              <p className="text-center text-xs text-muted-foreground">
-                Avg {formatSeconds(stats.avg_time_seconds)} · {formatAccuracy(stats.avg_accuracy)}{' '}
-                accuracy
+
+            <div className="flex flex-col gap-1.5">
+              <p className="px-0.5 text-[11px] font-semibold tracking-wide text-muted-foreground uppercase">
+                By game
               </p>
-            ) : null}
+              {gameOrder.map((game) => (
+                <GameStatsRow
+                  key={game}
+                  game={game}
+                  stats={data[game]}
+                  current={context === game}
+                  onNavigate={onNavigate}
+                />
+              ))}
+            </div>
           </>
         ) : null}
 
@@ -383,12 +461,84 @@ function SignedInCard({
           </div>
           <div className="min-w-0 flex-1">
             <p className="text-sm font-medium text-slate-800 dark:text-slate-100">Dashboard</p>
-            <p className="truncate text-xs text-muted-foreground">All games and scores</p>
+            <p className="truncate text-xs text-muted-foreground">Recent plays and top puzzles</p>
           </div>
           <ArrowRight className="size-4 text-slate-400 transition-transform duration-200 group-hover:translate-x-0.5 dark:text-slate-500" />
         </Link>
       </div>
     </div>
+  );
+}
+
+function GameStatsRow({
+  game,
+  stats,
+  current,
+  onNavigate
+}: {
+  game: PublicGameKind;
+  stats: GameDashboardStats;
+  current: boolean;
+  onNavigate: () => void;
+}) {
+  const meta = HUB_GAMES[game];
+  const gameAccent = HUB_GAME_ACCENT[game];
+  const played = stats.started > 0;
+  const progress = played ? Math.round((stats.completed / stats.started) * 100) : 0;
+
+  return (
+    <Link
+      to={meta.href}
+      onClick={onNavigate}
+      aria-current={current ? 'page' : undefined}
+      className={cn(
+        'group flex items-center gap-2.5 rounded-xl border px-2.5 py-2 no-underline transition-colors duration-200',
+        current
+          ? cn(gameAccent.border, 'bg-white/80 dark:bg-slate-900/50')
+          : 'border-slate-200/80 bg-white/50 hover:bg-white/90 dark:border-slate-700/80 dark:bg-slate-900/25 dark:hover:bg-slate-900/50'
+      )}
+    >
+      <Image
+        src={GAME_APP_ICON_SRC[meta.icon]}
+        alt=""
+        width={28}
+        height={28}
+        className="size-7 shrink-0 drop-shadow-sm"
+      />
+      <div className="min-w-0 flex-1">
+        <div className="flex items-baseline justify-between gap-2">
+          <p className="truncate text-sm font-semibold text-slate-800 dark:text-slate-100">
+            {meta.name}
+          </p>
+          <p className="shrink-0 text-[11px] text-muted-foreground tabular-nums">
+            {played ? `${stats.completed}/${stats.started} done` : 'Not played yet'}
+          </p>
+        </div>
+        {played ? (
+          <>
+            <div className="mt-1 h-1 overflow-hidden rounded-full bg-slate-200 dark:bg-slate-700">
+              <div
+                className={cn('h-full rounded-full bg-linear-to-r', gameAccent.gradient)}
+                style={{ width: `${progress}%` }}
+              />
+            </div>
+            <p className="mt-1 flex gap-2.5 text-[11px] text-muted-foreground tabular-nums">
+              <span className="inline-flex items-center gap-1">
+                <Clock3 className="size-3" />
+                {formatSeconds(stats.best_time_seconds)}
+              </span>
+              <span className="inline-flex items-center gap-1">
+                <Target className="size-3" />
+                {formatAccuracy(stats.best_accuracy)}
+              </span>
+            </p>
+          </>
+        ) : (
+          <p className="text-[11px] text-muted-foreground">{meta.subtitle} · Start playing</p>
+        )}
+      </div>
+      <ArrowRight className="size-3.5 shrink-0 text-slate-400 transition-transform duration-200 group-hover:translate-x-0.5 dark:text-slate-500" />
+    </Link>
   );
 }
 
@@ -423,9 +573,13 @@ function StatTile({
 
 function StatsSkeleton() {
   return (
-    <div className="grid grid-cols-2 gap-2">
-      <Skeleton className="h-14 rounded-xl" />
-      <Skeleton className="h-14 rounded-xl" />
+    <div className="flex flex-col gap-2">
+      <div className="grid grid-cols-2 gap-2">
+        <Skeleton className="h-14 rounded-xl" />
+        <Skeleton className="h-14 rounded-xl" />
+        <Skeleton className="h-14 rounded-xl" />
+        <Skeleton className="h-14 rounded-xl" />
+      </div>
       <Skeleton className="h-14 rounded-xl" />
       <Skeleton className="h-14 rounded-xl" />
     </div>

@@ -4,16 +4,6 @@
   transform-origin: center;
 }
 
-.pulsePadavali,
-.glowPadavali {
-  --guest-auth-pulse: rgb(59 130 246 / 0.45);
-}
-
-.pulsePadajala,
-.glowPadajala {
-  --guest-auth-pulse: rgb(245 158 11 / 0.5);
-}
-
 .glow {
   animation: guestAuthPopoverGlow 0.8s ease-out;
 }

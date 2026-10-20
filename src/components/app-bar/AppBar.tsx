@@ -77,7 +77,7 @@ export default function AppBar({ game, title, description, gameMenuItems }: AppB
         {/* Actions Section */}
         <div className="flex shrink-0 items-center gap-2">
           <SupportOptions />
-          <UserProfileChip game={game} gameLabel={resolvedTitle} />
+          <UserProfileChip context={game} />
           <div className="size-8 shrink-0">
             <MenuButton showPwaControls={defaults.showPwaControls} gameMenuItems={gameMenuItems} />
           </div>
