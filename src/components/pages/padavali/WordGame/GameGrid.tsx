@@ -126,10 +126,10 @@ function demoCellClasses(demoState: DemoState) {
 function revealedCellClasses(isInRevealed: boolean, isInFound: boolean, isInCurrent: boolean) {
   if (!isInRevealed || isInFound || isInCurrent) return [];
   return [
-    'border-orange-400 dark:border-orange-500',
-    'bg-linear-to-br from-orange-100 to-amber-200 dark:from-orange-950 dark:to-amber-900',
-    'text-orange-900 dark:text-orange-100',
-    'ring-2 shadow-orange-200 ring-orange-300/70 dark:shadow-orange-950 dark:ring-orange-500/45'
+    'border-slate-500 dark:border-white/85',
+    'bg-linear-to-br from-slate-100 to-slate-300 dark:from-slate-500 dark:to-slate-600',
+    'text-slate-900 dark:text-white',
+    'ring-2 shadow-slate-400/60 ring-slate-400/60 dark:shadow-white/25 dark:ring-white/35'
   ];
 }
 
@@ -861,17 +861,17 @@ function TrailsOverlay({
             cells={revealPath}
             buildPoints={buildPoints}
             getCenter={getCenter}
-            strokeClassName="stroke-orange-300 dark:stroke-orange-400"
-            fillClassName="fill-orange-300 dark:fill-orange-400"
+            strokeClassName="stroke-slate-400 dark:stroke-white"
+            fillClassName="fill-slate-400 dark:fill-white"
             strokeWidth={12}
-            opacity={0.35}
+            opacity={0.3}
           />
           <TrailMark
             cells={revealPath}
             buildPoints={buildPoints}
             getCenter={getCenter}
-            strokeClassName="stroke-orange-500 dark:stroke-orange-400"
-            fillClassName="fill-orange-500 dark:fill-orange-400"
+            strokeClassName="stroke-slate-600 dark:stroke-slate-100"
+            fillClassName="fill-slate-600 dark:fill-slate-100"
             strokeWidth={6}
           />
         </g>

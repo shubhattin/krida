@@ -1,6 +1,6 @@
 'use client';
 
-import { useEffect, useState } from 'react';
+import { useEffect, useState, type RefObject } from 'react';
 import { useAtom } from 'jotai';
 import { motion, AnimatePresence } from 'framer-motion';
 import { completed_atom, game_session_nonce_atom, practice_mode_atom } from './game_state';
@@ -8,10 +8,12 @@ import { Sparkles, BookOpen } from 'lucide-react';
 import { cn } from '~/lib/utils';
 import { useWordMeanings } from './useWordMeanings';
 import { WordMeaningsPanel } from './WordMeaningsPanel';
+import { HintDialog } from './HintDialog';
 
 type Props = {
   puzzle_id: number;
   puzzle_slug: string;
+  timerRef: RefObject<NodeJS.Timeout | null>;
 };
 
 type CompletedMeaningsProps = {
@@ -100,7 +102,7 @@ const CompletedMeanings = ({ puzzle_id, puzzle_slug, practiceMode }: CompletedMe
   );
 };
 
-export const AIWordExplanations = ({ puzzle_id, puzzle_slug }: Props) => {
+export const AIWordExplanations = ({ puzzle_id, puzzle_slug, timerRef }: Props) => {
   const [completed] = useAtom(completed_atom);
   const [practiceMode] = useAtom(practice_mode_atom);
   const [gameSessionNonce] = useAtom(game_session_nonce_atom);
@@ -176,6 +178,10 @@ export const AIWordExplanations = ({ puzzle_id, puzzle_slug }: Props) => {
                 </span>
                 <Sparkles className="size-3.5 shrink-0 animate-pulse text-amber-500/80 dark:text-amber-400/70" />
               </div>
+            </div>
+
+            <div className="relative mt-2 flex justify-center border-t border-violet-200/30 pt-1.5 dark:border-violet-500/10">
+              <HintDialog puzzle_id={puzzle_id} puzzle_slug={puzzle_slug} timerRef={timerRef} />
             </div>
           </div>
         </motion.div>

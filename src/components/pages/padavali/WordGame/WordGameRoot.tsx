@@ -14,7 +14,7 @@ import { AIWordExplanations } from './AIWordExplanations';
 import { createStore, Provider, useAtom, useSetAtom } from 'jotai';
 import { ScriptSelector } from '~/components/pages/padavali/ScriptSelector';
 import { cn } from '~/lib/utils';
-import { Eye, Sparkles, Timer } from 'lucide-react';
+import { Lightbulb, Sparkles, Square, Timer } from 'lucide-react';
 import { copy_text_to_clipboard } from '~/tools/kry';
 import { toast } from 'sonner';
 import { get_puzzle_share_url } from './GameInfo';
@@ -52,7 +52,6 @@ import {
   PADAVLI_REVEAL_COOLDOWN_PERIOD_MS,
   type CellPosition
 } from './game_state';
-import { FaRegStopCircle } from 'react-icons/fa';
 import { AppContext } from '~/components/AppDataContext';
 import type { location_list_type } from '~/db/types';
 import GameMetricsCollector from './GameMetricsCollector';
@@ -65,7 +64,6 @@ import {
 import { attachment_schema } from '~/db/db_shared_vals';
 import { z } from 'zod';
 import { PuzzleHeader, PuzzleShareButton } from '~/components/pages/puzzle/PuzzleHeader';
-import { HintDialog } from './HintDialog';
 import { findAllTraversals } from '~/tools/puzzle/puzzle_tools';
 import { MediaAttachments } from '~/components/pages/puzzle/MediaAttachments';
 import { resolveAttachmentsWithDefaults } from '~/util/puzzle/attachments';
@@ -151,24 +149,82 @@ export default function WordGameRoot(
   );
 }
 
-// Compact Stop + Reveal controls while a game is active
-const CompactGameActionButtons = ({
-  timerRef,
-  original_grid_data
-}: {
-  timerRef: React.RefObject<NodeJS.Timeout | null>;
-  original_grid_data: string[][];
-}) => {
-  const { script } = useContext(AppContext);
-  const [started] = useAtom(started_atom);
-  const [completed, setCompleted] = useAtom(completed_atom);
+/** Small ghost Stop control attached to the timer; confirms before discarding progress. */
+const StopGameButton = ({ timerRef }: { timerRef: React.RefObject<NodeJS.Timeout | null> }) => {
   const [, setStarted] = useAtom(started_atom);
+  const [, setCompleted] = useAtom(completed_atom);
   const [wordMsgs] = useAtom(word_msgs_atom);
   const [foundWords, setFoundWords] = useAtom(found_words_atom);
   const [, setSeconds] = useAtom(seconds_atom);
   const [, setCurrentSelection] = useAtom(current_selection_atom);
   const [, setTotalAttempts] = useAtom(total_attempts_atom);
   const [, setPracticeMode] = useAtom(practice_mode_atom);
+  const [, setRevealedWord] = useAtom(revealed_word_atom);
+  const [confirmOpen, setConfirmOpen] = useState(false);
+
+  const stopGame = () => {
+    setStarted(false);
+    setFoundWords([]);
+    setCurrentSelection([]);
+    setTotalAttempts(0);
+    setCompleted(false);
+    setPracticeMode(false);
+    setSeconds(0);
+    setRevealedWord(null);
+
+    if (timerRef.current) {
+      clearInterval(timerRef.current);
+      timerRef.current = null;
+    }
+  };
+
+  return (
+    <>
+      <button
+        type="button"
+        onClick={() => (foundWords.length > 0 ? setConfirmOpen(true) : stopGame())}
+        aria-label={wordMsgs.stop}
+        title={wordMsgs.stop}
+        className={cn(
+          'inline-flex size-6 shrink-0 items-center justify-center rounded-md',
+          'text-muted-foreground transition-colors',
+          'hover:bg-red-500/15 hover:text-red-600 active:scale-90 dark:hover:text-red-400'
+        )}
+      >
+        <Square className="size-3 fill-current" />
+      </button>
+
+      <AlertDialog open={confirmOpen} onOpenChange={setConfirmOpen}>
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle>Stop this game?</AlertDialogTitle>
+            <AlertDialogDescription>
+              Your progress ({foundWords.length} words found) and time will be reset.
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel>Keep playing</AlertDialogCancel>
+            <AlertDialogAction
+              variant="destructive"
+              onClick={() => {
+                stopGame();
+                setConfirmOpen(false);
+              }}
+            >
+              {wordMsgs.stop}
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
+    </>
+  );
+};
+
+/** Soft amber Reveal lifeline while a game is active. */
+const RevealButton = ({ original_grid_data }: { original_grid_data: string[][] }) => {
+  const { script } = useContext(AppContext);
+  const [wordMsgs] = useAtom(word_msgs_atom);
+  const [foundWords] = useAtom(found_words_atom);
   const [wordList] = useAtom(original_word_list_atom);
   const [gridDimensions] = useAtom(grid_dimensions_atom);
   const [revealedWord, setRevealedWord] = useAtom(revealed_word_atom);
@@ -187,27 +243,6 @@ const CompactGameActionButtons = ({
       }
     };
   }, []);
-
-  const handleStop = () => {
-    setStarted(false);
-    setFoundWords([]);
-    setCurrentSelection([]);
-    setTotalAttempts(0);
-    setCompleted(false);
-    setPracticeMode(false);
-    setSeconds(0);
-    setRevealedWord(null);
-    setIsRevealCooling(false);
-    if (revealCooldownTimerRef.current !== null) {
-      window.clearTimeout(revealCooldownTimerRef.current);
-      revealCooldownTimerRef.current = null;
-    }
-
-    if (timerRef.current) {
-      clearInterval(timerRef.current);
-      timerRef.current = null;
-    }
-  };
 
   const handleReveal = () => {
     if (!canReveal || isRevealCooling) return;
@@ -239,69 +274,46 @@ const CompactGameActionButtons = ({
     }, PADAVLI_REVEAL_COOLDOWN_PERIOD_MS);
   };
 
-  if (!started || completed) return null;
-
   return (
-    <div className="flex shrink-0 items-center justify-center gap-2">
-      <motion.button
-        type="button"
-        onClick={handleStop}
-        initial={{ opacity: 0, scale: 0.9 }}
-        animate={{ opacity: 1, scale: 1 }}
-        transition={{ duration: 0.3, ease: 'easeInOut' }}
-        className={cn(
-          'group relative overflow-hidden bg-red-500 hover:bg-red-600',
-          'h-8 rounded-lg px-3 text-sm font-medium text-white shadow-sm',
-          'transition-colors active:scale-95',
-          'flex items-center justify-center gap-1.5',
-          font_info.className
-        )}
-      >
-        <FaRegStopCircle className="size-4" />
-        <span>{wordMsgs.stop}</span>
-      </motion.button>
-
-      <motion.button
-        type="button"
-        onClick={handleReveal}
-        disabled={!canReveal}
-        aria-disabled={!canReveal || isRevealCooling}
-        aria-busy={isRevealCooling}
-        title={isRevealCooling ? 'Cooling down…' : undefined}
-        initial={{ opacity: 0, scale: 0.9 }}
-        animate={{ opacity: 1, scale: 1 }}
-        transition={{ duration: 0.3, ease: 'easeInOut', delay: 0.05 }}
-        className={cn(
-          'group relative overflow-hidden',
-          'h-8 rounded-lg px-3 text-sm font-medium text-white shadow-sm',
-          'transition-colors',
-          'flex items-center justify-center gap-1.5',
-          'bg-linear-to-r from-orange-600 to-amber-700',
-          'shadow-orange-600/30 dark:from-orange-700 dark:to-amber-800 dark:shadow-orange-900/40',
-          !isRevealCooling &&
-            'hover:from-orange-500 hover:to-amber-600 active:scale-95 dark:hover:from-orange-600 dark:hover:to-amber-700',
-          isRevealCooling && 'cursor-default opacity-80',
-          'disabled:pointer-events-none disabled:opacity-40',
-          font_info.className
-        )}
-      >
-        {isRevealCooling ? (
-          <motion.span
-            key="reveal-cooldown-fill"
-            aria-hidden
-            className="pointer-events-none absolute inset-0 origin-left bg-white/30"
-            initial={{ scaleX: 0 }}
-            animate={{ scaleX: 1 }}
-            transition={{
-              duration: PADAVLI_REVEAL_COOLDOWN_PERIOD_MS / 1000,
-              ease: 'linear'
-            }}
-          />
-        ) : null}
-        <Eye className="relative z-10 size-4" />
-        <span className="relative z-10">{wordMsgs.reveal}</span>
-      </motion.button>
-    </div>
+    <motion.button
+      type="button"
+      onClick={handleReveal}
+      disabled={!canReveal}
+      aria-disabled={!canReveal || isRevealCooling}
+      aria-busy={isRevealCooling}
+      aria-label={wordMsgs.reveal}
+      title={isRevealCooling ? 'Cooling down…' : wordMsgs.reveal}
+      initial={{ opacity: 0, scale: 0.9 }}
+      animate={{ opacity: 1, scale: 1 }}
+      transition={{ duration: 0.3, ease: 'easeInOut' }}
+      className={cn(
+        'relative flex h-8 shrink-0 items-center justify-center gap-1.5 overflow-hidden',
+        'rounded-full border px-2.5 text-sm font-semibold shadow-sm backdrop-blur-md sm:px-3',
+        'border-amber-500/30 bg-linear-to-r from-orange-50/90 to-amber-50/80 text-amber-800',
+        'dark:border-amber-400/35 dark:from-orange-950/70 dark:to-amber-950/60 dark:text-amber-200',
+        !isRevealCooling &&
+          'hover:from-orange-100 hover:to-amber-100 hover:text-amber-900 active:scale-95 dark:hover:from-orange-900/80 dark:hover:to-amber-900/70 dark:hover:text-amber-100',
+        isRevealCooling && 'cursor-default opacity-80',
+        'disabled:pointer-events-none disabled:opacity-40',
+        font_info.className
+      )}
+    >
+      {isRevealCooling ? (
+        <motion.span
+          key="reveal-cooldown-fill"
+          aria-hidden
+          className="pointer-events-none absolute inset-0 origin-left bg-amber-500/25 dark:bg-amber-300/20"
+          initial={{ scaleX: 0 }}
+          animate={{ scaleX: 1 }}
+          transition={{
+            duration: PADAVLI_REVEAL_COOLDOWN_PERIOD_MS / 1000,
+            ease: 'linear'
+          }}
+        />
+      ) : null}
+      <Lightbulb className="relative z-10 size-4 shrink-0" />
+      <span className="relative z-10 hidden sm:inline">{wordMsgs.reveal}</span>
+    </motion.button>
   );
 };
 
@@ -425,40 +437,39 @@ function ActiveGameBar({
       initial={{ opacity: 0, y: -8 }}
       animate={{ opacity: 1, y: 0 }}
       transition={{ duration: 0.3, ease: 'easeOut' }}
-      className="mx-auto mb-3 flex w-full max-w-lg flex-col gap-2 sm:mb-4 sm:flex-row sm:items-center sm:gap-3"
+      className="mx-auto mb-3 flex w-full max-w-lg items-center gap-2 text-sm sm:mb-4 sm:gap-2.5"
     >
-      <div className="flex min-w-0 flex-1 items-center gap-2.5 text-sm">
-        <div
-          className="inline-flex shrink-0 items-center gap-2 rounded-lg border border-border/60 bg-card/70 px-3 py-1 backdrop-blur-md"
-          title={wordMsgs.time_elapsed}
-        >
+      <div className="inline-flex shrink-0 items-center gap-1.5 rounded-lg border border-border/60 bg-card/70 py-0.5 pr-0.5 pl-2.5 backdrop-blur-md">
+        <span className="inline-flex items-center gap-2" title={wordMsgs.time_elapsed}>
           <Timer className="size-3.5 text-primary" aria-hidden />
           <span className="sr-only">{wordMsgs.time_elapsed}</span>
           <span className="font-mono font-semibold tabular-nums">{formatTime(seconds)}</span>
-        </div>
-        <div
-          role="progressbar"
-          aria-label={wordMsgs.found_words}
-          aria-valuenow={foundWords.length}
-          aria-valuemin={0}
-          aria-valuemax={wordList.length}
-          className="relative h-2 min-w-0 flex-1 overflow-hidden rounded-full bg-slate-200 dark:bg-slate-700/70"
-        >
-          <motion.div
-            className="h-full rounded-full bg-linear-to-r from-blue-500 to-emerald-500"
-            initial={{ width: 0 }}
-            animate={{ width: `${percent}%` }}
-            transition={{ duration: 0.5, ease: 'easeOut' }}
-          />
-        </div>
-        <span
-          className="shrink-0 rounded-lg border border-blue-300/60 bg-blue-50 px-2.5 py-1 font-semibold text-blue-700 tabular-nums dark:border-blue-500/30 dark:bg-blue-950/50 dark:text-blue-200"
-          title={wordMsgs.found_words}
-        >
-          {foundWords.length}/{wordList.length}
         </span>
+        <span className="h-4 w-px bg-border" aria-hidden />
+        <StopGameButton timerRef={timerRef} />
       </div>
-      <CompactGameActionButtons timerRef={timerRef} original_grid_data={originalGridData} />
+      <div
+        role="progressbar"
+        aria-label={wordMsgs.found_words}
+        aria-valuenow={foundWords.length}
+        aria-valuemin={0}
+        aria-valuemax={wordList.length}
+        className="relative h-2 min-w-0 flex-1 overflow-hidden rounded-full bg-slate-200 dark:bg-slate-700/70"
+      >
+        <motion.div
+          className="h-full rounded-full bg-linear-to-r from-blue-500 to-emerald-500"
+          initial={{ width: 0 }}
+          animate={{ width: `${percent}%` }}
+          transition={{ duration: 0.5, ease: 'easeOut' }}
+        />
+      </div>
+      <span
+        className="shrink-0 rounded-lg border border-blue-300/60 bg-blue-50 px-2.5 py-1 font-semibold text-blue-700 tabular-nums dark:border-blue-500/30 dark:bg-blue-950/50 dark:text-blue-200"
+        title={wordMsgs.found_words}
+      >
+        {foundWords.length}/{wordList.length}
+      </span>
+      <RevealButton original_grid_data={originalGridData} />
     </motion.div>
   );
 }
@@ -540,9 +551,6 @@ function WordGame({
   // SAFETY: AppContext only ever stores valid ScriptType values in script
   const font_info = FONT_INFO[script as ScriptType];
   const gameInProgress = started && !completed;
-  const hintHiddenInPractice = gameInProgress && practiceMode;
-  const hintBelowMeanings = gameInProgress && !practiceMode;
-  const hintAtTop = !gameInProgress;
 
   const timerRef = useRef<NodeJS.Timeout | null>(null);
   const [description_transliterated, setDescriptionTransliterated] =
@@ -695,13 +703,7 @@ function WordGame({
           listed={listed}
           onShare={handleShare}
           showBackLink={location === 'list_page'}
-          hint={
-            hintAtTop ? (
-              <HintDialog puzzle_id={puzzle_id} puzzle_slug={puzzle_slug} timerRef={timerRef} />
-            ) : hintHiddenInPractice ? (
-              <PracticeModeBadge />
-            ) : null
-          }
+          hint={gameInProgress && practiceMode ? <PracticeModeBadge /> : null}
         />
 
         {/* More Puzzles accordion */}
@@ -744,12 +746,11 @@ function WordGame({
                 timerRef={timerRef}
                 location={location}
               />
-              <AIWordExplanations puzzle_id={puzzle_id} puzzle_slug={puzzle_slug} />
-              {hintBelowMeanings ? (
-                <div className="mt-3 flex justify-center sm:mt-4">
-                  <HintDialog puzzle_id={puzzle_id} puzzle_slug={puzzle_slug} timerRef={timerRef} />
-                </div>
-              ) : null}
+              <AIWordExplanations
+                puzzle_id={puzzle_id}
+                puzzle_slug={puzzle_slug}
+                timerRef={timerRef}
+              />
             </div>
           </div>
 
