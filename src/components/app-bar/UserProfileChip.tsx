@@ -488,7 +488,8 @@ function GameStatsRow({
 
   return (
     <Link
-      to={meta.href}
+      to="/puzzles"
+      search={{ game: meta.puzzlesGame }}
       onClick={onNavigate}
       aria-current={current ? 'page' : undefined}
       className={cn(

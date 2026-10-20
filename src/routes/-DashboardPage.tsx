@@ -4,16 +4,7 @@ import { useId, useState, type ReactNode } from 'react';
 import { useQuery } from '@tanstack/react-query';
 import { Link } from '@tanstack/react-router';
 import { formatDistanceToNowStrict } from 'date-fns';
-import {
-  BookOpen,
-  CheckCircle2,
-  Clock3,
-  Flame,
-  Play,
-  Sparkles,
-  Target,
-  Trophy
-} from 'lucide-react';
+import { CheckCircle2, Clock3, Flame, Play, Sparkles, Target, Trophy } from 'lucide-react';
 import pretty_ms from 'pretty-ms';
 import { useTRPC } from '~/api/client';
 import type {
@@ -344,30 +335,18 @@ function GamePanel({
             <p className="truncate text-xs text-muted-foreground">{meta.subtitle}</p>
           </div>
         </div>
-        <div className="flex items-center gap-1.5">
-          <Button
-            render={<Link to={meta.href} />}
-            nativeButton={false}
-            size="sm"
-            className={cn(
-              'border-transparent bg-linear-to-r text-white shadow-md transition-all duration-200 hover:-translate-y-px hover:text-white hover:shadow-lg',
-              chrome.play
-            )}
-          >
-            <Play data-icon="inline-start" className="fill-white" />
-            Play
-          </Button>
-          <Button
-            render={<Link to="/puzzles" search={{ game: meta.puzzlesGame }} />}
-            nativeButton={false}
-            size="sm"
-            variant="outline"
-            className="bg-background/60"
-          >
-            <BookOpen data-icon="inline-start" />
-            Puzzles
-          </Button>
-        </div>
+        <Button
+          render={<Link to="/puzzles" search={{ game: meta.puzzlesGame }} />}
+          nativeButton={false}
+          size="sm"
+          className={cn(
+            'border-transparent bg-linear-to-r text-white shadow-md transition-all duration-200 hover:-translate-y-px hover:text-white hover:shadow-lg',
+            chrome.play
+          )}
+        >
+          <Play data-icon="inline-start" className="fill-white" />
+          Play
+        </Button>
       </header>
 
       {stats.started === 0 ? (
@@ -554,7 +533,7 @@ function EmptyGame({ game }: { game: DashboardGameId }) {
         <p className="max-w-xs text-sm text-muted-foreground">{meta.description}</p>
       </div>
       <Button
-        render={<Link to={meta.href} />}
+        render={<Link to="/puzzles" search={{ game: meta.puzzlesGame }} />}
         nativeButton={false}
         size="sm"
         className={cn(
