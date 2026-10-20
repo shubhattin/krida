@@ -1,7 +1,7 @@
 'use client';
 
 import { useRef, useEffect, useMemo, useContext, useState } from 'react';
-import { motion } from 'framer-motion';
+import { AnimatePresence, motion } from 'framer-motion';
 import { DEFAULT_DATA_SCRIPT, type ScriptType } from '~/state/script_list';
 import { transliterate_custom } from '~/tools/transliterator';
 import { FONT_INFO } from '~/state/script_font_data';
@@ -49,8 +49,8 @@ import {
   practice_mode_atom,
   game_session_nonce_atom,
   revealed_word_atom,
-  PADAVLI_REVEAL_COOLDOWN_PERIOD_MS,
-  type CellPosition
+  hints_used_atom,
+  PADAVLI_REVEAL_COOLDOWN_PERIOD_MS
 } from './game_state';
 import { AppContext } from '~/components/AppDataContext';
 import type { location_list_type } from '~/db/types';
@@ -65,6 +65,8 @@ import { attachment_schema } from '~/db/db_shared_vals';
 import { z } from 'zod';
 import { PuzzleHeader, PuzzleShareButton } from '~/components/pages/puzzle/PuzzleHeader';
 import { findAllTraversals } from '~/tools/puzzle/puzzle_tools';
+import { canRevealMore, clueFromMeaning, nextRevealState } from './reveal_steps';
+import { useWordMeanings } from './useWordMeanings';
 import { MediaAttachments } from '~/components/pages/puzzle/MediaAttachments';
 import { resolveAttachmentsWithDefaults } from '~/util/puzzle/attachments';
 
@@ -129,6 +131,7 @@ export default function WordGameRoot(
     store.set(current_selection_atom, []);
     store.set(found_words_atom, []);
     store.set(revealed_word_atom, null);
+    store.set(hints_used_atom, 0);
     store.set(seconds_atom, 0);
     store.set(total_attempts_atom, 0);
     store.set(word_msgs_atom, props.initial_script_data.word_msgs);
@@ -160,6 +163,7 @@ const StopGameButton = ({ timerRef }: { timerRef: React.RefObject<NodeJS.Timeout
   const [, setTotalAttempts] = useAtom(total_attempts_atom);
   const [, setPracticeMode] = useAtom(practice_mode_atom);
   const [, setRevealedWord] = useAtom(revealed_word_atom);
+  const [, setHintsUsed] = useAtom(hints_used_atom);
   const [confirmOpen, setConfirmOpen] = useState(false);
 
   const stopGame = () => {
@@ -171,6 +175,7 @@ const StopGameButton = ({ timerRef }: { timerRef: React.RefObject<NodeJS.Timeout
     setPracticeMode(false);
     setSeconds(0);
     setRevealedWord(null);
+    setHintsUsed(0);
 
     if (timerRef.current) {
       clearInterval(timerRef.current);
@@ -228,13 +233,14 @@ const RevealButton = ({ original_grid_data }: { original_grid_data: string[][] }
   const [wordList] = useAtom(original_word_list_atom);
   const [gridDimensions] = useAtom(grid_dimensions_atom);
   const [revealedWord, setRevealedWord] = useAtom(revealed_word_atom);
+  const [hintsUsed, setHintsUsed] = useAtom(hints_used_atom);
   const [isRevealCooling, setIsRevealCooling] = useState(false);
   const revealCooldownTimerRef = useRef<number | null>(null);
 
   const font_info = FONT_INFO[script!];
 
   const remainingWords = wordList.filter((w) => !foundWords.some((fw) => fw.word === w));
-  const canReveal = remainingWords.length > 0;
+  const canReveal = canRevealMore(revealedWord, remainingWords);
 
   useEffect(() => {
     return () => {
@@ -247,22 +253,19 @@ const RevealButton = ({ original_grid_data }: { original_grid_data: string[][] }
   const handleReveal = () => {
     if (!canReveal || isRevealCooling) return;
 
-    // Prefer a different word than the one currently highlighted when possible
-    const candidates =
-      remainingWords.length > 1 && revealedWord
-        ? remainingWords.filter((w) => w !== revealedWord.word)
-        : remainingWords;
-    const word = candidates[Math.floor(Math.random() * candidates.length)]!;
     const dims: [number, number] =
       gridDimensions[0] > 0
         ? gridDimensions
         : [original_grid_data.length, original_grid_data[0]?.length ?? 0];
-    const traversals = findAllTraversals(original_grid_data, dims, [word]).get(0) ?? [];
-    if (traversals.length === 0) return;
-
-    const path = traversals[Math.floor(Math.random() * traversals.length)]!;
-    const cells: CellPosition[] = path.map(([row, col]) => ({ row, col }));
-    setRevealedWord({ cells, word });
+    const next = nextRevealState(revealedWord, remainingWords, (word) => {
+      const traversals = findAllTraversals(original_grid_data, dims, [word]).get(0) ?? [];
+      if (traversals.length === 0) return null;
+      const path = traversals[Math.floor(Math.random() * traversals.length)]!;
+      return path.map(([row, col]) => ({ row, col }));
+    });
+    if (!next) return;
+    setRevealedWord(next);
+    setHintsUsed((prev) => prev + 1);
 
     setIsRevealCooling(true);
     if (revealCooldownTimerRef.current !== null) {
@@ -313,6 +316,14 @@ const RevealButton = ({ original_grid_data }: { original_grid_data: string[][] }
       ) : null}
       <Lightbulb className="relative z-10 size-4 shrink-0" />
       <span className="relative z-10 hidden sm:inline">{wordMsgs.reveal}</span>
+      {hintsUsed > 0 ? (
+        <span
+          className="relative z-10 -mr-1 rounded-full bg-amber-500/20 px-1.5 font-sans text-[10px] leading-4 tabular-nums dark:bg-amber-300/20"
+          aria-label={`${hintsUsed} hints used`}
+        >
+          {hintsUsed}
+        </span>
+      ) : null}
     </motion.button>
   );
 };
@@ -418,13 +429,44 @@ function PracticeModeBadge() {
   );
 }
 
+/** One-line AI meaning clue for the word currently being revealed. */
+function RevealClue({ puzzle_id, puzzle_slug }: { puzzle_id: number; puzzle_slug: string }) {
+  const [revealedWord] = useAtom(revealed_word_atom);
+  const meanings = useWordMeanings(puzzle_id, puzzle_slug);
+  const meaning = revealedWord
+    ? meanings.data?.words.find((w) => w.word === revealedWord.word)?.meaning
+    : undefined;
+
+  return (
+    <AnimatePresence mode="wait">
+      {revealedWord && meaning ? (
+        <motion.p
+          key={revealedWord.word}
+          initial={{ opacity: 0, y: -4 }}
+          animate={{ opacity: 1, y: 0 }}
+          exit={{ opacity: 0, y: -4 }}
+          transition={{ duration: 0.25 }}
+          className="flex items-start gap-1.5 rounded-lg bg-amber-50/80 px-2.5 py-1.5 text-xs leading-snug text-amber-900 dark:bg-amber-950/30 dark:text-amber-100"
+        >
+          <Lightbulb className="mt-px size-3.5 shrink-0" aria-hidden />
+          <span>{clueFromMeaning(meaning)}</span>
+        </motion.p>
+      ) : null}
+    </AnimatePresence>
+  );
+}
+
 /** Timer, found-words progress, and Stop / Reveal on one row while playing. */
 function ActiveGameBar({
   timerRef,
-  originalGridData
+  originalGridData,
+  puzzle_id,
+  puzzle_slug
 }: {
   timerRef: React.RefObject<NodeJS.Timeout | null>;
   originalGridData: string[][];
+  puzzle_id: number;
+  puzzle_slug: string;
 }) {
   const [seconds] = useAtom(seconds_atom);
   const [foundWords] = useAtom(found_words_atom);
@@ -437,39 +479,42 @@ function ActiveGameBar({
       initial={{ opacity: 0, y: -8 }}
       animate={{ opacity: 1, y: 0 }}
       transition={{ duration: 0.3, ease: 'easeOut' }}
-      className="mx-auto mb-3 flex w-full max-w-lg items-center gap-2 text-sm sm:mb-4 sm:gap-2.5"
+      className="mx-auto mb-3 flex w-full max-w-lg flex-col gap-2 sm:mb-4 2xl:max-w-xl"
     >
-      <div className="inline-flex shrink-0 items-center gap-1.5 rounded-lg border border-border/60 bg-card/70 py-0.5 pr-0.5 pl-2.5 backdrop-blur-md">
-        <span className="inline-flex items-center gap-2" title={wordMsgs.time_elapsed}>
-          <Timer className="size-3.5 text-primary" aria-hidden />
-          <span className="sr-only">{wordMsgs.time_elapsed}</span>
-          <span className="font-mono font-semibold tabular-nums">{formatTime(seconds)}</span>
+      <div className="flex items-center gap-2 text-sm sm:gap-2.5">
+        <div className="inline-flex shrink-0 items-center gap-1.5 rounded-lg border border-border/60 bg-card/70 py-0.5 pr-0.5 pl-2.5 backdrop-blur-md">
+          <span className="inline-flex items-center gap-2" title={wordMsgs.time_elapsed}>
+            <Timer className="size-3.5 text-primary" aria-hidden />
+            <span className="sr-only">{wordMsgs.time_elapsed}</span>
+            <span className="font-mono font-semibold tabular-nums">{formatTime(seconds)}</span>
+          </span>
+          <span className="h-4 w-px bg-border" aria-hidden />
+          <StopGameButton timerRef={timerRef} />
+        </div>
+        <div
+          role="progressbar"
+          aria-label={wordMsgs.found_words}
+          aria-valuenow={foundWords.length}
+          aria-valuemin={0}
+          aria-valuemax={wordList.length}
+          className="relative h-2 min-w-0 flex-1 overflow-hidden rounded-full bg-slate-200 dark:bg-slate-700/70"
+        >
+          <motion.div
+            className="h-full rounded-full bg-linear-to-r from-blue-500 to-emerald-500"
+            initial={{ width: 0 }}
+            animate={{ width: `${percent}%` }}
+            transition={{ duration: 0.5, ease: 'easeOut' }}
+          />
+        </div>
+        <span
+          className="shrink-0 rounded-lg border border-blue-300/60 bg-blue-50 px-2.5 py-1 font-semibold text-blue-700 tabular-nums dark:border-blue-500/30 dark:bg-blue-950/50 dark:text-blue-200"
+          title={wordMsgs.found_words}
+        >
+          {foundWords.length}/{wordList.length}
         </span>
-        <span className="h-4 w-px bg-border" aria-hidden />
-        <StopGameButton timerRef={timerRef} />
+        <RevealButton original_grid_data={originalGridData} />
       </div>
-      <div
-        role="progressbar"
-        aria-label={wordMsgs.found_words}
-        aria-valuenow={foundWords.length}
-        aria-valuemin={0}
-        aria-valuemax={wordList.length}
-        className="relative h-2 min-w-0 flex-1 overflow-hidden rounded-full bg-slate-200 dark:bg-slate-700/70"
-      >
-        <motion.div
-          className="h-full rounded-full bg-linear-to-r from-blue-500 to-emerald-500"
-          initial={{ width: 0 }}
-          animate={{ width: `${percent}%` }}
-          transition={{ duration: 0.5, ease: 'easeOut' }}
-        />
-      </div>
-      <span
-        className="shrink-0 rounded-lg border border-blue-300/60 bg-blue-50 px-2.5 py-1 font-semibold text-blue-700 tabular-nums dark:border-blue-500/30 dark:bg-blue-950/50 dark:text-blue-200"
-        title={wordMsgs.found_words}
-      >
-        {foundWords.length}/{wordList.length}
-      </span>
-      <RevealButton original_grid_data={originalGridData} />
+      <RevealClue puzzle_id={puzzle_id} puzzle_slug={puzzle_slug} />
     </motion.div>
   );
 }
@@ -478,15 +523,26 @@ function GameControlSection({
   started,
   completed,
   timerRef,
-  originalGridData
+  originalGridData,
+  puzzle_id,
+  puzzle_slug
 }: {
   started: boolean;
   completed: boolean;
   timerRef: React.RefObject<NodeJS.Timeout | null>;
   originalGridData: string[][];
+  puzzle_id: number;
+  puzzle_slug: string;
 }) {
   if (started && !completed) {
-    return <ActiveGameBar timerRef={timerRef} originalGridData={originalGridData} />;
+    return (
+      <ActiveGameBar
+        timerRef={timerRef}
+        originalGridData={originalGridData}
+        puzzle_id={puzzle_id}
+        puzzle_slug={puzzle_slug}
+      />
+    );
   }
 
   // On completion: side-by-side replay + stats on desktop
@@ -692,7 +748,7 @@ function WordGame({
         </motion.div>
       )}
 
-      <div className="container mx-auto max-w-7xl px-2 pt-3 sm:px-4 sm:pt-4 md:px-6 md:pt-5">
+      <div className="container mx-auto max-w-7xl px-2 pt-3 sm:px-4 sm:pt-4 md:px-6 md:pt-5 2xl:max-w-352">
         <WordGameHeader
           title={title}
           description={description ? description_transliterated : null}
@@ -720,6 +776,8 @@ function WordGame({
             completed={completed}
             timerRef={timerRef}
             originalGridData={org_grid_data}
+            puzzle_id={puzzle_id}
+            puzzle_slug={puzzle_slug}
           />
         )}
 
@@ -736,7 +794,7 @@ function WordGame({
           <div className="order-1 flex flex-col items-center justify-center lg:order-2 lg:col-span-6">
             <div
               className={cn(
-                'w-full max-w-lg'
+                'w-full max-w-lg 2xl:max-w-[min(36rem,calc(100dvh-16rem))]'
                 // font_info.experimental && 'max-w-full'
               )}
             >

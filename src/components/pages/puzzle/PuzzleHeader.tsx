@@ -94,7 +94,7 @@ export function PuzzleHeader({
           {toolbar ? <div className="flex items-center gap-1.5 sm:gap-2">{toolbar}</div> : null}
         </div>
       ) : null}
-      <header className="mx-auto mb-4 flex max-w-3xl flex-col items-center gap-3 text-center sm:mb-6">
+      <header className="mx-auto mb-3 flex max-w-3xl flex-col items-center gap-2 text-center sm:mb-6 sm:gap-3">
         {/* Title and description read as one unit; spacing goes before the actions. */}
         <div className="flex flex-col items-center">
           <h1

@@ -178,10 +178,12 @@ function RecentlyAdded({ puzzles }: { puzzles: ReturnType<typeof useHubPuzzles>[
       {visible.length === 0 ? (
         <p className="py-10 text-center text-sm text-slate-500">No puzzles to show yet.</p>
       ) : (
-        <div className="grid grid-cols-2 gap-3 sm:gap-4 lg:grid-cols-4">
+        <div className="grid grid-cols-2 gap-3 sm:gap-4 md:grid-cols-3 lg:grid-cols-4">
           {visible.map((puzzle, index) => (
             <motion.div
               key={puzzle.key}
+              // 8 cards leave a ragged last row at 3 columns; show 6 there
+              className={index >= 6 ? 'md:max-lg:hidden' : undefined}
               initial={reduceMotion ? false : { opacity: 0, y: 8 }}
               animate={{ opacity: 1, y: 0 }}
               transition={{

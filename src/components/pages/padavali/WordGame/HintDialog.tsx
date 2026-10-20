@@ -2,7 +2,7 @@
 
 import { useContext, useState, type RefObject } from 'react';
 import { useAtom } from 'jotai';
-import { BookOpen, Lightbulb } from 'lucide-react';
+import { BookOpen, ChevronRight, Lightbulb } from 'lucide-react';
 import { FaPlay } from 'react-icons/fa';
 import playStyles from './play-button.module.css';
 import {
@@ -110,24 +110,44 @@ export function HintDialog({ puzzle_id, puzzle_slug, timerRef }: Props) {
               type="button"
               aria-label="Open hint and word meanings"
               className={cn(
-                'inline-flex items-center gap-1.5 rounded-full px-2 py-1 text-xs font-medium',
-                'text-amber-700 transition-colors hover:bg-amber-500/10 hover:text-amber-800',
-                'dark:text-amber-300/90 dark:hover:bg-amber-400/10 dark:hover:text-amber-200'
+                'group flex w-full items-center gap-2.5 rounded-xl px-2 py-1.5 text-left transition-colors',
+                'hover:bg-amber-500/8 dark:hover:bg-amber-400/8'
               )}
             />
           }
         >
-          <Lightbulb className="size-3.5 shrink-0" />
-          <span>
-            {practiceMode
-              ? 'Words & meanings'
-              : started
-                ? 'Stuck? See all words'
-                : 'Learn the words first'}
+          <span
+            className={cn(
+              'flex size-7 shrink-0 items-center justify-center rounded-lg',
+              'bg-amber-100 text-amber-700 ring-1 ring-amber-300/60',
+              'dark:bg-amber-400/10 dark:text-amber-300 dark:ring-amber-400/25',
+              'transition-transform group-hover:scale-105'
+            )}
+          >
+            <Lightbulb className="size-3.5" />
           </span>
-          {!practiceMode ? (
-            <span className="text-[10px] font-normal text-muted-foreground">(practice)</span>
-          ) : null}
+          <span className="min-w-0 flex-1">
+            <span className="flex items-center gap-1.5">
+              <span className="truncate text-xs font-semibold text-amber-800 sm:text-[13px] dark:text-amber-200">
+                {practiceMode
+                  ? 'Words & meanings'
+                  : started
+                    ? 'Stuck? See all words'
+                    : 'Learn the words first'}
+              </span>
+              <span className="shrink-0 rounded-full border border-amber-400/40 px-1.5 text-[9px] font-bold tracking-wide text-amber-700 uppercase dark:border-amber-400/25 dark:text-amber-300/80">
+                Practice
+              </span>
+            </span>
+            <span className="mt-0.5 block truncate text-[10px] text-slate-500 sm:text-[11px] dark:text-slate-400">
+              {practiceMode
+                ? 'Review them anytime in this practice round'
+                : started
+                  ? 'Switches this round to practice mode'
+                  : 'Study meanings, then play a practice round'}
+            </span>
+          </span>
+          <ChevronRight className="size-4 shrink-0 text-amber-600/60 transition-transform group-hover:translate-x-0.5 dark:text-amber-300/50" />
         </DialogTrigger>
 
         <DialogContent className="max-h-[min(90vh,640px)] gap-0 overflow-hidden p-0 sm:max-w-md">

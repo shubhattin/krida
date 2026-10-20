@@ -21,10 +21,17 @@ export const practice_mode_atom = atom(false);
 export const game_session_nonce_atom = atom(0);
 export const current_selection_atom = atom<CellPosition[]>([]);
 export const found_words_atom = atom<Selection[]>([]);
+/**
+ * Progressive प्रकाशयतु hint for one unfound word. `cells` is the visible prefix of
+ * `fullPath`, grown by one akṣara per reveal; `animateFrom` is where the hand resumes.
+ */
+export type RevealedWord = Selection & { fullPath: CellPosition[]; animateFrom: number };
 /** Visual-only highlight of an unfound word; does not count as selected. */
-export const revealed_word_atom = atom<Selection | null>(null);
+export const revealed_word_atom = atom<RevealedWord | null>(null);
+/** Number of प्रकाशयतु presses in the current session. */
+export const hints_used_atom = atom(0);
 /** Cooldown after प्रकाशयतु (reveal) before another reveal can fire. */
-export const PADAVLI_REVEAL_COOLDOWN_PERIOD_MS = 6200;
+export const PADAVLI_REVEAL_COOLDOWN_PERIOD_MS = 2500;
 export const seconds_atom = atom(0);
 export const total_attempts_atom = atom(0);
 export const word_msgs_atom = atom<typeof word_game_msgs>(
