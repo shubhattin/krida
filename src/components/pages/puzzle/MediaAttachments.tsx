@@ -32,11 +32,9 @@ export function MediaAttachments({
         className
       )}
     >
-      <div className="text=start flex items-start justify-center gap-2">
-        <FiYoutube className="-mt-1 size-7 text-red-600 dark:text-red-400" />
-        <span className="bg-linear-to-r from-orange-500 via-amber-500 to-yellow-600 bg-clip-text text-center text-base font-extrabold text-transparent drop-shadow-sm dark:from-amber-300 dark:via-orange-300 dark:to-yellow-200">
-          Solve Together & Discuss the Puzzle
-        </span>
+      <div className="flex items-center justify-center gap-2 text-sm font-semibold text-slate-700 dark:text-slate-200">
+        <FiYoutube className="size-5 shrink-0 text-red-600 dark:text-red-400" />
+        Solve together & discuss the puzzle
       </div>
       <div className="space-y-1.5 sm:space-y-3">
         {attachments.map((attachment) => (

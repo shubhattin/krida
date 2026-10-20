@@ -14,7 +14,7 @@ function PublicLayout() {
       <div className="flex-1">
         <Outlet />
       </div>
-      <HubFooter showPwa />
+      <HubFooter />
     </div>
   );
 }

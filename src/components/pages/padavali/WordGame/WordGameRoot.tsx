@@ -6,7 +6,7 @@ import { DEFAULT_DATA_SCRIPT, type ScriptType } from '~/state/script_list';
 import { transliterate_custom } from '~/tools/transliterator';
 import { FONT_INFO } from '~/state/script_font_data';
 import { get_transliterated_word_game_msgs, type word_game_msgs } from './msgs';
-import { GameContoller } from './GameController';
+import { GameContoller, formatTime } from './GameController';
 import { GameInfo } from './GameInfo';
 import { GameGrid } from './GameGrid';
 import { GameHelp } from './Help';
@@ -14,10 +14,7 @@ import { AIWordExplanations } from './AIWordExplanations';
 import { createStore, Provider, useAtom, useSetAtom } from 'jotai';
 import { ScriptSelector } from '~/components/pages/padavali/ScriptSelector';
 import { cn } from '~/lib/utils';
-import Icon from '~/tools/Icon';
-import { LanguageIcon } from '~/components/icons';
-import { Calendar, Eye, InfoIcon, Sparkles } from 'lucide-react';
-import { IoShareSocialOutline } from 'react-icons/io5';
+import { Eye, Sparkles, Timer } from 'lucide-react';
 import { copy_text_to_clipboard } from '~/tools/kry';
 import { toast } from 'sonner';
 import { get_puzzle_share_url } from './GameInfo';
@@ -55,7 +52,6 @@ import {
   PADAVLI_REVEAL_COOLDOWN_PERIOD_MS,
   type CellPosition
 } from './game_state';
-import { Popover, PopoverContent, PopoverTrigger } from '~/components/ui/popover';
 import { FaRegStopCircle } from 'react-icons/fa';
 import { AppContext } from '~/components/AppDataContext';
 import type { location_list_type } from '~/db/types';
@@ -68,7 +64,7 @@ import {
 } from '~/components/pages/padavali/WordGame/MorePuzzlesCarousel';
 import { attachment_schema } from '~/db/db_shared_vals';
 import { z } from 'zod';
-import titleStyles from '~/components/pages/puzzle/puzzle-title.module.css';
+import { PuzzleHeader, PuzzleShareButton } from '~/components/pages/puzzle/PuzzleHeader';
 import { HintDialog } from './HintDialog';
 import { findAllTraversals } from '~/tools/puzzle/puzzle_tools';
 import { MediaAttachments } from '~/components/pages/puzzle/MediaAttachments';
@@ -246,7 +242,7 @@ const CompactGameActionButtons = ({
   if (!started || completed) return null;
 
   return (
-    <div className="flex items-center justify-center gap-2.5 sm:-mb-2">
+    <div className="flex shrink-0 items-center justify-center gap-2">
       <motion.button
         type="button"
         onClick={handleStop}
@@ -255,13 +251,13 @@ const CompactGameActionButtons = ({
         transition={{ duration: 0.3, ease: 'easeInOut' }}
         className={cn(
           'group relative overflow-hidden bg-red-500 hover:bg-red-600',
-          'rounded-lg px-3 py-1.5 font-medium text-white shadow-md hover:shadow-lg',
-          'transform transition-all duration-200 hover:scale-105 active:scale-95',
-          'flex items-center justify-center gap-2 text-base',
+          'h-8 rounded-lg px-3 text-sm font-medium text-white shadow-sm',
+          'transition-colors active:scale-95',
+          'flex items-center justify-center gap-1.5',
           font_info.className
         )}
       >
-        <FaRegStopCircle className="-mt-1 size-4.5" />
+        <FaRegStopCircle className="size-4" />
         <span>{wordMsgs.stop}</span>
       </motion.button>
 
@@ -277,13 +273,13 @@ const CompactGameActionButtons = ({
         transition={{ duration: 0.3, ease: 'easeInOut', delay: 0.05 }}
         className={cn(
           'group relative overflow-hidden',
-          'rounded-lg px-3 py-1.5 font-medium text-white shadow-md hover:shadow-lg',
-          'transform transition-all duration-200',
-          'flex items-center justify-center gap-2 text-base',
+          'h-8 rounded-lg px-3 text-sm font-medium text-white shadow-sm',
+          'transition-colors',
+          'flex items-center justify-center gap-1.5',
           'bg-linear-to-r from-orange-600 to-amber-700',
           'shadow-orange-600/30 dark:from-orange-700 dark:to-amber-800 dark:shadow-orange-900/40',
           !isRevealCooling &&
-            'hover:scale-105 hover:from-orange-500 hover:to-amber-600 active:scale-95 dark:hover:from-orange-600 dark:hover:to-amber-700',
+            'hover:from-orange-500 hover:to-amber-600 active:scale-95 dark:hover:from-orange-600 dark:hover:to-amber-700',
           isRevealCooling && 'cursor-default opacity-80',
           'disabled:pointer-events-none disabled:opacity-40',
           font_info.className
@@ -302,7 +298,7 @@ const CompactGameActionButtons = ({
             }}
           />
         ) : null}
-        <Eye className="relative z-10 -mt-0.5 size-4.5" />
+        <Eye className="relative z-10 size-4" />
         <span className="relative z-10">{wordMsgs.reveal}</span>
       </motion.button>
     </div>
@@ -363,114 +359,107 @@ function LeaveGameDialog({
   );
 }
 
-function ScriptSelectorRow({
-  script,
-  onScriptChange
-}: {
-  script: ScriptType;
-  onScriptChange: (script: ScriptType) => void;
-}) {
-  return (
-    <>
-      <Icon className="size-5" src={LanguageIcon} />
-      <ScriptSelector script={script} onScriptChange={onScriptChange} showBetaBadge />
-    </>
-  );
-}
-
 function WordGameHeader({
   title,
   description,
-  descriptionTransliterated,
   script,
   onScriptChange,
   fontInfo,
   listed,
-  onShare
+  onShare,
+  hint,
+  showBackLink
 }: {
   title: string;
-  description: string;
-  descriptionTransliterated: string | null;
+  description: string | null;
   script: ScriptType;
   onScriptChange: (script: ScriptType) => void;
   fontInfo: (typeof FONT_INFO)[ScriptType];
   listed: boolean;
   onShare: () => Promise<void> | void;
+  hint: React.ReactNode;
+  showBackLink: boolean;
 }) {
   return (
-    <div className="relative mb-2 text-center sm:mb-3">
-      {/* Desktop script selector — absolutely positioned right of the title */}
-      <div className="absolute top-1/2 right-0 hidden -translate-y-1/2 items-center gap-1.5 rounded-full border border-slate-200/60 bg-white/75 px-3 py-1.5 shadow-md backdrop-blur-sm lg:flex dark:border-slate-700/60 dark:bg-slate-900/75">
-        <ScriptSelectorRow script={script} onScriptChange={onScriptChange} />
-      </div>
-
-      {/* Puzzle title */}
-      <div className={cn('py-1 text-2xl font-bold sm:text-3xl md:text-4xl', fontInfo.className)}>
-        <span className={titleStyles.titleGradient}>{title}</span>
-        {description && (
-          <Popover>
-            <PopoverTrigger
-              render={<button className="ml-3 align-middle outline-none hover:brightness-75" />}
-            >
-              <InfoIcon className="size-3 sm:size-4" />
-            </PopoverTrigger>
-            <PopoverContent
-              side="top"
-              align="center"
-              className="z-80 w-fit max-w-[calc(100vw-32px)] overflow-hidden rounded-xl border border-slate-200 bg-linear-to-r from-amber-50 to-orange-50 px-3 py-2 shadow-xl outline-none sm:max-w-md md:max-w-lg dark:border-slate-700 dark:from-teal-950/80 dark:to-green-950/80"
-            >
-              <div className="text-sm font-semibold wrap-break-word whitespace-normal text-stone-600 dark:text-stone-200">
-                {descriptionTransliterated}
-              </div>
-            </PopoverContent>
-          </Popover>
-        )}
-        {listed && (
-          <button
-            onClick={onShare}
-            className="ml-3 inline-flex items-center justify-center align-middle text-slate-500 outline-none hover:text-slate-700 hover:brightness-75 dark:text-slate-400 dark:hover:text-slate-200"
-            title="Share Puzzle"
-            aria-label="Share Puzzle"
-          >
-            <IoShareSocialOutline className="size-3.5 sm:size-4.5" />
-          </button>
-        )}
-      </div>
-
-      {/* Script selector — mobile only, centered below title */}
-      <div className="mt-2 flex items-center justify-center gap-1.5 lg:hidden">
-        <Icon className="size-6" src={LanguageIcon} />
-        <ScriptSelector script={script} onScriptChange={onScriptChange} showBetaBadge />
-      </div>
-    </div>
+    <PuzzleHeader
+      title={title}
+      description={description}
+      fontClassName={fontInfo.className}
+      backToGame={showBackLink ? 'padavali' : undefined}
+      toolbar={
+        <>
+          <ScriptSelector script={script} onScriptChange={onScriptChange} showBetaBadge compact />
+          {listed ? <PuzzleShareButton onShare={() => void onShare()} /> : null}
+        </>
+      }
+      actions={hint}
+    />
   );
 }
 
-function TopHintArea({
-  hintAtTop,
-  hintHiddenInPractice,
-  puzzleId,
-  puzzleSlug,
-  timerRef
-}: {
-  hintAtTop: boolean;
-  hintHiddenInPractice: boolean;
-  puzzleId: number;
-  puzzleSlug: string;
-  timerRef: React.RefObject<NodeJS.Timeout | null>;
-}) {
+function PracticeModeBadge() {
   return (
-    <div className="mb-2 flex flex-col items-center gap-2 sm:mb-3">
-      {hintAtTop ? (
-        <HintDialog puzzle_id={puzzleId} puzzle_slug={puzzleSlug} timerRef={timerRef} />
-      ) : null}
-      {hintHiddenInPractice ? (
-        <span className="inline-flex items-center gap-1.5 rounded-full border border-amber-300/60 bg-amber-50 px-3 py-1 text-xs font-semibold text-amber-800 shadow-sm dark:border-amber-600/40 dark:bg-amber-950/50 dark:text-amber-200">
-          <Sparkles className="size-3" />
-          Practice mode
+    <span className="inline-flex items-center gap-1.5 rounded-full border border-amber-300/60 bg-amber-50 px-3 py-1 text-xs font-semibold text-amber-800 shadow-sm dark:border-amber-600/40 dark:bg-amber-950/50 dark:text-amber-200">
+      <Sparkles className="size-3" />
+      Practice mode
+    </span>
+  );
+}
+
+/** Timer, found-words progress, and Stop / Reveal on one row while playing. */
+function ActiveGameBar({
+  timerRef,
+  originalGridData
+}: {
+  timerRef: React.RefObject<NodeJS.Timeout | null>;
+  originalGridData: string[][];
+}) {
+  const [seconds] = useAtom(seconds_atom);
+  const [foundWords] = useAtom(found_words_atom);
+  const [wordList] = useAtom(original_word_list_atom);
+  const [wordMsgs] = useAtom(word_msgs_atom);
+  const percent = wordList.length > 0 ? (foundWords.length / wordList.length) * 100 : 0;
+
+  return (
+    <motion.div
+      initial={{ opacity: 0, y: -8 }}
+      animate={{ opacity: 1, y: 0 }}
+      transition={{ duration: 0.3, ease: 'easeOut' }}
+      className="mx-auto mb-3 flex w-full max-w-lg flex-col gap-2 sm:mb-4 sm:flex-row sm:items-center sm:gap-3"
+    >
+      <div className="flex min-w-0 flex-1 items-center gap-2.5 text-sm">
+        <div
+          className="inline-flex shrink-0 items-center gap-2 rounded-lg border border-border/60 bg-card/70 px-3 py-1 backdrop-blur-md"
+          title={wordMsgs.time_elapsed}
+        >
+          <Timer className="size-3.5 text-primary" aria-hidden />
+          <span className="sr-only">{wordMsgs.time_elapsed}</span>
+          <span className="font-mono font-semibold tabular-nums">{formatTime(seconds)}</span>
+        </div>
+        <div
+          role="progressbar"
+          aria-label={wordMsgs.found_words}
+          aria-valuenow={foundWords.length}
+          aria-valuemin={0}
+          aria-valuemax={wordList.length}
+          className="relative h-2 min-w-0 flex-1 overflow-hidden rounded-full bg-slate-200 dark:bg-slate-700/70"
+        >
+          <motion.div
+            className="h-full rounded-full bg-linear-to-r from-blue-500 to-emerald-500"
+            initial={{ width: 0 }}
+            animate={{ width: `${percent}%` }}
+            transition={{ duration: 0.5, ease: 'easeOut' }}
+          />
+        </div>
+        <span
+          className="shrink-0 rounded-lg border border-blue-300/60 bg-blue-50 px-2.5 py-1 font-semibold text-blue-700 tabular-nums dark:border-blue-500/30 dark:bg-blue-950/50 dark:text-blue-200"
+          title={wordMsgs.found_words}
+        >
+          {foundWords.length}/{wordList.length}
         </span>
-      ) : null}
-    </div>
+      </div>
+      <CompactGameActionButtons timerRef={timerRef} original_grid_data={originalGridData} />
+    </motion.div>
   );
 }
 
@@ -485,66 +474,27 @@ function GameControlSection({
   timerRef: React.RefObject<NodeJS.Timeout | null>;
   originalGridData: string[][];
 }) {
+  if (started && !completed) {
+    return <ActiveGameBar timerRef={timerRef} originalGridData={originalGridData} />;
+  }
+
+  // On completion: side-by-side replay + stats on desktop
   return (
     <motion.div
-      className={cn(
-        'flex flex-col items-center justify-center',
-        completed && 'mx-auto mb-4 w-full max-w-2xl sm:mb-5'
-      )}
-      initial={{ opacity: 0, y: 40 }}
+      className="mx-auto mb-4 flex w-full max-w-2xl flex-col gap-3 sm:mb-5 sm:flex-row sm:items-stretch sm:gap-4"
+      initial={{ opacity: 0, y: 32 }}
       animate={{ opacity: 1, y: 0 }}
-      exit={{ opacity: 0, y: 40 }}
-      transition={{ type: 'spring', stiffness: 350, damping: 32, duration: 0.5 }}
+      transition={{ type: 'spring', stiffness: 300, damping: 30, duration: 0.45 }}
     >
-      <motion.div
-        className={cn(
-          'flex items-center justify-center',
-          started &&
-            !completed &&
-            'w-auto space-x-3.5 rounded-2xl border border-slate-200 bg-white px-5 py-3 shadow-xl sm:space-x-5 sm:px-6 md:space-x-5 md:px-8 dark:border-slate-700 dark:bg-slate-800',
-          // On completion: side-by-side restart + stats on desktop
-          completed && 'w-full flex-col gap-3 sm:flex-row sm:items-stretch sm:gap-4'
-        )}
-        initial={{ opacity: 0, y: 32 }}
-        animate={{ opacity: 1, y: 0 }}
-        transition={{
-          delay: 0.08,
-          type: 'spring',
-          stiffness: 300,
-          damping: 30,
-          duration: 0.45
-        }}
-      >
-        <GameContoller timerRef={timerRef} />
-        {(started || completed) && <GameInfo />}
-      </motion.div>
-      <motion.div
-        className="mb-4.5 pt-3 sm:mb-5.5 sm:pt-5 md:mb-6"
-        initial={{ opacity: 0, y: 24 }}
-        animate={{ opacity: 1, y: 0 }}
-        transition={{
-          delay: 0.18,
-          type: 'spring',
-          stiffness: 300,
-          damping: 30,
-          duration: 0.4
-        }}
-      >
-        <CompactGameActionButtons timerRef={timerRef} original_grid_data={originalGridData} />
-      </motion.div>
+      <GameContoller timerRef={timerRef} />
+      <GameInfo />
     </motion.div>
   );
 }
 
-function MediaSidebar({
-  attachments,
-  started
-}: {
-  attachments: z.infer<typeof attachment_schema>[];
-  started: boolean;
-}) {
+function MediaSidebar({ attachments }: { attachments: z.infer<typeof attachment_schema>[] }) {
   return (
-    <div className={cn('order-2 lg:order-1 lg:col-span-3', !started && 'lg:mt-10 lg:items-start')}>
+    <div className="order-2 lg:order-1 lg:col-span-3">
       <MediaAttachments attachments={resolveAttachmentsWithDefaults(attachments.map((v) => v))} />
     </div>
   );
@@ -593,7 +543,6 @@ function WordGame({
   const hintHiddenInPractice = gameInProgress && practiceMode;
   const hintBelowMeanings = gameInProgress && !practiceMode;
   const hintAtTop = !gameInProgress;
-  const hintAtTopArea = hintAtTop || hintHiddenInPractice;
 
   const timerRef = useRef<NodeJS.Timeout | null>(null);
   const [description_transliterated, setDescriptionTransliterated] =
@@ -703,7 +652,7 @@ function WordGame({
 
   return (
     <div
-      className={cn('public-canvas w-full', 'pb-6 sm:pb-12')}
+      className="w-full pb-6 sm:pb-12"
       style={{
         // Prevent iOS Safari bounce and zoom during game
         WebkitOverflowScrolling: 'touch',
@@ -736,27 +685,23 @@ function WordGame({
       )}
 
       <div className="container mx-auto max-w-7xl px-2 pt-3 sm:px-4 sm:pt-4 md:px-6 md:pt-5">
-        {hintAtTopArea ? (
-          <TopHintArea
-            hintAtTop={hintAtTop}
-            hintHiddenInPractice={hintHiddenInPractice}
-            puzzleId={puzzle_id}
-            puzzleSlug={puzzle_slug}
-            timerRef={timerRef}
-          />
-        ) : null}
-
-        {/* Title + inline script selector (desktop: right side, mobile: below title) */}
         <WordGameHeader
           title={title}
-          description={description}
-          descriptionTransliterated={description_transliterated}
+          description={description ? description_transliterated : null}
           // SAFETY: AppContext only ever stores valid ScriptType values in script
           script={script as ScriptType}
           onScriptChange={setScript}
           fontInfo={font_info}
           listed={listed}
           onShare={handleShare}
+          showBackLink={location === 'list_page'}
+          hint={
+            hintAtTop ? (
+              <HintDialog puzzle_id={puzzle_id} puzzle_slug={puzzle_slug} timerRef={timerRef} />
+            ) : hintHiddenInPractice ? (
+              <PracticeModeBadge />
+            ) : null
+          }
         />
 
         {/* More Puzzles accordion */}
@@ -783,7 +728,7 @@ function WordGame({
           )}
         >
           {/* Game Controls & Progress - Left Sidebar on large screens, top on mobile */}
-          <MediaSidebar attachments={attachments} started={started} />
+          <MediaSidebar attachments={attachments} />
 
           {/* Game Grid - Center */}
           <div className="order-1 flex flex-col items-center justify-center lg:order-2 lg:col-span-6">
@@ -810,7 +755,7 @@ function WordGame({
 
           {/* Help Section - Right Sidebar on large screens, bottom on mobile */}
           <div className="order-3 lg:col-span-3 lg:ml-0 xl:ml-0 2xl:ml-0">
-            <div className="lg:sticky lg:top-6 lg:mt-12">
+            <div className="lg:sticky lg:top-20">
               <div className="overflow-hidden rounded-2xl border border-slate-200 bg-white shadow-xl dark:border-slate-700 dark:bg-slate-800">
                 <GameHelp />
               </div>
@@ -823,39 +768,3 @@ function WordGame({
     </div>
   );
 }
-
-export const NextPuzzleTimePopup = ({
-  next_puzzle_start_time,
-  className
-}: {
-  next_puzzle_start_time: Date;
-  className?: string;
-}) => {
-  return (
-    <Popover>
-      <PopoverTrigger
-        render={<button className={cn('outline-none hover:brightness-75', className)} />}
-      >
-        <InfoIcon className="-mt-1 size-3 sm:size-4" />
-      </PopoverTrigger>
-      <PopoverContent
-        align="center"
-        className="z-100 flex items-center gap-2 overflow-hidden rounded-xl border border-amber-200/50 bg-linear-to-r from-amber-50 to-orange-50 px-3 py-2 shadow-xl outline-none dark:border-slate-700 dark:from-teal-950/80 dark:to-green-950/80"
-      >
-        <Calendar className="-mt-1 size-4" />
-        <span className="bg-linear-to-r from-amber-700 to-orange-500 bg-clip-text text-xs font-bold text-transparent brightness-95 dark:bg-linear-to-r dark:from-amber-300 dark:to-orange-300">
-          {next_puzzle_start_time.toLocaleDateString('en-GB', {
-            day: 'numeric',
-            month: 'long'
-          })}
-          ,{' '}
-          {next_puzzle_start_time.toLocaleTimeString('en-US', {
-            hour: 'numeric',
-            minute: '2-digit',
-            hour12: true
-          })}
-        </span>
-      </PopoverContent>
-    </Popover>
-  );
-};

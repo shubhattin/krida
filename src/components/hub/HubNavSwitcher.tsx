@@ -148,7 +148,13 @@ function GameNavCard({ game, active }: { game: HubGameMeta; active: boolean }) {
   );
 }
 
-function SwitcherTriggerLabel({ activeGame }: { activeGame: HubGameMeta | null }) {
+function SwitcherTriggerLabel({
+  active,
+  activeGame
+}: {
+  active: HubNavId;
+  activeGame: HubGameMeta | null;
+}) {
   if (activeGame) {
     return (
       <>
@@ -160,6 +166,16 @@ function SwitcherTriggerLabel({ activeGame }: { activeGame: HubGameMeta | null }
           className="size-5 shrink-0"
         />
         <span className="truncate">{activeGame.name}</span>
+      </>
+    );
+  }
+
+  // The brand sits right beside the switcher, so name the current page instead.
+  if (active === 'puzzles') {
+    return (
+      <>
+        <Puzzle className="size-4 shrink-0 text-indigo-600 dark:text-indigo-300" />
+        <span className="truncate">Puzzles</span>
       </>
     );
   }
@@ -178,7 +194,7 @@ export function HubNavSwitcher({ active }: { active: HubNavId }) {
   const activeGame = active === 'padavali' || active === 'padajala' ? HUB_GAMES[active] : null;
   const triggerLabel = activeGame
     ? `Switch game, currently ${activeGame.name}`
-    : 'Open games and pages';
+    : `Open games and pages, currently ${active === 'puzzles' ? 'Puzzles' : 'Home'}`;
 
   return (
     <Popover open={open} onOpenChange={setOpen}>
@@ -197,7 +213,7 @@ export function HubNavSwitcher({ active }: { active: HubNavId }) {
           />
         }
       >
-        <SwitcherTriggerLabel activeGame={activeGame} />
+        <SwitcherTriggerLabel active={active} activeGame={activeGame} />
         <ChevronDown
           className={cn(
             'size-3.5 shrink-0 opacity-60 transition-transform duration-200',

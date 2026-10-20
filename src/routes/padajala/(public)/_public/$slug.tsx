@@ -1,6 +1,5 @@
-import { createFileRoute, Link, notFound, redirect } from '@tanstack/react-router';
+import { createFileRoute, notFound, redirect } from '@tanstack/react-router';
 import { createServerFn } from '@tanstack/react-start';
-import { ArrowLeftIcon } from 'lucide-react';
 import { z } from 'zod';
 import PadajalaGameRoot from '~/components/pages/padajala/PadajalaGame/PadajalaGameRoot';
 import { routeHeadFromPageMeta, shareImageInfoFromAsset } from '~/components/tags/getPageMetaTags';
@@ -109,16 +108,6 @@ function PadajalaSlugPage() {
 
   return (
     <main className="relative min-h-dvh overflow-x-clip">
-      <div className="px-4 pt-4 sm:px-6 sm:pt-5">
-        <Link
-          to="/puzzles"
-          search={{ game: 'padajala' }}
-          className="inline-flex items-center gap-2 rounded-full border border-slate-200/60 bg-white/70 px-4 py-1.5 text-sm font-medium text-slate-700 no-underline shadow-sm backdrop-blur-sm transition-all duration-200 hover:bg-white hover:shadow-md dark:border-slate-700/60 dark:bg-slate-800/70 dark:text-slate-200 dark:hover:bg-slate-800"
-        >
-          <ArrowLeftIcon className="size-4" />
-          Back to Puzzles
-        </Link>
-      </div>
       {data.kind === 'unavailable' ? (
         <div className="px-4 py-8 text-center text-muted-foreground">
           This puzzle is not available.
