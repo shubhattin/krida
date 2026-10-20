@@ -1,27 +1,34 @@
 'use client';
 
-import { useState, type ReactNode } from 'react';
+import { useId, useState, type ReactNode } from 'react';
 import { useQuery } from '@tanstack/react-query';
 import { Link } from '@tanstack/react-router';
-import { format } from 'date-fns';
-import { BookOpen, CheckCircle2, Clock3, Percent, Play, Target } from 'lucide-react';
+import { formatDistanceToNowStrict } from 'date-fns';
+import {
+  BookOpen,
+  CheckCircle2,
+  Clock3,
+  Flame,
+  Play,
+  Sparkles,
+  Target,
+  Trophy
+} from 'lucide-react';
 import pretty_ms from 'pretty-ms';
 import { useTRPC } from '~/api/client';
-import type { DashboardGameId, GameDashboardStats } from '~/api/routers/user/user_dashboard';
+import type {
+  CombinedDashboardTotals,
+  DashboardGameId,
+  GameDashboardStats
+} from '~/api/routers/user/user_dashboard';
 import { AllGamesMenuItems } from '~/components/app-bar/GameMenuItems';
 import { GameAppIcon } from '~/components/GameAppIcon';
+import { HubHeader } from '~/components/hub/HubHeader';
+import { HUB_GAME_ACCENT, HUB_GAMES } from '~/components/hub/hub_games';
+import { Avatar, AvatarFallback, AvatarImage } from '~/components/ui/avatar';
 import { Button } from '~/components/ui/button';
-import {
-  Card,
-  CardAction,
-  CardContent,
-  CardDescription,
-  CardHeader,
-  CardTitle
-} from '~/components/ui/card';
 import { Skeleton } from '~/components/ui/skeleton';
 import { Tabs, TabsList, TabsTrigger } from '~/components/ui/tabs';
-import { HubHeader } from '~/components/hub/HubHeader';
 import { useSession } from '~/lib/auth-client';
 import { cn } from '~/lib/utils';
 
@@ -29,16 +36,23 @@ type GameFilter = 'all' | DashboardGameId;
 
 const GAME_CHROME = {
   padavali: {
-    card: 'hover:ring-blue-400/55 dark:hover:ring-blue-500/45',
-    play: 'from-blue-500 to-indigo-600 shadow-blue-500/35 hover:from-blue-400 hover:to-indigo-500',
-    wash: 'from-blue-50/90 via-sky-50/40 to-indigo-50/80 dark:from-blue-950/50 dark:via-slate-900/30 dark:to-indigo-950/40'
+    wash: 'from-blue-500/12 via-sky-500/5 to-transparent dark:from-blue-500/20 dark:via-indigo-500/8',
+    ring: 'stroke-blue-500',
+    soft: 'bg-blue-500/10 text-blue-700 dark:bg-blue-400/15 dark:text-blue-300',
+    dot: 'bg-blue-500',
+    play: 'from-blue-500 to-indigo-600 shadow-blue-500/30 hover:from-blue-400 hover:to-indigo-500'
   },
   padajala: {
-    card: 'hover:ring-amber-400/55 dark:hover:ring-amber-500/45',
-    play: 'from-amber-500 to-orange-600 shadow-amber-500/35 hover:from-amber-400 hover:to-orange-500',
-    wash: 'from-amber-50/90 via-orange-50/40 to-amber-50/80 dark:from-amber-950/50 dark:via-stone-900/30 dark:to-orange-950/40'
+    wash: 'from-amber-500/14 via-orange-500/5 to-transparent dark:from-amber-500/20 dark:via-orange-500/8',
+    ring: 'stroke-amber-500',
+    soft: 'bg-amber-500/10 text-amber-700 dark:bg-amber-400/15 dark:text-amber-300',
+    dot: 'bg-amber-500',
+    play: 'from-amber-500 to-orange-600 shadow-amber-500/30 hover:from-amber-400 hover:to-orange-500'
   }
 } as const;
+
+const surfaceClass =
+  'rounded-2xl border border-slate-200/80 bg-white/75 shadow-sm backdrop-blur-md dark:border-white/8 dark:bg-slate-900/55';
 
 function formatSeconds(seconds: number | null | undefined): string {
   if (seconds == null || !Number.isFinite(seconds)) return '—';
@@ -50,48 +64,59 @@ function formatAccuracy(accuracy: number | null | undefined): string {
   return `${Math.round(accuracy)}%`;
 }
 
-function formatPlayedAt(value: Date | string): string {
+function formatPlayedAgo(value: Date | string): string {
   const date = value instanceof Date ? value : new Date(value);
   if (Number.isNaN(date.getTime())) return '—';
-  return format(date, 'MMM d, yyyy');
+  return formatDistanceToNowStrict(date, { addSuffix: true });
+}
+
+function accuracyTone(accuracy: number): string {
+  if (accuracy >= 90) return 'bg-emerald-500/12 text-emerald-700 dark:text-emerald-300';
+  if (accuracy >= 70) return 'bg-amber-500/12 text-amber-700 dark:text-amber-300';
+  return 'bg-rose-500/12 text-rose-700 dark:text-rose-300';
+}
+
+function initialsFromName(name: string | null | undefined): string {
+  const parts = (name ?? '').trim().split(/\s+/).filter(Boolean);
+  if (parts.length === 0) return '?';
+  if (parts.length === 1) return parts[0]!.slice(0, 2).toUpperCase();
+  return `${parts[0]![0]!}${parts[parts.length - 1]![0]!}`.toUpperCase();
 }
 
 function DashboardPage() {
   const [game, setGame] = useState<GameFilter>('all');
-  const userName = useSession().data?.user?.name;
+  const user = useSession().data?.user;
   const trpc = useTRPC();
   const dashboardQuery = useQuery(trpc.user.get_dashboard.queryOptions({ game }));
+  const data = dashboardQuery.data;
+  const games: DashboardGameId[] = game === 'all' ? ['padavali', 'padajala'] : [game];
 
   return (
     <div className="public-canvas flex min-h-dvh flex-col">
       <HubHeader gameMenuItems={<AllGamesMenuItems />} />
 
-      <main className="mx-auto flex w-full max-w-4xl flex-1 flex-col gap-6 px-4 py-6 lg:px-6">
-        <div className="flex flex-col gap-1">
-          <h2 className="text-xl font-semibold tracking-tight">
-            {userName ? `Hi, ${userName}` : 'Your games'}
-          </h2>
-          <p className="text-sm text-muted-foreground">
-            Combined Padāvalī and Padajāla stats from your signed-in plays.
-          </p>
+      <main className="mx-auto flex w-full max-w-5xl flex-1 flex-col gap-5 px-4 py-6 lg:px-6 lg:py-8">
+        <Hero name={user?.name} image={user?.image} totals={data?.totals} />
+
+        <div className="flex flex-wrap items-center justify-between gap-3">
+          <h3 className="text-sm font-semibold tracking-wide text-muted-foreground uppercase">
+            Your stats
+          </h3>
+          <Tabs
+            value={game}
+            onValueChange={(value) => {
+              if (value === 'all' || value === 'padavali' || value === 'padajala') {
+                setGame(value);
+              }
+            }}
+          >
+            <TabsList>
+              <TabsTrigger value="all">All games</TabsTrigger>
+              <TabsTrigger value="padavali">{HUB_GAMES.padavali.name}</TabsTrigger>
+              <TabsTrigger value="padajala">{HUB_GAMES.padajala.name}</TabsTrigger>
+            </TabsList>
+          </Tabs>
         </div>
-
-        <GameLinks />
-
-        <Tabs
-          value={game}
-          onValueChange={(value) => {
-            if (value === 'all' || value === 'padavali' || value === 'padajala') {
-              setGame(value);
-            }
-          }}
-        >
-          <TabsList>
-            <TabsTrigger value="all">All games</TabsTrigger>
-            <TabsTrigger value="padavali">Padāvalī</TabsTrigger>
-            <TabsTrigger value="padajala">Padajāla</TabsTrigger>
-          </TabsList>
-        </Tabs>
 
         {dashboardQuery.isLoading ? <DashboardSkeleton /> : null}
         {dashboardQuery.isError ? (
@@ -99,168 +124,170 @@ function DashboardPage() {
             Failed to load dashboard stats
           </p>
         ) : null}
-        {dashboardQuery.data ? (
-          <div className="flex flex-col gap-6">
-            <TotalsRow
-              started={dashboardQuery.data.totals.started}
-              completed={dashboardQuery.data.totals.completed}
-              completionRate={dashboardQuery.data.totals.completion_rate}
-              bestTime={dashboardQuery.data.totals.best_time_seconds}
-              bestAccuracy={dashboardQuery.data.totals.best_accuracy}
-            />
-            <div
-              className={cn(
-                'grid grid-cols-1 gap-4',
-                game === 'all' ? 'md:grid-cols-2' : 'md:grid-cols-1'
-              )}
-            >
-              {game !== 'padajala' ? (
-                <GameStatsCard game="padavali" stats={dashboardQuery.data.padavali} />
-              ) : null}
-              {game !== 'padavali' ? (
-                <GameStatsCard game="padajala" stats={dashboardQuery.data.padajala} />
-              ) : null}
+        {data ? (
+          <>
+            <KpiGrid totals={data.totals} />
+            <div className={cn('grid grid-cols-1 gap-4', games.length > 1 && 'lg:grid-cols-2')}>
+              {games.map((id) => (
+                <GamePanel key={id} game={id} stats={data[id]} wide={games.length === 1} />
+              ))}
             </div>
-          </div>
+          </>
         ) : null}
       </main>
     </div>
   );
 }
 
-function GameLinks() {
-  return (
-    <div className="grid grid-cols-1 gap-3 sm:grid-cols-2">
-      <GameLinkCard
-        game="padavali"
-        name="Padāvalī"
-        subtitle="Word Search"
-        playTo="/padavali"
-        puzzlesGame="padavali"
-      />
-      <GameLinkCard
-        game="padajala"
-        name="Padajāla"
-        subtitle="Padajala"
-        playTo="/padajala"
-        puzzlesGame="padajala"
-      />
-    </div>
-  );
-}
-
-function GameLinkCard({
-  game,
+function Hero({
   name,
-  subtitle,
-  playTo,
-  puzzlesGame
+  image,
+  totals
 }: {
-  game: DashboardGameId;
-  name: string;
-  subtitle: string;
-  playTo: '/padavali' | '/padajala';
-  puzzlesGame: 'padavali' | 'padajala';
+  name: string | null | undefined;
+  image: string | null | undefined;
+  totals: CombinedDashboardTotals | undefined;
 }) {
-  const chrome = GAME_CHROME[game];
+  const firstName = name?.trim().split(/\s+/)[0];
+  const subtitle = !totals
+    ? 'Loading your progress…'
+    : totals.started === 0
+      ? 'Your first puzzle is waiting. Pick a game below and start playing.'
+      : totals.completed === 0
+        ? `You've started ${totals.started} puzzle${totals.started === 1 ? '' : 's'}. Finish one to set your first best time.`
+        : `${totals.completed} of ${totals.started} puzzles solved. Keep the streak going.`;
 
   return (
-    <Card
-      size="sm"
+    <section
       className={cn(
-        'bg-linear-to-br transition-all duration-300 hover:-translate-y-0.5 hover:shadow-lg',
-        chrome.wash,
-        chrome.card
+        surfaceClass,
+        'relative overflow-hidden bg-linear-to-br from-violet-500/10 via-transparent to-blue-500/10 p-5 sm:p-6 dark:from-violet-500/15 dark:to-blue-500/10'
       )}
     >
-      <CardHeader className="items-center">
-        <div className="flex min-w-0 items-center gap-2.5">
-          <GameAppIcon game={game} name={name} size="sm" />
+      <div
+        aria-hidden
+        className="pointer-events-none absolute -top-24 -right-16 size-64 rounded-full bg-violet-500/20 blur-3xl dark:bg-violet-500/15"
+      />
+      <div
+        aria-hidden
+        className="pointer-events-none absolute -bottom-28 left-1/3 size-56 rounded-full bg-blue-500/15 blur-3xl dark:bg-blue-500/10"
+      />
+
+      <div className="relative flex flex-col gap-5 sm:flex-row sm:items-center sm:justify-between">
+        <div className="flex min-w-0 items-center gap-4">
+          <Avatar className="size-14 ring-2 ring-white/70 dark:ring-white/10">
+            {image ? <AvatarImage src={image} alt="" /> : null}
+            <AvatarFallback className="bg-linear-to-br from-violet-500 to-indigo-600 text-lg font-semibold text-white">
+              {initialsFromName(name)}
+            </AvatarFallback>
+          </Avatar>
           <div className="min-w-0">
-            <CardTitle className="truncate">{name}</CardTitle>
-            <CardDescription>{subtitle}</CardDescription>
+            <p className="flex items-center gap-1.5 text-xs font-medium text-violet-700 dark:text-violet-300">
+              <Sparkles className="size-3.5" />
+              Your dashboard
+            </p>
+            <h2 className="truncate text-2xl font-bold tracking-tight sm:text-3xl">
+              {firstName ? `Namaste, ${firstName}` : 'Your games'}
+            </h2>
+            <p className="mt-1 text-sm text-muted-foreground">{subtitle}</p>
           </div>
         </div>
-        <CardAction className="flex items-center gap-1.5 self-center">
-          <Button
-            render={<Link to={playTo} />}
-            nativeButton={false}
-            size="sm"
-            className={cn(
-              'border-transparent bg-linear-to-r text-white shadow-md',
-              'transition-all duration-200 hover:-translate-y-px hover:text-white hover:shadow-lg',
-              chrome.play
-            )}
-          >
-            <Play data-icon="inline-start" className="fill-white" />
-            Play
-          </Button>
-          <Button
-            render={<Link to="/puzzles" search={{ game: puzzlesGame }} />}
-            nativeButton={false}
-            size="sm"
-            variant="outline"
-            className="bg-background/70 transition-all duration-200 hover:-translate-y-px"
-          >
-            <BookOpen data-icon="inline-start" />
-            Puzzles
-          </Button>
-        </CardAction>
-      </CardHeader>
-    </Card>
+
+        {totals ? (
+          <div className="flex items-center gap-4 self-start sm:self-auto">
+            <CompletionRing percent={totals.completion_rate} />
+            <div className="flex flex-col gap-0.5 text-sm">
+              <span className="text-muted-foreground">Completion</span>
+              <span className="font-semibold tabular-nums">
+                {totals.completed}
+                <span className="font-normal text-muted-foreground"> / {totals.started}</span>
+              </span>
+              <span className="text-xs text-muted-foreground">puzzles solved</span>
+            </div>
+          </div>
+        ) : (
+          <Skeleton className="size-20 rounded-full" />
+        )}
+      </div>
+    </section>
   );
 }
 
-function TotalsRow({
-  started,
-  completed,
-  completionRate,
-  bestTime,
-  bestAccuracy
-}: {
-  started: number;
-  completed: number;
-  completionRate: number;
-  bestTime: number | null;
-  bestAccuracy: number | null;
-}) {
+function CompletionRing({ percent }: { percent: number }) {
+  const gradientId = useId();
+  const radius = 34;
+  const circumference = 2 * Math.PI * radius;
+  const clamped = Math.max(0, Math.min(100, percent));
+
   return (
-    <div className="grid grid-cols-2 gap-3 sm:grid-cols-5">
-      <StatCard
-        label="Started"
-        value={String(started)}
-        icon={<Play className="size-3.5 fill-white" />}
-        iconClass="from-sky-500 to-blue-600 shadow-sky-500/25"
+    <div className="relative size-20 shrink-0">
+      <svg viewBox="0 0 80 80" className="size-full -rotate-90">
+        <defs>
+          <linearGradient id={gradientId} x1="0" y1="0" x2="1" y2="1">
+            <stop offset="0%" stopColor="#8b5cf6" />
+            <stop offset="100%" stopColor="#3b82f6" />
+          </linearGradient>
+        </defs>
+        <circle
+          cx="40"
+          cy="40"
+          r={radius}
+          fill="none"
+          strokeWidth="7"
+          className="stroke-slate-200 dark:stroke-white/10"
+        />
+        <circle
+          cx="40"
+          cy="40"
+          r={radius}
+          fill="none"
+          strokeWidth="7"
+          strokeLinecap="round"
+          stroke={`url(#${gradientId})`}
+          strokeDasharray={circumference}
+          strokeDashoffset={circumference * (1 - clamped / 100)}
+          className="transition-[stroke-dashoffset] duration-700 ease-out"
+        />
+      </svg>
+      <span className="absolute inset-0 flex items-center justify-center text-lg font-bold tabular-nums">
+        {clamped}%
+      </span>
+    </div>
+  );
+}
+
+function KpiGrid({ totals }: { totals: CombinedDashboardTotals }) {
+  return (
+    <div className="grid grid-cols-2 gap-3 md:grid-cols-4">
+      <KpiTile
+        label="Puzzles played"
+        value={String(totals.started)}
+        icon={<Flame className="size-3.5" />}
+        iconClass="from-sky-500 to-blue-600 shadow-sky-500/30"
       />
-      <StatCard
-        label="Completed"
-        value={String(completed)}
+      <KpiTile
+        label="Solved"
+        value={String(totals.completed)}
         icon={<CheckCircle2 className="size-3.5" />}
-        iconClass="from-emerald-500 to-teal-600 shadow-emerald-500/25"
+        iconClass="from-emerald-500 to-teal-600 shadow-emerald-500/30"
       />
-      <StatCard
-        label="Completion rate"
-        value={`${completionRate}%`}
-        icon={<Percent className="size-3.5" />}
-        iconClass="from-violet-500 to-indigo-600 shadow-violet-500/25"
-      />
-      <StatCard
-        label="Best time"
-        value={formatSeconds(bestTime)}
+      <KpiTile
+        label="Fastest solve"
+        value={formatSeconds(totals.best_time_seconds)}
         icon={<Clock3 className="size-3.5" />}
-        iconClass="from-amber-500 to-orange-600 shadow-amber-500/25"
+        iconClass="from-amber-500 to-orange-600 shadow-amber-500/30"
       />
-      <StatCard
+      <KpiTile
         label="Best accuracy"
-        value={formatAccuracy(bestAccuracy)}
+        value={formatAccuracy(totals.best_accuracy)}
         icon={<Target className="size-3.5" />}
-        iconClass="from-fuchsia-500 to-pink-600 shadow-fuchsia-500/25"
+        iconClass="from-fuchsia-500 to-pink-600 shadow-fuchsia-500/30"
       />
     </div>
   );
 }
 
-function StatCard({
+function KpiTile({
   label,
   value,
   icon,
@@ -272,130 +299,277 @@ function StatCard({
   iconClass: string;
 }) {
   return (
-    <Card size="sm" className="transition-all duration-200 hover:-translate-y-0.5 hover:shadow-md">
-      <CardHeader>
-        <div className="flex items-center gap-2.5">
-          <div
-            className={cn(
-              'flex size-8 shrink-0 items-center justify-center rounded-lg bg-linear-to-br text-white shadow-sm',
-              iconClass
-            )}
-          >
-            {icon}
-          </div>
-          <div className="min-w-0">
-            <CardDescription>{label}</CardDescription>
-            <CardTitle className="tabular-nums">{value}</CardTitle>
-          </div>
+    <div className={cn(surfaceClass, 'flex flex-col gap-2 px-4 py-3.5')}>
+      <div className="flex items-center justify-between gap-2">
+        <p className="truncate text-xs font-medium text-muted-foreground">{label}</p>
+        <div
+          className={cn(
+            'flex size-7 shrink-0 items-center justify-center rounded-lg bg-linear-to-br text-white shadow-md',
+            iconClass
+          )}
+        >
+          {icon}
         </div>
-      </CardHeader>
-    </Card>
-  );
-}
-
-function GameStatsCard({ game, stats }: { game: DashboardGameId; stats: GameDashboardStats }) {
-  const name = game === 'padavali' ? 'Padāvalī' : 'Padajāla';
-  const chrome = GAME_CHROME[game];
-
-  return (
-    <Card
-      className={cn(
-        'overflow-hidden bg-linear-to-br transition-all duration-300 hover:shadow-md',
-        chrome.wash,
-        chrome.card
-      )}
-    >
-      <CardHeader>
-        <div className="flex items-center gap-2.5">
-          <GameAppIcon game={game} name={name} size="sm" />
-          <div className="min-w-0">
-            <CardTitle>{name}</CardTitle>
-            <CardDescription>
-              {stats.started} started · {stats.completed} completed
-            </CardDescription>
-          </div>
-        </div>
-      </CardHeader>
-      <CardContent className="flex flex-col gap-4 pb-4">
-        <div className="grid grid-cols-2 gap-3 text-sm">
-          <div className="flex flex-col gap-0.5">
-            <span className="text-muted-foreground">Avg time</span>
-            <span className="font-medium tabular-nums">
-              {formatSeconds(stats.avg_time_seconds)}
-            </span>
-          </div>
-          <div className="flex flex-col gap-0.5">
-            <span className="text-muted-foreground">Avg accuracy</span>
-            <span className="font-medium tabular-nums">{formatAccuracy(stats.avg_accuracy)}</span>
-          </div>
-        </div>
-
-        <PuzzleList
-          title="Most played"
-          empty="No plays yet"
-          items={stats.top_puzzles.map((puzzle) => ({
-            key: `${game}-top-${puzzle.puzzle_id}`,
-            game,
-            slug: puzzle.slug,
-            title: puzzle.title,
-            meta: `${puzzle.completed}/${puzzle.started} · best ${formatSeconds(puzzle.best_time_seconds)}`
-          }))}
-        />
-        <PuzzleList
-          title="Recent completions"
-          empty="No completions yet"
-          items={stats.recent.map((row, index) => ({
-            key: `${game}-recent-${row.puzzle_id}-${index}`,
-            game,
-            slug: row.slug,
-            title: row.title,
-            meta: `${formatSeconds(row.time_taken)} · ${formatAccuracy(row.accuracy)} · ${formatPlayedAt(row.created_at)}`
-          }))}
-        />
-      </CardContent>
-    </Card>
-  );
-}
-
-function PuzzleList({
-  title,
-  empty,
-  items
-}: {
-  title: string;
-  empty: string;
-  items: Array<{
-    key: string;
-    game: DashboardGameId;
-    slug: string;
-    title: string;
-    meta: string;
-  }>;
-}) {
-  return (
-    <div className="flex flex-col gap-2">
-      <p className="text-sm font-medium">{title}</p>
-      {items.length === 0 ? (
-        <p className="text-sm text-muted-foreground">{empty}</p>
-      ) : (
-        <ul className="flex flex-col gap-1.5">
-          {items.map((item) => (
-            <li key={item.key}>
-              <PuzzleTitleLink game={item.game} slug={item.slug}>
-                <span className="truncate font-medium">{item.title}</span>
-                <span className="shrink-0 text-xs text-muted-foreground tabular-nums">
-                  {item.meta}
-                </span>
-              </PuzzleTitleLink>
-            </li>
-          ))}
-        </ul>
-      )}
+      </div>
+      <p className="truncate text-2xl font-bold tracking-tight tabular-nums">{value}</p>
     </div>
   );
 }
 
-function PuzzleTitleLink({
+function GamePanel({
+  game,
+  stats,
+  wide
+}: {
+  game: DashboardGameId;
+  stats: GameDashboardStats;
+  wide: boolean;
+}) {
+  const meta = HUB_GAMES[game];
+  const chrome = GAME_CHROME[game];
+  const completion = stats.started > 0 ? Math.round((stats.completed / stats.started) * 100) : 0;
+
+  return (
+    <section className={cn(surfaceClass, 'flex flex-col overflow-hidden')}>
+      <header
+        className={cn(
+          'flex flex-wrap items-center justify-between gap-3 bg-linear-to-br px-4 py-4 sm:px-5',
+          chrome.wash
+        )}
+      >
+        <div className="flex min-w-0 items-center gap-3">
+          <GameAppIcon game={meta.icon} name={meta.name} size="sm" />
+          <div className="min-w-0">
+            <h3 className="truncate text-lg font-semibold tracking-tight">{meta.name}</h3>
+            <p className="truncate text-xs text-muted-foreground">{meta.subtitle}</p>
+          </div>
+        </div>
+        <div className="flex items-center gap-1.5">
+          <Button
+            render={<Link to={meta.href} />}
+            nativeButton={false}
+            size="sm"
+            className={cn(
+              'border-transparent bg-linear-to-r text-white shadow-md transition-all duration-200 hover:-translate-y-px hover:text-white hover:shadow-lg',
+              chrome.play
+            )}
+          >
+            <Play data-icon="inline-start" className="fill-white" />
+            Play
+          </Button>
+          <Button
+            render={<Link to="/puzzles" search={{ game: meta.puzzlesGame }} />}
+            nativeButton={false}
+            size="sm"
+            variant="outline"
+            className="bg-background/60"
+          >
+            <BookOpen data-icon="inline-start" />
+            Puzzles
+          </Button>
+        </div>
+      </header>
+
+      {stats.started === 0 ? (
+        <EmptyGame game={game} />
+      ) : (
+        <div className="flex flex-1 flex-col gap-5 p-4 sm:p-5">
+          <div className="grid grid-cols-3 gap-2">
+            <MiniMetric
+              label="Solved"
+              value={`${stats.completed}/${stats.started}`}
+              bar={completion}
+              barClass={HUB_GAME_ACCENT[game].gradient}
+            />
+            <MiniMetric label="Avg time" value={formatSeconds(stats.avg_time_seconds)} />
+            <MiniMetric
+              label="Avg accuracy"
+              value={formatAccuracy(stats.avg_accuracy)}
+              bar={stats.avg_accuracy ?? undefined}
+              barClass="from-emerald-500 to-teal-500"
+            />
+          </div>
+
+          <div className={cn('grid grid-cols-1 gap-5', wide && 'md:grid-cols-2')}>
+            <ListSection title="Most played" icon={<Trophy className="size-3.5" />}>
+              {stats.top_puzzles.length === 0 ? (
+                <EmptyLine>No plays yet</EmptyLine>
+              ) : (
+                <ol className="flex flex-col gap-1">
+                  {stats.top_puzzles.map((puzzle, index) => {
+                    const solved =
+                      puzzle.started > 0
+                        ? Math.round((puzzle.completed / puzzle.started) * 100)
+                        : 0;
+                    return (
+                      <li key={`${game}-top-${puzzle.puzzle_id}`}>
+                        <PuzzleLink game={game} slug={puzzle.slug}>
+                          <span
+                            className={cn(
+                              'flex size-6 shrink-0 items-center justify-center rounded-md text-xs font-bold tabular-nums',
+                              chrome.soft
+                            )}
+                          >
+                            {index + 1}
+                          </span>
+                          <span className="flex min-w-0 flex-1 flex-col gap-1">
+                            <span className="truncate font-medium">{puzzle.title}</span>
+                            <span className="h-1 overflow-hidden rounded-full bg-slate-200 dark:bg-white/10">
+                              <span
+                                className={cn(
+                                  'block h-full rounded-full bg-linear-to-r',
+                                  HUB_GAME_ACCENT[game].gradient
+                                )}
+                                style={{ width: `${solved}%` }}
+                              />
+                            </span>
+                          </span>
+                          <span className="flex shrink-0 flex-col items-end text-xs tabular-nums">
+                            <span className="font-medium">
+                              {puzzle.completed}/{puzzle.started}
+                            </span>
+                            <span className="text-muted-foreground">
+                              {formatSeconds(puzzle.best_time_seconds)}
+                            </span>
+                          </span>
+                        </PuzzleLink>
+                      </li>
+                    );
+                  })}
+                </ol>
+              )}
+            </ListSection>
+
+            <ListSection title="Recent solves" icon={<Clock3 className="size-3.5" />}>
+              {stats.recent.length === 0 ? (
+                <EmptyLine>No completions yet — finish a puzzle to see it here</EmptyLine>
+              ) : (
+                <ul className="relative flex flex-col gap-1 before:absolute before:top-3 before:bottom-3 before:left-[15px] before:w-px before:bg-slate-200 dark:before:bg-white/10">
+                  {stats.recent.map((row, index) => (
+                    <li key={`${game}-recent-${row.puzzle_id}-${index}`}>
+                      <PuzzleLink game={game} slug={row.slug}>
+                        <span className="relative flex size-6 shrink-0 items-center justify-center">
+                          <span
+                            className={cn(
+                              'size-2.5 rounded-full ring-4 ring-white dark:ring-slate-900',
+                              chrome.dot
+                            )}
+                          />
+                        </span>
+                        <span className="flex min-w-0 flex-1 flex-col">
+                          <span className="truncate font-medium">{row.title}</span>
+                          <span className="text-xs text-muted-foreground">
+                            {formatPlayedAgo(row.created_at)} · {formatSeconds(row.time_taken)}
+                          </span>
+                        </span>
+                        <span
+                          className={cn(
+                            'shrink-0 rounded-full px-2 py-0.5 text-xs font-semibold tabular-nums',
+                            accuracyTone(row.accuracy)
+                          )}
+                        >
+                          {formatAccuracy(row.accuracy)}
+                        </span>
+                      </PuzzleLink>
+                    </li>
+                  ))}
+                </ul>
+              )}
+            </ListSection>
+          </div>
+        </div>
+      )}
+    </section>
+  );
+}
+
+function MiniMetric({
+  label,
+  value,
+  bar,
+  barClass
+}: {
+  label: string;
+  value: string;
+  bar?: number;
+  barClass?: string;
+}) {
+  return (
+    <div className="flex min-w-0 flex-col gap-1.5 rounded-xl bg-slate-100/80 px-3 py-2.5 dark:bg-white/5">
+      <span className="truncate text-[11px] font-medium text-muted-foreground">{label}</span>
+      <span className="truncate text-base font-semibold tabular-nums">{value}</span>
+      {bar != null ? (
+        <span className="h-1 overflow-hidden rounded-full bg-slate-200 dark:bg-white/10">
+          <span
+            className={cn('block h-full rounded-full bg-linear-to-r', barClass)}
+            style={{ width: `${Math.max(0, Math.min(100, bar))}%` }}
+          />
+        </span>
+      ) : null}
+    </div>
+  );
+}
+
+function ListSection({
+  title,
+  icon,
+  children
+}: {
+  title: string;
+  icon: ReactNode;
+  children: ReactNode;
+}) {
+  return (
+    <div className="flex min-w-0 flex-col gap-2">
+      <p className="flex items-center gap-1.5 px-1 text-xs font-semibold tracking-wide text-muted-foreground uppercase">
+        {icon}
+        {title}
+      </p>
+      {children}
+    </div>
+  );
+}
+
+function EmptyLine({ children }: { children: ReactNode }) {
+  return (
+    <p className="rounded-xl border border-dashed border-slate-300/80 px-3 py-4 text-center text-sm text-muted-foreground dark:border-white/10">
+      {children}
+    </p>
+  );
+}
+
+function EmptyGame({ game }: { game: DashboardGameId }) {
+  const meta = HUB_GAMES[game];
+  return (
+    <div className="flex flex-1 flex-col items-center justify-center gap-3 px-6 py-10 text-center">
+      <div className="relative">
+        <div
+          aria-hidden
+          className={cn('absolute inset-0 rounded-full blur-2xl', HUB_GAME_ACCENT[game].glow)}
+        />
+        <GameAppIcon game={meta.icon} name={meta.name} size="lg" className="relative" />
+      </div>
+      <div className="flex flex-col gap-1">
+        <p className="font-semibold">No {meta.name} plays yet</p>
+        <p className="max-w-xs text-sm text-muted-foreground">{meta.description}</p>
+      </div>
+      <Button
+        render={<Link to={meta.href} />}
+        nativeButton={false}
+        size="sm"
+        className={cn(
+          'mt-1 border-transparent bg-linear-to-r text-white shadow-md hover:text-white',
+          GAME_CHROME[game].play
+        )}
+      >
+        <Play data-icon="inline-start" className="fill-white" />
+        Play your first puzzle
+      </Button>
+    </div>
+  );
+}
+
+function PuzzleLink({
   game,
   slug,
   children
@@ -405,7 +579,7 @@ function PuzzleTitleLink({
   children: ReactNode;
 }) {
   const className =
-    'flex items-center justify-between gap-3 rounded-lg px-2 py-1.5 text-sm no-underline transition-all duration-200 hover:translate-x-0.5 hover:bg-muted';
+    'flex items-center gap-3 rounded-xl px-1.5 py-2 text-sm no-underline transition-colors duration-200 hover:bg-slate-100 dark:hover:bg-white/5';
 
   if (game === 'padavali') {
     return (
@@ -424,15 +598,15 @@ function PuzzleTitleLink({
 
 function DashboardSkeleton() {
   return (
-    <div className="flex flex-col gap-6">
-      <div className="grid grid-cols-2 gap-3 sm:grid-cols-5">
-        {Array.from({ length: 5 }).map((_, index) => (
-          <Skeleton key={`dash-stat-${index}`} className="h-20 w-full rounded-xl" />
+    <div className="flex flex-col gap-5">
+      <div className="grid grid-cols-2 gap-3 md:grid-cols-4">
+        {Array.from({ length: 4 }).map((_, index) => (
+          <Skeleton key={`dash-stat-${index}`} className="h-24 w-full rounded-2xl" />
         ))}
       </div>
-      <div className="grid grid-cols-1 gap-4 md:grid-cols-2">
-        <Skeleton className="h-64 w-full rounded-xl" />
-        <Skeleton className="h-64 w-full rounded-xl" />
+      <div className="grid grid-cols-1 gap-4 lg:grid-cols-2">
+        <Skeleton className="h-80 w-full rounded-2xl" />
+        <Skeleton className="h-80 w-full rounded-2xl" />
       </div>
     </div>
   );
