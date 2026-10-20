@@ -9,10 +9,8 @@ import { motion } from 'framer-motion';
 import { FONT_INFO } from '~/state/script_font_data';
 import { useAtom } from 'jotai';
 import {
-  started_atom,
   completed_atom,
   seconds_atom,
-  found_words_atom,
   title_current_atom,
   total_attempts_atom,
   word_msgs_atom,
@@ -29,10 +27,8 @@ import { toast } from 'sonner';
 
 export const GameInfo = () => {
   const { script } = useContext(AppContext);
-  const [started] = useAtom(started_atom);
   const [completed] = useAtom(completed_atom);
   const [seconds] = useAtom(seconds_atom);
-  const [foundWords] = useAtom(found_words_atom);
   const [title] = useAtom(title_current_atom);
   const [totalAttempts] = useAtom(total_attempts_atom);
   const [wordMsgs] = useAtom(word_msgs_atom);
@@ -136,66 +132,6 @@ export const GameInfo = () => {
 
   return (
     <>
-      {/* Active game info */}
-      {started && !completed && (
-        <motion.div
-          initial={{ opacity: 0, y: 20 }}
-          animate={{ opacity: 1, y: 0 }}
-          transition={{ duration: 0.5, ease: 'easeOut' }}
-          className="min-w-36 rounded-xl border border-slate-200 bg-linear-to-r from-slate-50 to-blue-50 p-2.5 sm:rounded-2xl sm:p-5 md:p-6 lg:px-8 dark:border-slate-700 dark:from-slate-900 dark:to-blue-950"
-        >
-          <motion.div
-            initial={{ opacity: 0 }}
-            animate={{ opacity: 1 }}
-            transition={{ delay: 0.2, duration: 0.5 }}
-            className="space-y-1 text-center"
-          >
-            <motion.div
-              initial={{ opacity: 0, y: 10 }}
-              animate={{ opacity: 1, y: 0 }}
-              transition={{ delay: 0.3, duration: 0.5 }}
-              className={cn(
-                'text-lg font-semibold tracking-wide text-slate-600 sm:text-xl dark:text-slate-400',
-                font_info.className
-              )}
-            >
-              {wordMsgs.found_words}
-            </motion.div>
-            <motion.div
-              initial={{ opacity: 0, scale: 0.8 }}
-              animate={{ opacity: 1, scale: 1 }}
-              transition={{ delay: 0.4, duration: 0.5 }}
-              className="flex items-center justify-center space-x-1"
-            >
-              <span className="text-lg font-bold text-blue-600 sm:text-xl dark:text-blue-400">
-                {foundWords.length}
-              </span>
-              <span className="text-sm font-bold text-slate-400 sm:text-lg dark:text-slate-600">
-                /
-              </span>
-              <span className="text-lg font-bold text-slate-600 sm:text-xl dark:text-slate-400">
-                {wordList.length}
-              </span>
-            </motion.div>
-
-            {/* Progress Bar */}
-            <motion.div
-              initial={{ opacity: 0, scaleX: 0 }}
-              animate={{ opacity: 1, scaleX: 1 }}
-              transition={{ delay: 0.5, duration: 0.7, ease: 'easeOut' }}
-              className="h-2.5 w-full overflow-hidden rounded-full bg-slate-200 sm:h-3 dark:bg-slate-700"
-            >
-              <motion.div
-                initial={{ width: 0 }}
-                animate={{ width: `${(foundWords.length / wordList.length) * 100}%` }}
-                transition={{ duration: 0.8, ease: 'easeOut' }}
-                className="h-full rounded-full bg-linear-to-r from-blue-500 to-emerald-500"
-              />
-            </motion.div>
-          </motion.div>
-        </motion.div>
-      )}
-
       {/* Completion card — compact inline card */}
       {completed && (
         <motion.div

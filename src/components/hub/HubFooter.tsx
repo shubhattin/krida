@@ -20,7 +20,7 @@ export function HubFooter() {
         <p className="text-muted-foreground">
           <span className="font-bold text-foreground">Krida</span>
           <span className="mx-2 text-border">/</span>
-          Open-source Sanskrit games by The Sanskrit Channel
+          Sanskrit games by The Sanskrit Channel
         </p>
         <nav aria-label="Elsewhere" className="flex flex-wrap items-center gap-x-4 gap-y-2">
           {PROJECT_LINKS.map((link) => (

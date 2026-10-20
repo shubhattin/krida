@@ -5,10 +5,7 @@ import { useAtom, useAtomValue } from 'jotai';
 import { useNavigate } from '@tanstack/react-router';
 import { useQueryClient } from '@tanstack/react-query';
 import { motion } from 'framer-motion';
-import { InfoIcon } from 'lucide-react';
-import { IoShareSocialOutline } from 'react-icons/io5';
 import { toast } from 'sonner';
-import { Popover, PopoverContent, PopoverTrigger } from '~/components/ui/popover';
 // import { Switch } from '~/components/ui/switch';
 // import { Label } from '~/components/ui/label';
 import { PadajalaGrid } from './PadajalaGrid';
@@ -53,7 +50,7 @@ import {
   AlertDialogHeader,
   AlertDialogTitle
 } from '~/components/ui/alert-dialog';
-import titleStyles from '~/components/pages/puzzle/puzzle-title.module.css';
+import { PuzzleHeader, PuzzleShareButton } from '~/components/pages/puzzle/PuzzleHeader';
 
 /**
  * Experimentation flag: how players type letters into the padajala.
@@ -150,47 +147,11 @@ function PadajalaHeader({
   };
 
   return (
-    <motion.header
-      className="mb-3 flex items-center justify-center text-center sm:mb-4"
-      initial={{ opacity: 0, y: -20 }}
-      animate={{ opacity: 1, y: 0 }}
-      transition={{ duration: 0.5, ease: 'easeOut' }}
-    >
-      <h1
-        className={`inline text-2xl font-bold tracking-tight sm:text-3xl md:text-4xl ${titleStyles.titleGradient}`}
-      >
-        {puzzle.title}
-      </h1>
-      {puzzle.description.trim() ? (
-        <Popover>
-          <PopoverTrigger
-            render={<button className="mt-2 ml-3 align-middle outline-none hover:brightness-75" />}
-          >
-            <InfoIcon className="size-3 sm:size-4" />
-          </PopoverTrigger>
-          <PopoverContent
-            side="top"
-            align="center"
-            className="z-80 w-fit max-w-[calc(100vw-32px)] overflow-hidden rounded-xl border border-slate-200 bg-linear-to-r from-amber-50 to-orange-50 px-3 py-2 shadow-xl outline-none sm:max-w-md md:max-w-lg dark:border-slate-700 dark:from-teal-950/80 dark:to-green-950/80"
-          >
-            <div className="text-sm font-semibold wrap-break-word whitespace-normal text-stone-600 dark:text-stone-200">
-              {puzzle.description}
-            </div>
-          </PopoverContent>
-        </Popover>
-      ) : null}
-      {listed && puzzleSlug ? (
-        <button
-          type="button"
-          onClick={handleShare}
-          className="mt-2 ml-3 inline-flex items-center justify-center align-middle text-slate-500 outline-none hover:text-slate-700 hover:brightness-75 dark:text-slate-400 dark:hover:text-slate-200"
-          title="Share Puzzle"
-          aria-label="Share Puzzle"
-        >
-          <IoShareSocialOutline className="size-3.5 sm:size-4.5" />
-        </button>
-      ) : null}
-    </motion.header>
+    <PuzzleHeader
+      title={puzzle.title}
+      description={puzzle.description}
+      actions={listed && puzzleSlug ? <PuzzleShareButton onShare={handleShare} /> : null}
+    />
   );
 }
 
@@ -306,18 +267,13 @@ function BoardColumn({
   );
 }
 
-function MediaSidebar({ attachments, started }: { attachments?: Attachment[]; started: boolean }) {
+function MediaSidebar({ attachments }: { attachments?: Attachment[] }) {
   const hasMedia = !!(attachments && attachments.length > 0);
 
   return (
-    <div
-      className={cn(
-        'order-2 flex min-w-0 items-center justify-center lg:order-1 lg:col-span-3',
-        !started && 'lg:mt-10'
-      )}
-    >
+    <div className="order-2 flex min-w-0 items-center justify-center lg:order-1 lg:col-span-3">
       {hasMedia ? (
-        <div className="lg:sticky lg:top-6">
+        <div className="lg:sticky lg:top-20">
           <MediaAttachments attachments={attachments!} className="max-w-md lg:max-w-sm" />
         </div>
       ) : null}
@@ -327,18 +283,14 @@ function MediaSidebar({ attachments, started }: { attachments?: Attachment[]; st
 
 function ClueSidebar({
   game,
-  moreHints,
-  started,
-  completed
+  moreHints
 }: {
   game: ReturnType<typeof usePadajalaGame>;
   moreHints: ReturnType<typeof useMoreHints>;
-  started: boolean;
-  completed: boolean;
 }) {
   return (
     <div className="order-3 hidden min-w-0 lg:col-span-3 lg:block">
-      <div className={cn('lg:sticky lg:top-4', started && !completed ? 'lg:-mt-16' : 'lg:-mt-10')}>
+      <div className="lg:sticky lg:top-20">
         <CluePanel game={game} moreHints={moreHints} className="max-h-[min(70vh,36rem)]" />
       </div>
     </div>
@@ -684,7 +636,7 @@ export function PadajalaGame({
         )}
       >
         {/* Left on desktop / below grid on mobile — matches padavali order */}
-        <MediaSidebar attachments={attachments} started={started} />
+        <MediaSidebar attachments={attachments} />
 
         {/* Center: grid + keyboard + active clue + controls */}
         <BoardColumn
@@ -702,7 +654,7 @@ export function PadajalaGame({
         />
 
         {/* Desktop: clue list replaces the former game-help sidebar */}
-        <ClueSidebar game={game} moreHints={moreHints} started={started} completed={completed} />
+        <ClueSidebar game={game} moreHints={moreHints} />
       </div>
 
       {/* On-screen keyboard toggle — hidden for now

@@ -1,8 +1,8 @@
-import { createFileRoute, Link, notFound, redirect } from '@tanstack/react-router';
+import { createFileRoute, notFound, redirect } from '@tanstack/react-router';
 import { createServerFn } from '@tanstack/react-start';
-import { ArrowLeftIcon } from 'lucide-react';
 import { transliterate_node } from 'lipilekhika/node';
 import { z } from 'zod';
+import { PuzzleBackLink } from '~/components/pages/puzzle/PuzzleBackLink';
 import WordGame from '~/components/pages/padavali/WordGame/WordGameRoot';
 import { get_transliterated_word_game_msgs } from '~/components/pages/padavali/WordGame/msgs';
 import { transliterate_custom } from '~/tools/transliterator';
@@ -139,18 +139,11 @@ function PadavaliSlugRoute() {
 
   return (
     <>
-      <div className="px-4 pt-4 sm:px-6 sm:pt-5">
-        <Link
-          to="/puzzles"
-          search={{ game: 'padavali' }}
-          className="inline-flex items-center gap-2 rounded-full border border-slate-200/60 bg-white/70 px-4 py-1.5 text-sm font-medium text-slate-700 no-underline shadow-sm backdrop-blur-sm transition-all duration-200 hover:bg-white hover:shadow-md dark:border-slate-700/60 dark:bg-slate-800/70 dark:text-slate-200 dark:hover:bg-slate-800"
-        >
-          <ArrowLeftIcon className="size-4" />
-          Back to Puzzles
-        </Link>
-      </div>
+      <PuzzleBackLink game="padavali" />
       {data.kind === 'unavailable' ? (
-        <div>This puzzle is not available.</div>
+        <div className="px-4 py-8 text-center text-muted-foreground">
+          This puzzle is not available.
+        </div>
       ) : (
         <WordGame
           location="list_page"
