@@ -4,10 +4,10 @@ import type { ReactNode } from 'react';
 import { Link, useRouterState } from '@tanstack/react-router';
 import { LayoutGrid } from 'lucide-react';
 import { MenuButton } from '~/components/app-bar/AppBarMenu';
-import { UserProfileChip } from '~/components/app-bar/UserProfileChip';
+import { profileContextFromPath, UserProfileChip } from '~/components/app-bar/UserProfileChip';
 import SupportOptions from '~/components/app-bar/SupportOptions';
 import { HubNavSwitcher } from './HubNavSwitcher';
-import { HUB_GAMES, hubNavFromPath } from './hub_games';
+import { hubNavFromPath } from './hub_games';
 
 export function HubHeader({
   gameMenuItems,
@@ -18,9 +18,6 @@ export function HubHeader({
 }) {
   const pathname = useRouterState({ select: (state) => state.location.pathname });
   const active = hubNavFromPath(pathname);
-  const activeGame = active === 'padavali' || active === 'padajala' ? HUB_GAMES[active] : null;
-  const profileGame = activeGame?.kind ?? 'padavali';
-  const profileLabel = activeGame?.name ?? 'Krida';
 
   return (
     <header className="sticky top-0 z-50 border-b border-border/70 bg-background/80 backdrop-blur-md">
@@ -48,7 +45,7 @@ export function HubHeader({
 
         <div className="flex shrink-0 items-center gap-1 sm:gap-2">
           <SupportOptions />
-          <UserProfileChip game={profileGame} gameLabel={profileLabel} />
+          <UserProfileChip context={profileContextFromPath(pathname)} />
           <div className="size-8 shrink-0">
             <MenuButton showPwaControls={showPwaControls} gameMenuItems={gameMenuItems} />
           </div>
