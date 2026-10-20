@@ -614,6 +614,7 @@ export const GameGrid = ({ timerRef, original_grid_data }: Props) => {
         <RevealPathAnimator
           key={revealAnimatorKey}
           cells={revealedWord!.cells}
+          animateFrom={revealedWord!.animateFrom}
           onUpdate={handleRevealUpdate}
         />
       ) : null}
@@ -1084,9 +1085,12 @@ const generateRandomPath = (rows: number, cols: number): CellPosition[] => {
 
 const RevealPathAnimator = ({
   cells,
+  animateFrom,
   onUpdate
 }: {
   cells: CellPosition[];
+  /** Cells before this index were already revealed and appear without animation. */
+  animateFrom: number;
   onUpdate: (state: { path: CellPosition[]; handPos: CellPosition | null }) => void;
 }) => {
   useEffect(() => {
@@ -1095,7 +1099,7 @@ const RevealPathAnimator = ({
     const stepMs = 480;
 
     const animate = async () => {
-      for (let i = 0; i < cells.length; i++) {
+      for (let i = Math.min(animateFrom, cells.length - 1); i < cells.length; i++) {
         if (!isMounted) return;
         const next = cells.slice(0, i + 1);
         onUpdate({ path: next, handPos: cells[i]! });
@@ -1116,7 +1120,7 @@ const RevealPathAnimator = ({
       isMounted = false;
       clearTimeout(timeoutId);
     };
-  }, [cells, onUpdate]);
+  }, [cells, animateFrom, onUpdate]);
 
   return null;
 };
