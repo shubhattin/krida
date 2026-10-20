@@ -15,10 +15,13 @@ const [IMG_W, IMG_H] = PUZZLE_CARD_IMAGE_ASPECT_RATIO;
 
 export function HubCollectionCard({
   collection,
-  className
+  className,
+  showKindBadge = false
 }: {
   collection: ListedCollectionsType[number];
   className?: string;
+  /** Marks the card as a collection when mixed into a puzzle grid (search results). */
+  showKindBadge?: boolean;
 }) {
   const games = collectionGames(collection);
   const imageUrl = collection.image ? getCDNUrl(collection.image.s3_key) : null;
@@ -50,6 +53,15 @@ export function HubCollectionCard({
             <Layers className="size-10 text-white/70" />
           </div>
         )}
+        {showKindBadge ? (
+          <span
+            title="Collection"
+            aria-label="Collection"
+            className="absolute top-2 left-2 z-10 inline-flex size-8 items-center justify-center rounded-xl border border-indigo-200/80 bg-white/90 text-indigo-600 shadow-md backdrop-blur-sm dark:border-indigo-500/35 dark:bg-slate-950/85 dark:text-indigo-300"
+          >
+            <Layers className="size-4.5" />
+          </span>
+        ) : null}
         <div className="absolute inset-x-0 bottom-0 flex items-center justify-between gap-2 bg-linear-to-t from-black/70 to-transparent p-3 pt-8">
           <div className="flex items-center gap-1">
             {games.map((kind) => (

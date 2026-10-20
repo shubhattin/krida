@@ -53,6 +53,7 @@ import {
 import { useHubPuzzles } from './useHubPuzzles';
 import type { PublicTag } from '~/util/catalog/tags';
 import type { PublicGameKind } from '~/util/games/kinds';
+import type { ListedCollectionsType } from '~/util/cache.server/collection_cache';
 import type { PuzzlesSearch } from '~/routes/_hub/puzzles';
 
 const puzzlesRoute = getRouteApi('/_hub/puzzles');
@@ -187,7 +188,7 @@ function SearchField() {
           }
           clearTypingContextOnKeyDown(event, typingCtx);
         }}
-        placeholder="Search puzzles and collections"
+        placeholder="Search puzzles"
         aria-label="Search puzzles and collections"
       />
       <InputGroupAddon align="inline-end">
@@ -357,7 +358,14 @@ function EmptyState({ kind }: { kind: 'puzzles' | 'collections' }) {
   );
 }
 
-function PuzzlesGrid({ puzzles }: { puzzles: HubPuzzle[] }) {
+/** Puzzle results; a text search also surfaces matching collections at the top of page 1. */
+function PuzzlesGrid({
+  puzzles,
+  collections
+}: {
+  puzzles: HubPuzzle[];
+  collections: ListedCollectionsType;
+}) {
   const listRef = useRef<HTMLDivElement>(null);
   const search = puzzlesRoute.useSearch();
   const navigate = puzzlesRoute.useNavigate();
@@ -383,11 +391,22 @@ function PuzzlesGrid({ puzzles }: { puzzles: HubPuzzle[] }) {
     scrollPaginationListToStart(listRef.current);
   };
 
-  if (puzzles.length === 0) return <EmptyState kind="puzzles" />;
+  if (puzzles.length === 0 && collections.length === 0) return <EmptyState kind="puzzles" />;
 
   return (
     <>
       <div ref={listRef} className="grid grid-cols-2 gap-3 sm:gap-5 lg:grid-cols-4">
+        {safePage === 1
+          ? collections.map((collection) => (
+              <HubCollectionCard
+                key={collection.uid}
+                collection={collection}
+                showKindBadge
+                // Match the puzzle preview cards it sits beside.
+                className="rounded-xl border-slate-200 bg-white shadow-lg dark:border-slate-700 dark:bg-slate-800"
+              />
+            ))
+          : null}
         {paginated.map((puzzle) => (
           <HubPuzzleCard key={puzzle.key} puzzle={puzzle} />
         ))}
@@ -442,12 +461,26 @@ function PuzzlesGrid({ puzzles }: { puzzles: HubPuzzle[] }) {
   );
 }
 
-function resultSummary(view: PuzzlesSearch['view'], total: number, page: number | undefined) {
-  if (view === 'collections') return `${total} collection${total === 1 ? '' : 's'}`;
-  if (total <= PAGE_LIMIT) return `${total} puzzle${total === 1 ? '' : 's'}`;
-  const current = Math.min(page ?? 1, pageCountFor(total));
-  const start = (current - 1) * PAGE_LIMIT + 1;
-  return `${start}–${Math.min(current * PAGE_LIMIT, total)} of ${total}`;
+const plural = (count: number, word: string) => `${count} ${word}${count === 1 ? '' : 's'}`;
+
+function resultSummary(
+  view: PuzzlesSearch['view'],
+  puzzleTotal: number,
+  collectionTotal: number,
+  page: number | undefined
+) {
+  if (view === 'collections') return plural(collectionTotal, 'collection');
+  const puzzlePart =
+    puzzleTotal <= PAGE_LIMIT
+      ? plural(puzzleTotal, 'puzzle')
+      : (() => {
+          const current = Math.min(page ?? 1, pageCountFor(puzzleTotal));
+          const start = (current - 1) * PAGE_LIMIT + 1;
+          return `${start}–${Math.min(current * PAGE_LIMIT, puzzleTotal)} of ${puzzleTotal}`;
+        })();
+  return collectionTotal > 0
+    ? `${plural(collectionTotal, 'collection')} · ${puzzlePart}`
+    : puzzlePart;
 }
 
 /** Unified browse: every puzzle across games, filterable by game, tag, and text. */
@@ -456,17 +489,25 @@ export default function HubPuzzles({ data }: { data: HubData }) {
   const navigate = puzzlesRoute.useNavigate();
   const { script, setScript } = useContext(AppContext);
   const { puzzles, byKey } = useHubPuzzles(data);
+  const isCollections = search.view === 'collections';
+  // Collections mix games, so the game filter never applies to them (or their topics).
+  const game = isCollections ? 'all' : search.game;
   const tags = useMemo(
-    () => tagsByPopularity(filterHubPuzzles(puzzles, { game: search.game })),
-    [puzzles, search.game]
+    () => tagsByPopularity(filterHubPuzzles(puzzles, { game })),
+    [puzzles, game]
   );
   const filter = {
-    game: search.game,
+    game,
     tags: search.tag ? [search.tag] : [],
     query: search.q
   };
   const filteredPuzzles = filterHubPuzzles(puzzles, filter);
-  const filteredCollections = filterHubCollections(data.collections, byKey, filter);
+  const filteredCollections = filterHubCollections(data.collections, byKey, {
+    ...filter,
+    game: 'all'
+  });
+  // A text search in the puzzle view also surfaces matching collections.
+  const searchedCollections = !isCollections && search.q?.trim() ? filteredCollections : [];
   const gameCounts: GameCounts = useMemo(() => {
     const base = filterHubPuzzles(puzzles, {
       tags: search.tag ? [search.tag] : [],
@@ -478,7 +519,6 @@ export default function HubPuzzles({ data }: { data: HubData }) {
       padajala: base.filter((puzzle) => puzzle.game === 'padajala').length
     };
   }, [puzzles, search.tag, search.q]);
-  const isCollections = search.view === 'collections';
 
   // Collections aren't paginated — drop a leftover ?page= from puzzle view.
   useEffect(() => {
@@ -515,24 +555,26 @@ export default function HubPuzzles({ data }: { data: HubData }) {
         />
       </header>
 
-      {/* Mobile: search / script + summary / pills. Desktop: search + script / pills + summary. */}
-      <div className="grid grid-cols-[minmax(0,1fr)_auto] items-center gap-3">
-        <div className="col-span-2 sm:col-span-1">
-          <SearchField />
+      <div className="grid grid-cols-[minmax(0,1fr)_auto] items-center gap-x-2 gap-y-3 sm:gap-x-3">
+        <SearchField />
+        <ScriptSelector script={script} onScriptChange={setScript} compact />
+        <div className="col-span-2 -mx-4 flex min-w-0 scrollbar-none items-center gap-2 overflow-x-auto mask-r-from-85% px-4 sm:col-span-1 sm:mx-0 sm:flex-wrap sm:mask-none sm:px-0">
+          {isCollections ? null : (
+            <>
+              <GameFilters gameCounts={gameCounts} />
+              <span className="h-5 w-px shrink-0 bg-border" aria-hidden />
+            </>
+          )}
+          <TopicsFilter tags={tags} />
         </div>
-        <ScriptSelector script={script} onScriptChange={setScript} />
-        <p className="justify-self-end text-xs font-medium text-muted-foreground tabular-nums sm:col-start-2 sm:row-start-2">
+        <p className="hidden justify-self-end text-xs font-medium text-muted-foreground tabular-nums sm:block">
           {resultSummary(
             search.view,
-            isCollections ? filteredCollections.length : filteredPuzzles.length,
+            filteredPuzzles.length,
+            isCollections ? filteredCollections.length : searchedCollections.length,
             search.page
           )}
         </p>
-        <div className="col-span-2 -mx-4 flex min-w-0 scrollbar-none items-center gap-2 overflow-x-auto mask-r-from-85% px-4 sm:col-span-1 sm:col-start-1 sm:row-start-2 sm:mx-0 sm:flex-wrap sm:mask-none sm:px-0">
-          <GameFilters gameCounts={gameCounts} />
-          <span className="h-5 w-px shrink-0 bg-border" aria-hidden />
-          <TopicsFilter tags={tags} />
-        </div>
       </div>
 
       {isCollections ? (
@@ -546,7 +588,7 @@ export default function HubPuzzles({ data }: { data: HubData }) {
           </div>
         )
       ) : (
-        <PuzzlesGrid puzzles={filteredPuzzles} />
+        <PuzzlesGrid puzzles={filteredPuzzles} collections={searchedCollections} />
       )}
     </div>
   );

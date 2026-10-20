@@ -172,7 +172,7 @@ function RecentlyAdded({ puzzles }: { puzzles: ReturnType<typeof useHubPuzzles>[
           </button>
         ))}
         <div className="ml-auto">
-          <ScriptSelector script={script} onScriptChange={setScript} />
+          <ScriptSelector script={script} onScriptChange={setScript} compact />
         </div>
       </div>
       {visible.length === 0 ? (
