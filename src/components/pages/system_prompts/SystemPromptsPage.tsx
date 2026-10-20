@@ -76,8 +76,7 @@ export function SystemPromptsPage() {
   /** Accordion open values; everything collapsed by default. */
   const [open_items, setOpenItems] = useState<string[]>([]);
   const [highlighted_id, setHighlightedId] = useState<string | null>(() => {
-    const match =
-      typeof window !== 'undefined' ? window.location.hash.match(/^#template-(\d+)$/) : null;
+    const match = import.meta.env.SSR ? null : window.location.hash.match(/^#template-(\d+)$/);
     return match ? `template-${match[1]}` : null;
   });
 

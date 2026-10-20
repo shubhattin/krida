@@ -23,7 +23,7 @@ export function PromptMarkdownEditor({
 }) {
   const { theme } = useTheme();
   const [system_dark, set_system_dark] = useState(
-    () => typeof window !== 'undefined' && window.matchMedia('(prefers-color-scheme: dark)').matches
+    () => !import.meta.env.SSR && window.matchMedia('(prefers-color-scheme: dark)').matches
   );
 
   useEffect(() => {
