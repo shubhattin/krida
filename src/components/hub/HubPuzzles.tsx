@@ -1,9 +1,18 @@
 'use client';
 
-import { useContext, useEffect, useMemo, useRef, useState } from 'react';
+import { useContext, useEffect, useMemo, useRef, useState, type ReactNode } from 'react';
 import { getRouteApi } from '@tanstack/react-router';
 import { Image } from '@unpic/react';
-import { LayoutGrid as LayoutGridIcon, SearchIcon, TagIcon, XIcon } from 'lucide-react';
+import {
+  ChevronDownIcon,
+  Layers as LayersIcon,
+  LayoutGrid as LayoutGridIcon,
+  Puzzle as PuzzleIcon,
+  SearchIcon,
+  SearchXIcon,
+  TagIcon,
+  XIcon
+} from 'lucide-react';
 import {
   createTypingContext,
   clearTypingContextOnKeyDown,
@@ -11,15 +20,9 @@ import {
 } from 'lipilekhika/typing';
 import { AppContext } from '~/components/AppDataContext';
 import { ScriptSelector } from '~/components/pages/padavali/ScriptSelector';
-import { BrowseModeSwitch } from '~/components/pages/catalog/PublicCatalog';
 import { Button } from '~/components/ui/button';
 import { Input } from '~/components/ui/input';
-import {
-  InputGroup,
-  InputGroupAddon,
-  InputGroupButton,
-  InputGroupInput
-} from '~/components/ui/input-group';
+import { InputGroup, InputGroupAddon, InputGroupInput } from '~/components/ui/input-group';
 import { Label } from '~/components/ui/label';
 import { Popover, PopoverContent, PopoverTrigger } from '~/components/ui/popover';
 import { Switch } from '~/components/ui/switch';
@@ -50,19 +53,36 @@ import {
 import { useHubPuzzles } from './useHubPuzzles';
 import type { PublicTag } from '~/util/catalog/tags';
 import type { PublicGameKind } from '~/util/games/kinds';
-import type { ListedCollectionsType } from '~/util/cache.server/collection_cache';
+import type { PuzzlesSearch } from '~/routes/_hub/puzzles';
 
 const puzzlesRoute = getRouteApi('/_hub/puzzles');
 const PAGE_LIMIT = 12;
 
 // TODO: add dvayi/bhramita/surupa/anveshi once those games ship on /puzzles.
 const GAME_FILTERS: { value: 'all' | PublicGameKind; label: string }[] = [
-  { value: 'all', label: 'All games' },
+  { value: 'all', label: 'All' },
   { value: 'padavali', label: HUB_GAMES.padavali.name },
   { value: 'padajala', label: HUB_GAMES.padajala.name }
 ];
 
+const VIEW_TABS = [
+  { value: 'puzzles', label: 'Puzzles', icon: PuzzleIcon },
+  { value: 'collections', label: 'Collections', icon: LayersIcon }
+] as const;
+
 type GameCounts = Record<'all' | PublicGameKind, number>;
+type CountedTag = PublicTag & { count: number };
+
+/** Any filter change resets pagination back to page 1. */
+function useUpdateFilters() {
+  const navigate = puzzlesRoute.useNavigate();
+  return (patch: Partial<PuzzlesSearch>, replace = false) =>
+    void navigate({ search: (prev) => ({ ...prev, ...patch, page: undefined }), replace });
+}
+
+function pageCountFor(total: number) {
+  return Math.max(1, Math.ceil(total / PAGE_LIMIT));
+}
 
 /** Page 1 stays out of the URL; higher pages use `?page=N`. */
 function pageSearchValue(page: number): number | undefined {
@@ -83,32 +103,277 @@ function getVisiblePages(current: number, total: number): (number | 'ellipsis')[
   return result;
 }
 
+const PILL_CLASS =
+  'inline-flex h-8 shrink-0 items-center gap-1.5 rounded-full border px-3 text-xs font-semibold transition-colors focus-visible:ring-2 focus-visible:ring-indigo-400/70 focus-visible:outline-none';
+const PILL_IDLE =
+  'border-slate-200 bg-white/70 text-slate-600 hover:border-slate-300 hover:bg-white dark:border-slate-700 dark:bg-slate-900/60 dark:text-slate-300 dark:hover:border-slate-600';
+const PILL_ACTIVE =
+  'border-slate-900 bg-slate-900 text-white dark:border-white dark:bg-white dark:text-slate-900';
+
+function PillCount({ children }: { children: ReactNode }) {
+  return <span className="tabular-nums opacity-60">{children}</span>;
+}
+
+function ViewTabs({
+  view,
+  counts
+}: {
+  view: PuzzlesSearch['view'];
+  counts: Record<PuzzlesSearch['view'], number>;
+}) {
+  const updateFilters = useUpdateFilters();
+  return (
+    <div
+      role="tablist"
+      aria-label="Browse puzzles or collections"
+      className="grid grid-cols-2 rounded-full border border-border/70 bg-muted/60 p-1 sm:inline-grid"
+    >
+      {VIEW_TABS.map(({ value, label, icon: TabIcon }) => {
+        const active = view === value;
+        return (
+          <button
+            key={value}
+            type="button"
+            role="tab"
+            aria-selected={active}
+            onClick={() => updateFilters({ view: value })}
+            className={cn(
+              'inline-flex h-8 items-center justify-center gap-1.5 rounded-full px-4 text-sm font-medium transition-colors focus-visible:ring-2 focus-visible:ring-indigo-400/70 focus-visible:outline-none',
+              active
+                ? 'bg-background text-foreground shadow-sm'
+                : 'text-muted-foreground hover:text-foreground'
+            )}
+          >
+            <TabIcon className="size-3.5" aria-hidden />
+            {label}
+            <span className="text-xs text-muted-foreground tabular-nums">{counts[value]}</span>
+          </button>
+        );
+      })}
+    </div>
+  );
+}
+
+function SearchField() {
+  const search = puzzlesRoute.useSearch();
+  const updateFilters = useUpdateFilters();
+  const { script } = useContext(AppContext);
+  const [lipiLekhikaTyping, setLipiLekhikaTyping] = useState(false);
+  const typingCtx = useMemo(() => createTypingContext(script!), [script]);
+
+  useEffect(() => {
+    void typingCtx.ready;
+  }, [typingCtx]);
+
+  const setQuery = (value: string) => updateFilters({ q: value || undefined }, true);
+
+  return (
+    <InputGroup className="h-10 rounded-xl bg-background shadow-xs">
+      <InputGroupAddon>
+        <SearchIcon />
+      </InputGroupAddon>
+      <InputGroupInput
+        value={search.q ?? ''}
+        onChange={(event) => setQuery(event.currentTarget.value)}
+        onBeforeInput={(event) =>
+          handleTypingBeforeInputEvent(typingCtx, event, setQuery, lipiLekhikaTyping)
+        }
+        onBlur={() => typingCtx.clearContext()}
+        onKeyDown={(event) => {
+          if (event.altKey && ['x', 'c'].includes(event.key.toLowerCase())) {
+            event.preventDefault();
+            setLipiLekhikaTyping((prev) => !prev);
+            return;
+          }
+          clearTypingContextOnKeyDown(event, typingCtx);
+        }}
+        placeholder="Search puzzles and collections"
+        aria-label="Search puzzles and collections"
+      />
+      <InputGroupAddon align="inline-end">
+        <Label
+          className="flex cursor-pointer items-center gap-1.5 rounded-md px-1.5 py-1 hover:bg-muted"
+          title="Lipi Lekhika typing (Alt+X)"
+        >
+          <Icon src={LanguageIcon} className="size-5" />
+          <Switch
+            size="sm"
+            checked={lipiLekhikaTyping}
+            onCheckedChange={setLipiLekhikaTyping}
+            aria-label="Enable Lipi Lekhika typing in search"
+          />
+        </Label>
+      </InputGroupAddon>
+    </InputGroup>
+  );
+}
+
+function GameFilters({ gameCounts }: { gameCounts: GameCounts }) {
+  const search = puzzlesRoute.useSearch();
+  const updateFilters = useUpdateFilters();
+
+  return (
+    <div role="group" aria-label="Filter by game" className="flex gap-2">
+      {GAME_FILTERS.map((option) => {
+        const active = search.game === option.value;
+        return (
+          <button
+            key={option.value}
+            type="button"
+            aria-pressed={active}
+            onClick={() => updateFilters({ game: option.value })}
+            className={cn(PILL_CLASS, active ? PILL_ACTIVE : PILL_IDLE)}
+          >
+            {option.value === 'all' ? (
+              <LayoutGridIcon className="size-3.5" aria-hidden />
+            ) : (
+              <Image
+                src={GAME_APP_ICON_SRC[HUB_GAMES[option.value].icon]}
+                alt=""
+                width={14}
+                height={14}
+                className="size-3.5"
+              />
+            )}
+            {option.label}
+            <PillCount>{gameCounts[option.value]}</PillCount>
+          </button>
+        );
+      })}
+    </div>
+  );
+}
+
+function TopicsFilter({ tags }: { tags: CountedTag[] }) {
+  const search = puzzlesRoute.useSearch();
+  const updateFilters = useUpdateFilters();
+  const [query, setQuery] = useState('');
+  const [open, setOpen] = useState(false);
+  const selected = search.tag;
+  const visible = useMemo(() => {
+    const trimmed = query.trim().toLowerCase();
+    if (!trimmed) return tags;
+    return tags.filter((tag) => tag.slug.includes(trimmed));
+  }, [query, tags]);
+
+  if (tags.length === 0) return null;
+
+  const setTag = (slug: string | undefined) => {
+    updateFilters({ tag: slug });
+    setOpen(false);
+  };
+
+  return (
+    <div className="flex shrink-0 items-center gap-1">
+      <Popover open={open} onOpenChange={setOpen}>
+        <PopoverTrigger
+          render={
+            <button
+              type="button"
+              className={cn(
+                PILL_CLASS,
+                selected
+                  ? 'border-indigo-300 bg-indigo-50 text-indigo-800 dark:border-indigo-500/40 dark:bg-indigo-950/50 dark:text-indigo-200'
+                  : PILL_IDLE
+              )}
+            />
+          }
+        >
+          <TagIcon className="size-3.5" aria-hidden />
+          {selected ?? 'Topics'}
+          <ChevronDownIcon className="size-3.5 opacity-60" aria-hidden />
+        </PopoverTrigger>
+        <PopoverContent className="w-64 p-2" align="start">
+          <div className="relative">
+            <SearchIcon className="pointer-events-none absolute top-2 left-2 size-3.5 text-muted-foreground" />
+            <Input
+              value={query}
+              onChange={(event) => setQuery(event.currentTarget.value)}
+              placeholder="Search topics"
+              className="h-8 pl-7 text-sm"
+              aria-label="Search topics"
+            />
+          </div>
+          <div className="mt-2 flex max-h-64 flex-col gap-0.5 overflow-y-auto">
+            {visible.map((tag) => {
+              const active = selected === tag.slug;
+              return (
+                <button
+                  key={tag.id}
+                  type="button"
+                  aria-pressed={active}
+                  onClick={() => setTag(active ? undefined : tag.slug)}
+                  className={cn(
+                    'flex w-full items-center justify-between rounded-md px-2 py-1.5 text-left text-sm',
+                    active ? 'bg-primary/15 text-foreground' : 'hover:bg-muted'
+                  )}
+                >
+                  <span className="min-w-0 truncate">{tag.slug}</span>
+                  <span className="text-[11px] font-semibold text-muted-foreground tabular-nums">
+                    {tag.count}
+                  </span>
+                </button>
+              );
+            })}
+            {visible.length === 0 ? (
+              <p className="px-2 py-2 text-xs text-muted-foreground">No matching topics</p>
+            ) : null}
+          </div>
+        </PopoverContent>
+      </Popover>
+      {selected ? (
+        <button
+          type="button"
+          onClick={() => setTag(undefined)}
+          aria-label={`Clear topic ${selected}`}
+          className="flex size-7 items-center justify-center rounded-full text-muted-foreground transition-colors hover:bg-muted hover:text-foreground"
+        >
+          <XIcon className="size-3.5" />
+        </button>
+      ) : null}
+    </div>
+  );
+}
+
+function EmptyState({ kind }: { kind: 'puzzles' | 'collections' }) {
+  const updateFilters = useUpdateFilters();
+  return (
+    <div className="flex flex-col items-center gap-3 rounded-2xl border border-dashed border-border px-4 py-16 text-center">
+      <SearchXIcon className="size-8 text-muted-foreground/60" aria-hidden />
+      <div className="flex flex-col gap-1">
+        <p className="font-semibold">No {kind} found</p>
+        <p className="text-sm text-muted-foreground">
+          Try a different search, or clear the filters to see everything.
+        </p>
+      </div>
+      <Button
+        variant="outline"
+        size="sm"
+        onClick={() => updateFilters({ game: 'all', tag: undefined, q: undefined })}
+      >
+        Clear filters
+      </Button>
+    </div>
+  );
+}
+
 function PuzzlesGrid({ puzzles }: { puzzles: HubPuzzle[] }) {
   const listRef = useRef<HTMLDivElement>(null);
   const search = puzzlesRoute.useSearch();
   const navigate = puzzlesRoute.useNavigate();
-  const pageCount = Math.max(1, Math.ceil(puzzles.length / PAGE_LIMIT));
+  const pageCount = pageCountFor(puzzles.length);
   const requestedPage = search.page ?? 1;
   const safePage = Math.min(requestedPage, pageCount);
   const paginated = puzzles.slice((safePage - 1) * PAGE_LIMIT, safePage * PAGE_LIMIT);
 
   // Clamp out-of-range ?page= into a valid page (or drop it on page 1).
   useEffect(() => {
-    if (puzzles.length === 0) {
-      if (search.page != null) {
-        void navigate({
-          search: (prev) => ({ ...prev, page: undefined }),
-          replace: true
-        });
-      }
-      return;
-    }
-    if (requestedPage === safePage && (safePage > 1 || search.page == null)) return;
+    if (search.page === pageSearchValue(safePage)) return;
     void navigate({
       search: (prev) => ({ ...prev, page: pageSearchValue(safePage) }),
       replace: true
     });
-  }, [navigate, puzzles.length, requestedPage, safePage, search.page]);
+  }, [navigate, safePage, search.page]);
 
   const goToPage = (next: number) => {
     const clamped = Math.min(Math.max(1, next), pageCount);
@@ -118,22 +383,17 @@ function PuzzlesGrid({ puzzles }: { puzzles: HubPuzzle[] }) {
     scrollPaginationListToStart(listRef.current);
   };
 
-  if (puzzles.length === 0) {
-    return <p className="py-12 text-center text-slate-500">No puzzles match your filters.</p>;
-  }
+  if (puzzles.length === 0) return <EmptyState kind="puzzles" />;
 
   return (
     <>
-      <p className="text-xs font-medium text-slate-500">
-        {puzzles.length} puzzle{puzzles.length === 1 ? '' : 's'}
-      </p>
-      <div ref={listRef} className="grid grid-cols-2 gap-3 sm:gap-4 lg:grid-cols-4">
+      <div ref={listRef} className="grid grid-cols-2 gap-3 sm:gap-5 lg:grid-cols-4">
         {paginated.map((puzzle) => (
           <HubPuzzleCard key={puzzle.key} puzzle={puzzle} />
         ))}
       </div>
       {pageCount > 1 ? (
-        <Pagination>
+        <Pagination className="pt-2">
           <PaginationContent>
             <PaginationItem>
               <PaginationPrevious
@@ -182,315 +442,19 @@ function PuzzlesGrid({ puzzles }: { puzzles: HubPuzzle[] }) {
   );
 }
 
-function TopicsFilter({
-  tags,
-  selected,
-  onSelect
-}: {
-  tags: (PublicTag & { count: number })[];
-  selected: string | undefined;
-  onSelect: (slug: string | undefined) => void;
-}) {
-  const [query, setQuery] = useState('');
-  const [open, setOpen] = useState(false);
-  const visible = useMemo(() => {
-    const trimmed = query.trim().toLowerCase();
-    if (!trimmed) return tags;
-    return tags.filter((tag) => tag.slug.includes(trimmed));
-  }, [query, tags]);
-
-  if (tags.length === 0) return null;
-
-  return (
-    <Popover open={open} onOpenChange={setOpen}>
-      <PopoverTrigger
-        render={
-          <InputGroupButton
-            type="button"
-            variant={selected ? 'secondary' : 'ghost'}
-            aria-label={selected ? 'Topics, 1 selected' : 'Topics'}
-          />
-        }
-      >
-        <TagIcon />
-        <span className="hidden sm:inline">Topics</span>
-        {selected ? (
-          <span className="rounded-full bg-primary/15 px-1.5 text-[11px] font-semibold">1</span>
-        ) : null}
-      </PopoverTrigger>
-      <PopoverContent className="w-64 p-2" align="end">
-        <div className="relative">
-          <SearchIcon className="pointer-events-none absolute top-2 left-2 size-3.5 text-muted-foreground" />
-          <Input
-            value={query}
-            onChange={(event) => setQuery(event.currentTarget.value)}
-            placeholder="Search topics"
-            className="h-8 pl-7 text-sm"
-            aria-label="Search topics"
-          />
-        </div>
-        <div className="mt-2 flex max-h-56 flex-col gap-0.5 overflow-y-auto">
-          {visible.map((tag) => {
-            const active = selected === tag.slug;
-            return (
-              <button
-                key={tag.id}
-                type="button"
-                aria-pressed={active}
-                onClick={() => {
-                  onSelect(active ? undefined : tag.slug);
-                  setOpen(false);
-                }}
-                className={cn(
-                  'flex w-full items-center justify-between rounded-md px-2 py-1.5 text-left text-sm',
-                  active ? 'bg-primary/15 text-foreground' : 'hover:bg-muted'
-                )}
-              >
-                <span className="min-w-0 truncate">{tag.slug}</span>
-                <span className="text-[11px] font-semibold text-muted-foreground tabular-nums">
-                  {tag.count}
-                </span>
-              </button>
-            );
-          })}
-          {visible.length === 0 ? (
-            <p className="px-2 py-2 text-xs text-muted-foreground">No matching topics</p>
-          ) : null}
-        </div>
-        {selected ? (
-          <Button
-            type="button"
-            variant="ghost"
-            size="sm"
-            className="mt-1"
-            onClick={() => onSelect(undefined)}
-          >
-            Clear
-          </Button>
-        ) : null}
-      </PopoverContent>
-    </Popover>
-  );
-}
-
-function GameFilterSwitch({ gameCounts }: { gameCounts: GameCounts }) {
-  const search = puzzlesRoute.useSearch();
-  const navigate = puzzlesRoute.useNavigate();
-
-  return (
-    <div
-      role="tablist"
-      aria-label="Filter by game"
-      className="inline-flex max-w-full items-center rounded-lg border border-border/70 bg-muted/40 p-0.5"
-    >
-      {GAME_FILTERS.map((option) => {
-        const active = search.game === option.value;
-        const count = gameCounts[option.value];
-        const gameIcon =
-          option.value === 'all' ? null : GAME_APP_ICON_SRC[HUB_GAMES[option.value].icon];
-        return (
-          <Button
-            key={option.value}
-            size="sm"
-            role="tab"
-            variant={active ? 'secondary' : 'ghost'}
-            aria-selected={active}
-            aria-pressed={active}
-            onClick={() =>
-              void navigate({
-                search: (prev) => ({ ...prev, game: option.value, page: undefined })
-              })
-            }
-            className={cn('shrink-0', active && 'shadow-xs')}
-          >
-            {option.value === 'all' ? (
-              <LayoutGridIcon className="size-3.5 shrink-0" aria-hidden />
-            ) : gameIcon ? (
-              <Image src={gameIcon} alt="" width={14} height={14} className="size-3.5 shrink-0" />
-            ) : null}
-            {option.label}
-            <span
-              className={cn(
-                'rounded-full px-1.5 text-[11px] font-semibold tabular-nums',
-                active ? 'bg-primary/15 text-foreground' : 'text-muted-foreground'
-              )}
-            >
-              {count}
-            </span>
-          </Button>
-        );
-      })}
-    </div>
-  );
-}
-
-function PuzzlesFilterBar({
-  tags,
-  puzzleCount,
-  collectionCount,
-  gameCounts
-}: {
-  tags: (PublicTag & { count: number })[];
-  puzzleCount: number;
-  collectionCount: number;
-  gameCounts: GameCounts;
-}) {
-  const search = puzzlesRoute.useSearch();
-  const navigate = puzzlesRoute.useNavigate();
-  const { script, setScript } = useContext(AppContext);
-  const [lipiLekhikaTyping, setLipiLekhikaTyping] = useState(false);
-  const typingCtx = useMemo(() => createTypingContext(script!), [script]);
-  const selectedTag = tags.find((tag) => tag.slug === search.tag);
-
-  useEffect(() => {
-    void typingCtx.ready;
-  }, [typingCtx]);
-
-  const setTag = (slug: string | undefined) => {
-    void navigate({
-      search: (prev) => ({ ...prev, tag: slug, page: undefined })
-    });
-  };
-
-  const setView = (view: 'puzzles' | 'collections') => {
-    void navigate({ search: (prev) => ({ ...prev, view, page: undefined }) });
-  };
-
-  return (
-    <div className="sticky top-16 z-40 -mx-4 border-y border-border/70 bg-background/90 px-4 py-2.5 backdrop-blur-md sm:py-3">
-      <div className="flex flex-col gap-2.5">
-        <InputGroup className="w-full">
-          <InputGroupAddon>
-            <SearchIcon />
-          </InputGroupAddon>
-          <InputGroupInput
-            value={search.q ?? ''}
-            onChange={(event) =>
-              void navigate({
-                search: (prev) => ({
-                  ...prev,
-                  q: event.currentTarget.value || undefined,
-                  page: undefined
-                }),
-                replace: true
-              })
-            }
-            onBeforeInput={(event) =>
-              handleTypingBeforeInputEvent(
-                typingCtx,
-                event,
-                (newValue) =>
-                  void navigate({
-                    search: (prev) => ({
-                      ...prev,
-                      q: newValue || undefined,
-                      page: undefined
-                    }),
-                    replace: true
-                  }),
-                lipiLekhikaTyping
-              )
-            }
-            onBlur={() => typingCtx.clearContext()}
-            onKeyDown={(event) => {
-              if (
-                event.altKey &&
-                (event.key === 'x' || event.key === 'X' || event.key === 'c' || event.key === 'C')
-              ) {
-                event.preventDefault();
-                setLipiLekhikaTyping((prev) => !prev);
-                return;
-              }
-              clearTypingContextOnKeyDown(event, typingCtx);
-            }}
-            placeholder="Search puzzles or collections"
-            aria-label="Search puzzles"
-          />
-          <InputGroupAddon align="inline-end">
-            <TopicsFilter tags={tags} selected={search.tag} onSelect={setTag} />
-          </InputGroupAddon>
-        </InputGroup>
-
-        <div className="flex items-center justify-center gap-3 sm:hidden">
-          <Label className="inline-flex shrink-0 items-center gap-2 font-medium">
-            <Switch
-              checked={lipiLekhikaTyping}
-              onCheckedChange={setLipiLekhikaTyping}
-              aria-label="Enable Lipi Lekhika typing in search"
-            />
-            <Icon src={LanguageIcon} className="size-6.5" />
-          </Label>
-          <ScriptSelector script={script} onScriptChange={setScript} />
-        </div>
-
-        <div className="flex justify-center sm:hidden">
-          <BrowseModeSwitch
-            mode={search.view}
-            onChange={setView}
-            puzzleCount={puzzleCount}
-            collectionCount={collectionCount}
-          />
-        </div>
-
-        <div className="hidden items-center gap-2 sm:flex">
-          <div className="min-w-0 flex-1">
-            <BrowseModeSwitch
-              mode={search.view}
-              onChange={setView}
-              puzzleCount={puzzleCount}
-              collectionCount={collectionCount}
-            />
-          </div>
-          <Label className="inline-flex shrink-0 items-center gap-2 font-medium">
-            <Switch
-              checked={lipiLekhikaTyping}
-              onCheckedChange={setLipiLekhikaTyping}
-              aria-label="Enable Lipi Lekhika typing in search"
-            />
-            <Icon src={LanguageIcon} className="size-6.5" />
-          </Label>
-          <ScriptSelector script={script} onScriptChange={setScript} />
-        </div>
-
-        <div className="flex justify-center sm:justify-start">
-          <GameFilterSwitch gameCounts={gameCounts} />
-        </div>
-
-        {selectedTag ? (
-          <div className="flex items-center">
-            <button
-              type="button"
-              onClick={() => setTag(undefined)}
-              className="inline-flex items-center gap-1 rounded-full border border-indigo-300 bg-indigo-50 px-2.5 py-1 text-xs font-medium text-indigo-800 dark:border-indigo-500/40 dark:bg-indigo-950/50 dark:text-indigo-200"
-              aria-label={`Clear topic ${selectedTag.slug}`}
-            >
-              {selectedTag.slug}
-              <XIcon className="size-3" />
-            </button>
-          </div>
-        ) : null}
-      </div>
-    </div>
-  );
-}
-
-function PuzzlesCollections({ collections }: { collections: ListedCollectionsType }) {
-  if (collections.length === 0) {
-    return <p className="py-12 text-center text-slate-500">No collections match your filters.</p>;
-  }
-  return (
-    <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
-      {collections.map((collection) => (
-        <HubCollectionCard key={collection.uid} collection={collection} />
-      ))}
-    </div>
-  );
+function resultSummary(view: PuzzlesSearch['view'], total: number, page: number | undefined) {
+  if (view === 'collections') return `${total} collection${total === 1 ? '' : 's'}`;
+  if (total <= PAGE_LIMIT) return `${total} puzzle${total === 1 ? '' : 's'}`;
+  const current = Math.min(page ?? 1, pageCountFor(total));
+  const start = (current - 1) * PAGE_LIMIT + 1;
+  return `${start}–${Math.min(current * PAGE_LIMIT, total)} of ${total}`;
 }
 
 /** Unified browse: every puzzle across games, filterable by game, tag, and text. */
 export default function HubPuzzles({ data }: { data: HubData }) {
   const search = puzzlesRoute.useSearch();
   const navigate = puzzlesRoute.useNavigate();
+  const { script, setScript } = useContext(AppContext);
   const { puzzles, byKey } = useHubPuzzles(data);
   const tags = useMemo(
     () => tagsByPopularity(filterHubPuzzles(puzzles, { game: search.game })),
@@ -503,61 +467,84 @@ export default function HubPuzzles({ data }: { data: HubData }) {
   };
   const filteredPuzzles = filterHubPuzzles(puzzles, filter);
   const filteredCollections = filterHubCollections(data.collections, byKey, filter);
-  const baseFilter = { tags: search.tag ? [search.tag] : [], query: search.q };
+  const gameCounts: GameCounts = useMemo(() => {
+    const base = filterHubPuzzles(puzzles, {
+      tags: search.tag ? [search.tag] : [],
+      query: search.q
+    });
+    return {
+      all: base.length,
+      padavali: base.filter((puzzle) => puzzle.game === 'padavali').length,
+      padajala: base.filter((puzzle) => puzzle.game === 'padajala').length
+    };
+  }, [puzzles, search.tag, search.q]);
+  const isCollections = search.view === 'collections';
 
   // Collections aren't paginated — drop a leftover ?page= from puzzle view.
   useEffect(() => {
-    if (search.view === 'collections' && search.page != null) {
-      void navigate({
-        search: (prev) => ({ ...prev, page: undefined }),
-        replace: true
-      });
+    if (isCollections && search.page != null) {
+      void navigate({ search: (prev) => ({ ...prev, page: undefined }), replace: true });
     }
-  }, [navigate, search.page, search.view]);
+  }, [navigate, isCollections, search.page]);
 
   // Drop a tag that isn't used by any listed puzzle of the selected game.
   useEffect(() => {
-    if (!search.tag) return;
-    if (tags.some((tag) => tag.slug === search.tag)) return;
+    if (!search.tag || tags.some((tag) => tag.slug === search.tag)) return;
     void navigate({
       search: (prev) => ({ ...prev, tag: undefined, page: undefined }),
       replace: true
     });
   }, [navigate, search.tag, tags]);
-  const basePuzzles = useMemo(
-    () => filterHubPuzzles(puzzles, baseFilter),
-    // oxlint-disable-next-line exhaustive-deps
-    [puzzles, search.tag, search.q]
-  );
-  const gameCounts: GameCounts = useMemo(
-    () => ({
-      all: basePuzzles.length,
-      padavali: basePuzzles.filter((puzzle) => puzzle.game === 'padavali').length,
-      padajala: basePuzzles.filter((puzzle) => puzzle.game === 'padajala').length
-    }),
-    [basePuzzles]
-  );
 
   return (
-    <div className="mx-auto flex max-w-6xl flex-col gap-4 px-4 py-5 sm:gap-6 sm:py-8">
-      <div className="flex flex-col gap-1">
-        <h1 className="text-2xl font-black tracking-tight text-slate-900 sm:text-3xl dark:text-slate-50">
-          Puzzles
-        </h1>
-        <p className="hidden text-sm text-slate-500 sm:block dark:text-slate-400">
-          Every listed puzzle across both games — or switch to curated collections.
+    <div className="mx-auto flex max-w-6xl flex-col gap-6 px-4 py-6 sm:gap-8 sm:py-10">
+      <header className="flex flex-col gap-4 sm:flex-row sm:items-end sm:justify-between">
+        <div className="flex flex-col gap-1.5">
+          <h1 className="text-3xl font-black tracking-tight text-slate-900 sm:text-4xl dark:text-slate-50">
+            {isCollections ? 'Collections' : 'Puzzles'}
+          </h1>
+          <p className="text-sm text-slate-500 sm:text-base dark:text-slate-400">
+            {isCollections
+              ? 'Curated playlists that mix puzzles from every game.'
+              : `Every listed puzzle from ${HUB_GAMES.padavali.name} and ${HUB_GAMES.padajala.name}.`}
+          </p>
+        </div>
+        <ViewTabs
+          view={search.view}
+          counts={{ puzzles: filteredPuzzles.length, collections: filteredCollections.length }}
+        />
+      </header>
+
+      {/* Mobile: search / script + summary / pills. Desktop: search + script / pills + summary. */}
+      <div className="grid grid-cols-[minmax(0,1fr)_auto] items-center gap-3">
+        <div className="col-span-2 sm:col-span-1">
+          <SearchField />
+        </div>
+        <ScriptSelector script={script} onScriptChange={setScript} />
+        <p className="justify-self-end text-xs font-medium text-muted-foreground tabular-nums sm:col-start-2 sm:row-start-2">
+          {resultSummary(
+            search.view,
+            isCollections ? filteredCollections.length : filteredPuzzles.length,
+            search.page
+          )}
         </p>
+        <div className="col-span-2 -mx-4 flex min-w-0 scrollbar-none items-center gap-2 overflow-x-auto mask-r-from-85% px-4 sm:col-span-1 sm:col-start-1 sm:row-start-2 sm:mx-0 sm:flex-wrap sm:mask-none sm:px-0">
+          <GameFilters gameCounts={gameCounts} />
+          <span className="h-5 w-px shrink-0 bg-border" aria-hidden />
+          <TopicsFilter tags={tags} />
+        </div>
       </div>
 
-      <PuzzlesFilterBar
-        tags={tags}
-        puzzleCount={filteredPuzzles.length}
-        collectionCount={filteredCollections.length}
-        gameCounts={gameCounts}
-      />
-
-      {search.view === 'collections' ? (
-        <PuzzlesCollections collections={filteredCollections} />
+      {isCollections ? (
+        filteredCollections.length === 0 ? (
+          <EmptyState kind="collections" />
+        ) : (
+          <div className="grid gap-4 sm:grid-cols-2 sm:gap-5 lg:grid-cols-3">
+            {filteredCollections.map((collection) => (
+              <HubCollectionCard key={collection.uid} collection={collection} />
+            ))}
+          </div>
+        )
       ) : (
         <PuzzlesGrid puzzles={filteredPuzzles} />
       )}
