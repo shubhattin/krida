@@ -14,8 +14,6 @@ import { AIWordExplanations } from './AIWordExplanations';
 import { createStore, Provider, useAtom, useSetAtom } from 'jotai';
 import { ScriptSelector } from '~/components/pages/padavali/ScriptSelector';
 import { cn } from '~/lib/utils';
-import Icon from '~/tools/Icon';
-import { LanguageIcon } from '~/components/icons';
 import { Eye, Sparkles, Timer } from 'lucide-react';
 import { copy_text_to_clipboard } from '~/tools/kry';
 import { toast } from 'sonner';
@@ -369,7 +367,8 @@ function WordGameHeader({
   fontInfo,
   listed,
   onShare,
-  hint
+  hint,
+  showBackLink
 }: {
   title: string;
   description: string | null;
@@ -379,22 +378,21 @@ function WordGameHeader({
   listed: boolean;
   onShare: () => Promise<void> | void;
   hint: React.ReactNode;
+  showBackLink: boolean;
 }) {
   return (
     <PuzzleHeader
       title={title}
       description={description}
       fontClassName={fontInfo.className}
-      actions={
+      backToGame={showBackLink ? 'padavali' : undefined}
+      toolbar={
         <>
-          {hint}
-          <div className="flex items-center gap-1.5">
-            <Icon className="hidden size-5 sm:block" src={LanguageIcon} />
-            <ScriptSelector script={script} onScriptChange={onScriptChange} showBetaBadge />
-          </div>
+          <ScriptSelector script={script} onScriptChange={onScriptChange} showBetaBadge compact />
           {listed ? <PuzzleShareButton onShare={() => void onShare()} /> : null}
         </>
       }
+      actions={hint}
     />
   );
 }
@@ -696,6 +694,7 @@ function WordGame({
           fontInfo={font_info}
           listed={listed}
           onShare={handleShare}
+          showBackLink={location === 'list_page'}
           hint={
             hintAtTop ? (
               <HintDialog puzzle_id={puzzle_id} puzzle_slug={puzzle_slug} timerRef={timerRef} />

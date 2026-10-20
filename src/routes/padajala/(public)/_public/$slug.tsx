@@ -1,7 +1,6 @@
 import { createFileRoute, notFound, redirect } from '@tanstack/react-router';
 import { createServerFn } from '@tanstack/react-start';
 import { z } from 'zod';
-import { PuzzleBackLink } from '~/components/pages/puzzle/PuzzleBackLink';
 import PadajalaGameRoot from '~/components/pages/padajala/PadajalaGame/PadajalaGameRoot';
 import { routeHeadFromPageMeta, shareImageInfoFromAsset } from '~/components/tags/getPageMetaTags';
 import { CACHE, NO_CACHE_PARAMS } from '~/util/cache.server/cache_loaders';
@@ -109,7 +108,6 @@ function PadajalaSlugPage() {
 
   return (
     <main className="relative min-h-dvh overflow-x-clip">
-      <PuzzleBackLink game="padajala" />
       {data.kind === 'unavailable' ? (
         <div className="px-4 py-8 text-center text-muted-foreground">
           This puzzle is not available.

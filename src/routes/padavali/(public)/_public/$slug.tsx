@@ -2,7 +2,6 @@ import { createFileRoute, notFound, redirect } from '@tanstack/react-router';
 import { createServerFn } from '@tanstack/react-start';
 import { transliterate_node } from 'lipilekhika/node';
 import { z } from 'zod';
-import { PuzzleBackLink } from '~/components/pages/puzzle/PuzzleBackLink';
 import WordGame from '~/components/pages/padavali/WordGame/WordGameRoot';
 import { get_transliterated_word_game_msgs } from '~/components/pages/padavali/WordGame/msgs';
 import { transliterate_custom } from '~/tools/transliterator';
@@ -139,7 +138,6 @@ function PadavaliSlugRoute() {
 
   return (
     <>
-      <PuzzleBackLink game="padavali" />
       {data.kind === 'unavailable' ? (
         <div className="px-4 py-8 text-center text-muted-foreground">
           This puzzle is not available.

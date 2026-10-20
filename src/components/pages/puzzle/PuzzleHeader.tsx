@@ -3,6 +3,8 @@
 import { useEffect, useRef, useState, type ReactNode } from 'react';
 import { IoShareSocialOutline } from 'react-icons/io5';
 import { cn } from '~/lib/utils';
+import type { PublicGameKind } from '~/util/games/kinds';
+import { PuzzleBackLink } from './PuzzleBackLink';
 import titleStyles from './puzzle-title.module.css';
 
 /** Description under the title: two lines by default, expandable when it overflows. */
@@ -62,40 +64,55 @@ export function PuzzleShareButton({ onShare }: { onShare: () => void }) {
   );
 }
 
-/** Shared puzzle page header (padavali + padajala): title, description, actions. */
+/** Shared puzzle page header (padavali + padajala). */
 export function PuzzleHeader({
   title,
   description,
   fontClassName,
+  backToGame,
+  toolbar,
   actions
 }: {
   title: string;
   description?: string | null;
   /** Script font for transliterated title/description. */
   fontClassName?: string;
+  /** Show an "All puzzles" link filtered to this game in the top bar. */
+  backToGame?: PublicGameKind;
+  /** Secondary controls (script, share) — top-right, out of the way. */
+  toolbar?: ReactNode;
+  /** Gameplay actions (hint) — centered under the description. */
   actions?: ReactNode;
 }) {
   const trimmed = description?.trim();
 
   return (
-    <header className="mx-auto mb-4 flex max-w-3xl flex-col items-center gap-3 text-center sm:mb-6">
-      {/* Title and description read as one unit; spacing goes before the actions. */}
-      <div className="flex flex-col items-center">
-        <h1
-          className={cn(
-            // Small vertical padding keeps gradient-clipped matras/descenders from being cut.
-            'pt-1 pb-0.5 text-2xl leading-tight font-bold tracking-tight text-balance sm:text-3xl md:text-4xl',
-            titleStyles.titleGradient,
-            fontClassName
-          )}
-        >
-          {title}
-        </h1>
-        {trimmed ? <PuzzleDescription text={trimmed} className={fontClassName} /> : null}
-      </div>
-      {actions ? (
-        <div className="flex flex-wrap items-center justify-center gap-2">{actions}</div>
+    <>
+      {backToGame || toolbar ? (
+        <div className="mb-2 flex min-h-8 items-center justify-between gap-2 sm:mb-1">
+          {backToGame ? <PuzzleBackLink game={backToGame} /> : <span />}
+          {toolbar ? <div className="flex items-center gap-1.5 sm:gap-2">{toolbar}</div> : null}
+        </div>
       ) : null}
-    </header>
+      <header className="mx-auto mb-4 flex max-w-3xl flex-col items-center gap-3 text-center sm:mb-6">
+        {/* Title and description read as one unit; spacing goes before the actions. */}
+        <div className="flex flex-col items-center">
+          <h1
+            className={cn(
+              // Small vertical padding keeps gradient-clipped matras/descenders from being cut.
+              'pt-1 pb-0.5 text-2xl leading-tight font-bold tracking-tight text-balance sm:text-3xl md:text-4xl',
+              titleStyles.titleGradient,
+              fontClassName
+            )}
+          >
+            {title}
+          </h1>
+          {trimmed ? <PuzzleDescription text={trimmed} className={fontClassName} /> : null}
+        </div>
+        {actions ? (
+          <div className="flex flex-wrap items-center justify-center gap-2">{actions}</div>
+        ) : null}
+      </header>
+    </>
   );
 }

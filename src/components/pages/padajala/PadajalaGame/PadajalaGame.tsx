@@ -132,11 +132,13 @@ function LeaveGameDialog({
 function PadajalaHeader({
   puzzle,
   listed,
-  puzzleSlug
+  puzzleSlug,
+  showBackLink
 }: {
   puzzle: NonNullable<ReturnType<typeof usePadajalaGame>['puzzle']>;
   listed: boolean;
   puzzleSlug: string | null;
+  showBackLink: boolean;
 }) {
   const handleShare = () => {
     void shareText(
@@ -150,7 +152,8 @@ function PadajalaHeader({
     <PuzzleHeader
       title={puzzle.title}
       description={puzzle.description}
-      actions={listed && puzzleSlug ? <PuzzleShareButton onShare={handleShare} /> : null}
+      backToGame={showBackLink ? 'padajala' : undefined}
+      toolbar={listed && puzzleSlug ? <PuzzleShareButton onShare={handleShare} /> : null}
     />
   );
 }
@@ -612,7 +615,12 @@ export function PadajalaGame({
         </div>
       ) : null}
 
-      <PadajalaHeader puzzle={puzzle} listed={listed} puzzleSlug={puzzleSlug} />
+      <PadajalaHeader
+        puzzle={puzzle}
+        listed={listed}
+        puzzleSlug={puzzleSlug}
+        showBackLink={location === 'list_page'}
+      />
 
       {showAccordion ? (
         <div className="mb-3 w-full sm:mb-4">

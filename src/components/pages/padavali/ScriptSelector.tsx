@@ -28,6 +28,7 @@ import {
   preloadScriptData
 } from 'lipilekhika';
 import { FONT_INFO } from '~/state/script_font_data';
+import { cn } from '~/lib/utils';
 
 export const SCRIPT_AVATAR_MAP = {
   Devanagari: 'अ',
@@ -100,6 +101,8 @@ type Props = {
   script: ScriptType;
   onScriptChange: (script: ScriptType) => void;
   showBetaBadge?: boolean;
+  /** Pill trigger for toolbars: avatar only on mobile, name from `sm` up. */
+  compact?: boolean;
 };
 
 export const ScriptBetaBadge = () => (
@@ -108,7 +111,12 @@ export const ScriptBetaBadge = () => (
   </span>
 );
 
-export const ScriptSelector = ({ script, onScriptChange, showBetaBadge = false }: Props) => {
+export const ScriptSelector = ({
+  script,
+  onScriptChange,
+  showBetaBadge = false,
+  compact = false
+}: Props) => {
   useEffect(() => {
     prefetchScript(script);
   }, [script]);
@@ -142,14 +150,25 @@ export const ScriptSelector = ({ script, onScriptChange, showBetaBadge = false }
         onOpenChange={handleOpenChange}
       >
         <SelectTrigger
-          className="h-8 w-46 gap-2 border-border/50 bg-background/50 text-sm"
+          aria-label="Display script"
+          title="Display script"
+          className={cn(
+            'h-8 gap-2 border-border/50 bg-background/50 text-sm',
+            compact
+              ? 'w-auto gap-1.5 rounded-full pr-2 pl-0.5 max-sm:*:data-[slot=select-value]:hidden sm:pr-2.5'
+              : 'w-46'
+          )}
           onPointerEnter={() => prefetchScript(script)}
           onFocus={() => prefetchScript(script)}
         >
           <ScriptAvatar script={script} />
           <SelectValue />
         </SelectTrigger>
-        <SelectContent alignItemWithTrigger={false} className="max-h-96">
+        <SelectContent
+          alignItemWithTrigger={false}
+          align={compact ? 'end' : 'center'}
+          className={cn('max-h-96', compact && 'w-52')}
+        >
           {SCRIPT_LIST_MAIN.map((scriptKey) => (
             <ScriptSelectItem key={scriptKey} scriptKey={scriptKey} />
           ))}
