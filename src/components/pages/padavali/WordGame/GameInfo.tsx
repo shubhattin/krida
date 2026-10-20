@@ -17,7 +17,8 @@ import {
   original_word_list_atom,
   puzzle_slug_atom,
   description_current_atom,
-  practice_mode_atom
+  practice_mode_atom,
+  hints_used_atom
 } from './game_state';
 import { AppContext } from '~/components/AppDataContext';
 import { useContext, useEffect } from 'react';
@@ -36,10 +37,11 @@ export const GameInfo = () => {
   const [puzzleSlug] = useAtom(puzzle_slug_atom);
   const [description] = useAtom(description_current_atom);
   const [practiceMode] = useAtom(practice_mode_atom);
+  const [hintsUsed] = useAtom(hints_used_atom);
 
   const font_info = FONT_INFO[script!];
   const accuracy = totalAttempts > 0 ? Math.round((wordList.length / totalAttempts) * 100) : 0;
-  const isPerfect = accuracy === 100;
+  const isPerfect = accuracy === 100 && hintsUsed === 0;
 
   // Fire confetti on completion
   useEffect(() => {
@@ -212,7 +214,7 @@ export const GameInfo = () => {
               </div>
 
               {/* Special Label Badge */}
-              <div className="flex">
+              <div className="flex flex-wrap items-center gap-1.5">
                 {isPerfect ? (
                   <span className="inline-flex items-center gap-1 rounded-full bg-yellow-100/90 px-2.5 py-0.5 text-xs font-semibold text-yellow-800 dark:bg-yellow-900/30 dark:text-yellow-400">
                     ✨ Full Accuracy / Perfect Score
@@ -222,6 +224,11 @@ export const GameInfo = () => {
                     👍 Completed!
                   </span>
                 )}
+                {hintsUsed > 0 ? (
+                  <span className="inline-flex items-center gap-1 rounded-full bg-amber-100/90 px-2.5 py-0.5 text-xs font-semibold text-amber-800 dark:bg-amber-900/30 dark:text-amber-300">
+                    💡 {hintsUsed} {hintsUsed === 1 ? 'hint' : 'hints'} used
+                  </span>
+                ) : null}
               </div>
             </div>
           </div>
@@ -250,7 +257,8 @@ export const GameInfo = () => {
                     description,
                     formatTime(seconds),
                     accuracy,
-                    puzzleSlug
+                    puzzleSlug,
+                    hintsUsed
                   );
                   try {
                     if (navigator.share) {
@@ -299,14 +307,16 @@ const get_share_msg = (
   description: string,
   time_taken: string,
   accuracy: number,
-  slug: string
+  slug: string,
+  hints_used: number
 ) => {
   const puzzle_url = get_puzzle_share_url(slug);
   const msg = [
     `✨ I just solved Padavali — a super fun, interactive Sanskrit word puzzle!`,
     '',
     `🎯 ${name}` + (description ? ` : ${description}` : ''),
-    `⏱️ ${time_taken} seconds · ${accuracy}% accuracy`,
+    `⏱️ ${time_taken} seconds · ${accuracy}% accuracy` +
+      (hints_used > 0 ? ` · 💡 ${hints_used} ${hints_used === 1 ? 'hint' : 'hints'}` : ''),
     '',
     `💪 Think you can beat my score? Give it a try!`,
     '',
