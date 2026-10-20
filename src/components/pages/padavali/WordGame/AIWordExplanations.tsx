@@ -180,7 +180,7 @@ export const AIWordExplanations = ({ puzzle_id, puzzle_slug, timerRef }: Props) 
               </div>
             </div>
 
-            <div className="relative mt-2 flex justify-center border-t border-violet-200/30 pt-1.5 dark:border-violet-500/10">
+            <div className="relative -mx-1.5 mt-2.5 border-t border-violet-200/30 pt-1.5 sm:-mx-2 dark:border-violet-500/10">
               <HintDialog puzzle_id={puzzle_id} puzzle_slug={puzzle_slug} timerRef={timerRef} />
             </div>
           </div>
