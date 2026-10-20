@@ -1,7 +1,6 @@
 'use client';
 
 import { useContext, useState, type RefObject } from 'react';
-import { motion } from 'framer-motion';
 import { useAtom } from 'jotai';
 import { BookOpen, Lightbulb } from 'lucide-react';
 import { FaPlay } from 'react-icons/fa';
@@ -107,24 +106,28 @@ export function HintDialog({ puzzle_id, puzzle_slug, timerRef }: Props) {
       <Dialog open={open} onOpenChange={handleOpenChange}>
         <DialogTrigger
           render={
-            <motion.button
+            <button
               type="button"
               aria-label="Open hint and word meanings"
-              animate={{ scale: [1, 0.92, 1.07, 1] }}
-              transition={{ duration: 1.1, repeat: Infinity, ease: 'easeInOut' }}
               className={cn(
-                'relative inline-flex items-center gap-1.5 overflow-hidden rounded-full px-3.5 py-1.5',
-                'border border-orange-400/70 bg-linear-to-r from-orange-500 via-amber-600 to-orange-600',
-                'text-sm font-semibold text-white shadow-md shadow-orange-500/35',
-                'transition-all hover:brightness-110 active:scale-90',
-                'dark:border-orange-500/50 dark:shadow-orange-600/25'
+                'inline-flex items-center gap-1.5 rounded-full px-2 py-1 text-xs font-medium',
+                'text-amber-700 transition-colors hover:bg-amber-500/10 hover:text-amber-800',
+                'dark:text-amber-300/90 dark:hover:bg-amber-400/10 dark:hover:text-amber-200'
               )}
             />
           }
         >
-          <Lightbulb className="size-5 shrink-0" />
-          <span>Hint</span>
-          <span className="pointer-events-none absolute inset-0 bg-linear-to-r from-transparent via-white/25 to-transparent" />
+          <Lightbulb className="size-3.5 shrink-0" />
+          <span>
+            {practiceMode
+              ? 'Words & meanings'
+              : started
+                ? 'Stuck? See all words'
+                : 'Learn the words first'}
+          </span>
+          {!practiceMode ? (
+            <span className="text-[10px] font-normal text-muted-foreground">(practice)</span>
+          ) : null}
         </DialogTrigger>
 
         <DialogContent className="max-h-[min(90vh,640px)] gap-0 overflow-hidden p-0 sm:max-w-md">
