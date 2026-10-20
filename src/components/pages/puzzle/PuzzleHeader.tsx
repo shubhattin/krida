@@ -78,19 +78,23 @@ export function PuzzleHeader({
   const trimmed = description?.trim();
 
   return (
-    <header className="mx-auto mb-4 flex max-w-3xl flex-col items-center gap-2 text-center sm:mb-6">
-      <h1
-        className={cn(
-          'py-1 text-2xl leading-tight font-bold tracking-tight text-balance sm:text-3xl md:text-4xl',
-          titleStyles.titleGradient,
-          fontClassName
-        )}
-      >
-        {title}
-      </h1>
-      {trimmed ? <PuzzleDescription text={trimmed} className={fontClassName} /> : null}
+    <header className="mx-auto mb-4 flex max-w-3xl flex-col items-center gap-3 text-center sm:mb-6">
+      {/* Title and description read as one unit; spacing goes before the actions. */}
+      <div className="flex flex-col items-center">
+        <h1
+          className={cn(
+            // Small vertical padding keeps gradient-clipped matras/descenders from being cut.
+            'pt-1 pb-0.5 text-2xl leading-tight font-bold tracking-tight text-balance sm:text-3xl md:text-4xl',
+            titleStyles.titleGradient,
+            fontClassName
+          )}
+        >
+          {title}
+        </h1>
+        {trimmed ? <PuzzleDescription text={trimmed} className={fontClassName} /> : null}
+      </div>
       {actions ? (
-        <div className="mt-1 flex flex-wrap items-center justify-center gap-2">{actions}</div>
+        <div className="flex flex-wrap items-center justify-center gap-2">{actions}</div>
       ) : null}
     </header>
   );
