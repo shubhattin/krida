@@ -13,6 +13,7 @@ import type {
   GameDashboardStats
 } from '~/api/routers/user/user_dashboard';
 import { AllGamesMenuItems } from '~/components/app-bar/GameMenuItems';
+import { EditDisplayNameDialog } from '~/components/pages/dashboard/EditDisplayNameDialog';
 import { GameAppIcon } from '~/components/GameAppIcon';
 import { HubHeader } from '~/components/hub/HubHeader';
 import { HUB_GAME_ACCENT, HUB_GAMES } from '~/components/hub/hub_games';
@@ -165,8 +166,8 @@ function Hero({
       />
 
       <div className="relative flex flex-col gap-5 sm:flex-row sm:items-center sm:justify-between">
-        <div className="flex min-w-0 items-center gap-4">
-          <Avatar className="size-14 ring-2 ring-white/70 dark:ring-white/10">
+        <div className="flex min-w-0 items-center gap-3 sm:gap-4">
+          <Avatar className="size-12 shrink-0 ring-2 ring-white/70 sm:size-14 dark:ring-white/10">
             {image ? <AvatarImage src={image} alt="" /> : null}
             <AvatarFallback className="bg-linear-to-br from-violet-500 to-indigo-600 text-lg font-semibold text-white">
               {initialsFromName(name)}
@@ -177,9 +178,12 @@ function Hero({
               <Sparkles className="size-3.5" />
               Your dashboard
             </p>
-            <h2 className="truncate text-2xl font-bold tracking-tight sm:text-3xl">
-              {firstName ? `Namaste, ${firstName}` : 'Your games'}
-            </h2>
+            <div className="flex min-w-0 items-center gap-1">
+              <h2 className="truncate text-xl font-bold tracking-tight sm:text-3xl">
+                {firstName ? `Namaste, ${firstName}` : 'Your games'}
+              </h2>
+              <EditDisplayNameDialog name={name} />
+            </div>
             <p className="mt-1 text-sm text-muted-foreground">{subtitle}</p>
           </div>
         </div>
