@@ -45,7 +45,7 @@ export function GameProgress({ onReset, revealingEntryId = null, onReveal }: Gam
       initial={{ opacity: 0, y: -10 }}
       animate={{ opacity: 1, y: 0 }}
       transition={{ duration: 0.3, ease: 'easeOut' }}
-      className="flex w-full max-w-[min(100%,24rem)] items-center gap-2.5 text-sm text-muted-foreground sm:max-w-md sm:gap-3 lg:max-w-100 xl:max-w-104 2xl:max-w-108"
+      className="flex w-full max-w-[min(100%,24rem)] items-center gap-2.5 text-sm text-muted-foreground sm:max-w-md sm:gap-3 lg:max-w-100 xl:max-w-104 2xl:max-w-120"
     >
       <div className="inline-flex shrink-0 items-center gap-2 rounded-lg border border-border/40 bg-card/60 px-3 py-1 backdrop-blur-md">
         <Timer className="size-3.5 text-primary" />

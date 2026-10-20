@@ -437,7 +437,7 @@ function ActiveGameBar({
       initial={{ opacity: 0, y: -8 }}
       animate={{ opacity: 1, y: 0 }}
       transition={{ duration: 0.3, ease: 'easeOut' }}
-      className="mx-auto mb-3 flex w-full max-w-lg items-center gap-2 text-sm sm:mb-4 sm:gap-2.5"
+      className="mx-auto mb-3 flex w-full max-w-lg items-center gap-2 text-sm sm:mb-4 sm:gap-2.5 2xl:max-w-xl"
     >
       <div className="inline-flex shrink-0 items-center gap-1.5 rounded-lg border border-border/60 bg-card/70 py-0.5 pr-0.5 pl-2.5 backdrop-blur-md">
         <span className="inline-flex items-center gap-2" title={wordMsgs.time_elapsed}>
@@ -692,7 +692,7 @@ function WordGame({
         </motion.div>
       )}
 
-      <div className="container mx-auto max-w-7xl px-2 pt-3 sm:px-4 sm:pt-4 md:px-6 md:pt-5">
+      <div className="container mx-auto max-w-7xl px-2 pt-3 sm:px-4 sm:pt-4 md:px-6 md:pt-5 2xl:max-w-352">
         <WordGameHeader
           title={title}
           description={description ? description_transliterated : null}
@@ -736,7 +736,7 @@ function WordGame({
           <div className="order-1 flex flex-col items-center justify-center lg:order-2 lg:col-span-6">
             <div
               className={cn(
-                'w-full max-w-lg'
+                'w-full max-w-lg 2xl:max-w-[min(36rem,calc(100dvh-16rem))]'
                 // font_info.experimental && 'max-w-full'
               )}
             >

@@ -198,7 +198,7 @@ function BoardColumn({
       <div
         ref={boardAnchorRef}
         className={cn(
-          'relative w-full max-w-[min(100%,24rem)] lg:max-w-100 xl:max-w-104 2xl:max-w-108',
+          'relative w-full max-w-[min(100%,24rem)] lg:max-w-100 xl:max-w-104 2xl:max-w-[min(30rem,calc(100dvh-16rem))]',
           boardSeamClass(useVirtualKeyboard, started, completed, keyboardPanelOpen)
         )}
       >
@@ -585,7 +585,7 @@ export function PadajalaGame({
 
   return (
     <div
-      className="mx-auto w-full max-w-7xl px-2 pt-2 pb-2 sm:px-4 sm:pt-3 sm:pb-4 md:px-6"
+      className="mx-auto w-full max-w-7xl px-2 pt-2 pb-2 sm:px-4 sm:pt-3 sm:pb-4 md:px-6 2xl:max-w-352"
       style={{
         WebkitOverflowScrolling: 'touch',
         overscrollBehavior: overscrollBehaviorFor(started, completed),

@@ -349,7 +349,16 @@ export function CluePanel({ game, moreHints, className }: CluePanelProps) {
       if (!list) return;
       const row = list.querySelector<HTMLElement>(`[data-entry-id="${focus.entryId}"]`);
       if (!row) return;
-      row.scrollIntoView({ block: 'nearest', inline: 'nearest', behavior: 'smooth' });
+      // Scroll only the clue list — scrollIntoView would also scroll the page and
+      // push the progress row (with Reveal) out of view on short screens.
+      const listRect = list.getBoundingClientRect();
+      const rowRect = row.getBoundingClientRect();
+      const pad = 4;
+      if (rowRect.top < listRect.top + pad) {
+        list.scrollBy({ top: rowRect.top - listRect.top - pad, behavior: 'smooth' });
+      } else if (rowRect.bottom > listRect.bottom - pad) {
+        list.scrollBy({ top: rowRect.bottom - listRect.bottom + pad, behavior: 'smooth' });
+      }
     });
 
     return () => cancelAnimationFrame(frame);
