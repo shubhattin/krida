@@ -17,6 +17,10 @@
 - `bun run check` – typecheck, `bun run lint` / `bun run format`, `bun run test` – vitest
 - Also make sure to `bun run format` after a series of change so there is no misalignment
 
+# PR Megre Instructins
+
+- By default unless said after merging the PR remove the local and remote branch and git fetch --prune.
+
 # Conventions
 
 - Path alias `#/*` maps to `./src/*` (see `package.json` imports).
