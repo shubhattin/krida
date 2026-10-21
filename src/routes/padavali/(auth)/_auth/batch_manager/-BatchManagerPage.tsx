@@ -1,6 +1,9 @@
 'use client';
 
 import { useMutation, useQuery } from '@tanstack/react-query';
+import { KRIDAS } from '~/constants';
+import { gameDisplayName } from '~/components/hub/GamePickerChips';
+import { GameKindIcon } from '~/components/pages/catalog/GameKindIcon';
 
 import { useMemo, useState } from 'react';
 import { Image } from '@unpic/react';
@@ -48,11 +51,11 @@ type BatchManagerPageProps = {
   initialGame?: PuzzleImageGame;
 };
 
+/** Every krida's admin routes follow `/{game}/list` and `/{game}/edit/{id}`. */
 function batchManagerLinks(game: PuzzleImageGame) {
   return {
-    list_href: game === 'padajala' ? '/padajala/list' : '/padavali/list',
-    edit_href: (puzzle_id: number) =>
-      game === 'padajala' ? `/padajala/edit/${puzzle_id}` : `/padavali/edit/${puzzle_id}`
+    list_href: `/${game}/list`,
+    edit_href: (puzzle_id: number) => `/${game}/edit/${puzzle_id}`
   };
 }
 
@@ -503,20 +506,19 @@ const BatchManagerPage = ({ initialGame = 'padavali' }: BatchManagerPageProps) =
           </p>
         </div>
         <div className="flex flex-wrap items-center gap-2">
-          <Button
-            type="button"
-            variant={game === 'padavali' ? 'default' : 'outline'}
-            onClick={() => setGame('padavali')}
-          >
-            Padavali
-          </Button>
-          <Button
-            type="button"
-            variant={game === 'padajala' ? 'default' : 'outline'}
-            onClick={() => setGame('padajala')}
-          >
-            Padajala
-          </Button>
+          {KRIDAS.map((option) => (
+            <Button
+              key={option}
+              type="button"
+              size="sm"
+              variant={game === option ? 'default' : 'outline'}
+              className="gap-1.5"
+              onClick={() => setGame(option)}
+            >
+              <GameKindIcon game={option} className="size-4" />
+              {gameDisplayName(option)}
+            </Button>
+          ))}
           <Button
             type="button"
             variant="outline"
