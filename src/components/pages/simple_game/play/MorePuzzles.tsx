@@ -6,6 +6,7 @@ import { motion } from 'framer-motion';
 import { ArrowRightIcon } from 'lucide-react';
 import { useTRPC } from '~/api/client';
 import { getCDNUrl } from '~/constants';
+import { useDragScroll } from '~/hooks/useDragScroll';
 import { gameDisplayName, GamePickerChips, type GamePick } from '~/components/hub/GamePickerChips';
 import { puzzleHref } from '~/components/hub/hub_games';
 import { GameKindIcon } from '~/components/pages/catalog/GameKindIcon';
@@ -61,6 +62,7 @@ function browseHref(pick: GamePick) {
  */
 export function MorePuzzles({ kind, puzzleId }: { kind: SimpleGameKind; puzzleId: number }) {
   const trpc = useTRPC();
+  const { ref: rowRef, dragging } = useDragScroll<HTMLDivElement>();
   // null = not chosen yet: default to this game if it has other puzzles, else to All.
   const [chosen, setChosen] = useState<GamePick | null>(null);
   const excludeFor = (game: GameKind) => (game === kind ? { exclude_id: puzzleId } : {});
@@ -150,7 +152,13 @@ export function MorePuzzles({ kind, puzzleId }: { kind: SimpleGameKind; puzzleId
         onChange={setChosen}
         counts={loading ? undefined : counts}
       />
-      <div className="-mx-1 flex snap-x [scrollbar-width:thin] gap-3 overflow-x-auto px-1 pb-2">
+      <div
+        ref={rowRef}
+        className={cn(
+          '-mx-1 flex [scrollbar-width:thin] gap-3 overflow-x-auto px-1 pb-2 select-none',
+          dragging ? 'cursor-grabbing' : 'cursor-grab snap-x'
+        )}
+      >
         {loading && items.length === 0
           ? Array.from({ length: 3 }, (_, index) => (
               <div
