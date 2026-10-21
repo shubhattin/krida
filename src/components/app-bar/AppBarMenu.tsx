@@ -27,7 +27,8 @@ import { is_ios_atom, pwa_state_atom } from '../PWA/pwa_state';
 import { useAtom } from 'jotai';
 import { PWAInstallButton } from '../PWA/PWAInit';
 import { BsVectorPen } from 'react-icons/bs';
-import { signIn, useSession } from '~/lib/auth-client';
+import { useSession } from '~/lib/auth-client';
+import { startGoogleSignIn } from '~/lib/google_sign_in';
 import { accountMenuIconClass, accountMenuLinkClass } from '~/components/app-bar/GameMenuItems';
 import { useCloseOnNavigate } from '~/hooks/useCloseOnNavigate';
 
@@ -37,10 +38,7 @@ function SignInMenuButton({ onNavigate }: { onNavigate?: () => void }) {
       type="button"
       onClick={async () => {
         onNavigate?.();
-        await signIn.social({
-          provider: 'google',
-          callbackURL: window.location.href
-        });
+        await startGoogleSignIn('menu');
       }}
       className={accountMenuLinkClass}
     >

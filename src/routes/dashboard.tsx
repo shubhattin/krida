@@ -1,14 +1,12 @@
-import { createFileRoute, redirect } from '@tanstack/react-router';
+import { createFileRoute } from '@tanstack/react-router';
 import { getUserSession$ } from '~/lib/get_auth_from_cookie';
 import { routeHeadFromPageMeta } from '~/components/tags/getPageMetaTags';
 import DashboardPage from './-DashboardPage';
 
 export const Route = createFileRoute('/dashboard')({
+  // Guests get a sign-in preview instead of a redirect.
   beforeLoad: async () => {
     const session = await getUserSession$();
-    if (!session?.user) {
-      throw redirect({ to: '/' });
-    }
     return { session };
   },
   head: () =>

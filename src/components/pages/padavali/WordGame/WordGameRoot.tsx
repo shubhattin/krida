@@ -11,7 +11,7 @@ import { GameInfo } from './GameInfo';
 import { GameGrid } from './GameGrid';
 import { GameHelp } from './Help';
 import { AIWordExplanations } from './AIWordExplanations';
-import { createStore, Provider, useAtom, useSetAtom } from 'jotai';
+import { createStore, Provider, useAtom, useAtomValue, useSetAtom } from 'jotai';
 import { ScriptSelector } from '~/components/pages/padavali/ScriptSelector';
 import { cn } from '~/lib/utils';
 import { Lightbulb, Sparkles, Square, Timer } from 'lucide-react';
@@ -69,6 +69,7 @@ import { canRevealMore, clueFromMeaning, nextRevealState } from './reveal_steps'
 import { useWordMeanings } from './useWordMeanings';
 import { MediaAttachments } from '~/components/pages/puzzle/MediaAttachments';
 import { resolveAttachmentsWithDefaults } from '~/util/puzzle/attachments';
+import { GuestSaveProgressCta } from '~/components/app-bar/GuestSaveProgressCta';
 
 export type WordGameProps = {
   grid_data: string[][];
@@ -559,6 +560,13 @@ function GameControlSection({
   );
 }
 
+function GuestCompletionCta({ completed }: { completed: boolean }) {
+  const practiceMode = useAtomValue(practice_mode_atom);
+  // Practice runs are unscored — nothing to save.
+  if (!completed || practiceMode) return null;
+  return <GuestSaveProgressCta className="mx-auto mb-4 max-w-2xl sm:mb-5" />;
+}
+
 function MediaSidebar({ attachments }: { attachments: z.infer<typeof attachment_schema>[] }) {
   return (
     <div className="order-2 lg:order-1 lg:col-span-3">
@@ -780,6 +788,7 @@ function WordGame({
             puzzle_slug={puzzle_slug}
           />
         )}
+        <GuestCompletionCta completed={completed} />
 
         {/* Main Game Container */}
         <div

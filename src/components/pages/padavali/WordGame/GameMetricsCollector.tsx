@@ -18,7 +18,11 @@ import type { location_list_type } from '~/db/types';
 import TurnstileWidget from '~/components/Turnstile';
 import { AppContext } from '~/components/AppDataContext';
 import { load_posthog } from '~/components/tags/PosthogInit';
-import { requestGuestAuthPrompt } from '~/lib/guest_auth_prompt';
+import {
+  noteGuestCompletion,
+  requestGuestAuthPrompt,
+  setGuestGameActive
+} from '~/lib/guest_auth_prompt';
 
 /**
  * Pre-eslint (#45) this effect intentionally omitted the mutation object from deps.
@@ -198,8 +202,13 @@ const GameMetricsCollector = ({
   }, [authReady, isAuthed, started, completed, practiceMode, gameSessionNonce]);
 
   const promptGuestOnComplete = useEffectEvent(() => {
-    requestGuestAuthPrompt('complete');
+    requestGuestAuthPrompt(noteGuestCompletion('padavali', seconds));
   });
+
+  useEffect(() => {
+    setGuestGameActive(started && !completed);
+    return () => setGuestGameActive(false);
+  }, [started, completed]);
 
   useEffect(() => {
     if (!authReady || isAuthed) return;

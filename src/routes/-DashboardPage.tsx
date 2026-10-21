@@ -2,7 +2,7 @@
 
 import { useId, useState, type ReactNode } from 'react';
 import { useQuery } from '@tanstack/react-query';
-import { Link } from '@tanstack/react-router';
+import { Link, useRouteContext } from '@tanstack/react-router';
 import { formatDistanceToNowStrict } from 'date-fns';
 import { CheckCircle2, Clock3, Flame, Play, Sparkles, Target, Trophy } from 'lucide-react';
 import pretty_ms from 'pretty-ms';
@@ -22,6 +22,10 @@ import { Button } from '~/components/ui/button';
 import { Skeleton } from '~/components/ui/skeleton';
 import { Tabs, TabsList, TabsTrigger } from '~/components/ui/tabs';
 import { useSession } from '~/lib/auth-client';
+import { GoogleIcon } from '~/components/icons';
+import Icon from '~/tools/Icon';
+import { startGoogleSignIn } from '~/lib/google_sign_in';
+import { useGuestCompletedCount } from '~/components/app-bar/useGuestAuthPrompt';
 import { cn } from '~/lib/utils';
 
 type GameFilter = 'all' | DashboardGameId;
@@ -76,6 +80,13 @@ function initialsFromName(name: string | null | undefined): string {
 }
 
 function DashboardPage() {
+  const { session } = useRouteContext({ from: '/dashboard' });
+  const liveUser = useSession().data?.user;
+  if (!session?.user && !liveUser) return <GuestDashboard />;
+  return <SignedInDashboard />;
+}
+
+function SignedInDashboard() {
   const [game, setGame] = useState<GameFilter>('all');
   const user = useSession().data?.user;
   const trpc = useTRPC();
@@ -126,6 +137,74 @@ function DashboardPage() {
             </div>
           </>
         ) : null}
+      </main>
+    </div>
+  );
+}
+
+/** Illustrative numbers behind the blur — never real data. */
+const PREVIEW_TOTALS: CombinedDashboardTotals = {
+  started: 24,
+  completed: 19,
+  completion_rate: 79,
+  best_time_seconds: 104,
+  best_accuracy: 96
+};
+
+function GuestDashboard() {
+  const guestCompleted = useGuestCompletedCount();
+  return (
+    <div className="public-canvas flex min-h-dvh flex-col">
+      <HubHeader gameMenuItems={<AllGamesMenuItems />} />
+
+      <main className="mx-auto flex w-full max-w-5xl flex-1 flex-col gap-5 px-4 py-6 lg:px-6 lg:py-8">
+        <section
+          className={cn(
+            surfaceClass,
+            'relative overflow-hidden bg-linear-to-br from-violet-500/10 via-transparent to-blue-500/10 p-5 sm:p-6 dark:from-violet-500/15 dark:to-blue-500/10'
+          )}
+        >
+          <div
+            aria-hidden
+            className="pointer-events-none absolute -top-24 -right-16 size-64 rounded-full bg-violet-500/20 blur-3xl dark:bg-violet-500/15"
+          />
+          <div className="relative flex flex-col gap-5 sm:flex-row sm:items-center sm:justify-between">
+            <div className="min-w-0">
+              <p className="flex items-center gap-1.5 text-xs font-medium text-violet-700 dark:text-violet-300">
+                <Sparkles className="size-3.5" />
+                Your dashboard
+              </p>
+              <h2 className="text-xl font-bold tracking-tight sm:text-3xl">
+                Track every puzzle you solve
+              </h2>
+              <p className="mt-1 text-sm text-muted-foreground">
+                {guestCompleted > 0
+                  ? `You've solved ${guestCompleted} puzzle${guestCompleted === 1 ? '' : 's'} as a guest. Sign in so the next ones count toward your stats.`
+                  : 'Sign in to see your best times, accuracy and progress across every game.'}
+              </p>
+            </div>
+            <Button
+              variant="outline"
+              size="lg"
+              className="shrink-0 self-start sm:self-auto"
+              onClick={() => void startGoogleSignIn('dashboard')}
+            >
+              <span data-icon="inline-start">
+                <Icon src={GoogleIcon} />
+              </span>
+              Continue with Google
+            </Button>
+          </div>
+        </section>
+
+        <div aria-hidden className="pointer-events-none relative select-none">
+          <div className="opacity-60 blur-[3px]">
+            <KpiGrid totals={PREVIEW_TOTALS} />
+          </div>
+          <p className="absolute inset-0 flex items-center justify-center text-sm font-medium text-muted-foreground">
+            Your stats appear here after you sign in
+          </p>
+        </div>
       </main>
     </div>
   );

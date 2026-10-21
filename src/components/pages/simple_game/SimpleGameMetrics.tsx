@@ -7,7 +7,12 @@ import { useTRPC } from '~/api/client';
 import { load_posthog } from '~/components/tags/PosthogInit';
 import TurnstileWidget from '~/components/Turnstile';
 import { canSubmitPlayMetrics, playMetricsToken, usePlayAuth } from '~/lib/play_metrics_auth';
-import { requestGuestAuthPrompt } from '~/lib/guest_auth_prompt';
+import {
+  noteGuestCompletion,
+  requestGuestAuthPrompt,
+  setGuestGameActive
+} from '~/lib/guest_auth_prompt';
+import { GuestSaveProgressCta } from '~/components/app-bar/GuestSaveProgressCta';
 import type { location_list_type } from '~/db/types';
 import type { SimpleGameKind } from '~/util/games/kinds';
 import { useContext } from 'react';
@@ -51,6 +56,7 @@ export function SimpleGameMetrics({
   const startAttemptedRef = useRef<number | null>(null);
   const statsSubmittedRef = useRef<number | null>(null);
   const previousNonceRef = useRef(sessionNonce);
+  const guestCompletePromptedRef = useRef<number | null>(null);
 
   useEffect(() => {
     turnstileRef.current = turnstile;
@@ -141,6 +147,22 @@ export function SimpleGameMetrics({
     requestGuestAuthPrompt('play_start');
   }, [authReady, completed, isAuthed, started]);
 
+  const promptGuestOnComplete = useEffectEvent(() => {
+    requestGuestAuthPrompt(noteGuestCompletion(kind, seconds));
+  });
+
+  useEffect(() => {
+    if (!authReady || isAuthed || !completed) return;
+    if (guestCompletePromptedRef.current === sessionNonce) return;
+    guestCompletePromptedRef.current = sessionNonce;
+    promptGuestOnComplete();
+  }, [authReady, completed, isAuthed, sessionNonce]);
+
+  useEffect(() => {
+    setGuestGameActive(started && !completed);
+    return () => setGuestGameActive(false);
+  }, [started, completed]);
+
   const reportComplete = useEffectEvent((token: string | null) => {
     const sessionId = startedData?.session_id;
     if (!sessionId) return;
@@ -169,8 +191,11 @@ export function SimpleGameMetrics({
 
   if (!mounted || !authReady || isAuthed) return null;
   return (
-    <div className="flex justify-center py-2">
-      <TurnstileWidget setToken={setTurnstileToken} />
-    </div>
+    <>
+      {completed ? <GuestSaveProgressCta /> : null}
+      <div className="flex justify-center py-2">
+        <TurnstileWidget setToken={setTurnstileToken} />
+      </div>
+    </>
   );
 }
