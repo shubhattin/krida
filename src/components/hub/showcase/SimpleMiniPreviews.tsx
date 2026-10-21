@@ -1,6 +1,6 @@
 'use client';
 
-import { useEffect, useId, useState, type ReactNode } from 'react';
+import { useEffect, useId, useRef, useState, type ReactNode } from 'react';
 import { AnimatePresence, LayoutGroup, motion, useReducedMotion } from 'framer-motion';
 import { Check } from 'lucide-react';
 import { pairColor, withAlpha } from '~/components/pages/dvayi/pair_colors';
@@ -38,46 +38,179 @@ const DVAYI_MOVES: [left: number, right: number][] = [
 ];
 const DVAYI_ROWS = DVAYI_LEFT.length;
 const DVAYI_ACCENT = PLAY_THEME.dvayi.from;
+/**
+ * Board columns are 5fr | 2fr | 5fr: tiles' inner edges sit at 5/12 and 7/12 of the width,
+ * tile centres at 5/24 and 19/24.
+ */
+const DVAYI_EDGE = { left: 5 / 12, right: 7 / 12 } as const;
+const DVAYI_CENTER_X = { left: (5 / 24) * 100, right: (19 / 24) * 100 } as const;
 
+type DvayiSide = 'left' | 'right';
 type DvayiPick = { left: number; right: number | null; wrong: boolean };
 
-/** Row centre on a 0–100 viewBox (rows have no gap, so centres are exact). */
+/** Row centre in percent (rows carry their own padding, so centres are exact). */
 const dvayiRowY = (row: number) => ((row + 0.5) / DVAYI_ROWS) * 100;
+
+/**
+ * Link between two rows in board pixels. The SVG is drawn 1:1 with the board (no stretched
+ * viewBox): framer's `pathLength` dashes break on non-uniformly scaled strokes.
+ */
+const dvayiCurve = (size: { width: number; height: number }, fromRow: number, toRow: number) => {
+  const x1 = size.width * DVAYI_EDGE.left;
+  const x2 = size.width * DVAYI_EDGE.right;
+  const y1 = (dvayiRowY(fromRow) / 100) * size.height;
+  const y2 = (dvayiRowY(toRow) / 100) * size.height;
+  const mid = (x1 + x2) / 2;
+  return `M ${x1} ${y1} C ${mid} ${y1}, ${mid} ${y2}, ${x2} ${y2}`;
+};
+
+function DvayiLink({ d, color, dashed = false }: { d: string; color: string; dashed?: boolean }) {
+  return (
+    <motion.g
+      initial={{ opacity: 0 }}
+      animate={{ opacity: 1 }}
+      exit={{ opacity: 0 }}
+      transition={{ duration: 0.25 }}
+    >
+      <motion.path
+        d={d}
+        fill="none"
+        stroke={color}
+        strokeWidth={3}
+        strokeLinecap="round"
+        strokeDasharray={dashed ? '5 5' : undefined}
+        initial={{ pathLength: 0 }}
+        animate={{ pathLength: 1 }}
+        transition={{ duration: 0.45, ease: [0.22, 1, 0.36, 1] }}
+      />
+    </motion.g>
+  );
+}
+
+function DvayiTile({
+  side,
+  row,
+  word,
+  color,
+  selected,
+  wrong,
+  compact
+}: {
+  side: DvayiSide;
+  row: number;
+  word: string;
+  /** Pair colour once matched. */
+  color: string | null;
+  selected: boolean;
+  wrong: boolean;
+  compact: boolean;
+}) {
+  const tone = wrong ? WRONG_COLOR : (color ?? (selected ? DVAYI_ACCENT : null));
+  const inner = side === 'left' ? 'right-0 translate-x-1/2' : 'left-0 -translate-x-1/2';
+  return (
+    <div
+      className={cn('relative py-1', side === 'left' ? 'col-start-1' : 'col-start-3')}
+      style={{ gridRowStart: row + 1 }}
+    >
+      <div
+        className={cn(
+          'flex h-full items-center gap-1.5 rounded-xl border-2 px-2.5 font-semibold',
+          'border-slate-200 bg-white text-slate-800 dark:border-slate-700/80 dark:bg-slate-900/80 dark:text-slate-100',
+          'transition-[border-color,background-color,box-shadow] duration-300 ease-out',
+          side === 'left' ? 'justify-between' : 'flex-row-reverse justify-between',
+          compact ? 'text-sm' : 'text-base'
+        )}
+        style={
+          tone
+            ? {
+                borderColor: tone,
+                backgroundColor: withAlpha(tone, color ? 0.16 : 0.1),
+                boxShadow: `0 0 14px ${withAlpha(tone, color || selected ? 0.3 : 0.2)}`
+              }
+            : undefined
+        }
+      >
+        <span className="truncate">{word}</span>
+        <AnimatePresence>
+          {color ? (
+            <motion.span
+              initial={{ scale: 0, opacity: 0 }}
+              animate={{ scale: 1, opacity: 1 }}
+              exit={{ scale: 0, opacity: 0 }}
+              transition={{ type: 'spring', stiffness: 420, damping: 22 }}
+              className="flex size-4 shrink-0 items-center justify-center rounded-full text-white"
+              style={{ backgroundColor: color }}
+            >
+              <Check className="size-2.5" strokeWidth={3.5} />
+            </motion.span>
+          ) : null}
+        </AnimatePresence>
+      </div>
+      {/* Connector dot on the inner edge — where the link attaches. */}
+      <span
+        className={cn(
+          'absolute top-1/2 z-10 size-2 -translate-y-1/2 rounded-full border-2 transition-colors duration-300',
+          'border-slate-300 bg-slate-100 dark:border-slate-600 dark:bg-slate-900',
+          inner
+        )}
+        style={tone ? { borderColor: tone, backgroundColor: color ?? undefined } : undefined}
+      />
+    </div>
+  );
+}
 
 function DvayiMiniPreview({ compact }: { compact: boolean }) {
   const reduceMotion = useReducedMotion();
   const [matched, setMatched] = useState<number[]>(reduceMotion ? [0, 1, 2, 3] : []);
   const [pick, setPick] = useState<DvayiPick | null>(null);
+  const [hand, setHand] = useState<{ side: DvayiSide; row: number } | null>(null);
+  const boardRef = useRef<HTMLDivElement>(null);
+  const [size, setSize] = useState<{ width: number; height: number } | null>(null);
+
+  useEffect(() => {
+    const el = boardRef.current;
+    if (!el) return;
+    const observer = new ResizeObserver(([entry]) => {
+      if (entry) setSize({ width: entry.contentRect.width, height: entry.contentRect.height });
+    });
+    observer.observe(el);
+    return () => observer.disconnect();
+  }, []);
 
   useEffect(() => {
     if (reduceMotion) return;
     return startDemoLoop(async (wait) => {
       setMatched([]);
       setPick(null);
-      if (!(await wait(900))) return;
+      if (!(await wait(800))) return;
       for (const [left, right] of DVAYI_MOVES) {
+        setHand({ side: 'left', row: left });
+        if (!(await wait(550))) return;
         setPick({ left, right: null, wrong: false });
-        if (!(await wait(520))) return;
-        const wrong = DVAYI_ANSWER[left] !== right;
-        setPick({ left, right, wrong });
-        if (!(await wait(wrong ? 800 : 380))) return;
-        if (!wrong) setMatched((prev) => [...prev, left]);
-        setPick(null);
-        if (!(await wait(260))) return;
+        if (!(await wait(350))) return;
+        setHand({ side: 'right', row: right });
+        if (!(await wait(550))) return;
+        if (DVAYI_ANSWER[left] === right) {
+          setMatched((prev) => [...prev, left]);
+          setPick(null);
+          if (!(await wait(650))) return;
+        } else {
+          setPick({ left, right, wrong: true });
+          if (!(await wait(950))) return;
+          setPick(null);
+          if (!(await wait(300))) return;
+        }
       }
-      await wait(1900);
+      setHand(null);
+      await wait(2200);
     });
   }, [reduceMotion]);
 
-  const pairIndex = (left: number) => matched.indexOf(left);
-  const rightOwner = (right: number) => DVAYI_ANSWER.findIndex((r) => r === right);
-
-  const tileStyle = (color: string | null, wrong: boolean) =>
-    wrong
-      ? { borderColor: WRONG_COLOR, backgroundColor: withAlpha(WRONG_COLOR, 0.12) }
-      : color
-        ? { borderColor: color, backgroundColor: withAlpha(color, 0.14) }
-        : undefined;
+  const colorOfLeft = (left: number) => {
+    const order = matched.indexOf(left);
+    return order >= 0 ? pairColor(order) : null;
+  };
+  const colorOfRight = (right: number) => colorOfLeft(DVAYI_ANSWER.indexOf(right));
 
   return (
     <PreviewFrame
@@ -89,93 +222,79 @@ function DvayiMiniPreview({ compact }: { compact: boolean }) {
         </DemoPill>
       }
     >
-      <div className="relative grid aspect-square grid-cols-[1fr_2.5rem_1fr] grid-rows-4">
-        <svg
-          className="pointer-events-none col-start-2 row-span-4 row-start-1 h-full w-full overflow-visible"
-          viewBox="0 0 100 100"
-          preserveAspectRatio="none"
+      <div
+        ref={boardRef}
+        className="relative grid aspect-square grid-cols-[5fr_2fr_5fr] grid-rows-4"
+      >
+        {size ? (
+          <svg
+            className="pointer-events-none absolute inset-0 size-full overflow-visible"
+            viewBox={`0 0 ${size.width} ${size.height}`}
+            aria-hidden
+          >
+            <AnimatePresence>
+              {matched.map((left, order) => (
+                <DvayiLink
+                  key={`pair-${left}`}
+                  d={dvayiCurve(size, left, DVAYI_ANSWER[left]!)}
+                  color={pairColor(order)}
+                />
+              ))}
+              {pick?.wrong && pick.right !== null ? (
+                <DvayiLink
+                  key="miss"
+                  d={dvayiCurve(size, pick.left, pick.right)}
+                  color={WRONG_COLOR}
+                  dashed
+                />
+              ) : null}
+            </AnimatePresence>
+          </svg>
+        ) : null}
+        {DVAYI_LEFT.map((word, row) => (
+          <DvayiTile
+            key={word}
+            side="left"
+            row={row}
+            word={word}
+            color={colorOfLeft(row)}
+            selected={pick?.left === row}
+            wrong={!!pick?.wrong && pick.left === row}
+            compact={compact}
+          />
+        ))}
+        {DVAYI_RIGHT.map((word, row) => (
+          <DvayiTile
+            key={word}
+            side="right"
+            row={row}
+            word={word}
+            color={colorOfRight(row)}
+            selected={pick?.right === row}
+            wrong={!!pick?.wrong && pick.right === row}
+            compact={compact}
+          />
+        ))}
+        {/* Hand pointer gliding between taps (same idea as the Padāvalī demo). */}
+        <motion.span
           aria-hidden
+          className="pointer-events-none absolute top-0 left-0 z-20 -translate-x-1/2 translate-y-[-10%] text-lg drop-shadow-md select-none sm:text-xl"
+          initial={false}
+          animate={{
+            left: `${hand ? DVAYI_CENTER_X[hand.side] : 50}%`,
+            top: `${hand ? dvayiRowY(hand.row) : 50}%`,
+            opacity: hand ? 1 : 0,
+            scale: hand ? 1 : 0.8
+          }}
+          transition={{
+            left: { type: 'spring', stiffness: 170, damping: 24 },
+            top: { type: 'spring', stiffness: 170, damping: 24 },
+            opacity: { duration: 0.3 },
+            scale: { duration: 0.3 }
+          }}
         >
-          {matched.map((left) => (
-            <motion.line
-              key={left}
-              x1={0}
-              y1={dvayiRowY(left)}
-              x2={100}
-              y2={dvayiRowY(DVAYI_ANSWER[left]!)}
-              stroke={pairColor(pairIndex(left))}
-              strokeWidth={3}
-              strokeLinecap="round"
-              vectorEffect="non-scaling-stroke"
-              initial={{ pathLength: 0 }}
-              animate={{ pathLength: 1 }}
-              transition={{ duration: 0.3, ease: 'easeOut' }}
-            />
-          ))}
-          {pick?.right != null ? (
-            <line
-              x1={0}
-              y1={dvayiRowY(pick.left)}
-              x2={100}
-              y2={dvayiRowY(pick.right)}
-              stroke={pick.wrong ? WRONG_COLOR : DVAYI_ACCENT}
-              strokeWidth={3}
-              strokeLinecap="round"
-              strokeDasharray={pick.wrong ? '4 4' : undefined}
-              vectorEffect="non-scaling-stroke"
-            />
-          ) : null}
-        </svg>
-        {DVAYI_LEFT.map((word, row) => {
-          const index = pairIndex(row);
-          const active = pick?.left === row;
-          return (
-            <div key={word} className="col-start-1 py-1" style={{ gridRowStart: row + 1 }}>
-              <motion.div
-                animate={active && pick?.wrong ? { x: SHAKE_X } : { x: 0 }}
-                transition={SHAKE_TRANSITION}
-                className={cn(
-                  TILE_BASE,
-                  TILE_IDLE,
-                  'h-full justify-start px-2.5',
-                  compact ? 'text-xs' : 'text-sm',
-                  active && !pick?.wrong && 'ring-2 ring-rose-400/70'
-                )}
-                style={tileStyle(
-                  index >= 0 ? pairColor(index) : active ? DVAYI_ACCENT : null,
-                  active && pick.wrong
-                )}
-              >
-                {word}
-              </motion.div>
-            </div>
-          );
-        })}
-        {DVAYI_RIGHT.map((word, row) => {
-          const owner = rightOwner(row);
-          const index = matched.includes(owner) ? pairIndex(owner) : -1;
-          const active = pick?.right === row;
-          return (
-            <div key={word} className="col-start-3 py-1" style={{ gridRowStart: row + 1 }}>
-              <motion.div
-                animate={active && pick?.wrong ? { x: SHAKE_X } : { x: 0 }}
-                transition={SHAKE_TRANSITION}
-                className={cn(
-                  TILE_BASE,
-                  TILE_IDLE,
-                  'h-full justify-end px-2.5',
-                  compact ? 'text-xs' : 'text-sm'
-                )}
-                style={tileStyle(
-                  index >= 0 ? pairColor(index) : active ? DVAYI_ACCENT : null,
-                  active && pick.wrong
-                )}
-              >
-                {word}
-              </motion.div>
-            </div>
-          );
-        })}
+          👆
+        </motion.span>
       </div>
     </PreviewFrame>
   );

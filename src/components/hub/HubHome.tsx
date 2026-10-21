@@ -241,7 +241,8 @@ export default function HubHome({ data }: { data: HubData }) {
               ref={collectionsRef}
               className={cn(
                 'scroll-rail flex gap-4 pb-3 select-none',
-                collectionsDragging ? 'cursor-grabbing' : 'cursor-grab snap-x snap-mandatory'
+                'snap-x snap-mandatory',
+                collectionsDragging ? 'cursor-grabbing' : 'cursor-grab'
               )}
             >
               {data.collections.map((collection, index) => (

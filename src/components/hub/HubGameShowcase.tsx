@@ -57,7 +57,8 @@ export function HubGameShowcase() {
         aria-label="Games"
         className={cn(
           'scroll-rail relative -mx-1 flex gap-4 px-1 pt-1 pb-3 select-none',
-          dragging ? 'cursor-grabbing' : 'cursor-grab snap-x snap-mandatory'
+          'snap-x snap-mandatory',
+          dragging ? 'cursor-grabbing' : 'cursor-grab'
         )}
       >
         {HUB_GAME_LIST.map((game, index) => (

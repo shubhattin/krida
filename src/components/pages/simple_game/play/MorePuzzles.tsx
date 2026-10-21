@@ -144,7 +144,8 @@ export function MorePuzzles({ kind, puzzleId }: { kind: GameKind; puzzleId: numb
         ref={rowRef}
         className={cn(
           'scroll-rail -mx-1 flex gap-3 px-1 pb-3 select-none',
-          dragging ? 'cursor-grabbing' : 'cursor-grab snap-x'
+          'snap-x',
+          dragging ? 'cursor-grabbing' : 'cursor-grab'
         )}
       >
         {loading && items.length === 0
