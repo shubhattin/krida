@@ -42,6 +42,7 @@ export function SimpleGamePlayPage({
         title={puzzle.title}
         description={puzzle.description}
         attachments={puzzle.attachments}
+        showBackLink={location === 'list_page'}
       >
         {kind === 'dvayi' ? (
           <DvayiPlay

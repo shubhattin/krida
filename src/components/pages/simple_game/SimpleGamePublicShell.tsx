@@ -5,6 +5,7 @@ import { useSetAtom } from 'jotai';
 import { AppContext } from '~/components/AppDataContext';
 import { ScriptSelector } from '~/components/pages/padavali/ScriptSelector';
 import { MediaAttachments } from '~/components/pages/puzzle/MediaAttachments';
+import { PuzzleBackLink } from '~/components/pages/puzzle/PuzzleBackLink';
 import { active_simple_game_id_atom } from '~/components/app-bar/GameMenuItems';
 import { SIMPLE_GAME_META, type SimpleGameKind } from '~/util/games/kinds';
 import { cn } from '~/lib/utils';
@@ -18,6 +19,7 @@ export function SimpleGamePublicShell({
   title,
   description,
   attachments,
+  showBackLink,
   children
 }: {
   kind: SimpleGameKind;
@@ -25,6 +27,8 @@ export function SimpleGamePublicShell({
   title: string;
   description: string;
   attachments: z.infer<typeof attachment_schema>[];
+  /** "All puzzles" link back to this game's catalog (public puzzle pages, not previews). */
+  showBackLink: boolean;
   children: React.ReactNode;
 }) {
   const meta = SIMPLE_GAME_META[kind];
@@ -48,6 +52,11 @@ export function SimpleGamePublicShell({
       />
       <div className="flex items-start justify-between gap-3">
         <div className="min-w-0">
+          {showBackLink ? (
+            <div className="mb-1">
+              <PuzzleBackLink game={kind} />
+            </div>
+          ) : null}
           <p className="text-sm font-medium text-muted-foreground">
             {meta.name} · {meta.subtitle}
           </p>
