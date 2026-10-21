@@ -7,7 +7,6 @@ import { getCDNUrl } from '~/constants';
 import { PadajalaPreviewCard } from '~/components/pages/padajala/PadajalaPreviewCard';
 import { PuzzlePreviewCard } from '~/components/pages/padavali/PuzzlePreviewCard';
 import { GameKindIcon } from '~/components/pages/catalog/GameKindIcon';
-import { useTransliteratedText } from '~/components/pages/simple_game/useTransliteratedText';
 import type { SimpleListedPuzzle } from '~/util/cache.server/simple_game_cache';
 import type { SimpleGameKind } from '~/util/games/kinds';
 import type { HubPuzzle } from './hub_puzzles';
@@ -28,9 +27,9 @@ function SimplePuzzlePreviewCard({
   compact?: boolean;
 }) {
   const imageUrl = puzzle.image ? getCDNUrl(puzzle.image.s3_key) : null;
-  // Stored in Devanagari; follow the selected script like the Padāvalī cards do.
-  const title = useTransliteratedText(puzzle.title);
-  const description = useTransliteratedText(puzzle.description.trim()) || null;
+  // Titles arrive pre-transliterated to the selected script (see hubData$),
+  // so first paint — including hydration — already shows the right script.
+  const description = puzzle.description.trim() || null;
 
   return (
     <Link
@@ -71,7 +70,7 @@ function SimplePuzzlePreviewCard({
               compact ? 'text-sm' : ''
             )}
           >
-            {title}
+            {puzzle.title}
           </div>
           {description ? (
             <div className="mt-1 line-clamp-2 text-xs text-slate-500 dark:text-slate-400">
