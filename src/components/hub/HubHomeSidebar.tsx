@@ -87,7 +87,10 @@ export default function HubHomeSidebar({ data }: { data: HubData }) {
                     <GameAppIcon game={meta.kind} name={meta.name} size="sm" />
                     <span className="min-w-0 flex-1 truncate text-sm font-bold text-slate-900 dark:text-slate-50">
                       {meta.name}
-                      <span className="ml-1.5 font-semibold text-slate-400">{meta.subtitle}</span>
+                      <span className="ml-1.5 font-semibold text-slate-400">
+                        {/* Experiment copy: position Padajāla as a crossword. */}
+                        {meta.kind === 'padajala' ? 'Crossword' : meta.subtitle}
+                      </span>
                     </span>
                     <span className="shrink-0 rounded-full bg-slate-100 px-2 py-0.5 text-[11px] font-bold text-slate-500 tabular-nums group-hover:bg-indigo-100 group-hover:text-indigo-700 dark:bg-slate-800 dark:text-slate-400 dark:group-hover:bg-indigo-950 dark:group-hover:text-indigo-300">
                       {counts[meta.kind] ?? 0}

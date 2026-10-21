@@ -83,7 +83,7 @@ export default function HubHomeCompact({ data }: { data: HubData }) {
                 key={meta.kind}
                 to="/puzzles"
                 search={{ game: meta.kind }}
-                className="group flex items-center gap-3 rounded-2xl border border-slate-200 bg-white/80 p-3.5 no-underline shadow-xs backdrop-blur-sm transition-all duration-200 hover:-translate-y-0.5 hover:shadow-md dark:border-slate-700 dark:bg-slate-900/60"
+                className="group flex min-w-0 items-center gap-3 overflow-hidden rounded-2xl border border-slate-200 bg-white/80 p-3.5 no-underline shadow-xs backdrop-blur-sm transition-all duration-200 hover:-translate-y-0.5 hover:shadow-md dark:border-slate-700 dark:bg-slate-900/60"
               >
                 <GameAppIcon game={meta.kind} name={meta.name} size="md" />
                 <div className="min-w-0 flex-1">
@@ -93,7 +93,7 @@ export default function HubHomeCompact({ data }: { data: HubData }) {
                       {meta.subtitle}
                     </span>
                   </p>
-                  <p className="truncate text-sm text-slate-500 dark:text-slate-400">
+                  <p className="line-clamp-1 text-sm text-slate-500 dark:text-slate-400">
                     {meta.description}
                   </p>
                 </div>
