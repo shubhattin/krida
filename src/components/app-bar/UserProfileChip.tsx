@@ -497,9 +497,7 @@ function SignedInCard({
           <>
             <div className="flex flex-col gap-2">
               <div className="flex items-center justify-between px-0.5">
-                <p className="text-[11px] font-semibold tracking-wide text-muted-foreground uppercase">
-                  All games
-                </p>
+                <p className="text-[11px] font-semibold text-muted-foreground">All games</p>
                 {data.totals.started > 0 ? (
                   <p className="text-[11px] text-muted-foreground tabular-nums">
                     {data.totals.completion_rate}% completed
@@ -535,9 +533,7 @@ function SignedInCard({
             </div>
 
             <div className="flex flex-col gap-1.5">
-              <p className="px-0.5 text-[11px] font-semibold tracking-wide text-muted-foreground uppercase">
-                By game
-              </p>
+              <p className="px-0.5 text-[11px] font-semibold text-muted-foreground">By game</p>
               {gameOrder.map((game) => (
                 <GameStatsRow
                   key={game}

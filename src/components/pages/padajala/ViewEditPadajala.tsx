@@ -1404,7 +1404,7 @@ function PadajalaLayoutGenerator() {
               <div className="flex min-w-0 flex-col gap-1.5">
                 <Label
                   htmlFor="layout-density"
-                  className="text-xs font-medium tracking-wide text-muted-foreground uppercase"
+                  className="text-xs font-medium text-muted-foreground"
                 >
                   Word density
                 </Label>
@@ -1436,7 +1436,7 @@ function PadajalaLayoutGenerator() {
               <div className="flex min-w-0 flex-col gap-1.5">
                 <Label
                   htmlFor="layout-ranking"
-                  className="text-xs font-medium tracking-wide text-muted-foreground uppercase"
+                  className="text-xs font-medium text-muted-foreground"
                 >
                   Rank by
                 </Label>
@@ -1468,7 +1468,7 @@ function PadajalaLayoutGenerator() {
               <div className="flex min-w-0 flex-col gap-1.5">
                 <Label
                   htmlFor="layout-candidate-limit"
-                  className="text-xs font-medium tracking-wide text-muted-foreground uppercase"
+                  className="text-xs font-medium text-muted-foreground"
                 >
                   Candidates
                 </Label>

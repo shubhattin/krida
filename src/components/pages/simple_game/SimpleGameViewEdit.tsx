@@ -13,7 +13,7 @@ import {
 import { SimpleGameAnalytics } from './SimpleGameAnalytics';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '~/components/ui/tabs';
 import type { GameAnalysis } from '~/util/games/issues';
-import type { SimpleGameKind } from '~/util/games/kinds';
+import { simpleGameViewHref, type SimpleGameKind } from '~/util/games/kinds';
 import type { EditableAttachment } from './SimpleGameAttachments';
 import type { attachment_list_type } from '~/db/db_shared_vals';
 
@@ -77,6 +77,7 @@ export function SimpleGameViewEdit<T>({
       onSlugUpdated={setSlug}
       atoms={atoms}
       analyze={analyze}
+      previewHref={simpleGameViewHref(kind, puzzle.uid)}
     >
       {children}
     </HydratedEdit>
@@ -90,6 +91,7 @@ function HydratedEdit<T>({
   onSlugUpdated,
   atoms,
   analyze,
+  previewHref,
   children
 }: {
   kind: SimpleGameKind;
@@ -98,6 +100,7 @@ function HydratedEdit<T>({
   onSlugUpdated: (slug: string) => void;
   atoms: SimpleGameEditorAtoms<T>;
   analyze: (data: T) => GameAnalysis;
+  previewHref: string;
   children: ReactNode;
 }) {
   const [puzzleData] = useAtom(atoms.puzzleData);
@@ -117,6 +120,7 @@ function HydratedEdit<T>({
           onSlugUpdated={onSlugUpdated}
           atoms={atoms}
           analysis={analysis}
+          previewHref={previewHref}
         >
           {children}
         </SimpleGameEditShell>

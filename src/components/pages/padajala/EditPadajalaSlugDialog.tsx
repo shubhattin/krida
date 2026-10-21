@@ -360,7 +360,7 @@ export const PadajalaSlugField = ({
                       <div className="flex shrink-0 items-center gap-1.5">
                         <span
                           className={cn(
-                            'rounded-full px-2 py-0.5 text-[10px] font-medium tracking-wide uppercase',
+                            'rounded-full px-2 py-0.5 text-[10px] font-medium',
                             is_current
                               ? 'bg-primary/10 text-primary'
                               : 'bg-muted text-muted-foreground'

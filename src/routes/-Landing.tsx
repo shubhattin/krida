@@ -526,7 +526,7 @@ export function PadavaliMiniPreview({ compact = false }: { compact?: boolean }) 
       <div className={cn('flex items-center justify-between gap-2', compact ? 'mb-2' : 'mb-3')}>
         <div className="flex items-center gap-1.5">
           <div className="size-1.5 animate-pulse rounded-full bg-emerald-500" />
-          <span className="text-[10px] font-bold tracking-wider text-slate-500 uppercase dark:text-slate-400">
+          <span className="text-[10px] font-bold text-slate-500 dark:text-slate-400">
             Live Demo
           </span>
         </div>
@@ -761,9 +761,7 @@ export function PadajalaMiniPreview({ compact = false }: { compact?: boolean }) 
           <div
             className={`size-1.5 rounded-full ${isComplete ? 'bg-emerald-500' : 'bg-amber-500'}`}
           />
-          <span className="text-[10px] font-bold tracking-wider text-slate-500 uppercase dark:text-slate-400">
-            Preview
-          </span>
+          <span className="text-[10px] font-bold text-slate-500 dark:text-slate-400">Preview</span>
         </div>
         <div
           className={`rounded-full px-2 py-0.5 text-[10px] font-semibold shadow-xs ${
@@ -872,7 +870,7 @@ export function GameShowcaseCard({
               >
                 {game.name}
               </h3>
-              <span className="text-xs font-semibold tracking-wide text-slate-500 uppercase dark:text-slate-400">
+              <span className="text-xs font-semibold text-slate-500 dark:text-slate-400">
                 {game.subtitle}
               </span>
             </div>
@@ -1033,7 +1031,7 @@ export default function LandingPage() {
                 <span className="text-3xl font-extrabold text-blue-600 dark:text-blue-400">
                   {SCRIPT_SAMPLES[scriptIndex].text}
                 </span>
-                <span className="mt-1 text-[10px] font-bold tracking-widest text-slate-400 uppercase dark:text-slate-500">
+                <span className="mt-1 text-[10px] font-bold text-slate-400 dark:text-slate-500">
                   {SCRIPT_SAMPLES[scriptIndex].script} Script
                 </span>
               </motion.div>
@@ -1148,7 +1146,7 @@ export default function LandingPage() {
                 <div className="text-3xl font-extrabold text-blue-600 md:text-4xl dark:text-blue-400">
                   {stat.number}
                 </div>
-                <div className="text-xs font-semibold tracking-wide text-slate-500 uppercase dark:text-slate-400">
+                <div className="text-xs font-semibold text-slate-500 dark:text-slate-400">
                   {stat.label}
                 </div>
               </div>
@@ -1178,9 +1176,7 @@ export default function LandingPage() {
           <div className="mb-12 space-y-4">
             <div className="flex items-center justify-center gap-2">
               <ExternalLink className="h-4 w-4 text-slate-400" />
-              <span className="text-xs font-semibold tracking-widest text-slate-400 uppercase">
-                Connect with us
-              </span>
+              <span className="text-xs font-semibold text-slate-400">Connect with us</span>
             </div>
 
             <div className="flex justify-center gap-4">
@@ -1258,7 +1254,7 @@ export default function LandingPage() {
               </a>
             </div>
           </div>
-          <div className="text-center text-[10px] font-bold tracking-widest text-slate-400 uppercase dark:text-slate-500">
+          <div className="text-center text-[10px] font-bold text-slate-400 dark:text-slate-500">
             © {new Date().getFullYear()} Krida. All rights reserved.
           </div>
         </div>

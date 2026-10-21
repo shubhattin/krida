@@ -212,9 +212,7 @@ const SessionsCompletionsTooltip = ({
       <div className="rounded-lg border bg-background p-2 shadow-md">
         <div className="grid gap-2">
           <div className="flex flex-col">
-            <span className="text-[0.70rem] text-muted-foreground uppercase">
-              {data.tooltipLabel}
-            </span>
+            <span className="text-[0.70rem] text-muted-foreground">{data.tooltipLabel}</span>
           </div>
           <div className="grid gap-1">
             <div className="flex items-center gap-2">
@@ -260,9 +258,7 @@ const AttemptsTooltip = ({
       <div className="rounded-lg border bg-background p-2 shadow-md">
         <div className="grid gap-2">
           <div className="flex flex-col">
-            <span className="text-[0.70rem] text-muted-foreground uppercase">
-              {data.tooltipLabel}
-            </span>
+            <span className="text-[0.70rem] text-muted-foreground">{data.tooltipLabel}</span>
           </div>
           <div className="grid gap-1">
             <div className="flex items-center gap-2">
@@ -307,9 +303,7 @@ const AvgTimeTooltip = ({
       <div className="rounded-lg border bg-background p-2 shadow-md">
         <div className="grid gap-2">
           <div className="flex flex-col">
-            <span className="text-[0.70rem] text-muted-foreground uppercase">
-              {data.tooltipLabel}
-            </span>
+            <span className="text-[0.70rem] text-muted-foreground">{data.tooltipLabel}</span>
           </div>
           <div className="grid gap-1">
             <div className="flex items-center gap-2">

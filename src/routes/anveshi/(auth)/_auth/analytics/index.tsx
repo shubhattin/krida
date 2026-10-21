@@ -4,7 +4,7 @@ import { routeHeadFromPageMeta } from '~/components/tags/getPageMetaTags';
 
 export const Route = createFileRoute('/anveshi/(auth)/_auth/analytics/')({
   head: () =>
-    routeHeadFromPageMeta({ title: 'Anveṣī Analytics', project: 'anveshi', robots: 'noindex' }),
+    routeHeadFromPageMeta({ title: 'Ānveṣī Analytics', project: 'anveshi', robots: 'noindex' }),
   component: AnalyticsRoute
 });
 
