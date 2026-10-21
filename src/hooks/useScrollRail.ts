@@ -1,7 +1,7 @@
 'use client';
 
 import { useCallback, useEffect, useState } from 'react';
-import { useDragScroll } from './useDragScroll';
+import { snapStops, useDragScroll } from './useDragScroll';
 
 /**
  * Native horizontal rail (touch, trackpad, wheel, scrollbar) plus mouse drag via
@@ -58,11 +58,9 @@ export function useScrollRail<T extends HTMLElement>() {
     (index: number) => {
       const el = ref.current;
       if (!el) return;
-      const items = railItems(el);
-      const item = items[index];
-      const first = items[0];
-      if (!item || !first) return;
-      el.scrollTo({ left: item.offsetLeft - first.offsetLeft, behavior: 'smooth' });
+      const left = snapStops(el)[index];
+      if (left === undefined) return;
+      el.scrollTo({ left, behavior: 'smooth' });
     },
     [ref]
   );
