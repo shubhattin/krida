@@ -28,6 +28,7 @@ import { Route as SurupaRouteRouteImport } from './routes/surupa/route'
 import { Route as SystemPromptsRouteImport } from './routes/system-prompts'
 import { Route as HubIndexRouteImport } from './routes/_hub/index'
 import { Route as HubPuzzlesRouteImport } from './routes/_hub/puzzles'
+import { Route as AuthPopupDoneRouteImport } from './routes/auth/popup-done'
 import { Route as CollectionsListRouteImport } from './routes/collections/list'
 import { Route as CrosswordSplatRouteImport } from './routes/crossword.$'
 import { Route as TagsListRouteImport } from './routes/tags/list'
@@ -200,6 +201,11 @@ const HubPuzzlesRoute = HubPuzzlesRouteImport.update({
   id: '/puzzles',
   path: '/puzzles',
   getParentRoute: () => HubRoute,
+} as any)
+const AuthPopupDoneRoute = AuthPopupDoneRouteImport.update({
+  id: '/auth/popup-done',
+  path: '/auth/popup-done',
+  getParentRoute: () => rootRouteImport,
 } as any)
 const CollectionsListRoute = CollectionsListRouteImport.update({
   id: '/collections/list',
@@ -645,6 +651,7 @@ export interface FileRoutesByFullPath {
   '/sitemap-index.xml': typeof SitemapIndexDotxmlRoute
   '/system-prompts': typeof SystemPromptsRoute
   '/puzzles': typeof HubPuzzlesRoute
+  '/auth/popup-done': typeof AuthPopupDoneRoute
   '/collections/list': typeof CollectionsListRoute
   '/crossword/$': typeof CrosswordSplatRoute
   '/tags/list': typeof TagsListRoute
@@ -730,6 +737,7 @@ export interface FileRoutesByTo {
   '/sitemap-index.xml': typeof SitemapIndexDotxmlRoute
   '/system-prompts': typeof SystemPromptsRoute
   '/puzzles': typeof HubPuzzlesRoute
+  '/auth/popup-done': typeof AuthPopupDoneRoute
   '/collections/list': typeof CollectionsListRoute
   '/crossword/$': typeof CrosswordSplatRoute
   '/tags/list': typeof TagsListRoute
@@ -812,6 +820,7 @@ export interface FileRoutesById {
   '/sitemap-index.xml': typeof SitemapIndexDotxmlRoute
   '/system-prompts': typeof SystemPromptsRoute
   '/_hub/puzzles': typeof HubPuzzlesRoute
+  '/auth/popup-done': typeof AuthPopupDoneRoute
   '/collections/list': typeof CollectionsListRoute
   '/crossword/$': typeof CrosswordSplatRoute
   '/tags/list': typeof TagsListRoute
@@ -913,6 +922,7 @@ export interface FileRouteTypes {
     | '/sitemap-index.xml'
     | '/system-prompts'
     | '/puzzles'
+    | '/auth/popup-done'
     | '/collections/list'
     | '/crossword/$'
     | '/tags/list'
@@ -998,6 +1008,7 @@ export interface FileRouteTypes {
     | '/sitemap-index.xml'
     | '/system-prompts'
     | '/puzzles'
+    | '/auth/popup-done'
     | '/collections/list'
     | '/crossword/$'
     | '/tags/list'
@@ -1079,6 +1090,7 @@ export interface FileRouteTypes {
     | '/sitemap-index.xml'
     | '/system-prompts'
     | '/_hub/puzzles'
+    | '/auth/popup-done'
     | '/collections/list'
     | '/crossword/$'
     | '/tags/list'
@@ -1178,6 +1190,7 @@ export interface RootRouteChildren {
   Sitemap1DotxmlRoute: typeof Sitemap1DotxmlRoute
   SitemapIndexDotxmlRoute: typeof SitemapIndexDotxmlRoute
   SystemPromptsRoute: typeof SystemPromptsRoute
+  AuthPopupDoneRoute: typeof AuthPopupDoneRoute
   CollectionsListRoute: typeof CollectionsListRoute
   CrosswordSplatRoute: typeof CrosswordSplatRoute
   TagsListRoute: typeof TagsListRoute
@@ -1323,6 +1336,13 @@ declare module '@tanstack/react-router' {
       fullPath: '/puzzles'
       preLoaderRoute: typeof HubPuzzlesRouteImport
       parentRoute: typeof HubRoute
+    }
+    '/auth/popup-done': {
+      id: '/auth/popup-done'
+      path: '/auth/popup-done'
+      fullPath: '/auth/popup-done'
+      preLoaderRoute: typeof AuthPopupDoneRouteImport
+      parentRoute: typeof rootRouteImport
     }
     '/collections/list': {
       id: '/collections/list'
@@ -2218,6 +2238,7 @@ const rootRouteChildren: RootRouteChildren = {
   Sitemap1DotxmlRoute: Sitemap1DotxmlRoute,
   SitemapIndexDotxmlRoute: SitemapIndexDotxmlRoute,
   SystemPromptsRoute: SystemPromptsRoute,
+  AuthPopupDoneRoute: AuthPopupDoneRoute,
   CollectionsListRoute: CollectionsListRoute,
   CrosswordSplatRoute: CrosswordSplatRoute,
   TagsListRoute: TagsListRoute,

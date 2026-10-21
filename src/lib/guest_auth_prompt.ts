@@ -172,9 +172,17 @@ function backoffAnchor(state: GuestAuthPromptState): number {
 
 /** Set while a guest is mid-puzzle; auto-open waits until the game ends. */
 let guestGameActive = false;
+const gameStartListeners = new Set<() => void>();
 
 export function setGuestGameActive(active: boolean) {
+  if (active && !guestGameActive) for (const listener of gameStartListeners) listener();
   guestGameActive = active;
+}
+
+/** Run `listener` whenever a guest puzzle starts — used to withdraw prompts. */
+export function onGuestGameStart(listener: () => void): () => void {
+  gameStartListeners.add(listener);
+  return () => gameStartListeners.delete(listener);
 }
 
 export function readGuestAuthPromptState(): GuestAuthPromptState {

@@ -18,6 +18,7 @@ import {
 import { displayUserName, sessionUserFields } from '~/api/routers/user/session_user';
 import { resolveAuthUserNames, searchAuthUsers } from '~/lib/auth_users.server';
 import { requireTurnstileIfGuest } from '~/api/routers/turnstile_guard';
+import { adoptGuestSession } from '~/api/routers/stats_session_adopt';
 import {
   get_stats_data_input_schema,
   get_top_puzzles_input_schema,
@@ -72,8 +73,8 @@ const submit_stats_route = publicProcedure
           );
         }
 
-        yield* dbRunHttp('padajala_stats.insert_gameplay_stat', async (client) => {
-          await client
+        const inserted = yield* dbRunHttp('padajala_stats.insert_gameplay_stat', (client) =>
+          client
             .insert(padajala_gameplay_stats)
             .values({
               puzzle_id,
@@ -86,8 +87,12 @@ const submit_stats_route = publicProcedure
               letter_inputs,
               incorrect_entry_attempts
             })
-            .onConflictDoNothing({ target: padajala_gameplay_stats.session_id });
-        });
+            .onConflictDoNothing({ target: padajala_gameplay_stats.session_id })
+            .returning()
+        );
+        if (inserted.length > 0) {
+          yield* adoptGuestSession('padajala_stats.adopt_guest_session', session_id, ctx.user);
+        }
 
         if (ctx.user?.id) {
           yield* settle(

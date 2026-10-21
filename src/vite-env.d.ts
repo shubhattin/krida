@@ -7,6 +7,8 @@ interface ImportMetaEnv {
   readonly VITE_AWS_CLOUDFRONT_URL: string;
   readonly VITE_POSTHOG_KEY: string;
   readonly VITE_POSTHOG_URL: string;
+  /** Public Google OAuth client id (same as tsc-users PUBLIC_GOOGLE_CLIENT_ID). Enables One Tap. */
+  readonly VITE_GOOGLE_CLIENT_ID?: string;
 }
 
 interface ImportMeta {

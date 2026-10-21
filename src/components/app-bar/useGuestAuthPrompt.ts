@@ -8,6 +8,7 @@ import {
   guest_auth_prompt_event_schema,
   markGuestAuthPromptDismissed,
   noteGameVisit,
+  onGuestGameStart,
   readGuestAuthPromptState,
   readGuestCompletedCount,
   requestGuestAuthPrompt,
@@ -16,6 +17,8 @@ import {
   type GuestAuthPromptTrigger
 } from '~/lib/guest_auth_prompt';
 import { captureAuthPromptEvent, consumePendingSignIn } from '~/lib/google_sign_in';
+import { cancelOneTap, isOneTapAvailable, promptOneTap } from '~/lib/one_tap';
+import { installGuestAuthPromptDebug } from '~/lib/guest_auth_prompt_debug';
 
 const PULSE_MS = 900;
 /** Let the completion card and confetti land before nudging. */
@@ -46,8 +49,45 @@ export function useGuestAuthPrompt(isSignedIn: boolean, authReady: boolean) {
 
   useEffect(() => {
     const timers = timersRef.current;
+    let active = true;
     const later = (fn: () => void, delay: number) => {
       timers.push(window.setTimeout(fn, delay));
+    };
+    const captureShown = (nextTrigger: GuestAuthPromptTrigger, surface: string) =>
+      captureAuthPromptEvent('auth_prompt_shown', {
+        trigger: nextTrigger,
+        surface,
+        shown_count: readGuestAuthPromptState().shownCount
+      });
+
+    const openPopover = (nextTrigger: GuestAuthPromptTrigger) => {
+      captureShown(nextTrigger, 'popover');
+      setCanSnooze(canOfferGuestAuthSnooze());
+      setAutoOpen(true);
+    };
+
+    /** Prefer native One Tap; fall back to our popover only when it could not show. */
+    const autoPrompt = async (nextTrigger: GuestAuthPromptTrigger) => {
+      if (!isOneTapAvailable()) return openPopover(nextTrigger);
+      const outcome = await promptOneTap();
+      if (import.meta.env.DEV) console.info('[auth-prompt] One Tap outcome:', outcome);
+      if (!active || outcome === 'cancelled') return;
+      if (outcome === 'signed_in') {
+        captureShown(nextTrigger, 'one_tap');
+        captureAuthPromptEvent('auth_signed_in', { surface: 'one_tap', trigger: nextTrigger });
+        return;
+      }
+      if (outcome === 'dismissed') {
+        // One closed prompt is enough — never chase it with the popover.
+        captureShown(nextTrigger, 'one_tap');
+        markGuestAuthPromptDismissed();
+        captureAuthPromptEvent('auth_prompt_dismissed', {
+          surface: 'one_tap',
+          trigger: nextTrigger
+        });
+        return;
+      }
+      openPopover(nextTrigger);
     };
 
     const onPrompt = (event: Event) => {
@@ -60,21 +100,20 @@ export function useGuestAuthPrompt(isSignedIn: boolean, authReady: boolean) {
         setTrigger(nextTrigger);
         setAutoOpen(false);
         setPulsing(true);
-        captureAuthPromptEvent('auth_prompt_shown', {
-          trigger: nextTrigger,
-          mode,
-          shown_count: readGuestAuthPromptState().shownCount
-        });
         later(() => {
           setPulsing(false);
-          if (mode !== 'open') return;
-          setCanSnooze(canOfferGuestAuthSnooze());
-          setAutoOpen(true);
+          if (mode === 'open') {
+            void autoPrompt(nextTrigger);
+          } else {
+            captureShown(nextTrigger, 'chip_pulse');
+          }
         }, PULSE_MS);
       }, promptDelayMs(nextTrigger));
     };
 
     window.addEventListener(GUEST_AUTH_PROMPT_EVENT, onPrompt);
+    if (import.meta.env.DEV) installGuestAuthPromptDebug();
+    const stopGameListener = onGuestGameStart(cancelOneTap);
 
     if (authReady && isSignedIn) {
       clearGuestAuthPrompt();
@@ -85,6 +124,8 @@ export function useGuestAuthPrompt(isSignedIn: boolean, authReady: boolean) {
     }
 
     return () => {
+      active = false;
+      stopGameListener();
       window.removeEventListener(GUEST_AUTH_PROMPT_EVENT, onPrompt);
       for (const id of timers) window.clearTimeout(id);
       timers.length = 0;
@@ -98,6 +139,7 @@ export function useGuestAuthPrompt(isSignedIn: boolean, authReady: boolean) {
       markGuestAuthPromptDismissed();
     }
     captureAuthPromptEvent(reason === 'snoozed' ? 'auth_prompt_snoozed' : 'auth_prompt_dismissed', {
+      surface: 'popover',
       trigger
     });
     setAutoOpen(false);
