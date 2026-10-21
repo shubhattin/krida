@@ -77,7 +77,8 @@ export const Route = createFileRoute('/padajala/(public)/_public/$slug')({
       });
     }
     if (result.kind === 'not_found') throw notFound();
-    if (result.kind === 'current_puzzle') throw redirect({ to: '/padajala' });
+    if (result.kind === 'current_puzzle')
+      throw redirect({ to: '/', search: { game: 'padajala' }, hash: 'padajala' });
 
     return result;
   },

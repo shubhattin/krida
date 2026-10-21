@@ -17,6 +17,7 @@ import { isValidSimpleGameSlug, normalizeSlug, simple_game_slug_schema } from '~
 import {
   CACHE,
   invalidate_and_refresh_cache,
+  invalidate_simple_game_sitemap,
   NO_CACHE_PARAMS
 } from '~/util/cache.server/cache_loaders';
 import { syncPuzzleAttachments } from '~/game_shell/attachments';
@@ -53,8 +54,15 @@ export function createSimpleGameRouter<TData>(options: {
   });
   const stats = createSimpleGameStatsRouter(kind, tables);
 
+  // The listed set backs both the public list and this game's sitemap.
   const refreshListed = () =>
-    settle(invalidate_and_refresh_cache(puzzleCache.listed_puzzle_list, NO_CACHE_PARAMS));
+    Effect.all(
+      [
+        settle(invalidate_and_refresh_cache(puzzleCache.listed_puzzle_list, NO_CACHE_PARAMS)),
+        settle(invalidate_simple_game_sitemap(kind))
+      ],
+      { discard: true }
+    );
   const refreshPuzzle = (slug: string) =>
     settle(invalidate_and_refresh_cache(puzzleCache.word_puzzle, { slug }));
   const refreshCollections = () =>

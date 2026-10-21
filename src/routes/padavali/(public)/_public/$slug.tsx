@@ -108,7 +108,8 @@ export const Route = createFileRoute('/padavali/(public)/_public/$slug')({
       });
     }
     if (result.kind === 'not_found') throw notFound();
-    if (result.kind === 'current_puzzle') throw redirect({ to: '/padavali' });
+    if (result.kind === 'current_puzzle')
+      throw redirect({ to: '/', search: { game: 'padavali' }, hash: 'padavali' });
 
     return result;
   },

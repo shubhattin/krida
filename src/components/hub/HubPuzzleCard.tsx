@@ -8,7 +8,7 @@ import { PadajalaPreviewCard } from '~/components/pages/padajala/PadajalaPreview
 import { PuzzlePreviewCard } from '~/components/pages/padavali/PuzzlePreviewCard';
 import { GameKindIcon } from '~/components/pages/catalog/GameKindIcon';
 import type { SimpleListedPuzzle } from '~/util/cache.server/simple_game_cache';
-import type { GameKind } from '~/util/catalog/tags';
+import type { SimpleGameKind } from '~/util/games/kinds';
 import type { HubPuzzle } from './hub_puzzles';
 import { HubGameBadge } from './HubGameBadge';
 import { cn } from '~/lib/utils';
@@ -23,14 +23,18 @@ function SimplePuzzlePreviewCard({
   compact = false
 }: {
   puzzle: SimpleListedPuzzle;
-  game: GameKind;
+  game: SimpleGameKind;
   compact?: boolean;
 }) {
   const imageUrl = puzzle.image ? getCDNUrl(puzzle.image.s3_key) : null;
   const description = puzzle.description.trim() || null;
 
   return (
-    <Link to={puzzleHrefFor(game, puzzle.slug)} className="group block h-full no-underline">
+    <Link
+      to={`/${game}/$slug`}
+      params={{ slug: puzzle.slug }}
+      className="group block h-full no-underline"
+    >
       <motion.div
         whileHover={{ scale: 1.02, y: -2 }}
         whileTap={{ scale: 0.98 }}
@@ -75,10 +79,6 @@ function SimplePuzzlePreviewCard({
       </motion.div>
     </Link>
   );
-}
-
-function puzzleHrefFor(game: GameKind, slug: string) {
-  return `/${game}/${encodeURIComponent(slug)}`;
 }
 
 /** Renders a puzzle from any game with that game's own card. */

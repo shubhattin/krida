@@ -95,6 +95,7 @@ export function routeHeadFromPageMeta({
     ...(desc ? ([{ property: 'og:description', content: desc }] as const) : []),
     { property: 'og:site_name', content: SITE_NAME[project] },
     { property: 'og:type', content: 'website' },
+    ...(canonical ? ([{ property: 'og:url', content: canonical }] as const) : []),
     { property: 'og:image', content: image.url },
     { property: 'og:image:width', content: String(image.width) },
     { property: 'og:image:height', content: String(image.height) },
@@ -103,11 +104,7 @@ export function routeHeadFromPageMeta({
     ...(desc ? ([{ name: 'twitter:description', content: desc }] as const) : []),
     { name: 'twitter:image', content: image.url }
   ];
-  type CanonicalLink = { rel: 'canonical'; href: string };
-  const links: CanonicalLink[] | undefined = canonical
-    ? [{ rel: 'canonical', href: canonical }]
-    : undefined;
-  return links ? { meta, links } : { meta };
+  return canonical ? { meta, links: [{ rel: 'canonical', href: canonical }] } : { meta };
 }
 
 /** @deprecated Prefer routeHeadFromPageMeta */

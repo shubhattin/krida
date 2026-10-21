@@ -7,14 +7,12 @@ import { createCache, type CacheItem, type NoCacheParams, NO_CACHE_PARAMS } from
 import { AppConfig } from '~/effect/config';
 import { dbRunHttp } from '~/effect/database';
 import { CacheError } from '~/effect/errors';
+import { SIMPLE_GAME_KINDS, type SimpleGameKind } from '~/util/games/kinds';
 
 const SITEMAP_TTL_SECONDS = ms('4 days') / 1000;
 
 const PADAVALI_SITEMAP_KEY = 'sitemap:padavali';
 const PADAJALA_SITEMAP_KEY = 'sitemap:padajala';
-
-const SIMPLE_SITEMAP_KINDS = ['dvayi', 'bhramita', 'surupa', 'anveshi'] as const;
-type SimpleSitemapKind = (typeof SIMPLE_SITEMAP_KINDS)[number];
 
 /** Exported for tests — must stay aligned with createCache getKey builders below. */
 export const sitemapCacheKeys = {
@@ -150,9 +148,9 @@ const load_padajala_sitemap: CacheItem<NoCacheParams, string> = createCache({
     }).pipe(Effect.mapError(toCacheError('fetchPadajalaSitemap', PADAJALA_SITEMAP_KEY)))
 });
 
-/** One sitemap per simple game: landing, puzzles filter, and every listed puzzle slug. */
-function makeSimpleGameSitemap(kind: SimpleSitemapKind): CacheItem<NoCacheParams, string> {
-  const key = `sitemap:${kind}`;
+/** One sitemap per simple game: puzzles filter and every listed puzzle slug. */
+function makeSimpleGameSitemap(kind: SimpleGameKind): CacheItem<NoCacheParams, string> {
+  const key = sitemapCacheKeys[kind]();
   return createCache({
     getKey: () => key,
     schema: z.string(),
@@ -175,7 +173,6 @@ function makeSimpleGameSitemap(kind: SimpleSitemapKind): CacheItem<NoCacheParams
         );
 
         const entries: SitemapUrlEntry[] = [
-          { loc: joinUrl(base, `/${kind}`) },
           { loc: joinUrl(base, `/puzzles?game=${kind}`) },
           ...listedPuzzles.map((puzzle) => ({
             loc: joinUrl(base, `/${kind}/${encodeURIComponent(puzzle.slug)}`),
@@ -197,10 +194,10 @@ export type SitemapCacheLoaders = {
   anveshi: CacheItem<NoCacheParams, string>;
 };
 
-// SAFETY: entries are built from SIMPLE_SITEMAP_KINDS, covering every key exactly once.
+// SAFETY: entries are built from SIMPLE_GAME_KINDS, covering every key exactly once.
 const simple_sitemap_loaders = Object.fromEntries(
-  SIMPLE_SITEMAP_KINDS.map((kind) => [kind, makeSimpleGameSitemap(kind)])
-) as Record<SimpleSitemapKind, CacheItem<NoCacheParams, string>>;
+  SIMPLE_GAME_KINDS.map((kind) => [kind, makeSimpleGameSitemap(kind)])
+) as Record<SimpleGameKind, CacheItem<NoCacheParams, string>>;
 
 export const sitemap_cache_loaders: SitemapCacheLoaders = {
   padavali: load_padavali_sitemap,
@@ -214,5 +211,5 @@ export const invalidate_padavali_sitemap = () => load_padavali_sitemap.delete(NO
 export const invalidate_padajala_sitemap = () => load_padajala_sitemap.delete(NO_CACHE_PARAMS);
 
 /** Drop one simple game's cached XML only — next GET rebuilds. */
-export const invalidate_simple_game_sitemap = (kind: SimpleSitemapKind) =>
+export const invalidate_simple_game_sitemap = (kind: SimpleGameKind) =>
   simple_sitemap_loaders[kind].delete(NO_CACHE_PARAMS);

@@ -4,9 +4,7 @@ import { runTrpcEffect } from '~/effect/run';
 import { get_user_dashboard_input_schema } from '~/api/routers/stats_query_schema';
 import { combineDashboardTotals, emptyGameStats } from '~/api/routers/user/user_dashboard';
 import { CACHE } from '~/util/cache.server/cache_loaders';
-import type { SimpleGameKind } from '~/util/games/kinds';
-
-const SIMPLE_DASHBOARD_KINDS = ['dvayi', 'bhramita', 'surupa', 'anveshi'] as const;
+import type { GameKind } from '~/util/catalog/tags';
 
 const get_dashboard_route = protectedProcedure
   .input(get_user_dashboard_input_schema)
@@ -14,36 +12,28 @@ const get_dashboard_route = protectedProcedure
     runTrpcEffect(
       Effect.gen(function* () {
         const userId = ctx.user.id;
-        const include = (kind: typeof game) => game === 'all' || game === kind;
+        // Unselected games skip the cache read and report zeroes.
+        const load = (kind: GameKind) =>
+          game === 'all' || game === kind
+            ? CACHE.user[`${kind}_dashboard`].get({ userId })
+            : Effect.succeed(emptyGameStats(kind));
 
-        const [padavali, padajala, ...simples] = yield* Effect.all([
-          include('padavali')
-            ? CACHE.user.padavali_dashboard.get({ userId })
-            : Effect.succeed(emptyGameStats('padavali')),
-          include('padajala')
-            ? CACHE.user.padajala_dashboard.get({ userId })
-            : Effect.succeed(emptyGameStats('padajala')),
-          ...SIMPLE_DASHBOARD_KINDS.map((kind: SimpleGameKind) =>
-            include(kind)
-              ? CACHE.user[`${kind}_dashboard`].get({ userId })
-              : Effect.succeed(emptyGameStats(kind))
-          )
-        ]);
+        const stats = yield* Effect.all(
+          {
+            padavali: load('padavali'),
+            padajala: load('padajala'),
+            dvayi: load('dvayi'),
+            bhramita: load('bhramita'),
+            surupa: load('surupa'),
+            anveshi: load('anveshi')
+          },
+          { concurrency: 'unbounded' }
+        );
+        const included = Object.values(stats).filter(
+          (item) => game === 'all' || item.game === game
+        );
 
-        const games = [padavali, padajala, ...simples].filter((item) => {
-          if (game === 'all') return true;
-          return item.game === game;
-        });
-
-        return {
-          totals: combineDashboardTotals(games),
-          padavali,
-          padajala,
-          dvayi: simples[0]!,
-          bhramita: simples[1]!,
-          surupa: simples[2]!,
-          anveshi: simples[3]!
-        };
+        return { totals: combineDashboardTotals(included), ...stats };
       })
     )
   );

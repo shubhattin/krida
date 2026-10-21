@@ -191,6 +191,15 @@
     );
   }
 
+  /* Horizontal rails: native scrolling (touch, trackpad, wheel) with a slim visible scrollbar;
+     pair with useDragScroll for mouse click-and-drag. */
+  .scroll-rail {
+    overflow-x: auto;
+    overscroll-behavior-x: contain;
+    scrollbar-width: thin;
+    scrollbar-color: color-mix(in oklch, var(--muted-foreground) 35%, transparent) transparent;
+  }
+
   /* Hub hero wordmark: Padāvalī blue → Padajāla amber, slowly drifting. */
   .krida-hero-wordmark {
     background-image: linear-gradient(

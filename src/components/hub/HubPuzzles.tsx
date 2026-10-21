@@ -37,7 +37,7 @@ import Icon from '~/tools/Icon';
 import { LanguageIcon } from '~/components/icons';
 import { scrollPaginationListToStart } from '~/lib/pagination-scroll';
 import { cn } from '~/lib/utils';
-import { HUB_GAME_LIST } from './hub_games';
+
 import { GamePickerChips } from './GamePickerChips';
 import type { HubData } from './hub_data';
 import { HubPuzzleCard } from './HubPuzzleCard';
@@ -49,14 +49,12 @@ import {
   type HubPuzzle
 } from './hub_puzzles';
 import { useHubPuzzles } from './useHubPuzzles';
-import type { GameKind, PublicTag } from '~/util/catalog/tags';
+import { GAME_KINDS, type GameKind, type PublicTag } from '~/util/catalog/tags';
 import type { ListedCollectionsType } from '~/util/cache.server/collection_cache';
 import type { PuzzlesSearch } from '~/routes/_hub/puzzles';
 
 const puzzlesRoute = getRouteApi('/_hub/puzzles');
 const PAGE_LIMIT = 12;
-
-const GAME_FILTER_GAMES = HUB_GAME_LIST.map((meta) => meta.kind);
 
 const VIEW_TABS = [
   { value: 'puzzles', label: 'Puzzles', icon: PuzzleIcon },
@@ -201,7 +199,7 @@ function GameFilters({ gameCounts }: { gameCounts: GameCounts }) {
 
   return (
     <GamePickerChips
-      games={GAME_FILTER_GAMES}
+      games={GAME_KINDS}
       value={search.game}
       onChange={(game) => updateFilters({ game })}
       counts={gameCounts}
@@ -477,15 +475,17 @@ export default function HubPuzzles({ data }: { data: HubData }) {
       tags: search.tag ? [search.tag] : [],
       query: search.q
     });
-    return {
+    const counts = {
       all: base.length,
-      padavali: base.filter((puzzle) => puzzle.game === 'padavali').length,
-      padajala: base.filter((puzzle) => puzzle.game === 'padajala').length,
-      dvayi: base.filter((puzzle) => puzzle.game === 'dvayi').length,
-      bhramita: base.filter((puzzle) => puzzle.game === 'bhramita').length,
-      surupa: base.filter((puzzle) => puzzle.game === 'surupa').length,
-      anveshi: base.filter((puzzle) => puzzle.game === 'anveshi').length
-    };
+      padavali: 0,
+      padajala: 0,
+      dvayi: 0,
+      bhramita: 0,
+      surupa: 0,
+      anveshi: 0
+    } satisfies GameCounts;
+    for (const puzzle of base) counts[puzzle.game] += 1;
+    return counts;
   }, [puzzles, search.tag, search.q]);
 
   // Collections aren't paginated — drop a leftover ?page= from puzzle view.

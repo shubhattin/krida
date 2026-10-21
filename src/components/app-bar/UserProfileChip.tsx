@@ -49,14 +49,8 @@ import { startGoogleSignIn } from '~/lib/google_sign_in';
 import { resetPosthog } from '~/components/tags/PosthogInit';
 import type { GuestAuthPromptTrigger } from '~/lib/guest_auth_prompt';
 import { cn } from '~/lib/utils';
-import {
-  isPublicGameKind,
-  isSimpleGameKind,
-  SIMPLE_GAME_META,
-  type PublicGameKind,
-  type SimpleGameKind
-} from '~/util/games/kinds';
-import { GAME_KINDS, type GameKind } from '~/util/catalog/tags';
+import { SIMPLE_GAME_META, type SimpleGameKind } from '~/util/games/kinds';
+import { GAME_KINDS, isGameKind, type GameKind } from '~/util/catalog/tags';
 import {
   useGuestAuthPrompt,
   useGuestCompletedCount
@@ -64,12 +58,12 @@ import {
 import chipStyles from '~/components/app-bar/user-profile-chip.module.css';
 
 /** Where the chip is rendered — drives accent colours and the header label. */
-export type ProfileContext = 'krida' | PublicGameKind | SimpleGameKind;
+export type ProfileContext = 'krida' | GameKind;
 
 /** Resolve the profile context from the first path segment (`/padajala/...`, `/dvayi/...`). */
 export function profileContextFromPath(pathname: string): ProfileContext {
   const segment = pathname.split('/')[1] ?? '';
-  if (isPublicGameKind(segment) || isSimpleGameKind(segment)) return segment;
+  if (isGameKind(segment)) return segment;
   return 'krida';
 }
 
@@ -584,7 +578,7 @@ function GameStatsRow({
   return (
     <Link
       to="/puzzles"
-      search={{ game: meta.puzzlesGame }}
+      search={{ game: meta.kind }}
       onClick={onNavigate}
       aria-current={current ? 'page' : undefined}
       className={cn(
@@ -595,7 +589,7 @@ function GameStatsRow({
       )}
     >
       <Image
-        src={GAME_APP_ICON_SRC[meta.icon]}
+        src={GAME_APP_ICON_SRC[meta.kind]}
         alt=""
         width={28}
         height={28}

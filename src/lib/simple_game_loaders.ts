@@ -203,10 +203,3 @@ export const loadSimpleGameByUid$ = createServerFn({ method: 'GET' })
     const puzzle = await loadCachedPuzzle(data.kind, row.slug);
     return { puzzle: puzzle ?? null };
   });
-
-export const loadSimpleGameListed$ = createServerFn({ method: 'GET' })
-  .validator(z.object({ kind: kind_schema }))
-  .handler(async ({ data }) => {
-    const list = await runLoaderEffect(CACHE[data.kind].listed_puzzle_list.get(NO_CACHE_PARAMS));
-    return { list };
-  });

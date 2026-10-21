@@ -26,7 +26,7 @@ export function HubGameBadge({
         )}
       >
         <Image
-          src={GAME_APP_ICON_SRC[meta.icon]}
+          src={GAME_APP_ICON_SRC[meta.kind]}
           alt=""
           width={12}
           height={12}
@@ -48,7 +48,7 @@ export function HubGameBadge({
       )}
     >
       <Image
-        src={GAME_APP_ICON_SRC[meta.icon]}
+        src={GAME_APP_ICON_SRC[meta.kind]}
         alt=""
         width={20}
         height={20}

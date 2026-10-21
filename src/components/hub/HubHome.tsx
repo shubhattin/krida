@@ -6,7 +6,7 @@ import { ArrowRight, Puzzle } from 'lucide-react';
 import { motion, useReducedMotion } from 'framer-motion';
 import { ScriptSelector } from '~/components/pages/padavali/ScriptSelector';
 import { AppContext } from '~/components/AppDataContext';
-import { HUB_GAMES, HUB_GAME_LIST, hubGameFromHomeHash, hubHomeHashForGame } from './hub_games';
+import { HUB_GAMES, hubGameFromHomeHash, hubHomeHashForGame } from './hub_games';
 import { GamePickerChips } from './GamePickerChips';
 import type { HubData } from './hub_data';
 import { HubPuzzleCard } from './HubPuzzleCard';
@@ -15,8 +15,9 @@ import { HubTodayCard } from './HubTodayCard';
 import { HubGameShowcase } from './HubGameShowcase';
 import { tagsByPopularity } from './hub_puzzles';
 import { useHubPuzzles } from './useHubPuzzles';
-import type { GameKind } from '~/util/catalog/tags';
+import { GAME_KINDS, type GameKind } from '~/util/catalog/tags';
 import { cn } from '~/lib/utils';
+import { useDragScroll } from '~/hooks/useDragScroll';
 import { Button } from '~/components/ui/button';
 
 const homeRoute = getRouteApi('/_hub/');
@@ -110,10 +111,10 @@ function RecentlyAdded({ puzzles }: { puzzles: ReturnType<typeof useHubPuzzles>[
     <section className="relative flex flex-col gap-4">
       {/* Deep-link anchors for `/#puzzles` and every `/#<game>` */}
       <div id="puzzles" className="pointer-events-none absolute -top-24 h-px w-px scroll-mt-24" />
-      {HUB_GAME_LIST.map((meta) => (
+      {GAME_KINDS.map((kind) => (
         <div
-          key={meta.kind}
-          id={meta.kind}
+          key={kind}
+          id={kind}
           className="pointer-events-none absolute -top-24 h-px w-px scroll-mt-24"
         />
       ))}
@@ -134,11 +135,7 @@ function RecentlyAdded({ puzzles }: { puzzles: ReturnType<typeof useHubPuzzles>[
         }
       />
       <div className="flex flex-wrap items-center gap-2">
-        <GamePickerChips
-          games={HUB_GAME_LIST.map((meta) => meta.kind)}
-          value={game}
-          onChange={setGameFilter}
-        />
+        <GamePickerChips games={GAME_KINDS} value={game} onChange={setGameFilter} />
         <div className="ml-auto">
           <ScriptSelector script={script} onScriptChange={setScript} compact />
         </div>
@@ -173,6 +170,7 @@ export default function HubHome({ data }: { data: HubData }) {
   const { puzzles } = useHubPuzzles(data);
   const tags = tagsByPopularity(puzzles).slice(0, 24);
   const reduceMotion = useReducedMotion();
+  const { ref: collectionsRef, dragging: collectionsDragging } = useDragScroll<HTMLDivElement>();
   const todayGames = (['padavali', 'padajala'] as const)
     .map((kind) => HUB_GAMES[kind])
     .filter((game) => data[game.kind].today);
@@ -239,7 +237,13 @@ export default function HubHome({ data }: { data: HubData }) {
                 </Button>
               }
             />
-            <div className="flex snap-x snap-mandatory scrollbar-none gap-4 overflow-x-auto pb-2">
+            <div
+              ref={collectionsRef}
+              className={cn(
+                'scroll-rail flex gap-4 pb-3 select-none',
+                collectionsDragging ? 'cursor-grabbing' : 'cursor-grab snap-x snap-mandatory'
+              )}
+            >
               {data.collections.map((collection, index) => (
                 <motion.div
                   key={collection.uid}
