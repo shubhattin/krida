@@ -1,6 +1,6 @@
 import { createFileRoute, notFound, redirect } from '@tanstack/react-router';
 import { SimpleGamePlayPage } from '~/components/pages/simple_game/SimpleGamePlayPage';
-import { routeHeadFromPageMeta } from '~/components/tags/getPageMetaTags';
+import { routeHeadFromPageMeta, shareImageInfoFromAsset } from '~/components/tags/getPageMetaTags';
 import { loadSimpleGameBySlug$ } from '~/lib/simple_game_loaders';
 import { SIMPLE_GAME_META, simpleGameHref } from '~/util/games/kinds';
 
@@ -29,7 +29,10 @@ export const Route = createFileRoute('/surupa/(public)/_public/$slug')({
           : loaderData.description
         : null,
       project: 'surupa',
-      robots: 'noindex'
+      robots: 'noindex',
+      share_image_info: shareImageInfoFromAsset(
+        loaderData?.kind === 'puzzle' ? loaderData.puzzle.image : null
+      )
     }),
   component: SlugRoute
 });

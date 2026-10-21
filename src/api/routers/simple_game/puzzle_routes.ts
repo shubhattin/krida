@@ -3,7 +3,7 @@ import { z } from 'zod';
 import { protectedAdminProcedure, publicProcedure, t } from '../../trpc_init';
 import { dbRunHttp, dbTransaction } from '~/effect/database';
 import { and, asc, count, desc, eq, ilike, or, sql } from 'drizzle-orm';
-import { puzzle_attachments, puzzle_redirects, puzzles } from '~/db/schema';
+import { image_assets, puzzle_attachments, puzzle_redirects, puzzles } from '~/db/schema';
 import { escapeIlikeToken, tokenizeSearchQuery } from '~/util/puzzle/search';
 import { puzzleHasTag, puzzleInCollection, tagsForPuzzleIds } from '~/util/catalog/list_query';
 import {
@@ -168,10 +168,12 @@ export function createSimpleGameRouter<TData>(options: {
                   description: puzzles.description,
                   listed: puzzles.listed,
                   created_at: puzzles.created_at,
-                  updated_at: puzzles.updated_at
+                  updated_at: puzzles.updated_at,
+                  image_s3_key: image_assets.s3_key
                 })
                 .from(puzzles)
                 .innerJoin(tables.puzzles, eq(tables.puzzles.id, puzzles.id))
+                .leftJoin(image_assets, eq(image_assets.id, puzzles.image_id))
                 .where(whereClause)
                 .orderBy(orderPrimary, orderTiebreaker)
                 .limit(size)
@@ -250,7 +252,7 @@ export function createSimpleGameRouter<TData>(options: {
 
   const update_puzzle_route = protectedAdminProcedure
     .input(updateSchema)
-    .mutation(({ input: { puzzle_id, puzzle_data, puzzle_slug } }) =>
+    .mutation(({ input: { puzzle_id, puzzle_data, puzzle_slug, image_id } }) =>
       runTrpcEffect(
         Effect.gen(function* () {
           const [existing] = yield* dbRunHttp(`${kind}.find_puzzle_for_update`, (client) =>
@@ -302,6 +304,7 @@ export function createSimpleGameRouter<TData>(options: {
                 listed: puzzle_data_rest.listed
               };
               if (becomingListed) metaUpdates.last_listed_at = new Date();
+              if (image_id !== undefined) metaUpdates.image_id = image_id;
 
               const updated = await tx
                 .update(puzzles)

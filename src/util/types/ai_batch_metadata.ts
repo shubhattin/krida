@@ -16,6 +16,11 @@ export const MAX_BATCH_POLL_ATTEMPTS = Math.ceil((24 * 60 * 60) / BATCH_POLLING_
 export const puzzle_image_game_enum = z.enum(['padavali', 'padajala']);
 export type PuzzleImageGame = z.infer<typeof puzzle_image_game_enum>;
 
+/** Games wired into background (batch) image generation; the rest generate on demand only. */
+export function isPuzzleImageGame(game: string): game is PuzzleImageGame {
+  return puzzle_image_game_enum.safeParse(game).success;
+}
+
 /** Shared fields for puzzle-card image batch rows (padavali or padajala). */
 const image_batch_metadata_base = z.object({
   puzzle_id: z.number().int(),

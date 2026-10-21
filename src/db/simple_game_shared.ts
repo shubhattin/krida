@@ -57,6 +57,8 @@ export function simpleGameUpdateInputSchema<T extends z.ZodType>(puzzleDataSchem
   return z.object({
     puzzle_id: z.number().int(),
     puzzle_slug: simple_game_slug_schema,
+    /** Cover image; omitted = leave unchanged. */
+    image_id: z.number().int().nullable().optional(),
     puzzle_data: z.object({
       title: z.string().min(1),
       description: z.string().trim().min(1, 'Description is required'),
