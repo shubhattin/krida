@@ -13,6 +13,7 @@ import {
   type PostgresJsQueryResultHKT
 } from 'drizzle-orm/postgres-js';
 import { neon, Pool } from '@neondatabase/serverless';
+import { attachDatabasePool } from '@vercel/functions';
 import postgres from 'postgres';
 import * as schema from '~/db/schema';
 import { AppConfig } from './config';
@@ -34,6 +35,26 @@ export type DbTransaction =
 
 /** Tx, session client, or HTTP client — for helpers that only query/mutate rows. */
 export type TxOrDb = DbTransaction | DbHttpClient;
+
+/**
+ * Local postgres.js client. Small, and idle sockets close after 20s: a dev-server hot reload
+ * rebuilds the runtime, and a dropped runtime must not pin Postgres slots forever.
+ */
+const devPostgres = (url: string) => postgres(url, { max: 5, idle_timeout: 20 });
+
+/**
+ * Neon WebSocket pool, one per server instance and shared by every request.
+ * - Neon closes idle sockets (pooler timeout, compute suspend); pg reports that as a pool
+ *   `error`, which crashes the process when nothing listens for it.
+ * - `attachDatabasePool` keeps a Vercel Fluid instance alive until idle clients are released
+ *   before it suspends (no-op off Vercel).
+ */
+const neonPool = (url: string) => {
+  const pool = new Pool({ connectionString: url, idleTimeoutMillis: 10_000 });
+  pool.on('error', (error: Error) => console.error('[db] idle Neon pool client failed', error));
+  attachDatabasePool(pool);
+  return pool;
+};
 
 /** Drizzle builders are Thenable but not typed as Promise — accept both. */
 const tryDb = <A>(operation: string, run: () => A | PromiseLike<A>) =>
@@ -70,14 +91,14 @@ export class Database extends Context.Service<
         Effect.tryPromise({
           try: async () => {
             if (config.isDev) {
-              const sql = postgres(url);
+              const sql = devPostgres(url);
               return {
                 kind: 'postgres' as const,
                 sql,
                 db: drizzlePostgres(sql, { schema })
               };
             }
-            const pool = new Pool({ connectionString: url });
+            const pool = neonPool(url);
             return {
               kind: 'neon' as const,
               pool,
@@ -139,7 +160,7 @@ export class DatabaseHttp extends Context.Service<
         Effect.try({
           try: (): OwnedClient => {
             if (config.isDev) {
-              const sql = postgres(url);
+              const sql = devPostgres(url);
               return {
                 kind: 'postgres',
                 sql,
