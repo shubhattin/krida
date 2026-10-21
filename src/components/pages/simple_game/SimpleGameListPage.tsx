@@ -1,5 +1,6 @@
 'use client';
 
+import { getCDNUrl } from '~/constants';
 import { useEffect, useMemo, useState, type KeyboardEvent } from 'react';
 import { useQuery } from '@tanstack/react-query';
 import dayjs from 'dayjs';
@@ -64,6 +65,7 @@ type ListItem = {
   listed: boolean;
   created_at: Date;
   updated_at: Date | null;
+  image_s3_key?: string | null;
   tags?: { id: number; slug: string }[];
 };
 
@@ -398,7 +400,15 @@ export function SimpleGameListPage({ kind }: { kind: SimpleGameKind }) {
               >
                 <CardHeader>
                   <div className="flex items-start justify-between gap-2">
-                    <CardTitle className="text-base">{item.title}</CardTitle>
+                    {item.image_s3_key ? (
+                      <img
+                        src={getCDNUrl(item.image_s3_key)}
+                        alt=""
+                        loading="lazy"
+                        className="aspect-[3/2] w-14 shrink-0 rounded-md border border-border/50 object-cover"
+                      />
+                    ) : null}
+                    <CardTitle className="min-w-0 flex-1 text-base">{item.title}</CardTitle>
                     <span
                       className={cn(
                         'shrink-0 rounded-full px-2 py-0.5 text-[11px] font-semibold',

@@ -5,6 +5,7 @@ import { AppContext } from '~/components/AppDataContext';
 import { ScriptSelector } from '~/components/pages/padavali/ScriptSelector';
 import { SIMPLE_GAME_META, simpleGameHref, type SimpleGameKind } from '~/util/games/kinds';
 import { cn } from '~/lib/utils';
+import { getCDNUrl } from '~/constants';
 import type { SimpleListedPuzzle } from '~/util/cache.server/simple_game_cache';
 import { useTransliteratedText } from './useTransliteratedText';
 
@@ -53,6 +54,14 @@ export function SimpleGameLanding({
                 meta.accent.wash
               )}
             >
+              {puzzle.image ? (
+                <img
+                  src={getCDNUrl(puzzle.image.s3_key)}
+                  alt=""
+                  loading="lazy"
+                  className="mb-3 aspect-[3/2] w-full rounded-xl border border-border/50 object-cover"
+                />
+              ) : null}
               <h2 className="text-lg font-semibold text-foreground">
                 <Title text={puzzle.title} />
               </h2>

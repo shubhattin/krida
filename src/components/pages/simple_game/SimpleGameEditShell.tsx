@@ -43,6 +43,10 @@ import type { GameAnalysis } from '~/util/games/issues';
 import { SIMPLE_GAME_META, simpleGameListHref, type SimpleGameKind } from '~/util/games/kinds';
 import { SimpleGameAttachments, type EditableAttachment } from './SimpleGameAttachments';
 import { SimpleGameIssues } from './SimpleGameIssues';
+import {
+  PuzzleCardImageSection,
+  type PuzzleImageInfo
+} from '~/components/pages/puzzle/PuzzleCardImageSection';
 import { SimpleGameSlugField } from './SimpleGameSlugField';
 
 export type SimpleGameEditorAtoms<T> = {
@@ -52,6 +56,14 @@ export type SimpleGameEditorAtoms<T> = {
   puzzleData: PrimitiveAtom<T>;
   attachments: PrimitiveAtom<EditableAttachment[]>;
   lipi: PrimitiveAtom<boolean>;
+  imageId: PrimitiveAtom<number | null>;
+  imageInfo: PrimitiveAtom<PuzzleImageInfo | null>;
+};
+
+/** Per-game cover-image prompt context: which puzzle content the AI prompt may see. */
+export type SimpleGameCoverConfig<T> = {
+  words: (data: T) => string[];
+  wordsLabel: string;
 };
 
 export function SimpleGameEditShell<T>({
@@ -62,6 +74,7 @@ export function SimpleGameEditShell<T>({
   atoms,
   analysis,
   previewHref,
+  cover,
   children
 }: {
   kind: SimpleGameKind;
@@ -71,6 +84,7 @@ export function SimpleGameEditShell<T>({
   atoms: SimpleGameEditorAtoms<T>;
   analysis: GameAnalysis;
   previewHref: string;
+  cover: SimpleGameCoverConfig<T>;
   children: ReactNode;
 }) {
   const historyAtoms = useMemo(
@@ -80,6 +94,8 @@ export function SimpleGameEditShell<T>({
       listed: atoms.listed,
       puzzleData: atoms.puzzleData,
       attachments: atoms.attachments,
+      imageId: atoms.imageId,
+      imageInfo: atoms.imageInfo,
       tags: puzzle_tags_atom,
       collections: puzzle_collections_atom
     }),
@@ -96,6 +112,7 @@ export function SimpleGameEditShell<T>({
         atoms={atoms}
         analysis={analysis}
         previewHref={previewHref}
+        cover={cover}
       >
         {children}
       </SimpleGameEditBody>
@@ -111,6 +128,7 @@ function SimpleGameEditBody<T>({
   atoms,
   analysis,
   previewHref,
+  cover,
   children
 }: {
   kind: SimpleGameKind;
@@ -120,6 +138,7 @@ function SimpleGameEditBody<T>({
   atoms: SimpleGameEditorAtoms<T>;
   analysis: GameAnalysis;
   previewHref: string;
+  cover: SimpleGameCoverConfig<T>;
   children: ReactNode;
 }) {
   const trpc = useTRPC();
@@ -130,6 +149,7 @@ function SimpleGameEditBody<T>({
   const [listed, setListed] = useAtom(atoms.listed);
   const [puzzleData] = useAtom(atoms.puzzleData);
   const [attachments, setAttachments] = useAtom(atoms.attachments);
+  const [imageId] = useAtom(atoms.imageId);
   const [tags] = useAtom(puzzle_tags_atom);
   const [collections] = useAtom(puzzle_collections_atom);
   const [deleteOpen, setDeleteOpen] = useState(false);
@@ -201,6 +221,7 @@ function SimpleGameEditBody<T>({
     save_mut.mutate({
       puzzle_id: puzzleId,
       puzzle_slug: slug,
+      image_id: imageId,
       puzzle_data: {
         title: title.trim(),
         description: description.trim(),
@@ -336,6 +357,7 @@ function SimpleGameEditBody<T>({
           <PuzzleCatalogFields />
         </div>
       </section>
+      <SimpleGameCoverSection kind={kind} puzzleId={puzzleId} atoms={atoms} cover={cover} />
       <SimpleGameIssues analysis={analysis} />
       {children}
       <SimpleGameAttachments atom={atoms.attachments} />
@@ -360,5 +382,47 @@ function SimpleGameEditBody<T>({
         </AlertDialogContent>
       </AlertDialog>
     </div>
+  );
+}
+
+/** Optional cover image (cards, lists, share previews) — same flow as Padāvalī / Padajāla. */
+function SimpleGameCoverSection<T>({
+  kind,
+  puzzleId,
+  atoms,
+  cover
+}: {
+  kind: SimpleGameKind;
+  puzzleId: number;
+  atoms: SimpleGameEditorAtoms<T>;
+  cover: SimpleGameCoverConfig<T>;
+}) {
+  const { commit, acceptKeysAsSaved } = useEditorHistoryActions();
+  const [title] = useAtom(atoms.title);
+  const [description] = useAtom(atoms.description);
+  const [puzzleData] = useAtom(atoms.puzzleData);
+  const [imageId, setImageId] = useAtom(atoms.imageId);
+  const [imageInfo, setImageInfo] = useAtom(atoms.imageInfo);
+  const words = useMemo(() => cover.words(puzzleData), [cover, puzzleData]);
+
+  return (
+    <section className="rounded-2xl border border-border/70 bg-card/60 p-4 shadow-sm sm:p-5">
+      <PuzzleCardImageSection
+        puzzleId={puzzleId}
+        game={kind}
+        title={title}
+        description={description}
+        words={words}
+        wordsLabel={cover.wordsLabel}
+        imageId={imageId}
+        imageInfo={imageInfo}
+        onImageIdChange={setImageId}
+        onImageInfoChange={(info) => {
+          setImageInfo(info);
+          commit();
+        }}
+        onImageBaselineChange={() => acceptKeysAsSaved('imageId', 'imageInfo')}
+      />
+    </section>
   );
 }
