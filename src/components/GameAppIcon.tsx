@@ -5,7 +5,7 @@ import { cn } from '@/lib/utils';
 export type GameAppIconId = 'padavali' | 'padajala';
 
 export const GAME_APP_ICON_SRC = {
-  padavali: '/img/icon_128_no_pad.png',
+  padavali: '/img/padavali_icons/icon_128_no_pad.png',
   padajala: '/img/padajala_icons/icon_128_no_pad.png'
 } satisfies Record<GameAppIconId, string>;
 

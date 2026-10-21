@@ -4,6 +4,13 @@ import { getScript$ } from '~/lib/cache_server_route_data';
 
 export const Route = createFileRoute('/bhramita')({
   loader: async () => ({ script: await getScript$() }),
+  head: () => ({
+    links: [
+      { rel: 'icon', href: '/bhramita.favicon.ico', type: 'image/x-icon' },
+      { rel: 'shortcut icon', href: '/bhramita.favicon.ico' },
+      { rel: 'apple-touch-icon', href: '/img/bhramita_icons/icon_128.png' }
+    ]
+  }),
   component: SimpleGameRootLayout
 });
 

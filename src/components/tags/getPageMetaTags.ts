@@ -45,29 +45,29 @@ interface Props {
   robots?: string;
 }
 
-export const DEFAULT_SHARE_IMAGE_INFO: ShareImageInfo = {
-  url: 'https://cdn.jsdelivr.net/gh/shubhattin/padavali@latest/src/images/banner/project_banner.jpg',
+// TODO(release): STRICT — before merging `krida` into `main`, change `SHARE_IMAGE_REF` below from
+// 'krida' to 'main'. jsDelivr serves these files from that git ref, and the `krida` branch will be
+// deleted after the release, which would break every share image.
+const SHARE_IMAGE_REF = 'krida';
+
+/** Static share cards live in `src/images/share/<id>.jpg` (1200×630) and are served via jsDelivr. */
+const shareImage = (id: string): ShareImageInfo => ({
+  url: `https://cdn.jsdelivr.net/gh/shubhattin/krida@${SHARE_IMAGE_REF}/src/images/share/${id}.jpg`,
   width: 1200,
   height: 630
-};
+});
 
 export const SHARE_IMAGE_INFO = {
-  padavali: DEFAULT_SHARE_IMAGE_INFO,
-  padajala: {
-    url: 'https://cdn.jsdelivr.net/gh/shubhattin/padavali@latest/src/images/banner/padajala_project_banner.jpg',
-    width: 1200,
-    height: 630
-  },
-  landing_page: {
-    url: 'https://cdn.jsdelivr.net/gh/shubhattin/padavali@latest/src/images/banner/landing_page_banner.jpg',
-    width: 1200,
-    height: 630
-  },
-  dvayi: DEFAULT_SHARE_IMAGE_INFO,
-  bhramita: DEFAULT_SHARE_IMAGE_INFO,
-  surupa: DEFAULT_SHARE_IMAGE_INFO,
-  anveshi: DEFAULT_SHARE_IMAGE_INFO
+  padavali: shareImage('padavali'),
+  padajala: shareImage('padajala'),
+  landing_page: shareImage('krida'),
+  dvayi: shareImage('dvayi'),
+  bhramita: shareImage('bhramita'),
+  surupa: shareImage('surupa'),
+  anveshi: shareImage('anveshi')
 } satisfies Record<MetadataProject, ShareImageInfo>;
+
+export const DEFAULT_SHARE_IMAGE_INFO: ShareImageInfo = SHARE_IMAGE_INFO.landing_page;
 
 /** TanStack Router `head` meta entries. */
 export function routeHeadFromPageMeta({
