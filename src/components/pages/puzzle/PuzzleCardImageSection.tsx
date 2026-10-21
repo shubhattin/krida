@@ -73,7 +73,7 @@ import {
 import { isPuzzleImageGame } from '~/util/types/ai_batch_metadata';
 import type { KRIDAS } from '~/constants';
 
-/** Any game can have a cover; only some support background (batch) generation. */
+/** Any krida can have a cover, generated on demand or in the background (batch). */
 export type CoverImageGame = (typeof KRIDAS)[number];
 
 const IMAGE_ASPECT = '768 / 512';
