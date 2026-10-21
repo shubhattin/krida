@@ -549,7 +549,7 @@ export default function HubPuzzles({ data }: { data: HubData }) {
         filteredCollections.length === 0 ? (
           <EmptyState kind="collections" />
         ) : (
-          <div className="grid gap-4 sm:grid-cols-2 sm:gap-5 lg:grid-cols-3">
+          <div className="grid grid-cols-2 gap-3 sm:gap-4 md:grid-cols-3">
             {filteredCollections.map((collection) => (
               <HubCollectionCard key={collection.uid} collection={collection} />
             ))}

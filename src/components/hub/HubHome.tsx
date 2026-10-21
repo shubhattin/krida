@@ -17,7 +17,6 @@ import { tagsByPopularity } from './hub_puzzles';
 import { useHubPuzzles } from './useHubPuzzles';
 import { GAME_KINDS, type GameKind } from '~/util/catalog/tags';
 import { cn } from '~/lib/utils';
-import { useDragScroll } from '~/hooks/useDragScroll';
 import { Button } from '~/components/ui/button';
 
 const homeRoute = getRouteApi('/_hub/');
@@ -170,7 +169,6 @@ export default function HubHome({ data }: { data: HubData }) {
   const { puzzles } = useHubPuzzles(data);
   const tags = tagsByPopularity(puzzles).slice(0, 24);
   const reduceMotion = useReducedMotion();
-  const { ref: collectionsRef, dragging: collectionsDragging } = useDragScroll<HTMLDivElement>();
   const todayGames = (['padavali', 'padajala'] as const)
     .map((kind) => HUB_GAMES[kind])
     .filter((game) => data[game.kind].today);
@@ -237,14 +235,7 @@ export default function HubHome({ data }: { data: HubData }) {
                 </Button>
               }
             />
-            <div
-              ref={collectionsRef}
-              className={cn(
-                'scroll-rail flex gap-4 pb-3 select-none',
-                'snap-x snap-mandatory',
-                collectionsDragging ? 'cursor-grabbing' : 'cursor-grab'
-              )}
-            >
+            <div className="grid grid-cols-2 gap-3 sm:gap-4 md:grid-cols-3">
               {data.collections.map((collection, index) => (
                 <motion.div
                   key={collection.uid}
@@ -254,7 +245,7 @@ export default function HubHome({ data }: { data: HubData }) {
                     duration: 0.28,
                     delay: reduceMotion ? 0 : index * 0.05
                   }}
-                  className="w-64 shrink-0 snap-start sm:w-72"
+                  className="h-full min-w-0"
                 >
                   <HubCollectionCard collection={collection} />
                 </motion.div>
