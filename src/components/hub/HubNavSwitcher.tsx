@@ -39,7 +39,7 @@ const PLACES: {
 function GamesMark({ className }: { className?: string }) {
   return (
     <span className={cn('flex items-center', className)} aria-hidden="true">
-      {HUB_GAME_LIST.slice(0, 2).map((game, index) => (
+      {HUB_GAME_LIST.map((game, index) => (
         <Image
           key={game.kind}
           src={GAME_APP_ICON_SRC[game.icon]}
@@ -74,6 +74,22 @@ const GAME_CARD_ACTIVE = {
   padajala: {
     card: 'border-amber-300 bg-amber-50 shadow-sm dark:border-amber-500/45 dark:bg-amber-950/40',
     check: 'text-amber-600 dark:text-amber-300'
+  },
+  dvayi: {
+    card: 'border-rose-300 bg-rose-50 shadow-sm dark:border-rose-500/45 dark:bg-rose-950/55',
+    check: 'text-rose-600 dark:text-rose-300'
+  },
+  bhramita: {
+    card: 'border-emerald-300 bg-emerald-50 shadow-sm dark:border-emerald-500/45 dark:bg-emerald-950/40',
+    check: 'text-emerald-600 dark:text-emerald-300'
+  },
+  surupa: {
+    card: 'border-violet-300 bg-violet-50 shadow-sm dark:border-violet-500/45 dark:bg-violet-950/55',
+    check: 'text-violet-600 dark:text-violet-300'
+  },
+  anveshi: {
+    card: 'border-sky-300 bg-sky-50 shadow-sm dark:border-sky-500/45 dark:bg-sky-950/40',
+    check: 'text-sky-600 dark:text-sky-300'
   }
 } as const;
 
@@ -81,7 +97,15 @@ const SWITCHER_TRIGGER_GAME = {
   padavali:
     'border-blue-300 bg-blue-50 text-slate-900 dark:border-blue-500/50 dark:bg-blue-950/70 dark:text-slate-50',
   padajala:
-    'border-amber-300 bg-amber-50 text-slate-900 dark:border-amber-500/50 dark:bg-amber-950/60 dark:text-slate-50'
+    'border-amber-300 bg-amber-50 text-slate-900 dark:border-amber-500/50 dark:bg-amber-950/60 dark:text-slate-50',
+  dvayi:
+    'border-rose-300 bg-rose-50 text-slate-900 dark:border-rose-500/50 dark:bg-rose-950/70 dark:text-slate-50',
+  bhramita:
+    'border-emerald-300 bg-emerald-50 text-slate-900 dark:border-emerald-500/50 dark:bg-emerald-950/60 dark:text-slate-50',
+  surupa:
+    'border-violet-300 bg-violet-50 text-slate-900 dark:border-violet-500/50 dark:bg-violet-950/70 dark:text-slate-50',
+  anveshi:
+    'border-sky-300 bg-sky-50 text-slate-900 dark:border-sky-500/50 dark:bg-sky-950/60 dark:text-slate-50'
 } as const;
 
 function PlaceLink({ place, active }: { place: (typeof PLACES)[number]; active: boolean }) {
@@ -191,7 +215,7 @@ function SwitcherTriggerLabel({
 export function HubNavSwitcher({ active }: { active: HubNavId }) {
   const [open, setOpen] = useState(false);
   useCloseOnNavigate(() => setOpen(false));
-  const activeGame = active === 'padavali' || active === 'padajala' ? HUB_GAMES[active] : null;
+  const activeGame = active === 'home' || active === 'puzzles' ? null : HUB_GAMES[active];
   const triggerLabel = activeGame
     ? `Switch game, currently ${activeGame.name}`
     : `Open games and pages, currently ${active === 'puzzles' ? 'Puzzles' : 'Home'}`;

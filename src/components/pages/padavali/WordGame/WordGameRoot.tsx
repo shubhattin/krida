@@ -58,9 +58,9 @@ import GameMetricsCollector from './GameMetricsCollector';
 import { useQueryClient } from '@tanstack/react-query';
 import {
   MorePuzzlesAccordion,
-  CompletionMorePuzzlesCarousel,
   getCarouselPuzzlesQueryFn
 } from '~/components/pages/padavali/WordGame/MorePuzzlesCarousel';
+import { MorePuzzles } from '~/components/pages/simple_game/play/MorePuzzles';
 import { attachment_schema } from '~/db/db_shared_vals';
 import { z } from 'zod';
 import { PuzzleHeader, PuzzleShareButton } from '~/components/pages/puzzle/PuzzleHeader';
@@ -750,9 +750,11 @@ function WordGame({
           initial={{ opacity: 0, y: -16 }}
           animate={{ opacity: 1, y: 0 }}
           transition={{ duration: 0.5, ease: 'easeOut' }}
-          className="pt-3 sm:pt-4"
+          className="px-3 pt-3 sm:px-4 sm:pt-4"
         >
-          <CompletionMorePuzzlesCarousel excludeSlug={puzzle_slug} excludeId={puzzle_id} />
+          <div className="mx-auto max-w-6xl">
+            <MorePuzzles kind="padavali" puzzleId={puzzle_id} />
+          </div>
         </motion.div>
       )}
 

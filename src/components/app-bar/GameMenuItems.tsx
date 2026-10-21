@@ -131,6 +131,26 @@ export function AllGamesMenuItems({ onNavigate }: { onNavigate?: () => void }) {
         </div>
         <span className="truncate">Padajāla</span>
       </Link>
+      {(
+        [
+          ['dvayi', 'from-rose-500 to-orange-600'],
+          ['bhramita', 'from-emerald-500 to-teal-600'],
+          ['surupa', 'from-violet-500 to-fuchsia-600'],
+          ['anveshi', 'from-sky-500 to-indigo-600']
+        ] as const
+      ).map(([kind, gradient]) => (
+        <a
+          key={kind}
+          href={simpleGameAnalyticsHref(kind)}
+          onClick={onNavigate}
+          className={accountMenuLinkClass}
+        >
+          <div className={`${accountMenuIconClass} bg-linear-to-br ${gradient}`}>
+            <BarChart3 className="size-3 text-white" />
+          </div>
+          <span className="truncate">{SIMPLE_GAME_META[kind].name}</span>
+        </a>
+      ))}
       <CatalogAdminMenuItems onNavigate={onNavigate} />
     </>
   );
@@ -283,7 +303,7 @@ const SIMPLE_MENU_ICON = {
   anveshi: CircleHelp
 } as const;
 
-/** In-development games — list, analytics, and optional live-edit shortcut. */
+/** Game tools — list, analytics, and optional live-edit shortcut. */
 export function SimpleGameMenuItems({
   kind,
   onNavigate

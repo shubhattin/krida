@@ -56,6 +56,7 @@ import {
   type PublicGameKind,
   type SimpleGameKind
 } from '~/util/games/kinds';
+import { GAME_KINDS, type GameKind } from '~/util/catalog/tags';
 import {
   useGuestAuthPrompt,
   useGuestCompletedCount
@@ -427,9 +428,7 @@ type DashboardData = {
     best_time_seconds: number | null;
     best_accuracy: number | null;
   };
-  padavali: GameDashboardStats;
-  padajala: GameDashboardStats;
-};
+} & Record<GameKind, GameDashboardStats>;
 
 function SignedInCard({
   context,
@@ -453,8 +452,8 @@ function SignedInCard({
   onLogout: () => void;
 }) {
   // Current game first so its row sits right under the overview.
-  const gameOrder: PublicGameKind[] =
-    context === 'padajala' ? ['padajala', 'padavali'] : ['padavali', 'padajala'];
+  const gameOrder: GameKind[] =
+    context === 'krida' ? [...GAME_KINDS] : [context, ...GAME_KINDS.filter((g) => g !== context)];
 
   return (
     <div>
@@ -572,7 +571,7 @@ function GameStatsRow({
   current,
   onNavigate
 }: {
-  game: PublicGameKind;
+  game: GameKind;
   stats: GameDashboardStats;
   current: boolean;
   onNavigate: () => void;

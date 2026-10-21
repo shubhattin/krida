@@ -14,7 +14,16 @@ export function useHubPuzzles(data: HubData) {
   );
   const padajala = usePadajalaListedPuzzles(data.padajala.listed);
 
-  const puzzles = useMemo(() => toHubPuzzles(padavali, padajala), [padavali, padajala]);
+  const puzzles = useMemo(
+    () =>
+      toHubPuzzles(padavali, padajala, {
+        dvayi: data.dvayi.listed,
+        bhramita: data.bhramita.listed,
+        surupa: data.surupa.listed,
+        anveshi: data.anveshi.listed
+      }),
+    [padavali, padajala, data]
+  );
   const byKey = useMemo(
     () => new Map<string, HubPuzzle>(puzzles.map((puzzle) => [puzzle.key, puzzle])),
     [puzzles]

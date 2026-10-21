@@ -1,6 +1,7 @@
 import { z } from 'zod';
+import { GAME_KINDS, type GameKind } from '~/util/catalog/tags';
 
-export type DashboardGameId = 'padavali' | 'padajala';
+export type DashboardGameId = GameKind;
 
 export const dashboard_puzzle_row_schema = z.object({
   puzzle_id: z.number().int(),
@@ -22,7 +23,7 @@ export const dashboard_recent_row_schema = z.object({
 });
 
 export const game_dashboard_stats_schema = z.object({
-  game: z.enum(['padavali', 'padajala']),
+  game: z.enum(GAME_KINDS),
   started: z.number(),
   completed: z.number(),
   best_time_seconds: z.number().nullable(),

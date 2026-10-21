@@ -1,13 +1,19 @@
 import { createFileRoute, getRouteApi } from '@tanstack/react-router';
 import { z } from 'zod';
-import { routeHeadFromPageMeta, type MetadataProject } from '~/components/tags/getPageMetaTags';
+import {
+  routeHeadFromPageMeta,
+  siteUrl,
+  type MetadataProject
+} from '~/components/tags/getPageMetaTags';
 import HubPuzzles from '~/components/hub/HubPuzzles';
 
 const hubRoute = getRouteApi('/_hub');
 
 const puzzles_search_schema = z.object({
-  // TODO: add dvayi/bhramita/surupa/anveshi to this public filter once those games ship.
-  game: z.enum(['all', 'padavali', 'padajala']).catch('all').default('all'),
+  game: z
+    .enum(['all', 'padavali', 'padajala', 'dvayi', 'bhramita', 'surupa', 'anveshi'])
+    .catch('all')
+    .default('all'),
   view: z.enum(['puzzles', 'collections']).catch('puzzles').default('puzzles'),
   tag: z.string().max(80).optional().catch(undefined),
   q: z.string().max(200).optional().catch(undefined),
@@ -40,17 +46,58 @@ function puzzlesMetaForGame(game: PuzzlesSearch['game']): PuzzlesPageMeta {
         'Browse Sanskrit padajala puzzles from Padajāla — solve grids and grow your vocabulary.'
     };
   }
+  if (game === 'dvayi') {
+    return {
+      title: 'Dvayī Puzzles | Krida',
+      project: 'dvayi',
+      description:
+        'Browse Dvayī match-the-following Sanskrit puzzles — pair each prompt with its counterpart.'
+    };
+  }
+  if (game === 'bhramita') {
+    return {
+      title: 'Bhramitā Puzzles | Krida',
+      project: 'bhramita',
+      description:
+        'Browse Bhramitā jumbled-word Sanskrit puzzles — unscramble Devanagari syllables into the word.'
+    };
+  }
+  if (game === 'surupa') {
+    return {
+      title: 'Surūpa Puzzles | Krida',
+      project: 'surupa',
+      description:
+        'Browse Surūpa spelling puzzles — pick the right syllable at each step and restore the word.'
+    };
+  }
+  if (game === 'anveshi') {
+    return {
+      title: 'Ānveṣī Puzzles | Krida',
+      project: 'anveshi',
+      description:
+        'Browse Ānveṣī multiple-choice Sanskrit quizzes — answer questions with hints and explanations.'
+    };
+  }
   return {
     title: 'Sanskrit Puzzles | Krida',
     project: 'landing_page',
     description:
-      'Browse every Sanskrit word-search and padajala puzzle, curated collections, and topics in one place.'
+      'Browse every Sanskrit puzzle — Padāvalī word search, Padajāla grids, Dvayī matching, Bhramitā jumbles, Surūpa spelling and Ānveṣī quizzes — plus collections and topics.'
   };
 }
 
 export const Route = createFileRoute('/_hub/puzzles')({
   validateSearch: puzzles_search_schema,
-  head: ({ match }) => routeHeadFromPageMeta(puzzlesMetaForGame(match.search.game)),
+  head: ({ match }) => {
+    const meta = puzzlesMetaForGame(match.search.game);
+    return routeHeadFromPageMeta({
+      ...meta,
+      canonical:
+        match.search.game === 'all'
+          ? `${siteUrl()}/puzzles`
+          : `${siteUrl()}/puzzles?game=${match.search.game}`
+    });
+  },
   component: PuzzlesPage
 });
 

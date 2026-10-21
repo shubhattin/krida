@@ -47,6 +47,10 @@ export const hubData$ = createServerFn({ method: 'GET' }).handler(async () => {
   const [
     padavali_listed,
     padajala_listed,
+    dvayi_listed,
+    bhramita_listed,
+    surupa_listed,
+    anveshi_listed,
     collections,
     padavali_current,
     padavali_next,
@@ -56,6 +60,10 @@ export const hubData$ = createServerFn({ method: 'GET' }).handler(async () => {
   ] = await Promise.all([
     runLoaderEffect(CACHE.padavali.listed_puzzle_list.get(NO_CACHE_PARAMS)),
     runLoaderEffect(CACHE.padajala.listed_puzzle_list.get(NO_CACHE_PARAMS)),
+    runLoaderEffect(CACHE.dvayi.listed_puzzle_list.get(NO_CACHE_PARAMS)),
+    runLoaderEffect(CACHE.bhramita.listed_puzzle_list.get(NO_CACHE_PARAMS)),
+    runLoaderEffect(CACHE.surupa.listed_puzzle_list.get(NO_CACHE_PARAMS)),
+    runLoaderEffect(CACHE.anveshi.listed_puzzle_list.get(NO_CACHE_PARAMS)),
     runLoaderEffect(CACHE.catalog.listed_collections.get(NO_CACHE_PARAMS)),
     runLoaderEffect(CACHE.padavali.current_schedule.get(NO_CACHE_PARAMS)),
     runLoaderEffect(CACHE.padavali.next_schedule.get(NO_CACHE_PARAMS)),
@@ -108,6 +116,18 @@ export const hubData$ = createServerFn({ method: 'GET' }).handler(async () => {
       listed: padajala_listed,
       today: toScheduled(padajala_current),
       next_start: padajala_next?.start_time ?? null
+    },
+    dvayi: {
+      listed: dvayi_listed
+    },
+    bhramita: {
+      listed: bhramita_listed
+    },
+    surupa: {
+      listed: surupa_listed
+    },
+    anveshi: {
+      listed: anveshi_listed
     }
   };
 });

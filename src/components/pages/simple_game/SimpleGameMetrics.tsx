@@ -7,6 +7,7 @@ import { useTRPC } from '~/api/client';
 import { load_posthog } from '~/components/tags/PosthogInit';
 import TurnstileWidget from '~/components/Turnstile';
 import { canSubmitPlayMetrics, playMetricsToken, usePlayAuth } from '~/lib/play_metrics_auth';
+import { useInvalidateUserDashboard } from '~/api/routers/user/invalidate_user_dashboard';
 import {
   noteGuestCompletion,
   requestGuestAuthPrompt,
@@ -49,6 +50,7 @@ export function SimpleGameMetrics({
     () => false
   );
   const { authReady, isAuthed } = usePlayAuth();
+  const invalidateUserDashboard = useInvalidateUserDashboard();
   const [turnstileToken, setTurnstileToken] = useState<string | null>(null);
   const turnstile = useTurnstile();
   const turnstileRef = useRef(turnstile);
@@ -78,6 +80,7 @@ export function SimpleGameMetrics({
       onSuccess() {
         setTurnstileToken(null);
         resetTurnstile();
+        invalidateUserDashboard();
         load_posthog((posthog) => {
           posthog.capture('gameplay_started', {
             puzzle_id: puzzleId,
@@ -100,6 +103,7 @@ export function SimpleGameMetrics({
       onSuccess() {
         setTurnstileToken(null);
         resetTurnstile();
+        invalidateUserDashboard();
         resetStarted();
         resetStats();
       },

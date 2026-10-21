@@ -43,6 +43,7 @@ interface Props {
   share_image_info?: ShareImageInfo;
   project?: MetadataProject;
   robots?: string;
+  canonical?: string;
 }
 
 // TODO(release): STRICT — before merging `krida` into `main`, change `SHARE_IMAGE_REF` below from
@@ -69,35 +70,44 @@ export const SHARE_IMAGE_INFO = {
 
 export const DEFAULT_SHARE_IMAGE_INFO: ShareImageInfo = SHARE_IMAGE_INFO.landing_page;
 
+/** Site origin for canonical URLs and sitemaps (trailing slashes trimmed). */
+export function siteUrl(): string {
+  return import.meta.env.VITE_SITE_URL.replace(/\/+$/, '');
+}
+
 /** TanStack Router `head` meta entries. */
 export function routeHeadFromPageMeta({
   title,
   description = null,
   share_image_info,
   project = 'padavali',
-  robots
+  robots,
+  canonical
 }: Props) {
   const image = share_image_info || SHARE_IMAGE_INFO[project];
   const desc = description || undefined;
 
-  return {
-    meta: [
-      { title },
-      ...(desc ? ([{ name: 'description', content: desc }] as const) : []),
-      ...(robots ? ([{ name: 'robots', content: robots }] as const) : []),
-      { property: 'og:title', content: title },
-      ...(desc ? ([{ property: 'og:description', content: desc }] as const) : []),
-      { property: 'og:site_name', content: SITE_NAME[project] },
-      { property: 'og:type', content: 'website' },
-      { property: 'og:image', content: image.url },
-      { property: 'og:image:width', content: String(image.width) },
-      { property: 'og:image:height', content: String(image.height) },
-      { name: 'twitter:card', content: 'summary_large_image' },
-      { name: 'twitter:title', content: title },
-      ...(desc ? ([{ name: 'twitter:description', content: desc }] as const) : []),
-      { name: 'twitter:image', content: image.url }
-    ]
-  };
+  const meta = [
+    { title },
+    ...(desc ? ([{ name: 'description', content: desc }] as const) : []),
+    ...(robots ? ([{ name: 'robots', content: robots }] as const) : []),
+    { property: 'og:title', content: title },
+    ...(desc ? ([{ property: 'og:description', content: desc }] as const) : []),
+    { property: 'og:site_name', content: SITE_NAME[project] },
+    { property: 'og:type', content: 'website' },
+    { property: 'og:image', content: image.url },
+    { property: 'og:image:width', content: String(image.width) },
+    { property: 'og:image:height', content: String(image.height) },
+    { name: 'twitter:card', content: 'summary_large_image' },
+    { name: 'twitter:title', content: title },
+    ...(desc ? ([{ name: 'twitter:description', content: desc }] as const) : []),
+    { name: 'twitter:image', content: image.url }
+  ];
+  type CanonicalLink = { rel: 'canonical'; href: string };
+  const links: CanonicalLink[] | undefined = canonical
+    ? [{ rel: 'canonical', href: canonical }]
+    : undefined;
+  return links ? { meta, links } : { meta };
 }
 
 /** @deprecated Prefer routeHeadFromPageMeta */

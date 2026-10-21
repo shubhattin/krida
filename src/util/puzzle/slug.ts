@@ -18,7 +18,7 @@ export const PADAJALA_RESERVED_SLUGS = new Set<string>([
   'schedules'
 ]);
 
-/** First-segment paths under the in-development game trees. */
+/** First-segment paths under the simple-game trees. */
 export const SIMPLE_GAME_RESERVED_SLUGS = new Set<string>(SHARED_RESERVED_SLUGS);
 
 export const isReservedSlug = (slug: string) => RESERVED_SLUGS.has(slug);

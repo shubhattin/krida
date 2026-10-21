@@ -186,6 +186,82 @@ export const GAMES = [
       bg: 'bg-amber-50/30 dark:bg-amber-950/20',
       shadowColor: 'shadow-amber-500/20'
     }
+  },
+  {
+    id: 'dvayi' as const,
+    name: 'Dvayī',
+    subtitle: 'Match the following',
+    description: 'Pair each prompt with its matching counterpart.',
+    playHref: '/dvayi',
+    puzzlesGame: 'dvayi' as const,
+    gradient: {
+      from: 'from-rose-500',
+      to: 'to-orange-600',
+      text: 'from-rose-600 via-rose-500 to-orange-600',
+      textDark: 'dark:from-rose-400 dark:via-rose-300 dark:to-orange-400',
+      glow: 'rose',
+      border:
+        'border-rose-200/40 hover:border-rose-400/60 dark:border-rose-800/40 dark:hover:border-rose-600/60',
+      bg: 'bg-rose-50/30 dark:bg-rose-950/20',
+      shadowColor: 'shadow-rose-500/20'
+    }
+  },
+  {
+    id: 'bhramita' as const,
+    name: 'Bhramitā',
+    subtitle: 'Jumbled words',
+    description: 'Unscramble Devanagari syllables back into the original word.',
+    playHref: '/bhramita',
+    puzzlesGame: 'bhramita' as const,
+    gradient: {
+      from: 'from-emerald-500',
+      to: 'to-teal-600',
+      text: 'from-emerald-600 via-emerald-500 to-teal-600',
+      textDark: 'dark:from-emerald-400 dark:via-emerald-300 dark:to-teal-400',
+      glow: 'emerald',
+      border:
+        'border-emerald-200/40 hover:border-emerald-400/60 dark:border-emerald-800/40 dark:hover:border-emerald-600/60',
+      bg: 'bg-emerald-50/30 dark:bg-emerald-950/20',
+      shadowColor: 'shadow-emerald-500/20'
+    }
+  },
+  {
+    id: 'surupa' as const,
+    name: 'Surūpa',
+    subtitle: 'Spelling corrector',
+    description: 'Pick the right syllable at each step to restore the word.',
+    playHref: '/surupa',
+    puzzlesGame: 'surupa' as const,
+    gradient: {
+      from: 'from-violet-500',
+      to: 'to-fuchsia-600',
+      text: 'from-violet-600 via-violet-500 to-fuchsia-600',
+      textDark: 'dark:from-violet-400 dark:via-violet-300 dark:to-fuchsia-400',
+      glow: 'violet',
+      border:
+        'border-violet-200/40 hover:border-violet-400/60 dark:border-violet-800/40 dark:hover:border-violet-600/60',
+      bg: 'bg-violet-50/30 dark:bg-violet-950/20',
+      shadowColor: 'shadow-violet-500/20'
+    }
+  },
+  {
+    id: 'anveshi' as const,
+    name: 'Ānveṣī',
+    subtitle: 'Multiple choice',
+    description: 'Answer a set of questions, with optional hints and explanations.',
+    playHref: '/anveshi',
+    puzzlesGame: 'anveshi' as const,
+    gradient: {
+      from: 'from-sky-500',
+      to: 'to-indigo-600',
+      text: 'from-sky-600 via-sky-500 to-indigo-600',
+      textDark: 'dark:from-sky-400 dark:via-sky-300 dark:to-indigo-400',
+      glow: 'sky',
+      border:
+        'border-sky-200/40 hover:border-sky-400/60 dark:border-sky-800/40 dark:hover:border-sky-600/60',
+      bg: 'bg-sky-50/30 dark:bg-sky-950/20',
+      shadowColor: 'shadow-sky-500/20'
+    }
   }
 ] as const;
 
@@ -806,6 +882,40 @@ export function PadajalaMiniPreview({ compact = false }: { compact?: boolean }) 
 }
 
 // ─── Game Showcase Card ───────────────────────────────────
+/** Static cover for games without an animated mini preview. */
+export function GameCoverPreview({
+  gameId,
+  compact = false
+}: {
+  gameId: 'dvayi' | 'bhramita' | 'surupa' | 'anveshi';
+  compact?: boolean;
+}) {
+  return (
+    <div
+      className={cn(
+        'relative flex items-center justify-center overflow-hidden rounded-2xl border border-slate-200/40 bg-slate-100/40 dark:border-slate-800/40 dark:bg-slate-950/20',
+        compact ? 'p-6' : 'p-10'
+      )}
+    >
+      <GameAppIcon
+        game={gameId}
+        name={gameId}
+        size={compact ? 'md' : 'lg'}
+        className="pointer-events-none relative z-10"
+      />
+      <div
+        aria-hidden
+        className={cn(
+          'pointer-events-none absolute size-40 rounded-full blur-3xl',
+          gameId === 'dvayi' && 'bg-rose-400/20 dark:bg-rose-500/10',
+          gameId === 'bhramita' && 'bg-emerald-400/20 dark:bg-emerald-500/10',
+          gameId === 'surupa' && 'bg-violet-400/20 dark:bg-violet-500/10',
+          gameId === 'anveshi' && 'bg-sky-400/20 dark:bg-sky-500/10'
+        )}
+      />
+    </div>
+  );
+}
 export function GameShowcaseCard({
   game,
   index,
@@ -892,8 +1002,10 @@ export function GameShowcaseCard({
           <div className={compact ? 'p-2.5 pt-2 sm:p-3 sm:pt-2.5' : 'p-4 pt-3'}>
             {game.id === 'padavali' ? (
               <PadavaliMiniPreview compact />
-            ) : (
+            ) : game.id === 'padajala' ? (
               <PadajalaMiniPreview compact />
+            ) : (
+              <GameCoverPreview gameId={game.id} compact={compact} />
             )}
           </div>
         </div>
@@ -974,9 +1086,9 @@ export default function LandingPage() {
               className="mx-auto max-w-2xl text-lg leading-relaxed text-slate-600 md:text-xl dark:text-slate-300"
               variants={itemVariants}
             >
-              Discover the elegance and depth of Sanskrit with interactive word puzzles and
-              padajalas. Switch instantly across 6+ Indian scripts and build your vocabulary
-              dynamically.
+              Discover the elegance and depth of Sanskrit with word search, padajala, matching,
+              jumble, spelling and quiz puzzles. Switch instantly across 6+ Indian scripts and build
+              your vocabulary dynamically.
             </motion.p>
 
             {/* Scripts badge */}
@@ -1011,7 +1123,7 @@ export default function LandingPage() {
           </div>
           <h2 className="text-2xl font-bold md:text-3xl">Play in your native Indian Script</h2>
           <p className="mx-auto max-w-xl text-sm text-slate-500 dark:text-slate-400">
-            Both games use real-time transliteration. See the word{' '}
+            Every game uses real-time transliteration. See the word{' '}
             <span className="font-semibold text-slate-900 dark:text-white">
               &quot;Padavali&quot;
             </span>{' '}
@@ -1064,7 +1176,7 @@ export default function LandingPage() {
               Features Crafted For Learning
             </h2>
             <p className="mx-auto max-w-xl text-slate-500 dark:text-slate-400">
-              Two unique game modes combined with powerful language tools — designed to build deep
+              Six unique game modes combined with powerful language tools — designed to build deep
               vocabulary retention.
             </p>
           </div>
@@ -1093,7 +1205,8 @@ export default function LandingPage() {
                 Puzzles
               </h3>
               <p className="text-sm text-slate-500 dark:text-slate-400">
-                Browse and play from our full collection of word search and padajala puzzles.
+                Browse and play from our full collection of Sanskrit puzzles — word search,
+                padajala, matching, jumbles, spelling and quizzes.
               </p>
             </div>
 
@@ -1117,11 +1230,11 @@ export default function LandingPage() {
                 <Grid3X3 className="h-5 w-5" />
               </div>
               <h3 className="mb-2 text-lg font-bold transition-colors group-hover:text-amber-600 dark:group-hover:text-amber-400">
-                Two Game Modes
+                Six Game Modes
               </h3>
               <p className="text-sm text-slate-500 dark:text-slate-400">
-                Word search for pattern recognition, padajala for deep vocabulary — two ways to
-                master Sanskrit.
+                Word search for pattern recognition, padajala and jumbles for deep vocabulary — six
+                ways to master Sanskrit.
               </p>
             </div>
           </div>
@@ -1135,7 +1248,7 @@ export default function LandingPage() {
             {[
               { number: '20k+', label: 'Games Played', icon: Trophy },
               { number: '8+', label: 'Indian Scripts', icon: Globe },
-              { number: '2', label: 'Game Modes', icon: Grid3X3 },
+              { number: '6', label: 'Game Modes', icon: Grid3X3 },
               { number: '∞', label: 'Learning Fun', icon: Sparkles },
               { number: '100%', label: 'Free & Open', icon: Code2 }
             ].map((stat, index) => (

@@ -12,7 +12,6 @@ import { puzzleHref } from '~/components/hub/hub_games';
 import { GameKindIcon } from '~/components/pages/catalog/GameKindIcon';
 import { cn } from '~/lib/utils';
 import type { GameKind } from '~/util/catalog/tags';
-import type { SimpleGameKind } from '~/util/games/kinds';
 import { useTransliteratedText } from '../useTransliteratedText';
 
 const ALL_LIMIT = 16;
@@ -58,9 +57,9 @@ function browseHref(pick: GamePick) {
 
 /**
  * Post-game "More puzzles": defaults to the game just played, with an "All" chip that mixes
- * every game by recency. Experimental here first; the chip row is shared with the hub later.
+ * every game by recency. The chip row is shared with the hub.
  */
-export function MorePuzzles({ kind, puzzleId }: { kind: SimpleGameKind; puzzleId: number }) {
+export function MorePuzzles({ kind, puzzleId }: { kind: GameKind; puzzleId: number }) {
   const trpc = useTRPC();
   const { ref: rowRef, dragging } = useDragScroll<HTMLDivElement>();
   // null = not chosen yet: default to this game if it has other puzzles, else to All.

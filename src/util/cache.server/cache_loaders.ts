@@ -25,7 +25,11 @@ export {
   invalidateAndRefreshCache as invalidate_and_refresh_cache
 } from '~/effect/cache';
 
-export { invalidate_padavali_sitemap, invalidate_padajala_sitemap } from './sitemap_cache';
+export {
+  invalidate_padavali_sitemap,
+  invalidate_padajala_sitemap,
+  invalidate_simple_game_sitemap
+} from './sitemap_cache';
 
 /** Toggle Redis caching for AI word meanings / more hints outside production. */
 export { CACHE_AI_OUTSIDE_PROD } from './ai_cache_options';

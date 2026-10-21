@@ -4,7 +4,7 @@ import { useQueryClient } from '@tanstack/react-query';
 import { useTRPC } from '~/api/client';
 
 /**
- * Mark every `user.get_dashboard` cache stale (all / padavali / padajala).
+ * Mark every `user.get_dashboard` cache stale (all filters and games).
  * Does not refetch now — the chip and dashboard fetch on next open/visit.
  */
 export function useInvalidateUserDashboard() {

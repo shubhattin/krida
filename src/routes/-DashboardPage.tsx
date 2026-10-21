@@ -12,6 +12,8 @@ import type {
   DashboardGameId,
   GameDashboardStats
 } from '~/api/routers/user/user_dashboard';
+import { GAME_KINDS, isGameKind, type GameKind } from '~/util/catalog/tags';
+import { simpleGameHref } from '~/util/games/kinds';
 import { AllGamesMenuItems } from '~/components/app-bar/GameMenuItems';
 import { EditDisplayNameDialog } from '~/components/pages/dashboard/EditDisplayNameDialog';
 import { GameAppIcon } from '~/components/GameAppIcon';
@@ -44,6 +46,34 @@ const GAME_CHROME = {
     soft: 'bg-amber-500/10 text-amber-700 dark:bg-amber-400/15 dark:text-amber-300',
     dot: 'bg-amber-500',
     play: 'from-amber-500 to-orange-600 shadow-amber-500/30 hover:from-amber-400 hover:to-orange-500'
+  },
+  dvayi: {
+    wash: 'from-rose-500/12 via-orange-500/5 to-transparent dark:from-rose-500/20 dark:via-orange-500/8',
+    ring: 'stroke-rose-500',
+    soft: 'bg-rose-500/10 text-rose-700 dark:bg-rose-400/15 dark:text-rose-300',
+    dot: 'bg-rose-500',
+    play: 'from-rose-500 to-orange-600 shadow-rose-500/30 hover:from-rose-400 hover:to-orange-500'
+  },
+  bhramita: {
+    wash: 'from-emerald-500/12 via-teal-500/5 to-transparent dark:from-emerald-500/20 dark:via-teal-500/8',
+    ring: 'stroke-emerald-500',
+    soft: 'bg-emerald-500/10 text-emerald-700 dark:bg-emerald-400/15 dark:text-emerald-300',
+    dot: 'bg-emerald-500',
+    play: 'from-emerald-500 to-teal-600 shadow-emerald-500/30 hover:from-emerald-400 hover:to-teal-500'
+  },
+  surupa: {
+    wash: 'from-violet-500/12 via-fuchsia-500/5 to-transparent dark:from-violet-500/20 dark:via-fuchsia-500/8',
+    ring: 'stroke-violet-500',
+    soft: 'bg-violet-500/10 text-violet-700 dark:bg-violet-400/15 dark:text-violet-300',
+    dot: 'bg-violet-500',
+    play: 'from-violet-500 to-fuchsia-600 shadow-violet-500/30 hover:from-violet-400 hover:to-fuchsia-500'
+  },
+  anveshi: {
+    wash: 'from-sky-500/12 via-indigo-500/5 to-transparent dark:from-sky-500/20 dark:via-indigo-500/8',
+    ring: 'stroke-sky-500',
+    soft: 'bg-sky-500/10 text-sky-700 dark:bg-sky-400/15 dark:text-sky-300',
+    dot: 'bg-sky-500',
+    play: 'from-sky-500 to-indigo-600 shadow-sky-500/30 hover:from-sky-400 hover:to-indigo-500'
   }
 } as const;
 
@@ -92,7 +122,7 @@ function SignedInDashboard() {
   const trpc = useTRPC();
   const dashboardQuery = useQuery(trpc.user.get_dashboard.queryOptions({ game }));
   const data = dashboardQuery.data;
-  const games: DashboardGameId[] = game === 'all' ? ['padavali', 'padajala'] : [game];
+  const games: DashboardGameId[] = game === 'all' ? [...GAME_KINDS] : [game];
 
   return (
     <div className="public-canvas flex min-h-dvh flex-col">
@@ -106,15 +136,18 @@ function SignedInDashboard() {
           <Tabs
             value={game}
             onValueChange={(value) => {
-              if (value === 'all' || value === 'padavali' || value === 'padajala') {
+              if (value === 'all' || isGameKind(value)) {
                 setGame(value);
               }
             }}
           >
             <TabsList>
               <TabsTrigger value="all">All games</TabsTrigger>
-              <TabsTrigger value="padavali">{HUB_GAMES.padavali.name}</TabsTrigger>
-              <TabsTrigger value="padajala">{HUB_GAMES.padajala.name}</TabsTrigger>
+              {GAME_KINDS.map((kind: GameKind) => (
+                <TabsTrigger key={kind} value={kind}>
+                  {HUB_GAMES[kind].name}
+                </TabsTrigger>
+              ))}
             </TabsList>
           </Tabs>
         </div>
@@ -649,10 +682,18 @@ function PuzzleLink({
     );
   }
 
+  if (game === 'padajala') {
+    return (
+      <Link to="/padajala/$slug" params={{ slug }} className={className}>
+        {children}
+      </Link>
+    );
+  }
+
   return (
-    <Link to="/padajala/$slug" params={{ slug }} className={className}>
+    <a href={simpleGameHref(game, slug)} className={className}>
       {children}
-    </Link>
+    </a>
   );
 }
 
