@@ -80,7 +80,7 @@ const GAME_PRESENTATION = {
   dvayi: { name: 'Dvayī' },
   bhramita: { name: 'Bhramitā' },
   surupa: { name: 'Surūpa' },
-  anveshi: { name: 'Anveṣī' }
+  anveshi: { name: 'Ānveṣī' }
 } as const satisfies Record<AdminAnalyticsGameId, { name: string }>;
 
 const GAME_TABS = [
@@ -90,7 +90,7 @@ const GAME_TABS = [
   { value: 'dvayi', label: 'Dvayī' },
   { value: 'bhramita', label: 'Bhramitā' },
   { value: 'surupa', label: 'Surūpa' },
-  { value: 'anveshi', label: 'Anveṣī' }
+  { value: 'anveshi', label: 'Ānveṣī' }
 ] as const;
 
 function totalsStats(totals: AdminAnalyticsTotals): AnalyticsStat[] {
@@ -162,7 +162,7 @@ function GameBreakdownCard({ row }: { row: AdminAnalyticsGameRow }) {
       <dl className="grid grid-cols-2 gap-x-3 gap-y-2 border-t border-black/5 px-3 py-3 sm:grid-cols-5 sm:px-4 dark:border-white/10">
         {metrics.map((metric) => (
           <div key={metric.label} className="min-w-0">
-            <dt className="truncate text-[0.65rem] font-semibold tracking-wide text-muted-foreground uppercase">
+            <dt className="truncate text-[0.65rem] font-semibold text-muted-foreground">
               {metric.label}
             </dt>
             <dd className="text-base leading-tight font-bold tabular-nums sm:text-lg">
@@ -370,9 +370,9 @@ function TopPlayedLeaders({
         <TopPlayedLeader
           variant="puzzles"
           accordionValue="central-top-anveshi"
-          title="Top Played — Anveṣī"
+          title="Top Played — Ānveṣī"
           subtitle="Top 10 by plays"
-          emptyMessage="No Anveṣī plays in this period"
+          emptyMessage="No Ānveṣī plays in this period"
           isLoading={anveshi.isLoading}
           items={toTopPlayedRows(anveshi.puzzles)}
         />

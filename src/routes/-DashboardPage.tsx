@@ -102,9 +102,7 @@ function SignedInDashboard() {
         <Hero name={user?.name} image={user?.image} totals={data?.totals} />
 
         <div className="flex flex-wrap items-center justify-between gap-3">
-          <h3 className="text-sm font-semibold tracking-wide text-muted-foreground uppercase">
-            Your stats
-          </h3>
+          <h3 className="text-sm font-semibold text-muted-foreground">Your stats</h3>
           <Tabs
             value={game}
             onValueChange={(value) => {
@@ -583,7 +581,7 @@ function ListSection({
 }) {
   return (
     <div className="flex min-w-0 flex-col gap-2">
-      <p className="flex items-center gap-1.5 px-1 text-xs font-semibold tracking-wide text-muted-foreground uppercase">
+      <p className="flex items-center gap-1.5 px-1 text-xs font-semibold text-muted-foreground">
         {icon}
         {title}
       </p>

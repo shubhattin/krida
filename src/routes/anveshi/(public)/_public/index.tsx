@@ -7,7 +7,7 @@ export const Route = createFileRoute('/anveshi/(public)/_public/')({
   loader: () => loadSimpleGameListed$({ data: { kind: 'anveshi' } }),
   head: () =>
     routeHeadFromPageMeta({
-      title: 'Anveṣī',
+      title: 'Ānveṣī',
       project: 'anveshi',
       robots: 'noindex'
     }),

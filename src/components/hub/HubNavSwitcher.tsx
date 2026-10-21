@@ -242,9 +242,7 @@ export function HubNavSwitcher({ active }: { active: HubNavId }) {
         </div>
         <Separator className="bg-slate-200 dark:bg-slate-700" />
         <div className="flex flex-col gap-2 bg-slate-50/90 p-3 dark:bg-slate-900/40">
-          <p className="text-[11px] font-semibold tracking-wide text-slate-500 uppercase dark:text-slate-400">
-            Games
-          </p>
+          <p className="text-[11px] font-semibold text-slate-500 dark:text-slate-400">Games</p>
           <div className="grid grid-cols-2 gap-2">
             {HUB_GAME_LIST.map((game) => (
               <GameNavCard key={game.kind} game={game} active={active === game.kind} />

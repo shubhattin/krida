@@ -20,7 +20,7 @@ export function HubGameBadge({
     return (
       <span
         className={cn(
-          'inline-flex items-center gap-1 rounded-full border px-2 py-0.5 text-[10px] font-bold tracking-wide uppercase shadow-sm',
+          'inline-flex items-center gap-1 rounded-full border px-2 py-0.5 text-[10px] font-bold shadow-sm',
           accent.badge,
           className
         )}

@@ -153,7 +153,7 @@ export const AIWordExplanations = ({ puzzle_id, puzzle_slug, timerRef }: Props) 
                         'inline-flex shrink-0 items-center gap-1 rounded-full px-2 py-0.5',
                         'bg-linear-to-r from-violet-100 to-fuchsia-100',
                         'dark:from-violet-900/50 dark:to-fuchsia-900/40',
-                        'text-[9px] font-bold tracking-wide text-violet-600 uppercase sm:text-[10px]',
+                        'text-[9px] font-bold text-violet-600 sm:text-[10px]',
                         'dark:text-violet-300'
                       )}
                     >

@@ -612,7 +612,7 @@ export function PadavaliLayoutGenerator({
                 <div className="flex items-center gap-1">
                   <Label
                     htmlFor="padavali-layout-neighborhood"
-                    className="text-xs font-medium tracking-wide text-muted-foreground uppercase"
+                    className="text-xs font-medium text-muted-foreground"
                   >
                     Neighbor moves
                   </Label>
@@ -653,7 +653,7 @@ export function PadavaliLayoutGenerator({
                 <div className="flex items-center gap-1">
                   <Label
                     htmlFor="padavali-layout-path-style"
-                    className="text-xs font-medium tracking-wide text-muted-foreground uppercase"
+                    className="text-xs font-medium text-muted-foreground"
                   >
                     Word order
                   </Label>
@@ -693,7 +693,7 @@ export function PadavaliLayoutGenerator({
               <div className="flex min-w-0 flex-col gap-1.5">
                 <Label
                   htmlFor="padavali-layout-ranking"
-                  className="text-xs font-medium tracking-wide text-muted-foreground uppercase"
+                  className="text-xs font-medium text-muted-foreground"
                 >
                   Rank by
                 </Label>
@@ -724,7 +724,7 @@ export function PadavaliLayoutGenerator({
               <div className="flex min-w-0 flex-col gap-1.5">
                 <Label
                   htmlFor="padavali-layout-candidate-limit"
-                  className="text-xs font-medium tracking-wide text-muted-foreground uppercase"
+                  className="text-xs font-medium text-muted-foreground"
                 >
                   Candidates
                 </Label>

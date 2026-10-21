@@ -87,9 +87,7 @@ export function AnalyticsStatCard({ label, value, hint, icon: Icon, accent }: An
       <div className={cn('absolute inset-y-2 left-0 w-1 rounded-r-full', theme.rail)} />
       <div className="flex items-start justify-between gap-2 p-3 pl-3.5">
         <div className="min-w-0 space-y-1">
-          <p className="truncate text-[0.65rem] font-semibold tracking-wide text-muted-foreground uppercase">
-            {label}
-          </p>
+          <p className="truncate text-[0.65rem] font-semibold text-muted-foreground">{label}</p>
           <p className="text-xl leading-none font-bold tracking-tight tabular-nums sm:text-2xl">
             {value}
           </p>

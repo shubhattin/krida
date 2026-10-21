@@ -135,7 +135,7 @@ export function HintDialog({ puzzle_id, puzzle_slug, timerRef }: Props) {
                     ? 'Stuck? See all words'
                     : 'Learn the words first'}
               </span>
-              <span className="shrink-0 rounded-full border border-amber-400/40 px-1.5 text-[9px] font-bold tracking-wide text-amber-700 uppercase dark:border-amber-400/25 dark:text-amber-300/80">
+              <span className="shrink-0 rounded-full border border-amber-400/40 px-1.5 text-[9px] font-bold text-amber-700 dark:border-amber-400/25 dark:text-amber-300/80">
                 Practice
               </span>
             </span>

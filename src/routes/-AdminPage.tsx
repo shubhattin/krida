@@ -220,9 +220,7 @@ export default function AdminPage() {
         </section>
 
         <section className="flex flex-col gap-3">
-          <h2 className="text-xs font-semibold tracking-[0.18em] text-muted-foreground uppercase">
-            Games
-          </h2>
+          <h2 className="text-xs font-semibold tracking-[0.18em] text-muted-foreground">Games</h2>
           <div className="grid gap-3 sm:grid-cols-2">
             {LIVE_GAMES.map((game) => (
               <AdminGameCard key={game.name} {...game} />
@@ -231,7 +229,7 @@ export default function AdminPage() {
         </section>
 
         <section className="flex flex-col gap-3">
-          <h2 className="text-xs font-semibold tracking-[0.18em] text-muted-foreground uppercase">
+          <h2 className="text-xs font-semibold tracking-[0.18em] text-muted-foreground">
             In development
           </h2>
           <div className="grid gap-3 sm:grid-cols-2">

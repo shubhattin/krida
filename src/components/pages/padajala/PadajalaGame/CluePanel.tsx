@@ -99,7 +99,7 @@ function MoreHintPopover({ entryId, moreHints }: { entryId: string; moreHints: M
         className={cn(
           'mt-0.5 inline-flex shrink-0 items-center gap-1 rounded-full border px-2 py-0.5',
           'border-violet-300/70 bg-linear-to-r from-violet-100 to-fuchsia-100',
-          'text-[0.6rem] font-bold tracking-wide text-violet-700 uppercase',
+          'text-[0.6rem] font-bold text-violet-700',
           'shadow-sm transition-colors outline-none',
           'hover:from-violet-200/90 hover:to-fuchsia-200/80',
           'focus-visible:ring-2 focus-visible:ring-violet-400/50',
@@ -125,7 +125,7 @@ function MoreHintPopover({ entryId, moreHints }: { entryId: string; moreHints: M
               'inline-flex items-center gap-1 rounded-full px-2 py-0.5',
               'bg-linear-to-r from-violet-100 to-fuchsia-100',
               'dark:from-violet-900/50 dark:to-fuchsia-900/40',
-              'text-[9px] font-bold tracking-wide text-violet-600 uppercase',
+              'text-[9px] font-bold text-violet-600',
               'dark:text-violet-300'
             )}
           >
@@ -384,7 +384,7 @@ export function CluePanel({ game, moreHints, className }: CluePanelProps) {
               onClick={() => setFilter(id)}
               aria-pressed={isActiveFilter}
               className={cn(
-                'rounded-full border px-2.5 py-1 text-[0.65rem] font-semibold tracking-wide uppercase shadow-sm backdrop-blur-sm transition-all outline-none focus:outline-none focus-visible:outline-none',
+                'rounded-full border px-2.5 py-1 text-[0.65rem] font-semibold shadow-sm backdrop-blur-sm transition-all outline-none focus:outline-none focus-visible:outline-none',
                 isActiveFilter
                   ? 'border-blue-400/60 bg-linear-to-br from-blue-500/90 to-indigo-600/90 text-white shadow-md dark:border-blue-400/50 dark:from-blue-500/80 dark:to-indigo-600/80'
                   : 'border-slate-300/80 bg-linear-to-br from-white/90 to-slate-100/80 text-slate-600 hover:from-white hover:to-slate-50 hover:shadow-md dark:border-slate-500/50 dark:from-slate-700/80 dark:to-slate-800/70 dark:text-slate-200 dark:hover:from-slate-600/80 dark:hover:to-slate-700/70'
