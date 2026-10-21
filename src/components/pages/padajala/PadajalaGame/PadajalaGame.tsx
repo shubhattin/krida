@@ -12,6 +12,7 @@ import { PadajalaGrid } from './PadajalaGrid';
 import { GameProgress } from './GameProgress';
 import { GameControls } from './GameControls';
 import { CompletionCelebration } from './CompletionCelebration';
+import { GuestSaveProgressCta } from '~/components/app-bar/GuestSaveProgressCta';
 import { PadajalaOnScreenKeyboard } from './PadajalaOnScreenKeyboard';
 import {
   PADAJALA_KB_ATTR,
@@ -635,6 +636,7 @@ export function PadajalaGame({
           onReveal={game.revealEntry}
         />
         <CompletionCelebration listed={listed} puzzleSlug={puzzleSlug} />
+        {completed ? <GuestSaveProgressCta className="max-w-md" /> : null}
       </div>
 
       <div

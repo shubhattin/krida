@@ -10,8 +10,10 @@ import {
   Clock3,
   LayoutDashboard,
   LogOut,
+  MonitorSmartphone,
   Play,
   Target,
+  Trophy,
   User
 } from 'lucide-react';
 import pretty_ms from 'pretty-ms';
@@ -42,7 +44,8 @@ import { GoogleIcon } from '~/components/icons';
 import { GAME_APP_ICON_SRC } from '~/components/GameAppIcon';
 import { HUB_GAME_ACCENT, HUB_GAMES } from '~/components/hub/hub_games';
 import Icon from '~/tools/Icon';
-import { signIn, signOut, useSession } from '~/lib/auth-client';
+import { signOut, useSession } from '~/lib/auth-client';
+import { startGoogleSignIn } from '~/lib/google_sign_in';
 import { resetPosthog } from '~/components/tags/PosthogInit';
 import type { GuestAuthPromptTrigger } from '~/lib/guest_auth_prompt';
 import { cn } from '~/lib/utils';
@@ -53,7 +56,10 @@ import {
   type PublicGameKind,
   type SimpleGameKind
 } from '~/util/games/kinds';
-import { useGuestAuthPrompt } from '~/components/app-bar/useGuestAuthPrompt';
+import {
+  useGuestAuthPrompt,
+  useGuestCompletedCount
+} from '~/components/app-bar/useGuestAuthPrompt';
 import chipStyles from '~/components/app-bar/user-profile-chip.module.css';
 
 /** Where the chip is rendered — drives accent colours and the header label. */
@@ -166,6 +172,7 @@ export function UserProfileChip({ context }: { context: ProfileContext }) {
   const isClient = useIsClient();
   const trpc = useTRPC();
   const prompt = useGuestAuthPrompt(!!user, isClient && !isPending);
+  const guestCompleted = useGuestCompletedCount();
   const statsQuery = useQuery({
     ...trpc.user.get_dashboard.queryOptions({ game: 'all' }),
     // Fetch only when the popover opens. Gameplay mutations mark this stale.
@@ -182,7 +189,10 @@ export function UserProfileChip({ context }: { context: ProfileContext }) {
 
   return (
     <>
-      <div className={cn('size-8 shrink-0', prompt.pulsing && chipStyles.pulse)} style={pulseStyle}>
+      <div
+        className={cn('relative size-8 shrink-0', prompt.pulsing && chipStyles.pulse)}
+        style={pulseStyle}
+      >
         <Popover open={prompt.open} onOpenChange={prompt.onOpenChange}>
           <PopoverTrigger
             render={
@@ -190,7 +200,13 @@ export function UserProfileChip({ context }: { context: ProfileContext }) {
                 variant="outline"
                 size="icon"
                 className={chipButtonClass}
-                aria-label={user ? 'Your profile' : 'Sign in'}
+                aria-label={
+                  user
+                    ? 'Your profile'
+                    : guestCompleted > 0
+                      ? 'Sign in to save your progress'
+                      : 'Sign in'
+                }
               />
             }
           >
@@ -210,6 +226,15 @@ export function UserProfileChip({ context }: { context: ProfileContext }) {
               <User className="text-slate-600 dark:text-slate-300" />
             )}
           </PopoverTrigger>
+          {!user && guestCompleted > 0 && !prompt.open ? (
+            <span
+              aria-hidden
+              className={cn(
+                'pointer-events-none absolute -top-0.5 -right-0.5 size-2.5 rounded-full bg-linear-to-br ring-2 ring-white dark:ring-slate-900',
+                accent.gradient
+              )}
+            />
+          ) : null}
           <PopoverContent
             align="end"
             className={cn(popoverClass, prompt.autoOpen && chipStyles.glow)}
@@ -231,7 +256,16 @@ export function UserProfileChip({ context }: { context: ProfileContext }) {
                 }}
               />
             ) : (
-              <GuestCard accent={accent} trigger={prompt.trigger} onSignedIn={prompt.onSignIn} />
+              <GuestCard
+                accent={accent}
+                trigger={prompt.trigger}
+                autoOpen={prompt.autoOpen}
+                canSnooze={prompt.canSnooze}
+                completedCount={guestCompleted}
+                onSignedIn={prompt.onSignIn}
+                onNotNow={() => prompt.onOpenChange(false)}
+                onSnooze={prompt.onSnooze}
+              />
             )}
           </PopoverContent>
         </Popover>
@@ -261,11 +295,29 @@ export function UserProfileChip({ context }: { context: ProfileContext }) {
   );
 }
 
-function guestCopy(trigger: GuestAuthPromptTrigger | null) {
-  if (trigger === 'play_start' || trigger === 'complete') {
+function guestCopy(trigger: GuestAuthPromptTrigger | null, completedCount: number) {
+  if (trigger === 'personal_best') {
     return {
-      title: 'Save this score',
-      description: 'Continue with Google to keep this score and unlock more features.'
+      title: 'New personal best!',
+      description: 'Sign in with Google so your best times are tracked on your profile.'
+    };
+  }
+  if (trigger === 'milestone') {
+    return {
+      title: `${completedCount} puzzles solved!`,
+      description: 'Sign in with Google to keep track of your progress from here on.'
+    };
+  }
+  if (trigger === 'complete') {
+    return {
+      title: 'Nicely solved',
+      description: 'Sign in with Google so every puzzle you finish is saved to your profile.'
+    };
+  }
+  if (trigger === 'return_visit') {
+    return {
+      title: 'Welcome back',
+      description: 'Sign in with Google to track your scores and see your progress over time.'
     };
   }
   return {
@@ -274,16 +326,33 @@ function guestCopy(trigger: GuestAuthPromptTrigger | null) {
   };
 }
 
+const GUEST_PERKS = [
+  { label: 'Stats dashboard', icon: LayoutDashboard },
+  { label: 'Best times', icon: Clock3 },
+  { label: 'Any device', icon: MonitorSmartphone }
+] as const;
+
 function GuestCard({
   accent,
   trigger,
-  onSignedIn
+  autoOpen,
+  canSnooze,
+  completedCount,
+  onSignedIn,
+  onNotNow,
+  onSnooze
 }: {
   accent: ProfileAccent;
   trigger: GuestAuthPromptTrigger | null;
+  autoOpen: boolean;
+  canSnooze: boolean;
+  completedCount: number;
   onSignedIn: () => void;
+  onNotNow: () => void;
+  onSnooze: () => void;
 }) {
-  const copy = guestCopy(trigger);
+  // Manual opens get the neutral pitch; the trigger only shapes auto-opens.
+  const copy = guestCopy(autoOpen ? trigger : null, completedCount);
   return (
     <div className="flex flex-col items-center gap-4 p-5 text-center">
       <div
@@ -292,22 +361,41 @@ function GuestCard({
           accent.gradient
         )}
       >
-        <User className="size-5" />
+        {autoOpen && (trigger === 'personal_best' || trigger === 'milestone') ? (
+          <Trophy className="size-5" />
+        ) : (
+          <User className="size-5" />
+        )}
       </div>
       <PopoverHeader className="items-center gap-1">
         <PopoverTitle className="text-base">{copy.title}</PopoverTitle>
         <PopoverDescription>{copy.description}</PopoverDescription>
       </PopoverHeader>
+      {completedCount > 0 ? (
+        <p className="rounded-full bg-slate-100 px-2.5 py-0.5 text-xs text-muted-foreground tabular-nums dark:bg-slate-700/60">
+          {completedCount === 1
+            ? '1 puzzle solved as a guest'
+            : `${completedCount} puzzles solved as a guest`}
+        </p>
+      ) : null}
+      <ul className="grid w-full grid-cols-3 gap-1.5">
+        {GUEST_PERKS.map(({ label, icon: PerkIcon }) => (
+          <li
+            key={label}
+            className="flex flex-col items-center gap-1 rounded-xl border border-slate-200/80 bg-slate-50/80 px-1.5 py-2 text-[11px] text-muted-foreground dark:border-slate-700/80 dark:bg-slate-900/40"
+          >
+            <PerkIcon className="size-3.5 text-slate-500 dark:text-slate-400" />
+            {label}
+          </li>
+        ))}
+      </ul>
       <Button
         variant="outline"
         size="lg"
         className="w-full"
         onClick={async () => {
           onSignedIn();
-          await signIn.social({
-            provider: 'google',
-            callbackURL: window.location.href
-          });
+          await startGoogleSignIn('popover', autoOpen ? trigger : null);
         }}
       >
         <span data-icon="inline-start">
@@ -315,6 +403,18 @@ function GuestCard({
         </span>
         Continue with Google
       </Button>
+      {autoOpen ? (
+        <div className="-mt-1 flex w-full items-center justify-center gap-1">
+          <Button variant="ghost" size="sm" className="text-muted-foreground" onClick={onNotNow}>
+            Not now
+          </Button>
+          {canSnooze ? (
+            <Button variant="ghost" size="sm" className="text-muted-foreground" onClick={onSnooze}>
+              Don&apos;t remind me
+            </Button>
+          ) : null}
+        </div>
+      ) : null}
     </div>
   );
 }

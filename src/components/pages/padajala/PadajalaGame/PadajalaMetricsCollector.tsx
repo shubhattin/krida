@@ -10,7 +10,11 @@ import { canSubmitPlayMetrics, playMetricsToken, usePlayAuth } from '~/lib/play_
 import type { location_list_type } from '~/db/types';
 import TurnstileWidget from '~/components/Turnstile';
 import { load_posthog } from '~/components/tags/PosthogInit';
-import { requestGuestAuthPrompt } from '~/lib/guest_auth_prompt';
+import {
+  noteGuestCompletion,
+  requestGuestAuthPrompt,
+  setGuestGameActive
+} from '~/lib/guest_auth_prompt';
 import { isFixedCell } from '~/util/padajala/game_model';
 import {
   active_padajala_id_atom,
@@ -185,8 +189,13 @@ export default function PadajalaMetricsCollector({
   }, [authReady, isAuthed, started, completed, gameSessionNonce]);
 
   const promptGuestOnComplete = useEffectEvent(() => {
-    requestGuestAuthPrompt('complete');
+    requestGuestAuthPrompt(noteGuestCompletion('padajala', seconds));
   });
+
+  useEffect(() => {
+    setGuestGameActive(started && !completed);
+    return () => setGuestGameActive(false);
+  }, [started, completed]);
 
   useEffect(() => {
     if (!authReady || isAuthed) return;
