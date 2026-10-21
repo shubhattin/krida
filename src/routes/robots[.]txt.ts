@@ -25,10 +25,22 @@ Disallow: /padajala/schedules
 Disallow: /padajala/analytics
 Disallow: /padajala/batch_manager
 Disallow: /padajala/view/
-Disallow: /dvayi/
-Disallow: /bhramita/
-Disallow: /surupa/
-Disallow: /anveshi/
+Disallow: /dvayi/list
+Disallow: /dvayi/edit
+Disallow: /dvayi/analytics
+Disallow: /dvayi/view/
+Disallow: /bhramita/list
+Disallow: /bhramita/edit
+Disallow: /bhramita/analytics
+Disallow: /bhramita/view/
+Disallow: /surupa/list
+Disallow: /surupa/edit
+Disallow: /surupa/analytics
+Disallow: /surupa/view/
+Disallow: /anveshi/list
+Disallow: /anveshi/edit
+Disallow: /anveshi/analytics
+Disallow: /anveshi/view/
 
 Sitemap: ${siteUrl}/sitemap-index.xml
 `;

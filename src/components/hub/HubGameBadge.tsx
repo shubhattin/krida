@@ -1,7 +1,7 @@
 import { Image } from '@unpic/react';
 import { GAME_APP_ICON_SRC } from '~/components/GameAppIcon';
 import { HUB_GAME_ACCENT, HUB_GAMES } from './hub_games';
-import type { PublicGameKind } from '~/util/games/kinds';
+import type { GameKind } from '~/util/catalog/tags';
 import { cn } from '~/lib/utils';
 
 export function HubGameBadge({
@@ -9,7 +9,7 @@ export function HubGameBadge({
   className,
   variant = 'icon'
 }: {
-  game: PublicGameKind;
+  game: GameKind;
   className?: string;
   variant?: 'icon' | 'label';
 }) {

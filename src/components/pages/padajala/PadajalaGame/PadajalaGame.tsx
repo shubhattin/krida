@@ -22,10 +22,10 @@ import {
 import { CluePanel } from './CluePanel';
 import { get_general_share_msg } from './share';
 import {
-  CompletionMorePadajalaPuzzlesCarousel,
   getPadajalaCarouselPuzzlesQueryFn,
   MorePadajalaPuzzlesAccordion
 } from './MorePuzzlesCarousel';
+import { MorePuzzles } from '~/components/pages/simple_game/play/MorePuzzles';
 import { usePadajalaGame } from './usePadajalaGame';
 import { useMoreHints } from './useMoreHints';
 import { shouldAutoOpenOnScreenKeyboard } from './touch_device';
@@ -608,11 +608,8 @@ export function PadajalaGame({
       />
 
       {showCompletionCarousel ? (
-        <div className="mb-3 sm:mb-4">
-          <CompletionMorePadajalaPuzzlesCarousel
-            excludeSlug={carouselExcludeSlug}
-            excludeId={puzzle.id}
-          />
+        <div className="mx-auto mb-3 w-full max-w-6xl px-3 sm:mb-4 sm:px-4">
+          <MorePuzzles kind="padajala" puzzleId={puzzle.id} />
         </div>
       ) : null}
 

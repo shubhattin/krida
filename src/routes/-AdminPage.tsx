@@ -225,14 +225,6 @@ export default function AdminPage() {
             {LIVE_GAMES.map((game) => (
               <AdminGameCard key={game.name} {...game} />
             ))}
-          </div>
-        </section>
-
-        <section className="flex flex-col gap-3">
-          <h2 className="text-xs font-semibold tracking-[0.18em] text-muted-foreground">
-            In development
-          </h2>
-          <div className="grid gap-3 sm:grid-cols-2">
             {SIMPLE_GAME_LIST.map((game) => {
               const Icon = SIMPLE_GAME_ICONS[game.kind];
               return (

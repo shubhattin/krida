@@ -1,4 +1,5 @@
 import { z } from 'zod';
+import { GAME_KINDS } from '~/util/catalog/tags';
 
 const refineDateRange = (
   data: {
@@ -59,7 +60,7 @@ export const get_user_list_input_schema = z.object({
   search: z.string().max(200).optional()
 });
 
-export const dashboard_game_filter_schema = z.enum(['all', 'padavali', 'padajala']);
+export const dashboard_game_filter_schema = z.enum(['all', ...GAME_KINDS]);
 
 export const admin_overview_game_filter_schema = z.enum([
   'all',

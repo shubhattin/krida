@@ -4,6 +4,7 @@ import { useCallback, useEffect, useState } from 'react';
 import { ChevronLeftIcon, ChevronRightIcon } from 'lucide-react';
 import { AllPuzzlesLink } from '~/components/PuzzleCatalogLink';
 import { GameAppIcon } from '~/components/GameAppIcon';
+import { HUB_GAME_LIST } from '~/components/hub/hub_games';
 import { GameShowcaseCard, GAMES } from '~/routes/-Landing';
 import {
   Carousel,
@@ -49,15 +50,22 @@ export function HubGameShowcase() {
     <section className="mx-auto flex w-full max-w-3xl flex-col gap-2 sm:gap-4">
       <header className="flex min-w-0 items-center gap-2.5 sm:gap-3">
         <div className="flex shrink-0" aria-hidden="true">
-          <GameAppIcon game="padavali" name="Padāvalī" size="sm" className="relative z-10" />
-          <GameAppIcon game="padajala" name="Padajāla" size="sm" className="-ml-2" />
+          {HUB_GAME_LIST.map((game, index) => (
+            <GameAppIcon
+              key={game.kind}
+              game={game.icon}
+              name={game.name}
+              size="sm"
+              className={index === 0 ? 'relative z-10' : '-ml-2'}
+            />
+          ))}
         </div>
         <div className="min-w-0 flex-1">
           <h1 className="text-2xl font-black tracking-tight sm:text-4xl">
             <span className="krida-hero-wordmark">Krida</span>
           </h1>
           <p className="mt-0.5 text-xs text-slate-500 sm:text-sm dark:text-slate-400">
-            Sanskrit Games — a word search and padajala.
+            Sanskrit Games — six ways to play, learn, grow.
           </p>
         </div>
         <div className="flex shrink-0 items-center gap-1 sm:hidden">

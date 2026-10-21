@@ -1,15 +1,19 @@
 import { createFileRoute } from '@tanstack/react-router';
 import { SimpleGameLanding } from '~/components/pages/simple_game/SimpleGameLanding';
-import { routeHeadFromPageMeta } from '~/components/tags/getPageMetaTags';
+import { routeHeadFromPageMeta, siteUrl } from '~/components/tags/getPageMetaTags';
 import { loadSimpleGameListed$ } from '~/lib/simple_game_loaders';
+import { SIMPLE_GAME_META } from '~/util/games/kinds';
+
+const meta = SIMPLE_GAME_META.anveshi;
 
 export const Route = createFileRoute('/anveshi/(public)/_public/')({
   loader: () => loadSimpleGameListed$({ data: { kind: 'anveshi' } }),
   head: () =>
     routeHeadFromPageMeta({
-      title: 'Ānveṣī',
+      title: `${meta.name} | Krida`,
+      description: meta.description,
       project: 'anveshi',
-      robots: 'noindex'
+      canonical: `${siteUrl()}/anveshi`
     }),
   component: LandingRoute
 });

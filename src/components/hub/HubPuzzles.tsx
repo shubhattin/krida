@@ -1,12 +1,10 @@
 'use client';
 
-import { useContext, useEffect, useMemo, useRef, useState, type ReactNode } from 'react';
+import { useContext, useEffect, useMemo, useRef, useState } from 'react';
 import { getRouteApi } from '@tanstack/react-router';
-import { Image } from '@unpic/react';
 import {
   ChevronDownIcon,
   Layers as LayersIcon,
-  LayoutGrid as LayoutGridIcon,
   Puzzle as PuzzleIcon,
   SearchIcon,
   SearchXIcon,
@@ -39,8 +37,8 @@ import Icon from '~/tools/Icon';
 import { LanguageIcon } from '~/components/icons';
 import { scrollPaginationListToStart } from '~/lib/pagination-scroll';
 import { cn } from '~/lib/utils';
-import { HUB_GAMES } from './hub_games';
-import { GAME_APP_ICON_SRC } from '~/components/GameAppIcon';
+import { HUB_GAME_LIST } from './hub_games';
+import { GamePickerChips } from './GamePickerChips';
 import type { HubData } from './hub_data';
 import { HubPuzzleCard } from './HubPuzzleCard';
 import { HubCollectionCard } from './HubCollectionCard';
@@ -51,27 +49,21 @@ import {
   type HubPuzzle
 } from './hub_puzzles';
 import { useHubPuzzles } from './useHubPuzzles';
-import type { PublicTag } from '~/util/catalog/tags';
-import type { PublicGameKind } from '~/util/games/kinds';
+import type { GameKind, PublicTag } from '~/util/catalog/tags';
 import type { ListedCollectionsType } from '~/util/cache.server/collection_cache';
 import type { PuzzlesSearch } from '~/routes/_hub/puzzles';
 
 const puzzlesRoute = getRouteApi('/_hub/puzzles');
 const PAGE_LIMIT = 12;
 
-// TODO: add dvayi/bhramita/surupa/anveshi once those games ship on /puzzles.
-const GAME_FILTERS: { value: 'all' | PublicGameKind; label: string }[] = [
-  { value: 'all', label: 'All' },
-  { value: 'padavali', label: HUB_GAMES.padavali.name },
-  { value: 'padajala', label: HUB_GAMES.padajala.name }
-];
+const GAME_FILTER_GAMES = HUB_GAME_LIST.map((meta) => meta.kind);
 
 const VIEW_TABS = [
   { value: 'puzzles', label: 'Puzzles', icon: PuzzleIcon },
   { value: 'collections', label: 'Collections', icon: LayersIcon }
 ] as const;
 
-type GameCounts = Record<'all' | PublicGameKind, number>;
+type GameCounts = Record<'all' | GameKind, number>;
 type CountedTag = PublicTag & { count: number };
 
 /** Any filter change resets pagination back to page 1. */
@@ -108,12 +100,6 @@ const PILL_CLASS =
   'inline-flex h-8 shrink-0 items-center gap-1.5 rounded-full border px-3 text-xs font-semibold transition-colors focus-visible:ring-2 focus-visible:ring-indigo-400/70 focus-visible:outline-none';
 const PILL_IDLE =
   'border-slate-200 bg-white/70 text-slate-600 hover:border-slate-300 hover:bg-white dark:border-slate-700 dark:bg-slate-900/60 dark:text-slate-300 dark:hover:border-slate-600';
-const PILL_ACTIVE =
-  'border-slate-900 bg-slate-900 text-white dark:border-white dark:bg-white dark:text-slate-900';
-
-function PillCount({ children }: { children: ReactNode }) {
-  return <span className="tabular-nums opacity-60">{children}</span>;
-}
 
 function ViewTabs({
   view,
@@ -214,34 +200,12 @@ function GameFilters({ gameCounts }: { gameCounts: GameCounts }) {
   const updateFilters = useUpdateFilters();
 
   return (
-    <div role="group" aria-label="Filter by game" className="flex gap-2">
-      {GAME_FILTERS.map((option) => {
-        const active = search.game === option.value;
-        return (
-          <button
-            key={option.value}
-            type="button"
-            aria-pressed={active}
-            onClick={() => updateFilters({ game: option.value })}
-            className={cn(PILL_CLASS, active ? PILL_ACTIVE : PILL_IDLE)}
-          >
-            {option.value === 'all' ? (
-              <LayoutGridIcon className="size-3.5" aria-hidden />
-            ) : (
-              <Image
-                src={GAME_APP_ICON_SRC[HUB_GAMES[option.value].icon]}
-                alt=""
-                width={14}
-                height={14}
-                className="size-3.5"
-              />
-            )}
-            {option.label}
-            <PillCount>{gameCounts[option.value]}</PillCount>
-          </button>
-        );
-      })}
-    </div>
+    <GamePickerChips
+      games={GAME_FILTER_GAMES}
+      value={search.game}
+      onChange={(game) => updateFilters({ game })}
+      counts={gameCounts}
+    />
   );
 }
 
@@ -516,7 +480,11 @@ export default function HubPuzzles({ data }: { data: HubData }) {
     return {
       all: base.length,
       padavali: base.filter((puzzle) => puzzle.game === 'padavali').length,
-      padajala: base.filter((puzzle) => puzzle.game === 'padajala').length
+      padajala: base.filter((puzzle) => puzzle.game === 'padajala').length,
+      dvayi: base.filter((puzzle) => puzzle.game === 'dvayi').length,
+      bhramita: base.filter((puzzle) => puzzle.game === 'bhramita').length,
+      surupa: base.filter((puzzle) => puzzle.game === 'surupa').length,
+      anveshi: base.filter((puzzle) => puzzle.game === 'anveshi').length
     };
   }, [puzzles, search.tag, search.q]);
 
@@ -546,7 +514,7 @@ export default function HubPuzzles({ data }: { data: HubData }) {
           <p className="text-sm text-slate-500 sm:text-base dark:text-slate-400">
             {isCollections
               ? 'Curated playlists that mix puzzles from every game.'
-              : `Every listed puzzle from ${HUB_GAMES.padavali.name} and ${HUB_GAMES.padajala.name}.`}
+              : `Every listed puzzle across all six Krida games.`}
           </p>
         </div>
         <ViewTabs

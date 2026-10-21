@@ -4,6 +4,9 @@ import { runTrpcEffect } from '~/effect/run';
 import { get_user_dashboard_input_schema } from '~/api/routers/stats_query_schema';
 import { combineDashboardTotals, emptyGameStats } from '~/api/routers/user/user_dashboard';
 import { CACHE } from '~/util/cache.server/cache_loaders';
+import type { SimpleGameKind } from '~/util/games/kinds';
+
+const SIMPLE_DASHBOARD_KINDS = ['dvayi', 'bhramita', 'surupa', 'anveshi'] as const;
 
 const get_dashboard_route = protectedProcedure
   .input(get_user_dashboard_input_schema)
@@ -11,19 +14,23 @@ const get_dashboard_route = protectedProcedure
     runTrpcEffect(
       Effect.gen(function* () {
         const userId = ctx.user.id;
-        const includePadavali = game === 'all' || game === 'padavali';
-        const includePadajala = game === 'all' || game === 'padajala';
+        const include = (kind: typeof game) => game === 'all' || game === kind;
 
-        const [padavali, padajala] = yield* Effect.all([
-          includePadavali
+        const [padavali, padajala, ...simples] = yield* Effect.all([
+          include('padavali')
             ? CACHE.user.padavali_dashboard.get({ userId })
             : Effect.succeed(emptyGameStats('padavali')),
-          includePadajala
+          include('padajala')
             ? CACHE.user.padajala_dashboard.get({ userId })
-            : Effect.succeed(emptyGameStats('padajala'))
+            : Effect.succeed(emptyGameStats('padajala')),
+          ...SIMPLE_DASHBOARD_KINDS.map((kind: SimpleGameKind) =>
+            include(kind)
+              ? CACHE.user[`${kind}_dashboard`].get({ userId })
+              : Effect.succeed(emptyGameStats(kind))
+          )
         ]);
 
-        const games = [padavali, padajala].filter((item) => {
+        const games = [padavali, padajala, ...simples].filter((item) => {
           if (game === 'all') return true;
           return item.game === game;
         });
@@ -31,7 +38,11 @@ const get_dashboard_route = protectedProcedure
         return {
           totals: combineDashboardTotals(games),
           padavali,
-          padajala
+          padajala,
+          dvayi: simples[0]!,
+          bhramita: simples[1]!,
+          surupa: simples[2]!,
+          anveshi: simples[3]!
         };
       })
     )

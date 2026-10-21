@@ -23,6 +23,10 @@ import { Route as RobotsDottxtRouteImport } from './routes/robots[.]txt'
 import { Route as SchedulesRouteImport } from './routes/schedules'
 import { Route as Sitemap0DotxmlRouteImport } from './routes/sitemap-0[.]xml'
 import { Route as Sitemap1DotxmlRouteImport } from './routes/sitemap-1[.]xml'
+import { Route as Sitemap2DotxmlRouteImport } from './routes/sitemap-2[.]xml'
+import { Route as Sitemap3DotxmlRouteImport } from './routes/sitemap-3[.]xml'
+import { Route as Sitemap4DotxmlRouteImport } from './routes/sitemap-4[.]xml'
+import { Route as Sitemap5DotxmlRouteImport } from './routes/sitemap-5[.]xml'
 import { Route as SitemapIndexDotxmlRouteImport } from './routes/sitemap-index[.]xml'
 import { Route as SurupaRouteRouteImport } from './routes/surupa/route'
 import { Route as SystemPromptsRouteImport } from './routes/system-prompts'
@@ -175,6 +179,26 @@ const Sitemap0DotxmlRoute = Sitemap0DotxmlRouteImport.update({
 const Sitemap1DotxmlRoute = Sitemap1DotxmlRouteImport.update({
   id: '/sitemap-1.xml',
   path: '/sitemap-1.xml',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const Sitemap2DotxmlRoute = Sitemap2DotxmlRouteImport.update({
+  id: '/sitemap-2.xml',
+  path: '/sitemap-2.xml',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const Sitemap3DotxmlRoute = Sitemap3DotxmlRouteImport.update({
+  id: '/sitemap-3.xml',
+  path: '/sitemap-3.xml',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const Sitemap4DotxmlRoute = Sitemap4DotxmlRouteImport.update({
+  id: '/sitemap-4.xml',
+  path: '/sitemap-4.xml',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const Sitemap5DotxmlRoute = Sitemap5DotxmlRouteImport.update({
+  id: '/sitemap-5.xml',
+  path: '/sitemap-5.xml',
   getParentRoute: () => rootRouteImport,
 } as any)
 const SitemapIndexDotxmlRoute = SitemapIndexDotxmlRouteImport.update({
@@ -648,6 +672,10 @@ export interface FileRoutesByFullPath {
   '/schedules': typeof SchedulesRoute
   '/sitemap-0.xml': typeof Sitemap0DotxmlRoute
   '/sitemap-1.xml': typeof Sitemap1DotxmlRoute
+  '/sitemap-2.xml': typeof Sitemap2DotxmlRoute
+  '/sitemap-3.xml': typeof Sitemap3DotxmlRoute
+  '/sitemap-4.xml': typeof Sitemap4DotxmlRoute
+  '/sitemap-5.xml': typeof Sitemap5DotxmlRoute
   '/sitemap-index.xml': typeof SitemapIndexDotxmlRoute
   '/system-prompts': typeof SystemPromptsRoute
   '/puzzles': typeof HubPuzzlesRoute
@@ -734,6 +762,10 @@ export interface FileRoutesByTo {
   '/schedules': typeof SchedulesRoute
   '/sitemap-0.xml': typeof Sitemap0DotxmlRoute
   '/sitemap-1.xml': typeof Sitemap1DotxmlRoute
+  '/sitemap-2.xml': typeof Sitemap2DotxmlRoute
+  '/sitemap-3.xml': typeof Sitemap3DotxmlRoute
+  '/sitemap-4.xml': typeof Sitemap4DotxmlRoute
+  '/sitemap-5.xml': typeof Sitemap5DotxmlRoute
   '/sitemap-index.xml': typeof SitemapIndexDotxmlRoute
   '/system-prompts': typeof SystemPromptsRoute
   '/puzzles': typeof HubPuzzlesRoute
@@ -817,6 +849,10 @@ export interface FileRoutesById {
   '/schedules': typeof SchedulesRoute
   '/sitemap-0.xml': typeof Sitemap0DotxmlRoute
   '/sitemap-1.xml': typeof Sitemap1DotxmlRoute
+  '/sitemap-2.xml': typeof Sitemap2DotxmlRoute
+  '/sitemap-3.xml': typeof Sitemap3DotxmlRoute
+  '/sitemap-4.xml': typeof Sitemap4DotxmlRoute
+  '/sitemap-5.xml': typeof Sitemap5DotxmlRoute
   '/sitemap-index.xml': typeof SitemapIndexDotxmlRoute
   '/system-prompts': typeof SystemPromptsRoute
   '/_hub/puzzles': typeof HubPuzzlesRoute
@@ -919,6 +955,10 @@ export interface FileRouteTypes {
     | '/schedules'
     | '/sitemap-0.xml'
     | '/sitemap-1.xml'
+    | '/sitemap-2.xml'
+    | '/sitemap-3.xml'
+    | '/sitemap-4.xml'
+    | '/sitemap-5.xml'
     | '/sitemap-index.xml'
     | '/system-prompts'
     | '/puzzles'
@@ -1005,6 +1045,10 @@ export interface FileRouteTypes {
     | '/schedules'
     | '/sitemap-0.xml'
     | '/sitemap-1.xml'
+    | '/sitemap-2.xml'
+    | '/sitemap-3.xml'
+    | '/sitemap-4.xml'
+    | '/sitemap-5.xml'
     | '/sitemap-index.xml'
     | '/system-prompts'
     | '/puzzles'
@@ -1087,6 +1131,10 @@ export interface FileRouteTypes {
     | '/schedules'
     | '/sitemap-0.xml'
     | '/sitemap-1.xml'
+    | '/sitemap-2.xml'
+    | '/sitemap-3.xml'
+    | '/sitemap-4.xml'
+    | '/sitemap-5.xml'
     | '/sitemap-index.xml'
     | '/system-prompts'
     | '/_hub/puzzles'
@@ -1188,6 +1236,10 @@ export interface RootRouteChildren {
   SchedulesRoute: typeof SchedulesRoute
   Sitemap0DotxmlRoute: typeof Sitemap0DotxmlRoute
   Sitemap1DotxmlRoute: typeof Sitemap1DotxmlRoute
+  Sitemap2DotxmlRoute: typeof Sitemap2DotxmlRoute
+  Sitemap3DotxmlRoute: typeof Sitemap3DotxmlRoute
+  Sitemap4DotxmlRoute: typeof Sitemap4DotxmlRoute
+  Sitemap5DotxmlRoute: typeof Sitemap5DotxmlRoute
   SitemapIndexDotxmlRoute: typeof SitemapIndexDotxmlRoute
   SystemPromptsRoute: typeof SystemPromptsRoute
   AuthPopupDoneRoute: typeof AuthPopupDoneRoute
@@ -1300,6 +1352,34 @@ declare module '@tanstack/react-router' {
       path: '/sitemap-1.xml'
       fullPath: '/sitemap-1.xml'
       preLoaderRoute: typeof Sitemap1DotxmlRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/sitemap-2.xml': {
+      id: '/sitemap-2.xml'
+      path: '/sitemap-2.xml'
+      fullPath: '/sitemap-2.xml'
+      preLoaderRoute: typeof Sitemap2DotxmlRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/sitemap-3.xml': {
+      id: '/sitemap-3.xml'
+      path: '/sitemap-3.xml'
+      fullPath: '/sitemap-3.xml'
+      preLoaderRoute: typeof Sitemap3DotxmlRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/sitemap-4.xml': {
+      id: '/sitemap-4.xml'
+      path: '/sitemap-4.xml'
+      fullPath: '/sitemap-4.xml'
+      preLoaderRoute: typeof Sitemap4DotxmlRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/sitemap-5.xml': {
+      id: '/sitemap-5.xml'
+      path: '/sitemap-5.xml'
+      fullPath: '/sitemap-5.xml'
+      preLoaderRoute: typeof Sitemap5DotxmlRouteImport
       parentRoute: typeof rootRouteImport
     }
     '/sitemap-index.xml': {
@@ -2236,6 +2316,10 @@ const rootRouteChildren: RootRouteChildren = {
   SchedulesRoute: SchedulesRoute,
   Sitemap0DotxmlRoute: Sitemap0DotxmlRoute,
   Sitemap1DotxmlRoute: Sitemap1DotxmlRoute,
+  Sitemap2DotxmlRoute: Sitemap2DotxmlRoute,
+  Sitemap3DotxmlRoute: Sitemap3DotxmlRoute,
+  Sitemap4DotxmlRoute: Sitemap4DotxmlRoute,
+  Sitemap5DotxmlRoute: Sitemap5DotxmlRoute,
   SitemapIndexDotxmlRoute: SitemapIndexDotxmlRoute,
   SystemPromptsRoute: SystemPromptsRoute,
   AuthPopupDoneRoute: AuthPopupDoneRoute,

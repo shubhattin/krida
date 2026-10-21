@@ -25,8 +25,12 @@ import {
   get_user_list_input_schema
 } from '~/api/routers/stats_query_schema';
 import { escapeIlikeToken } from '~/util/puzzle/search';
+import { CACHE, invalidate_and_refresh_cache } from '~/util/cache.server/cache_loaders';
 import type { SimpleGameKind } from '~/util/games/kinds';
 import type { SimpleGameTableSet } from '~/db/schema/simple_game_tables';
+
+const settle = <A, E, R>(effect: Effect.Effect<A, E, R>) =>
+  effect.pipe(Effect.catch(() => Effect.void));
 
 export function createSimpleGameStatsRouter<TData>(
   kind: SimpleGameKind,
@@ -79,6 +83,14 @@ export function createSimpleGameStatsRouter<TData>(
           );
           if (inserted.length > 0) {
             yield* adoptGuestSession(`${kind}_stats.adopt_guest_session`, session_id, ctx.user);
+          }
+
+          if (ctx.user?.id) {
+            yield* settle(
+              invalidate_and_refresh_cache(CACHE.user[`${kind}_dashboard`], {
+                userId: ctx.user.id
+              })
+            );
           }
 
           return { submitted: true };
@@ -136,6 +148,15 @@ export function createSimpleGameStatsRouter<TData>(
           }
 
           yield* completePlaySession(kind, client_play_id, session.id);
+
+          if (userFields.user_id) {
+            yield* settle(
+              invalidate_and_refresh_cache(CACHE.user[`${kind}_dashboard`], {
+                userId: userFields.user_id
+              })
+            );
+          }
+
           return { success: true, session_id: session.id };
         })
       )

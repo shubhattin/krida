@@ -1,8 +1,15 @@
-/** Games that are live on the public hub catalog. */
-export const PUBLIC_GAME_KINDS = ['padavali', 'padajala'] as const;
+/** Every game live on the public hub catalog. */
+export const PUBLIC_GAME_KINDS = [
+  'padavali',
+  'padajala',
+  'dvayi',
+  'bhramita',
+  'surupa',
+  'anveshi'
+] as const;
 export type PublicGameKind = (typeof PUBLIC_GAME_KINDS)[number];
 
-/** In-development games — admin, collections, tags, and analytics only. */
+/** Games sharing the simple-game stack (landing, play, list, analytics). */
 export const SIMPLE_GAME_KINDS = ['dvayi', 'bhramita', 'surupa', 'anveshi'] as const;
 export type SimpleGameKind = (typeof SIMPLE_GAME_KINDS)[number];
 

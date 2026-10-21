@@ -4,8 +4,9 @@ import type {
   ListedCollectionItem,
   ListedCollectionsType
 } from '~/util/cache.server/collection_cache';
-import type { GameKind, PublicTag } from '~/util/catalog/tags';
-import type { PublicGameKind } from '~/util/games/kinds';
+import type { SimpleListedPuzzle } from '~/util/cache.server/simple_game_cache';
+import { GAME_KINDS, type GameKind, type PublicTag } from '~/util/catalog/tags';
+import type { SimpleGameKind } from '~/util/games/kinds';
 import { matchesWordSearch } from '~/util/puzzle/search';
 import { puzzleHref } from './hub_games';
 
@@ -16,7 +17,7 @@ type HubPuzzleBase = {
   slug: string;
   title: string;
   description: string;
-  image: DisplayPuzzle['image'];
+  image: { s3_key: string; width: number; height: number } | null | undefined;
   tags: PublicTag[];
   href: string;
   /** Epoch ms for `last_listed_at ?? updated_at ?? created_at` (desc). */
@@ -26,7 +27,8 @@ type HubPuzzleBase = {
 /** One listed puzzle from any game, keeping the original row for the game's own card. */
 export type HubPuzzle =
   | (HubPuzzleBase & { game: 'padavali'; source: DisplayPuzzle })
-  | (HubPuzzleBase & { game: 'padajala'; source: PadajalaListedPuzzle });
+  | (HubPuzzleBase & { game: 'padajala'; source: PadajalaListedPuzzle })
+  | (HubPuzzleBase & { game: SimpleGameKind; source: SimpleListedPuzzle });
 
 export const hubPuzzleKey = (game: GameKind, id: number) => `${game}:${id}`;
 
@@ -56,7 +58,8 @@ export function sortHubPuzzles<T extends HubPuzzle>(puzzles: T[]): T[] {
 
 export function toHubPuzzles(
   padavali: DisplayPuzzle[],
-  padajala: PadajalaListedPuzzle[]
+  padajala: PadajalaListedPuzzle[],
+  simples: Record<SimpleGameKind, SimpleListedPuzzle[]>
 ): HubPuzzle[] {
   const merged: HubPuzzle[] = [
     ...padavali.map((puzzle): HubPuzzle => ({
@@ -84,7 +87,24 @@ export function toHubPuzzles(
       href: puzzleHref('padajala', puzzle.slug),
       sortTime: hubSortTimestamp(puzzle),
       source: puzzle
-    }))
+    })),
+    // SAFETY: `simples` is keyed by exactly SimpleGameKind, so entries keep the key union.
+    ...(Object.entries(simples) as [SimpleGameKind, SimpleListedPuzzle[]][]).flatMap(
+      ([game, rows]) =>
+        rows.map((puzzle): HubPuzzle => ({
+          game,
+          key: hubPuzzleKey(game, puzzle.id),
+          id: puzzle.id,
+          slug: puzzle.slug,
+          title: puzzle.title,
+          description: puzzle.description,
+          image: puzzle.image,
+          tags: puzzle.tags,
+          href: puzzleHref(game, puzzle.slug),
+          sortTime: hubSortTimestamp(puzzle),
+          source: puzzle
+        }))
+    )
   ];
   return sortHubPuzzles(merged);
 }
@@ -97,60 +117,70 @@ export function resolveCollectionItems(
   items: ListedCollectionItem[],
   byKey: Map<string, HubPuzzle>
 ): HubPuzzle[] {
-  return (
-    items
-      .toSorted((a, b) => a.order_index - b.order_index || a.puzzle_id - b.puzzle_id)
-      // TODO: drop this public-kind filter once dvayi/bhramita/surupa/anveshi ship on /puzzles.
-      .filter((item) => item.game === 'padavali' || item.game === 'padajala')
-      .map((item) => {
-        const found = byKey.get(hubPuzzleKey(item.game, item.puzzle_id));
-        if (found) return found;
-        const base = {
-          key: hubPuzzleKey(item.game, item.puzzle_id),
+  return items
+    .toSorted((a, b) => a.order_index - b.order_index || a.puzzle_id - b.puzzle_id)
+    .map((item) => {
+      const found = byKey.get(hubPuzzleKey(item.game, item.puzzle_id));
+      if (found) return found;
+      const base = {
+        key: hubPuzzleKey(item.game, item.puzzle_id),
+        id: item.puzzle_id,
+        slug: item.slug,
+        title: item.title,
+        description: item.description,
+        image: item.image,
+        tags: [],
+        href: puzzleHref(item.game, item.slug),
+        sortTime: 0
+      };
+      if (item.game === 'padavali') {
+        return {
+          ...base,
+          game: 'padavali' as const,
+          source: {
+            id: item.puzzle_id,
+            slug: item.slug,
+            title: item.title,
+            description: item.description,
+            description_original: item.description,
+            title_normal: item.title,
+            image: item.image,
+            tags: []
+          }
+        };
+      }
+      if (item.game === 'padajala') {
+        return {
+          ...base,
+          game: 'padajala' as const,
+          source: {
+            id: item.puzzle_id,
+            slug: item.slug,
+            title: item.title,
+            description: item.description,
+            image: item.image,
+            tags: []
+          }
+        };
+      }
+      return {
+        ...base,
+        game: item.game,
+        source: {
           id: item.puzzle_id,
           slug: item.slug,
           title: item.title,
           description: item.description,
           image: item.image,
-          tags: [],
-          href: puzzleHref(item.game, item.slug),
-          sortTime: 0
-        };
-        return item.game === 'padavali'
-          ? {
-              ...base,
-              game: 'padavali' as const,
-              source: {
-                id: item.puzzle_id,
-                slug: item.slug,
-                title: item.title,
-                description: item.description,
-                description_original: item.description,
-                title_normal: item.title,
-                image: item.image,
-                tags: []
-              }
-            }
-          : {
-              ...base,
-              game: 'padajala' as const,
-              source: {
-                id: item.puzzle_id,
-                slug: item.slug,
-                title: item.title,
-                description: item.description,
-                image: item.image,
-                tags: []
-              }
-            };
-      })
-  );
+          tags: []
+        }
+      };
+    });
 }
 
-export function collectionGames(collection: ListedCollectionsType[number]): PublicGameKind[] {
+export function collectionGames(collection: ListedCollectionsType[number]): GameKind[] {
   const games = new Set(collection.items.map((item) => item.game));
-  // TODO: include SIMPLE_GAME_KINDS once those games ship on /puzzles.
-  return (['padavali', 'padajala'] as const).filter((game) => games.has(game));
+  return GAME_KINDS.filter((game) => games.has(game));
 }
 
 export type HubPuzzleFilter = {
