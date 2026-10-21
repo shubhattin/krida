@@ -24,11 +24,11 @@ const TILE_WRONG =
   'border-red-400 bg-linear-to-br from-red-50 to-rose-100 text-red-700 dark:border-red-400/90 dark:from-red-950 dark:to-rose-950 dark:text-red-200';
 
 // ─── Dvayī: match the following ───────────────────────────
-const DVAYI_LEFT = ['राम', 'शिव', 'विष्णु', 'ब्रह्मा'];
-const DVAYI_RIGHT = ['लक्ष्मी', 'सीता', 'सरस्वती', 'पार्वती'];
+const DVAYI_LEFT = ['सूर्यः', 'चन्द्रः', 'जलम्', 'अग्निः'];
+const DVAYI_RIGHT = ['Water', 'Sun', 'Fire', 'Moon'];
 /** Left row → right row of its partner. */
 const DVAYI_ANSWER = [1, 3, 0, 2];
-/** Scripted taps: one miss (शिव → सरस्वती) among the correct pairs. */
+/** Scripted taps: one miss (चन्द्रः → Fire) among the correct pairs. */
 const DVAYI_MOVES: [left: number, right: number][] = [
   [0, 1],
   [1, 2],
