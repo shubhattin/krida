@@ -8,6 +8,8 @@ import {
   mapListedPuzzlesForDisplay,
   NORMAL_TITLE_SCRIPT
 } from '~/components/pages/padavali/listed_puzzle_display';
+import type { SimpleListedPuzzle } from '~/util/cache.server/simple_game_cache';
+import { SIMPLE_GAME_KINDS, type SimpleGameKind } from '~/util/games/kinds';
 import { runLoaderEffect } from '~/effect/run';
 
 /** Card-sized view of the puzzle currently scheduled for a game (the "daily" puzzle). */
@@ -76,25 +78,60 @@ export const hubData$ = createServerFn({ method: 'GET' }).handler(async () => {
   const puzzle_texts = padavali_listed.flatMap((p) =>
     p.description ? [p.title, p.description] : [p.title]
   );
-  const [transliterated_texts, normal_titles, padavali_today_title] = await Promise.all([
-    transliterate_custom(puzzle_texts, DEFAULT_DATA_SCRIPT, script, undefined, transliterate_node),
-    transliterate_custom(
-      padavali_listed.map((p) => p.title),
-      DEFAULT_DATA_SCRIPT,
-      NORMAL_TITLE_SCRIPT,
-      undefined,
-      transliterate_node
-    ),
-    padavali_today
-      ? transliterate_custom(
-          padavali_today.title,
-          DEFAULT_DATA_SCRIPT,
-          script,
-          undefined,
-          transliterate_node
-        )
-      : Promise.resolve(null)
-  ]);
+  const simple_lists = {
+    dvayi: dvayi_listed,
+    bhramita: bhramita_listed,
+    surupa: surupa_listed,
+    anveshi: anveshi_listed
+  } satisfies Record<SimpleGameKind, SimpleListedPuzzle[]>;
+  const simple_texts = SIMPLE_GAME_KINDS.flatMap((kind) => {
+    const rows = simple_lists[kind];
+    return rows.flatMap((p) => (p.description ? [p.title, p.description] : [p.title]));
+  });
+  const [transliterated_texts, normal_titles, padavali_today_title, simple_transliterated] =
+    await Promise.all([
+      transliterate_custom(
+        puzzle_texts,
+        DEFAULT_DATA_SCRIPT,
+        script,
+        undefined,
+        transliterate_node
+      ),
+      transliterate_custom(
+        padavali_listed.map((p) => p.title),
+        DEFAULT_DATA_SCRIPT,
+        NORMAL_TITLE_SCRIPT,
+        undefined,
+        transliterate_node
+      ),
+      padavali_today
+        ? transliterate_custom(
+            padavali_today.title,
+            DEFAULT_DATA_SCRIPT,
+            script,
+            undefined,
+            transliterate_node
+          )
+        : Promise.resolve(null),
+      transliterate_custom(simple_texts, DEFAULT_DATA_SCRIPT, script, undefined, transliterate_node)
+    ]);
+
+  // Slice the flat transliterated array back into per-game display rows.
+  let simple_cursor = 0;
+  // SAFETY: entries are built from SIMPLE_GAME_KINDS, covering every key exactly once.
+  const simple_init = Object.fromEntries(
+    SIMPLE_GAME_KINDS.map((kind) => {
+      const rows = simple_lists[kind];
+      const display = rows.map((puzzle) => {
+        const title = simple_transliterated[simple_cursor++]!;
+        const description = puzzle.description
+          ? simple_transliterated[simple_cursor++]!
+          : puzzle.description;
+        return { ...puzzle, title, description };
+      });
+      return [kind, display];
+    })
+  ) as Record<SimpleGameKind, SimpleListedPuzzle[]>;
 
   return {
     script,
@@ -118,16 +155,20 @@ export const hubData$ = createServerFn({ method: 'GET' }).handler(async () => {
       next_start: padajala_next?.start_time ?? null
     },
     dvayi: {
-      listed: dvayi_listed
+      listed: dvayi_listed,
+      listed_init_transliterated: simple_init.dvayi
     },
     bhramita: {
-      listed: bhramita_listed
+      listed: bhramita_listed,
+      listed_init_transliterated: simple_init.bhramita
     },
     surupa: {
-      listed: surupa_listed
+      listed: surupa_listed,
+      listed_init_transliterated: simple_init.surupa
     },
     anveshi: {
-      listed: anveshi_listed
+      listed: anveshi_listed,
+      listed_init_transliterated: simple_init.anveshi
     }
   };
 });

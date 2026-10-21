@@ -27,6 +27,8 @@ function SimplePuzzlePreviewCard({
   compact?: boolean;
 }) {
   const imageUrl = puzzle.image ? getCDNUrl(puzzle.image.s3_key) : null;
+  // Titles arrive pre-transliterated to the selected script (see hubData$),
+  // so first paint — including hydration — already shows the right script.
   const description = puzzle.description.trim() || null;
 
   return (
