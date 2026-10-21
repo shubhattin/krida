@@ -31,6 +31,9 @@ import { Route as SitemapIndexDotxmlRouteImport } from './routes/sitemap-index[.
 import { Route as SurupaRouteRouteImport } from './routes/surupa/route'
 import { Route as SystemPromptsRouteImport } from './routes/system-prompts'
 import { Route as HubIndexRouteImport } from './routes/_hub/index'
+import { Route as HubHome1RouteImport } from './routes/_hub/home-1'
+import { Route as HubHome2RouteImport } from './routes/_hub/home-2'
+import { Route as HubHome3RouteImport } from './routes/_hub/home-3'
 import { Route as HubPuzzlesRouteImport } from './routes/_hub/puzzles'
 import { Route as AuthPopupDoneRouteImport } from './routes/auth/popup-done'
 import { Route as CollectionsListRouteImport } from './routes/collections/list'
@@ -219,6 +222,21 @@ const SystemPromptsRoute = SystemPromptsRouteImport.update({
 const HubIndexRoute = HubIndexRouteImport.update({
   id: '/',
   path: '/',
+  getParentRoute: () => HubRoute,
+} as any)
+const HubHome1Route = HubHome1RouteImport.update({
+  id: '/home-1',
+  path: '/home-1',
+  getParentRoute: () => HubRoute,
+} as any)
+const HubHome2Route = HubHome2RouteImport.update({
+  id: '/home-2',
+  path: '/home-2',
+  getParentRoute: () => HubRoute,
+} as any)
+const HubHome3Route = HubHome3RouteImport.update({
+  id: '/home-3',
+  path: '/home-3',
   getParentRoute: () => HubRoute,
 } as any)
 const HubPuzzlesRoute = HubPuzzlesRouteImport.update({
@@ -678,6 +696,9 @@ export interface FileRoutesByFullPath {
   '/sitemap-5.xml': typeof Sitemap5DotxmlRoute
   '/sitemap-index.xml': typeof SitemapIndexDotxmlRoute
   '/system-prompts': typeof SystemPromptsRoute
+  '/home-1': typeof HubHome1Route
+  '/home-2': typeof HubHome2Route
+  '/home-3': typeof HubHome3Route
   '/puzzles': typeof HubPuzzlesRoute
   '/auth/popup-done': typeof AuthPopupDoneRoute
   '/collections/list': typeof CollectionsListRoute
@@ -768,6 +789,9 @@ export interface FileRoutesByTo {
   '/sitemap-5.xml': typeof Sitemap5DotxmlRoute
   '/sitemap-index.xml': typeof SitemapIndexDotxmlRoute
   '/system-prompts': typeof SystemPromptsRoute
+  '/home-1': typeof HubHome1Route
+  '/home-2': typeof HubHome2Route
+  '/home-3': typeof HubHome3Route
   '/puzzles': typeof HubPuzzlesRoute
   '/auth/popup-done': typeof AuthPopupDoneRoute
   '/collections/list': typeof CollectionsListRoute
@@ -855,6 +879,9 @@ export interface FileRoutesById {
   '/sitemap-5.xml': typeof Sitemap5DotxmlRoute
   '/sitemap-index.xml': typeof SitemapIndexDotxmlRoute
   '/system-prompts': typeof SystemPromptsRoute
+  '/_hub/home-1': typeof HubHome1Route
+  '/_hub/home-2': typeof HubHome2Route
+  '/_hub/home-3': typeof HubHome3Route
   '/_hub/puzzles': typeof HubPuzzlesRoute
   '/auth/popup-done': typeof AuthPopupDoneRoute
   '/collections/list': typeof CollectionsListRoute
@@ -961,6 +988,9 @@ export interface FileRouteTypes {
     | '/sitemap-5.xml'
     | '/sitemap-index.xml'
     | '/system-prompts'
+    | '/home-1'
+    | '/home-2'
+    | '/home-3'
     | '/puzzles'
     | '/auth/popup-done'
     | '/collections/list'
@@ -1051,6 +1081,9 @@ export interface FileRouteTypes {
     | '/sitemap-5.xml'
     | '/sitemap-index.xml'
     | '/system-prompts'
+    | '/home-1'
+    | '/home-2'
+    | '/home-3'
     | '/puzzles'
     | '/auth/popup-done'
     | '/collections/list'
@@ -1137,6 +1170,9 @@ export interface FileRouteTypes {
     | '/sitemap-5.xml'
     | '/sitemap-index.xml'
     | '/system-prompts'
+    | '/_hub/home-1'
+    | '/_hub/home-2'
+    | '/_hub/home-3'
     | '/_hub/puzzles'
     | '/auth/popup-done'
     | '/collections/list'
@@ -1408,6 +1444,27 @@ declare module '@tanstack/react-router' {
       path: '/'
       fullPath: '/'
       preLoaderRoute: typeof HubIndexRouteImport
+      parentRoute: typeof HubRoute
+    }
+    '/_hub/home-1': {
+      id: '/_hub/home-1'
+      path: '/home-1'
+      fullPath: '/home-1'
+      preLoaderRoute: typeof HubHome1RouteImport
+      parentRoute: typeof HubRoute
+    }
+    '/_hub/home-2': {
+      id: '/_hub/home-2'
+      path: '/home-2'
+      fullPath: '/home-2'
+      preLoaderRoute: typeof HubHome2RouteImport
+      parentRoute: typeof HubRoute
+    }
+    '/_hub/home-3': {
+      id: '/_hub/home-3'
+      path: '/home-3'
+      fullPath: '/home-3'
+      preLoaderRoute: typeof HubHome3RouteImport
       parentRoute: typeof HubRoute
     }
     '/_hub/puzzles': {
@@ -2287,12 +2344,18 @@ const SurupaRouteRouteWithChildren = SurupaRouteRoute._addFileChildren(
 )
 
 interface HubRouteChildren {
+  HubHome1Route: typeof HubHome1Route
+  HubHome2Route: typeof HubHome2Route
+  HubHome3Route: typeof HubHome3Route
   HubPuzzlesRoute: typeof HubPuzzlesRoute
   HubIndexRoute: typeof HubIndexRoute
   HubCollectionsSlugRoute: typeof HubCollectionsSlugRoute
 }
 
 const HubRouteChildren: HubRouteChildren = {
+  HubHome1Route: HubHome1Route,
+  HubHome2Route: HubHome2Route,
+  HubHome3Route: HubHome3Route,
   HubPuzzlesRoute: HubPuzzlesRoute,
   HubIndexRoute: HubIndexRoute,
   HubCollectionsSlugRoute: HubCollectionsSlugRoute,
