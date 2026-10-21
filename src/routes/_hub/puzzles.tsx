@@ -1,17 +1,15 @@
 import { createFileRoute, getRouteApi } from '@tanstack/react-router';
 import { z } from 'zod';
-import {
-  routeHeadFromPageMeta,
-  siteUrl,
-  type MetadataProject
-} from '~/components/tags/getPageMetaTags';
+import { routeHeadFromPageMeta, siteUrl } from '~/components/tags/getPageMetaTags';
 import HubPuzzles from '~/components/hub/HubPuzzles';
+import { HUB_GAMES } from '~/components/hub/hub_games';
+import { GAME_KINDS, type GameKind } from '~/util/catalog/tags';
 
 const hubRoute = getRouteApi('/_hub');
 
 const puzzles_search_schema = z.object({
   game: z
-    .enum(['all', 'padavali', 'padajala', 'dvayi', 'bhramita', 'surupa', 'anveshi'])
+    .enum(['all', ...GAME_KINDS])
     .catch('all')
     .default('all'),
   view: z.enum(['puzzles', 'collections']).catch('puzzles').default('puzzles'),
@@ -23,81 +21,43 @@ const puzzles_search_schema = z.object({
 
 export type PuzzlesSearch = z.infer<typeof puzzles_search_schema>;
 
-type PuzzlesPageMeta = {
-  title: string;
-  project: MetadataProject;
-  description: string;
-};
+/** `?game=` description; the title and share image come from the game itself. */
+const GAME_PUZZLES_DESCRIPTION = {
+  padavali:
+    'Browse Sanskrit word-search puzzles from Padāvalī — find hidden words across Indian scripts.',
+  padajala:
+    'Browse Sanskrit padajala puzzles from Padajāla — solve grids and grow your vocabulary.',
+  dvayi:
+    'Browse Dvayī match-the-following Sanskrit puzzles — pair each prompt with its counterpart.',
+  bhramita:
+    'Browse Bhramitā jumbled-word Sanskrit puzzles — unscramble Devanagari syllables into the word.',
+  surupa:
+    'Browse Surūpa spelling puzzles — pick the right syllable at each step and restore the word.',
+  anveshi:
+    'Browse Ānveṣī multiple-choice Sanskrit quizzes — answer questions with hints and explanations.'
+} satisfies Record<GameKind, string>;
 
-function puzzlesMetaForGame(game: PuzzlesSearch['game']): PuzzlesPageMeta {
-  if (game === 'padavali') {
+function puzzlesMetaForGame(game: PuzzlesSearch['game']) {
+  if (game === 'all') {
     return {
-      title: 'Padāvalī Puzzles | Krida',
-      project: 'padavali',
+      title: 'Sanskrit Puzzles | Krida',
+      project: 'landing_page',
       description:
-        'Browse Sanskrit word-search puzzles from Padāvalī — find hidden words across Indian scripts.'
-    };
-  }
-  if (game === 'padajala') {
-    return {
-      title: 'Padajāla Puzzles | Krida',
-      project: 'padajala',
-      description:
-        'Browse Sanskrit padajala puzzles from Padajāla — solve grids and grow your vocabulary.'
-    };
-  }
-  if (game === 'dvayi') {
-    return {
-      title: 'Dvayī Puzzles | Krida',
-      project: 'dvayi',
-      description:
-        'Browse Dvayī match-the-following Sanskrit puzzles — pair each prompt with its counterpart.'
-    };
-  }
-  if (game === 'bhramita') {
-    return {
-      title: 'Bhramitā Puzzles | Krida',
-      project: 'bhramita',
-      description:
-        'Browse Bhramitā jumbled-word Sanskrit puzzles — unscramble Devanagari syllables into the word.'
-    };
-  }
-  if (game === 'surupa') {
-    return {
-      title: 'Surūpa Puzzles | Krida',
-      project: 'surupa',
-      description:
-        'Browse Surūpa spelling puzzles — pick the right syllable at each step and restore the word.'
-    };
-  }
-  if (game === 'anveshi') {
-    return {
-      title: 'Ānveṣī Puzzles | Krida',
-      project: 'anveshi',
-      description:
-        'Browse Ānveṣī multiple-choice Sanskrit quizzes — answer questions with hints and explanations.'
-    };
+        'Browse every Sanskrit puzzle — Padāvalī word search, Padajāla grids, Dvayī matching, Bhramitā jumbles, Surūpa spelling and Ānveṣī quizzes — plus collections and topics.',
+      canonical: `${siteUrl()}/puzzles`
+    } as const;
   }
   return {
-    title: 'Sanskrit Puzzles | Krida',
-    project: 'landing_page',
-    description:
-      'Browse every Sanskrit puzzle — Padāvalī word search, Padajāla grids, Dvayī matching, Bhramitā jumbles, Surūpa spelling and Ānveṣī quizzes — plus collections and topics.'
-  };
+    title: `${HUB_GAMES[game].name} Puzzles | Krida`,
+    project: game,
+    description: GAME_PUZZLES_DESCRIPTION[game],
+    canonical: `${siteUrl()}/puzzles?game=${game}`
+  } as const;
 }
 
 export const Route = createFileRoute('/_hub/puzzles')({
   validateSearch: puzzles_search_schema,
-  head: ({ match }) => {
-    const meta = puzzlesMetaForGame(match.search.game);
-    return routeHeadFromPageMeta({
-      ...meta,
-      canonical:
-        match.search.game === 'all'
-          ? `${siteUrl()}/puzzles`
-          : `${siteUrl()}/puzzles?game=${match.search.game}`
-    });
-  },
+  head: ({ match }) => routeHeadFromPageMeta(puzzlesMetaForGame(match.search.game)),
   component: PuzzlesPage
 });
 

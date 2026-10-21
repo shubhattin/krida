@@ -13,7 +13,6 @@ import type {
   GameDashboardStats
 } from '~/api/routers/user/user_dashboard';
 import { GAME_KINDS, isGameKind, type GameKind } from '~/util/catalog/tags';
-import { simpleGameHref } from '~/util/games/kinds';
 import { AllGamesMenuItems } from '~/components/app-bar/GameMenuItems';
 import { EditDisplayNameDialog } from '~/components/pages/dashboard/EditDisplayNameDialog';
 import { GameAppIcon } from '~/components/GameAppIcon';
@@ -443,14 +442,14 @@ function GamePanel({
         )}
       >
         <div className="flex min-w-0 items-center gap-3">
-          <GameAppIcon game={meta.icon} name={meta.name} size="sm" />
+          <GameAppIcon game={meta.kind} name={meta.name} size="sm" />
           <div className="min-w-0">
             <h3 className="truncate text-lg font-semibold tracking-tight">{meta.name}</h3>
             <p className="truncate text-xs text-muted-foreground">{meta.subtitle}</p>
           </div>
         </div>
         <Button
-          render={<Link to="/puzzles" search={{ game: meta.puzzlesGame }} />}
+          render={<Link to="/puzzles" search={{ game: meta.kind }} />}
           nativeButton={false}
           size="sm"
           className={cn(
@@ -640,14 +639,14 @@ function EmptyGame({ game }: { game: DashboardGameId }) {
           aria-hidden
           className={cn('absolute inset-0 rounded-full blur-2xl', HUB_GAME_ACCENT[game].glow)}
         />
-        <GameAppIcon game={meta.icon} name={meta.name} size="lg" className="relative" />
+        <GameAppIcon game={meta.kind} name={meta.name} size="lg" className="relative" />
       </div>
       <div className="flex flex-col gap-1">
         <p className="font-semibold">No {meta.name} plays yet</p>
         <p className="max-w-xs text-sm text-muted-foreground">{meta.description}</p>
       </div>
       <Button
-        render={<Link to="/puzzles" search={{ game: meta.puzzlesGame }} />}
+        render={<Link to="/puzzles" search={{ game: meta.kind }} />}
         nativeButton={false}
         size="sm"
         className={cn(
@@ -674,26 +673,10 @@ function PuzzleLink({
   const className =
     'flex items-center gap-3 rounded-xl px-1.5 py-2 text-sm no-underline transition-colors duration-200 hover:bg-slate-100 dark:hover:bg-white/5';
 
-  if (game === 'padavali') {
-    return (
-      <Link to="/padavali/$slug" params={{ slug }} className={className}>
-        {children}
-      </Link>
-    );
-  }
-
-  if (game === 'padajala') {
-    return (
-      <Link to="/padajala/$slug" params={{ slug }} className={className}>
-        {children}
-      </Link>
-    );
-  }
-
   return (
-    <a href={simpleGameHref(game, slug)} className={className}>
+    <Link to={`/${game}/$slug`} params={{ slug }} className={className}>
       {children}
-    </a>
+    </Link>
   );
 }
 

@@ -3,7 +3,8 @@
 import { Link } from '@tanstack/react-router';
 import { motion } from 'framer-motion';
 import { Home, Compass } from 'lucide-react';
-import { GameShowcaseCard, GAMES } from './-Landing';
+import { GameShowcaseCard } from '~/components/hub/showcase/GameShowcaseCard';
+import { GAME_KINDS } from '~/util/catalog/tags';
 
 export default function NotFoundClient() {
   return (
@@ -37,8 +38,8 @@ export default function NotFoundClient() {
           </h1>
 
           <p className="mx-auto max-w-xl text-base text-slate-500 dark:text-slate-400">
-            We couldn&apos;t find the page you&apos;re looking for, but you can play these
-            interactive preview puzzles or return to safety.
+            We couldn&apos;t find the page you&apos;re looking for — pick one of our games below or
+            head back home.
           </p>
 
           <div className="flex flex-wrap items-center justify-center gap-3">
@@ -54,8 +55,8 @@ export default function NotFoundClient() {
 
         {/* Embedded Interactive Games */}
         <div className="grid w-full gap-8 text-left md:grid-cols-2">
-          {GAMES.map((game, index) => (
-            <GameShowcaseCard key={game.id} game={game} index={index} />
+          {GAME_KINDS.map((game, index) => (
+            <GameShowcaseCard key={game} game={game} index={index} />
           ))}
         </div>
       </div>

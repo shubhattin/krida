@@ -358,33 +358,3 @@ export const MorePuzzlesAccordion = ({ excludeSlug, excludeId, className }: Acco
     </div>
   );
 };
-
-/** Compact post-completion carousel with a header label */
-export const CompletionMorePuzzlesCarousel = ({
-  excludeSlug,
-  excludeId
-}: {
-  excludeSlug?: string;
-  excludeId?: number;
-}) => {
-  return (
-    <motion.div
-      initial={{ opacity: 0, y: 20 }}
-      animate={{ opacity: 1, y: 0 }}
-      transition={{ duration: 0.5, ease: 'easeOut' }}
-      className="px-3 sm:px-4"
-    >
-      <div className="mx-auto max-w-6xl">
-        <div className="mb-2 flex items-center gap-2">
-          <div className="h-px flex-1 bg-linear-to-r from-transparent via-slate-300 to-transparent dark:via-slate-600" />
-          <span className="flex items-center gap-1.5 rounded-full border border-slate-200/60 bg-white/60 px-3 py-1 text-xs font-semibold text-slate-500 shadow-sm backdrop-blur-sm dark:border-slate-700/60 dark:bg-slate-800/40 dark:text-slate-400">
-            <LayoutGridIcon className="size-3" />
-            More Puzzles
-          </span>
-          <div className="h-px flex-1 bg-linear-to-r from-transparent via-slate-300 to-transparent dark:via-slate-600" />
-        </div>
-        <MorePuzzlesCarousel excludeSlug={excludeSlug} excludeId={excludeId} hideHeader compact />
-      </div>
-    </motion.div>
-  );
-};

@@ -42,7 +42,7 @@ function GamesMark({ className }: { className?: string }) {
       {HUB_GAME_LIST.map((game, index) => (
         <Image
           key={game.kind}
-          src={GAME_APP_ICON_SRC[game.icon]}
+          src={GAME_APP_ICON_SRC[game.kind]}
           alt=""
           width={16}
           height={16}
@@ -157,7 +157,7 @@ function GameNavCard({ game, active }: { game: HubGameMeta; active: boolean }) {
       )}
     >
       <span className="flex items-start gap-2">
-        <GameAppIcon game={game.icon} name={game.name} size="sm" className="size-10 rounded-xl" />
+        <GameAppIcon game={game.kind} name={game.name} size="sm" className="size-10 rounded-xl" />
         {selected ? <Check className={cn('ml-auto size-4 shrink-0', selected.check)} /> : null}
       </span>
       <span className="min-w-0">
@@ -183,7 +183,7 @@ function SwitcherTriggerLabel({
     return (
       <>
         <Image
-          src={GAME_APP_ICON_SRC[activeGame.icon]}
+          src={GAME_APP_ICON_SRC[activeGame.kind]}
           alt=""
           width={20}
           height={20}

@@ -1,8 +1,8 @@
 import { createFileRoute, redirect } from '@tanstack/react-router';
 
-/** Legacy `/padajala` home → hub `/`. */
+/** `/padajala` → hub home puzzles section (`/?game=padajala#padajala`). */
 export const Route = createFileRoute('/padajala/(public)/_public/')({
   beforeLoad: () => {
-    throw redirect({ to: '/', statusCode: 301 });
+    throw redirect({ to: '/', search: { game: 'padajala' }, hash: 'padajala', statusCode: 301 });
   }
 });

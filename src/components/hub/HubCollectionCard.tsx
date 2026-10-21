@@ -67,7 +67,7 @@ export function HubCollectionCard({
             {games.map((kind) => (
               <img
                 key={kind}
-                src={GAME_APP_ICON_SRC[HUB_GAMES[kind].icon]}
+                src={GAME_APP_ICON_SRC[kind]}
                 alt={HUB_GAMES[kind].name}
                 width={22}
                 height={22}

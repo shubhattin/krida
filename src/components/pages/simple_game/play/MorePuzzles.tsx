@@ -2,6 +2,7 @@
 
 import { useMemo, useState } from 'react';
 import { useQuery } from '@tanstack/react-query';
+import { Link } from '@tanstack/react-router';
 import { motion } from 'framer-motion';
 import { ArrowRightIcon } from 'lucide-react';
 import { useTRPC } from '~/api/client';
@@ -11,7 +12,7 @@ import { gameDisplayName, GamePickerChips, type GamePick } from '~/components/hu
 import { puzzleHref } from '~/components/hub/hub_games';
 import { GameKindIcon } from '~/components/pages/catalog/GameKindIcon';
 import { cn } from '~/lib/utils';
-import type { GameKind } from '~/util/catalog/tags';
+import { GAME_KINDS, type GameKind } from '~/util/catalog/tags';
 import { useTransliteratedText } from '../useTransliteratedText';
 
 const ALL_LIMIT = 16;
@@ -49,12 +50,6 @@ function toFeed(game: GameKind, rows: readonly PreviewRow[] | undefined): FeedIt
 }
 
 /** Where a game's full list lives (new games have their own landing; live games use /puzzles). */
-function browseHref(pick: GamePick) {
-  if (pick === 'all') return '/puzzles';
-  if (pick === 'padavali' || pick === 'padajala') return `/puzzles?game=${pick}`;
-  return `/${pick}`;
-}
-
 /**
  * Post-game "More puzzles": defaults to the game just played, with an "All" chip that mixes
  * every game by recency. The chip row is shared with the hub.
@@ -98,16 +93,9 @@ export function MorePuzzles({ kind, puzzleId }: { kind: GameKind; puzzleId: numb
 
   // Current game first, then the rest; games with nothing listed are dropped from the chips.
   const games = useMemo(() => {
-    const order: GameKind[] = [
-      kind,
-      'padavali',
-      'padajala',
-      'dvayi',
-      'bhramita',
-      'surupa',
-      'anveshi'
-    ];
-    return [...new Set(order)].filter((game) => game === kind || byGame[game].length > 0);
+    return [kind, ...GAME_KINDS.filter((game) => game !== kind)].filter(
+      (game) => game === kind || byGame[game].length > 0
+    );
   }, [byGame, kind]);
 
   const all = useMemo(
@@ -137,13 +125,14 @@ export function MorePuzzles({ kind, puzzleId }: { kind: GameKind; puzzleId: numb
     <section className="space-y-3">
       <div className="flex items-center justify-between gap-3">
         <h3 className="text-base font-bold">More puzzles</h3>
-        <a
-          href={browseHref(pick)}
+        <Link
+          to="/puzzles"
+          search={pick === 'all' ? {} : { game: pick }}
           className="inline-flex shrink-0 items-center gap-1 text-xs font-semibold text-muted-foreground no-underline transition-colors hover:text-foreground"
         >
           Browse
           <ArrowRightIcon className="size-3.5" />
-        </a>
+        </Link>
       </div>
       <GamePickerChips
         games={games}
@@ -154,8 +143,9 @@ export function MorePuzzles({ kind, puzzleId }: { kind: GameKind; puzzleId: numb
       <div
         ref={rowRef}
         className={cn(
-          '-mx-1 flex [scrollbar-width:thin] gap-3 overflow-x-auto px-1 pb-2 select-none',
-          dragging ? 'cursor-grabbing' : 'cursor-grab snap-x'
+          'scroll-rail -mx-1 flex gap-3 px-1 pb-3 select-none',
+          'snap-x',
+          dragging ? 'cursor-grabbing' : 'cursor-grab'
         )}
       >
         {loading && items.length === 0

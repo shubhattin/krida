@@ -2,15 +2,13 @@ import { createFileRoute, getRouteApi } from '@tanstack/react-router';
 import { z } from 'zod';
 import { routeHeadFromPageMeta, siteUrl } from '~/components/tags/getPageMetaTags';
 import HubHome from '~/components/hub/HubHome';
+import { GAME_KINDS } from '~/util/catalog/tags';
 
 const hubRoute = getRouteApi('/_hub');
 
 /** Home deep-link / SSR filter for the puzzles section (`/?game=dvayi#dvayi`). */
 const home_search_schema = z.object({
-  game: z
-    .enum(['padavali', 'padajala', 'dvayi', 'bhramita', 'surupa', 'anveshi'])
-    .optional()
-    .catch(undefined)
+  game: z.enum(GAME_KINDS).optional().catch(undefined)
 });
 
 export type HomeSearch = z.infer<typeof home_search_schema>;

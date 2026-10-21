@@ -1,9 +1,9 @@
 import { Link } from '@tanstack/react-router';
 import { ArrowLeftIcon } from 'lucide-react';
-import type { PublicGameKind } from '~/util/games/kinds';
+import type { GameKind } from '~/util/catalog/tags';
 
 /** Quiet "All puzzles" link back to the catalog, filtered to this game. */
-export function PuzzleBackLink({ game }: { game: PublicGameKind }) {
+export function PuzzleBackLink({ game }: { game: GameKind }) {
   return (
     <Link
       to="/puzzles"

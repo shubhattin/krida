@@ -43,7 +43,7 @@ export function HubTodayCard({
         />
         <div className="relative flex flex-1 flex-col gap-4">
           <div className="flex items-center gap-3">
-            <GameAppIcon game={game.icon} name={game.name} size="md" />
+            <GameAppIcon game={game.kind} name={game.name} size="md" />
             <div>
               <p className="text-sm font-bold text-slate-900 dark:text-slate-50">{game.name}</p>
               <p className="text-[11px] font-semibold text-slate-500 dark:text-slate-400">
@@ -71,7 +71,7 @@ export function HubTodayCard({
               render={
                 <Link
                   to="/puzzles"
-                  search={{ game: game.puzzlesGame }}
+                  search={{ game: game.kind }}
                   className="inline-flex items-center gap-1.5"
                 />
               }
@@ -126,7 +126,7 @@ export function HubTodayCard({
               accent.gradient
             )}
           >
-            <GameAppIcon game={game.icon} name={game.name} size="lg" />
+            <GameAppIcon game={game.kind} name={game.name} size="lg" />
           </div>
         )}
         <div className="absolute top-3 left-3 flex items-center gap-2">

@@ -1,124 +1,64 @@
-import type { GameAppIconId } from '~/components/GameAppIcon';
-import type { GameKind } from '~/util/catalog/tags';
-import { SIMPLE_GAME_META, type PublicGameKind } from '~/util/games/kinds';
+import { GAME_KINDS, isGameKind, type GameKind } from '~/util/catalog/tags';
+import { SIMPLE_GAME_KINDS, SIMPLE_GAME_META, type SimpleGameKind } from '~/util/games/kinds';
 
 export type HubGameMeta = {
-  kind: PublicGameKind;
-  /** Icon / URL id — Padajala routes live under `/padajala`. */
-  icon: GameAppIconId;
+  kind: GameKind;
   name: string;
   subtitle: string;
   description: string;
-  /** Public landing for this game (`/padavali` redirects to the hub). */
-  href: '/padavali' | '/padajala' | '/dvayi' | '/bhramita' | '/surupa' | '/anveshi';
-  /** Puzzle catalog filter for this game (`?game=`). */
-  puzzlesGame: PublicGameKind;
+};
+
+const simpleHubGame = (kind: SimpleGameKind): HubGameMeta => {
+  const { name, subtitle, description } = SIMPLE_GAME_META[kind];
+  return { kind, name, subtitle, description };
 };
 
 export const HUB_GAMES = {
   padavali: {
     kind: 'padavali',
-    icon: 'padavali',
     name: 'Padāvalī',
     subtitle: 'Word Search',
-    description: 'Find hidden Sanskrit words by dragging across a grid of letters.',
-    href: '/padavali',
-    puzzlesGame: 'padavali'
+    description: 'Find hidden Sanskrit words by dragging across a grid of letters.'
   },
   padajala: {
     kind: 'padajala',
-    icon: 'padajala',
     name: 'Padajāla',
     subtitle: 'Padajala',
-    description: 'Solve Sanskrit padajala puzzles and expand your vocabulary.',
-    href: '/padajala',
-    puzzlesGame: 'padajala'
+    description: 'Solve Sanskrit padajala puzzles and expand your vocabulary.'
   },
-  dvayi: {
-    kind: 'dvayi',
-    icon: 'dvayi',
-    name: SIMPLE_GAME_META.dvayi.name,
-    subtitle: SIMPLE_GAME_META.dvayi.subtitle,
-    description: SIMPLE_GAME_META.dvayi.description,
-    href: '/dvayi',
-    puzzlesGame: 'dvayi'
-  },
-  bhramita: {
-    kind: 'bhramita',
-    icon: 'bhramita',
-    name: SIMPLE_GAME_META.bhramita.name,
-    subtitle: SIMPLE_GAME_META.bhramita.subtitle,
-    description: SIMPLE_GAME_META.bhramita.description,
-    href: '/bhramita',
-    puzzlesGame: 'bhramita'
-  },
-  surupa: {
-    kind: 'surupa',
-    icon: 'surupa',
-    name: SIMPLE_GAME_META.surupa.name,
-    subtitle: SIMPLE_GAME_META.surupa.subtitle,
-    description: SIMPLE_GAME_META.surupa.description,
-    href: '/surupa',
-    puzzlesGame: 'surupa'
-  },
-  anveshi: {
-    kind: 'anveshi',
-    icon: 'anveshi',
-    name: SIMPLE_GAME_META.anveshi.name,
-    subtitle: SIMPLE_GAME_META.anveshi.subtitle,
-    description: SIMPLE_GAME_META.anveshi.description,
-    href: '/anveshi',
-    puzzlesGame: 'anveshi'
-  }
-} as const satisfies Record<PublicGameKind, HubGameMeta>;
+  // SAFETY: keyed by exactly SIMPLE_GAME_KINDS, so every simple kind gets one entry.
+  ...(Object.fromEntries(SIMPLE_GAME_KINDS.map((kind) => [kind, simpleHubGame(kind)])) as Record<
+    SimpleGameKind,
+    HubGameMeta
+  >)
+} satisfies Record<GameKind, HubGameMeta>;
 
-export const HUB_GAME_LIST: HubGameMeta[] = [
-  HUB_GAMES.padavali,
-  HUB_GAMES.padajala,
-  HUB_GAMES.dvayi,
-  HUB_GAMES.bhramita,
-  HUB_GAMES.surupa,
-  HUB_GAMES.anveshi
-];
+export const HUB_GAME_LIST: HubGameMeta[] = GAME_KINDS.map((kind) => HUB_GAMES[kind]);
 
-export const puzzleHref = (game: GameKind, slug: string) => {
-  return `${HUB_GAMES[game].href}/${encodeURIComponent(slug)}`;
-};
+/** Public URL of one puzzle (every game serves puzzles at `/<game>/<slug>`). */
+export const puzzleHref = (game: GameKind, slug: string) => `/${game}/${encodeURIComponent(slug)}`;
 
-export type HubNavId = 'home' | PublicGameKind | 'puzzles';
-
-const HUB_GAME_PATHS: readonly PublicGameKind[] = [
-  'padavali',
-  'padajala',
-  'dvayi',
-  'bhramita',
-  'surupa',
-  'anveshi'
-];
+export type HubNavId = 'home' | GameKind | 'puzzles';
 
 export function hubNavFromPath(pathname: string): HubNavId {
   if (pathname.startsWith('/puzzles') || pathname.startsWith('/collections')) return 'puzzles';
-  for (const kind of HUB_GAME_PATHS) {
-    if (pathname === `/${kind}` || pathname.startsWith(`/${kind}/`)) return kind;
-  }
-  return 'home';
+  const segment = pathname.split('/')[1] ?? '';
+  return isGameKind(segment) ? segment : 'home';
 }
 
 /** Home `#` anchors for deep-linking into the puzzles section (`/#padavali`, `/#dvayi`, …). */
-export type HubHomeHash = 'puzzles' | PublicGameKind;
+export type HubHomeHash = 'puzzles' | GameKind;
 
 /** Map hub filter value → home page hash (`/#padavali`, `/#dvayi`, …). */
-export function hubHomeHashForGame(game: 'all' | PublicGameKind): HubHomeHash {
-  if (game === 'all') return 'puzzles';
-  return game;
+export function hubHomeHashForGame(game: 'all' | GameKind): HubHomeHash {
+  return game === 'all' ? 'puzzles' : game;
 }
 
 /** Parse `/#dvayi` / `/#puzzles` into the home puzzles filter. */
-export function hubGameFromHomeHash(hash: string): 'all' | PublicGameKind | null {
+export function hubGameFromHomeHash(hash: string): 'all' | GameKind | null {
   const id = hash.startsWith('#') ? hash.slice(1) : hash;
   if (id === 'puzzles') return 'all';
-  const found = HUB_GAME_PATHS.find((kind) => kind === id);
-  return found ?? null;
+  return isGameKind(id) ? id : null;
 }
 
 export const HUB_GAME_ACCENT = {
