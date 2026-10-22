@@ -35,6 +35,8 @@ export const simple_game_attachment_input_schema = attachment_schema.omit({ id: 
 
 export const simple_game_submit_stats_input_schema = z.object({
   turnstile_token: z.string().min(1).nullable().optional(),
+  /** Play id sent to `update_games_started`; proves the caller started an anonymous session. */
+  client_play_id: z.string().uuid().optional(),
   info: z.object({
     puzzle_id: z.number().int().positive(),
     time_taken: z.number().int().nonnegative(),

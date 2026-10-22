@@ -4,7 +4,9 @@ import { z } from 'zod';
 import { collections, puzzles } from '~/db/schema';
 import type { DbTransaction } from '~/effect/database';
 
-const UID_LENGTH = 5;
+// uid doubles as the bearer secret for unlisted puzzle previews (`/<game>/view/$nano_id`),
+// so it must be infeasible to guess: 16 chars over 62 symbols is ~95 bits.
+const UID_LENGTH = 16;
 const UID_ALPHABET = '0123456789ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz';
 const MAX_UID_ATTEMPTS = 8;
 

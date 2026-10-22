@@ -66,6 +66,12 @@ export type CreateCacheConfig<TParams, TCached, TData = TCached> = {
    * not re-hit the model on every local request.
    */
   cacheOutsideProd?: boolean;
+  /**
+   * For expensive fetches (paid AI): after a failed fetch, fail fast for this many seconds instead
+   * of fetching again, and make single-flight waiters that time out fail instead of fetching in
+   * parallel. Cleared by `delete` / `refresh`.
+   */
+  failureTtlSeconds?: number;
 };
 
 /** Snapshot of generation for a guarded write; `unavailable` skips caching. */
@@ -75,6 +81,7 @@ type GenerationSnapshot =
   | { kind: 'unavailable' };
 
 const redisGenerationKey = (cacheKey: string) => `${cacheKey}:gen`;
+const redisFailureKey = (cacheKey: string) => `${cacheKey}:fail`;
 
 const toReturnValue = <TCached, TData>(
   data: TCached,
@@ -165,6 +172,7 @@ export function createCache<TParams, TCached, TData = TCached>(
   const useGenerationGuard = config.useGenerationGuard ?? false;
   const useSingleFlight = config.useSingleFlight ?? false;
   const cacheOutsideProd = config.cacheOutsideProd ?? false;
+  const failureTtlSeconds = config.failureTtlSeconds;
   const inFlight = new Map<string, Effect.Effect<TData, CacheError, CacheServices>>();
 
   const redisActive = (isProd: boolean) => isProd || cacheOutsideProd;
@@ -240,15 +248,23 @@ export function createCache<TParams, TCached, TData = TCached>(
           ? yield* snapshotGeneration(cacheKey)
           : ({ kind: 'unguarded' } as const satisfies GenerationSnapshot);
 
-      const fetched = yield* config
-        .fetch(params)
-        .pipe(
-          Effect.mapError((cause) =>
-            cause instanceof CacheError
-              ? cause
-              : CacheError.make({ operation: 'fetch', key: cacheKey, cause })
-          )
-        );
+      const fetched = yield* config.fetch(params).pipe(
+        Effect.mapError((cause) =>
+          cause instanceof CacheError
+            ? cause
+            : CacheError.make({ operation: 'fetch', key: cacheKey, cause })
+        ),
+        Effect.tapError(() =>
+          failureTtlSeconds && redisActive(appConfig.isProd)
+            ? Effect.gen(function* () {
+                const redis = yield* RedisClient;
+                yield* redis
+                  .set(redisFailureKey(cacheKey), 1, { ex: failureTtlSeconds })
+                  .pipe(Effect.catch(() => Effect.void));
+              })
+            : Effect.void
+        )
+      );
 
       if (
         redisActive(appConfig.isProd) &&
@@ -312,6 +328,22 @@ export function createCache<TParams, TCached, TData = TCached>(
       yield* Effect.sleep(DEV_DELAY);
     }
 
+    if (useRedis && failureTtlSeconds) {
+      const redis = yield* RedisClient;
+      const recentFailure = yield* redis
+        .get<RedisJsonValue>(redisFailureKey(cacheKey))
+        .pipe(Effect.catch(() => Effect.succeed<RedisJsonValue>(null)));
+      if (recentFailure !== null) {
+        return yield* Effect.fail(
+          CacheError.make({
+            operation: 'fetchBackoff',
+            key: cacheKey,
+            cause: new Error('Recent fetch failure; backing off')
+          })
+        );
+      }
+    }
+
     if (!useRedis || !useSingleFlight) {
       return yield* fetchAndCache(params, cacheKey, false);
     }
@@ -369,6 +401,16 @@ export function createCache<TParams, TCached, TData = TCached>(
           }
         }
 
+        if (failureTtlSeconds) {
+          // Expensive fetch still running elsewhere: don't start a parallel one.
+          return yield* Effect.fail(
+            CacheError.make({
+              operation: 'singleFlightWait',
+              key: cacheKey,
+              cause: new Error('Timed out waiting for in-flight fetch')
+            })
+          );
+        }
         return yield* fetchAndCache(params, cacheKey, false);
       }).pipe(
         Effect.annotateLogs({ category: 'cache', operation: 'getSingleFlight', key: cacheKey }),
@@ -395,6 +437,11 @@ export function createCache<TParams, TCached, TData = TCached>(
         .pipe(Effect.mapError(toCacheError('incrGeneration', cacheKey)));
     }
     yield* redis.del(cacheKey).pipe(Effect.mapError(toCacheError('delete', cacheKey)));
+    if (failureTtlSeconds) {
+      yield* redis
+        .del(redisFailureKey(cacheKey))
+        .pipe(Effect.mapError(toCacheError('deleteFailure', cacheKey)));
+    }
   });
 
   const refresh = Effect.fn('cache.refresh')(function* (

@@ -1,8 +1,10 @@
 import { Effect } from 'effect';
+import type { RedisClient } from '~/effect/redis';
 import ms from 'ms';
 import { and, eq, gte, isNull } from 'drizzle-orm';
 import { puzzle_sessions } from '~/db/schema';
 import { dbRunHttp } from '~/effect/database';
+import { hasPlaySessionProof, type PlayKind } from '~/api/routers/stats_play_guard';
 
 /** Matches the play-start dedupe TTL — no real puzzle runs longer. */
 const ADOPT_WINDOW_MS = ms('6h');
@@ -32,3 +34,18 @@ export const adoptGuestSession = (
       );
   }).pipe(Effect.catch(() => Effect.void));
 };
+
+/**
+ * Only whoever started a session may write stats / practice mode to it: its signed-in owner, or —
+ * while it is still anonymous — the caller holding the play id that created it. Session ids are
+ * sequential, so the id alone proves nothing.
+ */
+export const canWriteSession = (
+  kind: PlayKind,
+  session: { id: number; user_id: string | null },
+  user: { id: string } | null | undefined,
+  playId: string | undefined
+): Effect.Effect<boolean, never, RedisClient> =>
+  session.user_id !== null
+    ? Effect.succeed(session.user_id === user?.id)
+    : hasPlaySessionProof(kind, playId, session.id);

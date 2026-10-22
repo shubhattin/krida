@@ -87,6 +87,12 @@ describe('parseIdSlugParam', () => {
     expect(parseIdSlugParam('%E0%A4%A')).toBeNull();
   });
 
+  it('rejects ids outside the Postgres integer range', () => {
+    expect(parseIdSlugParam('2147483647:x')).toEqual({ id: 2147483647, slug: 'x' });
+    expect(parseIdSlugParam('2147483648:x')).toBeNull();
+    expect(parseIdSlugParam('99999999999:x')).toBeNull();
+  });
+
   it('returns null for malformed params', () => {
     expect(parseIdSlugParam('no-colon')).toBeNull();
     expect(parseIdSlugParam('42:')).toBeNull();

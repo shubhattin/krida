@@ -5,24 +5,34 @@ on:
     - cron: '30 17 */4 * *' # Run at 11:00 PM IST every 3 days
   workflow_dispatch: # Allows manual triggering of the workflow
 
+permissions:
+  contents: read
+
 jobs:
   backup_db_data:
     runs-on: ubuntu-latest
-    env:
-      PG_DATABASE_URL: ${{ secrets.PG_DATABASE_URL }}
-      AWS_REGION: ${{ vars.AWS_REGION }}
-      AWS_ACCESS_KEY_ID: ${{ secrets.AWS_ACCESS_KEY_ID }}
-      AWS_SECRET_ACCESS_KEY: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
-      AWS_DB_BACKUP_BUCKET_NAME: ${{ secrets.AWS_DB_BACKUP_BUCKET_NAME }}
     steps:
-      - uses: actions/checkout@v4
-      - uses: oven-sh/setup-bun@v2
-      - run: bun install --frozen-lockfile
+      # Third-party actions are pinned to full commit SHAs (tag kept in the comment) so a
+      # moved tag cannot run new code in this job. Secrets are scoped to the last step only.
+      - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4
+        with:
+          persist-credentials: false
+      - uses: oven-sh/setup-bun@0c5077e51419868618aeaa5fe8019c62421857d6 # v2
+        with:
+          bun-version: 1.4.2
+      # --ignore-scripts skips the root `prepare` hook (clones Effect-TS docs; not needed here)
+      - run: bun install --frozen-lockfile --ignore-scripts
       - name: Setup PostgreSQL
-        uses: tj-actions/install-postgresql@v3
+        uses: tj-actions/install-postgresql@a889ed6c6fa05022333ed4101295bb1d604f97a8 # v3
         with:
           postgresql-version: 16
 
       - name: Load Data and DB Dump
         working-directory: src/db/scripts
+        env:
+          PG_DATABASE_URL: ${{ secrets.PG_DATABASE_URL }}
+          AWS_REGION: ${{ vars.AWS_REGION }}
+          AWS_ACCESS_KEY_ID: ${{ secrets.AWS_ACCESS_KEY_ID }}
+          AWS_SECRET_ACCESS_KEY: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
+          AWS_DB_BACKUP_BUCKET_NAME: ${{ secrets.AWS_DB_BACKUP_BUCKET_NAME }}
         run: bun backup_db_data.ts

@@ -1,7 +1,7 @@
 import { Effect } from 'effect';
 import { z } from 'zod';
 import type { PadajalaPuzzleWord } from '~/db/schema_zod';
-import { AiProvider, aiRetryPolicy } from '~/effect/ai';
+import { AiProvider, aiInvalidOutputRetryPolicy } from '~/effect/ai';
 import { AiProviderError } from '~/effect/errors';
 import { OPENROUTER_MODELS } from '~/util/ai/image_gen';
 import { padajalaActiveWords } from '~/util/puzzle/word_list';
@@ -101,7 +101,7 @@ export const get_padajala_more_hints = Effect.fn('get_padajala_more_hints')(func
     }
 
     return result;
-  }).pipe(Effect.retry(aiRetryPolicy));
+  }).pipe(Effect.retry(aiInvalidOutputRetryPolicy));
 
   return output;
 });

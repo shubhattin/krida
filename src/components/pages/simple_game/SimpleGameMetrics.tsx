@@ -175,6 +175,7 @@ export function SimpleGameMetrics({
     const accuracy = totalAttempts > 0 ? Math.round((correctAttempts / totalAttempts) * 100) : 100;
     mutateStats({
       turnstile_token: token,
+      client_play_id: clientPlayIdRef.current,
       info: {
         puzzle_id: puzzleId,
         time_taken: seconds,

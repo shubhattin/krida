@@ -231,6 +231,7 @@ export default function PadajalaMetricsCollector({
       try {
         await mutateSubmitStatsAsync({
           turnstile_token: token,
+          client_play_id: clientPlayIdRef.current,
           info: {
             puzzle_id,
             session_id,
