@@ -20,8 +20,11 @@ export const aiRetryPolicy = Schedule.recurs(2);
 /** Retry a completed-but-unusable generation (bad schema / count) once — each try is billed. */
 export const aiInvalidOutputRetryPolicy = Schedule.recurs(1);
 
-/** Hard cap per text generation; stays well below the cache single-flight lock TTL. */
-const TEXT_GENERATION_TIMEOUT_MS = 120_000;
+/**
+ * Hard cap per single (non-batch) text generation — long enough for slow reasoning requests,
+ * and still under the cache single-flight lock TTL (5m). Batch jobs use the OpenAI Batch API.
+ */
+const TEXT_GENERATION_TIMEOUT_MS = 4 * 60 * 1000;
 
 export class AiProvider extends Context.Service<
   AiProvider,
