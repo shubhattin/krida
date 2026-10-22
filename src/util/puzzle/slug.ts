@@ -83,7 +83,8 @@ export const parseIdSlugParam = (param: string): { id: number; slug: string } | 
   if (!slug) return null;
 
   const id = Number.parseInt(idStr, 10);
-  if (!Number.isInteger(id) || id < 1) return null;
+  // Postgres `integer` ids: out-of-range values would surface a raw DB error
+  if (!Number.isInteger(id) || id < 1 || id > 2147483647) return null;
 
   return { id, slug };
 };

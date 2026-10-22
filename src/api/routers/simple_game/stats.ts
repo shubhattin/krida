@@ -17,7 +17,7 @@ import {
 import { displayUserName, sessionUserFields } from '~/api/routers/user/session_user';
 import { resolveAuthUserNames, searchAuthUsers } from '~/lib/auth_users.server';
 import { requireTurnstileIfGuest } from '~/api/routers/turnstile_guard';
-import { adoptGuestSession } from '~/api/routers/stats_session_adopt';
+import { adoptGuestSession, canWriteSession } from '~/api/routers/stats_session_adopt';
 import {
   get_stats_data_input_schema,
   get_top_puzzles_input_schema,
@@ -45,7 +45,7 @@ export function createSimpleGameStatsRouter<TData>(
     .mutation(({ input, ctx }) =>
       runTrpcEffect(
         Effect.gen(function* () {
-          const { turnstile_token, info } = input;
+          const { turnstile_token, client_play_id, info } = input;
           yield* requireTurnstileIfGuest(turnstile_token, ctx.user);
 
           const { puzzle_id, time_taken, accuracy, correct_attempts, total_attempts, session_id } =
@@ -53,7 +53,7 @@ export function createSimpleGameStatsRouter<TData>(
 
           const [session] = yield* dbRunHttp(`${kind}_stats.find_session`, (client) =>
             client
-              .select({ id: puzzle_sessions.id })
+              .select({ id: puzzle_sessions.id, user_id: puzzle_sessions.user_id })
               .from(puzzle_sessions)
               .innerJoin(puzzles, sessionForKind)
               .where(
@@ -61,7 +61,7 @@ export function createSimpleGameStatsRouter<TData>(
               )
               .limit(1)
           );
-          if (!session) {
+          if (!session || !(yield* canWriteSession(kind, session, ctx.user, client_play_id))) {
             return yield* Effect.fail(
               BadRequestError.make({ message: 'Invalid session for puzzle' })
             );

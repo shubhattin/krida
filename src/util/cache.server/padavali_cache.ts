@@ -20,7 +20,7 @@ import {
   type WordMeaningsType
 } from '../ai/word_meanings';
 import { padavaliActiveWords, type PadavaliWordCandidate } from '~/util/puzzle/word_list';
-import { CACHE_AI_OUTSIDE_PROD } from './ai_cache_options';
+import { AI_FAILURE_TTL_SECONDS, CACHE_AI_OUTSIDE_PROD } from './ai_cache_options';
 import { public_tag_schema } from '~/util/catalog/tags';
 
 type PadavaliPuzzleType = z.infer<typeof puzzle_schema>;
@@ -354,6 +354,8 @@ const load_word_puzzle: CacheItem<PadavaliPuzzleParams, PadavaliPuzzleType | und
 const load_word_meanings: CacheItem<PadavaliPuzzleParams, WordMeaningsType> = createCache({
   getKey: ({ slug }) => wordMeaningsKey(slug),
   ttlSeconds: Infinity,
+  // Paid generation: don't regenerate on every public request after a failure
+  failureTtlSeconds: AI_FAILURE_TTL_SECONDS,
   useGenerationGuard: true,
   useSingleFlight: true,
   cacheOutsideProd: CACHE_AI_OUTSIDE_PROD,

@@ -12,7 +12,7 @@ const PENDING_VALUE = 'pending';
 const POLL = Duration.millis(50);
 const MAX_POLLS = 40;
 
-type PlayKind = 'padavali' | 'padajala' | 'dvayi' | 'bhramita' | 'surupa' | 'anveshi';
+export type PlayKind = 'padavali' | 'padajala' | 'dvayi' | 'bhramita' | 'surupa' | 'anveshi';
 
 const keyFor = (kind: PlayKind, playId: string) => `stats:play:${kind}:${playId}`;
 
@@ -94,4 +94,21 @@ export const releasePlaySessionClaim = Effect.fn('stats.releasePlaySessionClaim'
   if (raw === PENDING_VALUE || raw === null) {
     yield* redis.del(key).pipe(Effect.catch(() => Effect.void));
   }
+});
+
+/**
+ * Proof that the caller started `sessionId`: `playId` is the random UUID the browser generated for
+ * this play and `completePlaySession` mapped it to the session. Unknown / missing → false.
+ */
+export const hasPlaySessionProof = Effect.fn('stats.hasPlaySessionProof')(function* (
+  kind: PlayKind,
+  playId: string | undefined,
+  sessionId: number
+) {
+  if (!playId) return false;
+  const redis = yield* RedisClient;
+  const raw = yield* redis
+    .get<RedisJsonValue>(keyFor(kind, playId))
+    .pipe(Effect.catch(() => Effect.succeed(null)));
+  return parseSessionId(raw) === sessionId;
 });

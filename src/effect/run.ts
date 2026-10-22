@@ -109,12 +109,23 @@ export const runLoaderEffect = async <A, E, R>(effect: Effect.Effect<A, E, R>): 
   const failure = Cause.findErrorOption(exit.cause);
   if (failure._tag === 'Some' && isKnownError(failure.value)) {
     if (httpStatusForError(failure.value) < 500) throw failure.value;
-    const captured = await reportFailure(exit.cause, 'loader');
-    throw captured;
+    await reportFailure(exit.cause, 'loader');
+    throw genericLoaderError();
   }
 
   console.error('[loader] unexpected effect defect', Cause.pretty(exit.cause));
-  throw await reportFailure(exit.cause, 'loader');
+  await reportFailure(exit.cause, 'loader');
+  throw genericLoaderError();
+};
+
+/**
+ * Server-fn errors are serialized to the browser by message, so 5xx failures get a generic one;
+ * the detailed error (operation name, driver message) is already in PostHog.
+ */
+const genericLoaderError = () => {
+  const error = new Error('Unexpected server error');
+  markReported(error);
+  return error;
 };
 
 /** @deprecated Prefer runLoaderEffect */

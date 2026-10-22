@@ -43,8 +43,26 @@ export const protectedAdminProcedure = protectedProcedure.use(async function isA
 });
 
 const TurnstileSiteverifyResponse = Schema.Struct({
-  success: Schema.Boolean
+  success: Schema.Boolean,
+  hostname: Schema.optional(Schema.String)
 });
+
+/**
+ * Production only (preview deployments run on other hosts): the token must have been solved on
+ * this site, not replayed from another page that embeds the same widget.
+ */
+export const turnstileHostnameMatches = (
+  hostname: string | undefined,
+  siteUrl: string,
+  enforce: boolean
+): boolean => {
+  if (!enforce) return true;
+  try {
+    return hostname === new URL(siteUrl).hostname;
+  } catch {
+    return false;
+  }
+};
 
 /** Verify Cloudflare Turnstile token using AppConfig secret. */
 export const verify_cloudflare_turnstile_token = Effect.fn('verify_cloudflare_turnstile_token')(
@@ -84,8 +102,11 @@ export const verify_cloudflare_turnstile_token = Effect.fn('verify_cloudflare_tu
     if (raw === null) return false;
 
     const decoded = yield* Schema.decodeUnknownEffect(TurnstileSiteverifyResponse)(raw).pipe(
-      Effect.catch(() => Effect.succeed({ success: false }))
+      Effect.catch(() => Effect.succeed({ success: false, hostname: undefined }))
     );
-    return decoded.success;
+    return (
+      decoded.success &&
+      turnstileHostnameMatches(decoded.hostname, config.siteUrl, config.isProductionDeployment)
+    );
   }
 );

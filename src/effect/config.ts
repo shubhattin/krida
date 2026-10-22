@@ -20,6 +20,8 @@ const AppConfigSchema = Schema.Struct({
   isDev: Schema.Boolean,
   isProd: Schema.Boolean,
   isQstashEnabled: Schema.Boolean,
+  /** Vercel production (not preview / local). */
+  isProductionDeployment: Schema.Boolean,
   // optionals
   turnstileSecretKey: Schema.optional(NonEmptyString)
 });
@@ -78,7 +80,8 @@ const loadConfig = Effect.fn('loadConfig')(function* () {
     cloudfrontUrl: env.VITE_AWS_CLOUDFRONT_URL,
     isDev: import.meta.env?.DEV === true || env.NODE_ENV === 'development',
     isProd: import.meta.env?.PROD === true || env.NODE_ENV === 'production',
-    isQstashEnabled: isProductionMode(env)
+    isQstashEnabled: isProductionMode(env),
+    isProductionDeployment: isProductionMode(env)
   });
 
   if (parsed._tag === 'Failure') {
@@ -110,7 +113,8 @@ const loadConfig = Effect.fn('loadConfig')(function* () {
     cloudfrontUrl: data.cloudfrontUrl,
     isDev: data.isDev,
     isProd: data.isProd,
-    isQstashEnabled: data.isQstashEnabled
+    isQstashEnabled: data.isQstashEnabled,
+    isProductionDeployment: data.isProductionDeployment
   } satisfies AppConfigService;
 });
 

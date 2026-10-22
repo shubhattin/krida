@@ -13,9 +13,15 @@ const tryAi = <A>(operation: string, provider: string, run: () => Promise<A>) =>
     catch: (cause) => AiProviderError.make({ operation, provider, cause })
   }).pipe(Effect.annotateLogs({ category: 'ai', operation, provider }));
 
-/** Retry transient AI failures (network/rate-limit). Fixed attempts; no schema-invalid retries at this layer.
+/** Retry transient AI failures (network/rate-limit). Fixed attempts.
  *  `Schedule.recurs(2)` → 1 initial attempt + 2 retries = 3 total tries. */
 export const aiRetryPolicy = Schedule.recurs(2);
+
+/** Retry a completed-but-unusable generation (bad schema / count) once — each try is billed. */
+export const aiInvalidOutputRetryPolicy = Schedule.recurs(1);
+
+/** Hard cap per text generation; stays well below the cache single-flight lock TTL. */
+const TEXT_GENERATION_TIMEOUT_MS = 120_000;
 
 export class AiProvider extends Context.Service<
   AiProvider,
@@ -67,6 +73,7 @@ export class AiProvider extends Context.Service<
                   system: input.system,
                   prompt: input.prompt,
                   output: Output.object({ schema: input.schema }),
+                  abortSignal: AbortSignal.timeout(TEXT_GENERATION_TIMEOUT_MS),
                   providerOptions: {
                     openrouter: {
                       reasoning: { effort: input.openrouterReasoningEffort }
@@ -77,13 +84,16 @@ export class AiProvider extends Context.Service<
                   model: input.model,
                   system: input.system,
                   prompt: input.prompt,
-                  output: Output.object({ schema: input.schema })
+                  output: Output.object({ schema: input.schema }),
+                  abortSignal: AbortSignal.timeout(TEXT_GENERATION_TIMEOUT_MS)
                 });
             if (!response.output) {
               throw new Error(`Empty AI output for operation: ${input.operation}`);
             }
             return response.output;
-          }).pipe(Effect.retry(aiRetryPolicy)),
+            // No Effect.retry here: the AI SDK already retries transient HTTP errors (maxRetries),
+            // and stacking layers multiplies billed generations. Callers decide on output retries.
+          }),
 
         generateImageBase64: (input) =>
           tryAi('generateImage', 'openai', async () => {

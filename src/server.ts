@@ -8,6 +8,7 @@ import type { Register } from '@tanstack/react-router';
 import type { RequestHandler } from '@tanstack/react-start/server';
 import { captureThrownError } from '~/lib/posthog-server';
 import { runWithRequest } from '~/lib/request-context';
+import { withSecurityHeaders } from '~/lib/security_headers';
 
 const startHandler = createStartHandler(defaultStreamHandler);
 
@@ -18,10 +19,10 @@ export default createServerEntry({
   async fetch(request, opts) {
     return runWithRequest(request, async () => {
       try {
-        return await startHandler(request, opts);
+        return withSecurityHeaders(await startHandler(request, opts));
       } catch (error) {
         await captureThrownError(error, 'server');
-        return handleStartError(error);
+        return withSecurityHeaders(await handleStartError(error));
       }
     });
   }

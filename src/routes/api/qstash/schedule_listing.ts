@@ -23,7 +23,7 @@ export const Route = createFileRoute('/api/qstash/schedule_listing')({
     handlers: {
       POST: async ({ request }) => {
         console.log('QStash request received', new Date());
-        const verified = await verifyQstashRequest(request);
+        const verified = await verifyQstashRequest(request, '/schedule_listing');
         if (!verified.ok) return verified.response;
         const body = verified.body;
 

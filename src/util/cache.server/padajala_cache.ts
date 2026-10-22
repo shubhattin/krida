@@ -25,7 +25,7 @@ import {
   type MoreHintsType
 } from '~/util/ai/more_hints';
 import { padajalaActiveWordList } from '~/util/puzzle/word_list';
-import { CACHE_AI_OUTSIDE_PROD } from './ai_cache_options';
+import { AI_FAILURE_TTL_SECONDS, CACHE_AI_OUTSIDE_PROD } from './ai_cache_options';
 import { public_tag_schema } from '~/util/catalog/tags';
 
 const padajala_puzzle_schema = z.object({
@@ -370,6 +370,8 @@ const load_word_puzzle: CacheItem<PadajalaPuzzleParams, PadajalaPuzzleType | und
 const load_more_hints: CacheItem<PadajalaPuzzleParams, MoreHintsType> = createCache({
   getKey: ({ slug }) => moreHintsKey(slug),
   ttlSeconds: Infinity,
+  // Paid generation: don't regenerate on every public request after a failure
+  failureTtlSeconds: AI_FAILURE_TTL_SECONDS,
   useGenerationGuard: true,
   useSingleFlight: true,
   cacheOutsideProd: CACHE_AI_OUTSIDE_PROD,

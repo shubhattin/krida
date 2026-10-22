@@ -14,7 +14,9 @@ const loader$ = createServerFn({ method: 'GET' })
     const puzzle = await runLoaderEffect(
       dbRunHttp('padajala.archived.resolve_slug', (client) =>
         client.query.puzzles.findFirst({
-          where: (tbl, { and, eq }) => and(eq(tbl.id, parsed.id), eq(tbl.kind, 'padajala')),
+          // listed-only: this route must not reveal slugs of unlisted / future-scheduled puzzles
+          where: (tbl, { and, eq }) =>
+            and(eq(tbl.id, parsed.id), eq(tbl.kind, 'padajala'), eq(tbl.listed, true)),
           columns: { slug: true }
         })
       )
