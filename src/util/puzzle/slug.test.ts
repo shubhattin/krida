@@ -4,7 +4,6 @@ import {
   isValidPadajalaSlug,
   isValidSlug,
   normalizeSlug,
-  parseIdSlugParam,
   slug_schema
 } from './slug';
 
@@ -68,36 +67,5 @@ describe('slug_schema', () => {
 describe('padajala_slug_schema', () => {
   it('rejects reserved padajala route names after normalize', () => {
     expect(() => padajala_slug_schema.parse('  Batch_Manager  ')).toThrow();
-  });
-});
-
-describe('parseIdSlugParam', () => {
-  it('parses id and slug from first colon', () => {
-    expect(parseIdSlugParam('42:my-puzzle')).toEqual({ id: 42, slug: 'my-puzzle' });
-  });
-
-  it('decodes URI components', () => {
-    expect(parseIdSlugParam(encodeURIComponent('7:hello-world'))).toEqual({
-      id: 7,
-      slug: 'hello-world'
-    });
-  });
-
-  it('returns null for malformed percent-encoding', () => {
-    expect(parseIdSlugParam('%E0%A4%A')).toBeNull();
-  });
-
-  it('rejects ids outside the Postgres integer range', () => {
-    expect(parseIdSlugParam('2147483647:x')).toEqual({ id: 2147483647, slug: 'x' });
-    expect(parseIdSlugParam('2147483648:x')).toBeNull();
-    expect(parseIdSlugParam('99999999999:x')).toBeNull();
-  });
-
-  it('returns null for malformed params', () => {
-    expect(parseIdSlugParam('no-colon')).toBeNull();
-    expect(parseIdSlugParam('42:')).toBeNull();
-    expect(parseIdSlugParam(':slug-only')).toBeNull();
-    expect(parseIdSlugParam('0:slug')).toBeNull();
-    expect(parseIdSlugParam('abc:slug')).toBeNull();
   });
 });
