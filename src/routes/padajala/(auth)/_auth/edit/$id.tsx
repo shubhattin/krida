@@ -2,7 +2,7 @@ import { createFileRoute, Link, notFound } from '@tanstack/react-router';
 import { createServerFn } from '@tanstack/react-start';
 import { Provider as JotaiProvider } from 'jotai';
 import { IoMdArrowRoundBack } from 'react-icons/io';
-import { FaPlay } from 'react-icons/fa';
+import { FaGlobe, FaPlay } from 'react-icons/fa';
 import { z } from 'zod';
 import { CrossordPuzzleSchemaZod, PuzzleAttachmentSchemaZod } from '~/db/schema_zod';
 import { adminServerFnMiddleware } from '~/lib/adminServerFn';
@@ -132,6 +132,18 @@ function PadajalaEditRoute() {
           <FaPlay className="size-4 shrink-0" />
           Preview Puzzle
         </Link>
+        {puzzle.listed ? (
+          <Link
+            to="/padajala/$slug"
+            params={{ slug: puzzle.slug }}
+            target="_blank"
+            className="inline-flex items-center gap-2 text-lg font-semibold"
+            title="Public listed URL of this puzzle"
+          >
+            <FaGlobe className="size-4 shrink-0" />
+            Live Puzzle
+          </Link>
+        ) : null}
       </div>
       <JotaiProvider key={`padajala_edit_${puzzle.id}`}>
         <MainEditPage puzzle={puzzle} catalog={catalog} key={puzzle.id} />

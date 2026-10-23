@@ -68,27 +68,6 @@ export const simple_game_slug_schema = z
       'Slug may only contain lowercase letters, numbers, underscores, and dashes, and cannot match a reserved route name'
   });
 
-export const parseIdSlugParam = (param: string): { id: number; slug: string } | null => {
-  let decoded: string;
-  try {
-    decoded = decodeURIComponent(param);
-  } catch {
-    return null;
-  }
-  const colonIndex = decoded.indexOf(':');
-  if (colonIndex === -1) return null;
-
-  const idStr = decoded.slice(0, colonIndex);
-  const slug = decoded.slice(colonIndex + 1);
-  if (!slug) return null;
-
-  const id = Number.parseInt(idStr, 10);
-  // Postgres `integer` ids: out-of-range values would surface a raw DB error
-  if (!Number.isInteger(id) || id < 1 || id > 2147483647) return null;
-
-  return { id, slug };
-};
-
 export const DEFAULT_GRID_DIMENSIONS: [number, number] = [6, 6];
 
 export const createEmptyGridData = (dims: [number, number] = DEFAULT_GRID_DIMENSIONS) =>

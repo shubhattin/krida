@@ -30,7 +30,7 @@ function EditRoute() {
   const { puzzle, catalog } = Route.useLoaderData();
   return (
     <>
-      <SimpleGameEditHeader kind="surupa" uid={puzzle.uid} />
+      <SimpleGameEditHeader kind="surupa" puzzle={puzzle} />
       <JotaiProvider key={`surupa_edit_${puzzle.id}`}>
         <SurupaViewEdit puzzle={puzzle} catalog={catalog} />
       </JotaiProvider>

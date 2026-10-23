@@ -90,7 +90,6 @@ import { Route as PadajalaauthAuthCollectionsUidRouteImport } from './routes/pad
 import { Route as PadajalaauthAuthEditIdRouteImport } from './routes/padajala/(auth)/_auth/edit/$id'
 import { Route as PadajalaauthAuthListIndexRouteImport } from './routes/padajala/(auth)/_auth/list/index'
 import { Route as PadajalaauthAuthSchedulesIndexRouteImport } from './routes/padajala/(auth)/_auth/schedules/index'
-import { Route as PadajalapublicPublicArchivedId_uuidRouteImport } from './routes/padajala/(public)/_public/archived/$id_uuid'
 import { Route as PadajalapublicPublicPuzzleSlugRouteImport } from './routes/padajala/(public)/_public/puzzle/$slug'
 import { Route as PadajalapublicPublicPuzzlesIndexRouteImport } from './routes/padajala/(public)/_public/puzzles/index'
 import { Route as PadajalapublicPublicViewNano_idRouteImport } from './routes/padajala/(public)/_public/view/$nano_id'
@@ -100,7 +99,6 @@ import { Route as PadavaliauthAuthCollectionsUidRouteImport } from './routes/pad
 import { Route as PadavaliauthAuthEditIdRouteImport } from './routes/padavali/(auth)/_auth/edit/$id'
 import { Route as PadavaliauthAuthListIndexRouteImport } from './routes/padavali/(auth)/_auth/list/index'
 import { Route as PadavaliauthAuthSchedulesIndexRouteImport } from './routes/padavali/(auth)/_auth/schedules/index'
-import { Route as PadavalipublicPublicArchivedId_uuidRouteImport } from './routes/padavali/(public)/_public/archived/$id_uuid'
 import { Route as PadavalipublicPublicPuzzleSlugRouteImport } from './routes/padavali/(public)/_public/puzzle/$slug'
 import { Route as PadavalipublicPublicPuzzlesIndexRouteImport } from './routes/padavali/(public)/_public/puzzles/index'
 import { Route as PadavalipublicPublicViewNano_idRouteImport } from './routes/padavali/(public)/_public/view/$nano_id'
@@ -532,12 +530,6 @@ const PadajalaauthAuthSchedulesIndexRoute =
     path: '/schedules/',
     getParentRoute: () => PadajalaauthAuthRoute,
   } as any)
-const PadajalapublicPublicArchivedId_uuidRoute =
-  PadajalapublicPublicArchivedId_uuidRouteImport.update({
-    id: '/archived/$id_uuid',
-    path: '/archived/$id_uuid',
-    getParentRoute: () => PadajalapublicPublicRoute,
-  } as any)
 const PadajalapublicPublicPuzzleSlugRoute =
   PadajalapublicPublicPuzzleSlugRouteImport.update({
     id: '/puzzle/$slug',
@@ -590,12 +582,6 @@ const PadavaliauthAuthSchedulesIndexRoute =
     id: '/schedules/',
     path: '/schedules/',
     getParentRoute: () => PadavaliauthAuthRoute,
-  } as any)
-const PadavalipublicPublicArchivedId_uuidRoute =
-  PadavalipublicPublicArchivedId_uuidRouteImport.update({
-    id: '/archived/$id_uuid',
-    path: '/archived/$id_uuid',
-    getParentRoute: () => PadavalipublicPublicRoute,
   } as any)
 const PadavalipublicPublicPuzzleSlugRoute =
   PadavalipublicPublicPuzzleSlugRouteImport.update({
@@ -724,12 +710,10 @@ export interface FileRoutesByFullPath {
   '/dvayi/view/$nano_id': typeof DvayipublicPublicViewNano_idRoute
   '/padajala/collections/$uid': typeof PadajalaauthAuthCollectionsUidRoute
   '/padajala/edit/$id': typeof PadajalaauthAuthEditIdRoute
-  '/padajala/archived/$id_uuid': typeof PadajalapublicPublicArchivedId_uuidRoute
   '/padajala/puzzle/$slug': typeof PadajalapublicPublicPuzzleSlugRoute
   '/padajala/view/$nano_id': typeof PadajalapublicPublicViewNano_idRoute
   '/padavali/collections/$uid': typeof PadavaliauthAuthCollectionsUidRoute
   '/padavali/edit/$id': typeof PadavaliauthAuthEditIdRoute
-  '/padavali/archived/$id_uuid': typeof PadavalipublicPublicArchivedId_uuidRoute
   '/padavali/puzzle/$slug': typeof PadavalipublicPublicPuzzleSlugRoute
   '/padavali/view/$nano_id': typeof PadavalipublicPublicViewNano_idRoute
   '/surupa/edit/$id': typeof SurupaauthAuthEditIdRoute
@@ -811,12 +795,10 @@ export interface FileRoutesByTo {
   '/dvayi/view/$nano_id': typeof DvayipublicPublicViewNano_idRoute
   '/padajala/collections/$uid': typeof PadajalaauthAuthCollectionsUidRoute
   '/padajala/edit/$id': typeof PadajalaauthAuthEditIdRoute
-  '/padajala/archived/$id_uuid': typeof PadajalapublicPublicArchivedId_uuidRoute
   '/padajala/puzzle/$slug': typeof PadajalapublicPublicPuzzleSlugRoute
   '/padajala/view/$nano_id': typeof PadajalapublicPublicViewNano_idRoute
   '/padavali/collections/$uid': typeof PadavaliauthAuthCollectionsUidRoute
   '/padavali/edit/$id': typeof PadavaliauthAuthEditIdRoute
-  '/padavali/archived/$id_uuid': typeof PadavalipublicPublicArchivedId_uuidRoute
   '/padavali/puzzle/$slug': typeof PadavalipublicPublicPuzzleSlugRoute
   '/padavali/view/$nano_id': typeof PadavalipublicPublicViewNano_idRoute
   '/surupa/edit/$id': typeof SurupaauthAuthEditIdRoute
@@ -918,12 +900,10 @@ export interface FileRoutesById {
   '/dvayi/(public)/_public/view/$nano_id': typeof DvayipublicPublicViewNano_idRoute
   '/padajala/(auth)/_auth/collections/$uid': typeof PadajalaauthAuthCollectionsUidRoute
   '/padajala/(auth)/_auth/edit/$id': typeof PadajalaauthAuthEditIdRoute
-  '/padajala/(public)/_public/archived/$id_uuid': typeof PadajalapublicPublicArchivedId_uuidRoute
   '/padajala/(public)/_public/puzzle/$slug': typeof PadajalapublicPublicPuzzleSlugRoute
   '/padajala/(public)/_public/view/$nano_id': typeof PadajalapublicPublicViewNano_idRoute
   '/padavali/(auth)/_auth/collections/$uid': typeof PadavaliauthAuthCollectionsUidRoute
   '/padavali/(auth)/_auth/edit/$id': typeof PadavaliauthAuthEditIdRoute
-  '/padavali/(public)/_public/archived/$id_uuid': typeof PadavalipublicPublicArchivedId_uuidRoute
   '/padavali/(public)/_public/puzzle/$slug': typeof PadavalipublicPublicPuzzleSlugRoute
   '/padavali/(public)/_public/view/$nano_id': typeof PadavalipublicPublicViewNano_idRoute
   '/surupa/(auth)/_auth/edit/$id': typeof SurupaauthAuthEditIdRoute
@@ -1013,12 +993,10 @@ export interface FileRouteTypes {
     | '/dvayi/view/$nano_id'
     | '/padajala/collections/$uid'
     | '/padajala/edit/$id'
-    | '/padajala/archived/$id_uuid'
     | '/padajala/puzzle/$slug'
     | '/padajala/view/$nano_id'
     | '/padavali/collections/$uid'
     | '/padavali/edit/$id'
-    | '/padavali/archived/$id_uuid'
     | '/padavali/puzzle/$slug'
     | '/padavali/view/$nano_id'
     | '/surupa/edit/$id'
@@ -1100,12 +1078,10 @@ export interface FileRouteTypes {
     | '/dvayi/view/$nano_id'
     | '/padajala/collections/$uid'
     | '/padajala/edit/$id'
-    | '/padajala/archived/$id_uuid'
     | '/padajala/puzzle/$slug'
     | '/padajala/view/$nano_id'
     | '/padavali/collections/$uid'
     | '/padavali/edit/$id'
-    | '/padavali/archived/$id_uuid'
     | '/padavali/puzzle/$slug'
     | '/padavali/view/$nano_id'
     | '/surupa/edit/$id'
@@ -1206,12 +1182,10 @@ export interface FileRouteTypes {
     | '/dvayi/(public)/_public/view/$nano_id'
     | '/padajala/(auth)/_auth/collections/$uid'
     | '/padajala/(auth)/_auth/edit/$id'
-    | '/padajala/(public)/_public/archived/$id_uuid'
     | '/padajala/(public)/_public/puzzle/$slug'
     | '/padajala/(public)/_public/view/$nano_id'
     | '/padavali/(auth)/_auth/collections/$uid'
     | '/padavali/(auth)/_auth/edit/$id'
-    | '/padavali/(public)/_public/archived/$id_uuid'
     | '/padavali/(public)/_public/puzzle/$slug'
     | '/padavali/(public)/_public/view/$nano_id'
     | '/surupa/(auth)/_auth/edit/$id'
@@ -1847,13 +1821,6 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof PadajalaauthAuthSchedulesIndexRouteImport
       parentRoute: typeof PadajalaauthAuthRoute
     }
-    '/padajala/(public)/_public/archived/$id_uuid': {
-      id: '/padajala/(public)/_public/archived/$id_uuid'
-      path: '/archived/$id_uuid'
-      fullPath: '/padajala/archived/$id_uuid'
-      preLoaderRoute: typeof PadajalapublicPublicArchivedId_uuidRouteImport
-      parentRoute: typeof PadajalapublicPublicRoute
-    }
     '/padajala/(public)/_public/puzzle/$slug': {
       id: '/padajala/(public)/_public/puzzle/$slug'
       path: '/puzzle/$slug'
@@ -1916,13 +1883,6 @@ declare module '@tanstack/react-router' {
       fullPath: '/padavali/schedules/'
       preLoaderRoute: typeof PadavaliauthAuthSchedulesIndexRouteImport
       parentRoute: typeof PadavaliauthAuthRoute
-    }
-    '/padavali/(public)/_public/archived/$id_uuid': {
-      id: '/padavali/(public)/_public/archived/$id_uuid'
-      path: '/archived/$id_uuid'
-      fullPath: '/padavali/archived/$id_uuid'
-      preLoaderRoute: typeof PadavalipublicPublicArchivedId_uuidRouteImport
-      parentRoute: typeof PadavalipublicPublicRoute
     }
     '/padavali/(public)/_public/puzzle/$slug': {
       id: '/padavali/(public)/_public/puzzle/$slug'
@@ -2181,7 +2141,6 @@ const PadajalaauthAuthRouteWithChildren =
 interface PadajalapublicPublicRouteChildren {
   PadajalapublicPublicSlugRoute: typeof PadajalapublicPublicSlugRoute
   PadajalapublicPublicIndexRoute: typeof PadajalapublicPublicIndexRoute
-  PadajalapublicPublicArchivedId_uuidRoute: typeof PadajalapublicPublicArchivedId_uuidRoute
   PadajalapublicPublicPuzzleSlugRoute: typeof PadajalapublicPublicPuzzleSlugRoute
   PadajalapublicPublicViewNano_idRoute: typeof PadajalapublicPublicViewNano_idRoute
   PadajalapublicPublicPuzzlesIndexRoute: typeof PadajalapublicPublicPuzzlesIndexRoute
@@ -2190,8 +2149,6 @@ interface PadajalapublicPublicRouteChildren {
 const PadajalapublicPublicRouteChildren: PadajalapublicPublicRouteChildren = {
   PadajalapublicPublicSlugRoute: PadajalapublicPublicSlugRoute,
   PadajalapublicPublicIndexRoute: PadajalapublicPublicIndexRoute,
-  PadajalapublicPublicArchivedId_uuidRoute:
-    PadajalapublicPublicArchivedId_uuidRoute,
   PadajalapublicPublicPuzzleSlugRoute: PadajalapublicPublicPuzzleSlugRoute,
   PadajalapublicPublicViewNano_idRoute: PadajalapublicPublicViewNano_idRoute,
   PadajalapublicPublicPuzzlesIndexRoute: PadajalapublicPublicPuzzlesIndexRoute,
@@ -2244,7 +2201,6 @@ const PadavaliauthAuthRouteWithChildren =
 interface PadavalipublicPublicRouteChildren {
   PadavalipublicPublicSlugRoute: typeof PadavalipublicPublicSlugRoute
   PadavalipublicPublicIndexRoute: typeof PadavalipublicPublicIndexRoute
-  PadavalipublicPublicArchivedId_uuidRoute: typeof PadavalipublicPublicArchivedId_uuidRoute
   PadavalipublicPublicPuzzleSlugRoute: typeof PadavalipublicPublicPuzzleSlugRoute
   PadavalipublicPublicViewNano_idRoute: typeof PadavalipublicPublicViewNano_idRoute
   PadavalipublicPublicPuzzlesIndexRoute: typeof PadavalipublicPublicPuzzlesIndexRoute
@@ -2253,8 +2209,6 @@ interface PadavalipublicPublicRouteChildren {
 const PadavalipublicPublicRouteChildren: PadavalipublicPublicRouteChildren = {
   PadavalipublicPublicSlugRoute: PadavalipublicPublicSlugRoute,
   PadavalipublicPublicIndexRoute: PadavalipublicPublicIndexRoute,
-  PadavalipublicPublicArchivedId_uuidRoute:
-    PadavalipublicPublicArchivedId_uuidRoute,
   PadavalipublicPublicPuzzleSlugRoute: PadavalipublicPublicPuzzleSlugRoute,
   PadavalipublicPublicViewNano_idRoute: PadavalipublicPublicViewNano_idRoute,
   PadavalipublicPublicPuzzlesIndexRoute: PadavalipublicPublicPuzzlesIndexRoute,
