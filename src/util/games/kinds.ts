@@ -1,20 +1,11 @@
-/** Games that are live on the public hub catalog. */
-export const PUBLIC_GAME_KINDS = ['padavali', 'padajala'] as const;
-export type PublicGameKind = (typeof PUBLIC_GAME_KINDS)[number];
-
-/** In-development games — admin, collections, tags, and analytics only. */
+/** Games sharing the simple-game stack (play, list, editor, analytics). */
 export const SIMPLE_GAME_KINDS = ['dvayi', 'bhramita', 'surupa', 'anveshi'] as const;
 export type SimpleGameKind = (typeof SIMPLE_GAME_KINDS)[number];
 
 const SIMPLE_GAME_KIND_SET: ReadonlySet<string> = new Set(SIMPLE_GAME_KINDS);
-const PUBLIC_GAME_KIND_SET: ReadonlySet<string> = new Set(PUBLIC_GAME_KINDS);
 
 export function isSimpleGameKind(game: string): game is SimpleGameKind {
   return SIMPLE_GAME_KIND_SET.has(game);
-}
-
-export function isPublicGameKind(game: string): game is PublicGameKind {
-  return PUBLIC_GAME_KIND_SET.has(game);
 }
 
 export type SimpleGameMeta = {
@@ -88,7 +79,7 @@ export const SIMPLE_GAME_META = {
   },
   anveshi: {
     kind: 'anveshi',
-    name: 'Anveṣī',
+    name: 'Ānveṣī',
     subtitle: 'Multiple choice',
     description: 'Answer a set of questions, with optional hints and explanations.',
     accent: {

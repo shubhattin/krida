@@ -63,11 +63,6 @@ export function analyzeAnveshiPuzzle(data: AnveshiPuzzleData): GameAnalysis {
         )
       );
     }
-    if (question.options.length < 4) {
-      warnings.push(
-        issue('warning', 'few_options', `Question ${index + 1} has fewer than four options.`)
-      );
-    }
   }
 
   const playable = inferred.questions.filter(

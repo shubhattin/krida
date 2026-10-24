@@ -84,7 +84,7 @@ export function WordMeaningsPanel({
                       'inline-flex items-center gap-1 rounded-full px-2 py-0.5',
                       'bg-linear-to-r from-violet-100 to-fuchsia-100',
                       'dark:from-violet-900/50 dark:to-fuchsia-900/40',
-                      'text-[9px] font-bold tracking-wide text-violet-600 uppercase sm:text-[10px]',
+                      'text-[9px] font-bold text-violet-600 sm:text-[10px]',
                       'dark:text-violet-300'
                     )}
                   >
@@ -93,7 +93,7 @@ export function WordMeaningsPanel({
                   </span>
                 ) : null}
                 {practiceMode ? (
-                  <span className="rounded-full bg-amber-100 px-2 py-0.5 text-[9px] font-semibold text-amber-800 uppercase dark:bg-amber-900/40 dark:text-amber-200">
+                  <span className="rounded-full bg-amber-100 px-2 py-0.5 text-[9px] font-semibold text-amber-800 dark:bg-amber-900/40 dark:text-amber-200">
                     Practice
                   </span>
                 ) : null}

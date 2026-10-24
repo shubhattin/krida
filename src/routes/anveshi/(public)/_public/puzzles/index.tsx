@@ -1,8 +1,12 @@
 import { createFileRoute, redirect } from '@tanstack/react-router';
 
-/** In-development games stay off the public /puzzles catalog until release. */
+/** Legacy `/anveshi/puzzles` → `/puzzles?game=anveshi`. */
 export const Route = createFileRoute('/anveshi/(public)/_public/puzzles/')({
   beforeLoad: () => {
-    throw redirect({ to: '/puzzles', statusCode: 301 });
+    throw redirect({
+      to: '/puzzles',
+      search: { game: 'anveshi' },
+      statusCode: 301
+    });
   }
 });

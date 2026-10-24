@@ -16,7 +16,6 @@ import { AllGamesMenuItems } from '~/components/app-bar/GameMenuItems';
 import { GameAppIcon } from '~/components/GameAppIcon';
 import { HubHeader } from '~/components/hub/HubHeader';
 import { HUB_GAMES } from '~/components/hub/hub_games';
-import { SIMPLE_GAME_ICONS } from '~/components/pages/simple_game/simple_game_icons';
 import { cn } from '~/lib/utils';
 import { SIMPLE_GAME_LIST, simpleGameAnalyticsHref, simpleGameListHref } from '~/util/games/kinds';
 
@@ -220,52 +219,29 @@ export default function AdminPage() {
         </section>
 
         <section className="flex flex-col gap-3">
-          <h2 className="text-xs font-semibold tracking-[0.18em] text-muted-foreground uppercase">
-            Games
-          </h2>
+          <h2 className="text-xs font-semibold tracking-[0.18em] text-muted-foreground">Games</h2>
           <div className="grid gap-3 sm:grid-cols-2">
             {LIVE_GAMES.map((game) => (
               <AdminGameCard key={game.name} {...game} />
             ))}
-          </div>
-        </section>
-
-        <section className="flex flex-col gap-3">
-          <h2 className="text-xs font-semibold tracking-[0.18em] text-muted-foreground uppercase">
-            In development
-          </h2>
-          <div className="grid gap-3 sm:grid-cols-2">
-            {SIMPLE_GAME_LIST.map((game) => {
-              const Icon = SIMPLE_GAME_ICONS[game.kind];
-              return (
-                <AdminGameCard
-                  key={game.kind}
-                  name={game.name}
-                  subtitle={game.subtitle}
-                  wash={game.accent.wash}
-                  border={game.accent.border}
-                  icon={
-                    <div
-                      className={cn(
-                        'flex size-11 shrink-0 items-center justify-center rounded-xl bg-linear-to-br text-white shadow-sm',
-                        game.accent.from,
-                        game.accent.to
-                      )}
-                    >
-                      <Icon className="size-4" />
-                    </div>
+            {SIMPLE_GAME_LIST.map((game) => (
+              <AdminGameCard
+                key={game.kind}
+                name={game.name}
+                subtitle={game.subtitle}
+                wash={game.accent.wash}
+                border={game.accent.border}
+                icon={<GameAppIcon game={game.kind} name={game.name} size="sm" />}
+                actions={[
+                  { href: simpleGameListHref(game.kind), label: 'Puzzles', icon: List },
+                  {
+                    href: simpleGameAnalyticsHref(game.kind),
+                    label: 'Analytics',
+                    icon: BarChart3
                   }
-                  actions={[
-                    { href: simpleGameListHref(game.kind), label: 'Puzzles', icon: List },
-                    {
-                      href: simpleGameAnalyticsHref(game.kind),
-                      label: 'Analytics',
-                      icon: BarChart3
-                    }
-                  ]}
-                />
-              );
-            })}
+                ]}
+              />
+            ))}
           </div>
         </section>
       </main>

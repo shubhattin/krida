@@ -70,7 +70,11 @@ import {
   useInvalidatePuzzleImageBatchQueries,
   usePuzzleImageBatchStatus
 } from '~/components/pages/padavali/batch-image/usePuzzleImageBatchStatus';
-import type { PuzzleImageGame } from '~/util/types/ai_batch_metadata';
+import { isPuzzleImageGame } from '~/util/types/ai_batch_metadata';
+import type { KRIDAS } from '~/constants';
+
+/** Any krida can have a cover, generated on demand or in the background (batch). */
+export type CoverImageGame = (typeof KRIDAS)[number];
 
 const IMAGE_ASPECT = '768 / 512';
 const IMAGE_GENERATION_TIMEOUT_MS = 60_000;
@@ -79,10 +83,12 @@ export type PuzzleImageInfo = { id: number; s3_key: string; width: number; heigh
 
 export type PuzzleCardImageSectionProps = {
   puzzleId: number;
-  game: PuzzleImageGame;
+  game: CoverImageGame;
   title: string;
   description: string;
   words: string[];
+  /** Label for the checkbox that sends `words` as prompt context. */
+  wordsLabel?: string;
   imageId: number | null;
   imageInfo: PuzzleImageInfo | null;
   onImageIdChange: (id: number | null) => void;
@@ -96,6 +102,7 @@ export function PuzzleCardImageSection({
   title,
   description,
   words,
+  wordsLabel,
   imageId: image_id,
   imageInfo: image_info,
   onImageIdChange: setImageId,
@@ -105,7 +112,12 @@ export function PuzzleCardImageSection({
   const [dialog_open, setDialogOpen] = useState(false);
   const [review_open, setReviewOpen] = useState(false);
 
-  const batch_status_q = usePuzzleImageBatchStatus(puzzleId, true, game);
+  const batchGame = isPuzzleImageGame(game) ? game : null;
+  const batch_status_q = usePuzzleImageBatchStatus(
+    puzzleId,
+    batchGame !== null,
+    batchGame ?? 'padavali'
+  );
   const batch_status = batch_status_q.data ?? null;
 
   const handleClearImage = () => {
@@ -219,6 +231,7 @@ export function PuzzleCardImageSection({
                 title={title}
                 description={description}
                 words={words}
+                wordsLabel={wordsLabel}
                 existing_image={image_info}
                 onImageAdded={handleImageAdded}
                 onImageCleared={handleClearImage}
@@ -247,6 +260,7 @@ export function PuzzleCardImageSection({
             title={title}
             description={description}
             words={words}
+            wordsLabel={wordsLabel}
             existing_image={null}
             onImageAdded={handleImageAdded}
             onImageCleared={handleClearImage}
@@ -772,6 +786,7 @@ const CreateNewImageTab = ({
   onAutoApprovedChange,
   onGenerateInBackground,
   isBatchQueuing,
+  wordsLabel = 'Include word meanings',
   include_word_meanings,
   onIncludeWordMeaningsChange,
   include_custom_instructions,
@@ -792,8 +807,10 @@ const CreateNewImageTab = ({
   onMakeImage: () => void;
   auto_approved: boolean;
   onAutoApprovedChange: (checked: boolean) => void;
-  onGenerateInBackground: () => void;
+  /** Omitted for games without background (batch) generation. */
+  onGenerateInBackground?: () => void;
   isBatchQueuing: boolean;
+  wordsLabel?: string;
   include_word_meanings: boolean;
   onIncludeWordMeaningsChange: (checked: boolean) => void;
   include_custom_instructions: boolean;
@@ -828,7 +845,7 @@ const CreateNewImageTab = ({
                     onCheckedChange={(checked) => onIncludeWordMeaningsChange(checked === true)}
                     disabled={isWorking}
                   />
-                  Include word meanings
+                  {wordsLabel}
                 </label>
                 <Popover>
                   <PopoverTrigger
@@ -836,7 +853,7 @@ const CreateNewImageTab = ({
                       <button
                         type="button"
                         className="inline-flex size-4 shrink-0 items-center justify-center text-muted-foreground hover:text-foreground"
-                        aria-label="About include word meanings"
+                        aria-label={`About: ${wordsLabel}`}
                       />
                     }
                   >
@@ -880,29 +897,31 @@ const CreateNewImageTab = ({
             <Wand2 className="size-4" />
             Create AI Image
           </Button>
-          <div className="w-full max-w-sm space-y-3 rounded-lg border border-border bg-muted/20 p-3">
-            <div className="space-y-1">
-              <p className="text-sm font-semibold">Cheaper background generation</p>
-              <BatchPuzzleImageCostNote />
+          {onGenerateInBackground ? (
+            <div className="w-full max-w-sm space-y-3 rounded-lg border border-border bg-muted/20 p-3">
+              <div className="space-y-1">
+                <p className="text-sm font-semibold">Cheaper background generation</p>
+                <BatchPuzzleImageCostNote />
+              </div>
+              <label className="flex items-center gap-2 text-sm">
+                <Checkbox
+                  checked={auto_approved}
+                  onCheckedChange={(checked) => onAutoApprovedChange(checked === true)}
+                />
+                Auto apply generated image to puzzle
+              </label>
+              <Button
+                type="button"
+                variant="outline"
+                className="w-full gap-2"
+                disabled={batch_disabled}
+                onClick={onGenerateInBackground}
+              >
+                <RefreshCw className={isBatchQueuing ? 'size-4 animate-spin' : 'size-4'} />
+                Generate in Background
+              </Button>
             </div>
-            <label className="flex items-center gap-2 text-sm">
-              <Checkbox
-                checked={auto_approved}
-                onCheckedChange={(checked) => onAutoApprovedChange(checked === true)}
-              />
-              Auto apply generated image to puzzle
-            </label>
-            <Button
-              type="button"
-              variant="outline"
-              className="w-full gap-2"
-              disabled={batch_disabled}
-              onClick={onGenerateInBackground}
-            >
-              <RefreshCw className={isBatchQueuing ? 'size-4 animate-spin' : 'size-4'} />
-              Generate in Background
-            </Button>
-          </div>
+          ) : null}
         </div>
       )}
 
@@ -976,22 +995,25 @@ function AIImageDialogContent({
   title,
   description,
   words,
+  wordsLabel,
   existing_image,
   onImageAdded,
   onImageCleared
 }: {
   puzzle_id: number;
-  game: PuzzleImageGame;
+  game: CoverImageGame;
   title: string;
   description: string;
   words: string[];
+  wordsLabel?: string;
   existing_image: ImageInfo | null;
   onImageAdded: (info: ImageInfo) => void;
   onImageCleared: () => void;
 }) {
   const queryClient = useQueryClient();
   const trpc = useTRPC();
-  const { invalidateAll } = useInvalidatePuzzleImageBatchQueries(game);
+  const batchGame = isPuzzleImageGame(game) ? game : null;
+  const { invalidateAll } = useInvalidatePuzzleImageBatchQueries(batchGame ?? 'padavali');
   const [active_tab, setActiveTab] = useState<ImageDialogTab>('create-new');
   const [auto_approved, setAutoApproved] = useState(true);
   const [phase, setPhase] = useState<GenerationPhase>(
@@ -1177,8 +1199,9 @@ function AIImageDialogContent({
     batch_trigger_mut.isPending;
 
   const handleGenerateInBackground = () => {
+    if (!batchGame) return;
     batch_trigger_mut.mutate({
-      game,
+      game: batchGame,
       auto_approved,
       system_prompt_template_id,
       puzzles: [
@@ -1230,8 +1253,9 @@ function AIImageDialogContent({
             onMakeImage={handleMakeImage}
             auto_approved={auto_approved}
             onAutoApprovedChange={setAutoApproved}
-            onGenerateInBackground={handleGenerateInBackground}
+            onGenerateInBackground={batchGame ? handleGenerateInBackground : undefined}
             isBatchQueuing={batch_trigger_mut.isPending}
+            wordsLabel={wordsLabel}
             include_word_meanings={include_word_meanings}
             onIncludeWordMeaningsChange={setIncludeWordMeanings}
             include_custom_instructions={include_custom_instructions}

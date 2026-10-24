@@ -18,7 +18,7 @@ export const PADAJALA_RESERVED_SLUGS = new Set<string>([
   'schedules'
 ]);
 
-/** First-segment paths under the in-development game trees. */
+/** First-segment paths under the simple-game trees. */
 export const SIMPLE_GAME_RESERVED_SLUGS = new Set<string>(SHARED_RESERVED_SLUGS);
 
 export const isReservedSlug = (slug: string) => RESERVED_SLUGS.has(slug);
@@ -67,26 +67,6 @@ export const simple_game_slug_schema = z
     message:
       'Slug may only contain lowercase letters, numbers, underscores, and dashes, and cannot match a reserved route name'
   });
-
-export const parseIdSlugParam = (param: string): { id: number; slug: string } | null => {
-  let decoded: string;
-  try {
-    decoded = decodeURIComponent(param);
-  } catch {
-    return null;
-  }
-  const colonIndex = decoded.indexOf(':');
-  if (colonIndex === -1) return null;
-
-  const idStr = decoded.slice(0, colonIndex);
-  const slug = decoded.slice(colonIndex + 1);
-  if (!slug) return null;
-
-  const id = Number.parseInt(idStr, 10);
-  if (!Number.isInteger(id) || id < 1) return null;
-
-  return { id, slug };
-};
 
 export const DEFAULT_GRID_DIMENSIONS: [number, number] = [6, 6];
 

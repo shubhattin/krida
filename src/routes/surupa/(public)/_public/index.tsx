@@ -1,20 +1,8 @@
-import { createFileRoute } from '@tanstack/react-router';
-import { SimpleGameLanding } from '~/components/pages/simple_game/SimpleGameLanding';
-import { routeHeadFromPageMeta } from '~/components/tags/getPageMetaTags';
-import { loadSimpleGameListed$ } from '~/lib/simple_game_loaders';
+import { createFileRoute, redirect } from '@tanstack/react-router';
 
+/** `/surupa` → hub home puzzles section (`/?game=surupa#surupa`). */
 export const Route = createFileRoute('/surupa/(public)/_public/')({
-  loader: () => loadSimpleGameListed$({ data: { kind: 'surupa' } }),
-  head: () =>
-    routeHeadFromPageMeta({
-      title: 'Surūpa',
-      project: 'surupa',
-      robots: 'noindex'
-    }),
-  component: LandingRoute
+  beforeLoad: () => {
+    throw redirect({ to: '/', search: { game: 'surupa' }, hash: 'surupa', statusCode: 301 });
+  }
 });
-
-function LandingRoute() {
-  const { list } = Route.useLoaderData();
-  return <SimpleGameLanding kind="surupa" puzzles={list} />;
-}

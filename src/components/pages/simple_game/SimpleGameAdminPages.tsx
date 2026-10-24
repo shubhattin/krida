@@ -8,13 +8,14 @@ import { SimpleGameListPage } from './SimpleGameListPage';
 import {
   SIMPLE_GAME_META,
   simpleGameAnalyticsHref,
+  simpleGameHref,
   simpleGameListHref,
   simpleGameViewHref,
   type SimpleGameKind
 } from '~/util/games/kinds';
 import { Button } from '~/components/ui/button';
 import { cn } from '~/lib/utils';
-import { FaPlay } from 'react-icons/fa';
+import { FaGlobe, FaPlay } from 'react-icons/fa';
 import { IoMdArrowRoundBack } from 'react-icons/io';
 
 const backLinkClass =
@@ -85,7 +86,13 @@ export function SimpleGameAnalyticsRoutePage({ kind }: { kind: SimpleGameKind })
   );
 }
 
-export function SimpleGameEditHeader({ kind, uid }: { kind: SimpleGameKind; uid: string }) {
+export function SimpleGameEditHeader({
+  kind,
+  puzzle
+}: {
+  kind: SimpleGameKind;
+  puzzle: { uid: string; slug: string; listed: boolean };
+}) {
   return (
     <div className="my-2 mb-3.5 flex items-center gap-6 px-2 sm:gap-9">
       <a
@@ -96,7 +103,7 @@ export function SimpleGameEditHeader({ kind, uid }: { kind: SimpleGameKind; uid:
         Main List
       </a>
       <a
-        href={simpleGameViewHref(kind, uid)}
+        href={simpleGameViewHref(kind, puzzle.uid)}
         target="_blank"
         rel="noreferrer"
         className="inline-flex items-center gap-2 text-lg font-semibold"
@@ -105,6 +112,18 @@ export function SimpleGameEditHeader({ kind, uid }: { kind: SimpleGameKind; uid:
         <FaPlay className="size-4 shrink-0" />
         Preview Puzzle
       </a>
+      {puzzle.listed ? (
+        <a
+          href={simpleGameHref(kind, puzzle.slug)}
+          target="_blank"
+          rel="noreferrer"
+          className="inline-flex items-center gap-2 text-lg font-semibold"
+          title="Public listed URL of this puzzle"
+        >
+          <FaGlobe className="size-4 shrink-0" />
+          Live Puzzle
+        </a>
+      ) : null}
     </div>
   );
 }

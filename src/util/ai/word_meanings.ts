@@ -1,7 +1,7 @@
 import { Effect } from 'effect';
 import { z } from 'zod';
 import { puzzle_schema } from '~/db/db_shared_vals';
-import { AiProvider, aiRetryPolicy } from '~/effect/ai';
+import { AiProvider, aiInvalidOutputRetryPolicy } from '~/effect/ai';
 import { AiProviderError } from '~/effect/errors';
 import { OPENROUTER_MODELS } from '~/util/ai/image_gen';
 
@@ -71,7 +71,7 @@ export const get_puzzle_word_meanings = Effect.fn('get_puzzle_word_meanings')(fu
     }
 
     return result;
-  }).pipe(Effect.retry(aiRetryPolicy));
+  }).pipe(Effect.retry(aiInvalidOutputRetryPolicy));
 
   return output;
 });

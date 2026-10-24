@@ -1,12 +1,10 @@
 'use client';
 
-import { useContext, useEffect, useMemo, useRef, useState, type ReactNode } from 'react';
+import { useContext, useEffect, useMemo, useRef, useState } from 'react';
 import { getRouteApi } from '@tanstack/react-router';
-import { Image } from '@unpic/react';
 import {
   ChevronDownIcon,
   Layers as LayersIcon,
-  LayoutGrid as LayoutGridIcon,
   Puzzle as PuzzleIcon,
   SearchIcon,
   SearchXIcon,
@@ -39,8 +37,8 @@ import Icon from '~/tools/Icon';
 import { LanguageIcon } from '~/components/icons';
 import { scrollPaginationListToStart } from '~/lib/pagination-scroll';
 import { cn } from '~/lib/utils';
-import { HUB_GAMES } from './hub_games';
-import { GAME_APP_ICON_SRC } from '~/components/GameAppIcon';
+
+import { GamePickerChips, type GamePick } from './GamePickerChips';
 import type { HubData } from './hub_data';
 import { HubPuzzleCard } from './HubPuzzleCard';
 import { HubCollectionCard } from './HubCollectionCard';
@@ -51,27 +49,19 @@ import {
   type HubPuzzle
 } from './hub_puzzles';
 import { useHubPuzzles } from './useHubPuzzles';
-import type { PublicTag } from '~/util/catalog/tags';
-import type { PublicGameKind } from '~/util/games/kinds';
+import { GAME_KINDS, type GameKind, type PublicTag } from '~/util/catalog/tags';
 import type { ListedCollectionsType } from '~/util/cache.server/collection_cache';
 import type { PuzzlesSearch } from '~/routes/_hub/puzzles';
 
 const puzzlesRoute = getRouteApi('/_hub/puzzles');
 const PAGE_LIMIT = 12;
 
-// TODO: add dvayi/bhramita/surupa/anveshi once those games ship on /puzzles.
-const GAME_FILTERS: { value: 'all' | PublicGameKind; label: string }[] = [
-  { value: 'all', label: 'All' },
-  { value: 'padavali', label: HUB_GAMES.padavali.name },
-  { value: 'padajala', label: HUB_GAMES.padajala.name }
-];
-
 const VIEW_TABS = [
   { value: 'puzzles', label: 'Puzzles', icon: PuzzleIcon },
   { value: 'collections', label: 'Collections', icon: LayersIcon }
 ] as const;
 
-type GameCounts = Record<'all' | PublicGameKind, number>;
+type GameCounts = Partial<Record<GamePick, number>>;
 type CountedTag = PublicTag & { count: number };
 
 /** Any filter change resets pagination back to page 1. */
@@ -108,12 +98,6 @@ const PILL_CLASS =
   'inline-flex h-8 shrink-0 items-center gap-1.5 rounded-full border px-3 text-xs font-semibold transition-colors focus-visible:ring-2 focus-visible:ring-indigo-400/70 focus-visible:outline-none';
 const PILL_IDLE =
   'border-slate-200 bg-white/70 text-slate-600 hover:border-slate-300 hover:bg-white dark:border-slate-700 dark:bg-slate-900/60 dark:text-slate-300 dark:hover:border-slate-600';
-const PILL_ACTIVE =
-  'border-slate-900 bg-slate-900 text-white dark:border-white dark:bg-white dark:text-slate-900';
-
-function PillCount({ children }: { children: ReactNode }) {
-  return <span className="tabular-nums opacity-60">{children}</span>;
-}
 
 function ViewTabs({
   view,
@@ -209,39 +193,24 @@ function SearchField() {
   );
 }
 
-function GameFilters({ gameCounts }: { gameCounts: GameCounts }) {
+function GameFilters({
+  games,
+  gameCounts
+}: {
+  games: readonly GameKind[];
+  gameCounts: GameCounts;
+}) {
   const search = puzzlesRoute.useSearch();
   const updateFilters = useUpdateFilters();
 
   return (
-    <div role="group" aria-label="Filter by game" className="flex gap-2">
-      {GAME_FILTERS.map((option) => {
-        const active = search.game === option.value;
-        return (
-          <button
-            key={option.value}
-            type="button"
-            aria-pressed={active}
-            onClick={() => updateFilters({ game: option.value })}
-            className={cn(PILL_CLASS, active ? PILL_ACTIVE : PILL_IDLE)}
-          >
-            {option.value === 'all' ? (
-              <LayoutGridIcon className="size-3.5" aria-hidden />
-            ) : (
-              <Image
-                src={GAME_APP_ICON_SRC[HUB_GAMES[option.value].icon]}
-                alt=""
-                width={14}
-                height={14}
-                className="size-3.5"
-              />
-            )}
-            {option.label}
-            <PillCount>{gameCounts[option.value]}</PillCount>
-          </button>
-        );
-      })}
-    </div>
+    <GamePickerChips
+      games={games}
+      value={search.game}
+      onChange={(game) => updateFilters({ game })}
+      counts={gameCounts}
+      compactUntil="lg"
+    />
   );
 }
 
@@ -257,7 +226,8 @@ function TopicsFilter({ tags }: { tags: CountedTag[] }) {
     return tags.filter((tag) => tag.slug.includes(trimmed));
   }, [query, tags]);
 
-  if (tags.length === 0) return null;
+  // Always rendered so the filter row keeps one shape; a game with no topics just disables it.
+  const empty = tags.length === 0;
 
   const setTag = (slug: string | undefined) => {
     updateFilters({ tag: slug });
@@ -265,14 +235,19 @@ function TopicsFilter({ tags }: { tags: CountedTag[] }) {
   };
 
   return (
-    <div className="flex shrink-0 items-center gap-1">
+    <div className="flex min-w-0 shrink-0 items-center gap-1">
       <Popover open={open} onOpenChange={setOpen}>
         <PopoverTrigger
+          disabled={empty}
           render={
             <button
               type="button"
+              title={empty ? 'No topics for this game' : 'Filter by topic'}
+              aria-label={selected ? `Topic: ${selected}` : 'Topics'}
               className={cn(
                 PILL_CLASS,
+                // Phones: icon only (it shares the search row); the tint shows a topic is set.
+                'max-w-48 disabled:pointer-events-none disabled:opacity-40 max-sm:w-8 max-sm:justify-center max-sm:px-0',
                 selected
                   ? 'border-indigo-300 bg-indigo-50 text-indigo-800 dark:border-indigo-500/40 dark:bg-indigo-950/50 dark:text-indigo-200'
                   : PILL_IDLE
@@ -280,11 +255,11 @@ function TopicsFilter({ tags }: { tags: CountedTag[] }) {
             />
           }
         >
-          <TagIcon className="size-3.5" aria-hidden />
-          {selected ?? 'Topics'}
-          <ChevronDownIcon className="size-3.5 opacity-60" aria-hidden />
+          <TagIcon className="size-3.5 shrink-0" aria-hidden />
+          <span className="min-w-0 truncate max-sm:hidden">{selected ?? 'Topics'}</span>
+          <ChevronDownIcon className="size-3.5 shrink-0 opacity-60 max-sm:hidden" aria-hidden />
         </PopoverTrigger>
-        <PopoverContent className="w-64 p-2" align="start">
+        <PopoverContent className="w-64 p-2" align="end">
           <div className="relative">
             <SearchIcon className="pointer-events-none absolute top-2 left-2 size-3.5 text-muted-foreground" />
             <Input
@@ -296,6 +271,16 @@ function TopicsFilter({ tags }: { tags: CountedTag[] }) {
             />
           </div>
           <div className="mt-2 flex max-h-64 flex-col gap-0.5 overflow-y-auto">
+            {selected ? (
+              <button
+                type="button"
+                onClick={() => setTag(undefined)}
+                className="flex w-full items-center gap-1.5 rounded-md px-2 py-1.5 text-left text-sm text-muted-foreground hover:bg-muted hover:text-foreground"
+              >
+                <XIcon className="size-3.5" aria-hidden />
+                Clear topic
+              </button>
+            ) : null}
             {visible.map((tag) => {
               const active = selected === tag.slug;
               return (
@@ -327,7 +312,7 @@ function TopicsFilter({ tags }: { tags: CountedTag[] }) {
           type="button"
           onClick={() => setTag(undefined)}
           aria-label={`Clear topic ${selected}`}
-          className="flex size-7 items-center justify-center rounded-full text-muted-foreground transition-colors hover:bg-muted hover:text-foreground"
+          className="flex size-7 shrink-0 items-center justify-center rounded-full text-muted-foreground transition-colors hover:bg-muted hover:text-foreground max-sm:hidden"
         >
           <XIcon className="size-3.5" />
         </button>
@@ -489,6 +474,10 @@ export default function HubPuzzles({ data }: { data: HubData }) {
   const navigate = puzzlesRoute.useNavigate();
   const { script, setScript } = useContext(AppContext);
   const { puzzles, byKey } = useHubPuzzles(data);
+  // Progressive release: only games with a listed puzzle get a filter chip
+  // (padavali/padajala always). A bookmarked `?game=` for a hidden game still
+  // resolves — it just shows the empty state.
+  const games = data.visibleGames;
   const isCollections = search.view === 'collections';
   // Collections mix games, so the game filter never applies to them (or their topics).
   const game = isCollections ? 'all' : search.game;
@@ -513,12 +502,13 @@ export default function HubPuzzles({ data }: { data: HubData }) {
       tags: search.tag ? [search.tag] : [],
       query: search.q
     });
-    return {
-      all: base.length,
-      padavali: base.filter((puzzle) => puzzle.game === 'padavali').length,
-      padajala: base.filter((puzzle) => puzzle.game === 'padajala').length
-    };
-  }, [puzzles, search.tag, search.q]);
+    // Chips only exist for visible games; hidden games (zero listed puzzles)
+    // never appear in `base`, so they naturally keep no count entry.
+    const counts: GameCounts = { all: base.length };
+    for (const game of games) counts[game] = 0;
+    for (const puzzle of base) counts[puzzle.game] = (counts[puzzle.game] ?? 0) + 1;
+    return counts;
+  }, [puzzles, games, search.tag, search.q]);
 
   // Collections aren't paginated — drop a leftover ?page= from puzzle view.
   useEffect(() => {
@@ -540,13 +530,21 @@ export default function HubPuzzles({ data }: { data: HubData }) {
     <div className="mx-auto flex max-w-6xl flex-col gap-6 px-4 py-6 sm:gap-8 sm:py-10">
       <header className="flex flex-col gap-4 sm:flex-row sm:items-end sm:justify-between">
         <div className="flex flex-col gap-1.5">
-          <h1 className="text-3xl font-black tracking-tight text-slate-900 sm:text-4xl dark:text-slate-50">
-            {isCollections ? 'Collections' : 'Puzzles'}
-          </h1>
+          <div className="flex items-center justify-between gap-3">
+            <h1 className="text-3xl font-black tracking-tight text-slate-900 sm:text-4xl dark:text-slate-50">
+              {isCollections ? 'Collections' : 'Puzzles'}
+            </h1>
+            {/* Phones: script picker beside the title, leaving the search row its width. */}
+            <div className="sm:hidden">
+              <ScriptSelector script={script} onScriptChange={setScript} compact />
+            </div>
+          </div>
           <p className="text-sm text-slate-500 sm:text-base dark:text-slate-400">
             {isCollections
               ? 'Curated playlists that mix puzzles from every game.'
-              : `Every listed puzzle from ${HUB_GAMES.padavali.name} and ${HUB_GAMES.padajala.name}.`}
+              : games.length >= GAME_KINDS.length
+                ? 'Every listed puzzle across all six Krida games.'
+                : `Every listed puzzle across ${games.length} Krida games.`}
           </p>
         </div>
         <ViewTabs
@@ -555,33 +553,41 @@ export default function HubPuzzles({ data }: { data: HubData }) {
         />
       </header>
 
-      <div className="grid grid-cols-[minmax(0,1fr)_auto] items-center gap-x-2 gap-y-3 sm:gap-x-3">
-        <SearchField />
-        <ScriptSelector script={script} onScriptChange={setScript} compact />
-        <div className="col-span-2 -mx-4 flex min-w-0 scrollbar-none items-center gap-2 overflow-x-auto mask-r-from-85% px-4 sm:col-span-1 sm:mx-0 sm:flex-wrap sm:mask-none sm:px-0">
-          {isCollections ? null : (
-            <>
-              <GameFilters gameCounts={gameCounts} />
-              <span className="h-5 w-px shrink-0 bg-border" aria-hidden />
-            </>
-          )}
+      <div className="flex flex-col gap-3">
+        {/* Topics sits with search on every screen size, so it never wraps or scrolls away. */}
+        <div className="flex items-center gap-2 sm:gap-3">
+          <div className="min-w-0 flex-1">
+            <SearchField />
+          </div>
           <TopicsFilter tags={tags} />
+          <div className="max-sm:hidden">
+            <ScriptSelector script={script} onScriptChange={setScript} compact />
+          </div>
         </div>
-        <p className="hidden justify-self-end text-xs font-medium text-muted-foreground tabular-nums sm:block">
-          {resultSummary(
-            search.view,
-            filteredPuzzles.length,
-            isCollections ? filteredCollections.length : searchedCollections.length,
-            search.page
+        <div
+          className={cn(
+            'flex min-w-0 items-center justify-between gap-3',
+            // Collections have no game chips; the count alone is desktop-only.
+            isCollections && 'max-sm:hidden'
           )}
-        </p>
+        >
+          {isCollections ? null : <GameFilters games={games} gameCounts={gameCounts} />}
+          <p className="ml-auto hidden shrink-0 text-xs font-medium text-muted-foreground tabular-nums sm:block">
+            {resultSummary(
+              search.view,
+              filteredPuzzles.length,
+              isCollections ? filteredCollections.length : searchedCollections.length,
+              search.page
+            )}
+          </p>
+        </div>
       </div>
 
       {isCollections ? (
         filteredCollections.length === 0 ? (
           <EmptyState kind="collections" />
         ) : (
-          <div className="grid gap-4 sm:grid-cols-2 sm:gap-5 lg:grid-cols-3">
+          <div className="grid grid-cols-2 gap-3 sm:gap-4 md:grid-cols-3">
             {filteredCollections.map((collection) => (
               <HubCollectionCard key={collection.uid} collection={collection} />
             ))}

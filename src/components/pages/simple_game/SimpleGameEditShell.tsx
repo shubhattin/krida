@@ -4,6 +4,7 @@ import { useMemo, useState, type ReactNode } from 'react';
 import { useMutation, useQueryClient } from '@tanstack/react-query';
 import { useAtom, type PrimitiveAtom } from 'jotai';
 import { toast } from 'sonner';
+import { ExternalLinkIcon, Trash2Icon } from 'lucide-react';
 import {
   clearTypingContextOnKeyDown,
   createTypingContext,
@@ -42,6 +43,10 @@ import type { GameAnalysis } from '~/util/games/issues';
 import { SIMPLE_GAME_META, simpleGameListHref, type SimpleGameKind } from '~/util/games/kinds';
 import { SimpleGameAttachments, type EditableAttachment } from './SimpleGameAttachments';
 import { SimpleGameIssues } from './SimpleGameIssues';
+import {
+  PuzzleCardImageSection,
+  type PuzzleImageInfo
+} from '~/components/pages/puzzle/PuzzleCardImageSection';
 import { SimpleGameSlugField } from './SimpleGameSlugField';
 
 export type SimpleGameEditorAtoms<T> = {
@@ -51,6 +56,14 @@ export type SimpleGameEditorAtoms<T> = {
   puzzleData: PrimitiveAtom<T>;
   attachments: PrimitiveAtom<EditableAttachment[]>;
   lipi: PrimitiveAtom<boolean>;
+  imageId: PrimitiveAtom<number | null>;
+  imageInfo: PrimitiveAtom<PuzzleImageInfo | null>;
+};
+
+/** Per-game cover-image prompt context: which puzzle content the AI prompt may see. */
+export type SimpleGameCoverConfig<T> = {
+  words: (data: T) => string[];
+  wordsLabel: string;
 };
 
 export function SimpleGameEditShell<T>({
@@ -60,6 +73,8 @@ export function SimpleGameEditShell<T>({
   onSlugUpdated,
   atoms,
   analysis,
+  previewHref,
+  cover,
   children
 }: {
   kind: SimpleGameKind;
@@ -68,6 +83,8 @@ export function SimpleGameEditShell<T>({
   onSlugUpdated: (slug: string) => void;
   atoms: SimpleGameEditorAtoms<T>;
   analysis: GameAnalysis;
+  previewHref: string;
+  cover: SimpleGameCoverConfig<T>;
   children: ReactNode;
 }) {
   const historyAtoms = useMemo(
@@ -77,6 +94,8 @@ export function SimpleGameEditShell<T>({
       listed: atoms.listed,
       puzzleData: atoms.puzzleData,
       attachments: atoms.attachments,
+      imageId: atoms.imageId,
+      imageInfo: atoms.imageInfo,
       tags: puzzle_tags_atom,
       collections: puzzle_collections_atom
     }),
@@ -92,6 +111,8 @@ export function SimpleGameEditShell<T>({
         onSlugUpdated={onSlugUpdated}
         atoms={atoms}
         analysis={analysis}
+        previewHref={previewHref}
+        cover={cover}
       >
         {children}
       </SimpleGameEditBody>
@@ -106,6 +127,8 @@ function SimpleGameEditBody<T>({
   onSlugUpdated,
   atoms,
   analysis,
+  previewHref,
+  cover,
   children
 }: {
   kind: SimpleGameKind;
@@ -114,6 +137,8 @@ function SimpleGameEditBody<T>({
   onSlugUpdated: (slug: string) => void;
   atoms: SimpleGameEditorAtoms<T>;
   analysis: GameAnalysis;
+  previewHref: string;
+  cover: SimpleGameCoverConfig<T>;
   children: ReactNode;
 }) {
   const trpc = useTRPC();
@@ -124,6 +149,7 @@ function SimpleGameEditBody<T>({
   const [listed, setListed] = useAtom(atoms.listed);
   const [puzzleData] = useAtom(atoms.puzzleData);
   const [attachments, setAttachments] = useAtom(atoms.attachments);
+  const [imageId] = useAtom(atoms.imageId);
   const [tags] = useAtom(puzzle_tags_atom);
   const [collections] = useAtom(puzzle_collections_atom);
   const [deleteOpen, setDeleteOpen] = useState(false);
@@ -195,6 +221,7 @@ function SimpleGameEditBody<T>({
     save_mut.mutate({
       puzzle_id: puzzleId,
       puzzle_slug: slug,
+      image_id: imageId,
       puzzle_data: {
         title: title.trim(),
         description: description.trim(),
@@ -206,97 +233,131 @@ function SimpleGameEditBody<T>({
   };
 
   return (
-    <div className="mx-auto flex w-full max-w-6xl flex-col gap-6 px-2 py-4 pb-28 sm:px-4">
-      <SimpleGameSlugField
-        kind={kind}
-        puzzleId={puzzleId}
-        slug={slug}
-        onSlugUpdated={onSlugUpdated}
-      />
-      <div className="flex flex-col gap-1">
-        <div className="flex items-center justify-between gap-2">
-          <Label htmlFor={`${kind}-edit-title`}>Title</Label>
-          <LipiLekhikaSwitch
-            checked={titleLipi}
-            onCheckedChange={setTitleLipi}
-            label="Lipi Lekhika for title"
+    <div className="mx-auto flex w-full max-w-6xl flex-col gap-5 px-2 py-4 pb-28 sm:px-4">
+      <section className="rounded-2xl border border-border/70 bg-card/60 p-4 shadow-sm sm:p-5">
+        <div className="mb-4 flex flex-wrap items-center justify-between gap-2">
+          <SimpleGameSlugField
+            kind={kind}
+            puzzleId={puzzleId}
+            slug={slug}
+            onSlugUpdated={onSlugUpdated}
           />
+          <a
+            href={previewHref}
+            target="_blank"
+            rel="noreferrer"
+            className="inline-flex items-center gap-1.5 rounded-md border border-border/70 px-2.5 py-1.5 text-sm font-medium text-muted-foreground transition-colors hover:text-foreground"
+          >
+            <ExternalLinkIcon className="size-3.5" />
+            Open preview
+          </a>
         </div>
-        <Input
-          id={`${kind}-edit-title`}
-          value={title}
-          className="text-lg font-semibold"
-          {...titleField}
-          onChange={(event) => setTitle(event.currentTarget.value)}
-          onBeforeInput={(event) =>
-            handleTypingBeforeInputEvent(titleTyping, event, setTitle, titleLipi)
-          }
-          onBlur={() => {
-            titleField.onBlur();
-            titleTyping.clearContext();
-            commit();
-          }}
-          onKeyDown={(event) => {
-            if (isLipiToggleKey(event)) {
-              event.preventDefault();
-              setTitleLipi((prev) => !prev);
-            }
-            clearTypingContextOnKeyDown(event, titleTyping);
-          }}
-        />
-      </div>
-      <div className="flex flex-col gap-1">
-        <div className="flex items-center justify-between gap-2">
-          <Label htmlFor={`${kind}-edit-description`}>Description</Label>
-          <LipiLekhikaSwitch
-            checked={descriptionLipi}
-            onCheckedChange={setDescriptionLipi}
-            label="Lipi Lekhika for description"
-          />
+        <div className="grid gap-x-8 gap-y-5 lg:grid-cols-2">
+          <div className="space-y-4">
+            <div className="flex flex-col gap-1.5">
+              <div className="flex items-center justify-between gap-2">
+                <Label htmlFor={`${kind}-edit-title`}>Title</Label>
+                <LipiLekhikaSwitch
+                  checked={titleLipi}
+                  onCheckedChange={setTitleLipi}
+                  label="Lipi Lekhika for title"
+                />
+              </div>
+              <Input
+                id={`${kind}-edit-title`}
+                value={title}
+                className="text-lg font-semibold"
+                {...titleField}
+                onChange={(event) => setTitle(event.currentTarget.value)}
+                onBeforeInput={(event) =>
+                  handleTypingBeforeInputEvent(titleTyping, event, setTitle, titleLipi)
+                }
+                onBlur={() => {
+                  titleField.onBlur();
+                  titleTyping.clearContext();
+                  commit();
+                }}
+                onKeyDown={(event) => {
+                  if (isLipiToggleKey(event)) {
+                    event.preventDefault();
+                    setTitleLipi((prev) => !prev);
+                  }
+                  clearTypingContextOnKeyDown(event, titleTyping);
+                }}
+              />
+            </div>
+            <div className="flex flex-col gap-1.5">
+              <div className="flex items-center justify-between gap-2">
+                <Label htmlFor={`${kind}-edit-description`}>Description</Label>
+                <LipiLekhikaSwitch
+                  checked={descriptionLipi}
+                  onCheckedChange={setDescriptionLipi}
+                  label="Lipi Lekhika for description"
+                />
+              </div>
+              <Textarea
+                id={`${kind}-edit-description`}
+                value={description}
+                rows={3}
+                {...descriptionField}
+                onChange={(event) => setDescription(event.currentTarget.value)}
+                onBeforeInput={(event) =>
+                  handleTypingBeforeInputEvent(
+                    descriptionTyping,
+                    event,
+                    setDescription,
+                    descriptionLipi
+                  )
+                }
+                onBlur={() => {
+                  descriptionField.onBlur();
+                  descriptionTyping.clearContext();
+                  commit();
+                }}
+                onKeyDown={(event) => {
+                  if (isLipiToggleKey(event)) {
+                    event.preventDefault();
+                    setDescriptionLipi((prev) => !prev);
+                  }
+                  clearTypingContextOnKeyDown(event, descriptionTyping);
+                }}
+              />
+            </div>
+            <div className="flex flex-wrap items-center justify-between gap-3 rounded-xl border border-border/60 bg-background/50 px-3 py-2.5">
+              <Label className="inline-flex cursor-pointer items-center gap-2.5">
+                <Switch
+                  checked={listed}
+                  onCheckedChange={(next) => {
+                    if (next && !analysis.canList) {
+                      toast.error('Resolve listing issues before publishing');
+                      return;
+                    }
+                    setListed(next);
+                    commit();
+                  }}
+                />
+                <span className="flex flex-col">
+                  <span className="text-sm font-semibold">{listed ? 'Listed' : 'Draft'}</span>
+                  <span className="text-xs font-normal text-muted-foreground">
+                    {listed ? 'Visible to players once saved' : 'Only reachable by preview link'}
+                  </span>
+                </span>
+              </Label>
+              <Button
+                variant="ghost"
+                size="sm"
+                className="text-destructive hover:bg-destructive/10 hover:text-destructive"
+                onClick={() => setDeleteOpen(true)}
+              >
+                <Trash2Icon className="size-4" />
+                Delete
+              </Button>
+            </div>
+          </div>
+          <PuzzleCatalogFields />
         </div>
-        <Textarea
-          id={`${kind}-edit-description`}
-          value={description}
-          rows={3}
-          {...descriptionField}
-          onChange={(event) => setDescription(event.currentTarget.value)}
-          onBeforeInput={(event) =>
-            handleTypingBeforeInputEvent(descriptionTyping, event, setDescription, descriptionLipi)
-          }
-          onBlur={() => {
-            descriptionField.onBlur();
-            descriptionTyping.clearContext();
-            commit();
-          }}
-          onKeyDown={(event) => {
-            if (isLipiToggleKey(event)) {
-              event.preventDefault();
-              setDescriptionLipi((prev) => !prev);
-            }
-            clearTypingContextOnKeyDown(event, descriptionTyping);
-          }}
-        />
-      </div>
-      <PuzzleCatalogFields />
-      <div className="flex flex-wrap items-center gap-4">
-        <Label className="inline-flex items-center gap-2">
-          <Switch
-            checked={listed}
-            onCheckedChange={(next) => {
-              if (next && !analysis.canList) {
-                toast.error('Resolve listing issues before publishing');
-                return;
-              }
-              setListed(next);
-              commit();
-            }}
-          />
-          Listed
-        </Label>
-        <Button variant="destructive" size="sm" onClick={() => setDeleteOpen(true)}>
-          Delete
-        </Button>
-      </div>
+      </section>
+      <SimpleGameCoverSection kind={kind} puzzleId={puzzleId} atoms={atoms} cover={cover} />
       <SimpleGameIssues analysis={analysis} />
       {children}
       <SimpleGameAttachments atom={atoms.attachments} />
@@ -321,5 +382,47 @@ function SimpleGameEditBody<T>({
         </AlertDialogContent>
       </AlertDialog>
     </div>
+  );
+}
+
+/** Optional cover image (cards, lists, share previews) — same flow as Padāvalī / Padajāla. */
+function SimpleGameCoverSection<T>({
+  kind,
+  puzzleId,
+  atoms,
+  cover
+}: {
+  kind: SimpleGameKind;
+  puzzleId: number;
+  atoms: SimpleGameEditorAtoms<T>;
+  cover: SimpleGameCoverConfig<T>;
+}) {
+  const { commit, acceptKeysAsSaved } = useEditorHistoryActions();
+  const [title] = useAtom(atoms.title);
+  const [description] = useAtom(atoms.description);
+  const [puzzleData] = useAtom(atoms.puzzleData);
+  const [imageId, setImageId] = useAtom(atoms.imageId);
+  const [imageInfo, setImageInfo] = useAtom(atoms.imageInfo);
+  const words = useMemo(() => cover.words(puzzleData), [cover, puzzleData]);
+
+  return (
+    <section className="rounded-2xl border border-border/70 bg-card/60 p-4 shadow-sm sm:p-5">
+      <PuzzleCardImageSection
+        puzzleId={puzzleId}
+        game={kind}
+        title={title}
+        description={description}
+        words={words}
+        wordsLabel={cover.wordsLabel}
+        imageId={imageId}
+        imageInfo={imageInfo}
+        onImageIdChange={setImageId}
+        onImageInfoChange={(info) => {
+          setImageInfo(info);
+          commit();
+        }}
+        onImageBaselineChange={() => acceptKeysAsSaved('imageId', 'imageInfo')}
+      />
+    </section>
   );
 }

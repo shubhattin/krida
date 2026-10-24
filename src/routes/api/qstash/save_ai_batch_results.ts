@@ -11,7 +11,7 @@ export const Route = createFileRoute('/api/qstash/save_ai_batch_results')({
     handlers: {
       POST: async ({ request }) => {
         console.log('QStash AI batch poll request received', new Date());
-        const verified = await verifyQstashRequest(request);
+        const verified = await verifyQstashRequest(request, '/save_ai_batch_results');
         if (!verified.ok) return verified.response;
         const body = verified.body;
 

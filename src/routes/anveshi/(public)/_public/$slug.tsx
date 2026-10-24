@@ -1,6 +1,10 @@
 import { createFileRoute, notFound, redirect } from '@tanstack/react-router';
 import { SimpleGamePlayPage } from '~/components/pages/simple_game/SimpleGamePlayPage';
-import { routeHeadFromPageMeta } from '~/components/tags/getPageMetaTags';
+import {
+  routeHeadFromPageMeta,
+  shareImageInfoFromAsset,
+  siteUrl
+} from '~/components/tags/getPageMetaTags';
 import { loadSimpleGameBySlug$ } from '~/lib/simple_game_loaders';
 import { SIMPLE_GAME_META, simpleGameHref } from '~/util/games/kinds';
 
@@ -18,10 +22,11 @@ export const Route = createFileRoute('/anveshi/(public)/_public/$slug')({
     if (result.kind === 'not_found') throw notFound();
     return result;
   },
-  head: ({ loaderData }) =>
-    routeHeadFromPageMeta({
+  head: ({ loaderData }) => {
+    const isPuzzle = loaderData?.kind === 'puzzle';
+    return routeHeadFromPageMeta({
       title: loaderData
-        ? `${loaderData.kind === 'puzzle' ? loaderData.puzzle.title : loaderData.title} | Anveṣī`
+        ? `${loaderData.kind === 'puzzle' ? loaderData.puzzle.title : loaderData.title} | Ānveṣī`
         : 'Not Found',
       description: loaderData
         ? loaderData.kind === 'puzzle'
@@ -29,8 +34,14 @@ export const Route = createFileRoute('/anveshi/(public)/_public/$slug')({
           : loaderData.description
         : null,
       project: 'anveshi',
-      robots: 'noindex'
-    }),
+      ...(isPuzzle
+        ? { canonical: `${siteUrl()}/anveshi/${encodeURIComponent(loaderData.puzzle.slug)}` }
+        : { robots: 'noindex' }),
+      share_image_info: shareImageInfoFromAsset(
+        loaderData?.kind === 'puzzle' ? loaderData.puzzle.image : null
+      )
+    });
+  },
   component: SlugRoute
 });
 

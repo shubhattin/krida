@@ -1,5 +1,7 @@
 import { z } from 'zod';
 import ms from 'ms';
+import { KRIDAS } from '~/constants';
+import { SIMPLE_GAME_KINDS } from '~/util/games/kinds';
 
 /*
 # Image Workflow
@@ -13,10 +15,15 @@ export const BATCH_POLLING_INTERVAL_S = ms('3mins') / 1000;
 /** OpenAI batch completion window is 24h; stop QStash retries after that. */
 export const MAX_BATCH_POLL_ATTEMPTS = Math.ceil((24 * 60 * 60) / BATCH_POLLING_INTERVAL_S);
 
-export const puzzle_image_game_enum = z.enum(['padavali', 'padajala']);
+export const puzzle_image_game_enum = z.enum(KRIDAS);
 export type PuzzleImageGame = z.infer<typeof puzzle_image_game_enum>;
 
-/** Shared fields for puzzle-card image batch rows (padavali or padajala). */
+/** Games wired into background (batch) image generation (currently every krida). */
+export function isPuzzleImageGame(game: string): game is PuzzleImageGame {
+  return puzzle_image_game_enum.safeParse(game).success;
+}
+
+/** Shared fields for puzzle-card image batch rows (any krida). */
 const image_batch_metadata_base = z.object({
   puzzle_id: z.number().int(),
   /** Which game owns this puzzle_id. Defaults to padavali for older rows. */
@@ -53,8 +60,15 @@ export const padajala_image_batch_metadata_schema = image_batch_metadata_base.ex
 /** @deprecated Prefer padavali_image_batch_metadata_schema; kept as alias for existing imports. */
 export const image_batch_metadata_schema = padavali_image_batch_metadata_schema;
 
+/** Dvayī / Bhramitā / Surūpa / Ānveṣī share one discriminator; `game` says which. */
+export const simple_game_image_batch_metadata_schema = image_batch_metadata_base.extend({
+  type: z.literal('krida-puzzle-image'),
+  game: z.enum(SIMPLE_GAME_KINDS)
+});
+
 export const batch_metadata_schema = z.discriminatedUnion('type', [
   padavali_image_batch_metadata_schema,
-  padajala_image_batch_metadata_schema
+  padajala_image_batch_metadata_schema,
+  simple_game_image_batch_metadata_schema
 ]);
 export type BatchMetadata = z.infer<typeof batch_metadata_schema>;

@@ -17,7 +17,8 @@ import {
 import { displayUserName, sessionUserFields } from '~/api/routers/user/session_user';
 import { resolveAuthUserNames, searchAuthUsers } from '~/lib/auth_users.server';
 import { requireTurnstileIfGuest } from '~/api/routers/turnstile_guard';
-import { adoptGuestSession } from '~/api/routers/stats_session_adopt';
+import { adoptGuestSession, canWriteSession } from '~/api/routers/stats_session_adopt';
+import { issueGuestClaimToken } from '~/api/routers/guest_claim_token';
 import {
   get_stats_data_input_schema,
   get_top_puzzles_input_schema,
@@ -25,8 +26,12 @@ import {
   get_user_list_input_schema
 } from '~/api/routers/stats_query_schema';
 import { escapeIlikeToken } from '~/util/puzzle/search';
+import { CACHE, invalidate_and_refresh_cache } from '~/util/cache.server/cache_loaders';
 import type { SimpleGameKind } from '~/util/games/kinds';
 import type { SimpleGameTableSet } from '~/db/schema/simple_game_tables';
+
+const settle = <A, E, R>(effect: Effect.Effect<A, E, R>) =>
+  effect.pipe(Effect.catch(() => Effect.void));
 
 export function createSimpleGameStatsRouter<TData>(
   kind: SimpleGameKind,
@@ -41,7 +46,7 @@ export function createSimpleGameStatsRouter<TData>(
     .mutation(({ input, ctx }) =>
       runTrpcEffect(
         Effect.gen(function* () {
-          const { turnstile_token, info } = input;
+          const { turnstile_token, client_play_id, info } = input;
           yield* requireTurnstileIfGuest(turnstile_token, ctx.user);
 
           const { puzzle_id, time_taken, accuracy, correct_attempts, total_attempts, session_id } =
@@ -49,7 +54,7 @@ export function createSimpleGameStatsRouter<TData>(
 
           const [session] = yield* dbRunHttp(`${kind}_stats.find_session`, (client) =>
             client
-              .select({ id: puzzle_sessions.id })
+              .select({ id: puzzle_sessions.id, user_id: puzzle_sessions.user_id })
               .from(puzzle_sessions)
               .innerJoin(puzzles, sessionForKind)
               .where(
@@ -57,7 +62,7 @@ export function createSimpleGameStatsRouter<TData>(
               )
               .limit(1)
           );
-          if (!session) {
+          if (!session || !(yield* canWriteSession(kind, session, ctx.user, client_play_id))) {
             return yield* Effect.fail(
               BadRequestError.make({ message: 'Invalid session for puzzle' })
             );
@@ -81,7 +86,18 @@ export function createSimpleGameStatsRouter<TData>(
             yield* adoptGuestSession(`${kind}_stats.adopt_guest_session`, session_id, ctx.user);
           }
 
-          return { submitted: true };
+          if (ctx.user?.id) {
+            yield* settle(
+              invalidate_and_refresh_cache(CACHE.user[`${kind}_dashboard`], {
+                userId: ctx.user.id
+              })
+            );
+          }
+
+          // Guests get a signed proof of this finished play to claim it after signing in.
+          const claim_token = ctx.user ? null : yield* issueGuestClaimToken(kind, session_id);
+
+          return { submitted: true, claim_token };
         })
       )
     );
@@ -136,6 +152,15 @@ export function createSimpleGameStatsRouter<TData>(
           }
 
           yield* completePlaySession(kind, client_play_id, session.id);
+
+          if (userFields.user_id) {
+            yield* settle(
+              invalidate_and_refresh_cache(CACHE.user[`${kind}_dashboard`], {
+                userId: userFields.user_id
+              })
+            );
+          }
+
           return { success: true, session_id: session.id };
         })
       )

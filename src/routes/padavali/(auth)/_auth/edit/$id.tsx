@@ -2,7 +2,7 @@ import { createFileRoute, Link, notFound } from '@tanstack/react-router';
 import { createServerFn } from '@tanstack/react-start';
 import { Provider as JotaiProvider } from 'jotai';
 import { IoMdArrowRoundBack } from 'react-icons/io';
-import { FaPlay } from 'react-icons/fa';
+import { FaGlobe, FaPlay } from 'react-icons/fa';
 import { z } from 'zod';
 import { adminServerFnMiddleware } from '~/lib/adminServerFn';
 import { routeHeadFromPageMeta } from '~/components/tags/getPageMetaTags';
@@ -113,6 +113,18 @@ function PadavaliEditRoute() {
           <FaPlay className="size-4 shrink-0" />
           Preview Puzzle
         </Link>
+        {word_puzzle.listed ? (
+          <Link
+            to="/padavali/$slug"
+            params={{ slug: word_puzzle.slug }}
+            target="_blank"
+            className="inline-flex items-center gap-2 text-lg font-semibold"
+            title="Public listed URL of this puzzle"
+          >
+            <FaGlobe className="size-4 shrink-0" />
+            Live Puzzle
+          </Link>
+        ) : null}
       </div>
       <JotaiProvider key={`edit_${word_puzzle.id}`}>
         <MainEditPage word_puzzle={word_puzzle} catalog={catalog} key={word_puzzle.id} />

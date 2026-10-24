@@ -31,7 +31,20 @@ export type CacheItem<TParams, TData> = {
     opts?: CacheRefreshOptions
   ) => Effect.Effect<void, CacheError, CacheServices>;
   key: (params: TParams) => Effect.Effect<string>;
+  /** Bind params for a batched read via `getCachedMany`. */
+  read: (params: TParams) => CacheRead<TData>;
 };
+
+/** One item of a `getCachedMany` batch. */
+export type CacheRead<TData> = {
+  key: string;
+  /** Whether this item is cached in Redis in the current environment. */
+  usesRedis: (isProd: boolean) => boolean;
+  /** `raw` from the batch, or `undefined` to read Redis itself. */
+  get: (raw: RedisJsonValue | undefined) => Effect.Effect<TData, CacheError, CacheServices>;
+};
+
+type CacheReadValue<T> = T extends CacheRead<infer D> ? D : never;
 
 export type CreateCacheConfig<TParams, TCached, TData = TCached> = {
   getKey: (params: TParams) => string;
@@ -66,6 +79,12 @@ export type CreateCacheConfig<TParams, TCached, TData = TCached> = {
    * not re-hit the model on every local request.
    */
   cacheOutsideProd?: boolean;
+  /**
+   * For expensive fetches (paid AI): after a failed fetch, fail fast for this many seconds instead
+   * of fetching again, and make single-flight waiters that time out fail instead of fetching in
+   * parallel. Cleared by `delete` / `refresh`.
+   */
+  failureTtlSeconds?: number;
 };
 
 /** Snapshot of generation for a guarded write; `unavailable` skips caching. */
@@ -75,6 +94,7 @@ type GenerationSnapshot =
   | { kind: 'unavailable' };
 
 const redisGenerationKey = (cacheKey: string) => `${cacheKey}:gen`;
+const redisFailureKey = (cacheKey: string) => `${cacheKey}:fail`;
 
 const toReturnValue = <TCached, TData>(
   data: TCached,
@@ -165,6 +185,7 @@ export function createCache<TParams, TCached, TData = TCached>(
   const useGenerationGuard = config.useGenerationGuard ?? false;
   const useSingleFlight = config.useSingleFlight ?? false;
   const cacheOutsideProd = config.cacheOutsideProd ?? false;
+  const failureTtlSeconds = config.failureTtlSeconds;
   const inFlight = new Map<string, Effect.Effect<TData, CacheError, CacheServices>>();
 
   const redisActive = (isProd: boolean) => isProd || cacheOutsideProd;
@@ -240,15 +261,23 @@ export function createCache<TParams, TCached, TData = TCached>(
           ? yield* snapshotGeneration(cacheKey)
           : ({ kind: 'unguarded' } as const satisfies GenerationSnapshot);
 
-      const fetched = yield* config
-        .fetch(params)
-        .pipe(
-          Effect.mapError((cause) =>
-            cause instanceof CacheError
-              ? cause
-              : CacheError.make({ operation: 'fetch', key: cacheKey, cause })
-          )
-        );
+      const fetched = yield* config.fetch(params).pipe(
+        Effect.mapError((cause) =>
+          cause instanceof CacheError
+            ? cause
+            : CacheError.make({ operation: 'fetch', key: cacheKey, cause })
+        ),
+        Effect.tapError(() =>
+          failureTtlSeconds && redisActive(appConfig.isProd)
+            ? Effect.gen(function* () {
+                const redis = yield* RedisClient;
+                yield* redis
+                  .set(redisFailureKey(cacheKey), 1, { ex: failureTtlSeconds })
+                  .pipe(Effect.catch(() => Effect.void));
+              })
+            : Effect.void
+        )
+      );
 
       if (
         redisActive(appConfig.isProd) &&
@@ -293,23 +322,45 @@ export function createCache<TParams, TCached, TData = TCached>(
       return toReturnValue(fetched, config.transform);
     });
 
-  const get = Effect.fn('cache.get')(function* (params: TParams) {
+  /** `prefetched`: the raw value an MGET already read for this key (skips the own GET). */
+  const read = Effect.fn('cache.get')(function* (
+    params: TParams,
+    prefetched: { raw: RedisJsonValue } | undefined
+  ) {
     const appConfig = yield* AppConfig;
     const cacheKey = config.getKey(params);
     const useRedis = redisActive(appConfig.isProd);
 
     if (useRedis) {
       const redis = yield* RedisClient;
-      const cached = yield* redis.get<RedisJsonValue>(cacheKey).pipe(
-        Effect.catch(() => Effect.succeed<RedisJsonValue>(null)),
-        Effect.annotateLogs({ category: 'cache', operation: 'get', key: cacheKey })
-      );
+      const cached = prefetched
+        ? prefetched.raw
+        : yield* redis.get<RedisJsonValue>(cacheKey).pipe(
+            Effect.catch(() => Effect.succeed<RedisJsonValue>(null)),
+            Effect.annotateLogs({ category: 'cache', operation: 'get', key: cacheKey })
+          );
       const parsed = parseCached(cached);
       if (parsed !== null) {
         return toReturnValue(parsed, config.transform);
       }
     } else {
       yield* Effect.sleep(DEV_DELAY);
+    }
+
+    if (useRedis && failureTtlSeconds) {
+      const redis = yield* RedisClient;
+      const recentFailure = yield* redis
+        .get<RedisJsonValue>(redisFailureKey(cacheKey))
+        .pipe(Effect.catch(() => Effect.succeed<RedisJsonValue>(null)));
+      if (recentFailure !== null) {
+        return yield* Effect.fail(
+          CacheError.make({
+            operation: 'fetchBackoff',
+            key: cacheKey,
+            cause: new Error('Recent fetch failure; backing off')
+          })
+        );
+      }
     }
 
     if (!useRedis || !useSingleFlight) {
@@ -369,6 +420,16 @@ export function createCache<TParams, TCached, TData = TCached>(
           }
         }
 
+        if (failureTtlSeconds) {
+          // Expensive fetch still running elsewhere: don't start a parallel one.
+          return yield* Effect.fail(
+            CacheError.make({
+              operation: 'singleFlightWait',
+              key: cacheKey,
+              cause: new Error('Timed out waiting for in-flight fetch')
+            })
+          );
+        }
         return yield* fetchAndCache(params, cacheKey, false);
       }).pipe(
         Effect.annotateLogs({ category: 'cache', operation: 'getSingleFlight', key: cacheKey }),
@@ -379,6 +440,8 @@ export function createCache<TParams, TCached, TData = TCached>(
     inFlight.set(cacheKey, memoized);
     return yield* memoized;
   });
+
+  const get = (params: TParams) => read(params, undefined);
 
   const deleteCache = Effect.fn('cache.delete')(function* (params: TParams) {
     const appConfig = yield* AppConfig;
@@ -395,6 +458,11 @@ export function createCache<TParams, TCached, TData = TCached>(
         .pipe(Effect.mapError(toCacheError('incrGeneration', cacheKey)));
     }
     yield* redis.del(cacheKey).pipe(Effect.mapError(toCacheError('delete', cacheKey)));
+    if (failureTtlSeconds) {
+      yield* redis
+        .del(redisFailureKey(cacheKey))
+        .pipe(Effect.mapError(toCacheError('deleteFailure', cacheKey)));
+    }
   });
 
   const refresh = Effect.fn('cache.refresh')(function* (
@@ -464,11 +532,50 @@ export function createCache<TParams, TCached, TData = TCached>(
 
   return {
     get,
+    read: (params) => ({
+      key: config.getKey(params),
+      usesRedis: (isProd) => redisActive(isProd),
+      get: (raw) => read(params, raw === undefined ? undefined : { raw })
+    }),
     delete: deleteCache,
     refresh,
     key: (params) => Effect.succeed(config.getKey(params))
   };
 }
+
+/**
+ * Read several cache items with a single Redis MGET instead of one GET each. Hits are parsed
+ * from the batch; misses (and items not cached in Redis here) fall through to the item's own
+ * `get`, so fetching, single-flight and failure backoff behave exactly as before.
+ */
+export const getCachedMany = Effect.fn('cache.getMany')(function* <
+  const R extends Record<string, CacheRead<unknown>>
+>(reads: R) {
+  const appConfig = yield* AppConfig;
+  const redis = yield* RedisClient;
+  const entries = Object.entries(reads);
+  const batched = entries.filter(([, entry]) => entry.usesRedis(appConfig.isProd));
+
+  // A failed MGET only costs the batching: every item then does its own GET.
+  const raws =
+    batched.length > 0
+      ? yield* redis.mget<RedisJsonValue>(batched.map(([, entry]) => entry.key)).pipe(
+          Effect.map((values) => new Map(batched.map(([name], i) => [name, values[i] ?? null]))),
+          Effect.catch(() => Effect.succeed(new Map<string, RedisJsonValue>()))
+        )
+      : new Map<string, RedisJsonValue>();
+
+  const results = yield* Effect.all(
+    entries.map(([name, entry]) =>
+      entry
+        .get(raws.has(name) ? (raws.get(name) ?? null) : undefined)
+        .pipe(Effect.map((value) => [name, value] as const))
+    ),
+    { concurrency: 'unbounded' }
+  );
+  // SAFETY: one result per key of `reads`, each produced by that key's own CacheRead.
+  return Object.fromEntries(results) as { [K in keyof R]: CacheReadValue<R[K]> };
+});
 
 /** Await cache delete, then warm cache in background. */
 export const invalidateAndRefreshCache = <TParams, TData>(

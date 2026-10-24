@@ -3,7 +3,12 @@
 import { useMemo, useState, type ReactNode } from 'react';
 import { useAtom } from 'jotai';
 import { useHydrateAtoms } from 'jotai/utils';
-import { SimpleGameEditShell, type SimpleGameEditorAtoms } from './SimpleGameEditShell';
+import {
+  SimpleGameEditShell,
+  type SimpleGameCoverConfig,
+  type SimpleGameEditorAtoms
+} from './SimpleGameEditShell';
+import type { PuzzleImageInfo } from '~/components/pages/puzzle/PuzzleCardImageSection';
 import {
   puzzle_collections_atom,
   puzzle_tags_atom,
@@ -13,7 +18,7 @@ import {
 import { SimpleGameAnalytics } from './SimpleGameAnalytics';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '~/components/ui/tabs';
 import type { GameAnalysis } from '~/util/games/issues';
-import type { SimpleGameKind } from '~/util/games/kinds';
+import { simpleGameViewHref, type SimpleGameKind } from '~/util/games/kinds';
 import type { EditableAttachment } from './SimpleGameAttachments';
 import type { attachment_list_type } from '~/db/db_shared_vals';
 
@@ -25,6 +30,7 @@ export type SimpleGameEditPuzzle<T> = {
   description: string;
   listed: boolean;
   puzzle_data: T;
+  image?: PuzzleImageInfo | null;
   attachments: {
     id: number;
     type: attachment_list_type;
@@ -40,6 +46,7 @@ export function SimpleGameViewEdit<T>({
   catalog,
   atoms,
   analyze,
+  cover,
   children
 }: {
   kind: SimpleGameKind;
@@ -47,6 +54,7 @@ export function SimpleGameViewEdit<T>({
   catalog: { tags: EditorTag[]; collections: EditorCollectionLink[] };
   atoms: SimpleGameEditorAtoms<T>;
   analyze: (data: T) => GameAnalysis;
+  cover: SimpleGameCoverConfig<T>;
   children: ReactNode;
 }) {
   const [slug, setSlug] = useState(puzzle.slug);
@@ -65,6 +73,8 @@ export function SimpleGameViewEdit<T>({
     [atoms.puzzleData, puzzle.puzzle_data],
     [atoms.attachments, attachments],
     [atoms.lipi, true],
+    [atoms.imageId, puzzle.image?.id ?? null],
+    [atoms.imageInfo, puzzle.image ?? null],
     [puzzle_tags_atom, catalog.tags],
     [puzzle_collections_atom, catalog.collections]
   ]);
@@ -77,6 +87,8 @@ export function SimpleGameViewEdit<T>({
       onSlugUpdated={setSlug}
       atoms={atoms}
       analyze={analyze}
+      previewHref={simpleGameViewHref(kind, puzzle.uid)}
+      cover={cover}
     >
       {children}
     </HydratedEdit>
@@ -90,6 +102,8 @@ function HydratedEdit<T>({
   onSlugUpdated,
   atoms,
   analyze,
+  previewHref,
+  cover,
   children
 }: {
   kind: SimpleGameKind;
@@ -98,6 +112,8 @@ function HydratedEdit<T>({
   onSlugUpdated: (slug: string) => void;
   atoms: SimpleGameEditorAtoms<T>;
   analyze: (data: T) => GameAnalysis;
+  previewHref: string;
+  cover: SimpleGameCoverConfig<T>;
   children: ReactNode;
 }) {
   const [puzzleData] = useAtom(atoms.puzzleData);
@@ -117,6 +133,8 @@ function HydratedEdit<T>({
           onSlugUpdated={onSlugUpdated}
           atoms={atoms}
           analysis={analysis}
+          previewHref={previewHref}
+          cover={cover}
         >
           {children}
         </SimpleGameEditShell>

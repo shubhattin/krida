@@ -509,18 +509,6 @@ const get_listed_puzzles_preview_route = publicProcedure
     )
   );
 
-/** Public: waiting-room UI refreshes schedule cache when countdown ends. */
-const refresh_current_schedule_route = publicProcedure.mutation(() =>
-  runTrpcEffect(
-    Effect.gen(function* () {
-      yield* invalidate_and_refresh_cache(CACHE.padavali.current_schedule, NO_CACHE_PARAMS);
-      yield* invalidate_and_refresh_cache(CACHE.padavali.next_schedule, NO_CACHE_PARAMS);
-      const current = yield* CACHE.padavali.current_schedule.get(NO_CACHE_PARAMS);
-      return { has_current: current !== undefined };
-    })
-  )
-);
-
 const get_puzzle_slugs_route = protectedAdminProcedure
   .input(z.object({ puzzle_id: z.number().int() }))
   .query(({ input: { puzzle_id } }) =>
@@ -648,7 +636,6 @@ export const puzzle_router = t.router({
   stats: padavali_stats_router,
   get_puzzle_list_page: get_puzzle_list_page_route,
   get_listed_puzzles_preview: get_listed_puzzles_preview_route,
-  refresh_current_schedule: refresh_current_schedule_route,
   get_puzzle_slugs: get_puzzle_slugs_route,
   delete_redirect_slug: delete_redirect_slug_route
 });

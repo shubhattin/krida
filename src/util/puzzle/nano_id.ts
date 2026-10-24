@@ -4,6 +4,7 @@ import { z } from 'zod';
 import { collections, puzzles } from '~/db/schema';
 import type { DbTransaction } from '~/effect/database';
 
+// Kept short on purpose: these ids appear in public preview / collection URLs.
 const UID_LENGTH = 5;
 const UID_ALPHABET = '0123456789ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz';
 const MAX_UID_ATTEMPTS = 8;

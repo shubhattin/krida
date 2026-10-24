@@ -2,6 +2,8 @@ import { Context, Effect, Layer, Redacted, Schema } from 'effect';
 import { ConfigError } from './errors';
 
 const NonEmptyString = Schema.String.check(Schema.isMinLength(1));
+/** HS256 key material — at least 32 bytes as text. */
+const SigningSecret = Schema.String.check(Schema.isMinLength(32));
 
 const AppConfigSchema = Schema.Struct({
   dbUrl: NonEmptyString,
@@ -14,12 +16,15 @@ const AppConfigSchema = Schema.Struct({
   openaiApiKey: NonEmptyString,
   openrouterApiKey: NonEmptyString,
   qstashToken: NonEmptyString,
+  guestClaimSecret: SigningSecret,
   betterAuthUrl: NonEmptyString,
   siteUrl: NonEmptyString,
   cloudfrontUrl: NonEmptyString,
   isDev: Schema.Boolean,
   isProd: Schema.Boolean,
   isQstashEnabled: Schema.Boolean,
+  /** Vercel production (not preview / local). */
+  isProductionDeployment: Schema.Boolean,
   // optionals
   turnstileSecretKey: Schema.optional(NonEmptyString)
 });
@@ -34,6 +39,7 @@ type RedactedConfigKeys =
   | 'openaiApiKey'
   | 'openrouterApiKey'
   | 'qstashToken'
+  | 'guestClaimSecret'
   | 'turnstileSecretKey';
 
 /** Service API for the loaded application configuration (secrets held as `Redacted`). */
@@ -44,6 +50,7 @@ export type AppConfigService = Omit<AppConfigDecoded, RedactedConfigKeys> & {
   readonly openaiApiKey: Redacted.Redacted<string>;
   readonly openrouterApiKey: Redacted.Redacted<string>;
   readonly qstashToken: Redacted.Redacted<string>;
+  readonly guestClaimSecret: Redacted.Redacted<string>;
   readonly turnstileSecretKey: Redacted.Redacted<string> | undefined;
 };
 
@@ -72,13 +79,15 @@ const loadConfig = Effect.fn('loadConfig')(function* () {
     openaiApiKey: env.OPENAI_API_KEY,
     openrouterApiKey: env.OPENROUTER_API_KEY,
     qstashToken: env.QSTASH_TOKEN,
+    guestClaimSecret: env.GUEST_CLAIM_SECRET,
     turnstileSecretKey: env.TURNSTILE_SECRET_KEY,
     betterAuthUrl: env.VITE_BETTER_AUTH_URL,
     siteUrl: env.VITE_SITE_URL,
     cloudfrontUrl: env.VITE_AWS_CLOUDFRONT_URL,
     isDev: import.meta.env?.DEV === true || env.NODE_ENV === 'development',
     isProd: import.meta.env?.PROD === true || env.NODE_ENV === 'production',
-    isQstashEnabled: isProductionMode(env)
+    isQstashEnabled: isProductionMode(env),
+    isProductionDeployment: isProductionMode(env)
   });
 
   if (parsed._tag === 'Failure') {
@@ -102,6 +111,7 @@ const loadConfig = Effect.fn('loadConfig')(function* () {
     openaiApiKey: Redacted.make(data.openaiApiKey),
     openrouterApiKey: Redacted.make(data.openrouterApiKey),
     qstashToken: Redacted.make(data.qstashToken),
+    guestClaimSecret: Redacted.make(data.guestClaimSecret),
     turnstileSecretKey: data.turnstileSecretKey
       ? Redacted.make(data.turnstileSecretKey)
       : undefined,
@@ -110,7 +120,8 @@ const loadConfig = Effect.fn('loadConfig')(function* () {
     cloudfrontUrl: data.cloudfrontUrl,
     isDev: data.isDev,
     isProd: data.isProd,
-    isQstashEnabled: data.isQstashEnabled
+    isQstashEnabled: data.isQstashEnabled,
+    isProductionDeployment: data.isProductionDeployment
   } satisfies AppConfigService;
 });
 

@@ -3,7 +3,7 @@
 import { useEffect, useRef, useState, type ReactNode } from 'react';
 import { IoShareSocialOutline } from 'react-icons/io5';
 import { cn } from '~/lib/utils';
-import type { PublicGameKind } from '~/util/games/kinds';
+import type { GameKind } from '~/util/catalog/tags';
 import { PuzzleBackLink } from './PuzzleBackLink';
 import titleStyles from './puzzle-title.module.css';
 
@@ -78,7 +78,7 @@ export function PuzzleHeader({
   /** Script font for transliterated title/description. */
   fontClassName?: string;
   /** Show an "All puzzles" link filtered to this game in the top bar. */
-  backToGame?: PublicGameKind;
+  backToGame?: GameKind;
   /** Secondary controls (script, share) — top-right, out of the way. */
   toolbar?: ReactNode;
   /** Gameplay actions (hint) — centered under the description. */

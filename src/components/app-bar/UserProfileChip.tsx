@@ -49,26 +49,22 @@ import { startGoogleSignIn } from '~/lib/google_sign_in';
 import { resetPosthog } from '~/components/tags/PosthogInit';
 import type { GuestAuthPromptTrigger } from '~/lib/guest_auth_prompt';
 import { cn } from '~/lib/utils';
-import {
-  isPublicGameKind,
-  isSimpleGameKind,
-  SIMPLE_GAME_META,
-  type PublicGameKind,
-  type SimpleGameKind
-} from '~/util/games/kinds';
+import { SIMPLE_GAME_META, type SimpleGameKind } from '~/util/games/kinds';
+import { GAME_KINDS, isGameKind, type GameKind } from '~/util/catalog/tags';
 import {
   useGuestAuthPrompt,
   useGuestCompletedCount
 } from '~/components/app-bar/useGuestAuthPrompt';
+import { useClaimGuestPlays } from '~/components/app-bar/useClaimGuestPlays';
 import chipStyles from '~/components/app-bar/user-profile-chip.module.css';
 
 /** Where the chip is rendered — drives accent colours and the header label. */
-export type ProfileContext = 'krida' | PublicGameKind | SimpleGameKind;
+export type ProfileContext = 'krida' | GameKind;
 
 /** Resolve the profile context from the first path segment (`/padajala/...`, `/dvayi/...`). */
 export function profileContextFromPath(pathname: string): ProfileContext {
   const segment = pathname.split('/')[1] ?? '';
-  if (isPublicGameKind(segment) || isSimpleGameKind(segment)) return segment;
+  if (isGameKind(segment)) return segment;
   return 'krida';
 }
 
@@ -172,6 +168,7 @@ export function UserProfileChip({ context }: { context: ProfileContext }) {
   const isClient = useIsClient();
   const trpc = useTRPC();
   const prompt = useGuestAuthPrompt(!!user, isClient && !isPending);
+  useClaimGuestPlays(!!user, isClient && !isPending);
   const guestCompleted = useGuestCompletedCount();
   const statsQuery = useQuery({
     ...trpc.user.get_dashboard.queryOptions({ game: 'all' }),
@@ -305,7 +302,7 @@ function guestCopy(trigger: GuestAuthPromptTrigger | null, completedCount: numbe
   if (trigger === 'milestone') {
     return {
       title: `${completedCount} puzzles solved!`,
-      description: 'Sign in with Google to keep track of your progress from here on.'
+      description: 'Sign in with Google to save your recent puzzles to your profile.'
     };
   }
   if (trigger === 'complete') {
@@ -427,9 +424,7 @@ type DashboardData = {
     best_time_seconds: number | null;
     best_accuracy: number | null;
   };
-  padavali: GameDashboardStats;
-  padajala: GameDashboardStats;
-};
+} & Record<GameKind, GameDashboardStats>;
 
 function SignedInCard({
   context,
@@ -453,8 +448,8 @@ function SignedInCard({
   onLogout: () => void;
 }) {
   // Current game first so its row sits right under the overview.
-  const gameOrder: PublicGameKind[] =
-    context === 'padajala' ? ['padajala', 'padavali'] : ['padavali', 'padajala'];
+  const gameOrder: GameKind[] =
+    context === 'krida' ? [...GAME_KINDS] : [context, ...GAME_KINDS.filter((g) => g !== context)];
 
   return (
     <div>
@@ -497,9 +492,7 @@ function SignedInCard({
           <>
             <div className="flex flex-col gap-2">
               <div className="flex items-center justify-between px-0.5">
-                <p className="text-[11px] font-semibold tracking-wide text-muted-foreground uppercase">
-                  All games
-                </p>
+                <p className="text-[11px] font-semibold text-muted-foreground">All games</p>
                 {data.totals.started > 0 ? (
                   <p className="text-[11px] text-muted-foreground tabular-nums">
                     {data.totals.completion_rate}% completed
@@ -535,9 +528,7 @@ function SignedInCard({
             </div>
 
             <div className="flex flex-col gap-1.5">
-              <p className="px-0.5 text-[11px] font-semibold tracking-wide text-muted-foreground uppercase">
-                By game
-              </p>
+              <p className="px-0.5 text-[11px] font-semibold text-muted-foreground">By game</p>
               {gameOrder.map((game) => (
                 <GameStatsRow
                   key={game}
@@ -576,7 +567,7 @@ function GameStatsRow({
   current,
   onNavigate
 }: {
-  game: PublicGameKind;
+  game: GameKind;
   stats: GameDashboardStats;
   current: boolean;
   onNavigate: () => void;
@@ -589,7 +580,7 @@ function GameStatsRow({
   return (
     <Link
       to="/puzzles"
-      search={{ game: meta.puzzlesGame }}
+      search={{ game: meta.kind }}
       onClick={onNavigate}
       aria-current={current ? 'page' : undefined}
       className={cn(
@@ -600,7 +591,7 @@ function GameStatsRow({
       )}
     >
       <Image
-        src={GAME_APP_ICON_SRC[meta.icon]}
+        src={GAME_APP_ICON_SRC[meta.kind]}
         alt=""
         width={28}
         height={28}

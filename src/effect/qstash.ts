@@ -8,6 +8,15 @@ const NonNegInt = Schema.Int.check(Schema.isGreaterThanOrEqualTo(0));
 const Key32 = Schema.String.check(Schema.isBetweenLength(32, 32));
 const NonEmptyString = Schema.String.check(Schema.isMinLength(1));
 
+export type QstashPath =
+  | '/schedule_listing'
+  | '/padajala/schedule_listing'
+  | '/save_ai_batch_results';
+
+/** Destination URL a message is published to — also the signed `sub` the receiver must match. */
+export const qstashTargetUrl = (siteUrl: string, path: QstashPath) =>
+  `${siteUrl}/api/qstash${path}`;
+
 export const scheduleListingPayloadSchema = Schema.Struct({
   puzzle_id: PositiveInt,
   schedule_id: PositiveInt,
@@ -52,19 +61,18 @@ export class QStashPublisher extends Context.Service<
     Effect.gen(function* () {
       const config = yield* AppConfig;
       const client = new Client({ token: Redacted.value(config.qstashToken) });
-      const baseUrl = `${config.siteUrl}/api/qstash`;
       const enabled = config.isQstashEnabled;
 
       const publish = <A>(
         operation: string,
-        path: string,
+        path: QstashPath,
         body: A,
         delay_s: number
       ): Effect.Effect<void, QueueError> => {
         if (!enabled) return Effect.void;
         return tryQueue(operation, async () => {
           await client.publishJSON({
-            url: `${baseUrl}${path}`,
+            url: qstashTargetUrl(config.siteUrl, path),
             delay: delay_s,
             body
           });

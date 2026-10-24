@@ -2,13 +2,12 @@
 
 import { useContext, useEffect, useRef, type ReactNode } from 'react';
 import { Link, getRouteApi, useNavigate, useRouterState } from '@tanstack/react-router';
-import { ArrowRight, LayoutGrid, Puzzle } from 'lucide-react';
+import { ArrowRight, Puzzle } from 'lucide-react';
 import { motion, useReducedMotion } from 'framer-motion';
-import { Image } from '@unpic/react';
 import { ScriptSelector } from '~/components/pages/padavali/ScriptSelector';
 import { AppContext } from '~/components/AppDataContext';
-import { GAME_APP_ICON_SRC } from '~/components/GameAppIcon';
-import { HUB_GAMES, HUB_GAME_LIST, hubGameFromHomeHash, hubHomeHashForGame } from './hub_games';
+import { HUB_GAMES, hubGameFromHomeHash, hubHomeHashForGame } from './hub_games';
+import { GamePickerChips } from './GamePickerChips';
 import type { HubData } from './hub_data';
 import { HubPuzzleCard } from './HubPuzzleCard';
 import { HubCollectionCard } from './HubCollectionCard';
@@ -16,7 +15,7 @@ import { HubTodayCard } from './HubTodayCard';
 import { HubGameShowcase } from './HubGameShowcase';
 import { tagsByPopularity } from './hub_puzzles';
 import { useHubPuzzles } from './useHubPuzzles';
-import type { PublicGameKind } from '~/util/games/kinds';
+import { GAME_KINDS, type GameKind } from '~/util/catalog/tags';
 import { cn } from '~/lib/utils';
 import { Button } from '~/components/ui/button';
 
@@ -46,32 +45,19 @@ function HubSectionHeading({
   );
 }
 
-// TODO: add dvayi/bhramita/surupa/anveshi once those games ship on the hub.
-const PUZZLE_FILTERS: {
-  value: 'all' | PublicGameKind;
-  label: string;
-  icon?: (typeof GAME_APP_ICON_SRC)[keyof typeof GAME_APP_ICON_SRC];
-}[] = [
-  { value: 'all', label: 'All' },
-  {
-    value: 'padavali',
-    label: HUB_GAMES.padavali.name,
-    icon: GAME_APP_ICON_SRC[HUB_GAMES.padavali.icon]
-  },
-  {
-    value: 'padajala',
-    label: HUB_GAMES.padajala.name,
-    icon: GAME_APP_ICON_SRC[HUB_GAMES.padajala.icon]
-  }
-];
-
-function RecentlyAdded({ puzzles }: { puzzles: ReturnType<typeof useHubPuzzles>['puzzles'] }) {
+function RecentlyAdded({
+  puzzles,
+  games
+}: {
+  puzzles: ReturnType<typeof useHubPuzzles>['puzzles'];
+  games: readonly GameKind[];
+}) {
   const { game: gameSearch } = homeRoute.useSearch();
   const navigate = useNavigate({ from: '/' });
   const hash = useRouterState({ select: (s) => s.location.hash });
   const hashGame = hubGameFromHomeHash(hash);
   /** `?game=` is SSR-safe (hash is not sent to the server). */
-  const game: 'all' | PublicGameKind = gameSearch ?? 'all';
+  const game: 'all' | GameKind = gameSearch ?? 'all';
   const { script, setScript } = useContext(AppContext);
   const reduceMotion = useReducedMotion();
   const scrolledHashRef = useRef<string | null>(null);
@@ -79,7 +65,7 @@ function RecentlyAdded({ puzzles }: { puzzles: ReturnType<typeof useHubPuzzles>[
     game === 'all' ? puzzles : puzzles.filter((puzzle) => puzzle.game === game)
   ).slice(0, 8);
 
-  // `/#padavali` alone → promote into `?game=` so the filter stays shareable/SSR-friendly.
+  // `/#<game>` alone → promote into `?game=` so the filter stays shareable/SSR-friendly.
   useEffect(() => {
     if (!hashGame || hashGame === 'all' || gameSearch === hashGame) return;
     void navigate({
@@ -89,7 +75,7 @@ function RecentlyAdded({ puzzles }: { puzzles: ReturnType<typeof useHubPuzzles>[
     });
   }, [gameSearch, hashGame, navigate]);
 
-  // Scroll to the puzzles section when landing via `?game=` (redirect) or `#padavali` / `#padajala`.
+  // Scroll to the puzzles section when landing via `?game=` (redirect) or `#<game>`.
   useEffect(() => {
     const targetGame = gameSearch ?? (hashGame && hashGame !== 'all' ? hashGame : null);
     if (!targetGame) return;
@@ -97,7 +83,7 @@ function RecentlyAdded({ puzzles }: { puzzles: ReturnType<typeof useHubPuzzles>[
     if (scrolledHashRef.current === id) return;
     scrolledHashRef.current = id;
 
-    // Add hash after a search-only redirect so the URL matches `/#padavali` deep links.
+    // Add hash after a search-only redirect so the URL matches `/#<game>` deep links.
     if (!hashGame) {
       void navigate({
         search: { game: targetGame },
@@ -115,7 +101,7 @@ function RecentlyAdded({ puzzles }: { puzzles: ReturnType<typeof useHubPuzzles>[
     return () => cancelAnimationFrame(frame);
   }, [gameSearch, hashGame, navigate, reduceMotion]);
 
-  const setGameFilter = (value: 'all' | PublicGameKind) => {
+  const setGameFilter = (value: 'all' | GameKind) => {
     const nextHash = hubHomeHashForGame(value);
     // Chip clicks update the URL; skip auto-scroll (only landings via hash should scroll).
     scrolledHashRef.current = nextHash;
@@ -128,10 +114,16 @@ function RecentlyAdded({ puzzles }: { puzzles: ReturnType<typeof useHubPuzzles>[
 
   return (
     <section className="relative flex flex-col gap-4">
-      {/* Deep-link anchors for `/#puzzles`, `/#padavali`, `/#padajala` */}
+      {/* Deep-link anchors for `/#puzzles` and every `/#<game>`. These carry no
+          text, so hidden games stay unmentioned while bookmarked hashes still scroll. */}
       <div id="puzzles" className="pointer-events-none absolute -top-24 h-px w-px scroll-mt-24" />
-      <div id="padavali" className="pointer-events-none absolute -top-24 h-px w-px scroll-mt-24" />
-      <div id="padajala" className="pointer-events-none absolute -top-24 h-px w-px scroll-mt-24" />
+      {GAME_KINDS.map((kind) => (
+        <div
+          key={kind}
+          id={kind}
+          className="pointer-events-none absolute -top-24 h-px w-px scroll-mt-24"
+        />
+      ))}
       <HubSectionHeading
         title="Puzzles"
         description="Recent puzzles from every game"
@@ -149,28 +141,7 @@ function RecentlyAdded({ puzzles }: { puzzles: ReturnType<typeof useHubPuzzles>[
         }
       />
       <div className="flex flex-wrap items-center gap-2">
-        {PUZZLE_FILTERS.map((option) => (
-          <button
-            key={option.value}
-            type="button"
-            aria-pressed={game === option.value}
-            onClick={() => setGameFilter(option.value)}
-            className={cn(
-              'relative inline-flex items-center gap-1.5 rounded-full border px-3 py-1.5 text-xs font-semibold transition-colors duration-200',
-              'focus-visible:ring-2 focus-visible:ring-indigo-400/70 focus-visible:outline-none',
-              game === option.value
-                ? 'border-slate-900 bg-slate-900 text-white dark:border-white dark:bg-white dark:text-slate-900'
-                : 'border-slate-200 bg-white/70 text-slate-600 hover:border-slate-300 hover:bg-white dark:border-slate-700 dark:bg-slate-900/60 dark:text-slate-300 dark:hover:border-slate-600'
-            )}
-          >
-            {option.icon ? (
-              <Image src={option.icon} alt="" width={14} height={14} className="size-3.5" />
-            ) : (
-              <LayoutGrid className="size-3.5" aria-hidden />
-            )}
-            {option.label}
-          </button>
-        ))}
+        <GamePickerChips games={games} value={game} onChange={setGameFilter} />
         <div className="ml-auto">
           <ScriptSelector script={script} onScriptChange={setScript} compact />
         </div>
@@ -205,9 +176,11 @@ export default function HubHome({ data }: { data: HubData }) {
   const { puzzles } = useHubPuzzles(data);
   const tags = tagsByPopularity(puzzles).slice(0, 24);
   const reduceMotion = useReducedMotion();
-  const todayGames = HUB_GAME_LIST.filter((game) =>
-    game.kind === 'padavali' ? data.padavali.today : data.padajala.today
-  );
+  const visibleGames = data.visibleGames;
+  const visibleMetas = visibleGames.map((kind) => HUB_GAMES[kind]);
+  const todayGames = (['padavali', 'padajala'] as const)
+    .map((kind) => HUB_GAMES[kind])
+    .filter((game) => data[game.kind].today);
 
   return (
     <div className="relative overflow-x-clip">
@@ -217,7 +190,7 @@ export default function HubHome({ data }: { data: HubData }) {
       </div>
 
       <div className="relative mx-auto flex max-w-6xl flex-col gap-7 px-4 py-4 sm:gap-14 sm:py-8">
-        <HubGameShowcase />
+        <HubGameShowcase games={visibleMetas} />
 
         {todayGames.length > 0 ? (
           <section className="flex flex-col gap-4">
@@ -246,7 +219,7 @@ export default function HubHome({ data }: { data: HubData }) {
           </section>
         ) : null}
 
-        <RecentlyAdded puzzles={puzzles} />
+        <RecentlyAdded puzzles={puzzles} games={visibleGames} />
 
         {data.collections.length > 0 ? (
           <section className="flex flex-col gap-4">
@@ -271,7 +244,7 @@ export default function HubHome({ data }: { data: HubData }) {
                 </Button>
               }
             />
-            <div className="flex snap-x snap-mandatory scrollbar-none gap-4 overflow-x-auto pb-2">
+            <div className="grid grid-cols-2 gap-3 sm:gap-4 md:grid-cols-3">
               {data.collections.map((collection, index) => (
                 <motion.div
                   key={collection.uid}
@@ -281,7 +254,7 @@ export default function HubHome({ data }: { data: HubData }) {
                     duration: 0.28,
                     delay: reduceMotion ? 0 : index * 0.05
                   }}
-                  className="w-64 shrink-0 snap-start sm:w-72"
+                  className="h-full min-w-0"
                 >
                   <HubCollectionCard collection={collection} />
                 </motion.div>

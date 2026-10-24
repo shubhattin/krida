@@ -23,6 +23,7 @@ import {
   requestGuestAuthPrompt,
   setGuestGameActive
 } from '~/lib/guest_auth_prompt';
+import { rememberGuestPlay } from '~/lib/guest_play_claims';
 
 /**
  * Pre-eslint (#45) this effect intentionally omitted the mutation object from deps.
@@ -82,7 +83,10 @@ const GameMetricsCollector = ({
     // never during render — the ref is read/written from mutation lifecycle code.
     // oxlint-disable-next-line react/refs
     trpc.puzzle.stats.submit_stats.mutationOptions({
-      onSuccess() {
+      onSuccess(data, variables) {
+        if (data.claim_token) {
+          rememberGuestPlay('padavali', variables.info.session_id, data.claim_token);
+        }
         setTurnstileToken(null);
         resetTurnstile();
         resetGamesStarted();
@@ -230,6 +234,7 @@ const GameMetricsCollector = ({
 
     syncSessionPracticeMode({
       turnstile_token: token,
+      client_play_id: clientPlayIdRef.current,
       session_id: sessionId,
       puzzle_id,
       practice_mode: true
@@ -265,6 +270,7 @@ const GameMetricsCollector = ({
       try {
         await mutateSubmitStatsAsync({
           turnstile_token: token,
+          client_play_id: clientPlayIdRef.current,
           info: {
             puzzle_id,
             session_id,

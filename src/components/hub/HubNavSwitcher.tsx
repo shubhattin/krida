@@ -36,13 +36,13 @@ const PLACES: {
   { key: 'puzzles', to: '/puzzles', label: 'Puzzles', hint: 'Every listed puzzle', icon: Puzzle }
 ];
 
-function GamesMark({ className }: { className?: string }) {
+function GamesMark({ games, className }: { games: HubGameMeta[]; className?: string }) {
   return (
     <span className={cn('flex items-center', className)} aria-hidden="true">
-      {HUB_GAME_LIST.slice(0, 2).map((game, index) => (
+      {games.map((game, index) => (
         <Image
           key={game.kind}
-          src={GAME_APP_ICON_SRC[game.icon]}
+          src={GAME_APP_ICON_SRC[game.kind]}
           alt=""
           width={16}
           height={16}
@@ -74,6 +74,22 @@ const GAME_CARD_ACTIVE = {
   padajala: {
     card: 'border-amber-300 bg-amber-50 shadow-sm dark:border-amber-500/45 dark:bg-amber-950/40',
     check: 'text-amber-600 dark:text-amber-300'
+  },
+  dvayi: {
+    card: 'border-rose-300 bg-rose-50 shadow-sm dark:border-rose-500/45 dark:bg-rose-950/55',
+    check: 'text-rose-600 dark:text-rose-300'
+  },
+  bhramita: {
+    card: 'border-emerald-300 bg-emerald-50 shadow-sm dark:border-emerald-500/45 dark:bg-emerald-950/40',
+    check: 'text-emerald-600 dark:text-emerald-300'
+  },
+  surupa: {
+    card: 'border-violet-300 bg-violet-50 shadow-sm dark:border-violet-500/45 dark:bg-violet-950/55',
+    check: 'text-violet-600 dark:text-violet-300'
+  },
+  anveshi: {
+    card: 'border-sky-300 bg-sky-50 shadow-sm dark:border-sky-500/45 dark:bg-sky-950/40',
+    check: 'text-sky-600 dark:text-sky-300'
   }
 } as const;
 
@@ -81,7 +97,15 @@ const SWITCHER_TRIGGER_GAME = {
   padavali:
     'border-blue-300 bg-blue-50 text-slate-900 dark:border-blue-500/50 dark:bg-blue-950/70 dark:text-slate-50',
   padajala:
-    'border-amber-300 bg-amber-50 text-slate-900 dark:border-amber-500/50 dark:bg-amber-950/60 dark:text-slate-50'
+    'border-amber-300 bg-amber-50 text-slate-900 dark:border-amber-500/50 dark:bg-amber-950/60 dark:text-slate-50',
+  dvayi:
+    'border-rose-300 bg-rose-50 text-slate-900 dark:border-rose-500/50 dark:bg-rose-950/70 dark:text-slate-50',
+  bhramita:
+    'border-emerald-300 bg-emerald-50 text-slate-900 dark:border-emerald-500/50 dark:bg-emerald-950/60 dark:text-slate-50',
+  surupa:
+    'border-violet-300 bg-violet-50 text-slate-900 dark:border-violet-500/50 dark:bg-violet-950/70 dark:text-slate-50',
+  anveshi:
+    'border-sky-300 bg-sky-50 text-slate-900 dark:border-sky-500/50 dark:bg-sky-950/60 dark:text-slate-50'
 } as const;
 
 function PlaceLink({ place, active }: { place: (typeof PLACES)[number]; active: boolean }) {
@@ -133,7 +157,7 @@ function GameNavCard({ game, active }: { game: HubGameMeta; active: boolean }) {
       )}
     >
       <span className="flex items-start gap-2">
-        <GameAppIcon game={game.icon} name={game.name} size="sm" className="size-10 rounded-xl" />
+        <GameAppIcon game={game.kind} name={game.name} size="sm" className="size-10 rounded-xl" />
         {selected ? <Check className={cn('ml-auto size-4 shrink-0', selected.check)} /> : null}
       </span>
       <span className="min-w-0">
@@ -150,16 +174,18 @@ function GameNavCard({ game, active }: { game: HubGameMeta; active: boolean }) {
 
 function SwitcherTriggerLabel({
   active,
-  activeGame
+  activeGame,
+  games
 }: {
   active: HubNavId;
   activeGame: HubGameMeta | null;
+  games: HubGameMeta[];
 }) {
   if (activeGame) {
     return (
       <>
         <Image
-          src={GAME_APP_ICON_SRC[activeGame.icon]}
+          src={GAME_APP_ICON_SRC[activeGame.kind]}
           alt=""
           width={20}
           height={20}
@@ -182,16 +208,23 @@ function SwitcherTriggerLabel({
 
   return (
     <>
-      <GamesMark className="hidden sm:flex" />
+      <GamesMark games={games} className="hidden sm:flex" />
       <span className="truncate">Krida</span>
     </>
   );
 }
 
-export function HubNavSwitcher({ active }: { active: HubNavId }) {
+export function HubNavSwitcher({
+  active,
+  games = HUB_GAME_LIST
+}: {
+  active: HubNavId;
+  /** Progressive release: hub pages pass visible games; admin/auth default to all. */
+  games?: HubGameMeta[];
+}) {
   const [open, setOpen] = useState(false);
   useCloseOnNavigate(() => setOpen(false));
-  const activeGame = active === 'padavali' || active === 'padajala' ? HUB_GAMES[active] : null;
+  const activeGame = active === 'home' || active === 'puzzles' ? null : HUB_GAMES[active];
   const triggerLabel = activeGame
     ? `Switch game, currently ${activeGame.name}`
     : `Open games and pages, currently ${active === 'puzzles' ? 'Puzzles' : 'Home'}`;
@@ -213,7 +246,7 @@ export function HubNavSwitcher({ active }: { active: HubNavId }) {
           />
         }
       >
-        <SwitcherTriggerLabel active={active} activeGame={activeGame} />
+        <SwitcherTriggerLabel active={active} activeGame={activeGame} games={games} />
         <ChevronDown
           className={cn(
             'size-3.5 shrink-0 opacity-60 transition-transform duration-200',
@@ -242,11 +275,9 @@ export function HubNavSwitcher({ active }: { active: HubNavId }) {
         </div>
         <Separator className="bg-slate-200 dark:bg-slate-700" />
         <div className="flex flex-col gap-2 bg-slate-50/90 p-3 dark:bg-slate-900/40">
-          <p className="text-[11px] font-semibold tracking-wide text-slate-500 uppercase dark:text-slate-400">
-            Games
-          </p>
+          <p className="text-[11px] font-semibold text-slate-500 dark:text-slate-400">Games</p>
           <div className="grid grid-cols-2 gap-2">
-            {HUB_GAME_LIST.map((game) => (
+            {games.map((game) => (
               <GameNavCard key={game.kind} game={game} active={active === game.kind} />
             ))}
           </div>

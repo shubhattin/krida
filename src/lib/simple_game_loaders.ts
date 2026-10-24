@@ -4,6 +4,7 @@ import { z } from 'zod';
 import {
   collection_items,
   collections,
+  image_assets,
   puzzle_attachments,
   puzzle_tags,
   puzzles,
@@ -93,10 +94,15 @@ export const loadSimpleGameEdit$ = createServerFn({ method: 'GET' })
             title: puzzles.title,
             description: puzzles.description,
             listed: puzzles.listed,
-            puzzle_data: tables.puzzles.puzzle_data
+            puzzle_data: tables.puzzles.puzzle_data,
+            image_id: image_assets.id,
+            image_s3_key: image_assets.s3_key,
+            image_width: image_assets.width,
+            image_height: image_assets.height
           })
           .from(puzzles)
           .innerJoin(tables.puzzles, eq(tables.puzzles.id, puzzles.id))
+          .leftJoin(image_assets, eq(image_assets.id, puzzles.image_id))
           .where(and(eq(puzzles.kind, data.kind), eq(puzzles.id, puzzleId)))
           .limit(1)
       )
@@ -146,8 +152,14 @@ export const loadSimpleGameEdit$ = createServerFn({ method: 'GET' })
       )
     ]);
 
+    const { image_id, image_s3_key, image_width, image_height, ...rest } = puzzle;
+    const image =
+      image_id !== null && image_s3_key !== null && image_width !== null && image_height !== null
+        ? { id: image_id, s3_key: image_s3_key, width: image_width, height: image_height }
+        : null;
+
     return {
-      puzzle: { ...puzzle, attachments },
+      puzzle: { ...rest, image, attachments },
       catalog: {
         tags: tagRows.toSorted((a, b) => a.slug.localeCompare(b.slug)),
         collections: collectionRows.toSorted((a, b) => a.title.localeCompare(b.title))
@@ -190,11 +202,4 @@ export const loadSimpleGameByUid$ = createServerFn({ method: 'GET' })
     if (!row) return { puzzle: null };
     const puzzle = await loadCachedPuzzle(data.kind, row.slug);
     return { puzzle: puzzle ?? null };
-  });
-
-export const loadSimpleGameListed$ = createServerFn({ method: 'GET' })
-  .validator(z.object({ kind: kind_schema }))
-  .handler(async ({ data }) => {
-    const list = await runLoaderEffect(CACHE[data.kind].listed_puzzle_list.get(NO_CACHE_PARAMS));
-    return { list };
   });

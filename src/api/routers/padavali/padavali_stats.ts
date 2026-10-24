@@ -15,7 +15,8 @@ import {
   releasePlaySessionClaim
 } from '~/api/routers/stats_play_guard';
 import { displayUserName, sessionUserFields } from '~/api/routers/user/session_user';
-import { adoptGuestSession } from '~/api/routers/stats_session_adopt';
+import { adoptGuestSession, canWriteSession } from '~/api/routers/stats_session_adopt';
+import { issueGuestClaimToken } from '~/api/routers/guest_claim_token';
 import { resolveAuthUserNames, searchAuthUsers } from '~/lib/auth_users.server';
 import {
   optional_turnstile_token_schema,
@@ -41,13 +42,15 @@ const submit_stats_route = publicProcedure
   .input(
     z.object({
       turnstile_token: optional_turnstile_token_schema,
+      /** Play id sent to `update_games_started`; proves the caller started an anonymous session. */
+      client_play_id: z.string().uuid().optional(),
       info: z.object({
-        puzzle_id: z.number().int(),
-        time_taken: z.number().int(),
-        accuracy: z.number().int(),
-        correct_attempts: z.number().int(),
-        total_attempts: z.number().int(),
-        session_id: z.number().int(),
+        puzzle_id: z.number().int().positive(),
+        time_taken: z.number().int().nonnegative(),
+        accuracy: z.number().int().min(0).max(100),
+        correct_attempts: z.number().int().nonnegative(),
+        total_attempts: z.number().int().nonnegative(),
+        session_id: z.number().int().positive(),
         practice_mode: z.boolean().default(false)
       })
     })
@@ -55,7 +58,7 @@ const submit_stats_route = publicProcedure
   .mutation(({ input, ctx }) =>
     runTrpcEffect(
       Effect.gen(function* () {
-        const { turnstile_token, info } = input;
+        const { turnstile_token, client_play_id, info } = input;
         yield* requireTurnstileIfGuest(turnstile_token, ctx.user);
 
         const {
@@ -70,7 +73,7 @@ const submit_stats_route = publicProcedure
 
         const [session] = yield* dbRunHttp('padavali_stats.find_session', (client) =>
           client
-            .select({ id: puzzle_sessions.id })
+            .select({ id: puzzle_sessions.id, user_id: puzzle_sessions.user_id })
             .from(puzzle_sessions)
             .innerJoin(puzzles, sessionForKind)
             .where(
@@ -78,7 +81,7 @@ const submit_stats_route = publicProcedure
             )
             .limit(1)
         );
-        if (!session) {
+        if (!session || !(yield* canWriteSession('padavali', session, ctx.user, client_play_id))) {
           return yield* Effect.fail(
             BadRequestError.make({
               message: 'Invalid session for puzzle'
@@ -123,8 +126,12 @@ const submit_stats_route = publicProcedure
           );
         }
 
+        // Guests get a signed proof of this finished play to claim it after signing in.
+        const claim_token = ctx.user ? null : yield* issueGuestClaimToken('padavali', session_id);
+
         return {
-          submitted: true
+          submitted: true,
+          claim_token
         };
       })
     )
@@ -212,45 +219,50 @@ const update_session_practice_mode_route = publicProcedure
   .input(
     z.object({
       turnstile_token: optional_turnstile_token_schema,
-      session_id: z.number().int(),
-      puzzle_id: z.number().int(),
+      client_play_id: z.string().uuid().optional(),
+      session_id: z.number().int().positive(),
+      puzzle_id: z.number().int().positive(),
       practice_mode: z.boolean()
     })
   )
-  .mutation(({ input: { turnstile_token, session_id, puzzle_id, practice_mode }, ctx }) =>
-    runTrpcEffect(
-      Effect.gen(function* () {
-        yield* requireTurnstileIfGuest(turnstile_token, ctx.user);
+  .mutation(
+    ({ input: { turnstile_token, client_play_id, session_id, puzzle_id, practice_mode }, ctx }) =>
+      runTrpcEffect(
+        Effect.gen(function* () {
+          yield* requireTurnstileIfGuest(turnstile_token, ctx.user);
 
-        // Sessions are shared across games now — only touch this game's own session.
-        const [session] = yield* dbRunHttp('padavali_stats.find_session_for_update', (client) =>
-          client
-            .select({ id: puzzle_sessions.id })
-            .from(puzzle_sessions)
-            .innerJoin(puzzles, sessionForKind)
-            .where(
-              and(eq(puzzle_sessions.id, session_id), eq(puzzle_sessions.puzzle_id, puzzle_id))
-            )
-            .limit(1)
-        );
-        if (!session) {
-          return yield* Effect.fail(
-            BadRequestError.make({ message: 'Invalid session for puzzle' })
+          // Sessions are shared across games now — only touch this game's own session.
+          const [session] = yield* dbRunHttp('padavali_stats.find_session_for_update', (client) =>
+            client
+              .select({ id: puzzle_sessions.id, user_id: puzzle_sessions.user_id })
+              .from(puzzle_sessions)
+              .innerJoin(puzzles, sessionForKind)
+              .where(
+                and(eq(puzzle_sessions.id, session_id), eq(puzzle_sessions.puzzle_id, puzzle_id))
+              )
+              .limit(1)
           );
-        }
-
-        yield* dbRunHttp('padavali_stats.update_session_practice_mode', async (client) => {
-          await client
-            .update(puzzle_sessions)
-            .set({ practice_mode })
-            .where(
-              and(eq(puzzle_sessions.id, session_id), eq(puzzle_sessions.puzzle_id, puzzle_id))
+          if (
+            !session ||
+            !(yield* canWriteSession('padavali', session, ctx.user, client_play_id))
+          ) {
+            return yield* Effect.fail(
+              BadRequestError.make({ message: 'Invalid session for puzzle' })
             );
-        });
+          }
 
-        return { success: true };
-      })
-    )
+          yield* dbRunHttp('padavali_stats.update_session_practice_mode', async (client) => {
+            await client
+              .update(puzzle_sessions)
+              .set({ practice_mode })
+              .where(
+                and(eq(puzzle_sessions.id, session_id), eq(puzzle_sessions.puzzle_id, puzzle_id))
+              );
+          });
+
+          return { success: true };
+        })
+      )
   );
 
 const get_stats_data_route = protectedAdminProcedure

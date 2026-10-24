@@ -7,6 +7,7 @@ import { createCache, type CacheItem, type NoCacheParams, NO_CACHE_PARAMS } from
 import { AppConfig } from '~/effect/config';
 import { dbRunHttp } from '~/effect/database';
 import { CacheError } from '~/effect/errors';
+import { SIMPLE_GAME_KINDS, type SimpleGameKind } from '~/util/games/kinds';
 
 const SITEMAP_TTL_SECONDS = ms('4 days') / 1000;
 
@@ -16,7 +17,11 @@ const PADAJALA_SITEMAP_KEY = 'sitemap:padajala';
 /** Exported for tests — must stay aligned with createCache getKey builders below. */
 export const sitemapCacheKeys = {
   padavali: () => PADAVALI_SITEMAP_KEY,
-  padajala: () => PADAJALA_SITEMAP_KEY
+  padajala: () => PADAJALA_SITEMAP_KEY,
+  dvayi: () => 'sitemap:dvayi',
+  bhramita: () => 'sitemap:bhramita',
+  surupa: () => 'sitemap:surupa',
+  anveshi: () => 'sitemap:anveshi'
 } as const;
 
 type SitemapUrlEntry = {
@@ -143,17 +148,68 @@ const load_padajala_sitemap: CacheItem<NoCacheParams, string> = createCache({
     }).pipe(Effect.mapError(toCacheError('fetchPadajalaSitemap', PADAJALA_SITEMAP_KEY)))
 });
 
+/** One sitemap per simple game: puzzles filter and every listed puzzle slug. */
+function makeSimpleGameSitemap(kind: SimpleGameKind): CacheItem<NoCacheParams, string> {
+  const key = sitemapCacheKeys[kind]();
+  return createCache({
+    getKey: () => key,
+    schema: z.string(),
+    ttlSeconds: SITEMAP_TTL_SECONDS,
+    fetch: () =>
+      Effect.gen(function* () {
+        const config = yield* AppConfig;
+        const base = config.siteUrl;
+
+        const listedPuzzles = yield* dbRunHttp(`sitemap.${kind}_listed`, (client) =>
+          client
+            .select({
+              slug: puzzlesTable.slug,
+              updated_at: puzzlesTable.updated_at,
+              last_listed_at: puzzlesTable.last_listed_at,
+              created_at: puzzlesTable.created_at
+            })
+            .from(puzzlesTable)
+            .where(and(eq(puzzlesTable.kind, kind), eq(puzzlesTable.listed, true)))
+        );
+
+        const entries: SitemapUrlEntry[] = [
+          { loc: joinUrl(base, `/puzzles?game=${kind}`) },
+          ...listedPuzzles.map((puzzle) => ({
+            loc: joinUrl(base, `/${kind}/${encodeURIComponent(puzzle.slug)}`),
+            lastmod: resolveLastmod(puzzle)
+          }))
+        ];
+
+        return buildUrlsetXml(entries);
+      }).pipe(Effect.mapError(toCacheError(`fetch${kind}Sitemap`, key)))
+  });
+}
+
 export type SitemapCacheLoaders = {
   padavali: CacheItem<NoCacheParams, string>;
   padajala: CacheItem<NoCacheParams, string>;
+  dvayi: CacheItem<NoCacheParams, string>;
+  bhramita: CacheItem<NoCacheParams, string>;
+  surupa: CacheItem<NoCacheParams, string>;
+  anveshi: CacheItem<NoCacheParams, string>;
 };
+
+// SAFETY: entries are built from SIMPLE_GAME_KINDS, covering every key exactly once.
+const simple_sitemap_loaders = Object.fromEntries(
+  SIMPLE_GAME_KINDS.map((kind) => [kind, makeSimpleGameSitemap(kind)])
+) as Record<SimpleGameKind, CacheItem<NoCacheParams, string>>;
 
 export const sitemap_cache_loaders: SitemapCacheLoaders = {
   padavali: load_padavali_sitemap,
-  padajala: load_padajala_sitemap
+  padajala: load_padajala_sitemap,
+  ...simple_sitemap_loaders
 };
 
 /** Drop cached XML only — next GET rebuilds. No background refresh. */
 export const invalidate_padavali_sitemap = () => load_padavali_sitemap.delete(NO_CACHE_PARAMS);
 
 export const invalidate_padajala_sitemap = () => load_padajala_sitemap.delete(NO_CACHE_PARAMS);
+
+/** Drop one simple game's cached XML only — next GET rebuilds. */
+export const invalidate_simple_game_sitemap = (kind: SimpleGameKind) =>
+  simple_sitemap_loaders[kind].delete(NO_CACHE_PARAMS);

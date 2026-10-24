@@ -1,12 +1,11 @@
-import { createFileRoute, getRouteApi, notFound } from '@tanstack/react-router';
+import { createFileRoute, notFound } from '@tanstack/react-router';
+import { useHubData } from '~/components/hub/hub_query';
 import { createServerFn } from '@tanstack/react-start';
 import { z } from 'zod';
 import { routeHeadFromPageMeta, shareImageInfoFromAsset } from '~/components/tags/getPageMetaTags';
 import { CACHE, NO_CACHE_PARAMS } from '~/util/cache.server/cache_loaders';
 import { runLoaderEffect } from '~/effect/run';
 import HubCollectionPage from '~/components/hub/HubCollectionPage';
-
-const hubRoute = getRouteApi('/_hub');
 
 const collectionMeta$ = createServerFn({ method: 'GET' })
   .validator(z.object({ slug: z.string().min(1).max(100) }))
@@ -40,7 +39,7 @@ export const Route = createFileRoute('/_hub/collections/$slug')({
 });
 
 function CollectionRoute() {
-  const data = hubRoute.useLoaderData();
+  const data = useHubData();
   const { slug } = Route.useParams();
   return <HubCollectionPage data={data} slug={slug} />;
 }

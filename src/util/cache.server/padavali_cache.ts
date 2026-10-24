@@ -20,8 +20,15 @@ import {
   type WordMeaningsType
 } from '../ai/word_meanings';
 import { padavaliActiveWords, type PadavaliWordCandidate } from '~/util/puzzle/word_list';
-import { CACHE_AI_OUTSIDE_PROD } from './ai_cache_options';
+import { AI_FAILURE_TTL_SECONDS, CACHE_AI_OUTSIDE_PROD } from './ai_cache_options';
 import { public_tag_schema } from '~/util/catalog/tags';
+import {
+  currentScheduleSetOptions,
+  isNoLiveSchedule,
+  nextScheduleStart,
+  parseCurrentScheduleCache,
+  type NoLiveSchedule
+} from './schedule_cache_shared';
 
 type PadavaliPuzzleType = z.infer<typeof puzzle_schema>;
 export type { PadavaliPuzzleType };
@@ -101,15 +108,11 @@ const parseScheduleSentinel =
 
 const load_current_schedule: CacheItem<NoCacheParams, PadavaliCurrentScheduleType> = createCache({
   getKey: () => CURRENT_SCHEDULE_KEY,
-  schema: current_schedule_schema,
-  toCacheValue: (data) => data ?? 'undefined',
-  fromCacheValue: parseScheduleSentinel(current_schedule_schema),
-  getSetOptions: (data) =>
-    data
-      ? {
-          exat: Math.floor(data.end_time.getTime() / 1000 - 2)
-        }
-      : undefined,
+  fromCacheValue: parseCurrentScheduleCache(current_schedule_schema),
+  transform: (data) => (isNoLiveSchedule(data) ? undefined : data),
+  getSetOptions: currentScheduleSetOptions,
+  // Visitors arriving as a puzzle starts all miss at once: one DB fetch, the rest wait for it.
+  useSingleFlight: true,
   fetch: () => {
     const currentTime = new Date();
     return dbRunHttp('padavali.current_schedule', async (client) => {
@@ -145,7 +148,12 @@ const load_current_schedule: CacheItem<NoCacheParams, PadavaliCurrentScheduleTyp
           )
         )
         .limit(1);
-      if (!schedule) return undefined;
+      if (!schedule) {
+        const none: NoLiveSchedule = {
+          none_until: await nextScheduleStart(client, 'padavali', currentTime)
+        };
+        return none;
+      }
 
       const attachments = await client
         .select({
@@ -354,6 +362,8 @@ const load_word_puzzle: CacheItem<PadavaliPuzzleParams, PadavaliPuzzleType | und
 const load_word_meanings: CacheItem<PadavaliPuzzleParams, WordMeaningsType> = createCache({
   getKey: ({ slug }) => wordMeaningsKey(slug),
   ttlSeconds: Infinity,
+  // Paid generation: don't regenerate on every public request after a failure
+  failureTtlSeconds: AI_FAILURE_TTL_SECONDS,
   useGenerationGuard: true,
   useSingleFlight: true,
   cacheOutsideProd: CACHE_AI_OUTSIDE_PROD,

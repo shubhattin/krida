@@ -7,6 +7,7 @@ import { useTRPC } from '~/api/client';
 import { load_posthog } from '~/components/tags/PosthogInit';
 import TurnstileWidget from '~/components/Turnstile';
 import { canSubmitPlayMetrics, playMetricsToken, usePlayAuth } from '~/lib/play_metrics_auth';
+import { useInvalidateUserDashboard } from '~/api/routers/user/invalidate_user_dashboard';
 import {
   noteGuestCompletion,
   requestGuestAuthPrompt,
@@ -17,6 +18,7 @@ import type { location_list_type } from '~/db/types';
 import type { SimpleGameKind } from '~/util/games/kinds';
 import { useContext } from 'react';
 import { AppContext } from '~/components/AppDataContext';
+import { rememberGuestPlay } from '~/lib/guest_play_claims';
 
 const subscribeNever = () => () => {};
 
@@ -49,6 +51,7 @@ export function SimpleGameMetrics({
     () => false
   );
   const { authReady, isAuthed } = usePlayAuth();
+  const invalidateUserDashboard = useInvalidateUserDashboard();
   const [turnstileToken, setTurnstileToken] = useState<string | null>(null);
   const turnstile = useTurnstile();
   const turnstileRef = useRef(turnstile);
@@ -78,6 +81,7 @@ export function SimpleGameMetrics({
       onSuccess() {
         setTurnstileToken(null);
         resetTurnstile();
+        invalidateUserDashboard();
         load_posthog((posthog) => {
           posthog.capture('gameplay_started', {
             puzzle_id: puzzleId,
@@ -97,9 +101,13 @@ export function SimpleGameMetrics({
     // never during render — the ref is read/written from mutation lifecycle code.
     // oxlint-disable-next-line react/refs
     trpc[kind].stats.submit_stats.mutationOptions({
-      onSuccess() {
+      onSuccess(data, variables) {
+        if (data.claim_token) {
+          rememberGuestPlay(kind, variables.info.session_id, data.claim_token);
+        }
         setTurnstileToken(null);
         resetTurnstile();
+        invalidateUserDashboard();
         resetStarted();
         resetStats();
       },
@@ -171,6 +179,7 @@ export function SimpleGameMetrics({
     const accuracy = totalAttempts > 0 ? Math.round((correctAttempts / totalAttempts) * 100) : 100;
     mutateStats({
       turnstile_token: token,
+      client_play_id: clientPlayIdRef.current,
       info: {
         puzzle_id: puzzleId,
         time_taken: seconds,

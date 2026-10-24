@@ -27,6 +27,7 @@ import {
 import { active_puzzle_id_atom } from '~/components/pages/padavali/WordGame/game_state';
 import { active_padajala_id_atom } from '~/components/pages/padajala/PadajalaGame/game_state';
 import { active_collection_atom } from '~/components/pages/catalog/catalog_admin_state';
+import { HUB_GAME_ACCENT, HUB_GAME_LIST } from '~/components/hub/hub_games';
 import { useSession } from '~/lib/auth-client';
 import { cn } from '~/lib/utils';
 
@@ -119,18 +120,19 @@ export function AllGamesMenuItems({ onNavigate }: { onNavigate?: () => void }) {
         </div>
         <span className="truncate">All analytics</span>
       </Link>
-      <Link to="/padavali/analytics" onClick={onNavigate} className={accountMenuLinkClass}>
-        <div className={`${accountMenuIconClass} from-sky-500 to-blue-600`}>
-          <BarChart3 className="size-3 text-white" />
-        </div>
-        <span className="truncate">Padāvalī</span>
-      </Link>
-      <Link to="/padajala/analytics" onClick={onNavigate} className={accountMenuLinkClass}>
-        <div className={`${accountMenuIconClass} from-sky-500 to-blue-600`}>
-          <BarChart3 className="size-3 text-white" />
-        </div>
-        <span className="truncate">Padajāla</span>
-      </Link>
+      {HUB_GAME_LIST.map((game) => (
+        <Link
+          key={game.kind}
+          to={`/${game.kind}/analytics`}
+          onClick={onNavigate}
+          className={accountMenuLinkClass}
+        >
+          <div className={cn(accountMenuIconClass, HUB_GAME_ACCENT[game.kind].gradient)}>
+            <BarChart3 className="size-3 text-white" />
+          </div>
+          <span className="truncate">{game.name}</span>
+        </Link>
+      ))}
       <CatalogAdminMenuItems onNavigate={onNavigate} />
     </>
   );
@@ -283,7 +285,7 @@ const SIMPLE_MENU_ICON = {
   anveshi: CircleHelp
 } as const;
 
-/** In-development games — list, analytics, and optional live-edit shortcut. */
+/** Game tools — list, analytics, and optional live-edit shortcut. */
 export function SimpleGameMenuItems({
   kind,
   onNavigate

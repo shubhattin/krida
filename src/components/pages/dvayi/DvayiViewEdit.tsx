@@ -1,6 +1,7 @@
 'use client';
 
 import { DvayiEditor } from './DvayiEditor';
+import { dvayiCoverWords } from '~/util/dvayi/cover';
 import { createSimpleGameEditorAtoms } from '~/components/pages/simple_game/atoms';
 import {
   SimpleGameViewEdit,
@@ -12,6 +13,8 @@ import type {
 } from '~/components/pages/catalog/PuzzleCatalogFields';
 import { emptyDvayiPuzzleData, type DvayiPuzzleData } from '~/util/dvayi/data';
 import { analyzeDvayiPuzzle } from '~/util/dvayi/validate';
+
+const cover = { words: dvayiCoverWords, wordsLabel: 'Include the pairs' };
 
 const atoms = createSimpleGameEditorAtoms(emptyDvayiPuzzleData());
 
@@ -28,6 +31,7 @@ export function DvayiViewEdit({
       puzzle={puzzle}
       catalog={catalog}
       atoms={atoms}
+      cover={cover}
       analyze={analyzeDvayiPuzzle}
     >
       <DvayiEditor dataAtom={atoms.puzzleData} lipiAtom={atoms.lipi} />

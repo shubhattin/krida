@@ -22,6 +22,8 @@ export class RedisClient extends Context.Service<
   RedisClient,
   {
     readonly get: <T = unknown>(key: string) => Effect.Effect<T | null, RedisError>;
+    /** One round trip for several keys; values come back in key order, `null` when missing. */
+    readonly mget: <T = unknown>(keys: string[]) => Effect.Effect<(T | null)[], RedisError>;
     readonly set: <T>(
       key: string,
       value: T,
@@ -47,6 +49,8 @@ export class RedisClient extends Context.Service<
 
       return {
         get: <T = unknown>(key: string) => tryRedis('get', () => redis.get<T>(key)),
+        mget: <T = unknown>(keys: string[]) =>
+          tryRedis('mget', () => redis.mget<(T | null)[]>(...keys)),
         set: <T>(key: string, value: T, options?: SetCommandOptions) =>
           tryRedis('set', () => (options ? redis.set(key, value, options) : redis.set(key, value))),
         del: (...keys: string[]) => tryRedis('del', () => redis.del(...keys)),

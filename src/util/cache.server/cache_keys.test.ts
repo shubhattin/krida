@@ -39,9 +39,13 @@ describe('cache keys', () => {
     expect(puzzleSlugMapCacheKeys.slug_map()).toBe('puzzle:slug_map');
   });
 
-  it('uses sitemap keys for padavali and padajala', () => {
+  it('uses sitemap keys for every game', () => {
     expect(sitemapCacheKeys.padavali()).toBe('sitemap:padavali');
     expect(sitemapCacheKeys.padajala()).toBe('sitemap:padajala');
+    expect(sitemapCacheKeys.dvayi()).toBe('sitemap:dvayi');
+    expect(sitemapCacheKeys.bhramita()).toBe('sitemap:bhramita');
+    expect(sitemapCacheKeys.surupa()).toBe('sitemap:surupa');
+    expect(sitemapCacheKeys.anveshi()).toBe('sitemap:anveshi');
   });
 
   it('derives generation keys with :gen suffix', () => {

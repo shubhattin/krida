@@ -52,7 +52,9 @@ function PadajalaPreviewPage() {
       <PreviewWarningBanner listed={word_puzzle.listed} slug={word_puzzle.slug} />
       <div className="px-4 pt-3 sm:px-6 sm:pt-4">
         <Link
-          to="/padajala"
+          to="/"
+          search={{ game: 'padajala' }}
+          hash="padajala"
           className="inline-flex items-center gap-2 rounded-full border border-slate-200/60 bg-white/70 px-4 py-1.5 text-sm font-medium text-slate-700 no-underline shadow-sm backdrop-blur-sm transition-all duration-200 hover:bg-white hover:shadow-md dark:border-slate-700/60 dark:bg-slate-800/70 dark:text-slate-200 dark:hover:bg-slate-800"
         >
           <ArrowLeftIcon className="size-4" />

@@ -1,7 +1,7 @@
 'use client';
 
 import { z } from 'zod';
-import { useEffect, useMemo, useRef, useState, type KeyboardEvent } from 'react';
+import { useEffect, useId, useMemo, useRef, useState, type KeyboardEvent } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import {
   PuzzleCatalogFields,
@@ -396,6 +396,9 @@ const SortableAttachmentItem = ({
 const Attachments = () => {
   const [attachments, setAttachments] = useAtom(attachments_atom);
 
+  // Stable dnd-kit context id: the default comes from a module-level counter
+  // that diverges between SSR and hydration (aria-describedby mismatch).
+  const dndId = useId();
   const sensors = useSensors(
     useSensor(PointerSensor),
     useSensor(KeyboardSensor, {
@@ -462,6 +465,7 @@ const Attachments = () => {
         </AccordionTrigger>
         <AccordionContent>
           <DndContext
+            id={dndId}
             sensors={sensors}
             collisionDetection={closestCenter}
             onDragEnd={handleDragEnd}

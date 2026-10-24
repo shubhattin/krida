@@ -1,3 +1,5 @@
+import { isSimpleGameKind } from '~/util/games/kinds';
+import type { SimpleGameCacheLoaders } from '~/util/cache.server/simple_game_cache';
 import { Effect, Schedule } from 'effect';
 import { dbRunHttp, dbTransaction, type DbTransaction } from '~/effect/database';
 import {
@@ -87,6 +89,18 @@ export function buildImageBatchMetadata(args: {
   system_prompt_template_id?: number | null;
   system_prompt_used?: string;
 }): BatchMetadata {
+  if (isSimpleGameKind(args.game)) {
+    return {
+      type: 'krida-puzzle-image',
+      game: args.game,
+      puzzle_id: args.puzzle_id,
+      image_prompt: args.image_prompt,
+      file_name: args.file_name,
+      image_description: args.image_description,
+      system_prompt_template_id: args.system_prompt_template_id,
+      system_prompt_used: args.system_prompt_used
+    };
+  }
   if (args.game === 'padajala') {
     return {
       type: 'padajala-puzzle-image',
@@ -581,6 +595,22 @@ type ApproveConnectTxResult =
   | { ok: false; kind: 'not_found'; resource: string; message: string }
   | { ok: false; kind: 'bad_request'; message: string };
 
+/** After a cover lands on a new-game puzzle, refresh its page cache (and the list if listed). */
+function refreshSimpleGamePuzzle<T>(
+  cache: SimpleGameCacheLoaders<T>,
+  target: { slug: string; listed: boolean }
+) {
+  return Effect.all(
+    [
+      invalidate_and_refresh_cache(cache.word_puzzle, { slug: target.slug }),
+      target.listed
+        ? invalidate_and_refresh_cache(cache.listed_puzzle_list, NO_CACHE_PARAMS)
+        : Effect.void
+    ],
+    { concurrency: 'unbounded' }
+  );
+}
+
 /** Connects uploaded image to puzzle and removes the batch response row. */
 export const approve_connect_puzzle_image_id = Effect.fn(
   'batch_ai.approve_connect_puzzle_image_id'
@@ -613,59 +643,17 @@ export const approve_connect_puzzle_image_id = Effect.fn(
       const { uploaded_image_id, puzzle_id } = metadata;
       const game = resolveBatchGame(metadata, custom_id);
 
-      if (game === 'padajala') {
-        const [puzzle] = await tx
-          .select({ slug: puzzles.slug, listed: puzzles.listed })
-          .from(puzzles)
-          .where(and(eq(puzzles.id, puzzle_id), eq(puzzles.kind, 'padajala')))
-          .limit(1);
-        if (!puzzle) {
-          return {
-            ok: false,
-            kind: 'not_found',
-            resource: 'padajala_puzzle',
-            message: `Puzzle not found for batch_id ${batch_id} and custom_id ${custom_id}`
-          };
-        }
-
-        await Promise.all([
-          tx
-            .update(puzzles)
-            .set({
-              image_id: uploaded_image_id
-            })
-            .where(and(eq(puzzles.id, puzzle_id), eq(puzzles.kind, 'padajala'))),
-          tx
-            .delete(ai_batch_responses)
-            .where(
-              and(
-                eq(ai_batch_responses.batch_id, batch_id),
-                eq(ai_batch_responses.custom_id, custom_id)
-              )
-            )
-        ]);
-
-        return {
-          ok: true,
-          success: true,
-          puzzle_id,
-          uploaded_image_id,
-          game,
-          slug: puzzle.slug,
-          listed: puzzle.listed
-        };
-      }
-
+      // Every krida stores its cover on the shared `puzzles` row; scope by kind for safety.
       const [puzzle] = await tx
         .select({ slug: puzzles.slug, listed: puzzles.listed })
         .from(puzzles)
-        .where(and(eq(puzzles.id, puzzle_id), eq(puzzles.kind, 'padavali')))
+        .where(and(eq(puzzles.id, puzzle_id), eq(puzzles.kind, game)))
         .limit(1);
       if (!puzzle) {
         return {
           ok: false,
           kind: 'not_found',
-          resource: 'padavali_puzzle',
+          resource: `${game}_puzzle`,
           message: `Puzzle not found for batch_id ${batch_id} and custom_id ${custom_id}`
         };
       }
@@ -673,10 +661,8 @@ export const approve_connect_puzzle_image_id = Effect.fn(
       await Promise.all([
         tx
           .update(puzzles)
-          .set({
-            image_id: uploaded_image_id
-          })
-          .where(and(eq(puzzles.id, puzzle_id), eq(puzzles.kind, 'padavali'))),
+          .set({ image_id: uploaded_image_id })
+          .where(and(eq(puzzles.id, puzzle_id), eq(puzzles.kind, game))),
         tx
           .delete(ai_batch_responses)
           .where(
@@ -713,7 +699,23 @@ export const approve_connect_puzzle_image_id = Effect.fn(
 
   const result = tx_result;
 
-  if (result.game === 'padajala') {
+  if (isSimpleGameKind(result.game)) {
+    const target = { slug: result.slug, listed: result.listed };
+    switch (result.game) {
+      case 'dvayi':
+        yield* refreshSimpleGamePuzzle(CACHE.dvayi, target);
+        break;
+      case 'bhramita':
+        yield* refreshSimpleGamePuzzle(CACHE.bhramita, target);
+        break;
+      case 'surupa':
+        yield* refreshSimpleGamePuzzle(CACHE.surupa, target);
+        break;
+      case 'anveshi':
+        yield* refreshSimpleGamePuzzle(CACHE.anveshi, target);
+        break;
+    }
+  } else if (result.game === 'padajala') {
     const current_schedule = yield* CACHE.padajala.current_schedule.get(NO_CACHE_PARAMS);
     yield* Effect.all(
       [
