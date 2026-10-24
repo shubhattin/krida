@@ -3,7 +3,8 @@ import { functionalUpdate, type OnChangeFn } from '@tanstack/react-table';
 import { z } from 'zod';
 import type { ColumnVisibilityState } from '~/components/ui/data-table';
 
-const STORAGE_PREFIX = 'admin_table_columns:';
+const STORAGE_PREFIX = 'admin_table_columns:v2:';
+// Bumped from v1 so stale prefs (e.g. uid:true) reset to current defaults (uid hidden).
 const stored_visibility_schema = z.record(z.string(), z.boolean());
 
 const listeners = new Set<() => void>();

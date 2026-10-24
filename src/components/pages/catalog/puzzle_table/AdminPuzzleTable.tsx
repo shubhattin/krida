@@ -3,6 +3,7 @@
 import { useMemo, useState, type ReactNode } from 'react';
 import { DataTable, type DataTableColumnDef } from '~/components/ui/data-table';
 import type { GameKind } from '~/util/catalog/tags';
+import { EditPuzzleLinksDialog } from './EditPuzzleLinksDialog';
 import { FullListActions } from './FullListActions';
 import { PuzzleDetailsDialog } from './PuzzleDetailsDialog';
 import {
@@ -36,6 +37,7 @@ export function AdminPuzzleTable<TRow extends AdminPuzzleRow>({
 }) {
   const [selected, setSelected] = useState<TRow | null>(null);
   const [detailsOpen, setDetailsOpen] = useState(false);
+  const [linksOpen, setLinksOpen] = useState(false);
 
   const columns = useMemo(
     () =>
@@ -45,9 +47,10 @@ export function AdminPuzzleTable<TRow extends AdminPuzzleRow>({
         onShowDetails: (row) => {
           setSelected(row);
           setDetailsOpen(true);
-        }
+        },
+        onEditLinks: data.length > 0 ? () => setLinksOpen(true) : undefined
       }),
-    [game, extraColumns]
+    [game, extraColumns, data.length]
   );
   const defaults = useMemo(
     () => ({ ...DEFAULT_PUZZLE_COLUMN_VISIBILITY, ...defaultVisibility }),
@@ -83,6 +86,12 @@ export function AdminPuzzleTable<TRow extends AdminPuzzleRow>({
         puzzle={selected}
         open={detailsOpen}
         onOpenChange={setDetailsOpen}
+      />
+      <EditPuzzleLinksDialog
+        game={game}
+        puzzles={data}
+        open={linksOpen}
+        onOpenChange={setLinksOpen}
       />
     </>
   );

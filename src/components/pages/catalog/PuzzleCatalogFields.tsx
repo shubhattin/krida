@@ -1,6 +1,6 @@
 'use client';
 
-import { useState } from 'react';
+import { useId, useState } from 'react';
 import { atom, useAtom } from 'jotai';
 import { useQuery } from '@tanstack/react-query';
 import { XIcon } from 'lucide-react';
@@ -25,9 +25,37 @@ export function PuzzleCatalogFields() {
 }
 
 function TagsField() {
-  const trpc = useTRPC();
   const { commit } = useEditorHistoryActions();
   const [tags, setTags] = useAtom(puzzle_tags_atom);
+
+  return (
+    <div className="space-y-1.5">
+      <div className="text-lg font-bold">Tags</div>
+      <p className="text-xs text-muted-foreground">Applied when you save the puzzle.</p>
+      <TagsInput
+        value={tags}
+        onChange={(next) => {
+          setTags(next);
+          commit();
+        }}
+        className="max-w-xl"
+      />
+    </div>
+  );
+}
+
+/** Chip input for a puzzle's tags: search existing tags or create a new one. */
+export function TagsInput({
+  value: tags,
+  onChange,
+  className
+}: {
+  value: EditorTag[];
+  onChange: (tags: EditorTag[]) => void;
+  className?: string;
+}) {
+  const trpc = useTRPC();
+  const listboxId = useId();
   const [draft, setDraft] = useState('');
   const [open, setOpen] = useState(false);
   const [active, setActive] = useState(0);
@@ -61,123 +89,149 @@ function TagsField() {
   const addSlug = (slug: string) => {
     if (!slug || tags.some((tag) => tag.slug === slug)) return;
     const known = matches.find((tag) => tag.slug === slug);
-    setTags((current) => [...current, known ?? { id: 0, slug }]);
+    onChange([...tags, known ?? { id: 0, slug }]);
     setDraft('');
     setActive(0);
     setOpen(true);
-    commit();
   };
 
   const removeSlug = (slug: string) => {
-    setTags((current) => current.filter((tag) => tag.slug !== slug));
-    commit();
+    onChange(tags.filter((tag) => tag.slug !== slug));
   };
 
   return (
-    <div className="space-y-1.5">
-      <div className="text-lg font-bold">Tags</div>
-      <p className="text-xs text-muted-foreground">Applied when you save the puzzle.</p>
-      <div className="relative max-w-xl">
-        <div
-          className={cn(
-            'flex min-h-10 flex-wrap items-center gap-1.5 rounded-lg border border-input bg-background px-2 py-1.5',
-            'focus-within:border-ring focus-within:ring-3 focus-within:ring-ring/40'
-          )}
-        >
-          {tags.map((tag) => (
-            <span
-              key={tag.slug}
-              className="inline-flex items-center gap-1 rounded-md bg-muted px-2 py-0.5 text-sm"
+    <div className={cn('relative', className)}>
+      <div
+        className={cn(
+          'flex min-h-10 flex-wrap items-center gap-1.5 rounded-lg border border-input bg-background px-2 py-1.5',
+          'focus-within:border-ring focus-within:ring-3 focus-within:ring-ring/40'
+        )}
+      >
+        {tags.map((tag) => (
+          <span
+            key={tag.slug}
+            className="inline-flex items-center gap-1 rounded-md bg-muted px-2 py-0.5 text-sm"
+          >
+            {tag.slug}
+            <button
+              type="button"
+              className="rounded-sm text-muted-foreground hover:text-foreground"
+              aria-label={`Remove tag ${tag.slug}`}
+              onClick={() => removeSlug(tag.slug)}
             >
-              {tag.slug}
+              <XIcon className="size-3.5" />
+            </button>
+          </span>
+        ))}
+        <input
+          value={draft}
+          role="combobox"
+          aria-expanded={open && options.length > 0}
+          aria-controls={listboxId}
+          aria-autocomplete="list"
+          placeholder={tags.length === 0 ? 'Search or create a tag' : 'Add another'}
+          className="min-w-36 flex-1 bg-transparent py-1 text-sm outline-none"
+          onChange={(event) => {
+            setDraft(event.currentTarget.value);
+            setActive(0);
+            setOpen(true);
+          }}
+          onFocus={() => setOpen(true)}
+          onBlur={() => setOpen(false)}
+          onKeyDown={(event) => {
+            if (event.key === 'ArrowDown') {
+              event.preventDefault();
+              if (!open) {
+                setOpen(true);
+                setActive(0);
+              } else if (options.length > 0) {
+                setActive((index) => Math.min(options.length - 1, index + 1));
+              }
+            } else if (event.key === 'ArrowUp') {
+              event.preventDefault();
+              setActive((index) => Math.max(0, index - 1));
+            } else if (event.key === 'Escape') {
+              // Close only the suggestions, not an enclosing dialog.
+              if (open) event.stopPropagation();
+              setOpen(false);
+            } else if (event.key === 'Enter' && open && options[activeIndex]) {
+              event.preventDefault();
+              addSlug(options[activeIndex].slug);
+            } else if (event.key === 'Backspace' && draft === '' && tags.length > 0) {
+              removeSlug(tags[tags.length - 1]!.slug);
+            }
+          }}
+        />
+      </div>
+      {open && (options.length > 0 || suggest_q.isFetching) ? (
+        <ul
+          id={listboxId}
+          role="listbox"
+          className="absolute z-30 mt-1 max-h-56 w-full overflow-y-auto rounded-lg border border-border bg-popover p-1 shadow-md"
+        >
+          {suggest_q.isFetching && options.length === 0 ? (
+            <li className="px-2 py-1.5 text-sm text-muted-foreground">Searching…</li>
+          ) : null}
+          {options.map((option, index) => (
+            <li key={option.key} role="presentation">
               <button
                 type="button"
-                className="rounded-sm text-muted-foreground hover:text-foreground"
-                aria-label={`Remove tag ${tag.slug}`}
-                onClick={() => removeSlug(tag.slug)}
+                role="option"
+                aria-selected={index === activeIndex}
+                className={cn(
+                  'block w-full rounded-md px-2 py-1.5 text-left text-sm',
+                  index === activeIndex ? 'bg-accent text-accent-foreground' : 'hover:bg-muted'
+                )}
+                onMouseEnter={() => setActive(index)}
+                onMouseDown={(event) => {
+                  event.preventDefault();
+                  addSlug(option.slug);
+                }}
               >
-                <XIcon className="size-3.5" />
+                {option.label}
               </button>
-            </span>
+            </li>
           ))}
-          <input
-            value={draft}
-            role="combobox"
-            aria-expanded={open && options.length > 0}
-            aria-controls="puzzle-tag-options"
-            aria-autocomplete="list"
-            placeholder={tags.length === 0 ? 'Search or create a tag' : 'Add another'}
-            className="min-w-36 flex-1 bg-transparent py-1 text-sm outline-none"
-            onChange={(event) => {
-              setDraft(event.currentTarget.value);
-              setActive(0);
-              setOpen(true);
-            }}
-            onFocus={() => setOpen(true)}
-            onBlur={() => setOpen(false)}
-            onKeyDown={(event) => {
-              if (event.key === 'ArrowDown') {
-                event.preventDefault();
-                if (!open) {
-                  setOpen(true);
-                  setActive(0);
-                } else if (options.length > 0) {
-                  setActive((index) => Math.min(options.length - 1, index + 1));
-                }
-              } else if (event.key === 'ArrowUp') {
-                event.preventDefault();
-                setActive((index) => Math.max(0, index - 1));
-              } else if (event.key === 'Escape') {
-                setOpen(false);
-              } else if (event.key === 'Enter' && open && options[activeIndex]) {
-                event.preventDefault();
-                addSlug(options[activeIndex].slug);
-              } else if (event.key === 'Backspace' && draft === '' && tags.length > 0) {
-                removeSlug(tags[tags.length - 1]!.slug);
-              }
-            }}
-          />
-        </div>
-        {open && (options.length > 0 || suggest_q.isFetching) ? (
-          <ul
-            id="puzzle-tag-options"
-            role="listbox"
-            className="absolute z-30 mt-1 max-h-56 w-full overflow-y-auto rounded-lg border border-border bg-popover p-1 shadow-md"
-          >
-            {suggest_q.isFetching && options.length === 0 ? (
-              <li className="px-2 py-1.5 text-sm text-muted-foreground">Searching…</li>
-            ) : null}
-            {options.map((option, index) => (
-              <li key={option.key} role="presentation">
-                <button
-                  type="button"
-                  role="option"
-                  aria-selected={index === activeIndex}
-                  className={cn(
-                    'block w-full rounded-md px-2 py-1.5 text-left text-sm',
-                    index === activeIndex ? 'bg-accent text-accent-foreground' : 'hover:bg-muted'
-                  )}
-                  onMouseEnter={() => setActive(index)}
-                  onMouseDown={(event) => {
-                    event.preventDefault();
-                    addSlug(option.slug);
-                  }}
-                >
-                  {option.label}
-                </button>
-              </li>
-            ))}
-          </ul>
-        ) : null}
-      </div>
+        </ul>
+      ) : null}
     </div>
   );
 }
 
 function CollectionsField() {
-  const trpc = useTRPC();
   const { commit } = useEditorHistoryActions();
   const [links, setLinks] = useAtom(puzzle_collections_atom);
+
+  return (
+    <div className="space-y-1.5">
+      <div className="text-lg font-bold">Collections</div>
+      <p className="text-xs text-muted-foreground">
+        Membership is saved with the puzzle. New ones are appended to each collection.
+      </p>
+      <CollectionsInput
+        value={links}
+        onChange={(next) => {
+          setLinks(next);
+          commit();
+        }}
+        className="max-w-xl"
+      />
+    </div>
+  );
+}
+
+/** Chip input for the collections a puzzle belongs to. */
+export function CollectionsInput({
+  value: links,
+  onChange,
+  className
+}: {
+  value: EditorCollectionLink[];
+  onChange: (links: EditorCollectionLink[]) => void;
+  className?: string;
+}) {
+  const trpc = useTRPC();
+  const listboxId = useId();
   const [draft, setDraft] = useState('');
   const [open, setOpen] = useState(false);
   const [active, setActive] = useState(0);
@@ -198,8 +252,8 @@ function CollectionsField() {
   const addCollection = (uid: string) => {
     const collection = (all_q.data ?? []).find((row) => row.uid === uid);
     if (!collection || selected.has(uid)) return;
-    setLinks((current) => [
-      ...current,
+    onChange([
+      ...links,
       {
         id: collection.id,
         uid: collection.uid,
@@ -210,113 +264,107 @@ function CollectionsField() {
     setDraft('');
     setActive(0);
     setOpen(true);
-    commit();
   };
 
   const removeCollection = (uid: string) => {
-    setLinks((current) => current.filter((link) => link.uid !== uid));
-    commit();
+    onChange(links.filter((link) => link.uid !== uid));
   };
 
   return (
-    <div className="space-y-1.5">
-      <div className="text-lg font-bold">Collections</div>
-      <p className="text-xs text-muted-foreground">
-        Membership is saved with the puzzle. New ones are appended to each collection.
-      </p>
-      <div className="relative max-w-xl">
-        <div
-          className={cn(
-            'flex min-h-10 flex-wrap items-center gap-1.5 rounded-lg border border-input bg-background px-2 py-1.5',
-            'focus-within:border-ring focus-within:ring-3 focus-within:ring-ring/40'
-          )}
-        >
-          {links.map((link) => (
-            <span
-              key={link.uid}
-              className="inline-flex max-w-full items-center gap-1 rounded-md bg-muted px-2 py-0.5 text-sm"
+    <div className={cn('relative', className)}>
+      <div
+        className={cn(
+          'flex min-h-10 flex-wrap items-center gap-1.5 rounded-lg border border-input bg-background px-2 py-1.5',
+          'focus-within:border-ring focus-within:ring-3 focus-within:ring-ring/40'
+        )}
+      >
+        {links.map((link) => (
+          <span
+            key={link.uid}
+            className="inline-flex max-w-full items-center gap-1 rounded-md bg-muted px-2 py-0.5 text-sm"
+          >
+            <span className="truncate">{link.title}</span>
+            <button
+              type="button"
+              className="rounded-sm text-muted-foreground hover:text-foreground"
+              aria-label={`Remove from ${link.title}`}
+              onClick={() => removeCollection(link.uid)}
             >
-              <span className="truncate">{link.title}</span>
+              <XIcon className="size-3.5" />
+            </button>
+          </span>
+        ))}
+        <input
+          value={draft}
+          role="combobox"
+          aria-expanded={open && options.length > 0}
+          aria-controls={listboxId}
+          aria-autocomplete="list"
+          placeholder={links.length === 0 ? 'Search collections' : 'Add another'}
+          className="min-w-36 flex-1 bg-transparent py-1 text-sm outline-none"
+          onChange={(event) => {
+            setDraft(event.currentTarget.value);
+            setActive(0);
+            setOpen(true);
+          }}
+          onFocus={() => setOpen(true)}
+          onBlur={() => setOpen(false)}
+          onKeyDown={(event) => {
+            if (event.key === 'ArrowDown') {
+              event.preventDefault();
+              if (!open) {
+                setOpen(true);
+                setActive(0);
+              } else if (options.length > 0) {
+                setActive((index) => Math.min(options.length - 1, index + 1));
+              }
+            } else if (event.key === 'ArrowUp') {
+              event.preventDefault();
+              setActive((index) => Math.max(0, index - 1));
+            } else if (event.key === 'Escape') {
+              // Close only the suggestions, not an enclosing dialog.
+              if (open) event.stopPropagation();
+              setOpen(false);
+            } else if (event.key === 'Enter' && open && options[activeIndex]) {
+              event.preventDefault();
+              addCollection(options[activeIndex].uid);
+            } else if (event.key === 'Backspace' && draft === '' && links.length > 0) {
+              removeCollection(links[links.length - 1]!.uid);
+            }
+          }}
+        />
+      </div>
+      {open && options.length > 0 ? (
+        <ul
+          id={listboxId}
+          role="listbox"
+          className="absolute z-30 mt-1 max-h-56 w-full overflow-y-auto rounded-lg border border-border bg-popover p-1 shadow-md"
+        >
+          {options.map((collection, index) => (
+            <li key={collection.uid} role="presentation">
               <button
                 type="button"
-                className="rounded-sm text-muted-foreground hover:text-foreground"
-                aria-label={`Remove from ${link.title}`}
-                onClick={() => removeCollection(link.uid)}
+                role="option"
+                aria-selected={index === activeIndex}
+                className={cn(
+                  'block w-full rounded-md px-2 py-1.5 text-left text-sm',
+                  index === activeIndex ? 'bg-accent text-accent-foreground' : 'hover:bg-muted'
+                )}
+                onMouseEnter={() => setActive(index)}
+                onMouseDown={(event) => {
+                  event.preventDefault();
+                  addCollection(collection.uid);
+                }}
               >
-                <XIcon className="size-3.5" />
+                <span className="block truncate">{collection.title}</span>
+                <span className="block truncate text-xs text-muted-foreground">
+                  {collection.slug}
+                </span>
               </button>
-            </span>
+            </li>
           ))}
-          <input
-            value={draft}
-            role="combobox"
-            aria-expanded={open && options.length > 0}
-            aria-controls="puzzle-collection-options"
-            aria-autocomplete="list"
-            placeholder={links.length === 0 ? 'Search collections' : 'Add another'}
-            className="min-w-36 flex-1 bg-transparent py-1 text-sm outline-none"
-            onChange={(event) => {
-              setDraft(event.currentTarget.value);
-              setActive(0);
-              setOpen(true);
-            }}
-            onFocus={() => setOpen(true)}
-            onBlur={() => setOpen(false)}
-            onKeyDown={(event) => {
-              if (event.key === 'ArrowDown') {
-                event.preventDefault();
-                if (!open) {
-                  setOpen(true);
-                  setActive(0);
-                } else if (options.length > 0) {
-                  setActive((index) => Math.min(options.length - 1, index + 1));
-                }
-              } else if (event.key === 'ArrowUp') {
-                event.preventDefault();
-                setActive((index) => Math.max(0, index - 1));
-              } else if (event.key === 'Escape') {
-                setOpen(false);
-              } else if (event.key === 'Enter' && open && options[activeIndex]) {
-                event.preventDefault();
-                addCollection(options[activeIndex].uid);
-              } else if (event.key === 'Backspace' && draft === '' && links.length > 0) {
-                removeCollection(links[links.length - 1]!.uid);
-              }
-            }}
-          />
-        </div>
-        {open && options.length > 0 ? (
-          <ul
-            id="puzzle-collection-options"
-            role="listbox"
-            className="absolute z-30 mt-1 max-h-56 w-full overflow-y-auto rounded-lg border border-border bg-popover p-1 shadow-md"
-          >
-            {options.map((collection, index) => (
-              <li key={collection.uid} role="presentation">
-                <button
-                  type="button"
-                  role="option"
-                  aria-selected={index === activeIndex}
-                  className={cn(
-                    'block w-full rounded-md px-2 py-1.5 text-left text-sm',
-                    index === activeIndex ? 'bg-accent text-accent-foreground' : 'hover:bg-muted'
-                  )}
-                  onMouseEnter={() => setActive(index)}
-                  onMouseDown={(event) => {
-                    event.preventDefault();
-                    addCollection(collection.uid);
-                  }}
-                >
-                  <span className="block truncate">{collection.title}</span>
-                  <span className="block truncate text-xs text-muted-foreground">
-                    {collection.slug}
-                  </span>
-                </button>
-              </li>
-            ))}
-          </ul>
-        ) : null}
-      </div>
+        </ul>
+      ) : null}
     </div>
   );
 }

@@ -36,7 +36,7 @@ export type AdminPuzzleRow = {
   updated_at: Date | null;
   image: { s3_key: string } | null;
   tags?: { id: number; slug: string }[];
-  collections?: { id: number; uid: string; title: string }[];
+  collections?: { id: number; uid: string; slug: string; title: string }[];
 };
 
 export const puzzleEditPath = (game: GameKind) => `/${game}/edit/$id` as const;
@@ -116,13 +116,37 @@ function RelativeDate({ date }: { date: Date }) {
   );
 }
 
+function LinksHeader({ title, onEditLinks }: { title: string; onEditLinks?: () => void }) {
+  return (
+    <span className="inline-flex items-center gap-0.5">
+      <span>{title}</span>
+      {onEditLinks ? (
+        <Button
+          type="button"
+          variant="ghost"
+          size="icon-xs"
+          className="size-6 text-muted-foreground hover:text-foreground"
+          aria-label={`Edit ${title.toLowerCase()}`}
+          title={`Edit ${title.toLowerCase()}`}
+          onClick={onEditLinks}
+        >
+          <PencilIcon />
+        </Button>
+      ) : null}
+    </span>
+  );
+}
+
 export function buildPuzzleTableColumns<TRow extends AdminPuzzleRow>({
   game,
   onShowDetails,
+  onEditLinks,
   extraColumns = []
 }: {
   game: GameKind;
   onShowDetails: (row: TRow) => void;
+  /** Opens the tags & collections bulk-edit dialog for the current list. */
+  onEditLinks?: () => void;
   /** Game-specific columns, placed just before the status column. */
   extraColumns?: DataTableColumnDef<TRow>[];
 }): DataTableColumnDef<TRow>[] {
@@ -210,7 +234,7 @@ export function buildPuzzleTableColumns<TRow extends AdminPuzzleRow>({
     },
     {
       id: 'tags',
-      header: 'Tags',
+      header: () => <LinksHeader title="Tags" onEditLinks={onEditLinks} />,
       enableSorting: false,
       meta: { className: 'w-52', label: 'Tags' },
       cell: ({ row }) => (
@@ -235,7 +259,7 @@ export function buildPuzzleTableColumns<TRow extends AdminPuzzleRow>({
     },
     {
       id: 'collections',
-      header: 'Collections',
+      header: () => <LinksHeader title="Collections" onEditLinks={onEditLinks} />,
       enableSorting: false,
       meta: { className: 'w-52', label: 'Collections' },
       cell: ({ row }) => (

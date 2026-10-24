@@ -67,7 +67,7 @@ export const tagsForPuzzleIds = (game: GameKind, puzzleIds: number[]) => {
   );
 };
 
-export type PuzzleCollectionRef = { id: number; uid: string; title: string };
+export type PuzzleCollectionRef = { id: number; uid: string; slug: string; title: string };
 
 /** Collections each puzzle belongs to, keyed by puzzle id (admin list rows). */
 export const collectionsForPuzzleIds = (game: GameKind, puzzleIds: number[]) => {
@@ -80,6 +80,7 @@ export const collectionsForPuzzleIds = (game: GameKind, puzzleIds: number[]) => 
         puzzle_id: collection_items.puzzle_id,
         id: collections.id,
         uid: collections.uid,
+        slug: collections.slug,
         title: collections.title
       })
       .from(collection_items)
@@ -92,7 +93,7 @@ export const collectionsForPuzzleIds = (game: GameKind, puzzleIds: number[]) => 
       const grouped = new Map<number, PuzzleCollectionRef[]>();
       for (const row of rows) {
         const current = grouped.get(row.puzzle_id) ?? [];
-        current.push({ id: row.id, uid: row.uid, title: row.title });
+        current.push({ id: row.id, uid: row.uid, slug: row.slug, title: row.title });
         grouped.set(row.puzzle_id, current);
       }
       return grouped;

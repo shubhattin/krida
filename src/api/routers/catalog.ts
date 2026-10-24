@@ -910,15 +910,72 @@ const add_collection_item = (uid: string, game: GameKind, puzzleId: number) =>
     return { order_index };
   });
 
+const puzzle_links_input = z.object({
+  puzzle_id: z.number().int(),
+  tag_slugs: z.array(tag_slug_schema).max(40),
+  collection_uids: z.array(z.string().min(1).max(32)).max(40)
+});
+
+/**
+ * Replaces one puzzle's tags and collection membership. New memberships are appended to the
+ * end of each collection; existing ones keep their position. Returns false on an unknown
+ * collection uid.
+ */
+const applyPuzzleLinks = async (
+  tx: DbTransaction,
+  { puzzle_id, tag_slugs, collection_uids }: z.infer<typeof puzzle_links_input>
+) => {
+  const tagSlugs = [...new Set(tag_slugs)];
+  const collectionUids = [...new Set(collection_uids)];
+
+  const resolvedTags = await ensureTagsBySlugs(tx, tagSlugs);
+  const tagIds = resolvedTags.map((tag) => tag.id);
+
+  const foundCollections =
+    collectionUids.length === 0
+      ? []
+      : await tx
+          .select({ id: collections.id, uid: collections.uid })
+          .from(collections)
+          .where(inArray(collections.uid, collectionUids));
+  if (foundCollections.length !== collectionUids.length) return false;
+
+  const desiredCollectionIds = new Set(foundCollections.map((row) => row.id));
+  await tx.delete(puzzle_tags).where(eq(puzzle_tags.puzzle_id, puzzle_id));
+  if (tagIds.length > 0) {
+    await tx.insert(puzzle_tags).values(tagIds.map((tag_id) => ({ puzzle_id, tag_id })));
+  }
+  const current = await tx
+    .select({ collection_id: collection_items.collection_id })
+    .from(collection_items)
+    .where(eq(collection_items.puzzle_id, puzzle_id));
+  for (const row of current) {
+    if (!desiredCollectionIds.has(row.collection_id)) {
+      await tx
+        .delete(collection_items)
+        .where(
+          and(
+            eq(collection_items.puzzle_id, puzzle_id),
+            eq(collection_items.collection_id, row.collection_id)
+          )
+        );
+    }
+  }
+  const currentIds = new Set(current.map((row) => row.collection_id));
+  for (const collectionId of desiredCollectionIds) {
+    if (currentIds.has(collectionId)) continue;
+    const orderIndex = await nextOrderIndex(tx, collectionId);
+    await tx.insert(collection_items).values({
+      collection_id: collectionId,
+      puzzle_id,
+      order_index: orderIndex
+    });
+  }
+  return true;
+};
+
 const set_puzzle_links_route = protectedAdminProcedure
-  .input(
-    z.object({
-      game: z.enum(GAME_KINDS),
-      puzzle_id: z.number().int(),
-      tag_slugs: z.array(tag_slug_schema).max(40),
-      collection_uids: z.array(z.string().min(1).max(32)).max(40)
-    })
-  )
+  .input(puzzle_links_input.extend({ game: z.enum(GAME_KINDS) }))
   .mutation(({ input }) =>
     runTrpcEffect(
       Effect.gen(function* () {
@@ -935,66 +992,69 @@ const set_puzzle_links_route = protectedAdminProcedure
           );
         }
 
-        const tagSlugs = [...new Set(input.tag_slugs)];
-        const collectionUids = [...new Set(input.collection_uids)];
-
-        const linked = yield* dbTransaction('catalog.set_puzzle_links', async (tx) => {
-          const resolvedTags = await ensureTagsBySlugs(tx, tagSlugs);
-          const tagIds = resolvedTags.map((tag) => tag.id);
-
-          const foundCollections =
-            collectionUids.length === 0
-              ? []
-              : await tx
-                  .select({ id: collections.id, uid: collections.uid })
-                  .from(collections)
-                  .where(inArray(collections.uid, collectionUids));
-          if (foundCollections.length !== collectionUids.length) {
-            return { ok: false as const };
-          }
-          const desiredCollectionIds = new Set(foundCollections.map((row) => row.id));
-          await tx.delete(puzzle_tags).where(eq(puzzle_tags.puzzle_id, input.puzzle_id));
-          if (tagIds.length > 0) {
-            await tx
-              .insert(puzzle_tags)
-              .values(tagIds.map((tag_id) => ({ puzzle_id: input.puzzle_id, tag_id })));
-          }
-          const current = await tx
-            .select({ collection_id: collection_items.collection_id })
-            .from(collection_items)
-            .where(eq(collection_items.puzzle_id, input.puzzle_id));
-          for (const row of current) {
-            if (!desiredCollectionIds.has(row.collection_id)) {
-              await tx
-                .delete(collection_items)
-                .where(
-                  and(
-                    eq(collection_items.puzzle_id, input.puzzle_id),
-                    eq(collection_items.collection_id, row.collection_id)
-                  )
-                );
-            }
-          }
-          const currentIds = new Set(current.map((row) => row.collection_id));
-          for (const collectionId of desiredCollectionIds) {
-            if (currentIds.has(collectionId)) continue;
-            const orderIndex = await nextOrderIndex(tx, collectionId);
-            await tx.insert(collection_items).values({
-              collection_id: collectionId,
-              puzzle_id: input.puzzle_id,
-              order_index: orderIndex
-            });
-          }
-          return { ok: true as const };
-        });
-
-        if (!linked.ok) {
+        const linked = yield* dbTransaction('catalog.set_puzzle_links', (tx) =>
+          applyPuzzleLinks(tx, input)
+        );
+        if (!linked) {
           return yield* Effect.fail(BadRequestError.make({ message: 'Unknown collection' }));
         }
 
         yield* refreshListedPuzzles(input.game);
         yield* refreshListedCollections();
         return { success: true as const };
+      })
+    )
+  );
+
+/** Same as `set_puzzle_links` for many puzzles of one game, in a single transaction. */
+const set_puzzle_links_batch_route = protectedAdminProcedure
+  .input(
+    z.object({
+      game: z.enum(GAME_KINDS),
+      items: z.array(puzzle_links_input).min(1).max(500)
+    })
+  )
+  .mutation(({ input }) =>
+    runTrpcEffect(
+      Effect.gen(function* () {
+        const items = [...new Map(input.items.map((item) => [item.puzzle_id, item])).values()];
+        const puzzleIds = items.map((item) => item.puzzle_id);
+        const found = yield* dbRunHttp('catalog.find_puzzles_for_links', (client) =>
+          client
+            .select({ id: puzzles.id })
+            .from(puzzles)
+            .where(and(inArray(puzzles.id, puzzleIds), eq(puzzles.kind, input.game)))
+        );
+        if (found.length !== puzzleIds.length) {
+          return yield* Effect.fail(
+            NotFoundError.make({ resource: 'puzzle', message: 'Puzzle not found' })
+          );
+        }
+
+        const collectionUids = [...new Set(items.flatMap((item) => item.collection_uids))];
+        const knownCollections =
+          collectionUids.length === 0
+            ? []
+            : yield* dbRunHttp('catalog.find_collections_for_links', (client) =>
+                client
+                  .select({ id: collections.id })
+                  .from(collections)
+                  .where(inArray(collections.uid, collectionUids))
+              );
+        if (knownCollections.length !== collectionUids.length) {
+          return yield* Effect.fail(BadRequestError.make({ message: 'Unknown collection' }));
+        }
+
+        yield* dbTransaction('catalog.set_puzzle_links_batch', async (tx) => {
+          for (const item of items) {
+            // Throwing rolls back every puzzle's links (only if a collection vanished mid-save).
+            if (!(await applyPuzzleLinks(tx, item))) throw new Error('Unknown collection');
+          }
+        });
+
+        yield* refreshListedPuzzles(input.game);
+        yield* refreshListedCollections();
+        return { updated: items.length };
       })
     )
   );
@@ -1493,6 +1553,7 @@ export const catalog_router = t.router({
   save_collection: save_collection_route,
   delete_collection: delete_collection_route,
   set_puzzle_links: set_puzzle_links_route,
+  set_puzzle_links_batch: set_puzzle_links_batch_route,
   add_items: add_items_route,
   add_item: add_item_route,
   remove_item: remove_item_route,
