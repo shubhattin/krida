@@ -12,7 +12,8 @@ import type {
   DashboardGameId,
   GameDashboardStats
 } from '~/api/routers/user/user_dashboard';
-import { GAME_KINDS, isGameKind, type GameKind } from '~/util/catalog/tags';
+import { isGameKind, type GameKind } from '~/util/catalog/tags';
+import { ALWAYS_VISIBLE_GAMES } from '~/util/games/visibility';
 import { AllGamesMenuItems } from '~/components/app-bar/GameMenuItems';
 import { EditDisplayNameDialog } from '~/components/pages/dashboard/EditDisplayNameDialog';
 import { GameAppIcon } from '~/components/GameAppIcon';
@@ -121,7 +122,13 @@ function SignedInDashboard() {
   const trpc = useTRPC();
   const dashboardQuery = useQuery(trpc.user.get_dashboard.queryOptions({ game }));
   const data = dashboardQuery.data;
-  const games: DashboardGameId[] = game === 'all' ? [...GAME_KINDS] : [game];
+  // Publicly visible games from the last response, kept while a new tab's stats load so the
+  // tab list does not collapse in between.
+  const [visibleGames, setVisibleGames] = useState<GameKind[]>([...ALWAYS_VISIBLE_GAMES]);
+  if (data && data.visible_games.join() !== visibleGames.join()) {
+    setVisibleGames(data.visible_games);
+  }
+  const games: DashboardGameId[] = game === 'all' ? visibleGames : [game];
 
   return (
     <div className="public-canvas flex min-h-dvh flex-col">
@@ -142,7 +149,7 @@ function SignedInDashboard() {
           >
             <TabsList>
               <TabsTrigger value="all">All games</TabsTrigger>
-              {GAME_KINDS.map((kind: GameKind) => (
+              {visibleGames.map((kind) => (
                 <TabsTrigger key={kind} value={kind}>
                   {HUB_GAMES[kind].name}
                 </TabsTrigger>
