@@ -1,11 +1,9 @@
 'use client';
 
-import { useContext, useEffect, useRef, type ReactNode } from 'react';
+import { useEffect, useRef, type ReactNode } from 'react';
 import { Link, getRouteApi, useNavigate, useRouterState } from '@tanstack/react-router';
 import { ArrowRight, Layers, Puzzle } from 'lucide-react';
 import { motion, useReducedMotion } from 'framer-motion';
-import { ScriptSelector } from '~/components/pages/padavali/ScriptSelector';
-import { AppContext } from '~/components/AppDataContext';
 import { HUB_GAMES, hubGameFromHomeHash, hubHomeHashForGame } from './hub_games';
 import { GamePickerChips } from './GamePickerChips';
 import type { HubData } from './hub_data';
@@ -58,7 +56,6 @@ function RecentlyAdded({
   const hashGame = hubGameFromHomeHash(hash);
   /** `?game=` is SSR-safe (hash is not sent to the server). */
   const game: 'all' | GameKind = gameSearch ?? 'all';
-  const { script, setScript } = useContext(AppContext);
   const reduceMotion = useReducedMotion();
   const scrolledHashRef = useRef<string | null>(null);
   const visible = (
@@ -140,12 +137,7 @@ function RecentlyAdded({
           </Button>
         }
       />
-      <div className="flex flex-wrap items-center gap-2">
-        <GamePickerChips games={games} value={game} onChange={setGameFilter} />
-        <div className="ml-auto">
-          <ScriptSelector script={script} onScriptChange={setScript} compact />
-        </div>
-      </div>
+      <GamePickerChips games={games} value={game} onChange={setGameFilter} />
       {visible.length === 0 ? (
         <p className="py-10 text-center text-sm text-slate-500">No puzzles to show yet.</p>
       ) : (

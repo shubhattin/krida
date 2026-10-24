@@ -101,8 +101,10 @@ type Props = {
   script: ScriptType;
   onScriptChange: (script: ScriptType) => void;
   showBetaBadge?: boolean;
-  /** Pill trigger for toolbars: avatar only on mobile, name from `sm` up. */
+  /** Pill trigger for toolbars (avatar + script name). */
   compact?: boolean;
+  /** Larger, wider pill for headers where switching script is a headline feature. */
+  prominent?: boolean;
 };
 
 export const ScriptBetaBadge = () => (
@@ -115,7 +117,8 @@ export const ScriptSelector = ({
   script,
   onScriptChange,
   showBetaBadge = false,
-  compact = false
+  compact = false,
+  prominent = false
 }: Props) => {
   useEffect(() => {
     prefetchScript(script);
@@ -154,9 +157,11 @@ export const ScriptSelector = ({
           title="Display script"
           className={cn(
             'h-8 gap-2 border-border/50 bg-background/50 text-sm',
-            compact
-              ? 'w-auto gap-1.5 rounded-full pr-2 pl-0.5 max-sm:*:data-[slot=select-value]:hidden sm:pr-2.5'
-              : 'w-46'
+            prominent
+              ? 'h-10 min-w-40 gap-2 rounded-full border-indigo-300/80 bg-indigo-50/80 pr-3 pl-1 font-semibold shadow-sm dark:border-indigo-500/40 dark:bg-indigo-950/50'
+              : compact
+                ? 'w-auto gap-1.5 rounded-full pr-2 pl-0.5 sm:pr-2.5'
+                : 'w-46'
           )}
           onPointerEnter={() => prefetchScript(script)}
           onFocus={() => prefetchScript(script)}
@@ -166,8 +171,8 @@ export const ScriptSelector = ({
         </SelectTrigger>
         <SelectContent
           alignItemWithTrigger={false}
-          align={compact ? 'end' : 'center'}
-          className={cn('max-h-96', compact && 'w-52')}
+          align={compact || prominent ? 'end' : 'center'}
+          className={cn('max-h-96', (compact || prominent) && 'w-56')}
         >
           {SCRIPT_LIST_MAIN.map((scriptKey) => (
             <ScriptSelectItem key={scriptKey} scriptKey={scriptKey} />
