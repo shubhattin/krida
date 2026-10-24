@@ -1,11 +1,10 @@
-import { createFileRoute, getRouteApi } from '@tanstack/react-router';
+import { createFileRoute } from '@tanstack/react-router';
+import { useHubData } from '~/components/hub/hub_query';
 import { z } from 'zod';
 import { routeHeadFromPageMeta, siteUrl } from '~/components/tags/getPageMetaTags';
 import HubPuzzles from '~/components/hub/HubPuzzles';
 import { HUB_GAMES } from '~/components/hub/hub_games';
 import { GAME_KINDS, type GameKind } from '~/util/catalog/tags';
-
-const hubRoute = getRouteApi('/_hub');
 
 const puzzles_search_schema = z.object({
   game: z
@@ -62,6 +61,6 @@ export const Route = createFileRoute('/_hub/puzzles')({
 });
 
 function PuzzlesPage() {
-  const data = hubRoute.useLoaderData();
+  const data = useHubData();
   return <HubPuzzles data={data} />;
 }
