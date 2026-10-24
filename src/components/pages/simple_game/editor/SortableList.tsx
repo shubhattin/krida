@@ -1,6 +1,7 @@
 'use client';
 
 import type { CSSProperties, ReactNode } from 'react';
+import { useId } from 'react';
 import {
   closestCenter,
   DndContext,
@@ -46,6 +47,9 @@ export function SortableList<T extends { id: string }>({
   onDragSettled?: () => void;
   children: (item: T, index: number) => ReactNode;
 }) {
+  // dnd-kit generates its a11y IDs from a module-level counter, which diverges
+  // between SSR and hydration — a stable id keeps server and client in sync.
+  const dndId = useId();
   const sensors = useSensors(
     useSensor(PointerSensor, { activationConstraint: { distance: 4 } }),
     useSensor(KeyboardSensor, {
@@ -65,6 +69,7 @@ export function SortableList<T extends { id: string }>({
 
   return (
     <DndContext
+      id={dndId}
       sensors={sensors}
       collisionDetection={closestCenter}
       modifiers={[restrictToVerticalAxis]}

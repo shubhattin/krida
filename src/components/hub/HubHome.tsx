@@ -45,7 +45,13 @@ function HubSectionHeading({
   );
 }
 
-function RecentlyAdded({ puzzles }: { puzzles: ReturnType<typeof useHubPuzzles>['puzzles'] }) {
+function RecentlyAdded({
+  puzzles,
+  games
+}: {
+  puzzles: ReturnType<typeof useHubPuzzles>['puzzles'];
+  games: readonly GameKind[];
+}) {
   const { game: gameSearch } = homeRoute.useSearch();
   const navigate = useNavigate({ from: '/' });
   const hash = useRouterState({ select: (s) => s.location.hash });
@@ -108,7 +114,8 @@ function RecentlyAdded({ puzzles }: { puzzles: ReturnType<typeof useHubPuzzles>[
 
   return (
     <section className="relative flex flex-col gap-4">
-      {/* Deep-link anchors for `/#puzzles` and every `/#<game>` */}
+      {/* Deep-link anchors for `/#puzzles` and every `/#<game>`. These carry no
+          text, so hidden games stay unmentioned while bookmarked hashes still scroll. */}
       <div id="puzzles" className="pointer-events-none absolute -top-24 h-px w-px scroll-mt-24" />
       {GAME_KINDS.map((kind) => (
         <div
@@ -134,7 +141,7 @@ function RecentlyAdded({ puzzles }: { puzzles: ReturnType<typeof useHubPuzzles>[
         }
       />
       <div className="flex flex-wrap items-center gap-2">
-        <GamePickerChips games={GAME_KINDS} value={game} onChange={setGameFilter} />
+        <GamePickerChips games={games} value={game} onChange={setGameFilter} />
         <div className="ml-auto">
           <ScriptSelector script={script} onScriptChange={setScript} compact />
         </div>
@@ -169,6 +176,8 @@ export default function HubHome({ data }: { data: HubData }) {
   const { puzzles } = useHubPuzzles(data);
   const tags = tagsByPopularity(puzzles).slice(0, 24);
   const reduceMotion = useReducedMotion();
+  const visibleGames = data.visibleGames;
+  const visibleMetas = visibleGames.map((kind) => HUB_GAMES[kind]);
   const todayGames = (['padavali', 'padajala'] as const)
     .map((kind) => HUB_GAMES[kind])
     .filter((game) => data[game.kind].today);
@@ -181,7 +190,7 @@ export default function HubHome({ data }: { data: HubData }) {
       </div>
 
       <div className="relative mx-auto flex max-w-6xl flex-col gap-7 px-4 py-4 sm:gap-14 sm:py-8">
-        <HubGameShowcase />
+        <HubGameShowcase games={visibleMetas} />
 
         {todayGames.length > 0 ? (
           <section className="flex flex-col gap-4">
@@ -210,7 +219,7 @@ export default function HubHome({ data }: { data: HubData }) {
           </section>
         ) : null}
 
-        <RecentlyAdded puzzles={puzzles} />
+        <RecentlyAdded puzzles={puzzles} games={visibleGames} />
 
         {data.collections.length > 0 ? (
           <section className="flex flex-col gap-4">

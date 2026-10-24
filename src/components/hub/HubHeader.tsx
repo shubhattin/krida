@@ -6,18 +6,26 @@ import { LayoutGrid } from 'lucide-react';
 import { MenuButton } from '~/components/app-bar/AppBarMenu';
 import { profileContextFromPath, UserProfileChip } from '~/components/app-bar/UserProfileChip';
 import SupportOptions from '~/components/app-bar/SupportOptions';
+import { HUB_GAME_LIST, hubNavFromPath, type HubGameMeta } from './hub_games';
 import { HubNavSwitcher } from './HubNavSwitcher';
-import { hubNavFromPath } from './hub_games';
 
 export function HubHeader({
   gameMenuItems,
-  showPwaControls = false
+  showPwaControls = false,
+  games
 }: {
   gameMenuItems?: ReactNode;
   showPwaControls?: boolean;
+  /**
+   * Games shown in the switcher. Hub pages pass the release-gated list;
+   * per-game public layouts pass their own gated list; admin/auth omit it
+   * and get every game.
+   */
+  games?: HubGameMeta[];
 }) {
   const pathname = useRouterState({ select: (state) => state.location.pathname });
   const active = hubNavFromPath(pathname);
+  const resolvedGames = games ?? HUB_GAME_LIST;
 
   return (
     <header className="sticky top-0 z-50 border-b border-border/70 bg-background/80 backdrop-blur-md">
@@ -38,7 +46,7 @@ export function HubHeader({
               Play, learn, grow
             </span>
           </Link>
-          <HubNavSwitcher active={active} />
+          <HubNavSwitcher active={active} games={resolvedGames} />
         </div>
 
         <div className="min-w-0 flex-1" />

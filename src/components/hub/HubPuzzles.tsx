@@ -38,7 +38,7 @@ import { LanguageIcon } from '~/components/icons';
 import { scrollPaginationListToStart } from '~/lib/pagination-scroll';
 import { cn } from '~/lib/utils';
 
-import { GamePickerChips } from './GamePickerChips';
+import { GamePickerChips, type GamePick } from './GamePickerChips';
 import type { HubData } from './hub_data';
 import { HubPuzzleCard } from './HubPuzzleCard';
 import { HubCollectionCard } from './HubCollectionCard';
@@ -61,7 +61,7 @@ const VIEW_TABS = [
   { value: 'collections', label: 'Collections', icon: LayersIcon }
 ] as const;
 
-type GameCounts = Record<'all' | GameKind, number>;
+type GameCounts = Partial<Record<GamePick, number>>;
 type CountedTag = PublicTag & { count: number };
 
 /** Any filter change resets pagination back to page 1. */
@@ -193,13 +193,19 @@ function SearchField() {
   );
 }
 
-function GameFilters({ gameCounts }: { gameCounts: GameCounts }) {
+function GameFilters({
+  games,
+  gameCounts
+}: {
+  games: readonly GameKind[];
+  gameCounts: GameCounts;
+}) {
   const search = puzzlesRoute.useSearch();
   const updateFilters = useUpdateFilters();
 
   return (
     <GamePickerChips
-      games={GAME_KINDS}
+      games={games}
       value={search.game}
       onChange={(game) => updateFilters({ game })}
       counts={gameCounts}
@@ -451,6 +457,10 @@ export default function HubPuzzles({ data }: { data: HubData }) {
   const navigate = puzzlesRoute.useNavigate();
   const { script, setScript } = useContext(AppContext);
   const { puzzles, byKey } = useHubPuzzles(data);
+  // Progressive release: only games with a listed puzzle get a filter chip
+  // (padavali/padajala always). A bookmarked `?game=` for a hidden game still
+  // resolves — it just shows the empty state.
+  const games = data.visibleGames;
   const isCollections = search.view === 'collections';
   // Collections mix games, so the game filter never applies to them (or their topics).
   const game = isCollections ? 'all' : search.game;
@@ -475,18 +485,13 @@ export default function HubPuzzles({ data }: { data: HubData }) {
       tags: search.tag ? [search.tag] : [],
       query: search.q
     });
-    const counts = {
-      all: base.length,
-      padavali: 0,
-      padajala: 0,
-      dvayi: 0,
-      bhramita: 0,
-      surupa: 0,
-      anveshi: 0
-    } satisfies GameCounts;
-    for (const puzzle of base) counts[puzzle.game] += 1;
+    // Chips only exist for visible games; hidden games (zero listed puzzles)
+    // never appear in `base`, so they naturally keep no count entry.
+    const counts: GameCounts = { all: base.length };
+    for (const game of games) counts[game] = 0;
+    for (const puzzle of base) counts[puzzle.game] = (counts[puzzle.game] ?? 0) + 1;
     return counts;
-  }, [puzzles, search.tag, search.q]);
+  }, [puzzles, games, search.tag, search.q]);
 
   // Collections aren't paginated — drop a leftover ?page= from puzzle view.
   useEffect(() => {
@@ -514,7 +519,9 @@ export default function HubPuzzles({ data }: { data: HubData }) {
           <p className="text-sm text-slate-500 sm:text-base dark:text-slate-400">
             {isCollections
               ? 'Curated playlists that mix puzzles from every game.'
-              : `Every listed puzzle across all six Krida games.`}
+              : games.length >= GAME_KINDS.length
+                ? 'Every listed puzzle across all six Krida games.'
+                : `Every listed puzzle across ${games.length} Krida games.`}
           </p>
         </div>
         <ViewTabs
@@ -529,7 +536,7 @@ export default function HubPuzzles({ data }: { data: HubData }) {
         <div className="col-span-2 -mx-4 flex min-w-0 scrollbar-none items-center gap-2 overflow-x-auto mask-r-from-85% px-4 sm:col-span-1 sm:mx-0 sm:flex-wrap sm:mask-none sm:px-0">
           {isCollections ? null : (
             <>
-              <GameFilters gameCounts={gameCounts} />
+              <GameFilters games={games} gameCounts={gameCounts} />
               <span className="h-5 w-px shrink-0 bg-border" aria-hidden />
             </>
           )}

@@ -4,6 +4,8 @@ import type { ReactNode } from 'react';
 import { SimpleGameMenuItems } from '~/components/app-bar/GameMenuItems';
 import { HubFooter } from '~/components/hub/HubFooter';
 import { HubHeader } from '~/components/hub/HubHeader';
+import { HUB_GAMES } from '~/components/hub/hub_games';
+import { publicLayoutGames } from '~/util/games/visibility';
 import type { SimpleGameKind } from '~/util/games/kinds';
 
 export function SimpleGameAuthLayout({
@@ -30,7 +32,11 @@ export function SimpleGamePublicLayout({
 }) {
   return (
     <div className="public-canvas flex min-h-dvh flex-col">
-      <HubHeader showPwaControls gameMenuItems={<SimpleGameMenuItems kind={kind} />} />
+      <HubHeader
+        showPwaControls
+        gameMenuItems={<SimpleGameMenuItems kind={kind} />}
+        games={publicLayoutGames(kind).map((game) => HUB_GAMES[game])}
+      />
       <div className="flex-1">{children}</div>
       <HubFooter />
     </div>

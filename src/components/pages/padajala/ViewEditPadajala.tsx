@@ -1,6 +1,6 @@
 'use client';
 
-import { useEffect, useMemo, useRef, useState, type KeyboardEvent } from 'react';
+import { useEffect, useId, useMemo, useRef, useState, type KeyboardEvent } from 'react';
 import { atom, useAtom } from 'jotai';
 import { useHydrateAtoms } from 'jotai/utils';
 import { useNavigate, useRouter } from '@tanstack/react-router';
@@ -469,6 +469,9 @@ const SortableAttachmentItem = ({
 const AttachmentsEditor = () => {
   const [attachments, setAttachments] = useAtom(attachments_atom);
 
+  // Stable dnd-kit context id: the default comes from a module-level counter
+  // that diverges between SSR and hydration (aria-describedby mismatch).
+  const dndId = useId();
   const sensors = useSensors(
     useSensor(PointerSensor),
     useSensor(KeyboardSensor, {
@@ -530,6 +533,7 @@ const AttachmentsEditor = () => {
         </AccordionTrigger>
         <AccordionContent>
           <DndContext
+            id={dndId}
             sensors={sensors}
             collisionDetection={closestCenter}
             onDragEnd={handleDragEnd}

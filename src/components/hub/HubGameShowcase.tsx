@@ -3,16 +3,17 @@
 import { ChevronLeftIcon, ChevronRightIcon } from 'lucide-react';
 import { AllPuzzlesLink } from '~/components/PuzzleCatalogLink';
 import { GameAppIcon } from '~/components/GameAppIcon';
-import { HUB_GAME_LIST } from '~/components/hub/hub_games';
+import { HUB_GAME_LIST, type HubGameMeta } from '~/components/hub/hub_games';
 import { GameShowcaseCard } from '~/components/hub/showcase/GameShowcaseCard';
 import { Button } from '~/components/ui/button';
 import { useScrollRail } from '~/hooks/useScrollRail';
+import { countWord } from '~/util/games/visibility';
 import { cn } from '~/lib/utils';
 
 const navButtonClass =
   'size-7 shrink-0 rounded-full border border-slate-300 bg-white text-slate-700 shadow-sm hover:bg-slate-50 disabled:opacity-35 dark:border-slate-600 dark:bg-slate-800 dark:text-slate-100 dark:hover:bg-slate-700';
 
-export function HubGameShowcase() {
+export function HubGameShowcase({ games = HUB_GAME_LIST }: { games?: HubGameMeta[] }) {
   const {
     ref: railRef,
     dragging,
@@ -27,7 +28,7 @@ export function HubGameShowcase() {
     <section className="mx-auto flex w-full max-w-3xl flex-col gap-2 sm:gap-4">
       <header className="flex min-w-0 items-center gap-2.5 sm:gap-3">
         <div className="flex shrink-0" aria-hidden="true">
-          {HUB_GAME_LIST.map((game, index) => (
+          {games.map((game, index) => (
             <GameAppIcon
               key={game.kind}
               game={game.kind}
@@ -46,7 +47,7 @@ export function HubGameShowcase() {
             <span className="krida-hero-wordmark">Krida</span>
           </h1>
           <p className="mt-0.5 text-xs text-slate-500 sm:text-sm dark:text-slate-400">
-            Sanskrit Games — six ways to play, learn, grow.
+            Sanskrit Games — {countWord(games.length)} ways to play, learn, grow.
           </p>
         </div>
         <AllPuzzlesLink className="hidden shrink-0 sm:inline-flex" />
@@ -61,7 +62,7 @@ export function HubGameShowcase() {
           dragging ? 'cursor-grabbing' : 'cursor-grab'
         )}
       >
-        {HUB_GAME_LIST.map((game, index) => (
+        {games.map((game, index) => (
           <div
             key={game.kind}
             aria-label={game.name}
@@ -85,7 +86,7 @@ export function HubGameShowcase() {
           <ChevronLeftIcon />
         </Button>
         <div className="flex items-center">
-          {HUB_GAME_LIST.map((game, index) => (
+          {games.map((game, index) => (
             <button
               key={game.kind}
               type="button"

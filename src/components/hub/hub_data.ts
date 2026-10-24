@@ -10,6 +10,7 @@ import {
 } from '~/components/pages/padavali/listed_puzzle_display';
 import type { SimpleListedPuzzle } from '~/util/cache.server/simple_game_cache';
 import { SIMPLE_GAME_KINDS, type SimpleGameKind } from '~/util/games/kinds';
+import { visibleGamesFromCounts } from '~/util/games/visibility';
 import { runLoaderEffect } from '~/effect/run';
 
 /** Card-sized view of the puzzle currently scheduled for a game (the "daily" puzzle). */
@@ -136,6 +137,19 @@ export const hubData$ = createServerFn({ method: 'GET' }).handler(async () => {
   return {
     script,
     collections,
+    /**
+     * Progressive release gate (zero extra queries — derived from the list
+     * lengths above): old games always, new kridas only once they have a
+     * listed puzzle. Public UI filters by this; sitemaps/robots ignore it.
+     */
+    visibleGames: visibleGamesFromCounts({
+      padavali: padavali_listed.length,
+      padajala: padajala_listed.length,
+      dvayi: dvayi_listed.length,
+      bhramita: bhramita_listed.length,
+      surupa: surupa_listed.length,
+      anveshi: anveshi_listed.length
+    }),
     padavali: {
       listed: padavali_listed,
       listed_init_transliterated: mapListedPuzzlesForDisplay(
