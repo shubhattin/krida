@@ -132,14 +132,23 @@ export function MorePuzzles({ kind, puzzleId }: { kind: GameKind; puzzleId: numb
     <section className="space-y-3">
       <div className="flex items-center justify-between gap-3">
         <h3 className="text-base font-bold">More puzzles</h3>
-        <Link
-          to="/puzzles"
-          search={pick === 'all' ? {} : { game: pick }}
-          className="inline-flex shrink-0 items-center gap-1 text-xs font-semibold text-muted-foreground no-underline transition-colors hover:text-foreground"
-        >
-          Browse
-          <ArrowRightIcon className="size-3.5" />
-        </Link>
+        <div className="flex shrink-0 items-center gap-3">
+          <Link
+            to="/puzzles"
+            search={pick === 'all' ? {} : { game: pick }}
+            className="inline-flex items-center gap-1 text-xs font-semibold text-muted-foreground no-underline transition-colors hover:text-foreground"
+          >
+            Browse
+            <ArrowRightIcon className="size-3.5" />
+          </Link>
+          {/* Only when the row overflows; touch screens swipe instead. */}
+          {canPrev || canNext ? (
+            <div className="flex items-center gap-1 pointer-coarse:hidden">
+              <RailButton direction={-1} disabled={!canPrev} onClick={() => scrollPage(-1)} />
+              <RailButton direction={1} disabled={!canNext} onClick={() => scrollPage(1)} />
+            </div>
+          ) : null}
+        </div>
       </div>
       <GamePickerChips
         games={games}
@@ -147,55 +156,51 @@ export function MorePuzzles({ kind, puzzleId }: { kind: GameKind; puzzleId: numb
         onChange={setChosen}
         counts={loading ? undefined : counts}
       />
-      <div className="relative">
-        <div
-          ref={rowRef}
-          aria-label="More puzzles"
-          className={cn(
-            // `relative`: snap stops are measured from the tiles' offsets against the rail.
-            'scroll-rail relative -mx-1 flex gap-3 px-1 pt-1 pb-3 select-none',
-            'snap-x snap-mandatory',
-            // Tiles ignore hover while dragging so their lift doesn't flicker under the cursor.
-            dragging ? 'cursor-grabbing *:pointer-events-none' : 'cursor-grab'
-          )}
-        >
-          {loading && items.length === 0
-            ? Array.from({ length: 3 }, (_, index) => (
-                <div
-                  key={index}
-                  className="h-28 w-60 shrink-0 animate-pulse rounded-2xl border border-border/50 bg-muted/40"
-                />
-              ))
-            : null}
-          {!loading && items.length === 0 ? (
-            <p className="w-full rounded-2xl border border-dashed border-border/70 px-4 py-6 text-center text-sm text-muted-foreground">
-              No other {pick === 'all' ? '' : `${gameDisplayName(pick)} `}puzzles yet.
-            </p>
-          ) : null}
-          {items.map((item, index) => (
-            <PuzzleTile
-              key={`${item.game}-${item.id}`}
-              item={item}
-              index={index}
-              showGame={pick === 'all'}
-            />
-          ))}
-        </div>
-        <RailButton direction={-1} visible={canPrev} onClick={() => scrollPage(-1)} />
-        <RailButton direction={1} visible={canNext} onClick={() => scrollPage(1)} />
+      <div
+        ref={rowRef}
+        aria-label="More puzzles"
+        className={cn(
+          // `relative`: snap stops are measured from the tiles' offsets against the rail.
+          'scroll-rail relative -mx-1 flex gap-3 px-1 pt-1 pb-3 select-none',
+          'snap-x snap-mandatory',
+          // Tiles ignore hover while dragging so their lift doesn't flicker under the cursor.
+          dragging ? 'cursor-grabbing *:pointer-events-none' : 'cursor-grab'
+        )}
+      >
+        {loading && items.length === 0
+          ? Array.from({ length: 3 }, (_, index) => (
+              <div
+                key={index}
+                className="h-28 w-60 shrink-0 animate-pulse rounded-2xl border border-border/50 bg-muted/40"
+              />
+            ))
+          : null}
+        {!loading && items.length === 0 ? (
+          <p className="w-full rounded-2xl border border-dashed border-border/70 px-4 py-6 text-center text-sm text-muted-foreground">
+            No other {pick === 'all' ? '' : `${gameDisplayName(pick)} `}puzzles yet.
+          </p>
+        ) : null}
+        {items.map((item, index) => (
+          <PuzzleTile
+            key={`${item.game}-${item.id}`}
+            item={item}
+            index={index}
+            showGame={pick === 'all'}
+          />
+        ))}
       </div>
     </section>
   );
 }
 
-/** Prev / next arrow over the rail's edge; hidden on touch-only screens, which swipe instead. */
+/** Prev / next arrow in the section header; pages the rail by about a viewport. */
 function RailButton({
   direction,
-  visible,
+  disabled,
   onClick
 }: {
   direction: 1 | -1;
-  visible: boolean;
+  disabled: boolean;
   onClick: () => void;
 }) {
   const Icon = direction === 1 ? ChevronRightIcon : ChevronLeftIcon;
@@ -203,16 +208,11 @@ function RailButton({
     <button
       type="button"
       aria-label={direction === 1 ? 'More puzzles to the right' : 'More puzzles to the left'}
-      tabIndex={visible ? 0 : -1}
-      aria-hidden={!visible}
+      disabled={disabled}
       onClick={onClick}
-      className={cn(
-        'absolute top-1/2 z-10 flex size-9 -translate-y-1/2 items-center justify-center rounded-full border border-border bg-background/90 text-foreground shadow-md backdrop-blur transition-opacity duration-200 hover:bg-muted focus-visible:ring-2 focus-visible:ring-indigo-400/70 focus-visible:outline-none pointer-coarse:hidden',
-        direction === 1 ? '-right-3' : '-left-3',
-        visible ? 'opacity-100' : 'pointer-events-none opacity-0'
-      )}
+      className="flex size-7 items-center justify-center rounded-full border border-border bg-background/80 text-foreground shadow-sm transition-colors hover:bg-muted focus-visible:ring-2 focus-visible:ring-indigo-400/70 focus-visible:outline-none disabled:pointer-events-none disabled:opacity-35"
     >
-      <Icon className="size-4" />
+      <Icon className="size-3.5" />
     </button>
   );
 }
