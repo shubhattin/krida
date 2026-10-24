@@ -54,14 +54,10 @@ export const createAgent = Effect.fn('agents.create_agent')(function* (chat: {
     instructions: toSystemMessages(agentInstructionSections(chat)),
     tools,
     stopWhen: stepCountIs(MAX_STEPS),
-    // Reasoning options only for reasoning models: the Responses API warns on
-    // non-reasoning models (e.g. Luna) when reasoningEffort/reasoningSummary are set.
-    providerOptions: AGENT_MODELS[chat.model].reasoning
-      ? {
-          openai: { reasoningEffort: 'medium', reasoningSummary: 'auto' },
-          openrouter: { reasoning: { effort: 'medium' } }
-        }
-      : undefined
+    providerOptions: {
+      openai: { reasoningEffort: 'medium', reasoningSummary: 'auto' },
+      openrouter: { reasoning: { effort: 'medium' } }
+    }
   });
   return { agent, tools };
 });
