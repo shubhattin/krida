@@ -19,7 +19,8 @@ export function gameDisplayName(game: GameKind) {
  * Game filter that fits every game on one row without scrolling. On phones, inactive chips
  * collapse to their icon and only the selected chip shows its name + count; from `sm` up every
  * chip is labelled (from `lg` with `compactUntil="lg"`, for rows that share their width).
- * (Wraps as a last resort if a wide screen ever runs out of room.)
+ * (Wraps as a last resort if a wide screen ever runs out of room.) With only two games every
+ * chip keeps its name on phones too — there's room, and the names are worth showing.
  */
 export function GamePickerChips({
   games,
@@ -39,6 +40,7 @@ export function GamePickerChips({
 }) {
   const options: GamePick[] = ['all', ...games];
   const untilLg = compactUntil === 'lg';
+  const neverCollapse = games.length <= 2;
 
   return (
     <LayoutGroup>
@@ -63,7 +65,7 @@ export function GamePickerChips({
               onClick={() => onChange(option)}
               className={cn(
                 'inline-flex h-7 shrink-0 items-center justify-center gap-1.5 rounded-full border text-xs font-semibold transition-colors focus-visible:ring-2 focus-visible:ring-indigo-400/70 focus-visible:outline-none sm:h-8',
-                active
+                active || neverCollapse
                   ? 'px-2.5 sm:px-3'
                   : untilLg
                     ? 'w-7 sm:w-8 lg:w-auto lg:px-3'
@@ -81,7 +83,7 @@ export function GamePickerChips({
               <span
                 className={cn(
                   'whitespace-nowrap',
-                  !active && (untilLg ? 'max-lg:hidden' : 'max-sm:hidden')
+                  !active && !neverCollapse && (untilLg ? 'max-lg:hidden' : 'max-sm:hidden')
                 )}
               >
                 {label}

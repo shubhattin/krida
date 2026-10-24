@@ -4,6 +4,7 @@ import { Link } from '@tanstack/react-router';
 import { motion } from 'framer-motion';
 import { GameAppIcon } from '~/components/GameAppIcon';
 import { HUB_GAMES, HUB_GAME_ACCENT } from '~/components/hub/hub_games';
+import { GAME_SCRIPT_NAMES, useScriptName } from '~/components/hub/useScriptName';
 import type { GameKind } from '~/util/catalog/tags';
 import { isSimpleGameKind } from '~/util/games/kinds';
 import { cn } from '~/lib/utils';
@@ -70,6 +71,7 @@ export function GameShowcaseCard({
 }) {
   const meta = HUB_GAMES[game];
   const style = SHOWCASE_STYLE[game];
+  const name = useScriptName(GAME_SCRIPT_NAMES[game]);
   return (
     <motion.div
       initial={{ opacity: 0, y: compact ? 16 : 30 }}
@@ -111,12 +113,15 @@ export function GameShowcaseCard({
             <div className="min-w-0 flex-1">
               <h3
                 className={cn(
-                  'bg-linear-to-r bg-clip-text font-black tracking-tight text-transparent',
+                  // Vertical padding keeps gradient-clipped matras from being cut.
+                  'bg-linear-to-r bg-clip-text py-0.5 leading-tight font-black tracking-tight text-transparent',
                   style.title,
-                  compact ? 'text-base' : 'text-xl'
+                  compact ? 'text-base' : 'text-xl',
+                  name.fontClassName
                 )}
+                title={meta.name}
               >
-                {meta.name}
+                {name.text}
               </h3>
               <span className="text-xs font-semibold text-slate-500 dark:text-slate-400">
                 {meta.subtitle}
