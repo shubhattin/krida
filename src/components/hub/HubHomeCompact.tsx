@@ -6,7 +6,7 @@ import { ArrowRight, ArrowUpRight, Play, Puzzle } from 'lucide-react';
 import { ScriptSelector } from '~/components/pages/padavali/ScriptSelector';
 import { AppContext } from '~/components/AppDataContext';
 import { GameAppIcon } from '~/components/GameAppIcon';
-import { HUB_GAME_LIST, HUB_GAMES } from './hub_games';
+import { HUB_GAMES } from './hub_games';
 import { GamePickerChips } from './GamePickerChips';
 import type { HubData } from './hub_data';
 import { HubPuzzleCard } from './HubPuzzleCard';
@@ -14,7 +14,8 @@ import { HubCollectionCard } from './HubCollectionCard';
 import { HubTodayCard } from './HubTodayCard';
 import { tagsByPopularity } from './hub_puzzles';
 import { useHubPuzzles } from './useHubPuzzles';
-import { GAME_KINDS, type GameKind } from '~/util/catalog/tags';
+import type { GameKind } from '~/util/catalog/tags';
+import { countWord } from '~/util/games/visibility';
 import { cn } from '~/lib/utils';
 import { Button } from '~/components/ui/button';
 
@@ -28,6 +29,8 @@ export default function HubHomeCompact({ data }: { data: HubData }) {
   const { puzzles } = useHubPuzzles(data);
   const [game, setGame] = useState<'all' | GameKind>('all');
   const { script, setScript } = useContext(AppContext);
+  const games = data.visibleGames;
+  const gameMetas = games.map((kind) => HUB_GAMES[kind]);
   const counts = useMemo(() => {
     const c = {
       all: puzzles.length,
@@ -56,7 +59,7 @@ export default function HubHomeCompact({ data }: { data: HubData }) {
             <span className="krida-hero-wordmark">Krida</span>
           </h1>
           <p className="text-sm text-slate-500 dark:text-slate-400">
-            Sanskrit Games — six ways to play, learn, grow.
+            Sanskrit Games — {countWord(games.length)} ways to play, learn, grow.
           </p>
           <div className="ml-auto flex items-center gap-2">
             <ScriptSelector script={script} onScriptChange={setScript} compact />
@@ -78,7 +81,7 @@ export default function HubHomeCompact({ data }: { data: HubData }) {
             Games
           </h2>
           <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-3">
-            {HUB_GAME_LIST.map((meta) => (
+            {gameMetas.map((meta) => (
               <Link
                 key={meta.kind}
                 to="/puzzles"
@@ -149,7 +152,7 @@ export default function HubHomeCompact({ data }: { data: HubData }) {
               <ArrowRight className="size-3.5" />
             </Button>
           </div>
-          <GamePickerChips games={GAME_KINDS} value={game} onChange={setGame} counts={counts} />
+          <GamePickerChips games={games} value={game} onChange={setGame} counts={counts} />
           {visible.length === 0 ? (
             <p className="py-10 text-center text-sm text-slate-500">No puzzles to show yet.</p>
           ) : (

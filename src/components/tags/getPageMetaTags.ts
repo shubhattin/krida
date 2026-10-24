@@ -46,10 +46,10 @@ interface Props {
   canonical?: string;
 }
 
-// TODO(release): STRICT — before merging `krida` into `main`, change `SHARE_IMAGE_REF` below from
-// 'krida' to 'main'. jsDelivr serves these files from that git ref, and the `krida` branch will be
-// deleted after the release, which would break every share image.
-const SHARE_IMAGE_REF = 'krida';
+// TODO(release): this file now targets `main`. Keep `SHARE_IMAGE_REF` on `main`
+// (the merge target) — jsDelivr serves these files from that git ref, and the `krida`
+// branch will be deleted after the release, which would break every share image.
+const SHARE_IMAGE_REF = 'main';
 
 /** Static share cards live in `src/images/share/<id>.jpg` (1200×630) and are served via jsDelivr. */
 const shareImage = (id: string): ShareImageInfo => ({

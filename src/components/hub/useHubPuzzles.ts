@@ -6,6 +6,7 @@ import { usePadajalaListedPuzzles } from '~/components/pages/padajala/usePadajal
 import type { HubData } from './hub_data';
 import { toHubPuzzles, type HubPuzzle } from './hub_puzzles';
 import { useSimpleListedPuzzles } from './useSimpleListedPuzzles';
+import type { GameKind } from '~/util/catalog/tags';
 
 /** Live, script-aware list of every listed puzzle across games, sorted by recency. */
 export function useHubPuzzles(data: HubData) {
@@ -25,10 +26,14 @@ export function useHubPuzzles(data: HubData) {
     data.anveshi.listed_init_transliterated
   );
 
-  const puzzles = useMemo(
-    () => toHubPuzzles(padavali, padajala, { dvayi, bhramita, surupa, anveshi }),
-    [padavali, padajala, dvayi, bhramita, surupa, anveshi]
-  );
+  const puzzles = useMemo(() => {
+    // Defense-in-depth for the release gate: hidden games contribute zero rows
+    // today, but never let one leak into public UI if a cache shape changes.
+    const visible = new Set<GameKind>(data.visibleGames);
+    return toHubPuzzles(padavali, padajala, { dvayi, bhramita, surupa, anveshi }).filter((puzzle) =>
+      visible.has(puzzle.game)
+    );
+  }, [padavali, padajala, dvayi, bhramita, surupa, anveshi, data.visibleGames]);
   const byKey = useMemo(
     () => new Map<string, HubPuzzle>(puzzles.map((puzzle) => [puzzle.key, puzzle])),
     [puzzles]

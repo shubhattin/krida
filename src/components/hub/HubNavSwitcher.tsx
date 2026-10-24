@@ -36,10 +36,10 @@ const PLACES: {
   { key: 'puzzles', to: '/puzzles', label: 'Puzzles', hint: 'Every listed puzzle', icon: Puzzle }
 ];
 
-function GamesMark({ className }: { className?: string }) {
+function GamesMark({ games, className }: { games: HubGameMeta[]; className?: string }) {
   return (
     <span className={cn('flex items-center', className)} aria-hidden="true">
-      {HUB_GAME_LIST.map((game, index) => (
+      {games.map((game, index) => (
         <Image
           key={game.kind}
           src={GAME_APP_ICON_SRC[game.kind]}
@@ -174,10 +174,12 @@ function GameNavCard({ game, active }: { game: HubGameMeta; active: boolean }) {
 
 function SwitcherTriggerLabel({
   active,
-  activeGame
+  activeGame,
+  games
 }: {
   active: HubNavId;
   activeGame: HubGameMeta | null;
+  games: HubGameMeta[];
 }) {
   if (activeGame) {
     return (
@@ -206,13 +208,20 @@ function SwitcherTriggerLabel({
 
   return (
     <>
-      <GamesMark className="hidden sm:flex" />
+      <GamesMark games={games} className="hidden sm:flex" />
       <span className="truncate">Krida</span>
     </>
   );
 }
 
-export function HubNavSwitcher({ active }: { active: HubNavId }) {
+export function HubNavSwitcher({
+  active,
+  games = HUB_GAME_LIST
+}: {
+  active: HubNavId;
+  /** Progressive release: hub pages pass visible games; admin/auth default to all. */
+  games?: HubGameMeta[];
+}) {
   const [open, setOpen] = useState(false);
   useCloseOnNavigate(() => setOpen(false));
   const activeGame = active === 'home' || active === 'puzzles' ? null : HUB_GAMES[active];
@@ -237,7 +246,7 @@ export function HubNavSwitcher({ active }: { active: HubNavId }) {
           />
         }
       >
-        <SwitcherTriggerLabel active={active} activeGame={activeGame} />
+        <SwitcherTriggerLabel active={active} activeGame={activeGame} games={games} />
         <ChevronDown
           className={cn(
             'size-3.5 shrink-0 opacity-60 transition-transform duration-200',
@@ -268,7 +277,7 @@ export function HubNavSwitcher({ active }: { active: HubNavId }) {
         <div className="flex flex-col gap-2 bg-slate-50/90 p-3 dark:bg-slate-900/40">
           <p className="text-[11px] font-semibold text-slate-500 dark:text-slate-400">Games</p>
           <div className="grid grid-cols-2 gap-2">
-            {HUB_GAME_LIST.map((game) => (
+            {games.map((game) => (
               <GameNavCard key={game.kind} game={game} active={active === game.kind} />
             ))}
           </div>

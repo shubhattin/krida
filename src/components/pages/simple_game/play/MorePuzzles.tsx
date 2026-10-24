@@ -13,6 +13,7 @@ import { puzzleHref } from '~/components/hub/hub_games';
 import { GameKindIcon } from '~/components/pages/catalog/GameKindIcon';
 import { cn } from '~/lib/utils';
 import { GAME_KINDS, type GameKind } from '~/util/catalog/tags';
+import { isAlwaysVisibleGame } from '~/util/games/visibility';
 import { useTransliteratedText } from '../useTransliteratedText';
 
 const ALL_LIMIT = 16;
@@ -91,10 +92,11 @@ export function MorePuzzles({ kind, puzzleId }: { kind: GameKind; puzzleId: numb
     [padavali.data, padajala.data, dvayi.data, bhramita.data, surupa.data, anveshi.data]
   );
 
-  // Current game first, then the rest; games with nothing listed are dropped from the chips.
+  // Current game first, then the rest; games with nothing listed are dropped from
+  // the chips, except the always-visible classics (padavali/padajala).
   const games = useMemo(() => {
     return [kind, ...GAME_KINDS.filter((game) => game !== kind)].filter(
-      (game) => game === kind || byGame[game].length > 0
+      (game) => game === kind || byGame[game].length > 0 || isAlwaysVisibleGame(game)
     );
   }, [byGame, kind]);
 

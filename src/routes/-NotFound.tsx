@@ -4,7 +4,8 @@ import { Link } from '@tanstack/react-router';
 import { motion } from 'framer-motion';
 import { Home, Compass } from 'lucide-react';
 import { GameShowcaseCard } from '~/components/hub/showcase/GameShowcaseCard';
-import { GAME_KINDS } from '~/util/catalog/tags';
+import { HUB_GAMES } from '~/components/hub/hub_games';
+import { ALWAYS_VISIBLE_GAMES } from '~/util/games/visibility';
 
 export default function NotFoundClient() {
   return (
@@ -53,10 +54,11 @@ export default function NotFoundClient() {
           </div>
         </motion.div>
 
-        {/* Embedded Interactive Games */}
+        {/* Embedded Interactive Games — gated to always-visible classics: this page
+            has no hub data, so it never advertises unlisted kridas. */}
         <div className="grid w-full gap-8 text-left md:grid-cols-2">
-          {GAME_KINDS.map((game, index) => (
-            <GameShowcaseCard key={game} game={game} index={index} />
+          {ALWAYS_VISIBLE_GAMES.map((game, index) => (
+            <GameShowcaseCard key={game} game={HUB_GAMES[game].kind} index={index} />
           ))}
         </div>
       </div>
