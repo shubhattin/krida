@@ -16,7 +16,8 @@ const AUDIENCE = 'padavali:guest-claim';
 
 const guest_claim_payload_schema = z.object({
   k: game_kind_schema,
-  sid: z.number().int().positive()
+  /** `puzzle_sessions.id` is a Postgres `serial` (int4). */
+  sid: z.number().int().positive().max(2_147_483_647)
 });
 
 export type GuestClaim = { kind: GameKind; sessionId: number };

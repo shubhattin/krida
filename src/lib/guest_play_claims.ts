@@ -13,14 +13,16 @@ const MAX_ENTRIES = 100;
 
 const guest_play_claim_schema = z.object({
   kind: game_kind_schema,
-  session_id: z.number().int().positive(),
+  /** `puzzle_sessions.id` is a Postgres `serial` (int4). */
+  session_id: z.number().int().positive().max(2_147_483_647),
   /** Server-signed proof this browser finished the play. */
   token: z.string().min(1),
   finished_at: z.number().finite()
 });
 export type GuestPlayClaim = z.infer<typeof guest_play_claim_schema>;
 
-const guest_play_claims_schema = z.array(guest_play_claim_schema);
+/** Entries are checked one by one so a single bad entry never drops the rest. */
+const stored_guest_plays_schema = z.array(z.unknown());
 
 function localStore(): Storage | null {
   try {
@@ -52,8 +54,13 @@ export function readGuestPlayClaims(nowMs = Date.now()): GuestPlayClaim[] {
   try {
     const raw = storage.getItem(GUEST_PLAY_CLAIMS_KEY);
     if (!raw) return [];
-    const parsed = guest_play_claims_schema.safeParse(JSON.parse(raw));
-    return parsed.success ? fresh(parsed.data, nowMs) : [];
+    const parsed = stored_guest_plays_schema.safeParse(JSON.parse(raw));
+    if (!parsed.success) return [];
+    const entries = parsed.data.flatMap((item) => {
+      const entry = guest_play_claim_schema.safeParse(item);
+      return entry.success ? [entry.data] : [];
+    });
+    return fresh(entries, nowMs);
   } catch {
     return [];
   }

@@ -87,6 +87,16 @@ describe('guest play claims', () => {
     expect(local.getItem(GUEST_PLAY_CLAIMS_KEY)).toBeNull();
   });
 
+  it('keeps valid entries next to a malformed one', () => {
+    rememberGuestPlay('padavali', 1, 'tok-1', NOW);
+    const stored = JSON.parse(local.getItem(GUEST_PLAY_CLAIMS_KEY) ?? '[]');
+    local.setItem(
+      GUEST_PLAY_CLAIMS_KEY,
+      JSON.stringify([...stored, { kind: 'chess', session_id: -1, token: '' }])
+    );
+    expect(readGuestPlayClaims(NOW).map((entry) => entry.session_id)).toEqual([1]);
+  });
+
   it('ignores corrupt storage', () => {
     local.setItem(GUEST_PLAY_CLAIMS_KEY, '{nope');
     expect(readGuestPlayClaims()).toEqual([]);
