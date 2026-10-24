@@ -26,7 +26,7 @@ import { useSession } from '~/lib/auth-client';
 import { GoogleIcon } from '~/components/icons';
 import Icon from '~/tools/Icon';
 import { startGoogleSignIn } from '~/lib/google_sign_in';
-import { useGuestCompletedCount } from '~/components/app-bar/useGuestAuthPrompt';
+import { useGuestPlayCount } from '~/components/app-bar/useClaimGuestPlays';
 import { cn } from '~/lib/utils';
 
 type GameFilter = 'all' | DashboardGameId;
@@ -182,7 +182,7 @@ const PREVIEW_TOTALS: CombinedDashboardTotals = {
 };
 
 function GuestDashboard() {
-  const guestCompleted = useGuestCompletedCount();
+  const guestCompleted = useGuestPlayCount();
   return (
     <div className="public-canvas flex min-h-dvh flex-col">
       <HubHeader gameMenuItems={<AllGamesMenuItems />} />
@@ -209,7 +209,7 @@ function GuestDashboard() {
               </h2>
               <p className="mt-1 text-sm text-muted-foreground">
                 {guestCompleted > 0
-                  ? `You've solved ${guestCompleted} puzzle${guestCompleted === 1 ? '' : 's'} as a guest. Sign in so the next ones count toward your stats.`
+                  ? `You've solved ${guestCompleted} puzzle${guestCompleted === 1 ? '' : 's'} as a guest on this device. Sign in to save ${guestCompleted === 1 ? 'it' : 'them'} to your stats.`
                   : 'Sign in to see your best times, accuracy and progress across every game.'}
               </p>
             </div>

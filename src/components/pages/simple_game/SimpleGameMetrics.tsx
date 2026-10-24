@@ -18,6 +18,7 @@ import type { location_list_type } from '~/db/types';
 import type { SimpleGameKind } from '~/util/games/kinds';
 import { useContext } from 'react';
 import { AppContext } from '~/components/AppDataContext';
+import { rememberGuestPlay } from '~/lib/guest_play_claims';
 
 const subscribeNever = () => () => {};
 
@@ -100,7 +101,10 @@ export function SimpleGameMetrics({
     // never during render — the ref is read/written from mutation lifecycle code.
     // oxlint-disable-next-line react/refs
     trpc[kind].stats.submit_stats.mutationOptions({
-      onSuccess() {
+      onSuccess(data, variables) {
+        if (data.claim_token) {
+          rememberGuestPlay(kind, variables.info.session_id, data.claim_token);
+        }
         setTurnstileToken(null);
         resetTurnstile();
         invalidateUserDashboard();

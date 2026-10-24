@@ -9,6 +9,7 @@ process.env.AWS_S3_FILES_BUCKET_NAME = 'test-bucket';
 process.env.UPSTASH_REDIS_REST_URL = 'https://example.upstash.io';
 process.env.UPSTASH_REDIS_REST_TOKEN = 'token-test';
 process.env.VITE_SITE_URL = 'http://localhost:3000';
+process.env.GUEST_CLAIM_SECRET = 'test-guest-claim-secret-0123456789abcdef';
 
 import { afterAll } from 'vitest';
 
