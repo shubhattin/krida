@@ -1,13 +1,13 @@
 'use client';
 
-import { useMemo, useState } from 'react';
+import { useEffect, useMemo, useState } from 'react';
 import { useQuery } from '@tanstack/react-query';
 import { Link } from '@tanstack/react-router';
 import { motion } from 'framer-motion';
-import { ArrowRightIcon } from 'lucide-react';
+import { ArrowRightIcon, ChevronLeftIcon, ChevronRightIcon } from 'lucide-react';
 import { useTRPC } from '~/api/client';
 import { getCDNUrl } from '~/constants';
-import { useDragScroll } from '~/hooks/useDragScroll';
+import { useScrollRail } from '~/hooks/useScrollRail';
 import { gameDisplayName, GamePickerChips, type GamePick } from '~/components/hub/GamePickerChips';
 import { puzzleHref } from '~/components/hub/hub_games';
 import { GameKindIcon } from '~/components/pages/catalog/GameKindIcon';
@@ -57,7 +57,7 @@ function toFeed(game: GameKind, rows: readonly PreviewRow[] | undefined): FeedIt
  */
 export function MorePuzzles({ kind, puzzleId }: { kind: GameKind; puzzleId: number }) {
   const trpc = useTRPC();
-  const { ref: rowRef, dragging } = useDragScroll<HTMLDivElement>();
+  const { ref: rowRef, dragging, canPrev, canNext, scrollPage } = useScrollRail<HTMLDivElement>();
   // null = not chosen yet: default to this game if it has other puzzles, else to All.
   const [chosen, setChosen] = useState<GamePick | null>(null);
   const excludeFor = (game: GameKind) => (game === kind ? { exclude_id: puzzleId } : {});
@@ -123,18 +123,32 @@ export function MorePuzzles({ kind, puzzleId }: { kind: GameKind; puzzleId: numb
   const pick: GamePick = chosen ?? (loading || byGame[kind].length > 0 ? kind : 'all');
   const items = pick === 'all' ? all : byGame[pick];
 
+  // A new filter starts the row from its first tile.
+  useEffect(() => {
+    rowRef.current?.scrollTo({ left: 0 });
+  }, [pick, rowRef]);
+
   return (
     <section className="space-y-3">
       <div className="flex items-center justify-between gap-3">
         <h3 className="text-base font-bold">More puzzles</h3>
-        <Link
-          to="/puzzles"
-          search={pick === 'all' ? {} : { game: pick }}
-          className="inline-flex shrink-0 items-center gap-1 text-xs font-semibold text-muted-foreground no-underline transition-colors hover:text-foreground"
-        >
-          Browse
-          <ArrowRightIcon className="size-3.5" />
-        </Link>
+        <div className="flex shrink-0 items-center gap-3">
+          <Link
+            to="/puzzles"
+            search={pick === 'all' ? {} : { game: pick }}
+            className="inline-flex items-center gap-1 text-xs font-semibold text-muted-foreground no-underline transition-colors hover:text-foreground"
+          >
+            Browse
+            <ArrowRightIcon className="size-3.5" />
+          </Link>
+          {/* Only when the row overflows; touch screens swipe instead. */}
+          {canPrev || canNext ? (
+            <div className="flex items-center gap-1 pointer-coarse:hidden">
+              <RailButton direction={-1} disabled={!canPrev} onClick={() => scrollPage(-1)} />
+              <RailButton direction={1} disabled={!canNext} onClick={() => scrollPage(1)} />
+            </div>
+          ) : null}
+        </div>
       </div>
       <GamePickerChips
         games={games}
@@ -144,10 +158,13 @@ export function MorePuzzles({ kind, puzzleId }: { kind: GameKind; puzzleId: numb
       />
       <div
         ref={rowRef}
+        aria-label="More puzzles"
         className={cn(
-          'scroll-rail -mx-1 flex gap-3 px-1 pb-3 select-none',
-          'snap-x',
-          dragging ? 'cursor-grabbing' : 'cursor-grab'
+          // `relative`: snap stops are measured from the tiles' offsets against the rail.
+          'scroll-rail relative -mx-1 flex gap-3 px-1 pt-1 pb-3 select-none',
+          'snap-x snap-mandatory',
+          // Tiles ignore hover while dragging so their lift doesn't flicker under the cursor.
+          dragging ? 'cursor-grabbing *:pointer-events-none' : 'cursor-grab'
         )}
       >
         {loading && items.length === 0
@@ -173,6 +190,30 @@ export function MorePuzzles({ kind, puzzleId }: { kind: GameKind; puzzleId: numb
         ))}
       </div>
     </section>
+  );
+}
+
+/** Prev / next arrow in the section header; pages the rail by about a viewport. */
+function RailButton({
+  direction,
+  disabled,
+  onClick
+}: {
+  direction: 1 | -1;
+  disabled: boolean;
+  onClick: () => void;
+}) {
+  const Icon = direction === 1 ? ChevronRightIcon : ChevronLeftIcon;
+  return (
+    <button
+      type="button"
+      aria-label={direction === 1 ? 'More puzzles to the right' : 'More puzzles to the left'}
+      disabled={disabled}
+      onClick={onClick}
+      className="flex size-7 items-center justify-center rounded-full border border-border bg-background/80 text-foreground shadow-sm transition-colors hover:bg-muted focus-visible:ring-2 focus-visible:ring-indigo-400/70 focus-visible:outline-none disabled:pointer-events-none disabled:opacity-35"
+    >
+      <Icon className="size-3.5" />
+    </button>
   );
 }
 

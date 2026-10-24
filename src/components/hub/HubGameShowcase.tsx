@@ -14,15 +14,7 @@ const navButtonClass =
   'size-7 shrink-0 rounded-full border border-slate-300 bg-white text-slate-700 shadow-sm hover:bg-slate-50 disabled:opacity-35 dark:border-slate-600 dark:bg-slate-800 dark:text-slate-100 dark:hover:bg-slate-700';
 
 export function HubGameShowcase({ games = HUB_GAME_LIST }: { games?: HubGameMeta[] }) {
-  const {
-    ref: railRef,
-    dragging,
-    canPrev,
-    canNext,
-    active,
-    scrollToIndex,
-    scrollPage
-  } = useScrollRail<HTMLDivElement>();
+  const { ref: railRef, dragging, canPrev, canNext, scrollPage } = useScrollRail<HTMLDivElement>();
 
   return (
     <section className="mx-auto flex w-full max-w-3xl flex-col gap-2 sm:gap-4">
@@ -51,6 +43,31 @@ export function HubGameShowcase({ games = HUB_GAME_LIST }: { games?: HubGameMeta
           </p>
         </div>
         <AllPuzzlesLink className="hidden shrink-0 sm:inline-flex" />
+        {/* Arrows live in the header (no row of their own); touch screens swipe instead. */}
+        <div className="flex shrink-0 items-center gap-1.5 pointer-coarse:hidden">
+          <Button
+            type="button"
+            variant="outline"
+            size="icon-sm"
+            className={navButtonClass}
+            disabled={!canPrev}
+            aria-label="Previous games"
+            onClick={() => scrollPage(-1)}
+          >
+            <ChevronLeftIcon />
+          </Button>
+          <Button
+            type="button"
+            variant="outline"
+            size="icon-sm"
+            className={navButtonClass}
+            disabled={!canNext}
+            aria-label="Next games"
+            onClick={() => scrollPage(1)}
+          >
+            <ChevronRightIcon />
+          </Button>
+        </div>
       </header>
 
       <div
@@ -66,57 +83,12 @@ export function HubGameShowcase({ games = HUB_GAME_LIST }: { games?: HubGameMeta
           <div
             key={game.kind}
             aria-label={game.name}
-            className="w-full shrink-0 snap-start sm:w-[calc((100%-1rem)/2)]"
+            // Phones: a slice of the next card peeks in to show the row swipes.
+            className="w-[86%] shrink-0 snap-start sm:w-[calc((100%-1rem)/2)]"
           >
             <GameShowcaseCard game={game.kind} index={index} compact />
           </div>
         ))}
-      </div>
-
-      <div className="flex items-center justify-center gap-2">
-        <Button
-          type="button"
-          variant="outline"
-          size="icon-sm"
-          className={navButtonClass}
-          disabled={!canPrev}
-          aria-label="Previous games"
-          onClick={() => scrollPage(-1)}
-        >
-          <ChevronLeftIcon />
-        </Button>
-        <div className="flex items-center">
-          {games.map((game, index) => (
-            <button
-              key={game.kind}
-              type="button"
-              aria-label={`Show ${game.name}`}
-              aria-current={active === index ? 'true' : undefined}
-              onClick={() => scrollToIndex(index)}
-              className="flex size-5 items-center justify-center"
-            >
-              <span
-                className={cn(
-                  'rounded-full transition-[width,background-color] duration-200',
-                  active === index
-                    ? 'h-1.5 w-3 bg-slate-800 dark:bg-white'
-                    : 'size-1.5 bg-slate-300 dark:bg-slate-600'
-                )}
-              />
-            </button>
-          ))}
-        </div>
-        <Button
-          type="button"
-          variant="outline"
-          size="icon-sm"
-          className={navButtonClass}
-          disabled={!canNext}
-          aria-label="Next games"
-          onClick={() => scrollPage(1)}
-        >
-          <ChevronRightIcon />
-        </Button>
       </div>
     </section>
   );
