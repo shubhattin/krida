@@ -756,18 +756,6 @@ const delete_redirect_slug_route = protectedAdminProcedure
     )
   );
 
-/** Public: waiting-room UI refreshes schedule cache when countdown ends. */
-const refresh_current_schedule_route = publicProcedure.mutation(() =>
-  runTrpcEffect(
-    Effect.gen(function* () {
-      yield* invalidate_and_refresh_cache(CACHE.padajala.current_schedule, NO_CACHE_PARAMS);
-      yield* invalidate_and_refresh_cache(CACHE.padajala.next_schedule, NO_CACHE_PARAMS);
-      const current = yield* CACHE.padajala.current_schedule.get(NO_CACHE_PARAMS);
-      return { has_current: current !== undefined };
-    })
-  )
-);
-
 /** Same cap as padavali `get_listed_puzzles_preview`. */
 const LISTED_PUZZLES_PREVIEW_LIMIT = 16;
 
@@ -807,7 +795,6 @@ export const padajala_router = t.router({
   delete_puzzle: delete_puzzle_route,
   get_puzzle_slugs: get_puzzle_slugs_route,
   delete_redirect_slug: delete_redirect_slug_route,
-  refresh_current_schedule: refresh_current_schedule_route,
   stats: padajala_stats_router,
   schedules: padajala_schedules_router
 });

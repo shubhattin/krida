@@ -1,10 +1,9 @@
-import { createFileRoute, getRouteApi } from '@tanstack/react-router';
+import { createFileRoute } from '@tanstack/react-router';
+import { useHubData } from '~/components/hub/hub_query';
 import { z } from 'zod';
 import { routeHeadFromPageMeta, siteUrl } from '~/components/tags/getPageMetaTags';
 import HubHome from '~/components/hub/HubHome';
 import { GAME_KINDS } from '~/util/catalog/tags';
-
-const hubRoute = getRouteApi('/_hub');
 
 /** Home deep-link / SSR filter for the puzzles section (`/?game=dvayi#dvayi`). */
 const home_search_schema = z.object({
@@ -27,6 +26,6 @@ export const Route = createFileRoute('/_hub/')({
 });
 
 function Home() {
-  const data = hubRoute.useLoaderData();
+  const data = useHubData();
   return <HubHome data={data} />;
 }

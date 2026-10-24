@@ -3,7 +3,7 @@
 import { useEffect, useRef, useState } from 'react';
 import { motion, AnimatePresence, useReducedMotion } from 'framer-motion';
 import { cn } from '~/lib/utils';
-import { DemoPill, PreviewFrame, startDemoLoop } from './PreviewFrame';
+import { DemoPill, PreviewFrame, startDemoLoop, useDemoGate } from './PreviewFrame';
 
 // ─── Padavali Mini Demo Constants ─────────────────────────
 type CellPos = { row: number; col: number };
@@ -338,6 +338,7 @@ function Trail({ points, stroke }: { points: string; stroke: { glow: string; mai
  */
 export function PadavaliMiniPreview({ compact = false }: { compact?: boolean }) {
   const reduceMotion = useReducedMotion();
+  const demoGate = useDemoGate();
   const gridRef = useRef<HTMLDivElement>(null);
   const [demoPath, setDemoPath] = useState<CellPos[]>([]);
   const [demoState, setDemoState] = useState<DemoState>('idle');
@@ -373,7 +374,7 @@ export function PadavaliMiniPreview({ compact = false }: { compact?: boolean }) 
   useEffect(() => {
     if (reduceMotion) return;
     let lap = 0;
-    return startDemoLoop(async (wait) => {
+    return startDemoLoop(demoGate, async (wait) => {
       setFoundWords([]);
       // One scripted miss per lap, after the second find, rotating through MISS_WORDS.
       const miss = MISS_WORDS[lap++ % MISS_WORDS.length]!;
@@ -406,7 +407,7 @@ export function PadavaliMiniPreview({ compact = false }: { compact?: boolean }) 
       }
       await wait(1200);
     });
-  }, [reduceMotion]);
+  }, [reduceMotion, demoGate]);
 
   const pointsOf = (cells: CellPos[]) =>
     cells
@@ -521,11 +522,12 @@ const PADAJALA_TOTAL = PADAJALA_GRID.flat().filter(Boolean).length;
 
 export function PadajalaMiniPreview({ compact = false }: { compact?: boolean }) {
   const reduceMotion = useReducedMotion();
+  const demoGate = useDemoGate();
   const [filledCount, setFilledCount] = useState(reduceMotion ? PADAJALA_TOTAL : 0);
 
   useEffect(() => {
     if (reduceMotion) return;
-    return startDemoLoop(async (wait) => {
+    return startDemoLoop(demoGate, async (wait) => {
       setFilledCount(0);
       if (!(await wait(1200))) return;
       for (let i = 1; i <= PADAJALA_TOTAL; i++) {
@@ -534,7 +536,7 @@ export function PadajalaMiniPreview({ compact = false }: { compact?: boolean }) 
       }
       await wait(3000);
     });
-  }, [reduceMotion]);
+  }, [reduceMotion, demoGate]);
 
   // YOGA completes at 4 cells; GITA and VEDA share the final cell.
   const wordsFound = (filledCount >= 4 ? 1 : 0) + (filledCount >= PADAJALA_TOTAL ? 2 : 0);

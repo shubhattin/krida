@@ -31,7 +31,20 @@ export type CacheItem<TParams, TData> = {
     opts?: CacheRefreshOptions
   ) => Effect.Effect<void, CacheError, CacheServices>;
   key: (params: TParams) => Effect.Effect<string>;
+  /** Bind params for a batched read via `getCachedMany`. */
+  read: (params: TParams) => CacheRead<TData>;
 };
+
+/** One item of a `getCachedMany` batch. */
+export type CacheRead<TData> = {
+  key: string;
+  /** Whether this item is cached in Redis in the current environment. */
+  usesRedis: (isProd: boolean) => boolean;
+  /** `raw` from the batch, or `undefined` to read Redis itself. */
+  get: (raw: RedisJsonValue | undefined) => Effect.Effect<TData, CacheError, CacheServices>;
+};
+
+type CacheReadValue<T> = T extends CacheRead<infer D> ? D : never;
 
 export type CreateCacheConfig<TParams, TCached, TData = TCached> = {
   getKey: (params: TParams) => string;
@@ -309,17 +322,23 @@ export function createCache<TParams, TCached, TData = TCached>(
       return toReturnValue(fetched, config.transform);
     });
 
-  const get = Effect.fn('cache.get')(function* (params: TParams) {
+  /** `prefetched`: the raw value an MGET already read for this key (skips the own GET). */
+  const read = Effect.fn('cache.get')(function* (
+    params: TParams,
+    prefetched: { raw: RedisJsonValue } | undefined
+  ) {
     const appConfig = yield* AppConfig;
     const cacheKey = config.getKey(params);
     const useRedis = redisActive(appConfig.isProd);
 
     if (useRedis) {
       const redis = yield* RedisClient;
-      const cached = yield* redis.get<RedisJsonValue>(cacheKey).pipe(
-        Effect.catch(() => Effect.succeed<RedisJsonValue>(null)),
-        Effect.annotateLogs({ category: 'cache', operation: 'get', key: cacheKey })
-      );
+      const cached = prefetched
+        ? prefetched.raw
+        : yield* redis.get<RedisJsonValue>(cacheKey).pipe(
+            Effect.catch(() => Effect.succeed<RedisJsonValue>(null)),
+            Effect.annotateLogs({ category: 'cache', operation: 'get', key: cacheKey })
+          );
       const parsed = parseCached(cached);
       if (parsed !== null) {
         return toReturnValue(parsed, config.transform);
@@ -422,6 +441,8 @@ export function createCache<TParams, TCached, TData = TCached>(
     return yield* memoized;
   });
 
+  const get = (params: TParams) => read(params, undefined);
+
   const deleteCache = Effect.fn('cache.delete')(function* (params: TParams) {
     const appConfig = yield* AppConfig;
     if (!redisActive(appConfig.isProd)) {
@@ -511,11 +532,50 @@ export function createCache<TParams, TCached, TData = TCached>(
 
   return {
     get,
+    read: (params) => ({
+      key: config.getKey(params),
+      usesRedis: (isProd) => redisActive(isProd),
+      get: (raw) => read(params, raw === undefined ? undefined : { raw })
+    }),
     delete: deleteCache,
     refresh,
     key: (params) => Effect.succeed(config.getKey(params))
   };
 }
+
+/**
+ * Read several cache items with a single Redis MGET instead of one GET each. Hits are parsed
+ * from the batch; misses (and items not cached in Redis here) fall through to the item's own
+ * `get`, so fetching, single-flight and failure backoff behave exactly as before.
+ */
+export const getCachedMany = Effect.fn('cache.getMany')(function* <
+  const R extends Record<string, CacheRead<unknown>>
+>(reads: R) {
+  const appConfig = yield* AppConfig;
+  const redis = yield* RedisClient;
+  const entries = Object.entries(reads);
+  const batched = entries.filter(([, entry]) => entry.usesRedis(appConfig.isProd));
+
+  // A failed MGET only costs the batching: every item then does its own GET.
+  const raws =
+    batched.length > 0
+      ? yield* redis.mget<RedisJsonValue>(batched.map(([, entry]) => entry.key)).pipe(
+          Effect.map((values) => new Map(batched.map(([name], i) => [name, values[i] ?? null]))),
+          Effect.catch(() => Effect.succeed(new Map<string, RedisJsonValue>()))
+        )
+      : new Map<string, RedisJsonValue>();
+
+  const results = yield* Effect.all(
+    entries.map(([name, entry]) =>
+      entry
+        .get(raws.has(name) ? (raws.get(name) ?? null) : undefined)
+        .pipe(Effect.map((value) => [name, value] as const))
+    ),
+    { concurrency: 'unbounded' }
+  );
+  // SAFETY: one result per key of `reads`, each produced by that key's own CacheRead.
+  return Object.fromEntries(results) as { [K in keyof R]: CacheReadValue<R[K]> };
+});
 
 /** Await cache delete, then warm cache in background. */
 export const invalidateAndRefreshCache = <TParams, TData>(
