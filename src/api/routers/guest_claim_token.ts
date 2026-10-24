@@ -46,6 +46,8 @@ export const verifyGuestClaimTokenWith = async (
     const { payload } = await jwtVerify(token, encodeSecret(secret), {
       algorithms: [ALG],
       audience: AUDIENCE,
+      // jose treats `exp` as optional; a token without one would never expire.
+      requiredClaims: ['exp'],
       currentDate: new Date(nowMs)
     });
     const parsed = guest_claim_payload_schema.safeParse(payload);

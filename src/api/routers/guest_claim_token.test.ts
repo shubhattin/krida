@@ -44,6 +44,14 @@ describe('guest claim tokens', () => {
     expect(await verifyGuestClaimTokenWith(SECRET, token)).toBeNull();
   });
 
+  it('rejects a token without an expiry', async () => {
+    const token = await new SignJWT({ k: 'padavali', sid: 5 })
+      .setProtectedHeader({ alg: 'HS256' })
+      .setAudience('padavali:guest-claim')
+      .sign(new TextEncoder().encode(SECRET));
+    expect(await verifyGuestClaimTokenWith(SECRET, token)).toBeNull();
+  });
+
   it('rejects garbage', async () => {
     expect(await verifyGuestClaimTokenWith(SECRET, 'not-a-token')).toBeNull();
   });
