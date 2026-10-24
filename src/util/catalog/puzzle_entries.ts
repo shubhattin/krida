@@ -33,7 +33,7 @@ export function padajalaEntries(wordList: PadajalaPuzzleWord[]): PuzzleEntries {
     label: 'Words',
     entries: wordList
       .map((w) => ({
-        text: w.word_dev || w.word,
+        text: w.word,
         detail: w.description || undefined,
         inactive: !w.added
       }))

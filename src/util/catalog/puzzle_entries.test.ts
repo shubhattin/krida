@@ -24,7 +24,7 @@ describe('puzzle entries', () => {
     });
   });
 
-  it('prefers the Devanagari padajala word and carries the clue', () => {
+  it('uses the stored padajala grid word and carries the clue', () => {
     const { entries } = padajalaEntries([
       {
         word: 'rama',
@@ -35,7 +35,7 @@ describe('puzzle entries', () => {
         description: 'A king'
       }
     ]);
-    expect(entries).toEqual([{ text: 'राम', detail: 'A king', inactive: false }]);
+    expect(entries).toEqual([{ text: 'rama', detail: 'A king', inactive: false }]);
   });
 
   it('lists simple-game words', () => {
