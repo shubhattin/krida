@@ -8,3 +8,4 @@ export * from './surupa_schema';
 export * from './anveshi_schema';
 export * from './puzzle_relations';
 export * from './tagging_relations';
+export * from './agents_schema';

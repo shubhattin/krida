@@ -10,7 +10,7 @@
 
 import { Route as rootRouteImport } from './routes/__root'
 import { Route as HubRouteImport } from './routes/_hub'
-import { Route as AdminRouteImport } from './routes/admin'
+import { Route as AdminRouteRouteImport } from './routes/admin/route'
 import { Route as AnalyticsRouteImport } from './routes/analytics'
 import { Route as AnveshiRouteRouteImport } from './routes/anveshi/route'
 import { Route as BhramitaRouteRouteImport } from './routes/bhramita/route'
@@ -32,13 +32,18 @@ import { Route as SurupaRouteRouteImport } from './routes/surupa/route'
 import { Route as SystemPromptsRouteImport } from './routes/system-prompts'
 import { Route as HubIndexRouteImport } from './routes/_hub/index'
 import { Route as HubPuzzlesRouteImport } from './routes/_hub/puzzles'
+import { Route as AdminIndexRouteImport } from './routes/admin/index'
+import { Route as AdminAgentsRouteRouteImport } from './routes/admin/agents/route'
 import { Route as AuthPopupDoneRouteImport } from './routes/auth/popup-done'
 import { Route as CollectionsListRouteImport } from './routes/collections/list'
 import { Route as CrosswordSplatRouteImport } from './routes/crossword.$'
 import { Route as TagsListRouteImport } from './routes/tags/list'
 import { Route as HubCollectionsSlugRouteImport } from './routes/_hub/collections/$slug'
+import { Route as AdminAgentsIndexRouteImport } from './routes/admin/agents/index'
+import { Route as AdminAgentsChatIdRouteImport } from './routes/admin/agents/$chatId'
 import { Route as AnveshiauthAuthRouteImport } from './routes/anveshi/(auth)/_auth'
 import { Route as AnveshipublicPublicRouteImport } from './routes/anveshi/(public)/_public'
+import { Route as ApiAgentsChatRouteImport } from './routes/api/agents/chat'
 import { Route as ApiQstashSave_ai_batch_resultsRouteImport } from './routes/api/qstash/save_ai_batch_results'
 import { Route as ApiQstashSchedule_listingRouteImport } from './routes/api/qstash/schedule_listing'
 import { Route as ApiTrpcSplatRouteImport } from './routes/api/trpc/$'
@@ -114,7 +119,7 @@ const HubRoute = HubRouteImport.update({
   id: '/_hub',
   getParentRoute: () => rootRouteImport,
 } as any)
-const AdminRoute = AdminRouteImport.update({
+const AdminRouteRoute = AdminRouteRouteImport.update({
   id: '/admin',
   path: '/admin',
   getParentRoute: () => rootRouteImport,
@@ -224,6 +229,16 @@ const HubPuzzlesRoute = HubPuzzlesRouteImport.update({
   path: '/puzzles',
   getParentRoute: () => HubRoute,
 } as any)
+const AdminIndexRoute = AdminIndexRouteImport.update({
+  id: '/',
+  path: '/',
+  getParentRoute: () => AdminRouteRoute,
+} as any)
+const AdminAgentsRouteRoute = AdminAgentsRouteRouteImport.update({
+  id: '/agents',
+  path: '/agents',
+  getParentRoute: () => AdminRouteRoute,
+} as any)
 const AuthPopupDoneRoute = AuthPopupDoneRouteImport.update({
   id: '/auth/popup-done',
   path: '/auth/popup-done',
@@ -249,6 +264,16 @@ const HubCollectionsSlugRoute = HubCollectionsSlugRouteImport.update({
   path: '/collections/$slug',
   getParentRoute: () => HubRoute,
 } as any)
+const AdminAgentsIndexRoute = AdminAgentsIndexRouteImport.update({
+  id: '/',
+  path: '/',
+  getParentRoute: () => AdminAgentsRouteRoute,
+} as any)
+const AdminAgentsChatIdRoute = AdminAgentsChatIdRouteImport.update({
+  id: '/$chatId',
+  path: '/$chatId',
+  getParentRoute: () => AdminAgentsRouteRoute,
+} as any)
 const AnveshiauthAuthRoute = AnveshiauthAuthRouteImport.update({
   id: '/(auth)/_auth',
   getParentRoute: () => AnveshiRouteRoute,
@@ -256,6 +281,11 @@ const AnveshiauthAuthRoute = AnveshiauthAuthRouteImport.update({
 const AnveshipublicPublicRoute = AnveshipublicPublicRouteImport.update({
   id: '/(public)/_public',
   getParentRoute: () => AnveshiRouteRoute,
+} as any)
+const ApiAgentsChatRoute = ApiAgentsChatRouteImport.update({
+  id: '/api/agents/chat',
+  path: '/api/agents/chat',
+  getParentRoute: () => rootRouteImport,
 } as any)
 const ApiQstashSave_ai_batch_resultsRoute =
   ApiQstashSave_ai_batch_resultsRouteImport.update({
@@ -643,6 +673,7 @@ const PadavaliauthAuthSchedulesEditIdRoute =
   } as any)
 
 export interface FileRoutesByFullPath {
+  '/admin': typeof AdminRouteRouteWithChildren
   '/anveshi': typeof AnveshiRouteRouteWithChildren
   '/bhramita': typeof BhramitaRouteRouteWithChildren
   '/dvayi': typeof DvayiRouteRouteWithChildren
@@ -650,7 +681,6 @@ export interface FileRoutesByFullPath {
   '/padavali': typeof PadavaliRouteRouteWithChildren
   '/surupa': typeof SurupaRouteRouteWithChildren
   '/': typeof HubIndexRoute
-  '/admin': typeof AdminRoute
   '/analytics': typeof AnalyticsRoute
   '/dashboard': typeof DashboardRoute
   '/explore': typeof ExploreRoute
@@ -664,17 +694,22 @@ export interface FileRoutesByFullPath {
   '/sitemap-5.xml': typeof Sitemap5DotxmlRoute
   '/sitemap-index.xml': typeof SitemapIndexDotxmlRoute
   '/system-prompts': typeof SystemPromptsRoute
+  '/admin/agents': typeof AdminAgentsRouteRouteWithChildren
   '/puzzles': typeof HubPuzzlesRoute
   '/auth/popup-done': typeof AuthPopupDoneRoute
   '/collections/list': typeof CollectionsListRoute
   '/crossword/$': typeof CrosswordSplatRoute
   '/tags/list': typeof TagsListRoute
+  '/admin/': typeof AdminIndexRoute
   '/collections/$slug': typeof HubCollectionsSlugRoute
+  '/admin/agents/$chatId': typeof AdminAgentsChatIdRoute
+  '/api/agents/chat': typeof ApiAgentsChatRoute
   '/api/qstash/save_ai_batch_results': typeof ApiQstashSave_ai_batch_resultsRoute
   '/api/qstash/schedule_listing': typeof ApiQstashSchedule_listingRoute
   '/api/trpc/$': typeof ApiTrpcSplatRoute
   '/collections/edit/$uid': typeof CollectionsEditUidRoute
   '/tags/edit/$slug': typeof TagsEditSlugRoute
+  '/admin/agents/': typeof AdminAgentsIndexRoute
   '/anveshi/$slug': typeof AnveshipublicPublicSlugRoute
   '/api/qstash/padajala/schedule_listing': typeof ApiQstashPadajalaSchedule_listingRoute
   '/bhramita/$slug': typeof BhramitapublicPublicSlugRoute
@@ -738,7 +773,6 @@ export interface FileRoutesByTo {
   '/padajala': typeof PadajalapublicPublicIndexRoute
   '/padavali': typeof PadavalipublicPublicIndexRoute
   '/surupa': typeof SurupapublicPublicIndexRoute
-  '/admin': typeof AdminRoute
   '/analytics': typeof AnalyticsRoute
   '/dashboard': typeof DashboardRoute
   '/explore': typeof ExploreRoute
@@ -758,12 +792,16 @@ export interface FileRoutesByTo {
   '/crossword/$': typeof CrosswordSplatRoute
   '/tags/list': typeof TagsListRoute
   '/': typeof HubIndexRoute
+  '/admin': typeof AdminIndexRoute
   '/collections/$slug': typeof HubCollectionsSlugRoute
+  '/admin/agents/$chatId': typeof AdminAgentsChatIdRoute
+  '/api/agents/chat': typeof ApiAgentsChatRoute
   '/api/qstash/save_ai_batch_results': typeof ApiQstashSave_ai_batch_resultsRoute
   '/api/qstash/schedule_listing': typeof ApiQstashSchedule_listingRoute
   '/api/trpc/$': typeof ApiTrpcSplatRoute
   '/collections/edit/$uid': typeof CollectionsEditUidRoute
   '/tags/edit/$slug': typeof TagsEditSlugRoute
+  '/admin/agents': typeof AdminAgentsIndexRoute
   '/anveshi/$slug': typeof AnveshipublicPublicSlugRoute
   '/api/qstash/padajala/schedule_listing': typeof ApiQstashPadajalaSchedule_listingRoute
   '/bhramita/$slug': typeof BhramitapublicPublicSlugRoute
@@ -816,6 +854,7 @@ export interface FileRoutesByTo {
 }
 export interface FileRoutesById {
   __root__: typeof rootRouteImport
+  '/admin': typeof AdminRouteRouteWithChildren
   '/anveshi': typeof AnveshiRouteRouteWithChildren
   '/bhramita': typeof BhramitaRouteRouteWithChildren
   '/dvayi': typeof DvayiRouteRouteWithChildren
@@ -823,7 +862,6 @@ export interface FileRoutesById {
   '/padavali': typeof PadavaliRouteRouteWithChildren
   '/surupa': typeof SurupaRouteRouteWithChildren
   '/_hub': typeof HubRouteWithChildren
-  '/admin': typeof AdminRoute
   '/analytics': typeof AnalyticsRoute
   '/dashboard': typeof DashboardRoute
   '/explore': typeof ExploreRoute
@@ -837,15 +875,19 @@ export interface FileRoutesById {
   '/sitemap-5.xml': typeof Sitemap5DotxmlRoute
   '/sitemap-index.xml': typeof SitemapIndexDotxmlRoute
   '/system-prompts': typeof SystemPromptsRoute
+  '/admin/agents': typeof AdminAgentsRouteRouteWithChildren
   '/_hub/puzzles': typeof HubPuzzlesRoute
   '/auth/popup-done': typeof AuthPopupDoneRoute
   '/collections/list': typeof CollectionsListRoute
   '/crossword/$': typeof CrosswordSplatRoute
   '/tags/list': typeof TagsListRoute
   '/_hub/': typeof HubIndexRoute
+  '/admin/': typeof AdminIndexRoute
   '/_hub/collections/$slug': typeof HubCollectionsSlugRoute
+  '/admin/agents/$chatId': typeof AdminAgentsChatIdRoute
   '/anveshi/(auth)/_auth': typeof AnveshiauthAuthRouteWithChildren
   '/anveshi/(public)/_public': typeof AnveshipublicPublicRouteWithChildren
+  '/api/agents/chat': typeof ApiAgentsChatRoute
   '/api/qstash/save_ai_batch_results': typeof ApiQstashSave_ai_batch_resultsRoute
   '/api/qstash/schedule_listing': typeof ApiQstashSchedule_listingRoute
   '/api/trpc/$': typeof ApiTrpcSplatRoute
@@ -861,6 +903,7 @@ export interface FileRoutesById {
   '/surupa/(auth)/_auth': typeof SurupaauthAuthRouteWithChildren
   '/surupa/(public)/_public': typeof SurupapublicPublicRouteWithChildren
   '/tags/edit/$slug': typeof TagsEditSlugRoute
+  '/admin/agents/': typeof AdminAgentsIndexRoute
   '/anveshi/(public)/_public/$slug': typeof AnveshipublicPublicSlugRoute
   '/api/qstash/padajala/schedule_listing': typeof ApiQstashPadajalaSchedule_listingRoute
   '/bhramita/(public)/_public/$slug': typeof BhramitapublicPublicSlugRoute
@@ -920,6 +963,7 @@ export interface FileRoutesById {
 export interface FileRouteTypes {
   fileRoutesByFullPath: FileRoutesByFullPath
   fullPaths:
+    | '/admin'
     | '/anveshi'
     | '/bhramita'
     | '/dvayi'
@@ -927,7 +971,6 @@ export interface FileRouteTypes {
     | '/padavali'
     | '/surupa'
     | '/'
-    | '/admin'
     | '/analytics'
     | '/dashboard'
     | '/explore'
@@ -941,17 +984,22 @@ export interface FileRouteTypes {
     | '/sitemap-5.xml'
     | '/sitemap-index.xml'
     | '/system-prompts'
+    | '/admin/agents'
     | '/puzzles'
     | '/auth/popup-done'
     | '/collections/list'
     | '/crossword/$'
     | '/tags/list'
+    | '/admin/'
     | '/collections/$slug'
+    | '/admin/agents/$chatId'
+    | '/api/agents/chat'
     | '/api/qstash/save_ai_batch_results'
     | '/api/qstash/schedule_listing'
     | '/api/trpc/$'
     | '/collections/edit/$uid'
     | '/tags/edit/$slug'
+    | '/admin/agents/'
     | '/anveshi/$slug'
     | '/api/qstash/padajala/schedule_listing'
     | '/bhramita/$slug'
@@ -1015,7 +1063,6 @@ export interface FileRouteTypes {
     | '/padajala'
     | '/padavali'
     | '/surupa'
-    | '/admin'
     | '/analytics'
     | '/dashboard'
     | '/explore'
@@ -1035,12 +1082,16 @@ export interface FileRouteTypes {
     | '/crossword/$'
     | '/tags/list'
     | '/'
+    | '/admin'
     | '/collections/$slug'
+    | '/admin/agents/$chatId'
+    | '/api/agents/chat'
     | '/api/qstash/save_ai_batch_results'
     | '/api/qstash/schedule_listing'
     | '/api/trpc/$'
     | '/collections/edit/$uid'
     | '/tags/edit/$slug'
+    | '/admin/agents'
     | '/anveshi/$slug'
     | '/api/qstash/padajala/schedule_listing'
     | '/bhramita/$slug'
@@ -1092,6 +1143,7 @@ export interface FileRouteTypes {
     | '/padavali/schedules/add'
   id:
     | '__root__'
+    | '/admin'
     | '/anveshi'
     | '/bhramita'
     | '/dvayi'
@@ -1099,7 +1151,6 @@ export interface FileRouteTypes {
     | '/padavali'
     | '/surupa'
     | '/_hub'
-    | '/admin'
     | '/analytics'
     | '/dashboard'
     | '/explore'
@@ -1113,15 +1164,19 @@ export interface FileRouteTypes {
     | '/sitemap-5.xml'
     | '/sitemap-index.xml'
     | '/system-prompts'
+    | '/admin/agents'
     | '/_hub/puzzles'
     | '/auth/popup-done'
     | '/collections/list'
     | '/crossword/$'
     | '/tags/list'
     | '/_hub/'
+    | '/admin/'
     | '/_hub/collections/$slug'
+    | '/admin/agents/$chatId'
     | '/anveshi/(auth)/_auth'
     | '/anveshi/(public)/_public'
+    | '/api/agents/chat'
     | '/api/qstash/save_ai_batch_results'
     | '/api/qstash/schedule_listing'
     | '/api/trpc/$'
@@ -1137,6 +1192,7 @@ export interface FileRouteTypes {
     | '/surupa/(auth)/_auth'
     | '/surupa/(public)/_public'
     | '/tags/edit/$slug'
+    | '/admin/agents/'
     | '/anveshi/(public)/_public/$slug'
     | '/api/qstash/padajala/schedule_listing'
     | '/bhramita/(public)/_public/$slug'
@@ -1195,6 +1251,7 @@ export interface FileRouteTypes {
   fileRoutesById: FileRoutesById
 }
 export interface RootRouteChildren {
+  AdminRouteRoute: typeof AdminRouteRouteWithChildren
   AnveshiRouteRoute: typeof AnveshiRouteRouteWithChildren
   BhramitaRouteRoute: typeof BhramitaRouteRouteWithChildren
   DvayiRouteRoute: typeof DvayiRouteRouteWithChildren
@@ -1202,7 +1259,6 @@ export interface RootRouteChildren {
   PadavaliRouteRoute: typeof PadavaliRouteRouteWithChildren
   SurupaRouteRoute: typeof SurupaRouteRouteWithChildren
   HubRoute: typeof HubRouteWithChildren
-  AdminRoute: typeof AdminRoute
   AnalyticsRoute: typeof AnalyticsRoute
   DashboardRoute: typeof DashboardRoute
   ExploreRoute: typeof ExploreRoute
@@ -1220,6 +1276,7 @@ export interface RootRouteChildren {
   CollectionsListRoute: typeof CollectionsListRoute
   CrosswordSplatRoute: typeof CrosswordSplatRoute
   TagsListRoute: typeof TagsListRoute
+  ApiAgentsChatRoute: typeof ApiAgentsChatRoute
   ApiQstashSave_ai_batch_resultsRoute: typeof ApiQstashSave_ai_batch_resultsRoute
   ApiQstashSchedule_listingRoute: typeof ApiQstashSchedule_listingRoute
   ApiTrpcSplatRoute: typeof ApiTrpcSplatRoute
@@ -1241,7 +1298,7 @@ declare module '@tanstack/react-router' {
       id: '/admin'
       path: '/admin'
       fullPath: '/admin'
-      preLoaderRoute: typeof AdminRouteImport
+      preLoaderRoute: typeof AdminRouteRouteImport
       parentRoute: typeof rootRouteImport
     }
     '/analytics': {
@@ -1391,6 +1448,20 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof HubPuzzlesRouteImport
       parentRoute: typeof HubRoute
     }
+    '/admin/': {
+      id: '/admin/'
+      path: '/'
+      fullPath: '/admin/'
+      preLoaderRoute: typeof AdminIndexRouteImport
+      parentRoute: typeof AdminRouteRoute
+    }
+    '/admin/agents': {
+      id: '/admin/agents'
+      path: '/agents'
+      fullPath: '/admin/agents'
+      preLoaderRoute: typeof AdminAgentsRouteRouteImport
+      parentRoute: typeof AdminRouteRoute
+    }
     '/auth/popup-done': {
       id: '/auth/popup-done'
       path: '/auth/popup-done'
@@ -1426,6 +1497,20 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof HubCollectionsSlugRouteImport
       parentRoute: typeof HubRoute
     }
+    '/admin/agents/': {
+      id: '/admin/agents/'
+      path: '/'
+      fullPath: '/admin/agents/'
+      preLoaderRoute: typeof AdminAgentsIndexRouteImport
+      parentRoute: typeof AdminAgentsRouteRoute
+    }
+    '/admin/agents/$chatId': {
+      id: '/admin/agents/$chatId'
+      path: '/$chatId'
+      fullPath: '/admin/agents/$chatId'
+      preLoaderRoute: typeof AdminAgentsChatIdRouteImport
+      parentRoute: typeof AdminAgentsRouteRoute
+    }
     '/anveshi/(auth)/_auth': {
       id: '/anveshi/(auth)/_auth'
       path: ''
@@ -1439,6 +1524,13 @@ declare module '@tanstack/react-router' {
       fullPath: '/anveshi'
       preLoaderRoute: typeof AnveshipublicPublicRouteImport
       parentRoute: typeof AnveshiRouteRoute
+    }
+    '/api/agents/chat': {
+      id: '/api/agents/chat'
+      path: '/api/agents/chat'
+      fullPath: '/api/agents/chat'
+      preLoaderRoute: typeof ApiAgentsChatRouteImport
+      parentRoute: typeof rootRouteImport
     }
     '/api/qstash/save_ai_batch_results': {
       id: '/api/qstash/save_ai_batch_results'
@@ -1933,6 +2025,33 @@ declare module '@tanstack/react-router' {
   }
 }
 
+interface AdminAgentsRouteRouteChildren {
+  AdminAgentsChatIdRoute: typeof AdminAgentsChatIdRoute
+  AdminAgentsIndexRoute: typeof AdminAgentsIndexRoute
+}
+
+const AdminAgentsRouteRouteChildren: AdminAgentsRouteRouteChildren = {
+  AdminAgentsChatIdRoute: AdminAgentsChatIdRoute,
+  AdminAgentsIndexRoute: AdminAgentsIndexRoute,
+}
+
+const AdminAgentsRouteRouteWithChildren =
+  AdminAgentsRouteRoute._addFileChildren(AdminAgentsRouteRouteChildren)
+
+interface AdminRouteRouteChildren {
+  AdminAgentsRouteRoute: typeof AdminAgentsRouteRouteWithChildren
+  AdminIndexRoute: typeof AdminIndexRoute
+}
+
+const AdminRouteRouteChildren: AdminRouteRouteChildren = {
+  AdminAgentsRouteRoute: AdminAgentsRouteRouteWithChildren,
+  AdminIndexRoute: AdminIndexRoute,
+}
+
+const AdminRouteRouteWithChildren = AdminRouteRoute._addFileChildren(
+  AdminRouteRouteChildren,
+)
+
 interface AnveshiauthAuthRouteChildren {
   AnveshiauthAuthEditIdRoute: typeof AnveshiauthAuthEditIdRoute
   AnveshiauthAuthAnalyticsIndexRoute: typeof AnveshiauthAuthAnalyticsIndexRoute
@@ -2255,6 +2374,7 @@ const HubRouteChildren: HubRouteChildren = {
 const HubRouteWithChildren = HubRoute._addFileChildren(HubRouteChildren)
 
 const rootRouteChildren: RootRouteChildren = {
+  AdminRouteRoute: AdminRouteRouteWithChildren,
   AnveshiRouteRoute: AnveshiRouteRouteWithChildren,
   BhramitaRouteRoute: BhramitaRouteRouteWithChildren,
   DvayiRouteRoute: DvayiRouteRouteWithChildren,
@@ -2262,7 +2382,6 @@ const rootRouteChildren: RootRouteChildren = {
   PadavaliRouteRoute: PadavaliRouteRouteWithChildren,
   SurupaRouteRoute: SurupaRouteRouteWithChildren,
   HubRoute: HubRouteWithChildren,
-  AdminRoute: AdminRoute,
   AnalyticsRoute: AnalyticsRoute,
   DashboardRoute: DashboardRoute,
   ExploreRoute: ExploreRoute,
@@ -2280,6 +2399,7 @@ const rootRouteChildren: RootRouteChildren = {
   CollectionsListRoute: CollectionsListRoute,
   CrosswordSplatRoute: CrosswordSplatRoute,
   TagsListRoute: TagsListRoute,
+  ApiAgentsChatRoute: ApiAgentsChatRoute,
   ApiQstashSave_ai_batch_resultsRoute: ApiQstashSave_ai_batch_resultsRoute,
   ApiQstashSchedule_listingRoute: ApiQstashSchedule_listingRoute,
   ApiTrpcSplatRoute: ApiTrpcSplatRoute,

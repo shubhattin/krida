@@ -3,7 +3,9 @@
 import type { LucideIcon } from 'lucide-react';
 import type { ReactNode } from 'react';
 import {
+  ArrowRight,
   BarChart3,
+  Bot,
   Calendar,
   ChartNoAxesCombined,
   Images,
@@ -164,6 +166,29 @@ export default function AdminPage() {
           </h1>
           <p className="text-sm text-muted-foreground">Puzzles, catalog, and play analytics.</p>
         </header>
+
+        <a
+          href="/admin/agents"
+          className={cn(
+            'group flex items-center gap-4 rounded-2xl border border-violet-200/80 bg-linear-to-br p-4 no-underline shadow-sm',
+            'from-violet-50 via-fuchsia-50/50 to-sky-50 dark:border-violet-800/60 dark:from-violet-950/50 dark:via-fuchsia-950/20 dark:to-sky-950/30',
+            'transition-all duration-200 hover:-translate-y-0.5 hover:shadow-md',
+            'focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 focus-visible:outline-none'
+          )}
+        >
+          <span className="flex size-11 shrink-0 items-center justify-center rounded-xl bg-linear-to-br from-violet-500 to-fuchsia-600 text-white shadow-md shadow-violet-500/25">
+            <Bot className="size-5" />
+          </span>
+          <span className="min-w-0 flex-1">
+            <span className="block text-base font-bold tracking-tight text-slate-900 dark:text-slate-50">
+              Agents
+            </span>
+            <span className="block text-xs text-muted-foreground">
+              Ask questions about the data, or have the Puzzle Creator draft new puzzles
+            </span>
+          </span>
+          <ArrowRight className="size-4 shrink-0 text-muted-foreground transition-transform group-hover:translate-x-0.5" />
+        </a>
 
         <section
           aria-label="Catalog and analytics"
