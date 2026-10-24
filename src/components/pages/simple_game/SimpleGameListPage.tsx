@@ -10,6 +10,7 @@ import {
   CalendarIcon,
   FilterIcon,
   LayoutGridIcon,
+  Link2Icon,
   List,
   SearchIcon,
   TableIcon
@@ -22,10 +23,12 @@ import {
 import { client } from '~/api/client';
 import { AdminCatalogFilters } from '~/components/pages/catalog/AdminCatalogFilters';
 import { CatalogAdminLinks } from '~/components/pages/catalog/CatalogAdminLinks';
+import { AdminPuzzleTable } from '~/components/pages/catalog/puzzle_table/AdminPuzzleTable';
+import type { AdminPuzzleRow } from '~/components/pages/catalog/puzzle_table/puzzle_table_columns';
+import { fetchEveryListPage } from '~/components/pages/fetch-every-list-page';
 import { LanguageIcon } from '~/components/icons';
 import { Button } from '~/components/ui/button';
 import { Card, CardDescription, CardHeader, CardTitle } from '~/components/ui/card';
-import { DataTable, type DataTableColumnDef } from '~/components/ui/data-table';
 import { InputGroup, InputGroupAddon, InputGroupInput } from '~/components/ui/input-group';
 import { Label } from '~/components/ui/label';
 import {
@@ -47,27 +50,15 @@ import { Skeleton } from '~/components/ui/skeleton';
 import { Switch } from '~/components/ui/switch';
 import { cn } from '~/lib/utils';
 import Icon from '~/tools/Icon';
-import {
-  SIMPLE_GAME_META,
-  simpleGameEditHref,
-  simpleGameViewHref,
-  type SimpleGameKind
-} from '~/util/games/kinds';
+import { SIMPLE_GAME_META, simpleGameEditHref, type SimpleGameKind } from '~/util/games/kinds';
 
 dayjs.extend(relativeTime);
 
-type ListItem = {
-  id: number;
-  uid: string;
-  slug: string;
-  title: string;
-  description: string;
-  listed: boolean;
-  created_at: Date;
-  updated_at: Date | null;
-  image_s3_key?: string | null;
-  tags?: { id: number; slug: string }[];
-};
+type ListLayout = 'cards' | 'table' | 'links';
+
+const PAGE_SIZE = 12;
+/** `simple_game_list_input_schema` caps `size` at 50. */
+const FULL_LIST_PAGE_SIZE = 50;
 
 const LISTED_FILTER_ITEMS = [
   { label: 'All', value: 'all' as const },
@@ -181,8 +172,8 @@ function SimpleGameListFilters({
   onSortByChange: (value: 'created_at' | 'updated_at') => void;
   orderBy: 'asc' | 'desc';
   onOrderByChange: (value: 'asc' | 'desc') => void;
-  layout: 'cards' | 'table';
-  onLayoutChange: (layout: 'cards' | 'table') => void;
+  layout: ListLayout;
+  onLayoutChange: (layout: ListLayout) => void;
   tagSlug: string;
   collectionId: string;
   onTagSlugChange: (value: string) => void;
@@ -280,6 +271,17 @@ function SimpleGameListFilters({
             >
               <TableIcon />
             </Button>
+            <Button
+              type="button"
+              variant={layout === 'links' ? 'secondary' : 'ghost'}
+              size="icon-sm"
+              aria-label="Full list"
+              title="Full list"
+              aria-pressed={layout === 'links'}
+              onClick={() => onLayoutChange('links')}
+            >
+              <Link2Icon />
+            </Button>
           </div>
         </div>
       </div>
@@ -295,7 +297,7 @@ export function SimpleGameListPage({ kind }: { kind: SimpleGameKind }) {
   const [listed, setListed] = useState<'all' | 'listed' | 'unlisted'>('all');
   const [sortBy, setSortBy] = useState<'created_at' | 'updated_at'>('created_at');
   const [orderBy, setOrderBy] = useState<'asc' | 'desc'>('desc');
-  const [layout, setLayout] = useState<'cards' | 'table'>('cards');
+  const [layout, setLayout] = useState<ListLayout>('cards');
   const [tagSlug, setTagSlug] = useState('all');
   const [collectionId, setCollectionId] = useState('all');
 
@@ -308,37 +310,40 @@ export function SimpleGameListPage({ kind }: { kind: SimpleGameKind }) {
   }, [search]);
 
   const listedFilter = listed === 'all' ? undefined : listed === 'listed';
+  const filters = {
+    search_title: debounced || undefined,
+    listed_filter: listedFilter,
+    sort_by: sortBy,
+    order_by: orderBy,
+    tag_slug: tagSlug === 'all' ? undefined : tagSlug,
+    collection_id: collectionId === 'all' ? undefined : Number(collectionId)
+  };
+  const isFullList = layout === 'links';
+
   const listQuery = useQuery({
-    queryKey: [
-      `${kind}_list`,
-      page,
-      debounced,
-      listed,
-      listedFilter,
-      sortBy,
-      orderBy,
-      tagSlug,
-      collectionId
-    ],
-    queryFn: () =>
-      client[kind].get_puzzle_list_page.query({
-        page,
-        size: 12,
-        search_title: debounced || undefined,
-        listed_filter: listedFilter,
-        sort_by: sortBy,
-        order_by: orderBy,
-        tag_slug: tagSlug === 'all' ? undefined : tagSlug,
-        collection_id: collectionId === 'all' ? undefined : Number(collectionId)
-      }),
-    placeholderData: (prev) => prev
+    queryKey: [`${kind}_list`, page, filters],
+    queryFn: () => client[kind].get_puzzle_list_page.query({ page, size: PAGE_SIZE, ...filters }),
+    placeholderData: (prev) => prev,
+    enabled: !isFullList
   });
 
-  // SAFETY: get_puzzle_list_page returns this game's listed rows, which match ListItem.
-  const items = (listQuery.data?.list ?? []) as ListItem[];
+  const fullListQuery = useQuery({
+    queryKey: [`${kind}_list_full`, filters],
+    queryFn: () =>
+      fetchEveryListPage(
+        (page, size) => client[kind].get_puzzle_list_page.query({ page, size, ...filters }),
+        FULL_LIST_PAGE_SIZE
+      ),
+    enabled: isFullList,
+    refetchOnWindowFocus: false
+  });
+
+  const activeQuery = isFullList ? fullListQuery : listQuery;
+  // SAFETY: every simple game's get_puzzle_list_page returns the shared admin row shape.
+  const items = ((isFullList ? fullListQuery.data : listQuery.data?.list) ??
+    []) as AdminPuzzleRow[];
   const pageCount = listQuery.data?.pageCount ?? 1;
-  const columns = useMemo(() => listColumns(kind), [kind]);
-  const isEmpty = !listQuery.isLoading && items.length === 0;
+  const isEmpty = !activeQuery.isLoading && items.length === 0;
 
   return (
     <div className="flex flex-col gap-4">
@@ -375,18 +380,37 @@ export function SimpleGameListPage({ kind }: { kind: SimpleGameKind }) {
           setPage(1);
         }}
       />
-      {listQuery.isLoading ? (
-        <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4">
-          {Array.from({ length: 6 }).map((_, index) => (
-            <Skeleton key={index} className="h-20 w-full" />
-          ))}
-        </div>
+      {activeQuery.isLoading ? (
+        layout === 'cards' ? (
+          <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4">
+            {Array.from({ length: 6 }).map((_, index) => (
+              <Skeleton key={index} className="h-20 w-full" />
+            ))}
+          </div>
+        ) : (
+          <div className="flex flex-col gap-2 rounded-xl border border-slate-200/60 p-2 dark:border-slate-700/40">
+            {Array.from({ length: 8 }).map((_, index) => (
+              <Skeleton key={index} className="h-10 w-full" />
+            ))}
+          </div>
+        )
       ) : isEmpty ? (
         <p className="py-8 text-center text-lg font-semibold text-slate-500 dark:text-slate-400">
           No puzzles found
         </p>
       ) : layout === 'table' ? (
-        <DataTable columns={columns} data={items} />
+        <AdminPuzzleTable game={kind} data={items} />
+      ) : isFullList ? (
+        <AdminPuzzleTable
+          game={kind}
+          data={items}
+          fullList
+          toolbar={
+            <p className="mr-auto text-sm text-muted-foreground">
+              {items.length} puzzle{items.length === 1 ? '' : 's'}
+            </p>
+          }
+        />
       ) : (
         <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4">
           {items.map((item) => (
@@ -400,9 +424,9 @@ export function SimpleGameListPage({ kind }: { kind: SimpleGameKind }) {
               >
                 <CardHeader>
                   <div className="flex items-start justify-between gap-2">
-                    {item.image_s3_key ? (
+                    {item.image ? (
                       <img
-                        src={getCDNUrl(item.image_s3_key)}
+                        src={getCDNUrl(item.image.s3_key)}
                         alt=""
                         loading="lazy"
                         className="aspect-[3/2] w-14 shrink-0 rounded-md border border-border/50 object-cover"
@@ -440,7 +464,7 @@ export function SimpleGameListPage({ kind }: { kind: SimpleGameKind }) {
           ))}
         </div>
       )}
-      {pageCount > 1 ? (
+      {!isFullList && pageCount > 1 ? (
         <Pagination>
           <PaginationContent>
             <PaginationItem>
@@ -471,47 +495,4 @@ export function SimpleGameListPage({ kind }: { kind: SimpleGameKind }) {
       ) : null}
     </div>
   );
-}
-
-function listColumns(kind: SimpleGameKind): DataTableColumnDef<ListItem>[] {
-  return [
-    {
-      accessorKey: 'id',
-      header: 'ID',
-      cell: ({ row }) => <span className="font-mono text-xs">{row.original.id}</span>
-    },
-    {
-      accessorKey: 'title',
-      header: 'Title',
-      cell: ({ row }) => (
-        <a href={simpleGameEditHref(kind, row.original.id)} className="font-medium hover:underline">
-          {row.original.title}
-        </a>
-      )
-    },
-    {
-      accessorKey: 'slug',
-      header: 'Slug',
-      cell: ({ row }) => <span className="font-mono text-xs">{row.original.slug}</span>
-    },
-    {
-      accessorKey: 'listed',
-      header: 'Listed',
-      cell: ({ row }) => (row.original.listed ? 'Yes' : 'No')
-    },
-    {
-      id: 'actions',
-      header: '',
-      cell: ({ row }) => (
-        <div className="flex gap-2">
-          <a className="text-sm underline" href={simpleGameEditHref(kind, row.original.id)}>
-            Edit
-          </a>
-          <a className="text-sm underline" href={simpleGameViewHref(kind, row.original.uid)}>
-            View
-          </a>
-        </div>
-      )
-    }
-  ];
 }

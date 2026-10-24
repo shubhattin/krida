@@ -5,7 +5,12 @@ import { dbRunHttp, dbTransaction } from '~/effect/database';
 import { and, asc, count, desc, eq, ilike, or, sql } from 'drizzle-orm';
 import { image_assets, puzzle_attachments, puzzle_redirects, puzzles } from '~/db/schema';
 import { escapeIlikeToken, tokenizeSearchQuery } from '~/util/puzzle/search';
-import { puzzleHasTag, puzzleInCollection, tagsForPuzzleIds } from '~/util/catalog/list_query';
+import {
+  collectionsForPuzzleIds,
+  puzzleHasTag,
+  puzzleInCollection,
+  tagsForPuzzleIds
+} from '~/util/catalog/list_query';
 import {
   simple_game_add_input_schema,
   simple_game_list_input_schema,
@@ -189,13 +194,16 @@ export function createSimpleGameRouter<TData>(options: {
             )
           });
 
-          const tagsByPuzzle = yield* tagsForPuzzleIds(
-            kind,
-            rows.map((row) => row.id)
-          );
-          const list = rows.map((puzzle) => ({
+          const puzzleIds = rows.map((row) => row.id);
+          const { tagsByPuzzle, collectionsByPuzzle } = yield* Effect.all({
+            tagsByPuzzle: tagsForPuzzleIds(kind, puzzleIds),
+            collectionsByPuzzle: collectionsForPuzzleIds(kind, puzzleIds)
+          });
+          const list = rows.map(({ image_s3_key, ...puzzle }) => ({
             ...puzzle,
-            tags: tagsByPuzzle.get(puzzle.id) ?? []
+            image: image_s3_key ? { s3_key: image_s3_key } : null,
+            tags: tagsByPuzzle.get(puzzle.id) ?? [],
+            collections: collectionsByPuzzle.get(puzzle.id) ?? []
           }));
 
           const total = Number(countResult[0]?.count ?? 0);

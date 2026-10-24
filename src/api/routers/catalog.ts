@@ -3,11 +3,17 @@ import { and, asc, count, desc, eq, ilike, inArray, or, sql } from 'drizzle-orm'
 import { z } from 'zod';
 import { protectedAdminProcedure, t } from '~/api/trpc_init';
 import {
+  anveshi_puzzles,
+  bhramita_puzzles,
   collections,
   collection_items,
+  dvayi_puzzles,
   image_assets,
+  padajala_puzzles,
+  padavali_puzzles,
   puzzle_tags,
   puzzles,
+  surupa_puzzles,
   tags
 } from '~/db/schema';
 import { dbRunHttp, dbTransaction, type DbTransaction } from '~/effect/database';
@@ -28,6 +34,14 @@ import {
 } from '~/util/catalog/tags';
 import { escapeIlikeToken, tokenizeSearchQuery } from '~/util/puzzle/search';
 import { insertWithUniqueUid } from '~/util/puzzle/nano_id';
+import {
+  anveshiEntries,
+  dvayiEntries,
+  padajalaEntries,
+  padavaliEntries,
+  wordEntries,
+  type PuzzleEntries
+} from '~/util/catalog/puzzle_entries';
 
 const settle = <A, E, R>(effect: Effect.Effect<A, E, R>) =>
   effect.pipe(Effect.catch(() => Effect.void));
@@ -1204,6 +1218,100 @@ const puzzle_collections_route = protectedAdminProcedure
     )
   );
 
+/** Reads one puzzle's game data and normalizes it into displayable entries. */
+const loadPuzzleEntries = (game: GameKind, puzzleId: number) =>
+  dbRunHttp(`catalog.puzzle_entries.${game}`, async (client): Promise<PuzzleEntries | null> => {
+    switch (game) {
+      case 'padavali': {
+        const [row] = await client
+          .select({ word_list: padavali_puzzles.word_list })
+          .from(padavali_puzzles)
+          .where(eq(padavali_puzzles.id, puzzleId))
+          .limit(1);
+        return row ? padavaliEntries(row.word_list) : null;
+      }
+      case 'padajala': {
+        const [row] = await client
+          .select({ word_list: padajala_puzzles.word_list })
+          .from(padajala_puzzles)
+          .where(eq(padajala_puzzles.id, puzzleId))
+          .limit(1);
+        return row ? padajalaEntries(row.word_list) : null;
+      }
+      case 'dvayi': {
+        const [row] = await client
+          .select({ data: dvayi_puzzles.puzzle_data })
+          .from(dvayi_puzzles)
+          .where(eq(dvayi_puzzles.id, puzzleId))
+          .limit(1);
+        return row ? dvayiEntries(row.data) : null;
+      }
+      case 'bhramita': {
+        const [row] = await client
+          .select({ data: bhramita_puzzles.puzzle_data })
+          .from(bhramita_puzzles)
+          .where(eq(bhramita_puzzles.id, puzzleId))
+          .limit(1);
+        return row ? wordEntries(row.data) : null;
+      }
+      case 'surupa': {
+        const [row] = await client
+          .select({ data: surupa_puzzles.puzzle_data })
+          .from(surupa_puzzles)
+          .where(eq(surupa_puzzles.id, puzzleId))
+          .limit(1);
+        return row ? wordEntries(row.data) : null;
+      }
+      case 'anveshi': {
+        const [row] = await client
+          .select({ data: anveshi_puzzles.puzzle_data })
+          .from(anveshi_puzzles)
+          .where(eq(anveshi_puzzles.id, puzzleId))
+          .limit(1);
+        return row ? anveshiEntries(row.data) : null;
+      }
+    }
+  });
+
+const puzzle_details_route = protectedAdminProcedure
+  .input(z.object({ game: z.enum(GAME_KINDS), puzzle_id: z.number().int() }))
+  .query(({ input }) =>
+    runTrpcEffect(
+      Effect.gen(function* () {
+        const { content, tagRows, collectionRows } = yield* Effect.all({
+          content: loadPuzzleEntries(input.game, input.puzzle_id),
+          tagRows: dbRunHttp('catalog.puzzle_details_tags', (client) =>
+            client
+              .select({ id: tags.id, slug: tags.slug })
+              .from(puzzle_tags)
+              .innerJoin(tags, eq(tags.id, puzzle_tags.tag_id))
+              .where(eq(puzzle_tags.puzzle_id, input.puzzle_id))
+              .orderBy(asc(tags.slug))
+          ),
+          collectionRows: dbRunHttp('catalog.puzzle_details_collections', (client) =>
+            client
+              .select({
+                id: collections.id,
+                uid: collections.uid,
+                title: collections.title,
+                listed: collections.listed
+              })
+              .from(collection_items)
+              .innerJoin(collections, eq(collections.id, collection_items.collection_id))
+              .where(eq(collection_items.puzzle_id, input.puzzle_id))
+              .orderBy(asc(collections.title))
+          )
+        });
+        if (!content) {
+          return yield* Effect.fail(
+            NotFoundError.make({ resource: `${input.game}_puzzle`, message: 'Puzzle not found' })
+          );
+        }
+        return { ...content, tags: tagRows, collections: collectionRows };
+      })
+    )
+  );
+
 const search_puzzles_route = protectedAdminProcedure
   .input(
     z.object({
@@ -1369,5 +1477,6 @@ export const catalog_router = t.router({
   remove_item: remove_item_route,
   reorder: reorder_route,
   puzzle_collections: puzzle_collections_route,
+  puzzle_details: puzzle_details_route,
   search_puzzles: search_puzzles_route
 });
