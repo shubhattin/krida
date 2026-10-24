@@ -34,7 +34,8 @@ function nearestIndex(stops: number[], position: number) {
 const easeOutCubic = (t: number) => 1 - (1 - t) ** 3;
 
 /**
- * Click-and-drag (mouse) and two-finger swipe (trackpad) scrolling for horizontal rails.
+ * Click-and-drag (mouse), shift + wheel and two-finger swipe (trackpad) scrolling for
+ * horizontal rails.
  * Touch keeps native scrolling, which mobile browsers already animate between snap points;
  * vertical wheel input is left alone so the page still scrolls. A drag never triggers the
  * click of the element it was released over.
@@ -110,7 +111,8 @@ export function useDragScroll<T extends HTMLElement>() {
         const stops = [...new Set(snapStops(el))];
         const from = nearestIndex(stops, gestureStart);
         let target = nearestIndex(stops, el.scrollLeft - releaseVelocity * FLING_PROJECTION_MS);
-        const travelled = gestureStart - el.scrollLeft;
+        // In scroll terms (positive = forward), unlike the pointer-terms velocity.
+        const travelled = el.scrollLeft - gestureStart;
         if (target === from && Math.abs(travelled) > ADVANCE_PX) {
           target = Math.min(stops.length - 1, Math.max(0, from + Math.sign(travelled)));
         }
@@ -166,19 +168,26 @@ export function useDragScroll<T extends HTMLElement>() {
     };
 
     const onWheel = (event: WheelEvent) => {
+      if (event.ctrlKey) return;
+      // Shift + mouse wheel scrolls sideways; some browsers still report it on deltaY.
+      const deltaX = event.shiftKey && event.deltaX === 0 ? event.deltaY : event.deltaX;
+      const deltaY = event.shiftKey && event.deltaX === 0 ? 0 : event.deltaY;
       // Horizontal intent only — vertical wheels and pinch-zoom (ctrl) keep their defaults.
-      if (event.ctrlKey || Math.abs(event.deltaX) <= Math.abs(event.deltaY)) return;
+      if (Math.abs(deltaX) <= Math.abs(deltaY)) return;
       const max = el.scrollWidth - el.clientWidth;
       if (max <= 0) return;
       event.preventDefault();
-      if (!wheeling) {
+      const first = !wheeling;
+      if (first) {
         wheeling = true;
         takeOver();
       }
-      const delta = event.deltaMode === 1 ? event.deltaX * WHEEL_LINE_PX : event.deltaX;
+      const delta = event.deltaMode === 1 ? deltaX * WHEEL_LINE_PX : deltaX;
       const now = performance.now();
-      // Wheel deltas are in scroll direction; keep velocity in pointer terms like a drag.
-      velocity = -delta / Math.max(8, now - lastT);
+      // Wheel deltas are in scroll direction; keep velocity in pointer terms like a drag. The
+      // first event has no interval to measure, so a lone mouse-wheel notch advances one item
+      // instead of being read as a huge fling.
+      velocity = first ? 0 : -delta / Math.max(8, now - lastT);
       lastT = now;
       el.scrollLeft = Math.min(max, Math.max(0, el.scrollLeft + delta));
       clearTimeout(wheelTimer);

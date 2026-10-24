@@ -47,10 +47,14 @@ export function useScrollRail<T extends HTMLElement>() {
     el.addEventListener('scroll', sync, { passive: true });
     const observer = new ResizeObserver(sync);
     observer.observe(el);
+    // Items can be swapped out (e.g. a filter change) without the rail resizing.
+    const mutations = new MutationObserver(sync);
+    mutations.observe(el, { childList: true });
     return () => {
       cancelAnimationFrame(frame);
       el.removeEventListener('scroll', sync);
       observer.disconnect();
+      mutations.disconnect();
     };
   }, [ref]);
 

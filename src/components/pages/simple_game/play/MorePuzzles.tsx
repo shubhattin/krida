@@ -1,13 +1,13 @@
 'use client';
 
-import { useMemo, useState } from 'react';
+import { useEffect, useMemo, useState } from 'react';
 import { useQuery } from '@tanstack/react-query';
 import { Link } from '@tanstack/react-router';
 import { motion } from 'framer-motion';
-import { ArrowRightIcon } from 'lucide-react';
+import { ArrowRightIcon, ChevronLeftIcon, ChevronRightIcon } from 'lucide-react';
 import { useTRPC } from '~/api/client';
 import { getCDNUrl } from '~/constants';
-import { useDragScroll } from '~/hooks/useDragScroll';
+import { useScrollRail } from '~/hooks/useScrollRail';
 import { gameDisplayName, GamePickerChips, type GamePick } from '~/components/hub/GamePickerChips';
 import { puzzleHref } from '~/components/hub/hub_games';
 import { GameKindIcon } from '~/components/pages/catalog/GameKindIcon';
@@ -57,7 +57,7 @@ function toFeed(game: GameKind, rows: readonly PreviewRow[] | undefined): FeedIt
  */
 export function MorePuzzles({ kind, puzzleId }: { kind: GameKind; puzzleId: number }) {
   const trpc = useTRPC();
-  const { ref: rowRef, dragging } = useDragScroll<HTMLDivElement>();
+  const { ref: rowRef, dragging, canPrev, canNext, scrollPage } = useScrollRail<HTMLDivElement>();
   // null = not chosen yet: default to this game if it has other puzzles, else to All.
   const [chosen, setChosen] = useState<GamePick | null>(null);
   const excludeFor = (game: GameKind) => (game === kind ? { exclude_id: puzzleId } : {});
@@ -123,6 +123,11 @@ export function MorePuzzles({ kind, puzzleId }: { kind: GameKind; puzzleId: numb
   const pick: GamePick = chosen ?? (loading || byGame[kind].length > 0 ? kind : 'all');
   const items = pick === 'all' ? all : byGame[pick];
 
+  // A new filter starts the row from its first tile.
+  useEffect(() => {
+    rowRef.current?.scrollTo({ left: 0 });
+  }, [pick, rowRef]);
+
   return (
     <section className="space-y-3">
       <div className="flex items-center justify-between gap-3">
@@ -142,37 +147,73 @@ export function MorePuzzles({ kind, puzzleId }: { kind: GameKind; puzzleId: numb
         onChange={setChosen}
         counts={loading ? undefined : counts}
       />
-      <div
-        ref={rowRef}
-        className={cn(
-          'scroll-rail -mx-1 flex gap-3 px-1 pb-3 select-none',
-          'snap-x',
-          dragging ? 'cursor-grabbing' : 'cursor-grab'
-        )}
-      >
-        {loading && items.length === 0
-          ? Array.from({ length: 3 }, (_, index) => (
-              <div
-                key={index}
-                className="h-28 w-60 shrink-0 animate-pulse rounded-2xl border border-border/50 bg-muted/40"
-              />
-            ))
-          : null}
-        {!loading && items.length === 0 ? (
-          <p className="w-full rounded-2xl border border-dashed border-border/70 px-4 py-6 text-center text-sm text-muted-foreground">
-            No other {pick === 'all' ? '' : `${gameDisplayName(pick)} `}puzzles yet.
-          </p>
-        ) : null}
-        {items.map((item, index) => (
-          <PuzzleTile
-            key={`${item.game}-${item.id}`}
-            item={item}
-            index={index}
-            showGame={pick === 'all'}
-          />
-        ))}
+      <div className="relative">
+        <div
+          ref={rowRef}
+          aria-label="More puzzles"
+          className={cn(
+            // `relative`: snap stops are measured from the tiles' offsets against the rail.
+            'scroll-rail relative -mx-1 flex gap-3 px-1 pt-1 pb-3 select-none',
+            'snap-x snap-mandatory',
+            // Tiles ignore hover while dragging so their lift doesn't flicker under the cursor.
+            dragging ? 'cursor-grabbing *:pointer-events-none' : 'cursor-grab'
+          )}
+        >
+          {loading && items.length === 0
+            ? Array.from({ length: 3 }, (_, index) => (
+                <div
+                  key={index}
+                  className="h-28 w-60 shrink-0 animate-pulse rounded-2xl border border-border/50 bg-muted/40"
+                />
+              ))
+            : null}
+          {!loading && items.length === 0 ? (
+            <p className="w-full rounded-2xl border border-dashed border-border/70 px-4 py-6 text-center text-sm text-muted-foreground">
+              No other {pick === 'all' ? '' : `${gameDisplayName(pick)} `}puzzles yet.
+            </p>
+          ) : null}
+          {items.map((item, index) => (
+            <PuzzleTile
+              key={`${item.game}-${item.id}`}
+              item={item}
+              index={index}
+              showGame={pick === 'all'}
+            />
+          ))}
+        </div>
+        <RailButton direction={-1} visible={canPrev} onClick={() => scrollPage(-1)} />
+        <RailButton direction={1} visible={canNext} onClick={() => scrollPage(1)} />
       </div>
     </section>
+  );
+}
+
+/** Prev / next arrow over the rail's edge; hidden on touch-only screens, which swipe instead. */
+function RailButton({
+  direction,
+  visible,
+  onClick
+}: {
+  direction: 1 | -1;
+  visible: boolean;
+  onClick: () => void;
+}) {
+  const Icon = direction === 1 ? ChevronRightIcon : ChevronLeftIcon;
+  return (
+    <button
+      type="button"
+      aria-label={direction === 1 ? 'More puzzles to the right' : 'More puzzles to the left'}
+      tabIndex={visible ? 0 : -1}
+      aria-hidden={!visible}
+      onClick={onClick}
+      className={cn(
+        'absolute top-1/2 z-10 flex size-9 -translate-y-1/2 items-center justify-center rounded-full border border-border bg-background/90 text-foreground shadow-md backdrop-blur transition-opacity duration-200 hover:bg-muted focus-visible:ring-2 focus-visible:ring-indigo-400/70 focus-visible:outline-none pointer-coarse:hidden',
+        direction === 1 ? '-right-3' : '-left-3',
+        visible ? 'opacity-100' : 'pointer-events-none opacity-0'
+      )}
+    >
+      <Icon className="size-4" />
+    </button>
   );
 }
 
