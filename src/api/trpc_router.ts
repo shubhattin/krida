@@ -15,6 +15,7 @@ import { anveshi_router } from './routers/anveshi';
 import { user_stats_router } from './routers/user';
 import { catalog_router } from './routers/catalog';
 import { analytics_router } from './routers/analytics';
+import { agents_router } from './routers/agents';
 
 export const appRouter = t.router({
   puzzle: puzzle_router,
@@ -31,7 +32,8 @@ export const appRouter = t.router({
   public_ai: public_ai_router,
   batch_ai: batch_ai_router,
   catalog: catalog_router,
-  analytics: analytics_router
+  analytics: analytics_router,
+  agents: agents_router
 });
 
 export type AppRouter = typeof appRouter;
