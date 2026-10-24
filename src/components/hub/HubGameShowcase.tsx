@@ -83,7 +83,8 @@ export function HubGameShowcase({ games = HUB_GAME_LIST }: { games?: HubGameMeta
           <div
             key={game.kind}
             aria-label={game.name}
-            className="w-full shrink-0 snap-start sm:w-[calc((100%-1rem)/2)]"
+            // Phones: a slice of the next card peeks in to show the row swipes.
+            className="w-[86%] shrink-0 snap-start sm:w-[calc((100%-1rem)/2)]"
           >
             <GameShowcaseCard game={game.kind} index={index} compact />
           </div>
