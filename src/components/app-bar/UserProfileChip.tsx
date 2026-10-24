@@ -50,7 +50,7 @@ import { resetPosthog } from '~/components/tags/PosthogInit';
 import type { GuestAuthPromptTrigger } from '~/lib/guest_auth_prompt';
 import { cn } from '~/lib/utils';
 import { SIMPLE_GAME_META, type SimpleGameKind } from '~/util/games/kinds';
-import { GAME_KINDS, isGameKind, type GameKind } from '~/util/catalog/tags';
+import { isGameKind, type GameKind } from '~/util/catalog/tags';
 import {
   useGuestAuthPrompt,
   useGuestCompletedCount
@@ -123,7 +123,7 @@ const chipButtonClass =
   'relative size-8 shrink-0 overflow-hidden rounded-full border-slate-300/60 bg-white/80 p-0 shadow-sm backdrop-blur-sm transition-all duration-200 hover:scale-105 hover:bg-slate-100/80 aria-expanded:bg-slate-100/80 active:scale-95 dark:border-slate-600/60 dark:bg-slate-800/80 dark:hover:bg-slate-700/80 dark:aria-expanded:bg-slate-700/80';
 
 const popoverClass =
-  'w-84 max-w-[calc(100vw-1rem)] overflow-hidden border-slate-200/80 bg-white/95 p-0 shadow-xl backdrop-blur-md dark:border-slate-700/80 dark:bg-slate-800/95';
+  'max-h-(--available-height) w-84 max-w-[calc(100vw-1rem)] overflow-x-hidden overflow-y-auto overscroll-contain border-slate-200/80 bg-white/95 p-0 shadow-xl backdrop-blur-md dark:border-slate-700/80 dark:bg-slate-800/95';
 
 const emptySubscribe = () => () => {};
 
@@ -424,6 +424,7 @@ type DashboardData = {
     best_time_seconds: number | null;
     best_accuracy: number | null;
   };
+  visible_games: GameKind[];
 } & Record<GameKind, GameDashboardStats>;
 
 function SignedInCard({
@@ -447,9 +448,12 @@ function SignedInCard({
   onNavigate: () => void;
   onLogout: () => void;
 }) {
-  // Current game first so its row sits right under the overview.
+  // Only publicly visible games; the current one first so it sits right under the overview.
+  const visibleGames = data?.visible_games ?? [];
   const gameOrder: GameKind[] =
-    context === 'krida' ? [...GAME_KINDS] : [context, ...GAME_KINDS.filter((g) => g !== context)];
+    context !== 'krida' && visibleGames.includes(context)
+      ? [context, ...visibleGames.filter((g) => g !== context)]
+      : visibleGames;
 
   return (
     <div>
@@ -529,15 +533,18 @@ function SignedInCard({
 
             <div className="flex flex-col gap-1.5">
               <p className="px-0.5 text-[11px] font-semibold text-muted-foreground">By game</p>
-              {gameOrder.map((game) => (
-                <GameStatsRow
-                  key={game}
-                  game={game}
-                  stats={data[game]}
-                  current={context === game}
-                  onNavigate={onNavigate}
-                />
-              ))}
+              {/* Capped a little under four rows, so a cut-off row hints that the list scrolls. */}
+              <div className="-mx-1 flex max-h-66 flex-col gap-1.5 overflow-y-auto overscroll-contain px-1">
+                {gameOrder.map((game) => (
+                  <GameStatsRow
+                    key={game}
+                    game={game}
+                    stats={data[game]}
+                    current={context === game}
+                    onNavigate={onNavigate}
+                  />
+                ))}
+              </div>
             </div>
           </>
         ) : null}
@@ -584,7 +591,7 @@ function GameStatsRow({
       onClick={onNavigate}
       aria-current={current ? 'page' : undefined}
       className={cn(
-        'group flex items-center gap-2.5 rounded-xl border px-2.5 py-2 no-underline transition-colors duration-200',
+        'group flex shrink-0 items-center gap-2.5 rounded-xl border px-2.5 py-2 no-underline transition-colors duration-200',
         current
           ? cn(gameAccent.border, 'bg-white/80 dark:bg-slate-900/50')
           : 'border-slate-200/80 bg-white/50 hover:bg-white/90 dark:border-slate-700/80 dark:bg-slate-900/25 dark:hover:bg-slate-900/50'

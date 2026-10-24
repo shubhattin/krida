@@ -12,8 +12,14 @@ import {
 } from '~/api/routers/guest_claim_token';
 import { get_user_dashboard_input_schema } from '~/api/routers/stats_query_schema';
 import { combineDashboardTotals, emptyGameStats } from '~/api/routers/user/user_dashboard';
-import { CACHE, invalidate_and_refresh_cache } from '~/util/cache.server/cache_loaders';
+import {
+  CACHE,
+  invalidate_and_refresh_cache,
+  NO_CACHE_PARAMS
+} from '~/util/cache.server/cache_loaders';
+import { getCachedMany } from '~/effect/cache';
 import type { GameKind } from '~/util/catalog/tags';
+import { visibleGamesFromCounts } from '~/util/games/visibility';
 
 const get_dashboard_route = protectedProcedure
   .input(get_user_dashboard_input_schema)
@@ -27,22 +33,43 @@ const get_dashboard_route = protectedProcedure
             ? CACHE.user[`${kind}_dashboard`].get({ userId })
             : Effect.succeed(emptyGameStats(kind));
 
-        const stats = yield* Effect.all(
-          {
-            padavali: load('padavali'),
-            padajala: load('padajala'),
-            dvayi: load('dvayi'),
-            bhramita: load('bhramita'),
-            surupa: load('surupa'),
-            anveshi: load('anveshi')
-          },
+        const [stats, listed] = yield* Effect.all(
+          [
+            Effect.all(
+              {
+                padavali: load('padavali'),
+                padajala: load('padajala'),
+                dvayi: load('dvayi'),
+                bhramita: load('bhramita'),
+                surupa: load('surupa'),
+                anveshi: load('anveshi')
+              },
+              { concurrency: 'unbounded' }
+            ),
+            // Same release gate as the hub: new kridas show only once they have a listed
+            // puzzle. Padāvalī and Padajāla are always visible, so only these are read (one MGET).
+            getCachedMany({
+              dvayi: CACHE.dvayi.listed_puzzle_list.read(NO_CACHE_PARAMS),
+              bhramita: CACHE.bhramita.listed_puzzle_list.read(NO_CACHE_PARAMS),
+              surupa: CACHE.surupa.listed_puzzle_list.read(NO_CACHE_PARAMS),
+              anveshi: CACHE.anveshi.listed_puzzle_list.read(NO_CACHE_PARAMS)
+            })
+          ],
           { concurrency: 'unbounded' }
         );
+        const visible_games = visibleGamesFromCounts({
+          padavali: 0,
+          padajala: 0,
+          dvayi: listed.dvayi.length,
+          bhramita: listed.bhramita.length,
+          surupa: listed.surupa.length,
+          anveshi: listed.anveshi.length
+        });
         const included = Object.values(stats).filter(
-          (item) => game === 'all' || item.game === game
+          (item) => visible_games.includes(item.game) && (game === 'all' || item.game === game)
         );
 
-        return { totals: combineDashboardTotals(included), ...stats };
+        return { totals: combineDashboardTotals(included), visible_games, ...stats };
       })
     )
   );
