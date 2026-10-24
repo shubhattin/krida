@@ -3,11 +3,17 @@ import { and, asc, count, desc, eq, ilike, inArray, or, sql } from 'drizzle-orm'
 import { z } from 'zod';
 import { protectedAdminProcedure, t } from '~/api/trpc_init';
 import {
+  anveshi_puzzles,
+  bhramita_puzzles,
   collections,
   collection_items,
+  dvayi_puzzles,
   image_assets,
+  padajala_puzzles,
+  padavali_puzzles,
   puzzle_tags,
   puzzles,
+  surupa_puzzles,
   tags
 } from '~/db/schema';
 import { dbRunHttp, dbTransaction, type DbTransaction } from '~/effect/database';
@@ -28,6 +34,14 @@ import {
 } from '~/util/catalog/tags';
 import { escapeIlikeToken, tokenizeSearchQuery } from '~/util/puzzle/search';
 import { insertWithUniqueUid } from '~/util/puzzle/nano_id';
+import {
+  anveshiEntries,
+  dvayiEntries,
+  padajalaEntries,
+  padavaliEntries,
+  wordEntries,
+  type PuzzleEntries
+} from '~/util/catalog/puzzle_entries';
 
 const settle = <A, E, R>(effect: Effect.Effect<A, E, R>) =>
   effect.pipe(Effect.catch(() => Effect.void));
@@ -1204,6 +1218,121 @@ const puzzle_collections_route = protectedAdminProcedure
     )
   );
 
+/** Reads puzzles' game data and normalizes it into displayable entries, keyed by puzzle id. */
+const loadPuzzleEntries = (game: GameKind, puzzleIds: number[]) =>
+  dbRunHttp(`catalog.puzzle_entries.${game}`, async (client) => {
+    const byId = new Map<number, PuzzleEntries>();
+    if (puzzleIds.length === 0) return byId;
+    switch (game) {
+      case 'padavali': {
+        const rows = await client
+          .select({ id: padavali_puzzles.id, word_list: padavali_puzzles.word_list })
+          .from(padavali_puzzles)
+          .where(inArray(padavali_puzzles.id, puzzleIds));
+        for (const row of rows) byId.set(row.id, padavaliEntries(row.word_list));
+        break;
+      }
+      case 'padajala': {
+        const rows = await client
+          .select({ id: padajala_puzzles.id, word_list: padajala_puzzles.word_list })
+          .from(padajala_puzzles)
+          .where(inArray(padajala_puzzles.id, puzzleIds));
+        for (const row of rows) byId.set(row.id, padajalaEntries(row.word_list));
+        break;
+      }
+      case 'dvayi': {
+        const rows = await client
+          .select({ id: dvayi_puzzles.id, data: dvayi_puzzles.puzzle_data })
+          .from(dvayi_puzzles)
+          .where(inArray(dvayi_puzzles.id, puzzleIds));
+        for (const row of rows) byId.set(row.id, dvayiEntries(row.data));
+        break;
+      }
+      case 'bhramita': {
+        const rows = await client
+          .select({ id: bhramita_puzzles.id, data: bhramita_puzzles.puzzle_data })
+          .from(bhramita_puzzles)
+          .where(inArray(bhramita_puzzles.id, puzzleIds));
+        for (const row of rows) byId.set(row.id, wordEntries(row.data));
+        break;
+      }
+      case 'surupa': {
+        const rows = await client
+          .select({ id: surupa_puzzles.id, data: surupa_puzzles.puzzle_data })
+          .from(surupa_puzzles)
+          .where(inArray(surupa_puzzles.id, puzzleIds));
+        for (const row of rows) byId.set(row.id, wordEntries(row.data));
+        break;
+      }
+      case 'anveshi': {
+        const rows = await client
+          .select({ id: anveshi_puzzles.id, data: anveshi_puzzles.puzzle_data })
+          .from(anveshi_puzzles)
+          .where(inArray(anveshi_puzzles.id, puzzleIds));
+        for (const row of rows) byId.set(row.id, anveshiEntries(row.data));
+        break;
+      }
+    }
+    return byId;
+  });
+
+/** Entries for many puzzles at once — backs the full-list text export. */
+const puzzle_entries_batch_route = protectedAdminProcedure
+  .input(
+    z.object({
+      game: z.enum(GAME_KINDS),
+      puzzle_ids: z.array(z.number().int()).max(5000)
+    })
+  )
+  .query(({ input }) =>
+    runTrpcEffect(
+      loadPuzzleEntries(input.game, input.puzzle_ids).pipe(
+        Effect.map((byId) => Object.fromEntries(byId))
+      )
+    )
+  );
+
+const puzzle_details_route = protectedAdminProcedure
+  .input(z.object({ game: z.enum(GAME_KINDS), puzzle_id: z.number().int() }))
+  .query(({ input }) =>
+    runTrpcEffect(
+      Effect.gen(function* () {
+        const { content, tagRows, collectionRows } = yield* Effect.all({
+          content: loadPuzzleEntries(input.game, [input.puzzle_id]).pipe(
+            Effect.map((byId) => byId.get(input.puzzle_id))
+          ),
+          tagRows: dbRunHttp('catalog.puzzle_details_tags', (client) =>
+            client
+              .select({ id: tags.id, slug: tags.slug })
+              .from(puzzle_tags)
+              .innerJoin(tags, eq(tags.id, puzzle_tags.tag_id))
+              .where(eq(puzzle_tags.puzzle_id, input.puzzle_id))
+              .orderBy(asc(tags.slug))
+          ),
+          collectionRows: dbRunHttp('catalog.puzzle_details_collections', (client) =>
+            client
+              .select({
+                id: collections.id,
+                uid: collections.uid,
+                title: collections.title,
+                listed: collections.listed
+              })
+              .from(collection_items)
+              .innerJoin(collections, eq(collections.id, collection_items.collection_id))
+              .where(eq(collection_items.puzzle_id, input.puzzle_id))
+              .orderBy(asc(collections.title))
+          )
+        });
+        if (!content) {
+          return yield* Effect.fail(
+            NotFoundError.make({ resource: `${input.game}_puzzle`, message: 'Puzzle not found' })
+          );
+        }
+        return { ...content, tags: tagRows, collections: collectionRows };
+      })
+    )
+  );
+
 const search_puzzles_route = protectedAdminProcedure
   .input(
     z.object({
@@ -1369,5 +1498,7 @@ export const catalog_router = t.router({
   remove_item: remove_item_route,
   reorder: reorder_route,
   puzzle_collections: puzzle_collections_route,
+  puzzle_details: puzzle_details_route,
+  puzzle_entries_batch: puzzle_entries_batch_route,
   search_puzzles: search_puzzles_route
 });

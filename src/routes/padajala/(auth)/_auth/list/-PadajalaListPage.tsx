@@ -40,9 +40,9 @@ import {
 import { InputGroup, InputGroupAddon, InputGroupInput } from '~/components/ui/input-group';
 import { useQuery } from '@tanstack/react-query';
 import { Button } from '~/components/ui/button';
-import { DataTable } from '~/components/ui/data-table';
+import { AdminPuzzleTable } from '~/components/pages/catalog/puzzle_table/AdminPuzzleTable';
 import { getCDNUrl } from '~/constants';
-import { padajalaListTableColumns, type PadajalaListItem } from './-list-table-columns';
+import { padajalaExtraColumns, type PadajalaListItem } from './-list-table-columns';
 import { fetchEveryListPage } from '~/components/pages/fetch-every-list-page';
 import { AdminCatalogFilters } from '~/components/pages/catalog/AdminCatalogFilters';
 import { CatalogAdminLinks } from '~/components/pages/catalog/CatalogAdminLinks';
@@ -346,7 +346,8 @@ const ListFilterBar = ({
             type="button"
             variant={layout === 'links' ? 'secondary' : 'ghost'}
             size="icon-sm"
-            aria-label="All puzzle links"
+            aria-label="Full list"
+            title="Full list"
             aria-pressed={layout === 'links'}
             onClick={() => onLayoutChange('links')}
           >
@@ -432,18 +433,16 @@ const PadajalaTableView = ({
   isSuccess,
   isInitialLoading,
   layout,
-  columns,
   data
 }: {
   isSuccess: boolean;
   isInitialLoading: boolean;
   layout: ListLayout;
-  columns: typeof padajalaListTableColumns;
   data: PadajalaListItem[];
 }) => {
   if (!isSuccess || isInitialLoading || layout !== 'table' || data.length === 0) return null;
 
-  return <DataTable columns={columns} data={data} getRowId={(row) => String(row.id)} />;
+  return <AdminPuzzleTable game="padajala" data={data} extraColumns={padajalaExtraColumns} />;
 };
 
 const ListEmptyState = ({
@@ -580,17 +579,17 @@ const PadajalaListResults = ({
       {isLinks && linksLoading ? <ListLoadingSkeleton show layout="table" /> : null}
       <div ref={listRef} className="flex flex-col gap-4">
         {isLinks && !linksLoading && links.length > 0 ? (
-          <>
-            <p className="text-center text-sm text-muted-foreground">
-              {links.length} puzzle{links.length === 1 ? '' : 's'}
-            </p>
-            <DataTable
-              scrollable
-              columns={padajalaListTableColumns}
-              data={links}
-              getRowId={(row) => String(row.id)}
-            />
-          </>
+          <AdminPuzzleTable
+            game="padajala"
+            data={links}
+            extraColumns={padajalaExtraColumns}
+            fullList
+            toolbar={
+              <p className="mr-auto text-sm text-muted-foreground">
+                {links.length} puzzle{links.length === 1 ? '' : 's'}
+              </p>
+            }
+          />
         ) : null}
         <PadajalaCardGrid
           isSuccess={isSuccess}
@@ -602,7 +601,6 @@ const PadajalaListResults = ({
           isSuccess={isSuccess}
           isInitialLoading={isInitialLoading}
           layout={layout}
-          columns={padajalaListTableColumns}
           data={puzzle_list}
         />
         <ListEmptyState

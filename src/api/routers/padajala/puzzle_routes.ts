@@ -11,7 +11,12 @@ import {
 } from '~/db/schema';
 import { and, asc, count, desc, eq, ilike, or, sql } from 'drizzle-orm';
 import { escapeIlikeToken, tokenizeSearchQuery } from '~/util/puzzle/search';
-import { puzzleHasTag, puzzleInCollection, tagsForPuzzleIds } from '~/util/catalog/list_query';
+import {
+  collectionsForPuzzleIds,
+  puzzleHasTag,
+  puzzleInCollection,
+  tagsForPuzzleIds
+} from '~/util/catalog/list_query';
 import { createEmptyGridData } from '~/util/padajala/grid';
 import { analyzeWordPlacements, resolveWordListForSave } from '~/util/padajala/placement';
 import {
@@ -211,14 +216,16 @@ const get_puzzle_list_page_route = protectedAdminProcedure
           )
         });
 
-        const tagsByPuzzle = yield* tagsForPuzzleIds(
-          'padajala',
-          rows.map((row) => row.id)
-        );
+        const puzzleIds = rows.map((row) => row.id);
+        const { tagsByPuzzle, collectionsByPuzzle } = yield* Effect.all({
+          tagsByPuzzle: tagsForPuzzleIds('padajala', puzzleIds),
+          collectionsByPuzzle: collectionsForPuzzleIds('padajala', puzzleIds)
+        });
         const list = rows.map(({ image_s3_key, ...puzzle }) => ({
           ...puzzle,
           image: image_s3_key ? { s3_key: image_s3_key } : null,
-          tags: tagsByPuzzle.get(puzzle.id) ?? []
+          tags: tagsByPuzzle.get(puzzle.id) ?? [],
+          collections: collectionsByPuzzle.get(puzzle.id) ?? []
         }));
 
         const total = Number(countResult[0]?.count ?? 0);
