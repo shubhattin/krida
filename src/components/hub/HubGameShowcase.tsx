@@ -1,7 +1,6 @@
 'use client';
 
 import { useContext } from 'react';
-import { Image } from '@unpic/react';
 import { ChevronLeftIcon, ChevronRightIcon } from 'lucide-react';
 import { AppContext } from '~/components/AppDataContext';
 import { AllPuzzlesLink } from '~/components/PuzzleCatalogLink';
@@ -25,13 +24,6 @@ export function HubGameShowcase({ games = HUB_GAME_LIST }: { games?: HubGameMeta
     <section className="mx-auto flex w-full max-w-3xl flex-col gap-2 sm:gap-4">
       <header className="flex min-w-0 flex-col gap-1">
         <div className="flex min-w-0 items-center gap-2.5 sm:gap-3">
-          <Image
-            src="/img/icon_128.png"
-            alt=""
-            width={48}
-            height={48}
-            className="size-10 shrink-0 rounded-xl shadow-md sm:size-12"
-          />
           <h1
             className="min-w-0 flex-1 truncate py-1 text-2xl leading-tight font-black tracking-tight sm:text-4xl"
             title={KRIDA_NAME.iast}

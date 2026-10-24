@@ -9,13 +9,14 @@ const SOCIAL_LINKS = [
 ];
 
 const PROJECT_LINKS = [
-  { href: 'https://projects.thesanskritchannel.org/', label: 'Projects' },
+  { href: 'https://www.thesanskritchannel.org/', label: 'The Sanskrit Channel' },
+  { href: 'https://akshara.thesanskritchannel.org/', label: 'Akshara' },
   { href: 'https://svara.thesanskritchannel.org/', label: 'Svara Darshini' }
 ];
 
 export function HubFooter() {
   return (
-    <footer className="border-t border-border/60">
+    <footer className="mt-10 border-t border-border/60 sm:mt-16">
       <div className="mx-auto flex max-w-6xl flex-col gap-4 px-4 py-6 text-sm sm:flex-row sm:items-center sm:justify-between">
         <p className="text-muted-foreground">
           <span className="font-bold text-foreground">Krida</span>
@@ -35,7 +36,7 @@ export function HubFooter() {
               <ArrowUpRight className="size-3.5" aria-hidden />
             </a>
           ))}
-          <span className="h-4 w-px bg-border" aria-hidden />
+          <span className="h-4 w-px bg-border max-sm:hidden" aria-hidden />
           <div className="flex items-center gap-1">
             {SOCIAL_LINKS.map(({ href, label, icon: SocialIcon }) => (
               <a

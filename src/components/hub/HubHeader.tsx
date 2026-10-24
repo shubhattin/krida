@@ -2,7 +2,7 @@
 
 import type { ReactNode } from 'react';
 import { Link, useRouterState } from '@tanstack/react-router';
-import { LayoutGrid } from 'lucide-react';
+import { Image } from '@unpic/react';
 import { MenuButton } from '~/components/app-bar/AppBarMenu';
 import { profileContextFromPath, UserProfileChip } from '~/components/app-bar/UserProfileChip';
 import SupportOptions from '~/components/app-bar/SupportOptions';
@@ -34,9 +34,15 @@ export function HubHeader({
           <Link
             to="/"
             aria-label="Krida home"
-            className="flex size-9 shrink-0 items-center justify-center rounded-xl bg-linear-to-br from-blue-600 to-indigo-600 no-underline shadow-md shadow-blue-500/20"
+            className="flex size-9 shrink-0 items-center justify-center no-underline"
           >
-            <LayoutGrid className="size-4 text-white" />
+            <Image
+              src="/img/icon_128.png"
+              alt=""
+              width={36}
+              height={36}
+              className="size-9 rounded-xl shadow-md"
+            />
           </Link>
           <Link to="/" className="hidden min-w-0 no-underline sm:block">
             <span className="block text-sm font-black tracking-tight text-slate-900 dark:text-slate-50">

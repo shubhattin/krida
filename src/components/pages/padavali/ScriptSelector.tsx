@@ -158,7 +158,7 @@ export const ScriptSelector = ({
           className={cn(
             'h-8 gap-2 border-border/50 bg-background/50 text-sm',
             prominent
-              ? 'h-10 min-w-40 gap-2 rounded-full border-indigo-300/80 bg-indigo-50/80 pr-3 pl-1 font-semibold shadow-sm dark:border-indigo-500/40 dark:bg-indigo-950/50'
+              ? 'h-10 min-w-40 gap-2 rounded-full pr-3 pl-1 font-semibold'
               : compact
                 ? 'w-auto gap-1.5 rounded-full pr-2 pl-0.5 sm:pr-2.5'
                 : 'w-46'

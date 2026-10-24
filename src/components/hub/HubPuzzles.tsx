@@ -504,10 +504,12 @@ export default function HubPuzzles({ data }: { data: HubData }) {
     });
     // Chips only exist for visible games; hidden games (zero listed puzzles)
     // never appear in `base`, so they naturally keep no count entry.
-    const counts: GameCounts = { all: base.length };
-    for (const game of games) counts[game] = 0;
-    for (const puzzle of base) counts[puzzle.game] = (counts[puzzle.game] ?? 0) + 1;
-    return counts;
+    const counts = new Map<GamePick, number>([
+      ['all', base.length],
+      ...games.map((game) => [game, 0] as const)
+    ]);
+    for (const puzzle of base) counts.set(puzzle.game, (counts.get(puzzle.game) ?? 0) + 1);
+    return Object.fromEntries(counts);
   }, [puzzles, games, search.tag, search.q]);
 
   // Collections aren't paginated — drop a leftover ?page= from puzzle view.
