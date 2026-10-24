@@ -2,7 +2,7 @@
 
 import { useContext, useEffect, useRef, type ReactNode } from 'react';
 import { Link, getRouteApi, useNavigate, useRouterState } from '@tanstack/react-router';
-import { ArrowRight, Puzzle } from 'lucide-react';
+import { ArrowRight, Layers, Puzzle } from 'lucide-react';
 import { motion, useReducedMotion } from 'framer-motion';
 import { ScriptSelector } from '~/components/pages/padavali/ScriptSelector';
 import { AppContext } from '~/components/AppDataContext';
@@ -171,6 +171,10 @@ function RecentlyAdded({
   );
 }
 
+/** Two full rows on the home page: 3 columns from `md`, 2 below. The rest live on `/puzzles`. */
+const HOME_COLLECTIONS_MD = 6;
+const HOME_COLLECTIONS_SM = 4;
+
 /** Game-launcher home: compact intro into showcases, then today's sessions when live. */
 export default function HubHome({ data }: { data: HubData }) {
   const { puzzles } = useHubPuzzles(data);
@@ -229,23 +233,24 @@ export default function HubHome({ data }: { data: HubData }) {
               action={
                 <Button
                   nativeButton={false}
-                  variant="ghost"
+                  variant="outline"
                   size="sm"
                   render={
                     <Link
                       to="/puzzles"
                       search={{ view: 'collections' }}
-                      className="inline-flex items-center gap-1"
+                      className="inline-flex items-center gap-1.5"
                     />
                   }
                 >
+                  <Layers className="size-3.5" />
                   All collections
                   <ArrowRight className="size-3.5" />
                 </Button>
               }
             />
             <div className="grid grid-cols-2 gap-3 sm:gap-4 md:grid-cols-3">
-              {data.collections.map((collection, index) => (
+              {data.collections.slice(0, HOME_COLLECTIONS_MD).map((collection, index) => (
                 <motion.div
                   key={collection.uid}
                   initial={reduceMotion ? false : { opacity: 0, y: 8 }}
@@ -254,12 +259,26 @@ export default function HubHome({ data }: { data: HubData }) {
                     duration: 0.28,
                     delay: reduceMotion ? 0 : index * 0.05
                   }}
-                  className="h-full min-w-0"
+                  className={cn('h-full min-w-0', index >= HOME_COLLECTIONS_SM && 'max-md:hidden')}
                 >
                   <HubCollectionCard collection={collection} />
                 </motion.div>
               ))}
             </div>
+            {data.collections.length > HOME_COLLECTIONS_SM ? (
+              <Button
+                nativeButton={false}
+                variant="outline"
+                className={cn(
+                  'self-center',
+                  data.collections.length <= HOME_COLLECTIONS_MD && 'md:hidden'
+                )}
+                render={<Link to="/puzzles" search={{ view: 'collections' }} />}
+              >
+                View all {data.collections.length} collections
+                <ArrowRight data-icon="inline-end" />
+              </Button>
+            ) : null}
           </section>
         ) : null}
 
