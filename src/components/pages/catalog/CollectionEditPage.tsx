@@ -1,6 +1,6 @@
 'use client';
 
-import { useEffect, useMemo, useState } from 'react';
+import { useEffect, useId, useMemo, useState } from 'react';
 import { Image } from '@unpic/react';
 import { Link, useRouter } from '@tanstack/react-router';
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
@@ -926,6 +926,9 @@ function ReorderDialog({
 }) {
   const [order, setOrder] = useState(items);
 
+  // Stable dnd-kit context id: the default comes from a module-level counter
+  // that diverges between SSR and hydration (aria-describedby mismatch).
+  const dndId = useId();
   const sensors = useSensors(
     useSensor(PointerSensor),
     useSensor(KeyboardSensor, { coordinateGetter: sortableKeyboardCoordinates })
@@ -947,7 +950,12 @@ function ReorderDialog({
         <DialogHeader>
           <DialogTitle>Reorder games</DialogTitle>
         </DialogHeader>
-        <DndContext sensors={sensors} collisionDetection={closestCenter} onDragEnd={onDragEnd}>
+        <DndContext
+          id={dndId}
+          sensors={sensors}
+          collisionDetection={closestCenter}
+          onDragEnd={onDragEnd}
+        >
           <SortableContext items={order.map(itemKey)} strategy={verticalListSortingStrategy}>
             <div className="max-h-[50vh] space-y-1 overflow-y-auto">
               {order.map((item) => (
