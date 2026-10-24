@@ -8,6 +8,7 @@ import type { GameKind } from '~/util/catalog/tags';
 import { isSimpleGameKind } from '~/util/games/kinds';
 import { cn } from '~/lib/utils';
 import { PadajalaMiniPreview, PadavaliMiniPreview } from './ClassicMiniPreviews';
+import { DemoVisibilityGate } from './PreviewFrame';
 import { SimpleGameMiniPreview } from './SimpleMiniPreviews';
 
 /** Title gradient + card border per game (the rest of the palette lives in HUB_GAME_ACCENT). */
@@ -136,9 +137,11 @@ export function GameShowcaseCard({
             )}
           />
 
-          <div className={cn('mt-auto', compact ? 'p-2.5 pt-2 sm:p-3 sm:pt-2.5' : 'p-4 pt-3')}>
+          <DemoVisibilityGate
+            className={cn('mt-auto', compact ? 'p-2.5 pt-2 sm:p-3 sm:pt-2.5' : 'p-4 pt-3')}
+          >
             <GameMiniPreview game={game} compact={compact} />
-          </div>
+          </DemoVisibilityGate>
         </div>
       </div>
     </motion.div>

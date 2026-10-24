@@ -1,22 +1,119 @@
 'use client';
 
-import type { ReactNode } from 'react';
+import { createContext, useContext, useEffect, useRef, useState, type ReactNode } from 'react';
 import { cn } from '~/lib/utils';
 
-/** Resolves `true` after `ms`; never resolves once the loop is stopped. */
+/** Resolves `true` after `ms`; resolves `false` once the loop is stopped. */
 export type DemoWait = (ms: number) => Promise<boolean>;
+
+/** Whether a demo may advance right now, plus change notifications. */
+export type DemoGate = {
+  isActive: () => boolean;
+  subscribe: (onChange: () => void) => () => void;
+};
+
+const ALWAYS_ACTIVE: DemoGate = { isActive: () => true, subscribe: () => () => {} };
+
+/** Share of the demo that must be on screen before it plays. */
+const DEMO_VISIBLE_RATIO = 0.4;
+
+function createDemoGate() {
+  // Paused until the first observation, so demos mounted off screen never start.
+  let active = false;
+  const listeners = new Set<() => void>();
+  return {
+    isActive: () => active,
+    subscribe: (onChange: () => void) => {
+      listeners.add(onChange);
+      return () => {
+        listeners.delete(onChange);
+      };
+    },
+    set: (next: boolean) => {
+      if (next === active) return;
+      active = next;
+      for (const onChange of listeners) onChange();
+    }
+  };
+}
+
+const DemoGateContext = createContext<DemoGate>(ALWAYS_ACTIVE);
+
+/** Gate from the nearest `DemoVisibilityGate`; always active outside one. */
+export function useDemoGate(): DemoGate {
+  return useContext(DemoGateContext);
+}
+
+/**
+ * Lets the demos inside play only while this box is mostly on screen and the tab is visible.
+ * Clipping by scroll rails counts, so a card scrolled out of a carousel (or the peek of the
+ * next one on phones) holds still while the cards in view keep playing.
+ */
+export function DemoVisibilityGate({
+  className,
+  children
+}: {
+  className?: string;
+  children: ReactNode;
+}) {
+  const ref = useRef<HTMLDivElement>(null);
+  const [gate] = useState(createDemoGate);
+
+  useEffect(() => {
+    const el = ref.current;
+    if (!el) return;
+    let onScreen = false;
+    const sync = () => gate.set(onScreen && document.visibilityState === 'visible');
+    const observer = new IntersectionObserver(
+      ([entry]) => {
+        // Small tolerance: the ratio reported at a threshold crossing can land just under it.
+        onScreen = !!entry?.isIntersecting && entry.intersectionRatio >= DEMO_VISIBLE_RATIO - 0.01;
+        sync();
+      },
+      { threshold: [0, 0.2, DEMO_VISIBLE_RATIO, 0.6, 0.8, 1] }
+    );
+    observer.observe(el);
+    document.addEventListener('visibilitychange', sync);
+    return () => {
+      observer.disconnect();
+      document.removeEventListener('visibilitychange', sync);
+    };
+  }, [gate]);
+
+  return (
+    <div ref={ref} className={className}>
+      <DemoGateContext.Provider value={gate}>{children}</DemoGateContext.Provider>
+    </div>
+  );
+}
 
 /**
  * Runs `step` back-to-back until the returned stop function is called. Each step awaits
- * `wait` between frames; stopping clears the pending timer so no state updates leak past
- * unmount. Use as `useEffect(() => startDemoLoop(...), [])`.
+ * `wait` between frames; while `gate` is inactive the pending frame holds instead of
+ * advancing. Stopping clears the timer and releases the hold, so no state updates leak
+ * past unmount. Use as `useEffect(() => startDemoLoop(gate, ...), [gate])`.
  */
-export function startDemoLoop(step: (wait: DemoWait) => Promise<void>) {
+export function startDemoLoop(gate: DemoGate, step: (wait: DemoWait) => Promise<void>) {
   let alive = true;
   let timer: ReturnType<typeof setTimeout> | undefined;
+  let release: (() => void) | undefined;
+  let settle: ((value: boolean) => void) | undefined;
   const wait: DemoWait = (ms) =>
     new Promise((resolve) => {
-      timer = setTimeout(() => resolve(alive), ms);
+      settle = resolve;
+      timer = setTimeout(() => {
+        if (gate.isActive()) {
+          resolve(alive);
+          return;
+        }
+        // Off screen: hold this frame until the demo is back in view.
+        release = gate.subscribe(() => {
+          if (!gate.isActive()) return;
+          release?.();
+          release = undefined;
+          resolve(alive);
+        });
+      }, ms);
     });
   void (async () => {
     while (alive) await step(wait);
@@ -24,6 +121,8 @@ export function startDemoLoop(step: (wait: DemoWait) => Promise<void>) {
   return () => {
     alive = false;
     clearTimeout(timer);
+    release?.();
+    settle?.(false);
   };
 }
 

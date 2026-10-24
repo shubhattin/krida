@@ -12,7 +12,7 @@ import {
 } from '~/components/pages/simple_game/play/theme';
 import type { SimpleGameKind } from '~/util/games/kinds';
 import { cn } from '~/lib/utils';
-import { DemoPill, PreviewFrame, startDemoLoop } from './PreviewFrame';
+import { DemoPill, PreviewFrame, startDemoLoop, useDemoGate } from './PreviewFrame';
 
 const TILE_BASE =
   'flex items-center justify-center rounded-xl border font-bold transition-colors duration-300';
@@ -161,6 +161,7 @@ function DvayiTile({
 
 function DvayiMiniPreview({ compact }: { compact: boolean }) {
   const reduceMotion = useReducedMotion();
+  const demoGate = useDemoGate();
   const [matched, setMatched] = useState<number[]>(reduceMotion ? [0, 1, 2, 3] : []);
   const [pick, setPick] = useState<DvayiPick | null>(null);
   const [hand, setHand] = useState<{ side: DvayiSide; row: number } | null>(null);
@@ -179,7 +180,7 @@ function DvayiMiniPreview({ compact }: { compact: boolean }) {
 
   useEffect(() => {
     if (reduceMotion) return;
-    return startDemoLoop(async (wait) => {
+    return startDemoLoop(demoGate, async (wait) => {
       setMatched([]);
       setPick(null);
       if (!(await wait(800))) return;
@@ -204,7 +205,7 @@ function DvayiMiniPreview({ compact }: { compact: boolean }) {
       setHand(null);
       await wait(2200);
     });
-  }, [reduceMotion]);
+  }, [reduceMotion, demoGate]);
 
   const colorOfLeft = (left: number) => {
     const order = matched.indexOf(left);
@@ -308,6 +309,7 @@ const BHRAMITA_WORDS: { syllables: string[]; jumble: number[] }[] = [
 
 function BhramitaMiniPreview({ compact }: { compact: boolean }) {
   const reduceMotion = useReducedMotion();
+  const demoGate = useDemoGate();
   const groupId = useId();
   const [wordIndex, setWordIndex] = useState(0);
   const [placed, setPlaced] = useState<number[]>(reduceMotion ? [0, 1, 2] : []);
@@ -316,7 +318,7 @@ function BhramitaMiniPreview({ compact }: { compact: boolean }) {
 
   useEffect(() => {
     if (reduceMotion) return;
-    return startDemoLoop(async (wait) => {
+    return startDemoLoop(demoGate, async (wait) => {
       for (let w = 0; w < BHRAMITA_WORDS.length; w++) {
         setWordIndex(w);
         setPlaced([]);
@@ -328,7 +330,7 @@ function BhramitaMiniPreview({ compact }: { compact: boolean }) {
         if (!(await wait(1500))) return;
       }
     });
-  }, [reduceMotion]);
+  }, [reduceMotion, demoGate]);
 
   const tileSize = compact ? 'size-11 text-lg' : 'size-13 text-xl';
 
@@ -436,6 +438,7 @@ const SURUPA_WORDS: { wheels: string[][]; answer: number[]; start: number[] }[] 
 
 function SurupaMiniPreview({ compact }: { compact: boolean }) {
   const reduceMotion = useReducedMotion();
+  const demoGate = useDemoGate();
   const [wordIndex, setWordIndex] = useState(0);
   const [picks, setPicks] = useState<number[]>(
     reduceMotion ? SURUPA_WORDS[0]!.answer : SURUPA_WORDS[0]!.start
@@ -445,7 +448,7 @@ function SurupaMiniPreview({ compact }: { compact: boolean }) {
 
   useEffect(() => {
     if (reduceMotion) return;
-    return startDemoLoop(async (wait) => {
+    return startDemoLoop(demoGate, async (wait) => {
       for (let w = 0; w < SURUPA_WORDS.length; w++) {
         const { start, answer } = SURUPA_WORDS[w]!;
         setWordIndex(w);
@@ -462,7 +465,7 @@ function SurupaMiniPreview({ compact }: { compact: boolean }) {
         if (!(await wait(1600))) return;
       }
     });
-  }, [reduceMotion]);
+  }, [reduceMotion, demoGate]);
 
   const rowHeight = compact ? 2.25 : 2.75;
 
@@ -560,6 +563,7 @@ const OPTION_LETTERS = ['A', 'B', 'C', 'D'];
 
 function AnveshiMiniPreview({ compact }: { compact: boolean }) {
   const reduceMotion = useReducedMotion();
+  const demoGate = useDemoGate();
   const [questionIndex, setQuestionIndex] = useState(0);
   const [picked, setPicked] = useState<number | null>(reduceMotion ? 0 : null);
   const [revealed, setRevealed] = useState(Boolean(reduceMotion));
@@ -568,7 +572,7 @@ function AnveshiMiniPreview({ compact }: { compact: boolean }) {
 
   useEffect(() => {
     if (reduceMotion) return;
-    return startDemoLoop(async (wait) => {
+    return startDemoLoop(demoGate, async (wait) => {
       for (let q = 0; q < ANVESHI_QUESTIONS.length; q++) {
         const { tries } = ANVESHI_QUESTIONS[q]!;
         setQuestionIndex(q);
@@ -584,7 +588,7 @@ function AnveshiMiniPreview({ compact }: { compact: boolean }) {
         }
       }
     });
-  }, [reduceMotion]);
+  }, [reduceMotion, demoGate]);
 
   return (
     <PreviewFrame
