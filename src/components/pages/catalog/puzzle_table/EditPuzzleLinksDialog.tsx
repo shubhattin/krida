@@ -12,6 +12,16 @@ import {
   TagsInput
 } from '~/components/pages/catalog/PuzzleCatalogFields';
 import { invalidateCatalogQueries } from '~/components/pages/catalog/invalidateCatalogQueries';
+import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle
+} from '~/components/ui/alert-dialog';
 import { Button } from '~/components/ui/button';
 import {
   Dialog,
@@ -71,6 +81,7 @@ export function EditPuzzleLinksDialog({
   const queryClient = useQueryClient();
   /** Edits keyed by puzzle id; untouched puzzles fall back to their row data. */
   const [drafts, setDrafts] = useState<Map<number, LinksDraft>>(() => new Map());
+  const [confirmOpen, setConfirmOpen] = useState(false);
 
   const changed = puzzles.filter((puzzle) => isChanged(puzzle, drafts.get(puzzle.id)));
 
@@ -119,6 +130,7 @@ export function EditPuzzleLinksDialog({
       void queryClient.invalidateQueries({ queryKey: [`${game}_list_full`] });
       toast.success(`Updated ${updated} puzzle${updated === 1 ? '' : 's'}`);
       setDrafts(new Map());
+      setConfirmOpen(false);
       onOpenChange(false);
     } catch (error) {
       toast.error(error instanceof Error ? error.message : 'Could not save tags and collections');
@@ -126,120 +138,146 @@ export function EditPuzzleLinksDialog({
   };
 
   return (
-    <Dialog
-      open={open}
-      onOpenChange={(next) => {
-        if (save_mut.isPending) return;
-        if (!next) setDrafts(new Map());
-        onOpenChange(next);
-      }}
-    >
-      <DialogContent className="flex h-[85vh] flex-col sm:max-w-5xl">
-        <DialogHeader className="pr-8">
-          <DialogTitle>{gameKindLabel(game)} — tags & collections</DialogTitle>
-          <DialogDescription>
-            {puzzles.length} puzzle{puzzles.length === 1 ? '' : 's'} from the current list. Only
-            changed puzzles are saved; new collection members are appended to the end.
-          </DialogDescription>
-        </DialogHeader>
-        <div className="-mx-4 min-h-0 flex-1 overflow-y-auto border-y border-border/60">
-          <div className="hidden grid-cols-[minmax(0,14rem)_minmax(0,1fr)_minmax(0,1fr)_2rem] gap-3 border-b border-border/60 bg-muted/40 px-4 py-2 text-xs font-semibold tracking-wide text-muted-foreground uppercase md:grid">
-            <span>Puzzle</span>
-            <span>Tags</span>
-            <span>Collections</span>
-          </div>
-          <ul className="divide-y divide-border/60">
-            {puzzles.map((puzzle) => {
-              const draft = drafts.get(puzzle.id);
-              const value = draft ?? originalLinks(puzzle);
-              const dirty = isChanged(puzzle, draft);
-              return (
-                <li
-                  key={puzzle.id}
-                  className={cn(
-                    'grid gap-3 px-4 py-3 md:grid-cols-[minmax(0,14rem)_minmax(0,1fr)_minmax(0,1fr)_2rem] md:items-start',
-                    dirty && 'bg-amber-500/5'
-                  )}
-                >
-                  <div className="min-w-0 pt-1">
-                    <div className="flex items-center gap-1.5">
-                      {dirty ? (
-                        <span
-                          className="size-1.5 shrink-0 rounded-full bg-amber-500"
-                          title="Changed"
-                        />
-                      ) : null}
-                      <span className="truncate text-sm font-medium" title={puzzle.title}>
-                        {puzzle.title}
-                      </span>
-                    </div>
-                    <div className="flex items-center gap-2 text-xs text-muted-foreground">
-                      <span className="truncate font-mono" title={puzzle.slug}>
-                        {puzzle.slug}
-                      </span>
-                      <span
-                        className={cn(
-                          'shrink-0',
-                          puzzle.listed && 'text-emerald-700 dark:text-emerald-300'
-                        )}
-                      >
-                        {puzzle.listed ? 'Listed' : 'Draft'}
-                      </span>
-                    </div>
-                  </div>
-                  <TagsInput
-                    value={value.tags}
-                    onChange={(tags) => updateDraft(puzzle, { tags })}
-                  />
-                  <CollectionsInput
-                    value={value.collections}
-                    onChange={(collections) => updateDraft(puzzle, { collections })}
-                  />
-                  <Button
-                    type="button"
-                    variant="ghost"
-                    size="icon-sm"
-                    className={cn('mt-1', !dirty && 'invisible')}
-                    aria-label={`Revert ${puzzle.title}`}
-                    title="Revert"
-                    onClick={() => resetDraft(puzzle.id)}
+    <>
+      <Dialog
+        open={open}
+        onOpenChange={(next) => {
+          if (save_mut.isPending) return;
+          if (!next) setDrafts(new Map());
+          onOpenChange(next);
+        }}
+      >
+        <DialogContent className="flex h-[85vh] flex-col sm:max-w-5xl">
+          <DialogHeader className="pr-8">
+            <DialogTitle>{gameKindLabel(game)} — tags & collections</DialogTitle>
+            <DialogDescription>
+              {puzzles.length} puzzle{puzzles.length === 1 ? '' : 's'} from the current list. Only
+              changed puzzles are saved; new collection members are appended to the end.
+            </DialogDescription>
+          </DialogHeader>
+          <div className="-mx-4 min-h-0 flex-1 overflow-y-auto border-y border-border/60">
+            <div className="hidden grid-cols-[minmax(0,14rem)_minmax(0,1fr)_minmax(0,1fr)_2rem] gap-3 border-b border-border/60 bg-muted/40 px-4 py-2 text-xs font-semibold tracking-wide text-muted-foreground uppercase md:grid">
+              <span>Puzzle</span>
+              <span>Tags</span>
+              <span>Collections</span>
+            </div>
+            <ul className="divide-y divide-border/60">
+              {puzzles.map((puzzle) => {
+                const draft = drafts.get(puzzle.id);
+                const value = draft ?? originalLinks(puzzle);
+                const dirty = isChanged(puzzle, draft);
+                return (
+                  <li
+                    key={puzzle.id}
+                    className={cn(
+                      'grid gap-3 px-4 py-3 md:grid-cols-[minmax(0,14rem)_minmax(0,1fr)_minmax(0,1fr)_2rem] md:items-start',
+                      dirty && 'bg-amber-500/5'
+                    )}
                   >
-                    <RotateCcwIcon />
-                  </Button>
-                </li>
-              );
-            })}
-          </ul>
-        </div>
-        <DialogFooter className="items-center sm:justify-between">
-          <p className="text-sm text-muted-foreground tabular-nums">
-            {changed.length === 0
-              ? 'No changes'
-              : `${changed.length} puzzle${changed.length === 1 ? '' : 's'} changed`}
-          </p>
-          <div className="flex gap-2">
-            <Button
-              type="button"
-              variant="outline"
-              disabled={save_mut.isPending}
-              onClick={() => {
-                setDrafts(new Map());
-                onOpenChange(false);
-              }}
-            >
-              Cancel
-            </Button>
-            <Button
-              type="button"
-              disabled={changed.length === 0 || save_mut.isPending}
-              onClick={save}
-            >
-              {save_mut.isPending ? <Spinner /> : null}
-              Save
-            </Button>
+                    <div className="min-w-0 pt-1">
+                      <div className="flex items-center gap-1.5">
+                        {dirty ? (
+                          <span
+                            className="size-1.5 shrink-0 rounded-full bg-amber-500"
+                            title="Changed"
+                          />
+                        ) : null}
+                        <span className="truncate text-sm font-medium" title={puzzle.title}>
+                          {puzzle.title}
+                        </span>
+                      </div>
+                      <div className="flex items-center gap-2 text-xs text-muted-foreground">
+                        <span className="truncate font-mono" title={puzzle.slug}>
+                          {puzzle.slug}
+                        </span>
+                        <span
+                          className={cn(
+                            'shrink-0',
+                            puzzle.listed && 'text-emerald-700 dark:text-emerald-300'
+                          )}
+                        >
+                          {puzzle.listed ? 'Listed' : 'Draft'}
+                        </span>
+                      </div>
+                    </div>
+                    <TagsInput
+                      value={value.tags}
+                      onChange={(tags) => updateDraft(puzzle, { tags })}
+                    />
+                    <CollectionsInput
+                      value={value.collections}
+                      onChange={(collections) => updateDraft(puzzle, { collections })}
+                    />
+                    <Button
+                      type="button"
+                      variant="ghost"
+                      size="icon-sm"
+                      className={cn('mt-1', !dirty && 'invisible')}
+                      aria-label={`Revert ${puzzle.title}`}
+                      title="Revert"
+                      onClick={() => resetDraft(puzzle.id)}
+                    >
+                      <RotateCcwIcon />
+                    </Button>
+                  </li>
+                );
+              })}
+            </ul>
           </div>
-        </DialogFooter>
-      </DialogContent>
-    </Dialog>
+          <DialogFooter className="items-center sm:justify-between">
+            <p className="text-sm text-muted-foreground tabular-nums">
+              {changed.length === 0
+                ? 'No changes'
+                : `${changed.length} puzzle${changed.length === 1 ? '' : 's'} changed`}
+            </p>
+            <div className="flex gap-2">
+              <Button
+                type="button"
+                variant="outline"
+                disabled={save_mut.isPending}
+                onClick={() => {
+                  setDrafts(new Map());
+                  onOpenChange(false);
+                }}
+              >
+                Cancel
+              </Button>
+              <Button
+                type="button"
+                disabled={changed.length === 0 || save_mut.isPending}
+                onClick={() => setConfirmOpen(true)}
+              >
+                Save
+              </Button>
+            </div>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
+      <AlertDialog
+        open={confirmOpen}
+        onOpenChange={(next) => {
+          if (save_mut.isPending) return;
+          setConfirmOpen(next);
+        }}
+      >
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle>Save tags & collections?</AlertDialogTitle>
+            <AlertDialogDescription>
+              {changed.length === 0
+                ? 'No puzzles changed.'
+                : `This will update tags and collections for ${changed.length} puzzle${changed.length === 1 ? '' : 's'}. New collection members are appended to the end.`}
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel disabled={save_mut.isPending}>Cancel</AlertDialogCancel>
+            <AlertDialogAction disabled={save_mut.isPending} onClick={() => void save()}>
+              {save_mut.isPending ? <Spinner /> : null}
+              Confirm
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
+    </>
   );
 }
