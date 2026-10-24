@@ -3,6 +3,7 @@
 import { useMemo, useState, type ReactNode } from 'react';
 import { DataTable, type DataTableColumnDef } from '~/components/ui/data-table';
 import type { GameKind } from '~/util/catalog/tags';
+import { FullListActions } from './FullListActions';
 import { PuzzleDetailsDialog } from './PuzzleDetailsDialog';
 import {
   type AdminPuzzleRow,
@@ -63,7 +64,16 @@ export function AdminPuzzleTable<TRow extends AdminPuzzleRow>({
         scrollable={fullList}
         enableSorting={fullList}
         columnPicker
-        toolbar={toolbar}
+        toolbar={
+          fullList ? (
+            <>
+              {toolbar}
+              <FullListActions game={game} puzzles={data} />
+            </>
+          ) : (
+            toolbar
+          )
+        }
         columnVisibility={columnVisibility.visibility}
         onColumnVisibilityChange={columnVisibility.onChange}
         onResetColumns={columnVisibility.reset}
