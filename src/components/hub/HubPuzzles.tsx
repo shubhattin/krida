@@ -209,6 +209,7 @@ function GameFilters({
       value={search.game}
       onChange={(game) => updateFilters({ game })}
       counts={gameCounts}
+      compactUntil="lg"
     />
   );
 }
@@ -225,7 +226,8 @@ function TopicsFilter({ tags }: { tags: CountedTag[] }) {
     return tags.filter((tag) => tag.slug.includes(trimmed));
   }, [query, tags]);
 
-  if (tags.length === 0) return null;
+  // Always rendered so the filter row keeps one shape; a game with no topics just disables it.
+  const empty = tags.length === 0;
 
   const setTag = (slug: string | undefined) => {
     updateFilters({ tag: slug });
@@ -233,14 +235,19 @@ function TopicsFilter({ tags }: { tags: CountedTag[] }) {
   };
 
   return (
-    <div className="flex shrink-0 items-center gap-1">
+    <div className="flex min-w-0 shrink-0 items-center gap-1">
       <Popover open={open} onOpenChange={setOpen}>
         <PopoverTrigger
+          disabled={empty}
           render={
             <button
               type="button"
+              title={empty ? 'No topics for this game' : 'Filter by topic'}
+              aria-label={selected ? `Topic: ${selected}` : 'Topics'}
               className={cn(
                 PILL_CLASS,
+                // Phones: icon only (it shares the search row); the tint shows a topic is set.
+                'max-w-48 disabled:pointer-events-none disabled:opacity-40 max-sm:w-8 max-sm:justify-center max-sm:px-0',
                 selected
                   ? 'border-indigo-300 bg-indigo-50 text-indigo-800 dark:border-indigo-500/40 dark:bg-indigo-950/50 dark:text-indigo-200'
                   : PILL_IDLE
@@ -248,11 +255,11 @@ function TopicsFilter({ tags }: { tags: CountedTag[] }) {
             />
           }
         >
-          <TagIcon className="size-3.5" aria-hidden />
-          {selected ?? 'Topics'}
-          <ChevronDownIcon className="size-3.5 opacity-60" aria-hidden />
+          <TagIcon className="size-3.5 shrink-0" aria-hidden />
+          <span className="min-w-0 truncate max-sm:hidden">{selected ?? 'Topics'}</span>
+          <ChevronDownIcon className="size-3.5 shrink-0 opacity-60 max-sm:hidden" aria-hidden />
         </PopoverTrigger>
-        <PopoverContent className="w-64 p-2" align="start">
+        <PopoverContent className="w-64 p-2" align="end">
           <div className="relative">
             <SearchIcon className="pointer-events-none absolute top-2 left-2 size-3.5 text-muted-foreground" />
             <Input
@@ -264,6 +271,16 @@ function TopicsFilter({ tags }: { tags: CountedTag[] }) {
             />
           </div>
           <div className="mt-2 flex max-h-64 flex-col gap-0.5 overflow-y-auto">
+            {selected ? (
+              <button
+                type="button"
+                onClick={() => setTag(undefined)}
+                className="flex w-full items-center gap-1.5 rounded-md px-2 py-1.5 text-left text-sm text-muted-foreground hover:bg-muted hover:text-foreground"
+              >
+                <XIcon className="size-3.5" aria-hidden />
+                Clear topic
+              </button>
+            ) : null}
             {visible.map((tag) => {
               const active = selected === tag.slug;
               return (
@@ -295,7 +312,7 @@ function TopicsFilter({ tags }: { tags: CountedTag[] }) {
           type="button"
           onClick={() => setTag(undefined)}
           aria-label={`Clear topic ${selected}`}
-          className="flex size-7 items-center justify-center rounded-full text-muted-foreground transition-colors hover:bg-muted hover:text-foreground"
+          className="flex size-7 shrink-0 items-center justify-center rounded-full text-muted-foreground transition-colors hover:bg-muted hover:text-foreground max-sm:hidden"
         >
           <XIcon className="size-3.5" />
         </button>
@@ -513,9 +530,15 @@ export default function HubPuzzles({ data }: { data: HubData }) {
     <div className="mx-auto flex max-w-6xl flex-col gap-6 px-4 py-6 sm:gap-8 sm:py-10">
       <header className="flex flex-col gap-4 sm:flex-row sm:items-end sm:justify-between">
         <div className="flex flex-col gap-1.5">
-          <h1 className="text-3xl font-black tracking-tight text-slate-900 sm:text-4xl dark:text-slate-50">
-            {isCollections ? 'Collections' : 'Puzzles'}
-          </h1>
+          <div className="flex items-center justify-between gap-3">
+            <h1 className="text-3xl font-black tracking-tight text-slate-900 sm:text-4xl dark:text-slate-50">
+              {isCollections ? 'Collections' : 'Puzzles'}
+            </h1>
+            {/* Phones: script picker beside the title, leaving the search row its width. */}
+            <div className="sm:hidden">
+              <ScriptSelector script={script} onScriptChange={setScript} compact />
+            </div>
+          </div>
           <p className="text-sm text-slate-500 sm:text-base dark:text-slate-400">
             {isCollections
               ? 'Curated playlists that mix puzzles from every game.'
@@ -530,26 +553,34 @@ export default function HubPuzzles({ data }: { data: HubData }) {
         />
       </header>
 
-      <div className="grid grid-cols-[minmax(0,1fr)_auto] items-center gap-x-2 gap-y-3 sm:gap-x-3">
-        <SearchField />
-        <ScriptSelector script={script} onScriptChange={setScript} compact />
-        <div className="col-span-2 -mx-4 flex min-w-0 scrollbar-none items-center gap-2 overflow-x-auto mask-r-from-85% px-4 sm:col-span-1 sm:mx-0 sm:flex-wrap sm:mask-none sm:px-0">
-          {isCollections ? null : (
-            <>
-              <GameFilters games={games} gameCounts={gameCounts} />
-              <span className="h-5 w-px shrink-0 bg-border" aria-hidden />
-            </>
-          )}
+      <div className="flex flex-col gap-3">
+        {/* Topics sits with search on every screen size, so it never wraps or scrolls away. */}
+        <div className="flex items-center gap-2 sm:gap-3">
+          <div className="min-w-0 flex-1">
+            <SearchField />
+          </div>
           <TopicsFilter tags={tags} />
+          <div className="max-sm:hidden">
+            <ScriptSelector script={script} onScriptChange={setScript} compact />
+          </div>
         </div>
-        <p className="hidden justify-self-end text-xs font-medium text-muted-foreground tabular-nums sm:block">
-          {resultSummary(
-            search.view,
-            filteredPuzzles.length,
-            isCollections ? filteredCollections.length : searchedCollections.length,
-            search.page
+        <div
+          className={cn(
+            'flex min-w-0 items-center justify-between gap-3',
+            // Collections have no game chips; the count alone is desktop-only.
+            isCollections && 'max-sm:hidden'
           )}
-        </p>
+        >
+          {isCollections ? null : <GameFilters games={games} gameCounts={gameCounts} />}
+          <p className="ml-auto hidden shrink-0 text-xs font-medium text-muted-foreground tabular-nums sm:block">
+            {resultSummary(
+              search.view,
+              filteredPuzzles.length,
+              isCollections ? filteredCollections.length : searchedCollections.length,
+              search.page
+            )}
+          </p>
+        </div>
       </div>
 
       {isCollections ? (
