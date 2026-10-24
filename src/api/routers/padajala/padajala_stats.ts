@@ -19,6 +19,7 @@ import { displayUserName, sessionUserFields } from '~/api/routers/user/session_u
 import { resolveAuthUserNames, searchAuthUsers } from '~/lib/auth_users.server';
 import { requireTurnstileIfGuest } from '~/api/routers/turnstile_guard';
 import { adoptGuestSession, canWriteSession } from '~/api/routers/stats_session_adopt';
+import { issueGuestClaimToken } from '~/api/routers/guest_claim_token';
 import {
   get_stats_data_input_schema,
   get_top_puzzles_input_schema,
@@ -102,7 +103,10 @@ const submit_stats_route = publicProcedure
           );
         }
 
-        return { submitted: true };
+        // Guests get a signed proof of this finished play to claim it after signing in.
+        const claim_token = ctx.user ? null : yield* issueGuestClaimToken('padajala', session_id);
+
+        return { submitted: true, claim_token };
       })
     )
   );

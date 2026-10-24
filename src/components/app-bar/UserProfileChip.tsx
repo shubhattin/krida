@@ -55,6 +55,7 @@ import {
   useGuestAuthPrompt,
   useGuestCompletedCount
 } from '~/components/app-bar/useGuestAuthPrompt';
+import { useClaimGuestPlays } from '~/components/app-bar/useClaimGuestPlays';
 import chipStyles from '~/components/app-bar/user-profile-chip.module.css';
 
 /** Where the chip is rendered — drives accent colours and the header label. */
@@ -167,6 +168,7 @@ export function UserProfileChip({ context }: { context: ProfileContext }) {
   const isClient = useIsClient();
   const trpc = useTRPC();
   const prompt = useGuestAuthPrompt(!!user, isClient && !isPending);
+  useClaimGuestPlays(!!user, isClient && !isPending);
   const guestCompleted = useGuestCompletedCount();
   const statsQuery = useQuery({
     ...trpc.user.get_dashboard.queryOptions({ game: 'all' }),
@@ -300,7 +302,7 @@ function guestCopy(trigger: GuestAuthPromptTrigger | null, completedCount: numbe
   if (trigger === 'milestone') {
     return {
       title: `${completedCount} puzzles solved!`,
-      description: 'Sign in with Google to keep track of your progress from here on.'
+      description: 'Sign in with Google to save your recent puzzles to your profile.'
     };
   }
   if (trigger === 'complete') {

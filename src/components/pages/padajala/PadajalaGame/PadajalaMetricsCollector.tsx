@@ -27,6 +27,7 @@ import {
   seconds_atom,
   started_atom
 } from './game_state';
+import { rememberGuestPlay } from '~/lib/guest_play_claims';
 
 /** Registers active padajala id on the default jotai store for AppBar. */
 export function ActivePadajalaRegistrar({ puzzleId }: { puzzleId: number }) {
@@ -97,7 +98,10 @@ export default function PadajalaMetricsCollector({
     // never during render — the ref is read/written from mutation lifecycle code.
     // oxlint-disable-next-line react/refs
     trpc.padajala.stats.submit_stats.mutationOptions({
-      onSuccess() {
+      onSuccess(data, variables) {
+        if (data.claim_token) {
+          rememberGuestPlay('padajala', variables.info.session_id, data.claim_token);
+        }
         setTurnstileToken(null);
         resetTurnstile();
         resetGamesStarted();

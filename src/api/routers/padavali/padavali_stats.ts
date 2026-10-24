@@ -16,6 +16,7 @@ import {
 } from '~/api/routers/stats_play_guard';
 import { displayUserName, sessionUserFields } from '~/api/routers/user/session_user';
 import { adoptGuestSession, canWriteSession } from '~/api/routers/stats_session_adopt';
+import { issueGuestClaimToken } from '~/api/routers/guest_claim_token';
 import { resolveAuthUserNames, searchAuthUsers } from '~/lib/auth_users.server';
 import {
   optional_turnstile_token_schema,
@@ -125,8 +126,12 @@ const submit_stats_route = publicProcedure
           );
         }
 
+        // Guests get a signed proof of this finished play to claim it after signing in.
+        const claim_token = ctx.user ? null : yield* issueGuestClaimToken('padavali', session_id);
+
         return {
-          submitted: true
+          submitted: true,
+          claim_token
         };
       })
     )
