@@ -15,6 +15,7 @@ import type { AgentModelId } from '~/agents/models';
 import { GAME_GUIDES } from '~/agents/prompts/games';
 import { GAME_APP_ICON_SRC } from '~/components/GameAppIcon';
 import { Button } from '~/components/ui/button';
+import { Checkbox } from '~/components/ui/checkbox';
 import { GAME_KINDS, type GameKind } from '~/util/catalog/tags';
 import { cn } from '~/lib/utils';
 import { AGENT_SUGGESTIONS } from './agent_meta';
@@ -155,6 +156,28 @@ export function NewChatPanel() {
                 <div className="flex flex-col gap-2 rounded-xl border border-border/80 bg-muted/30 p-3">
                   <div className="flex flex-wrap items-center gap-2">
                     {CREATOR_OPTION_FIELDS[gameKind].fields.map((field) => {
+                      if (field.kind === 'checkbox') {
+                        const checked = creatorOptions[field.key] ?? false;
+                        return (
+                          <label
+                            key={field.key}
+                            className="flex cursor-pointer items-center gap-2 rounded-lg border border-border/70 bg-background px-2.5 py-2"
+                          >
+                            <Checkbox
+                              checked={checked}
+                              onCheckedChange={(value) =>
+                                setOptionOverrides((prev) => ({
+                                  ...prev,
+                                  [field.key]: value === true
+                                }))
+                              }
+                            />
+                            <span className="text-xs font-medium text-foreground">
+                              {field.label}
+                            </span>
+                          </label>
+                        );
+                      }
                       const value = creatorOptions[field.key] ?? field.min;
                       const setValue = (next: number) => {
                         const clamped = Math.min(field.max, Math.max(field.min, Math.round(next)));
