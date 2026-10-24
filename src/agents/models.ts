@@ -18,29 +18,39 @@ export const AGENT_MODELS = {
     label: 'GPT-6 Luna',
     hint: 'Fast and cheap — everyday questions',
     provider: 'openai',
-    providerModelId: 'gpt-6-luna'
+    providerModelId: 'gpt-6-luna',
+    reasoning: false
   },
   'gpt-6.1-sol': {
     label: 'GPT-6.1 Sol',
     hint: 'Stronger reasoning — creation tasks',
     provider: 'openai',
-    providerModelId: 'gpt-6.1-sol'
+    providerModelId: 'gpt-6.1-sol',
+    reasoning: true
   },
   'claude-sonnet-5.5': {
     label: 'Claude Sonnet 5.5',
     hint: 'Fast writer — creation default',
     provider: 'openrouter',
-    providerModelId: 'anthropic/claude-sonnet-5.5'
+    providerModelId: 'anthropic/claude-sonnet-5.5',
+    reasoning: true
   },
   'claude-opus-5.5': {
     label: 'Claude Opus 5.5',
     hint: 'Best writer — heavier creation tasks',
     provider: 'openrouter',
-    providerModelId: 'anthropic/claude-opus-5.5'
+    providerModelId: 'anthropic/claude-opus-5.5',
+    reasoning: true
   }
 } as const satisfies Record<
   AgentModelId,
-  { label: string; hint: string; provider: 'openai' | 'openrouter'; providerModelId: string }
+  {
+    label: string;
+    hint: string;
+    provider: 'openai' | 'openrouter';
+    providerModelId: string;
+    reasoning: boolean;
+  }
 >;
 
 export const agent_model_id_schema = z.enum(AGENT_MODEL_IDS);

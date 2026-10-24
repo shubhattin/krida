@@ -58,7 +58,7 @@ export const findProposedDraft = Effect.fn('agents.find_proposed_draft')(functio
       BadRequestError.make({ message: 'The proposal no longer matches the schema' })
     );
   }
-  return parsed;
+  return { proposal: parsed, creator_options: chat.creator_options };
 });
 
 async function insertGameRow(tx: DbTransaction, id: number, input: KindedPuzzleDraft) {
@@ -101,7 +101,7 @@ export const addProposedPuzzle = Effect.fn('agents.add_proposed_puzzle')(functio
   toolCallId: string;
   slug?: string;
 }) {
-  const proposal = yield* findProposedDraft(input.chatId, input.toolCallId);
+  const { proposal, creator_options } = yield* findProposedDraft(input.chatId, input.toolCallId);
 
   const [alreadyAdded] = yield* dbRunHttp('agents.find_added', (client) =>
     client
@@ -119,7 +119,10 @@ export const addProposedPuzzle = Effect.fn('agents.add_proposed_puzzle')(functio
     return yield* Effect.fail(ConflictError.make({ message: 'This puzzle was already added' }));
   }
 
-  const check = yield* checkDraftWithDatabase(proposal, { slugOverride: input.slug });
+  const check = yield* checkDraftWithDatabase(proposal, {
+    slugOverride: input.slug,
+    creator_options
+  });
   if (!check.ok) {
     return yield* Effect.fail(BadRequestError.make({ message: check.errors.join(' ') }));
   }

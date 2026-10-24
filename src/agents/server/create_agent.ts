@@ -44,7 +44,9 @@ export const createAgent = Effect.fn('agents.create_agent')(function* (chat: {
     web_search: createWebSearchTool(searchModel)
   };
   if (chat.agent_kind === 'puzzle_creator' && chat.game_kind) {
-    tools.propose_puzzle = createProposePuzzleTool(chat.game_kind);
+    tools.propose_puzzle = createProposePuzzleTool(chat.game_kind, {
+      creator_options: chat.creator_options
+    });
   }
 
   const agent = new ToolLoopAgent({
@@ -52,10 +54,14 @@ export const createAgent = Effect.fn('agents.create_agent')(function* (chat: {
     instructions: toSystemMessages(agentInstructionSections(chat)),
     tools,
     stopWhen: stepCountIs(MAX_STEPS),
-    providerOptions: {
-      openai: { reasoningEffort: 'medium', reasoningSummary: 'auto' },
-      openrouter: { reasoning: { effort: 'medium' } }
-    }
+    // Reasoning options only for reasoning models: the Responses API warns on
+    // non-reasoning models (e.g. Luna) when reasoningEffort/reasoningSummary are set.
+    providerOptions: AGENT_MODELS[chat.model].reasoning
+      ? {
+          openai: { reasoningEffort: 'medium', reasoningSummary: 'auto' },
+          openrouter: { reasoning: { effort: 'medium' } }
+        }
+      : undefined
   });
   return { agent, tools };
 });

@@ -3,6 +3,7 @@ import type { GameKind } from '~/util/catalog/tags';
 import { parsePuzzleDraft, PUZZLE_DRAFT_SCHEMAS, type PuzzleDraft } from '~/agents/drafts/schemas';
 import { checkDraftWithDatabase } from '~/agents/server/draft_checks';
 import type { ProposePuzzleOutput } from '~/agents/ui_message';
+import type { CreatorOptions } from '~/agents/creator_options';
 import { runToolEffect } from './run_tool_effect';
 
 /**
@@ -10,7 +11,10 @@ import { runToolEffect } from './run_tool_effect';
  * result tells the model whether the draft passed every check, so it can fix and retry in the
  * same turn. Nothing is saved here — the admin adds it from the card.
  */
-export function createProposePuzzleTool(kind: GameKind) {
+export function createProposePuzzleTool(
+  kind: GameKind,
+  options?: { creator_options?: Partial<CreatorOptions> | null }
+) {
   return tool<PuzzleDraft, ProposePuzzleOutput>({
     description:
       'Propose one complete puzzle. It is checked (schema, game rules, slug, tags, collections) and shown to the admin as a card with an Add button. If ok is false, fix every error and call again.',
@@ -18,7 +22,9 @@ export function createProposePuzzleTool(kind: GameKind) {
     execute: (draft) => {
       const proposal = parsePuzzleDraft(kind, draft);
       if (!proposal) throw new Error(`The input does not match the ${kind} puzzle schema.`);
-      return runToolEffect(checkDraftWithDatabase(proposal));
+      return runToolEffect(
+        checkDraftWithDatabase(proposal, { creator_options: options?.creator_options })
+      );
     }
   });
 }

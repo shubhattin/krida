@@ -72,6 +72,8 @@ export function AddPuzzleDialog({
   );
   const check = check_q.data ?? initialCheck;
   const checking = check_q.isFetching || debouncedSlug !== slug.trim();
+  // Empty or edited-but-unchecked slug must not be submittable under the stale check.
+  const slugMismatch = slug.trim() !== check.slug;
   const newTags = check.tags.filter((tag) => tag.is_new);
   const game = GAME_GUIDES[proposal.kind];
 
@@ -148,7 +150,7 @@ export function AddPuzzleDialog({
               Cancel
             </Button>
             <Button
-              disabled={checking || !check.ok || add_mut.isPending}
+              disabled={checking || slugMismatch || !check.ok || add_mut.isPending}
               onClick={() => setConfirming(true)}
             >
               Add as draft

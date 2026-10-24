@@ -21,6 +21,7 @@ describe('guardSelectQuery', () => {
 
   it('does not trip on identifiers that contain blocked words', () => {
     allowed('SELECT updated_at, last_listed_at, created_at FROM puzzles');
+    allowed("SELECT format('%s plays', count(*)) FROM puzzle_sessions");
   });
 
   it('blocks writes, DDL and multiple statements', () => {
@@ -30,6 +31,8 @@ describe('guardSelectQuery', () => {
     blocked('WITH d AS (DELETE FROM tags RETURNING *) SELECT * FROM d');
     blocked('SELECT * INTO new_table FROM puzzles');
     blocked('SELECT * FROM puzzles FOR UPDATE');
+    blocked('SELECT * FROM puzzles FOR SHARE');
+    blocked('SELECT * FROM puzzles FOR KEY SHARE');
     blocked('CREATE TABLE x (id int)');
     blocked('EXPLAIN ANALYZE SELECT 1');
   });

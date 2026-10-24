@@ -114,8 +114,14 @@ const check_proposal_route = protectedAdminProcedure
   .query(({ input }) =>
     runTrpcEffect(
       Effect.gen(function* () {
-        const proposal = yield* findProposedDraft(input.chat_id, input.tool_call_id);
-        return yield* checkDraftWithDatabase(proposal, { slugOverride: input.slug });
+        const { proposal, creator_options } = yield* findProposedDraft(
+          input.chat_id,
+          input.tool_call_id
+        );
+        return yield* checkDraftWithDatabase(proposal, {
+          slugOverride: input.slug,
+          creator_options
+        });
       })
     )
   );

@@ -21,7 +21,8 @@ export function createWebSearchTool(searchModel: LanguageModel) {
           'Search the web and report what you find: key facts, names and dates, concisely, in Markdown. Note disagreements between sources. Do not speculate beyond the sources.',
         prompt: query,
         tools: { web_search: openai.tools.webSearch({ searchContextSize: 'medium' }) },
-        providerOptions: { openai: { reasoningEffort: 'low' } },
+        // No reasoning options: the utility model is non-reasoning and the
+        // Responses API warns when reasoningEffort is set on such models.
         abortSignal
       });
       const seen = new Set<string>();

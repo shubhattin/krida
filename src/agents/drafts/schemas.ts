@@ -10,26 +10,31 @@ import { CREATOR_OPTION_FIELDS } from '~/agents/creator_options';
 const draft_meta_fields = {
   title: z
     .string()
+    .max(200)
     .describe('Puzzle title, in the same style as the existing puzzles of this game'),
   description: z
     .string()
+    .max(2000)
     .describe('One or two sentences shown under the title. May be empty if the title says it all.'),
   slug: z
     .string()
+    .max(100)
     .describe(
       'URL slug: lowercase a-z, 0-9 and hyphens only, unique among this game’s puzzles (see context)'
     ),
   tags: z
-    .array(z.string())
+    .array(z.string().max(80))
+    .max(20)
     .describe(
       'Tag slugs (lowercase, hyphenated). Reuse existing tags whenever one fits; a new slug is created when the puzzle is added.'
     ),
   collection_ids: z
     .array(z.number().int())
+    .max(20)
     .describe('Ids of EXISTING collections this puzzle belongs in. Usually empty.')
 };
 
-const devanagari_word = z.string().describe('A word in Devanagari');
+const devanagari_word = z.string().max(60).describe('A word in Devanagari');
 
 const grid_side = z.number().int().min(3).max(15);
 
@@ -37,6 +42,7 @@ export const padavali_draft_schema = z.object({
   ...draft_meta_fields,
   words: z
     .array(devanagari_word)
+    .max(200)
     .describe('The hidden words, in Devanagari. The grid is laid out later in the editor.'),
   grid_rows: grid_side.describe('Grid rows (see the chat defaults)'),
   grid_cols: grid_side.describe('Grid columns (see the chat defaults)')
@@ -49,13 +55,15 @@ export const padajala_draft_schema = z.object({
       z.object({
         answer: z
           .string()
+          .max(60)
           .describe(
             'The crossword answer in plain Latin capitals A–Z, no spaces or diacritics (e.g. VYASA)'
           ),
-        word_dev: z.string().describe('The same word in Devanagari (e.g. व्यास)'),
-        clue: z.string().describe('The clue shown to the player, in English')
+        word_dev: z.string().max(60).describe('The same word in Devanagari (e.g. व्यास)'),
+        clue: z.string().max(2000).describe('The clue shown to the player, in English')
       })
     )
+    .max(200)
     .describe('Crossword entries. The grid is laid out later in the editor.')
 });
 
@@ -64,10 +72,11 @@ export const dvayi_draft_schema = z.object({
   pairs: z
     .array(
       z.object({
-        left: z.string().describe('Left-column item'),
-        right: z.string().describe('The right-column item it matches')
+        left: z.string().max(500).describe('Left-column item'),
+        right: z.string().max(500).describe('The right-column item it matches')
       })
     )
+    .max(200)
     .describe('Matching pairs. The game shuffles the right column.')
 });
 
@@ -75,6 +84,7 @@ export const bhramita_draft_schema = z.object({
   ...draft_meta_fields,
   words: z
     .array(devanagari_word)
+    .max(200)
     .describe('Words to unscramble, in Devanagari. The game splits them into akṣaras.')
 });
 
@@ -87,17 +97,20 @@ export const surupa_draft_schema = z.object({
         aksharas: z
           .array(
             z.object({
-              akshara: z.string().describe('One akṣara of the word, in order'),
+              akshara: z.string().max(20).describe('One akṣara of the word, in order'),
               alternatives: z
-                .array(z.string())
+                .array(z.string().max(20))
+                .max(10)
                 .describe(
                   'Plausible misspellings of this akṣara (usually 2), never the correct one'
                 )
             })
           )
+          .max(40)
           .describe('The word split into akṣaras; joined in order they must spell the word exactly')
       })
     )
+    .max(200)
     .describe('Words whose spelling the player restores, akṣara by akṣara')
 });
 
@@ -106,13 +119,14 @@ export const anveshi_draft_schema = z.object({
   questions: z
     .array(
       z.object({
-        prompt: z.string().describe('The question'),
-        hint: z.string().describe('Optional nudge; empty string for none'),
-        explanation: z.string().describe('Shown after answering'),
-        options: z.array(z.string()).describe('Answer options (usually 4)'),
+        prompt: z.string().max(5000).describe('The question'),
+        hint: z.string().max(2000).describe('Optional nudge; empty string for none'),
+        explanation: z.string().max(5000).describe('Shown after answering'),
+        options: z.array(z.string().max(2000)).max(10).describe('Answer options (usually 4)'),
         correct_option_index: z.number().int().describe('0-based index of the correct option')
       })
     )
+    .max(200)
     .describe('Multiple-choice questions')
 });
 

@@ -1,5 +1,5 @@
 import { Effect } from 'effect';
-import { and, asc, count, desc, eq, notInArray, sql } from 'drizzle-orm';
+import { and, asc, count, desc, eq, inArray, notInArray, sql } from 'drizzle-orm';
 import { agent_chat_puzzles, agent_chats, agent_messages, puzzles } from '~/db/schema';
 import { dbRunHttp, dbTransaction } from '~/effect/database';
 import { NotFoundError } from '~/effect/errors';
@@ -114,11 +114,25 @@ export const saveAgentMessages = Effect.fn('agents.save_messages')(function* (in
   title?: string;
 }) {
   yield* dbTransaction('agents.save_messages', async (tx) => {
-    if (input.messages.length > 0) {
+    // Message ids come from the client: ignore any that belong to another chat instead of
+    // overwriting that chat's rows via the id-keyed upsert below.
+    const incomingIds = input.messages.map((message) => message.id);
+    const owned =
+      incomingIds.length > 0
+        ? await tx
+            .select({ id: agent_messages.id, chat_id: agent_messages.chat_id })
+            .from(agent_messages)
+            .where(inArray(agent_messages.id, incomingIds))
+        : [];
+    const foreignIds = new Set(
+      owned.filter((row) => row.chat_id !== input.chatId).map((row) => row.id)
+    );
+    const messages = input.messages.filter((message) => !foreignIds.has(message.id));
+    if (messages.length > 0) {
       await tx
         .insert(agent_messages)
         .values(
-          input.messages.map((message, position) => ({
+          messages.map((message, position) => ({
             id: message.id,
             chat_id: input.chatId,
             role: message.role,
@@ -140,7 +154,7 @@ export const saveAgentMessages = Effect.fn('agents.save_messages')(function* (in
           eq(agent_messages.chat_id, input.chatId),
           notInArray(
             agent_messages.id,
-            input.messages.map((message) => message.id)
+            messages.map((message) => message.id)
           )
         )
       );

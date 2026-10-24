@@ -1,5 +1,5 @@
 import { Effect } from 'effect';
-import { asc, count, eq } from 'drizzle-orm';
+import { asc, count, desc, eq } from 'drizzle-orm';
 import { dbRunHttp } from '~/effect/database';
 import {
   collections,
@@ -29,7 +29,12 @@ const puzzleMeta = {
   listed: puzzles.listed
 };
 
-/** Every puzzle of one game with its content, oldest first. */
+/** Every puzzle of one game with its content, oldest first. Capped so new chats (and every
+ * turn's frozen prefix) stay bounded as the catalog grows; beyond the cap the oldest drop off. */
+const MAX_CONTEXT_PUZZLES = 500;
+
+/** Newest-first from the DB, flipped back to oldest-first for stable prompt text. */
+const oldestFirst = <T>(rows: T[]): T[] => rows.reverse();
 const loadGamePuzzles = Effect.fn('agents.context.load_game_puzzles')(function* (kind: GameKind) {
   if (kind === 'padavali') {
     const rows = yield* dbRunHttp('agents.context.padavali', (client) =>
@@ -41,9 +46,10 @@ const loadGamePuzzles = Effect.fn('agents.context.load_game_puzzles')(function* 
         })
         .from(puzzles)
         .innerJoin(padavali_puzzles, eq(padavali_puzzles.id, puzzles.id))
-        .orderBy(asc(puzzles.created_at))
+        .orderBy(desc(puzzles.created_at))
+        .limit(MAX_CONTEXT_PUZZLES)
     );
-    return rows.map(({ word_list, grid_dimensions, ...meta }) => ({
+    return oldestFirst(rows).map(({ word_list, grid_dimensions, ...meta }) => ({
       meta,
       content: { kind, word_list, grid_dimensions } satisfies ContextPuzzleContent
     }));
@@ -54,9 +60,10 @@ const loadGamePuzzles = Effect.fn('agents.context.load_game_puzzles')(function* 
         .select({ ...puzzleMeta, word_list: padajala_puzzles.word_list })
         .from(puzzles)
         .innerJoin(padajala_puzzles, eq(padajala_puzzles.id, puzzles.id))
-        .orderBy(asc(puzzles.created_at))
+        .orderBy(desc(puzzles.created_at))
+        .limit(MAX_CONTEXT_PUZZLES)
     );
-    return rows.map(({ word_list, ...meta }) => ({
+    return oldestFirst(rows).map(({ word_list, ...meta }) => ({
       meta,
       content: { kind, word_list } satisfies ContextPuzzleContent
     }));
@@ -88,8 +95,9 @@ function loadSimpleGameRows<TData>(kind: SimpleGameKind, tables: SimpleGameTable
       .select({ ...puzzleMeta, puzzle_data: table.puzzle_data })
       .from(puzzles)
       .innerJoin(table, eq(table.id, puzzles.id))
-      .orderBy(asc(puzzles.created_at))
-  );
+      .orderBy(desc(puzzles.created_at))
+      .limit(MAX_CONTEXT_PUZZLES)
+  ).pipe(Effect.map(oldestFirst));
 }
 
 /** Build the Puzzle Creator context for one game: its puzzles, plus every tag and collection. */

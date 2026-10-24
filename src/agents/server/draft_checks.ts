@@ -4,6 +4,7 @@ import { collections, tags } from '~/db/schema';
 import { dbRunHttp } from '~/effect/database';
 import { createGameSlugHelpers } from '~/game_shell/slug';
 import { checkDraft, isValidSlugForKind } from '~/agents/drafts/check_draft';
+import type { CreatorOptions } from '~/agents/creator_options';
 import type { KindedPuzzleDraft } from '~/agents/drafts/schemas';
 import type { ProposePuzzleOutput } from '~/agents/ui_message';
 
@@ -13,9 +14,9 @@ import type { ProposePuzzleOutput } from '~/agents/ui_message';
  */
 export const checkDraftWithDatabase = Effect.fn('agents.check_draft_with_database')(function* (
   input: KindedPuzzleDraft,
-  options: { slugOverride?: string } = {}
+  options: { slugOverride?: string; creator_options?: Partial<CreatorOptions> | null } = {}
 ) {
-  const local = checkDraft(input, options.slugOverride);
+  const local = checkDraft(input, options.slugOverride, options.creator_options);
   const errors = [...local.errors];
 
   const collectionIds = [...new Set(input.draft.collection_ids)];

@@ -47,7 +47,8 @@ const BLOCKED_KEYWORDS = [
   'load',
   'import',
   'security',
-  'into'
+  'into',
+  'for'
 ] as const;
 
 /** Functions with side effects or server access. Matched as `name(`. */

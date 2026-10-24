@@ -48,6 +48,6 @@ export const GAME_GUIDES = {
 - Questions on one theme, each with exactly one correct answer (correct_option_index is 0-based).
 - Wrong options should be plausible, from the same category as the answer.
 - hint: an optional nudge (empty string for none). explanation: one or two sentences shown after answering.
-- Questions may be in English or Sanskrit; options are often in Devanagari. Match the existing puzzles.`
+- Questions may be in English or Sanskrit; write the options in Devanagari when the chat default says so (it usually does). Match the existing puzzles.`
   }
 } as const satisfies Record<GameKind, { name: string; summary: string; guide: string }>;
