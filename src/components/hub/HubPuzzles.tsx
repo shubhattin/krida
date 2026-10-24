@@ -530,9 +530,15 @@ export default function HubPuzzles({ data }: { data: HubData }) {
     <div className="mx-auto flex max-w-6xl flex-col gap-6 px-4 py-6 sm:gap-8 sm:py-10">
       <header className="flex flex-col gap-4 sm:flex-row sm:items-end sm:justify-between">
         <div className="flex flex-col gap-1.5">
-          <h1 className="text-3xl font-black tracking-tight text-slate-900 sm:text-4xl dark:text-slate-50">
-            {isCollections ? 'Collections' : 'Puzzles'}
-          </h1>
+          <div className="flex items-center justify-between gap-3">
+            <h1 className="text-3xl font-black tracking-tight text-slate-900 sm:text-4xl dark:text-slate-50">
+              {isCollections ? 'Collections' : 'Puzzles'}
+            </h1>
+            {/* Phones: script picker beside the title, leaving the search row its width. */}
+            <div className="sm:hidden">
+              <ScriptSelector script={script} onScriptChange={setScript} compact />
+            </div>
+          </div>
           <p className="text-sm text-slate-500 sm:text-base dark:text-slate-400">
             {isCollections
               ? 'Curated playlists that mix puzzles from every game.'
@@ -554,7 +560,9 @@ export default function HubPuzzles({ data }: { data: HubData }) {
             <SearchField />
           </div>
           <TopicsFilter tags={tags} />
-          <ScriptSelector script={script} onScriptChange={setScript} compact />
+          <div className="max-sm:hidden">
+            <ScriptSelector script={script} onScriptChange={setScript} compact />
+          </div>
         </div>
         <div
           className={cn(
