@@ -43,7 +43,12 @@ type ChatRef = { id: string; title: string };
 function ChatHistory({ onNavigate }: { onNavigate?: () => void }) {
   const trpc = useTRPC();
   const params = useParams({ strict: false });
-  const chats_q = useQuery(trpc.agents.list_chats.queryOptions());
+  const chats_q = useQuery(
+    trpc.agents.list_chats.queryOptions(undefined, {
+      // While any chat streams in the background, keep the list (and its badges) fresh.
+      refetchInterval: (query) => (query.state.data?.some((chat) => chat.streaming) ? 3000 : false)
+    })
+  );
   const [filter, setFilter] = useState<Filter>('all');
   const [search, setSearch] = useState('');
   const [renaming, setRenaming] = useState<ChatRef | null>(null);
@@ -143,6 +148,12 @@ function ChatHistory({ onNavigate }: { onNavigate?: () => void }) {
                           <MessageSquareTextIcon className="size-4 shrink-0 text-muted-foreground" />
                         )}
                         <span className="min-w-0 flex-1 truncate">{chat.title || 'New chat'}</span>
+                        {chat.streaming ? (
+                          <span
+                            title="Replying in the background"
+                            className="size-1.5 shrink-0 animate-pulse rounded-full bg-primary"
+                          />
+                        ) : null}
                         {chat.puzzles_added > 0 ? (
                           <span
                             title={`${chat.puzzles_added} puzzle${chat.puzzles_added === 1 ? '' : 's'} added from this chat`}

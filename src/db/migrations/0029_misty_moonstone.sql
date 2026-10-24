@@ -14,6 +14,7 @@ CREATE TABLE "agent_chats" (
 	"model" text NOT NULL,
 	"title" text DEFAULT '' NOT NULL,
 	"user_id" text NOT NULL,
+	"streaming" boolean DEFAULT false NOT NULL,
 	"creator_options" jsonb,
 	"context_snapshot" jsonb,
 	"created_at" timestamp with time zone DEFAULT now() NOT NULL,

@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useState } from 'react';
+import { useEffect, useMemo, useRef, useState } from 'react';
 import { useChat } from '@ai-sdk/react';
 import { useQueryClient } from '@tanstack/react-query';
 import type { inferRouterOutputs } from '@trpc/server';
@@ -54,25 +54,56 @@ export function AgentChat({ data }: { data: AgentChatData }) {
   const refreshSidebar = () =>
     void queryClient.invalidateQueries({ queryKey: trpc.agents.list_chats.queryKey() });
 
-  const { messages, sendMessage, status, stop, error, regenerate } = useChat<AgentUIMessage>({
-    id: chat.id,
-    messages: data.messages,
-    transport,
-    onFinish: () => {
-      refreshSidebar();
-      // The title is saved as the stream closes; pick it up a moment later too.
-      setTimeout(refreshSidebar, 1_500);
-    }
-  });
+  const { messages, sendMessage, setMessages, status, stop, error, regenerate } =
+    useChat<AgentUIMessage>({
+      id: chat.id,
+      messages: data.messages,
+      transport,
+      onFinish: () => {
+        refreshSidebar();
+        // Title + streaming flag land with the save; pick up the fresh chat state.
+        void queryClient.invalidateQueries({
+          queryKey: trpc.agents.get_chat.queryKey({ id: chat.id })
+        });
+        // The title is saved as the stream closes; pick it up a moment later too.
+        setTimeout(refreshSidebar, 1_500);
+      }
+    });
 
   useEffect(() => {
     const pending = takePendingMessage(chat.id);
     if (pending) void sendMessage({ text: pending }, { body: { model: chat.model } });
   }, [chat.id, chat.model, sendMessage]);
 
-  const send = (text: string) => void sendMessage({ text }, { body: { model } });
+  const send = (text: string) => {
+    sentLocally.current = true;
+    void sendMessage({ text }, { body: { model } });
+  };
 
   const busy = status === 'submitted' || status === 'streaming';
+
+  // A reply generated elsewhere (background stream, another tab) lands in the DB while this
+  // view is idle: adopt it so refresh / back-navigation shows the finished turn. Never while
+  // this view sent or streams itself — the local conversation wins.
+  const sentLocally = useRef(false);
+  useEffect(() => {
+    if (
+      !busy &&
+      !sentLocally.current &&
+      !data.chat.streaming &&
+      data.messages.length > messages.length
+    ) {
+      setMessages(data.messages);
+    }
+  }, [busy, data.chat.streaming, data.messages, messages.length, setMessages]);
+
+  // Warn before dropping an in-flight reply with a reload or tab close.
+  useEffect(() => {
+    if (!busy) return;
+    const handler = (event: BeforeUnloadEvent) => event.preventDefault();
+    window.addEventListener('beforeunload', handler);
+    return () => window.removeEventListener('beforeunload', handler);
+  }, [busy]);
   const added = useMemo(
     () => new Map<string, AddedPuzzle>(data.added_puzzles.map((row) => [row.tool_call_id, row])),
     [data.added_puzzles]
@@ -113,6 +144,15 @@ export function AgentChat({ data }: { data: AgentChatData }) {
             Context
           </Button>
         </header>
+        {!busy && chat.streaming ? (
+          <p
+            role="status"
+            className="flex items-center justify-center gap-2 border-b border-border/70 px-3 py-1.5 text-xs text-muted-foreground"
+          >
+            <span className="size-1.5 animate-pulse rounded-full bg-primary" />
+            Replying in the background — it will appear here when it lands.
+          </p>
+        ) : null}
 
         <div className="relative min-h-0 flex-1">
           {messages.length === 0 && !busy ? (

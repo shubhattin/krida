@@ -11,7 +11,12 @@ export function ChatPage({ chatId }: { chatId: string }) {
     trpc.agents.get_chat.queryOptions(
       { id: chatId },
       // useChat owns the messages once mounted; refetches only refresh chat metadata.
-      { refetchOnWindowFocus: false, retry: false }
+      // While a reply streams in the background, poll so it appears when it lands.
+      {
+        refetchOnWindowFocus: false,
+        retry: false,
+        refetchInterval: (query) => (query.state.data?.chat.streaming ? 2500 : false)
+      }
     )
   );
 

@@ -4,7 +4,12 @@ import { Effect } from 'effect';
 import { z } from 'zod';
 import { agent_model_id_schema } from '~/agents/models';
 import { createAgent } from '~/agents/server/create_agent';
-import { findAgentChat, loadAgentMessages, saveAgentMessages } from '~/agents/server/chat_store';
+import {
+  findAgentChat,
+  loadAgentMessages,
+  saveAgentMessages,
+  setChatStreaming
+} from '~/agents/server/chat_store';
 import { generateChatTitle } from '~/agents/server/chat_title';
 import type { AgentMessageMetadata, AgentUIMessage } from '~/agents/ui_message';
 import { BadRequestError } from '~/effect/errors';
@@ -65,9 +70,10 @@ async function handleChat(request: Request): Promise<Response> {
           ? appRuntime.runPromise(generateChatTitle(firstText(newMessage)))
           : null;
 
+      yield* setChatStreaming(id, true);
       const result = yield* Effect.promise(async () =>
         agent.stream({ prompt: await convertToModelMessages(messages, { tools }) })
-      );
+      ).pipe(Effect.onError(() => Effect.ignore(setChatStreaming(id, false))));
 
       return result.toUIMessageStreamResponse<AgentUIMessage>({
         originalMessages: messages,
@@ -90,12 +96,19 @@ async function handleChat(request: Request): Promise<Response> {
           return undefined;
         },
         onFinish: async ({ messages: finished }) => {
-          const title = titlePromise ? await titlePromise : undefined;
-          await appRuntime.runPromise(
-            saveAgentMessages({ chatId: id, messages: finished, model, title })
-          );
+          try {
+            const title = titlePromise ? await titlePromise : undefined;
+            await appRuntime.runPromise(
+              saveAgentMessages({ chatId: id, messages: finished, model, title })
+            );
+          } finally {
+            await appRuntime.runPromise(setChatStreaming(id, false));
+          }
         },
-        onError: (error) => (error instanceof Error ? error.message : 'The agent failed to reply.')
+        onError: (error) => {
+          void appRuntime.runPromise(setChatStreaming(id, false));
+          return error instanceof Error ? error.message : 'The agent failed to reply.';
+        }
       });
     }),
     { onSuccess: (response) => response }

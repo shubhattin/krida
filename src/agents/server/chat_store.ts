@@ -43,6 +43,7 @@ export const listAgentChats = Effect.fn('agents.list_chats')(function* () {
         agent_kind: agent_chats.agent_kind,
         game_kind: agent_chats.game_kind,
         updated_at: agent_chats.updated_at,
+        streaming: agent_chats.streaming,
         puzzles_added: count(agent_chat_puzzles.tool_call_id)
       })
       .from(agent_chats)
@@ -176,6 +177,16 @@ export const renameAgentChat = Effect.fn('agents.rename_chat')(function* (
 ) {
   yield* dbRunHttp('agents.rename_chat', (client) =>
     client.update(agent_chats).set({ title }).where(eq(agent_chats.id, id)).returning()
+  );
+});
+
+/** Mark a chat as (not) streaming — set when a reply starts, cleared when it lands or fails. */
+export const setChatStreaming = Effect.fn('agents.set_streaming')(function* (
+  id: string,
+  streaming: boolean
+) {
+  yield* dbRunHttp('agents.set_streaming', (client) =>
+    client.update(agent_chats).set({ streaming }).where(eq(agent_chats.id, id)).returning()
   );
 });
 

@@ -1,4 +1,5 @@
 import {
+  boolean,
   index,
   integer,
   jsonb,
@@ -35,6 +36,8 @@ export const agent_chats = pgTable(
     title: text().notNull().default(''),
     /** Better Auth user id of the admin who started the chat. */
     user_id: text().notNull(),
+    /** True while a reply is streaming for this chat (possibly in the background). */
+    streaming: boolean().notNull().default(false),
     /** Puzzle creator only: starting options (word count, grid…) the system prompt defaults to. */
     creator_options: jsonb().$type<CreatorOptions>(),
     /**

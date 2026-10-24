@@ -1975,6 +1975,13 @@
           "primaryKey": false,
           "notNull": true
         },
+        "streaming": {
+          "name": "streaming",
+          "type": "boolean",
+          "primaryKey": false,
+          "notNull": true,
+          "default": false
+        },
         "creator_options": {
           "name": "creator_options",
           "type": "jsonb",
