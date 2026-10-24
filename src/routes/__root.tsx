@@ -1,7 +1,12 @@
 import { type QueryClient, useQueryClient } from '@tanstack/react-query';
 import { ReactQueryDevtoolsPanel } from '@tanstack/react-query-devtools';
 import { TanStackDevtools } from '@tanstack/react-devtools';
-import { HeadContent, Scripts, createRootRouteWithContext } from '@tanstack/react-router';
+import {
+  HeadContent,
+  Scripts,
+  createRootRouteWithContext,
+  lazyRouteComponent
+} from '@tanstack/react-router';
 import { TanStackRouterDevtoolsPanel } from '@tanstack/react-router-devtools';
 import { createTRPCClient, httpBatchLink } from '@trpc/client';
 import { useState } from 'react';
@@ -24,7 +29,8 @@ import { RouteProgress } from '~/components/RouteProgress';
 import { DismissOverlaysOnNavigate } from '~/components/DismissOverlaysOnNavigate';
 import PosthogInit from '~/components/tags/PosthogInit';
 import PWAInit from '~/components/PWA/PWAInit';
-import NotFound from './-NotFound';
+// Lazy: 404s are rare, so the page (and its live game demos) stays out of the shared bundle.
+const NotFound = lazyRouteComponent(() => import('./-NotFound'));
 
 export const Route = createRootRouteWithContext<{ queryClient: QueryClient }>()({
   ssr: true,
