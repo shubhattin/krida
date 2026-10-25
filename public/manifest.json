@@ -15,12 +15,12 @@
   "dir": "ltr",
   "icons": [
     {
-      "src": "img/icon_128.png",
+      "src": "img/icon_128.png?v=2",
       "sizes": "128x128",
       "type": "image/png"
     },
     {
-      "src": "img/icon_512.png",
+      "src": "img/icon_512.png?v=2",
       "sizes": "512x512",
       "type": "image/png"
     }

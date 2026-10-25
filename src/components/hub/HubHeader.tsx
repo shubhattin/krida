@@ -37,7 +37,7 @@ export function HubHeader({
             className="flex size-9 shrink-0 items-center justify-center no-underline"
           >
             <Image
-              src="/img/icon_128.png"
+              src="/img/icon_128.png?v=2"
               alt=""
               width={36}
               height={36}

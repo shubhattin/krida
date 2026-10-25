@@ -48,8 +48,10 @@ export const Route = createRootRouteWithContext<{ queryClient: QueryClient }>()(
     ],
     links: [
       { rel: 'stylesheet', href: appCss },
-      { rel: 'icon', href: '/favicon.ico' },
-      { rel: 'apple-touch-icon', href: '/favicon.ico' },
+      // `?v=` busts the browser's sticky favicon cache — bump it whenever the Krida icon changes.
+      { rel: 'icon', href: '/favicon.ico?v=2', type: 'image/x-icon' },
+      { rel: 'shortcut icon', href: '/favicon.ico?v=2' },
+      { rel: 'apple-touch-icon', href: '/img/icon_128.png?v=2' },
       { rel: 'manifest', href: '/manifest.json' }
     ]
   }),
