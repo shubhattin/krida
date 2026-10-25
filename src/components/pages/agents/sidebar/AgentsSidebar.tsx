@@ -2,6 +2,7 @@ import { useState } from 'react';
 import { useQuery } from '@tanstack/react-query';
 import { Link, useParams } from '@tanstack/react-router';
 import {
+  ArrowLeftIcon,
   MessageSquareTextIcon,
   MoreHorizontalIcon,
   PanelLeftIcon,
@@ -66,6 +67,16 @@ function ChatHistory({ onNavigate }: { onNavigate?: () => void }) {
   return (
     <div className="flex min-h-0 flex-1 flex-col">
       <div className="flex flex-col gap-2 px-3 pb-2">
+        <Button
+          render={<a href="/admin" />}
+          nativeButton={false}
+          variant="ghost"
+          size="sm"
+          className="-ml-1 justify-start text-muted-foreground"
+        >
+          <ArrowLeftIcon />
+          Back to admin
+        </Button>
         <Button
           render={<Link to="/admin/agents" onClick={onNavigate} />}
           nativeButton={false}
