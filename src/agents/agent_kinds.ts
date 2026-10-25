@@ -10,7 +10,7 @@ export const AGENT_KIND_META = {
     label: 'General',
     description:
       'Ask anything about the puzzles, plays and catalog. Reads the database and the web.',
-    defaultModel: 'gpt-6-luna'
+    defaultModel: 'claude-sonnet-5.5'
   },
   puzzle_creator: {
     label: 'Puzzle Creator',
