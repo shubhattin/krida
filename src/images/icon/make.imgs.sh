@@ -38,7 +38,7 @@ emit() {
   magick "$SRC/$id/org_icon_512.png" -define icon:auto-resize=64,48,32,16 "$ico"
 }
 
-cut_plate krida 68 69 1117
+cut_plate krida 37 36 1180
 cut_plate dvayi 86 83 1081
 cut_plate bhramita 85 87 1082
 cut_plate surupa 48 48 1156
