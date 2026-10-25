@@ -1,5 +1,7 @@
 import { describe, expect, it } from 'vitest';
 import {
+  createEmptyGridData,
+  isValidPadavaliGrid,
   padajala_slug_schema,
   isValidPadajalaSlug,
   isValidSlug,
@@ -67,5 +69,24 @@ describe('slug_schema', () => {
 describe('padajala_slug_schema', () => {
   it('rejects reserved padajala route names after normalize', () => {
     expect(() => padajala_slug_schema.parse('  Batch_Manager  ')).toThrow();
+  });
+});
+
+describe('isValidPadavaliGrid', () => {
+  it('accepts rectangular grids within the limits', () => {
+    expect(isValidPadavaliGrid(createEmptyGridData([6, 6]))).toBe(true);
+    expect(isValidPadavaliGrid(createEmptyGridData([4, 10]))).toBe(true);
+  });
+
+  it('rejects grids outside the limits', () => {
+    expect(isValidPadavaliGrid(createEmptyGridData([3, 6]))).toBe(false);
+    expect(isValidPadavaliGrid(createEmptyGridData([6, 11]))).toBe(false);
+    expect(isValidPadavaliGrid([])).toBe(false);
+  });
+
+  it('rejects ragged rows', () => {
+    const grid = createEmptyGridData([6, 6]);
+    grid[2] = grid[2]!.slice(0, 5);
+    expect(isValidPadavaliGrid(grid)).toBe(false);
   });
 });

@@ -1,5 +1,11 @@
 import { z } from 'zod';
-import { padajala_slug_schema, slug_schema } from '~/util/puzzle/slug';
+import {
+  DEFAULT_GRID_DIMENSIONS,
+  isValidPadavaliGrid,
+  padajala_slug_schema,
+  padavali_dimensions_schema,
+  slug_schema
+} from '~/util/puzzle/slug';
 import { padavali_word_candidate_list_schema } from '~/util/puzzle/word_list';
 
 export { padajala_slug_schema, slug_schema };
@@ -72,7 +78,11 @@ export const puzzle_update_input_schema = z.object({
     title: z.string(),
     listed: z.boolean(),
     word_list: padavali_word_candidate_list_schema,
-    grid_data: z.string().array().array(),
+    grid_data: z
+      .string()
+      .array()
+      .array()
+      .refine(isValidPadavaliGrid, { message: 'Grid size is out of range' }),
     description: z.string().trim().min(1, 'Description is required'),
     attachments: attachment_schema
       .omit({ id: true })
@@ -87,6 +97,7 @@ export const puzzle_add_input_schema = z.object({
   title: z.string().min(1),
   slug: slug_schema,
   description: z.string().default(''),
+  grid_dimensions: padavali_dimensions_schema.default(DEFAULT_GRID_DIMENSIONS),
   override_redirect_slug: z.boolean().default(false)
 });
 

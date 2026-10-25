@@ -15,6 +15,28 @@ import {
 } from './game_state';
 import { cellKey, getEntryCells, isBlockedCell, isFixedCell } from '~/util/padajala/game_model';
 import { usePadajalaGame } from './usePadajalaGame';
+import { cn } from '~/lib/utils';
+import { PADAJALA_DEFAULT_DIM } from '~/util/padajala/grid';
+
+/** Column count the fixed board widths and font sizes were tuned for. */
+const TUNED_SIDE = PADAJALA_DEFAULT_DIM[1];
+
+/**
+ * Up to 10 columns and no taller than wide keeps the original fixed sizing. More columns get a
+ * wider board; taller boards are capped to the viewport height (`tallMaxWidth`). Both switch
+ * letters and clue numbers to track the cell size.
+ */
+export function padajalaBoardLayout(rows: number, cols: number) {
+  const dense = cols > TUNED_SIDE;
+  const tall = rows > cols;
+  return {
+    dense,
+    fluid: dense || tall,
+    tallMaxWidth: tall
+      ? `max(calc((100dvh - 18rem) * ${cols} / ${rows}), ${cols * 1.75}rem)`
+      : undefined
+  };
+}
 
 type PadajalaGridProps = {
   game: ReturnType<typeof usePadajalaGame>;
@@ -99,6 +121,7 @@ export function PadajalaGrid({ game, onRequestKeyboard }: PadajalaGridProps) {
   if (!puzzle) return null;
 
   const [rows, cols] = puzzle.dimensions;
+  const layout = padajalaBoardLayout(rows, cols);
 
   return (
     <motion.div
@@ -106,17 +129,29 @@ export function PadajalaGrid({ game, onRequestKeyboard }: PadajalaGridProps) {
       tabIndex={0}
       role="grid"
       aria-label={`${puzzle.title} padajala grid`}
-      className="mx-auto w-full max-w-[min(100vw-2rem,22rem)] outline-none sm:max-w-[24rem] lg:max-w-100 xl:max-w-104 2xl:max-w-108"
+      className={cn(
+        '@container mx-auto w-full outline-none',
+        layout.dense
+          ? 'max-w-full sm:max-w-[30rem] lg:max-w-[34rem] xl:max-w-[36rem] 2xl:max-w-[38rem]'
+          : 'max-w-[min(100vw-2rem,22rem)] sm:max-w-[24rem] lg:max-w-100 xl:max-w-104 2xl:max-w-108'
+      )}
       initial={{ opacity: 0, scale: 0.97 }}
       animate={{ opacity: 1, scale: 1 }}
       transition={{ duration: 0.4, ease: 'easeOut' }}
     >
       <div
-        className="grid aspect-square w-full overflow-hidden rounded-2xl border-[3px] border-[oklch(0.90_0.01_250)] bg-[oklch(0.90_0.01_250)] p-1 shadow-[0_10px_30px_oklch(0_0_0/0.08)] dark:border-[oklch(0.24_0.04_250)] dark:bg-[oklch(0.22_0.04_250)] dark:shadow-[0_16px_40px_oklch(0.15_0.04_250/0.45)]"
+        className={cn(
+          'grid w-full overflow-hidden rounded-2xl border-[3px] border-[oklch(0.90_0.01_250)] bg-[oklch(0.90_0.01_250)] p-1 shadow-[0_10px_30px_oklch(0_0_0/0.08)] dark:border-[oklch(0.24_0.04_250)] dark:bg-[oklch(0.22_0.04_250)] dark:shadow-[0_16px_40px_oklch(0.15_0.04_250/0.45)]',
+          rows === cols && 'aspect-square'
+        )}
         style={{
           gap: '3px',
           gridTemplateColumns: `repeat(${cols}, 1fr)`,
-          gridTemplateRows: `repeat(${rows}, 1fr)`
+          gridTemplateRows: `repeat(${rows}, 1fr)`,
+          // Non-square boards keep (near) square cells instead of stretching into a square.
+          aspectRatio: rows === cols ? undefined : `${cols} / ${rows}`,
+          // Board-relative sizes (`cqi`); the em cap keeps the tuned letter size.
+          fontSize: layout.fluid ? `min(1em, ${(48 / cols).toFixed(3)}cqi)` : undefined
         }}
       >
         {puzzle.grid.map((row, r) =>
@@ -144,6 +179,9 @@ export function PadajalaGrid({ game, onRequestKeyboard }: PadajalaGridProps) {
                   col={c}
                   letter={game.getDisplayLetter(r, c)}
                   clueNumber={clueNumberByCell.get(cellKey(r, c))}
+                  clueFontSize={
+                    layout.fluid ? `clamp(0.4rem, ${(22 / cols).toFixed(3)}cqi, 0.6rem)` : undefined
+                  }
                   blocked={blocked}
                   fixed={fixed}
                   selected={!!selected}

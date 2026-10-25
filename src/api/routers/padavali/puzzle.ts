@@ -18,12 +18,7 @@ import {
   slug_schema
 } from '~/db/db_shared_vals';
 import { insertWithUniqueUid } from '~/util/puzzle/nano_id';
-import {
-  createEmptyGridData,
-  DEFAULT_GRID_DIMENSIONS,
-  isValidSlug,
-  normalizeSlug
-} from '~/util/puzzle/slug';
+import { createEmptyGridData, isValidSlug, normalizeSlug } from '~/util/puzzle/slug';
 import { escapeIlikeToken, tokenizeSearchQuery } from '~/util/puzzle/search';
 import {
   collectionsForPuzzleIds,
@@ -309,8 +304,8 @@ const add_puzzle_route = protectedAdminProcedure
             await scoped.insert(padavali_puzzles).values({
               id: inserted.id,
               word_list: [],
-              grid_data: createEmptyGridData(DEFAULT_GRID_DIMENSIONS),
-              grid_dimensions: DEFAULT_GRID_DIMENSIONS
+              grid_data: createEmptyGridData(input.grid_dimensions),
+              grid_dimensions: input.grid_dimensions
             });
             return [inserted];
           });

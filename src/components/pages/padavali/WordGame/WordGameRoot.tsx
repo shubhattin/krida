@@ -8,7 +8,7 @@ import { FONT_INFO } from '~/state/script_font_data';
 import { get_transliterated_word_game_msgs, type word_game_msgs } from './msgs';
 import { GameContoller, formatTime } from './GameController';
 import { GameInfo } from './GameInfo';
-import { GameGrid } from './GameGrid';
+import { GameGrid, padavaliGridLayout } from './GameGrid';
 import { GameHelp } from './Help';
 import { AIWordExplanations } from './AIWordExplanations';
 import { createStore, Provider, useAtom, useAtomValue, useSetAtom } from 'jotai';
@@ -805,7 +805,9 @@ function WordGame({
           <div className="order-1 flex flex-col items-center justify-center lg:order-2 lg:col-span-6">
             <div
               className={cn(
-                'w-full max-w-lg 2xl:max-w-[min(36rem,calc(100dvh-16rem))]'
+                padavaliGridLayout(org_grid_data.length, org_grid_data[0]?.length ?? 0).dense
+                  ? 'w-full max-w-2xl 2xl:max-w-[min(42rem,calc(100dvh-16rem))]'
+                  : 'w-full max-w-lg 2xl:max-w-[min(36rem,calc(100dvh-16rem))]'
                 // font_info.experimental && 'max-w-full'
               )}
             >
