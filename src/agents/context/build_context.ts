@@ -1,5 +1,5 @@
 import { Effect } from 'effect';
-import { asc, count, desc, eq } from 'drizzle-orm';
+import { asc, count, desc, eq, inArray, type SQL } from 'drizzle-orm';
 import { dbRunHttp } from '~/effect/database';
 import {
   collections,
@@ -14,9 +14,10 @@ import { collectionsForPuzzleIds, tagsForPuzzleIds } from '~/util/catalog/list_q
 import { SIMPLE_GAME_TABLES } from '~/util/catalog/simple_game_tables';
 import type { SimpleGameKind } from '~/util/games/kinds';
 import type { SimpleGameTableSet } from '~/db/schema/simple_game_tables';
-import type { AgentContextSnapshot } from '~/agents/ui_message';
+import type { AgentContextSnapshot, PuzzleRefData } from '~/agents/ui_message';
 import {
   renderPuzzleContext,
+  renderReferencedPuzzle,
   type ContextPuzzle,
   type ContextPuzzleContent
 } from './render_context';
@@ -35,7 +36,13 @@ const MAX_CONTEXT_PUZZLES = 500;
 
 /** Newest-first from the DB, flipped back to oldest-first for stable prompt text. */
 const oldestFirst = <T>(rows: T[]): T[] => rows.reverse();
-const loadGamePuzzles = Effect.fn('agents.context.load_game_puzzles')(function* (kind: GameKind) {
+
+/** Every puzzle of one game, or only `ids` of it (for `@` mentions). */
+const loadGamePuzzles = Effect.fn('agents.context.load_game_puzzles')(function* (
+  kind: GameKind,
+  ids?: number[]
+) {
+  const onlyIds = ids ? inArray(puzzles.id, ids) : undefined;
   if (kind === 'padavali') {
     const rows = yield* dbRunHttp('agents.context.padavali', (client) =>
       client
@@ -46,6 +53,7 @@ const loadGamePuzzles = Effect.fn('agents.context.load_game_puzzles')(function* 
         })
         .from(puzzles)
         .innerJoin(padavali_puzzles, eq(padavali_puzzles.id, puzzles.id))
+        .where(onlyIds)
         .orderBy(desc(puzzles.created_at))
         .limit(MAX_CONTEXT_PUZZLES)
     );
@@ -60,6 +68,7 @@ const loadGamePuzzles = Effect.fn('agents.context.load_game_puzzles')(function* 
         .select({ ...puzzleMeta, word_list: padajala_puzzles.word_list })
         .from(puzzles)
         .innerJoin(padajala_puzzles, eq(padajala_puzzles.id, puzzles.id))
+        .where(onlyIds)
         .orderBy(desc(puzzles.created_at))
         .limit(MAX_CONTEXT_PUZZLES)
     );
@@ -70,47 +79,67 @@ const loadGamePuzzles = Effect.fn('agents.context.load_game_puzzles')(function* 
   }
   switch (kind) {
     case 'dvayi':
-      return (yield* loadSimpleGameRows(kind, SIMPLE_GAME_TABLES.dvayi)).map(
+      return (yield* loadSimpleGameRows(kind, SIMPLE_GAME_TABLES.dvayi, onlyIds)).map(
         ({ puzzle_data, ...meta }) => ({ meta, content: { kind, data: puzzle_data } })
       );
     case 'bhramita':
-      return (yield* loadSimpleGameRows(kind, SIMPLE_GAME_TABLES.bhramita)).map(
+      return (yield* loadSimpleGameRows(kind, SIMPLE_GAME_TABLES.bhramita, onlyIds)).map(
         ({ puzzle_data, ...meta }) => ({ meta, content: { kind, data: puzzle_data } })
       );
     case 'surupa':
-      return (yield* loadSimpleGameRows(kind, SIMPLE_GAME_TABLES.surupa)).map(
+      return (yield* loadSimpleGameRows(kind, SIMPLE_GAME_TABLES.surupa, onlyIds)).map(
         ({ puzzle_data, ...meta }) => ({ meta, content: { kind, data: puzzle_data } })
       );
     case 'anveshi':
-      return (yield* loadSimpleGameRows(kind, SIMPLE_GAME_TABLES.anveshi)).map(
+      return (yield* loadSimpleGameRows(kind, SIMPLE_GAME_TABLES.anveshi, onlyIds)).map(
         ({ puzzle_data, ...meta }) => ({ meta, content: { kind, data: puzzle_data } })
       );
   }
 });
 
-function loadSimpleGameRows<TData>(kind: SimpleGameKind, tables: SimpleGameTableSet<TData>) {
+function loadSimpleGameRows<TData>(
+  kind: SimpleGameKind,
+  tables: SimpleGameTableSet<TData>,
+  where: SQL | undefined
+) {
   const table = tables.puzzles;
   return dbRunHttp(`agents.context.${kind}`, (client) =>
     client
       .select({ ...puzzleMeta, puzzle_data: table.puzzle_data })
       .from(puzzles)
       .innerJoin(table, eq(table.id, puzzles.id))
+      .where(where)
       .orderBy(desc(puzzles.created_at))
       .limit(MAX_CONTEXT_PUZZLES)
   ).pipe(Effect.map(oldestFirst));
 }
 
+/** Puzzles of one game with their tags and collections, ready to render. */
+const loadContextPuzzles = Effect.fn('agents.context.load_context_puzzles')(function* (
+  kind: GameKind,
+  onlyIds?: number[]
+) {
+  const gamePuzzles = yield* loadGamePuzzles(kind, onlyIds);
+  const ids = gamePuzzles.map((entry) => entry.meta.id);
+  const [tagsByPuzzle, collectionsByPuzzle] = yield* Effect.all(
+    [tagsForPuzzleIds(kind, ids), collectionsForPuzzleIds(kind, ids)],
+    { concurrency: 'unbounded' }
+  );
+  return gamePuzzles.map(({ meta, content }): ContextPuzzle => ({
+    ...meta,
+    tags: (tagsByPuzzle.get(meta.id) ?? []).map((tag) => tag.slug),
+    collection_ids: (collectionsByPuzzle.get(meta.id) ?? []).map((collection) => collection.id),
+    content
+  }));
+});
+
 /** Build the Puzzle Creator context for one game: its puzzles, plus every tag and collection. */
 export const buildPuzzleContext = Effect.fn('agents.build_puzzle_context')(function* (
   kind: GameKind
 ) {
-  const gamePuzzles = yield* loadGamePuzzles(kind);
-  const ids = gamePuzzles.map((entry) => entry.meta.id);
-
-  const { tagsByPuzzle, collectionsByPuzzle, tagRows, collectionRows } = yield* Effect.all(
+  const { contextPuzzles, tagRows, collectionRows } = yield* Effect.all(
     {
-      tagsByPuzzle: tagsForPuzzleIds(kind, ids),
-      collectionsByPuzzle: collectionsForPuzzleIds(kind, ids),
+      contextPuzzles: loadContextPuzzles(kind),
       tagRows: dbRunHttp('agents.context.tags', (client) =>
         client
           .select({ slug: tags.slug, usage: count(puzzle_tags.puzzle_id) })
@@ -134,13 +163,6 @@ export const buildPuzzleContext = Effect.fn('agents.build_puzzle_context')(funct
     { concurrency: 'unbounded' }
   );
 
-  const contextPuzzles: ContextPuzzle[] = gamePuzzles.map(({ meta, content }) => ({
-    ...meta,
-    tags: (tagsByPuzzle.get(meta.id) ?? []).map((tag) => tag.slug),
-    collection_ids: (collectionsByPuzzle.get(meta.id) ?? []).map((collection) => collection.id),
-    content
-  }));
-
   const text = renderPuzzleContext({
     game_kind: kind,
     puzzles: contextPuzzles,
@@ -158,4 +180,37 @@ export const buildPuzzleContext = Effect.fn('agents.build_puzzle_context')(funct
       collections: collectionRows.length
     }
   } satisfies AgentContextSnapshot;
+});
+
+/**
+ * Fill each `@` mention with its puzzle rendered for the model. Mentions of puzzles that no
+ * longer exist are dropped.
+ */
+export const resolvePuzzleRefs = Effect.fn('agents.resolve_puzzle_refs')(function* (
+  refs: PuzzleRefData[]
+) {
+  const idsByKind = new Map<GameKind, number[]>();
+  for (const ref of refs) idsByKind.set(ref.kind, [...(idsByKind.get(ref.kind) ?? []), ref.id]);
+
+  const loaded = yield* Effect.all(
+    [...idsByKind].map(([kind, ids]) => loadContextPuzzles(kind, ids)),
+    { concurrency: 'unbounded' }
+  );
+  const byKey = new Map(
+    loaded.flat().map((puzzle) => [`${puzzle.content.kind}:${puzzle.id}`, puzzle])
+  );
+
+  return refs.flatMap((ref): PuzzleRefData[] => {
+    const puzzle = byKey.get(`${ref.kind}:${ref.id}`);
+    if (!puzzle) return [];
+    return [
+      {
+        id: puzzle.id,
+        kind: ref.kind,
+        slug: puzzle.slug,
+        title: puzzle.title,
+        context: renderReferencedPuzzle(puzzle)
+      }
+    ];
+  });
 });

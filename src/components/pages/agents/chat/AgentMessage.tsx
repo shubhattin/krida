@@ -1,9 +1,12 @@
+import { Fragment } from 'react';
 import { isToolUIPart } from 'ai';
 import { BotIcon } from 'lucide-react';
+import { mentionToken, messagePuzzleRefs } from '~/agents/puzzle_refs';
 import type { AgentUIMessage } from '~/agents/ui_message';
 import { Bubble, BubbleContent } from '~/components/ui/bubble';
 import { Message, MessageContent } from '~/components/ui/message';
 import { Trace, TraceIcon, TraceLine, TraceTitle } from '~/components/ui/trace';
+import { PuzzleRefChips } from '../mentions/PuzzleRefChips';
 import { PuzzleProposalCard } from '../puzzle/PuzzleProposalCard';
 import { ReasoningStep } from '../tools/ReasoningStep';
 import { SqlQueryStep } from '../tools/SqlQueryStep';
@@ -33,12 +36,32 @@ export function ThinkingLine() {
   );
 }
 
+/** Message text with each `@slug` of a mentioned puzzle highlighted. */
+function MentionText({ text, tokens }: { text: string; tokens: string[] }) {
+  if (tokens.length === 0) return text;
+  const escaped = tokens.map((token) => token.replace(/[.*+?^${}()|[\]\\]/g, '\\$&'));
+  const pieces = text.split(new RegExp(`(${escaped.join('|')})(?![\\w-])`, 'g'));
+  return pieces.map((piece, index) =>
+    tokens.includes(piece) ? (
+      <span key={index} className="font-medium text-primary">
+        {piece}
+      </span>
+    ) : (
+      <Fragment key={index}>{piece}</Fragment>
+    )
+  );
+}
+
 export function UserMessage({ message }: { message: AgentUIMessage }) {
+  const refs = messagePuzzleRefs(message);
   return (
     <Message align="end">
-      <MessageContent>
+      <MessageContent className="items-end gap-1.5">
+        <PuzzleRefChips refs={refs} className="justify-end" />
         <Bubble align="end" variant="muted">
-          <BubbleContent className="whitespace-pre-wrap">{messageText(message)}</BubbleContent>
+          <BubbleContent className="whitespace-pre-wrap">
+            <MentionText text={messageText(message)} tokens={refs.map(mentionToken)} />
+          </BubbleContent>
         </Bubble>
       </MessageContent>
     </Message>

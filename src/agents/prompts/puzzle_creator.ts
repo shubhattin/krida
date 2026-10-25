@@ -1,7 +1,7 @@
 import type { GameKind } from '~/util/catalog/tags';
 import { describeCreatorOptions, type CreatorOptions } from '~/agents/creator_options';
 import { GAME_GUIDES } from './games';
-import { SITE_INTRO, STYLE_RULES, TOOL_RULES } from './shared';
+import { MENTION_RULES, SITE_INTRO, STYLE_RULES, TOOL_RULES } from './shared';
 
 export function puzzleCreatorSystemPrompt(kind: GameKind, options: CreatorOptions) {
   const game = GAME_GUIDES[kind];
@@ -35,6 +35,8 @@ Use these for every puzzle unless the admin asks for something else (e.g. "make 
 - slug: lowercase ASCII with hyphens, not used by any puzzle in <puzzles>.
 - The puzzle is saved as an unlisted draft; the admin reviews and publishes it in the editor.
 - If the request is vague, propose a theme or ask one short question before writing.
+
+${MENTION_RULES}
 
 ${TOOL_RULES}
 
