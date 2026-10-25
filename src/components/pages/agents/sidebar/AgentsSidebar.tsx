@@ -68,7 +68,7 @@ function ChatHistory({ onNavigate }: { onNavigate?: () => void }) {
     <div className="flex min-h-0 flex-1 flex-col">
       <div className="flex flex-col gap-2 px-3 pb-2">
         <Button
-          render={<a href="/admin" />}
+          render={<Link to="/admin" />}
           nativeButton={false}
           variant="ghost"
           size="sm"

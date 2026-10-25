@@ -304,8 +304,8 @@ export function SimpleGameMenuItems({
   return (
     <>
       {active?.kind === kind ? (
-        <a
-          href={simpleGameEditHref(kind, active.id)}
+        <Link
+          to={simpleGameEditHref(kind, active.id)}
           onClick={onNavigate}
           className={cn(accountMenuLinkClass, 'col-span-2')}
         >
@@ -313,27 +313,31 @@ export function SimpleGameMenuItems({
             <Pencil className="size-3 text-white" />
           </div>
           <span className="truncate">Edit puzzle #{active.id}</span>
-        </a>
+        </Link>
       ) : null}
       <AdminPageMenuLink onNavigate={onNavigate} prominent />
-      <a href={simpleGameListHref(kind)} onClick={onNavigate} className={accountMenuLinkClass}>
+      <Link to={simpleGameListHref(kind)} onClick={onNavigate} className={accountMenuLinkClass}>
         <div className={cn(accountMenuIconClass, 'bg-linear-to-br from-purple-500 to-violet-600')}>
           <List className="size-3 text-white" />
         </div>
         <span className="truncate">List</span>
-      </a>
-      <a href={simpleGameAnalyticsHref(kind)} onClick={onNavigate} className={accountMenuLinkClass}>
+      </Link>
+      <Link
+        to={simpleGameAnalyticsHref(kind)}
+        onClick={onNavigate}
+        className={accountMenuLinkClass}
+      >
         <div className={cn(accountMenuIconClass, 'bg-linear-to-br from-sky-500 to-blue-600')}>
           <BarChart3 className="size-3 text-white" />
         </div>
         <span className="truncate">Analytics</span>
-      </a>
-      <a href={simpleGameListHref(kind)} onClick={onNavigate} className={accountMenuLinkClass}>
+      </Link>
+      <Link to={simpleGameListHref(kind)} onClick={onNavigate} className={accountMenuLinkClass}>
         <div className={cn(accountMenuIconClass, 'bg-linear-to-br', accent)}>
           <Icon className="size-3 text-white" />
         </div>
         <span className="truncate">{meta.name}</span>
-      </a>
+      </Link>
       <CatalogAdminMenuItems onNavigate={onNavigate} />
     </>
   );

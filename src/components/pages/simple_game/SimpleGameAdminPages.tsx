@@ -1,6 +1,7 @@
 'use client';
 
 import { ArrowLeftIcon, BarChart3Icon } from 'lucide-react';
+import { Link } from '@tanstack/react-router';
 import { SimpleGameAddDialog } from './SimpleGameAddDialog';
 import { SimpleGameAnalytics } from './SimpleGameAnalytics';
 import { SIMPLE_GAME_ICONS } from './simple_game_icons';
@@ -27,10 +28,10 @@ export function SimpleGameListRoutePage({ kind }: { kind: SimpleGameKind }) {
   return (
     <div className="container mx-auto flex flex-col gap-4 p-4">
       <div className="px-2">
-        <a href="/admin" className={backLinkClass}>
+        <Link to="/admin" className={backLinkClass}>
           <ArrowLeftIcon className="size-4 shrink-0" />
           Admin
-        </a>
+        </Link>
       </div>
       <div className="flex flex-wrap items-center justify-between gap-3 px-2">
         <div className="flex min-w-0 items-center gap-3">
@@ -51,7 +52,7 @@ export function SimpleGameListRoutePage({ kind }: { kind: SimpleGameKind }) {
         <div className="flex flex-wrap items-center gap-2">
           <Button
             render={
-              <a href={simpleGameAnalyticsHref(kind)} className="inline-flex items-center gap-2" />
+              <Link to={simpleGameAnalyticsHref(kind)} className="inline-flex items-center gap-2" />
             }
             nativeButton={false}
             variant="outline"
@@ -72,14 +73,14 @@ export function SimpleGameAnalyticsRoutePage({ kind }: { kind: SimpleGameKind })
   return (
     <div className="container mx-auto p-4">
       <div className="my-2 mb-4 flex flex-wrap gap-2 px-2">
-        <a href="/analytics" className={backLinkClass}>
+        <Link to="/analytics" className={backLinkClass}>
           <BarChart3Icon className="size-4 shrink-0" />
           All Analytics
-        </a>
-        <a href={simpleGameListHref(kind)} className={backLinkClass}>
+        </Link>
+        <Link to={simpleGameListHref(kind)} className={backLinkClass}>
           <ArrowLeftIcon className="size-4 shrink-0" />
           Puzzle List
-        </a>
+        </Link>
       </div>
       <SimpleGameAnalytics kind={kind} />
     </div>
@@ -95,13 +96,13 @@ export function SimpleGameEditHeader({
 }) {
   return (
     <div className="my-2 mb-3.5 flex items-center gap-6 px-2 sm:gap-9">
-      <a
-        href={simpleGameListHref(kind)}
+      <Link
+        to={simpleGameListHref(kind)}
         className="inline-flex items-center gap-1.5 text-lg font-semibold"
       >
         <IoMdArrowRoundBack className="size-5 shrink-0" />
         Main List
-      </a>
+      </Link>
       <a
         href={simpleGameViewHref(kind, puzzle.uid)}
         target="_blank"

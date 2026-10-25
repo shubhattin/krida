@@ -2,6 +2,7 @@
 
 import type { LucideIcon } from 'lucide-react';
 import type { ReactNode } from 'react';
+import { Link } from '@tanstack/react-router';
 import {
   BarChart3,
   Bot,
@@ -42,8 +43,8 @@ function AdminToolCard({
   iconClass: string;
 }) {
   return (
-    <a
-      href={href}
+    <Link
+      to={href}
       className={cn(
         'group flex items-center gap-3 rounded-xl border border-border/70 bg-linear-to-br p-3 no-underline',
         'shadow-sm transition-all duration-200 hover:-translate-y-0.5 hover:shadow-md',
@@ -65,14 +66,14 @@ function AdminToolCard({
         </span>
         <span className="block truncate text-xs text-muted-foreground">{hint}</span>
       </span>
-    </a>
+    </Link>
   );
 }
 
 function AdminActionChip({ href, label, icon: Icon, name }: AdminChip & { name: string }) {
   return (
-    <a
-      href={href}
+    <Link
+      to={href}
       aria-label={`${name} ${label.toLowerCase()}`}
       className={cn(
         'inline-flex items-center gap-1.5 rounded-lg border border-border/70 bg-background/80 px-2.5 py-1.5',
@@ -83,7 +84,7 @@ function AdminActionChip({ href, label, icon: Icon, name }: AdminChip & { name: 
     >
       <Icon className="size-3.5 shrink-0 text-muted-foreground" />
       {label}
-    </a>
+    </Link>
   );
 }
 
@@ -166,8 +167,8 @@ export default function AdminPage() {
             </h1>
             <p className="text-sm text-muted-foreground">Puzzles, catalog, and play analytics.</p>
           </div>
-          <a
-            href="/admin/agents"
+          <Link
+            to="/admin/agents"
             className={cn(
               'inline-flex shrink-0 items-center gap-2 rounded-xl bg-linear-to-br from-violet-500 to-fuchsia-600 px-3.5 py-2',
               'text-sm font-semibold text-white no-underline shadow-md shadow-violet-500/25 transition-all duration-200',
@@ -176,7 +177,7 @@ export default function AdminPage() {
           >
             <Bot className="size-4" />
             Agents
-          </a>
+          </Link>
         </header>
 
         <section

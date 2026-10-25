@@ -48,6 +48,7 @@ import {
 } from '~/components/ui/select';
 import { Skeleton } from '~/components/ui/skeleton';
 import { Switch } from '~/components/ui/switch';
+import { Link } from '@tanstack/react-router';
 import { cn } from '~/lib/utils';
 import Icon from '~/tools/Icon';
 import { SIMPLE_GAME_META, simpleGameEditHref, type SimpleGameKind } from '~/util/games/kinds';
@@ -414,7 +415,7 @@ export function SimpleGameListPage({ kind }: { kind: SimpleGameKind }) {
       ) : (
         <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4">
           {items.map((item) => (
-            <a key={item.id} href={simpleGameEditHref(kind, item.id)} className="no-underline">
+            <Link key={item.id} to={simpleGameEditHref(kind, item.id)} className="no-underline">
               <Card
                 className={cn(
                   'group border-l-3 p-2 shadow-sm transition-all duration-200 hover:translate-x-0.5 hover:shadow-md',
@@ -460,7 +461,7 @@ export function SimpleGameListPage({ kind }: { kind: SimpleGameKind }) {
                   </CardDescription>
                 </CardHeader>
               </Card>
-            </a>
+            </Link>
           ))}
         </div>
       )}
