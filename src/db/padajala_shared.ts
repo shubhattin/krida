@@ -1,3 +1,4 @@
+import { catalog_list_filter_fields } from '~/util/catalog/tags';
 import { z } from 'zod';
 import {
   PadajalaPuzzleWordSchema,
@@ -100,8 +101,7 @@ export const padajala_list_input_schema = z.object({
   listed_filter: z.boolean().optional(),
   sort_by: z.enum(['created_at', 'updated_at']).default('created_at'),
   order_by: z.enum(['asc', 'desc']).default('desc'),
-  tag_slug: z.string().min(1).max(80).optional(),
-  collection_id: z.number().int().optional()
+  ...catalog_list_filter_fields
 });
 
 export type PadajalaAddInput = z.infer<typeof padajala_add_input_schema>;

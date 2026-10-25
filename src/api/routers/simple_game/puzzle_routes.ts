@@ -7,8 +7,7 @@ import { image_assets, puzzle_attachments, puzzle_redirects, puzzles } from '~/d
 import { escapeIlikeToken, tokenizeSearchQuery } from '~/util/puzzle/search';
 import {
   collectionsForPuzzleIds,
-  puzzleHasTag,
-  puzzleInCollection,
+  catalogFilterConditions,
   tagsForPuzzleIds
 } from '~/util/catalog/list_query';
 import {
@@ -132,8 +131,8 @@ export function createSimpleGameRouter<TData>(options: {
             listed_filter,
             sort_by,
             order_by,
-            tag_slug,
-            collection_id
+            tag_slugs,
+            collection_ids
           } = simple_game_list_input_schema.parse(input);
 
           const trimmedSearch = search_title?.trim();
@@ -149,10 +148,9 @@ export function createSimpleGameRouter<TData>(options: {
               );
             }
           }
-          if (tag_slug) conditions.push(puzzleHasTag(puzzles.id, kind, tag_slug));
-          if (collection_id !== undefined) {
-            conditions.push(puzzleInCollection(puzzles.id, kind, collection_id));
-          }
+          conditions.push(
+            ...catalogFilterConditions(puzzles.id, kind, { tag_slugs, collection_ids })
+          );
           const whereClause = and(...conditions);
 
           const sortCol =

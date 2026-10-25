@@ -1,3 +1,4 @@
+import { catalog_list_filter_fields } from '~/util/catalog/tags';
 import { Effect } from 'effect';
 import { z } from 'zod';
 import { protectedAdminProcedure, publicProcedure, t } from '~/api/trpc_init';
@@ -22,8 +23,7 @@ import { createEmptyGridData, isValidSlug, normalizeSlug } from '~/util/puzzle/s
 import { escapeIlikeToken, tokenizeSearchQuery } from '~/util/puzzle/search';
 import {
   collectionsForPuzzleIds,
-  puzzleHasTag,
-  puzzleInCollection,
+  catalogFilterConditions,
   tagsForPuzzleIds
 } from '~/util/catalog/list_query';
 import { syncPuzzleAttachments } from '~/game_shell/attachments';
@@ -391,14 +391,13 @@ const get_puzzle_list_input_schema = z.object({
   listed_filter: z.boolean().optional(),
   sort_by: z.enum(['created_at', 'updated_at']).optional().default('created_at'),
   order_by: z.enum(['asc', 'desc']).optional().default('desc'),
-  tag_slug: z.string().min(1).max(80).optional(),
-  collection_id: z.number().int().optional()
+  ...catalog_list_filter_fields
 });
 
 export const get_puzzle_list_page = Effect.fn('padavali.get_puzzle_list_page')(function* (
   input: z.input<typeof get_puzzle_list_input_schema>
 ) {
-  const { page, size, search_title, listed_filter, sort_by, order_by, tag_slug, collection_id } =
+  const { page, size, search_title, listed_filter, sort_by, order_by, tag_slugs, collection_ids } =
     get_puzzle_list_input_schema.parse(input);
 
   const trimmedSearch = search_title?.trim();
@@ -412,10 +411,9 @@ export const get_puzzle_list_page = Effect.fn('padavali.get_puzzle_list_page')(f
       conditions.push(or(ilike(puzzles.title, pattern), ilike(puzzles.description, pattern))!);
     }
   }
-  if (tag_slug) conditions.push(puzzleHasTag(puzzles.id, 'padavali', tag_slug));
-  if (collection_id !== undefined) {
-    conditions.push(puzzleInCollection(puzzles.id, 'padavali', collection_id));
-  }
+  conditions.push(
+    ...catalogFilterConditions(puzzles.id, 'padavali', { tag_slugs, collection_ids })
+  );
   const whereClause = and(...conditions);
 
   const sortCol =

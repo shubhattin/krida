@@ -4,26 +4,46 @@ import { dbRunHttp } from '~/effect/database';
 import { Effect } from 'effect';
 import type { GameKind, PublicTag } from './tags';
 
-export const puzzleHasTag = (puzzleId: SQLWrapper, game: GameKind, slug: string): SQL =>
+const sqlList = (values: readonly (string | number)[]) =>
+  sql.join(
+    values.map((value) => sql`${value}`),
+    sql`, `
+  );
+
+export const puzzleHasAnyTag = (
+  puzzleId: SQLWrapper,
+  game: GameKind,
+  slugs: readonly string[]
+): SQL =>
   sql`exists (
     select 1 from puzzle_tags pt
     inner join tags t on t.id = pt.tag_id
     inner join puzzles p on p.id = pt.puzzle_id
-    where pt.puzzle_id = ${puzzleId} and p.kind = ${game} and t.slug = ${slug}
+    where pt.puzzle_id = ${puzzleId} and p.kind = ${game} and t.slug in (${sqlList(slugs)})
   )`;
 
-export const puzzleInCollection = (
+export const puzzleInAnyCollection = (
   puzzleId: SQLWrapper,
   game: GameKind,
-  collectionId: number
+  collectionIds: readonly number[]
 ): SQL =>
   sql`exists (
     select 1 from collection_items ci
     inner join puzzles p on p.id = ci.puzzle_id
     where ci.puzzle_id = ${puzzleId}
       and p.kind = ${game}
-      and ci.collection_id = ${collectionId}
+      and ci.collection_id in (${sqlList(collectionIds)})
   )`;
+
+/** Any of the tags and any of the collections; an empty facet doesn't filter. */
+export const catalogFilterConditions = (
+  puzzleId: SQLWrapper,
+  game: GameKind,
+  { tag_slugs = [], collection_ids = [] }: { tag_slugs?: string[]; collection_ids?: number[] }
+): SQL[] => [
+  ...(tag_slugs.length > 0 ? [puzzleHasAnyTag(puzzleId, game, tag_slugs)] : []),
+  ...(collection_ids.length > 0 ? [puzzleInAnyCollection(puzzleId, game, collection_ids)] : [])
+];
 
 export const puzzleNotInCollection = (
   puzzleId: SQLWrapper,

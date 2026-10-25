@@ -33,6 +33,12 @@ export const tag_slug_schema = z
     message: 'Tag slug must be 1–80 characters of lowercase letters, numbers, and hyphens'
   });
 
+/** Admin list filters: a puzzle matches any picked tag and any picked collection. */
+export const catalog_list_filter_fields = {
+  tag_slugs: z.array(z.string().min(1).max(80)).max(30).optional(),
+  collection_ids: z.array(z.number().int()).max(30).optional()
+};
+
 export const catalog_slug_schema = z
   .string()
   .transform((value) => normalizeTagSlug(value))

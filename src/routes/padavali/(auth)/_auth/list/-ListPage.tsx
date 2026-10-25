@@ -168,8 +168,8 @@ const fetchPuzzleListPage = async (
   sort_by: 'created_at' | 'updated_at',
   order_by: 'asc' | 'desc',
   size = PUZZLE_FETCH_LIMIT,
-  tag_slug?: string,
-  collection_id?: number
+  tag_slugs?: string[],
+  collection_ids?: number[]
 ) =>
   client.puzzle.get_puzzle_list_page.query({
     page,
@@ -178,8 +178,8 @@ const fetchPuzzleListPage = async (
     sort_by,
     search_title: search_title !== '' ? search_title : undefined,
     order_by,
-    tag_slug,
-    collection_id
+    tag_slugs,
+    collection_ids
   });
 
 function usePuzzleListQuery(
@@ -189,8 +189,8 @@ function usePuzzleListQuery(
   listed_filter: boolean | undefined,
   sort_by: 'created_at' | 'updated_at',
   order_by: 'asc' | 'desc',
-  tag_slug?: string,
-  collection_id?: number
+  tag_slugs?: string[],
+  collection_ids?: number[]
 ) {
   const puzzle_list_q = useQuery({
     queryKey: [
@@ -201,8 +201,8 @@ function usePuzzleListQuery(
       listed_filter,
       sort_by,
       order_by,
-      tag_slug,
-      collection_id
+      tag_slugs,
+      collection_ids
     ],
     queryFn: () =>
       fetchPuzzleListPage(
@@ -212,8 +212,8 @@ function usePuzzleListQuery(
         sort_by,
         order_by,
         PUZZLE_FETCH_LIMIT,
-        tag_slug,
-        collection_id
+        tag_slugs,
+        collection_ids
       ),
     placeholderData: (prev) => prev,
     refetchOnWindowFocus: false
@@ -294,10 +294,10 @@ const ListFilterBar = ({
   onOrderByChange,
   layout,
   onLayoutChange,
-  tag_slug,
-  onTagSlugChange,
-  collection_id,
-  onCollectionIdChange
+  tag_slugs,
+  onTagSlugsChange,
+  collection_ids,
+  onCollectionIdsChange
 }: {
   search_title: string;
   onSearchChange: (value: string) => void;
@@ -312,10 +312,10 @@ const ListFilterBar = ({
   onOrderByChange: (value: 'asc' | 'desc') => void;
   layout: ListLayout;
   onLayoutChange: (layout: ListLayout) => void;
-  tag_slug: string;
-  onTagSlugChange: (value: string) => void;
-  collection_id: string;
-  onCollectionIdChange: (value: string) => void;
+  tag_slugs: string[];
+  onTagSlugsChange: (value: string[]) => void;
+  collection_ids: number[];
+  onCollectionIdsChange: (value: number[]) => void;
 }) => (
   <div className="rounded-xl border border-slate-200/60 bg-white/50 p-3 shadow-sm backdrop-blur-sm sm:p-4 dark:border-slate-700/40 dark:bg-slate-800/30">
     <div className="flex flex-col items-center space-y-3">
@@ -379,10 +379,10 @@ const ListFilterBar = ({
           </Select>
         </div>
         <AdminCatalogFilters
-          tagSlug={tag_slug}
-          collectionId={collection_id}
-          onTagSlugChange={onTagSlugChange}
-          onCollectionIdChange={onCollectionIdChange}
+          tagSlugs={tag_slugs}
+          collectionIds={collection_ids}
+          onTagSlugsChange={onTagSlugsChange}
+          onCollectionIdsChange={onCollectionIdsChange}
         />
         <div className="flex items-center gap-1 rounded-lg border border-slate-200/60 p-0.5 dark:border-slate-700/40">
           <Button
@@ -694,15 +694,13 @@ const ListPage = () => {
   const [sort_by, setSortBy] = useState<'created_at' | 'updated_at'>('created_at');
   const [order_by, setOrderBy] = useState<'asc' | 'desc'>('desc');
   const [layout, setLayout] = useState<ListLayout>('cards');
-  const [tag_slug, setTagSlug] = useState('all');
-  const [collection_id, setCollectionId] = useState('all');
+  const [tag_slugs, setTagSlugs] = useState<string[]>([]);
+  const [collection_ids, setCollectionIds] = useState<number[]>([]);
 
   const debouncedSearchTitle = useDebouncedSearch(search_title);
   const ctx = useDevanagariTyping();
 
   const listed_filter = { all: undefined, listed: true, unlisted: false }[listed_filter_type];
-  const tagSlugFilter = tag_slug === 'all' ? undefined : tag_slug;
-  const collectionIdFilter = collection_id === 'all' ? undefined : Number(collection_id);
 
   const {
     isSuccess,
@@ -720,8 +718,8 @@ const ListPage = () => {
     listed_filter,
     sort_by,
     order_by,
-    tagSlugFilter,
-    collectionIdFilter
+    tag_slugs,
+    collection_ids
   );
 
   const all_links_q = useQuery({
@@ -732,8 +730,8 @@ const ListPage = () => {
       listed_filter,
       sort_by,
       order_by,
-      tagSlugFilter,
-      collectionIdFilter
+      tag_slugs,
+      collection_ids
     ],
     enabled: layout === 'links',
     queryFn: () =>
@@ -746,8 +744,8 @@ const ListPage = () => {
             sort_by,
             order_by,
             size,
-            tagSlugFilter,
-            collectionIdFilter
+            tag_slugs,
+            collection_ids
           ),
         ALL_LINKS_PAGE_SIZE
       ),
@@ -791,14 +789,14 @@ const ListPage = () => {
           onOrderByChange={handle_order_by_change}
           layout={layout}
           onLayoutChange={setLayout}
-          tag_slug={tag_slug}
-          onTagSlugChange={(value) => {
-            setTagSlug(value);
+          tag_slugs={tag_slugs}
+          onTagSlugsChange={(value) => {
+            setTagSlugs(value);
             setPage(1);
           }}
-          collection_id={collection_id}
-          onCollectionIdChange={(value) => {
-            setCollectionId(value);
+          collection_ids={collection_ids}
+          onCollectionIdsChange={(value) => {
+            setCollectionIds(value);
             setPage(1);
           }}
         />
