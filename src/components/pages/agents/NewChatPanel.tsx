@@ -19,7 +19,7 @@ import { Checkbox } from '~/components/ui/checkbox';
 import { GAME_KINDS, type GameKind } from '~/util/catalog/tags';
 import { cn } from '~/lib/utils';
 import { AGENT_SUGGESTIONS } from './agent_meta';
-import { ChatComposer } from './chat/ChatComposer';
+import { ChatComposer, type ComposerMessage } from './chat/ChatComposer';
 import { ModelPicker } from './chat/ModelPicker';
 import { setPendingMessage } from './pending_message';
 import { MobileHistoryButton } from './sidebar/AgentsSidebar';
@@ -54,13 +54,13 @@ export function NewChatPanel() {
     })
   );
 
-  const start = (text: string) => {
+  const start = (message: ComposerMessage) => {
     if (needsGame) {
       toast.error('Pick a game for the Puzzle Creator first');
       return;
     }
     const id = nanoid(16);
-    setPendingMessage(id, text);
+    setPendingMessage(id, message);
     create_mut.mutate({
       id,
       agent_kind: agentKind,
@@ -242,6 +242,7 @@ export function NewChatPanel() {
                 : 'Ask about puzzles, plays, tags…'
             }
             toolbar={<ModelPicker value={model} onChange={setPickedModel} />}
+            mentionGame={agentKind === 'puzzle_creator' ? gameKind : null}
             autoFocus
           />
 
@@ -253,7 +254,7 @@ export function NewChatPanel() {
                 size="sm"
                 disabled={create_mut.isPending || needsGame}
                 className="h-auto rounded-full py-1.5 whitespace-normal"
-                onClick={() => start(suggestion)}
+                onClick={() => start({ text: suggestion, refs: [] })}
               >
                 {suggestion}
               </Button>

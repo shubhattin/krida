@@ -2,7 +2,14 @@ import { createFileRoute } from '@tanstack/react-router';
 import { consumeStream, convertToModelMessages, createIdGenerator, validateUIMessages } from 'ai';
 import { Effect } from 'effect';
 import { z } from 'zod';
+import { resolvePuzzleRefs } from '~/agents/context/build_context';
 import { agent_model_id_schema } from '~/agents/models';
+import {
+  AGENT_DATA_SCHEMAS,
+  MAX_PUZZLE_REFS,
+  messagePuzzleRefs,
+  puzzleRefToModelText
+} from '~/agents/puzzle_refs';
 import { createAgent } from '~/agents/server/create_agent';
 import {
   findAgentChat,
@@ -33,6 +40,24 @@ const firstText = (message: AgentUIMessage) =>
     .join(' ')
     .trim();
 
+/**
+ * Fill the new message's `@` mentions from the database (never trusting client-sent content),
+ * placed before the text so each puzzle sits right above what the admin wrote about it.
+ */
+const attachPuzzleRefs = Effect.fn('agents.attach_puzzle_refs')(function* (
+  message: AgentUIMessage
+) {
+  const refs = messagePuzzleRefs(message).slice(0, MAX_PUZZLE_REFS);
+  const resolved = refs.length > 0 ? yield* resolvePuzzleRefs(refs) : [];
+  return {
+    ...message,
+    parts: [
+      ...resolved.map((data) => ({ type: 'data-puzzle_ref' as const, data })),
+      ...message.parts.filter((part) => part.type !== 'data-puzzle_ref')
+    ]
+  } satisfies AgentUIMessage;
+});
+
 async function handleChat(request: Request): Promise<Response> {
   if (!isSameOriginRequest(request, import.meta.env.VITE_SITE_URL)) {
     return new Response('Cross-site request rejected', { status: 403 });
@@ -54,14 +79,16 @@ async function handleChat(request: Request): Promise<Response> {
       const resent = previous.findIndex((message) => message.id === parsed.data.message.id);
       const history = resent === -1 ? previous : previous.slice(0, resent);
 
-      const messages = yield* Effect.tryPromise({
+      const validated = yield* Effect.tryPromise({
         try: () =>
           validateUIMessages<AgentUIMessage>({
             messages: [...history, parsed.data.message],
-            tools
+            tools,
+            dataSchemas: AGENT_DATA_SCHEMAS
           }),
         catch: () => BadRequestError.make({ message: 'Invalid message' })
       });
+      const messages = [...validated.slice(0, -1), yield* attachPuzzleRefs(validated.at(-1)!)];
 
       // Title the chat in parallel with the first reply.
       const newMessage = messages.at(-1)!;
@@ -72,7 +99,12 @@ async function handleChat(request: Request): Promise<Response> {
 
       yield* setChatStreaming(id, true);
       const result = yield* Effect.promise(async () =>
-        agent.stream({ prompt: await convertToModelMessages(messages, { tools }) })
+        agent.stream({
+          prompt: await convertToModelMessages<AgentUIMessage>(messages, {
+            tools,
+            convertDataPart: puzzleRefToModelText
+          })
+        })
       ).pipe(Effect.onError(() => Effect.ignore(setChatStreaming(id, false))));
 
       return result.toUIMessageStreamResponse<AgentUIMessage>({

@@ -1,4 +1,4 @@
-import type { UIDataTypes, UIMessage } from 'ai';
+import type { UIMessage } from 'ai';
 import type { GameKind } from '~/util/catalog/tags';
 import type { PuzzleDraft } from './drafts/schemas';
 import type { AgentModelId } from './models';
@@ -59,7 +59,22 @@ export type AgentMessageMetadata = {
   };
 };
 
-export type AgentUIMessage = UIMessage<AgentMessageMetadata, UIDataTypes, AgentUITools>;
+/**
+ * A puzzle the admin mentioned with `@` in a user message. The client sends the reference;
+ * the server fills `context` (the puzzle rendered for the model) once, when the message is
+ * first received, so history stays byte-stable for prompt caching.
+ */
+export type PuzzleRefData = {
+  id: number;
+  kind: GameKind;
+  slug: string;
+  title: string;
+  context?: string;
+};
+
+export type AgentDataTypes = { puzzle_ref: PuzzleRefData };
+
+export type AgentUIMessage = UIMessage<AgentMessageMetadata, AgentDataTypes, AgentUITools>;
 
 /** The frozen puzzle context of a Puzzle Creator chat. */
 export type AgentContextSnapshot = {

@@ -11,6 +11,12 @@ import { describeCreatorOptions, resolveCreatorOptions } from '~/agents/creator_
 import type { AgentModelId } from '~/agents/models';
 import { GAME_GUIDES } from '~/agents/prompts/games';
 import type { AgentUIMessage } from '~/agents/ui_message';
+
+/** A composed message as UI parts: mentioned puzzles first, then the text. */
+const toUserParts = ({ text, refs }: ComposerMessage): AgentUIMessage['parts'] => [
+  ...refs.map((data) => ({ type: 'data-puzzle_ref' as const, data })),
+  { type: 'text', text }
+];
 import { GAME_APP_ICON_SRC } from '~/components/GameAppIcon';
 import { Button } from '~/components/ui/button';
 import {
@@ -27,7 +33,7 @@ import { takePendingMessage } from '../pending_message';
 import { MobileHistoryButton } from '../sidebar/AgentsSidebar';
 import { AgentChatProvider, type AddedPuzzle } from './agent_chat_context';
 import { AssistantMessage, ThinkingLine, UserMessage } from './AgentMessage';
-import { ChatComposer } from './ChatComposer';
+import { ChatComposer, type ComposerMessage } from './ChatComposer';
 import { ModelPicker } from './ModelPicker';
 
 export type AgentChatData = inferRouterOutputs<AppRouter>['agents']['get_chat'];
@@ -72,12 +78,14 @@ export function AgentChat({ data }: { data: AgentChatData }) {
 
   useEffect(() => {
     const pending = takePendingMessage(chat.id);
-    if (pending) void sendMessage({ text: pending }, { body: { model: chat.model } });
+    if (pending) {
+      void sendMessage({ parts: toUserParts(pending) }, { body: { model: chat.model } });
+    }
   }, [chat.id, chat.model, sendMessage]);
 
-  const send = (text: string) => {
+  const send = (message: ComposerMessage) => {
     sentLocally.current = true;
-    void sendMessage({ text }, { body: { model } });
+    void sendMessage({ parts: toUserParts(message) }, { body: { model } });
   };
 
   const busy = status === 'submitted' || status === 'streaming';
@@ -170,7 +178,7 @@ export function AgentChat({ data }: { data: AgentChatData }) {
                     variant="outline"
                     size="sm"
                     className="h-auto rounded-full py-1.5 whitespace-normal"
-                    onClick={() => send(suggestion)}
+                    onClick={() => send({ text: suggestion, refs: [] })}
                   >
                     {suggestion}
                   </Button>
@@ -246,6 +254,7 @@ export function AgentChat({ data }: { data: AgentChatData }) {
                 : 'Ask about puzzles, plays, tags…'
             }
             toolbar={<ModelPicker value={model} onChange={setModel} disabled={busy} />}
+            mentionGame={chat.game_kind}
             autoFocus
           />
         </div>

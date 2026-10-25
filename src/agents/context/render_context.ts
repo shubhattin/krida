@@ -144,3 +144,12 @@ export function renderPuzzleContext(input: ContextInput): string {
     '</puzzles>'
   ].join('\n');
 }
+
+/** One puzzle the admin mentioned with `@`, placed just above their message. */
+export function renderReferencedPuzzle(puzzle: ContextPuzzle): string {
+  return [
+    `<referenced_puzzle game="${puzzle.content.kind}" id="${puzzle.id}" mention="@${puzzle.slug}">`,
+    puzzleBlock(puzzle),
+    '</referenced_puzzle>'
+  ].join('\n');
+}

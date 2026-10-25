@@ -1,5 +1,8 @@
 import { Effect } from 'effect';
+import { desc } from 'drizzle-orm';
 import { z } from 'zod';
+import { puzzles } from '~/db/schema';
+import { dbRunHttp } from '~/effect/database';
 import { protectedAdminProcedure, t } from '~/api/trpc_init';
 import { runTrpcEffect } from '~/effect/run';
 import { BadRequestError } from '~/effect/errors';
@@ -140,6 +143,25 @@ const add_puzzle_route = protectedAdminProcedure
     )
   );
 
+/** Every puzzle (all games, drafts too), newest first, for the composer's `@` mention picker. */
+const list_mentionable_puzzles_route = protectedAdminProcedure.query(() =>
+  runTrpcEffect(
+    dbRunHttp('agents.list_mentionable_puzzles', (client) =>
+      client
+        .select({
+          id: puzzles.id,
+          kind: puzzles.kind,
+          slug: puzzles.slug,
+          title: puzzles.title,
+          description: puzzles.description,
+          listed: puzzles.listed
+        })
+        .from(puzzles)
+        .orderBy(desc(puzzles.created_at), desc(puzzles.id))
+    )
+  )
+);
+
 export const agents_router = t.router({
   list_chats: list_chats_route,
   get_chat: get_chat_route,
@@ -147,6 +169,7 @@ export const agents_router = t.router({
   rename_chat: rename_chat_route,
   delete_chat: delete_chat_route,
   get_context: get_context_route,
+  list_mentionable_puzzles: list_mentionable_puzzles_route,
   refresh_context: refresh_context_route,
   check_proposal: check_proposal_route,
   add_puzzle: add_puzzle_route
