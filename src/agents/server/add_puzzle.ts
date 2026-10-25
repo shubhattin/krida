@@ -1,5 +1,5 @@
 import { Effect } from 'effect';
-import { and, eq, inArray, sql } from 'drizzle-orm';
+import { and, eq, inArray, isNull, sql } from 'drizzle-orm';
 import {
   agent_chat_puzzles,
   collection_items,
@@ -115,7 +115,8 @@ export const addProposedPuzzle = Effect.fn('agents.add_proposed_puzzle')(functio
       )
       .limit(1)
   );
-  if (alreadyAdded) {
+  // A link whose puzzle was deleted (puzzle_id set null) can be added again.
+  if (alreadyAdded?.puzzle_id != null) {
     return yield* Effect.fail(ConflictError.make({ message: 'This puzzle was already added' }));
   }
 
@@ -175,12 +176,22 @@ export const addProposedPuzzle = Effect.fn('agents.add_proposed_puzzle')(functio
       });
     }
 
-    // The primary key makes a second add of the same proposal fail the whole transaction.
-    await tx.insert(agent_chat_puzzles).values({
-      chat_id: input.chatId,
-      tool_call_id: input.toolCallId,
-      puzzle_id: inserted.id
-    });
+    // Re-adding reuses the link only while its puzzle is deleted; a concurrent add that already
+    // re-linked it matches no row, which rolls the whole transaction back.
+    const [linked] = await tx
+      .insert(agent_chat_puzzles)
+      .values({
+        chat_id: input.chatId,
+        tool_call_id: input.toolCallId,
+        puzzle_id: inserted.id
+      })
+      .onConflictDoUpdate({
+        target: [agent_chat_puzzles.chat_id, agent_chat_puzzles.tool_call_id],
+        set: { puzzle_id: inserted.id, created_at: sql`now()` },
+        setWhere: isNull(agent_chat_puzzles.puzzle_id)
+      })
+      .returning();
+    if (!linked) throw new Error('This puzzle was already added');
     return inserted.id;
   });
 

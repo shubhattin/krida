@@ -23,6 +23,7 @@ import {
   TraceTitle
 } from '~/components/ui/trace';
 import { cn } from '~/lib/utils';
+import type { GameKind } from '~/util/catalog/tags';
 import { puzzleEditorHref, useAgentChat, type AddedPuzzle } from '../chat/agent_chat_context';
 import type { AgentToolPart } from '../chat/message_parts';
 import { AddPuzzleDialog } from './AddPuzzleDialog';
@@ -73,26 +74,28 @@ function ProposalNeedsFixes({ title, errors }: { title?: string; errors: string[
   );
 }
 
-function AddedStatus({ added }: { added: AddedPuzzle }) {
+type LiveAddedPuzzle = AddedPuzzle & { puzzle_id: number; kind: GameKind };
+
+/** Added and still present; a deleted puzzle leaves a link row with no puzzle behind. */
+const isLive = (added: AddedPuzzle | undefined): added is LiveAddedPuzzle =>
+  added?.puzzle_id != null && added.kind != null;
+
+function AddedStatus({ added }: { added: LiveAddedPuzzle }) {
   return (
     <div className="flex flex-col items-end gap-1">
       <span className="inline-flex items-center gap-1 text-xs font-medium text-emerald-700 dark:text-emerald-400">
         <CheckCircle2Icon className="size-3.5" />
         Added
       </span>
-      {added.puzzle_id && added.kind ? (
-        <a
-          href={puzzleEditorHref(added.kind, added.puzzle_id)}
-          target="_blank"
-          rel="noopener"
-          className="inline-flex items-center gap-1 text-xs text-primary hover:underline"
-        >
-          Open in editor
-          <ExternalLinkIcon className="size-3" />
-        </a>
-      ) : (
-        <span className="text-[11px] text-muted-foreground">Puzzle deleted</span>
-      )}
+      <a
+        href={puzzleEditorHref(added.kind, added.puzzle_id)}
+        target="_blank"
+        rel="noopener"
+        className="inline-flex items-center gap-1 text-xs text-primary hover:underline"
+      >
+        Open in editor
+        <ExternalLinkIcon className="size-3" />
+      </a>
     </div>
   );
 }
@@ -110,7 +113,9 @@ function ProposalCard({
   const { added } = useAgentChat();
   const [expanded, setExpanded] = useState(false);
   const [adding, setAdding] = useState(false);
-  const addedPuzzle = added.get(toolCallId);
+  const link = added.get(toolCallId);
+  const addedPuzzle = isLive(link) ? link : undefined;
+  const wasDeleted = link !== undefined && !addedPuzzle;
   const { draft, kind } = proposal;
 
   return (
@@ -146,10 +151,15 @@ function ProposalCard({
           {addedPuzzle ? (
             <AddedStatus added={addedPuzzle} />
           ) : (
-            <Button size="sm" onClick={() => setAdding(true)}>
-              <PlusIcon />
-              Add puzzle
-            </Button>
+            <div className="flex flex-col items-end gap-1">
+              <Button size="sm" onClick={() => setAdding(true)}>
+                <PlusIcon />
+                {wasDeleted ? 'Add again' : 'Add puzzle'}
+              </Button>
+              {wasDeleted ? (
+                <span className="text-[11px] text-muted-foreground">Earlier copy deleted</span>
+              ) : null}
+            </div>
           )}
         </div>
       </div>
