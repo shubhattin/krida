@@ -25,7 +25,7 @@ export function HubGameShowcase({ games = HUB_GAME_LIST }: { games?: HubGameMeta
       <header className="flex min-w-0 flex-col gap-1">
         <div className="flex min-w-0 items-center gap-2.5 sm:gap-3">
           <h1
-            className="min-w-0 flex-1 truncate py-1 text-2xl leading-tight font-black tracking-tight sm:text-4xl"
+            className="min-w-0 flex-1 truncate py-1 text-3xl leading-tight font-black tracking-tight sm:text-5xl"
             title={KRIDA_NAME.iast}
           >
             <span className={cn('krida-hero-wordmark', krida.fontClassName)}>{krida.text}</span>

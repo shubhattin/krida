@@ -51,20 +51,24 @@ interface Props {
 // branch will be deleted after the release, which would break every share image.
 const SHARE_IMAGE_REF = 'main';
 
-/** Static share cards live in `src/images/share/<id>.jpg` (1200×630) and are served via jsDelivr. */
-const shareImage = (id: string): ShareImageInfo => ({
-  url: `https://cdn.jsdelivr.net/gh/shubhattin/krida@${SHARE_IMAGE_REF}/src/images/share/${id}.jpg`,
+/**
+ * Static share cards live in `src/images/share/<file>.jpg` (1200×630) and are served via jsDelivr.
+ * jsDelivr caches branch refs for days, so a replaced card gets a new file name (`<id>_v2`, …)
+ * instead of being overwritten in place.
+ */
+const shareImage = (file: string): ShareImageInfo => ({
+  url: `https://cdn.jsdelivr.net/gh/shubhattin/krida@${SHARE_IMAGE_REF}/src/images/share/${file}.jpg`,
   width: 1200,
   height: 630
 });
 
 export const SHARE_IMAGE_INFO = {
-  padavali: shareImage('padavali'),
+  padavali: shareImage('padavali_v2'),
   padajala: shareImage('padajala'),
   landing_page: shareImage('krida'),
   dvayi: shareImage('dvayi'),
-  bhramita: shareImage('bhramita'),
-  surupa: shareImage('surupa'),
+  bhramita: shareImage('bhramita_v2'),
+  surupa: shareImage('surupa_v2'),
   anveshi: shareImage('anveshi')
 } satisfies Record<MetadataProject, ShareImageInfo>;
 

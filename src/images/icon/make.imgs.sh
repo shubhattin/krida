@@ -42,7 +42,8 @@ cut_plate krida 68 69 1117
 cut_plate dvayi 86 83 1081
 cut_plate bhramita 85 87 1082
 cut_plate surupa 48 48 1156
-cut_plate anveshi 33 32 1183
+cut_plate anveshi 69 66 1115
+cut_plate padavali 87 85 1080
 
 emit krida public/img public/favicon.ico
 emit padavali public/img/padavali_icons public/padavali.favicon.ico
