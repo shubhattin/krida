@@ -1,6 +1,7 @@
 import { z } from 'zod';
 import type { GameKind } from '~/util/catalog/tags';
 import { CREATOR_OPTION_FIELDS } from '~/agents/creator_options';
+import { PADAVALI_MAX_DIM, PADAVALI_MIN_DIM } from '~/util/puzzle/slug';
 
 /**
  * What the Puzzle Creator writes — content only. Ids, akṣara splits, matches and grids are
@@ -36,7 +37,7 @@ const draft_meta_fields = {
 
 const devanagari_word = z.string().max(60).describe('A word in Devanagari');
 
-const grid_side = z.number().int().min(3).max(15);
+const grid_side = z.number().int().min(PADAVALI_MIN_DIM).max(PADAVALI_MAX_DIM);
 
 export const padavali_draft_schema = z.object({
   ...draft_meta_fields,
@@ -151,13 +152,24 @@ export type KindedPuzzleDraft = {
   [K in GameKind]: { kind: K; draft: PuzzleDraftByKind[K] };
 }[GameKind];
 
+/** Proposals saved under the older, wider grid limits are clamped into the current range. */
+const stored_grid_side = z
+  .number()
+  .int()
+  .transform((side) => Math.min(PADAVALI_MAX_DIM, Math.max(PADAVALI_MIN_DIM, side)));
+const stored_padavali_draft_schema = padavali_draft_schema.extend({
+  grid_rows: stored_grid_side,
+  grid_cols: stored_grid_side
+});
+
 /** Narrow a stored `propose_puzzle` input to the chat's game, re-validating it. */
 export function parsePuzzleDraft(kind: GameKind, input: PuzzleDraft): KindedPuzzleDraft | null {
   switch (kind) {
     case 'padavali': {
-      // Proposals saved before drafts carried a grid size fall back to the default grid.
+      // Proposals saved before drafts carried a grid size fall back to the default grid;
+      // ones saved under the older, wider limits are clamped into the current range.
       const { grid_rows, grid_cols } = CREATOR_OPTION_FIELDS.padavali.defaults;
-      const result = padavali_draft_schema.safeParse({ grid_rows, grid_cols, ...input });
+      const result = stored_padavali_draft_schema.safeParse({ grid_rows, grid_cols, ...input });
       return result.success ? { kind, draft: result.data } : null;
     }
     case 'padajala': {

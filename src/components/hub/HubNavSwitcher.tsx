@@ -3,7 +3,7 @@
 import { useState } from 'react';
 import { useCloseOnNavigate } from '~/hooks/useCloseOnNavigate';
 import { Link } from '@tanstack/react-router';
-import { Check, ChevronDown, Home, Puzzle } from 'lucide-react';
+import { Check, ChevronDown, Home, Puzzle, Shield } from 'lucide-react';
 import { Image } from '@unpic/react';
 import { Button } from '~/components/ui/button';
 import {
@@ -16,6 +16,7 @@ import {
 } from '~/components/ui/popover';
 import { Separator } from '~/components/ui/separator';
 import { GAME_APP_ICON_SRC, GameAppIcon } from '~/components/GameAppIcon';
+import { useSession } from '~/lib/auth-client';
 import { cn } from '~/lib/utils';
 import {
   HUB_GAME_LIST,
@@ -107,6 +108,23 @@ const SWITCHER_TRIGGER_GAME = {
   anveshi:
     'border-sky-300 bg-sky-50 text-slate-900 dark:border-sky-500/50 dark:bg-sky-950/60 dark:text-slate-50'
 } as const;
+
+/** Quick jump to `/admin`; rendered only for admins. */
+function AdminQuickLink() {
+  const isAdmin = useSession().data?.user?.role === 'admin';
+  if (!isAdmin) return null;
+  return (
+    <Link
+      to="/admin"
+      className="flex shrink-0 items-center gap-1.5 rounded-full border border-slate-200 bg-slate-50 py-1 pr-2.5 pl-1 text-xs font-semibold text-slate-700 no-underline transition-colors hover:border-slate-300 hover:bg-slate-100 dark:border-slate-600 dark:bg-slate-900/60 dark:text-slate-200 dark:hover:border-slate-500 dark:hover:bg-slate-700/60"
+    >
+      <span className="flex size-5 items-center justify-center rounded-full bg-linear-to-br from-blue-500 to-indigo-600">
+        <Shield className="size-3 text-white" />
+      </span>
+      Admin
+    </Link>
+  );
+}
 
 function PlaceLink({ place, active }: { place: (typeof PLACES)[number]; active: boolean }) {
   const Icon = place.icon;
@@ -262,12 +280,15 @@ export function HubNavSwitcher({
           if (event.target instanceof Element && event.target.closest('a')) setOpen(false);
         }}
       >
-        <PopoverHeader className="px-3 pt-3 pb-2">
-          <PopoverTitle className="text-slate-900 dark:text-slate-50">Go to</PopoverTitle>
-          <PopoverDescription className="text-slate-500 dark:text-slate-400">
-            Home, puzzles, and every game.
-          </PopoverDescription>
-        </PopoverHeader>
+        <div className="flex items-start justify-between gap-2 px-3 pt-3 pb-2">
+          <PopoverHeader>
+            <PopoverTitle className="text-slate-900 dark:text-slate-50">Go to</PopoverTitle>
+            <PopoverDescription className="text-slate-500 dark:text-slate-400">
+              Home, puzzles, and every game.
+            </PopoverDescription>
+          </PopoverHeader>
+          <AdminQuickLink />
+        </div>
         <div className="flex flex-col gap-0.5 px-1.5 pb-2">
           {PLACES.map((place) => (
             <PlaceLink key={place.key} place={place} active={active === place.key} />

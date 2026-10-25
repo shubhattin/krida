@@ -101,6 +101,12 @@ import {
 import { padavaliActiveWords } from '~/util/puzzle/word_list';
 import { PadavaliWordListEditor } from '~/components/pages/padavali/PadavaliWordListEditor';
 import { PadavaliLayoutGenerator } from '~/components/pages/padavali/PadavaliLayoutGenerator';
+import { GridDimensionsField } from '~/components/puzzle/GridDimensionsField';
+import {
+  createEmptyGridData,
+  DEFAULT_GRID_DIMENSIONS,
+  PADAVALI_DIM_LIMITS
+} from '~/util/puzzle/slug';
 import {
   buildCellWordColorMap,
   cellWordTintAppearance,
@@ -145,6 +151,11 @@ const BASE_SCRIPT = 'Devanagari';
 const title_atom = atom<string>('');
 const word_list_atom = atom<PadavaliWordCandidate[]>([]);
 const grid_data_atom = atom<string[][]>([]);
+/** Derived from the grid so undo/redo of a resize keeps both in sync. */
+const grid_dimensions_atom = atom<[number, number]>((get) => {
+  const grid = get(grid_data_atom);
+  return grid.length > 0 ? [grid.length, grid[0]?.length ?? 0] : DEFAULT_GRID_DIMENSIONS;
+});
 const listed_atom = atom<boolean>(false);
 const description_atom = atom<string>('');
 const lipi_lekhika_active_atom = atom<boolean>(true);
@@ -219,8 +230,8 @@ const ViewEditPuzzle = ({ word_puzzle: initialWordPuzzle, catalog }: ViewEditPro
             <Description />
             <PuzzleCatalogFields />
             <Attachments />
-            <WordList gridDimensions={word_puzzle.grid_dimensions} />
-            <TraversalAndGridData grid_dimensions={word_puzzle.grid_dimensions} />
+            <DimensionsField />
+            <EditorGrid />
             <PuzzleImageSection word_puzzle={word_puzzle} />
             <SaveButton word_puzzle={word_puzzle} />
           </div>
@@ -1020,6 +1031,32 @@ const TraversalAnalysis = ({
         </motion.div>
       )}
     </AnimatePresence>
+  );
+};
+
+const EditorGrid = () => {
+  const [gridDimensions] = useAtom(grid_dimensions_atom);
+  return (
+    <>
+      <WordList gridDimensions={gridDimensions} />
+      <TraversalAndGridData grid_dimensions={gridDimensions} />
+    </>
+  );
+};
+
+const DimensionsField = () => {
+  const [dimensions] = useAtom(grid_dimensions_atom);
+  const [, setGridData] = useAtom(grid_data_atom);
+
+  return (
+    <GridDimensionsField
+      dimensions={dimensions}
+      limits={PADAVALI_DIM_LIMITS}
+      onApply={(next) => {
+        setGridData(createEmptyGridData(next));
+        toast.success(`Grid reset to ${next[0]}×${next[1]}`);
+      }}
+    />
   );
 };
 

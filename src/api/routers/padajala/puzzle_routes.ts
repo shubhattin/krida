@@ -13,8 +13,7 @@ import { and, asc, count, desc, eq, ilike, or, sql } from 'drizzle-orm';
 import { escapeIlikeToken, tokenizeSearchQuery } from '~/util/puzzle/search';
 import {
   collectionsForPuzzleIds,
-  puzzleHasTag,
-  puzzleInCollection,
+  catalogFilterConditions,
   tagsForPuzzleIds
 } from '~/util/catalog/list_query';
 import { createEmptyGridData } from '~/util/padajala/grid';
@@ -153,8 +152,8 @@ const get_puzzle_list_page_route = protectedAdminProcedure
           listed_filter,
           sort_by,
           order_by,
-          tag_slug,
-          collection_id
+          tag_slugs,
+          collection_ids
         } = padajala_list_input_schema.parse(input);
 
         const trimmedSearch = search_title?.trim();
@@ -170,10 +169,9 @@ const get_puzzle_list_page_route = protectedAdminProcedure
             );
           }
         }
-        if (tag_slug) conditions.push(puzzleHasTag(puzzles.id, 'padajala', tag_slug));
-        if (collection_id !== undefined) {
-          conditions.push(puzzleInCollection(puzzles.id, 'padajala', collection_id));
-        }
+        conditions.push(
+          ...catalogFilterConditions(puzzles.id, 'padajala', { tag_slugs, collection_ids })
+        );
         const whereClause = and(...conditions);
 
         const sortCol =

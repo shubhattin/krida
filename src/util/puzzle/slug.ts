@@ -69,6 +69,23 @@ export const simple_game_slug_schema = z
   });
 
 export const DEFAULT_GRID_DIMENSIONS: [number, number] = [6, 6];
+export const PADAVALI_MIN_DIM = 4;
+export const PADAVALI_MAX_DIM = 10;
+export const PADAVALI_DIM_LIMITS = { min: PADAVALI_MIN_DIM, max: PADAVALI_MAX_DIM };
+
+export const padavali_dimensions_schema = z.tuple([
+  z.number().int().min(PADAVALI_MIN_DIM).max(PADAVALI_MAX_DIM),
+  z.number().int().min(PADAVALI_MIN_DIM).max(PADAVALI_MAX_DIM)
+]);
+
+/** Rectangular grid whose sides are within the Padāvalī limits. */
+export const isValidPadavaliGrid = (grid: string[][]) => {
+  const cols = grid[0]?.length ?? 0;
+  return (
+    padavali_dimensions_schema.safeParse([grid.length, cols]).success &&
+    grid.every((row) => row.length === cols)
+  );
+};
 
 export const createEmptyGridData = (dims: [number, number] = DEFAULT_GRID_DIMENSIONS) =>
   Array.from({ length: dims[0] }, () => Array.from({ length: dims[1] }, () => ''));

@@ -1,8 +1,9 @@
 import type { CrossordPuzzleGridCell } from '~/db/schema_zod';
 
-export const PADAJALA_MIN_DIM = 3;
-export const PADAJALA_MAX_DIM = 30;
+export const PADAJALA_MIN_DIM = 5;
+export const PADAJALA_MAX_DIM = 15;
 export const PADAJALA_DEFAULT_DIM: [number, number] = [10, 10];
+export const PADAJALA_DIM_LIMITS = { min: PADAJALA_MIN_DIM, max: PADAJALA_MAX_DIM };
 
 /** Empty text = blocked box slot */
 export function createEmptyCell(): CrossordPuzzleGridCell {

@@ -1,5 +1,6 @@
 import { z } from 'zod';
 import type { GameKind } from '~/util/catalog/tags';
+import { PADAVALI_MAX_DIM, PADAVALI_MIN_DIM } from '~/util/puzzle/slug';
 
 /**
  * Starting options for a Puzzle Creator chat. They only set defaults: the system prompt tells
@@ -9,8 +10,8 @@ export const creator_options_schema = z.object({
   /** Words / entries / pairs / questions per puzzle. */
   item_count: z.number().int().min(2).max(40),
   /** Padāvalī grid. */
-  grid_rows: z.number().int().min(3).max(15).optional(),
-  grid_cols: z.number().int().min(3).max(15).optional(),
+  grid_rows: z.number().int().min(PADAVALI_MIN_DIM).max(PADAVALI_MAX_DIM).optional(),
+  grid_cols: z.number().int().min(PADAVALI_MIN_DIM).max(PADAVALI_MAX_DIM).optional(),
   /** Anveṣī options per question; Surūpa misspellings per akṣara. */
   choices: z.number().int().min(1).max(6).optional(),
   /** Anveṣī: write the answer options in Sanskrit Devanagari. */
@@ -43,8 +44,20 @@ export const CREATOR_OPTION_FIELDS = {
     defaults: { item_count: 9, grid_rows: 6, grid_cols: 6 },
     fields: [
       { kind: 'stepper', key: 'item_count', label: 'Words', min: 3, max: 25 },
-      { kind: 'stepper', key: 'grid_rows', label: 'Grid rows', min: 3, max: 15 },
-      { kind: 'stepper', key: 'grid_cols', label: 'Grid columns', min: 3, max: 15 }
+      {
+        kind: 'stepper',
+        key: 'grid_rows',
+        label: 'Grid rows',
+        min: PADAVALI_MIN_DIM,
+        max: PADAVALI_MAX_DIM
+      },
+      {
+        kind: 'stepper',
+        key: 'grid_cols',
+        label: 'Grid columns',
+        min: PADAVALI_MIN_DIM,
+        max: PADAVALI_MAX_DIM
+      }
     ]
   },
   padajala: {

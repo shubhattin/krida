@@ -8,7 +8,7 @@ import { useMutation, useQueryClient } from '@tanstack/react-query';
 import { invalidatePadajalaListedPuzzleQueries } from '~/components/pages/padajala/usePadajalaListedPuzzles';
 import { AnimatePresence, motion } from 'framer-motion';
 import useEmblaCarousel from 'embla-carousel-react';
-import { ArrowRight, ChevronLeft, ChevronRight, Info, Pencil, WandSparkles } from 'lucide-react';
+import { ArrowRight, ChevronLeft, ChevronRight, Info, WandSparkles } from 'lucide-react';
 import { IoMdAdd, IoMdClose } from 'react-icons/io';
 import { MdDeleteOutline, MdDragIndicator } from 'react-icons/md';
 import { toast } from 'sonner';
@@ -91,10 +91,8 @@ import {
   type LayoutRanking
 } from '~/util/padajala/layout_generator';
 import {
-  PADAJALA_MAX_DIM,
-  PADAJALA_MIN_DIM,
+  PADAJALA_DIM_LIMITS,
   cellHasLetter,
-  clampDimension,
   createEmptyGridData,
   formatGridCellRef,
   isBoxCell,
@@ -103,6 +101,7 @@ import {
   colIndexToNumberLabel
 } from '~/util/padajala/grid';
 import { PadajalaSlugField } from '~/components/pages/padajala/EditPadajalaSlugDialog';
+import { GridDimensionsField } from '~/components/puzzle/GridDimensionsField';
 import {
   PuzzleCatalogFields,
   puzzle_collections_atom,
@@ -607,96 +606,25 @@ const DimensionsField = () => {
   const [dimensions, setDimensions] = useAtom(grid_dimensions_atom);
   const [, setGridData] = useAtom(grid_data_atom);
   const [, setWordList] = useAtom(word_list_atom);
-  const [open, setOpen] = useState(false);
-  const [rows, setRows] = useState(dimensions[0]);
-  const [cols, setCols] = useState(dimensions[1]);
 
   return (
-    <>
-      <div className="flex items-end gap-2">
-        <div className="flex flex-col gap-1">
-          <Label className="text-sm font-semibold">Grid dimensions</Label>
-          <Input
-            value={`${dimensions[0]} × ${dimensions[1]}`}
-            disabled
-            className="w-36 bg-muted/50"
-          />
-        </div>
-        <Button
-          type="button"
-          variant="outline"
-          size="sm"
-          className="gap-1.5"
-          onClick={() => {
-            setRows(dimensions[0]);
-            setCols(dimensions[1]);
-            setOpen(true);
-          }}
-        >
-          <Pencil className="size-3.5" />
-          Edit
-        </Button>
-      </div>
-
-      <Dialog open={open} onOpenChange={setOpen}>
-        <DialogContent>
-          <DialogHeader>
-            <DialogTitle>Change grid dimensions</DialogTitle>
-            <DialogDescription>
-              Changing size clears the grid. You will need to re-enter letters and placements.
-            </DialogDescription>
-          </DialogHeader>
-          <div className="flex items-center gap-2">
-            <Input
-              type="number"
-              min={PADAJALA_MIN_DIM}
-              max={PADAJALA_MAX_DIM}
-              value={rows}
-              onChange={(e) => setRows(Number(e.currentTarget.value) || PADAJALA_MIN_DIM)}
-              className="w-20"
-              aria-label="Rows"
-            />
-            <span>×</span>
-            <Input
-              type="number"
-              min={PADAJALA_MIN_DIM}
-              max={PADAJALA_MAX_DIM}
-              value={cols}
-              onChange={(e) => setCols(Number(e.currentTarget.value) || PADAJALA_MIN_DIM)}
-              className="w-20"
-              aria-label="Columns"
-            />
-          </div>
-          <p className="text-sm text-amber-700 dark:text-amber-300">
-            Warning: the current grid will be cleared.
-          </p>
-          <DialogFooter>
-            <Button variant="outline" onClick={() => setOpen(false)}>
-              Cancel
-            </Button>
-            <Button
-              onClick={() => {
-                const next: [number, number] = [clampDimension(rows), clampDimension(cols)];
-                setDimensions(next);
-                setGridData(createEmptyGridData(next));
-                // SAFETY: grid reset pins every word to the origin, horizontal
-                setWordList((prev) =>
-                  prev.map((w) => ({
-                    ...w,
-                    location: [0, 0] as [number, number],
-                    direction: 'horizontal' as const
-                  }))
-                );
-                setOpen(false);
-                toast.success(`Grid reset to ${next[0]}×${next[1]}`);
-              }}
-            >
-              Apply & clear grid
-            </Button>
-          </DialogFooter>
-        </DialogContent>
-      </Dialog>
-    </>
+    <GridDimensionsField
+      dimensions={dimensions}
+      limits={PADAJALA_DIM_LIMITS}
+      onApply={(next) => {
+        setDimensions(next);
+        setGridData(createEmptyGridData(next));
+        // SAFETY: grid reset pins every word to the origin, horizontal
+        setWordList((prev) =>
+          prev.map((w) => ({
+            ...w,
+            location: [0, 0] as [number, number],
+            direction: 'horizontal' as const
+          }))
+        );
+        toast.success(`Grid reset to ${next[0]}×${next[1]}`);
+      }}
+    />
   );
 };
 

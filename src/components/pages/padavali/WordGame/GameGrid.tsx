@@ -23,6 +23,7 @@ import type { location_list_type } from '~/db/types';
 import { FaPlay } from 'react-icons/fa';
 import { useStartPuzzleGame } from './useStartPuzzleGame';
 import playStyles from './play-button.module.css';
+import { DEFAULT_GRID_DIMENSIONS } from '~/util/puzzle/slug';
 
 type Props = {
   puzzle_id: number;
@@ -46,6 +47,23 @@ const getPointerCoords = (e: DragEventLike): { clientX: number; clientY: number 
 
 function resolveGridDimension(dim: number, fallback: number) {
   return dim > 0 ? dim : fallback;
+}
+
+/** Column count the fixed gaps, padding and font sizes were tuned for. */
+const TUNED_SIDE = DEFAULT_GRID_DIMENSIONS[1];
+
+/**
+ * Up to 6 columns and no taller than wide keeps the original fixed sizing. More columns get a
+ * wider board with tighter gaps; taller boards are capped to the viewport height. Both switch
+ * the font and overlays to track the cell size.
+ */
+export function padavaliGridLayout(rows: number, cols: number) {
+  const dense = cols > TUNED_SIDE;
+  const tall = rows > cols;
+  const caps = ['100%', '90vw', `${dense ? Math.min(75 * cols, 640) : 450}px`];
+  // Touch scrolling is locked on the grid during play, so the whole board must fit on screen.
+  if (tall) caps.push(`max(calc((100dvh - 16rem) * ${cols} / ${rows}), ${cols * 2.75}rem)`);
+  return { dense, fluid: dense || tall, maxWidth: `min(${caps.join(', ')})` };
 }
 
 type DemoState = 'idle' | 'selecting' | 'success' | 'fail';
@@ -104,8 +122,8 @@ const DEMO_TRAIL_CLASSES = {
 
 const BASE_CELL_CLASSES = [
   'text-base',
-  'flex items-center justify-center rounded-3xl px-px py-0 text-center font-bold sm:rounded-2xl',
-  'aspect-square border-2 sm:p-1 md:p-2',
+  'flex items-center justify-center px-px py-0 text-center font-bold',
+  'aspect-square border-2',
   'transform transition-all duration-300 ease-out',
   'hover:scale-105 active:scale-95',
   'border-slate-300 bg-linear-to-br from-white to-slate-50 dark:border-slate-600 dark:from-slate-700 dark:to-slate-800',
@@ -167,6 +185,7 @@ function hoverCellClasses(
 
 function gridCellClass(props: {
   fontInfo: { fontSize: number; className: string };
+  dense: boolean;
   started: boolean;
   isInDemo: boolean;
   isInFound: boolean;
@@ -175,13 +194,25 @@ function gridCellClass(props: {
   isLast: boolean;
   demoState: DemoState;
 }) {
-  const { fontInfo, started, isInDemo, isInFound, isInCurrent, isInRevealed, isLast, demoState } =
-    props;
+  const {
+    fontInfo,
+    dense,
+    started,
+    isInDemo,
+    isInFound,
+    isInCurrent,
+    isInRevealed,
+    isLast,
+    demoState
+  } = props;
   return cn(
     fontInfo.className,
     !started && 'blur-sm',
     started && 'cursor-pointer',
     BASE_CELL_CLASSES,
+    dense
+      ? 'rounded-2xl sm:rounded-xl sm:p-0.5 md:p-1'
+      : 'rounded-3xl sm:rounded-2xl sm:p-1 md:p-2',
     isInDemo && !started && demoCellClasses(demoState),
     revealedCellClasses(isInRevealed, isInFound, isInCurrent),
     foundCellClasses(isInFound),
@@ -207,8 +238,10 @@ export const GameGrid = ({ timerRef, original_grid_data }: Props) => {
   const handleStart = useStartPuzzleGame(timerRef);
   const rows = resolveGridDimension(gridDimensions[0], original_grid_data.length);
   const cols = resolveGridDimension(gridDimensions[1], original_grid_data[0]!.length);
+  const layout = padavaliGridLayout(rows, cols);
   const gridRef = useRef<HTMLDivElement>(null);
   const lastGridSizeRef = useRef({ width: 0, height: 0 });
+  const [cellPx, setCellPx] = useState(0);
 
   // Mutable ref to track the live selection during a drag gesture.
   // React state (`currentSelection`) is captured in closures at render-time,
@@ -304,6 +337,11 @@ export const GameGrid = ({ timerRef, original_grid_data }: Props) => {
   }, [demoActive, rows, cols]);
 
   const font_info = FONT_INFO[script!];
+  // Fluid sizes are relative to the board width (`cqi`); the rem cap keeps the tuned size.
+  const cellFontSize = layout.fluid
+    ? `min(${font_info.fontSize}rem, ${(40 / cols).toFixed(3)}cqi)`
+    : `${font_info.fontSize}rem`;
+  const strokeScale = layout.fluid ? Math.min(1, Math.max(0.5, cellPx / 52)) : 1;
 
   // Prevent pull-to-refresh and other navigation gestures
   useEffect(() => {
@@ -401,6 +439,7 @@ export const GameGrid = ({ timerRef, original_grid_data }: Props) => {
         };
       }
       setCellCenters(centers);
+      setCellPx(rounded.width / cols);
     };
 
     const scheduleSync = () => {
@@ -621,23 +660,22 @@ export const GameGrid = ({ timerRef, original_grid_data }: Props) => {
       <div className="w-full">
         {/* Game Grid Card */}
         <div className="overflow-hidden rounded-3xl border border-slate-200 bg-white p-2.5 shadow-2xl sm:p-4 md:p-6 dark:border-slate-700 dark:bg-slate-800">
-          {/* relative wrapper for grid + overlay */}
-          <div className="relative">
+          {/* relative wrapper for grid + overlay; sized like the grid so the SVG lines up */}
+          <div className="@container relative mx-auto" style={{ maxWidth: layout.maxWidth }}>
             {/* Game Grid */}
             <div
               ref={gridRef}
               {...bind()}
               data-game-grid
               className={cn(
-                'relative z-10 mx-auto grid h-full w-full select-none',
-                'gap-1.5 sm:gap-2.5 md:gap-3',
+                'relative z-10 grid h-full w-full select-none',
+                layout.dense ? 'gap-1 sm:gap-1.5 md:gap-2' : 'gap-1.5 sm:gap-2.5 md:gap-3',
                 // Enhanced touch handling for all states
                 'touch-none'
               )}
               style={{
                 gridTemplateColumns: `repeat(${cols}, 1fr)`,
                 gridTemplateRows: `repeat(${rows}, 1fr)`,
-                maxWidth: 'min(100%, min(90vw, 450px))',
                 // Additional CSS properties for mobile gesture prevention
                 WebkitTouchCallout: 'none',
                 WebkitUserSelect: 'none',
@@ -655,6 +693,8 @@ export const GameGrid = ({ timerRef, original_grid_data }: Props) => {
                     col={ci}
                     letter={letter}
                     fontInfo={font_info}
+                    fontSize={cellFontSize}
+                    dense={layout.dense}
                     started={started}
                     currentSelection={currentSelection}
                     foundWords={foundWords}
@@ -670,6 +710,7 @@ export const GameGrid = ({ timerRef, original_grid_data }: Props) => {
                 isVisible={isHandVisible}
                 rows={rows}
                 cols={cols}
+                fontSize={layout.fluid ? `min(1.875rem, ${(60 / cols).toFixed(3)}cqi)` : undefined}
               />
             </div>
 
@@ -684,6 +725,7 @@ export const GameGrid = ({ timerRef, original_grid_data }: Props) => {
               completed={completed}
               buildPoints={buildPoints}
               getCenter={getCenter}
+              strokeScale={strokeScale}
             />
 
             {/* Play Button Overlay - centered over the grid */}
@@ -705,19 +747,23 @@ function HandPointerOverlay({
   displayPos,
   isVisible,
   rows,
-  cols
+  cols,
+  fontSize
 }: {
   displayPos: CellPosition | null;
   isVisible: boolean;
   rows: number;
   cols: number;
+  /** Overrides the fixed text size on boards whose cells scale. */
+  fontSize?: string;
 }) {
   return (
     <motion.div
       style={{
         position: 'absolute',
         zIndex: 35,
-        pointerEvents: 'none'
+        pointerEvents: 'none',
+        fontSize
       }}
       initial={false}
       animate={{
@@ -813,7 +859,8 @@ function TrailsOverlay({
   started,
   completed,
   buildPoints,
-  getCenter
+  getCenter,
+  strokeScale
 }: {
   foundWords: { cells: CellPosition[] }[];
   currentSelection: CellPosition[];
@@ -824,8 +871,12 @@ function TrailsOverlay({
   completed: boolean;
   buildPoints: (cells: CellPosition[]) => string;
   getCenter: (cell: CellPosition) => { x: number; y: number };
+  /** Shrinks trails on boards with small cells; 1 keeps the tuned widths. */
+  strokeScale: number;
 }) {
   const demoTrail = DEMO_TRAIL_CLASSES[demoState];
+  const glowWidth = 12 * strokeScale;
+  const mainWidth = 6 * strokeScale;
 
   return (
     <svg
@@ -841,7 +892,7 @@ function TrailsOverlay({
             getCenter={getCenter}
             strokeClassName="stroke-emerald-300 dark:stroke-emerald-400"
             fillClassName="fill-emerald-300 dark:fill-emerald-400"
-            strokeWidth={12}
+            strokeWidth={glowWidth}
             opacity={0.3}
           />
           <TrailMark
@@ -850,7 +901,7 @@ function TrailsOverlay({
             getCenter={getCenter}
             strokeClassName="stroke-emerald-500 dark:stroke-emerald-400"
             fillClassName="fill-emerald-500 dark:fill-emerald-400"
-            strokeWidth={6}
+            strokeWidth={mainWidth}
           />
         </g>
       ))}
@@ -864,7 +915,7 @@ function TrailsOverlay({
             getCenter={getCenter}
             strokeClassName="stroke-slate-400 dark:stroke-white"
             fillClassName="fill-slate-400 dark:fill-white"
-            strokeWidth={12}
+            strokeWidth={glowWidth}
             opacity={0.3}
           />
           <TrailMark
@@ -873,7 +924,7 @@ function TrailsOverlay({
             getCenter={getCenter}
             strokeClassName="stroke-slate-600 dark:stroke-slate-100"
             fillClassName="fill-slate-600 dark:fill-slate-100"
-            strokeWidth={6}
+            strokeWidth={mainWidth}
           />
         </g>
       ) : null}
@@ -887,7 +938,7 @@ function TrailsOverlay({
             getCenter={getCenter}
             strokeClassName="stroke-blue-300 dark:stroke-blue-400"
             fillClassName="fill-blue-300 dark:fill-blue-400"
-            strokeWidth={12}
+            strokeWidth={glowWidth}
             opacity={0.3}
           />
           <TrailMark
@@ -896,7 +947,7 @@ function TrailsOverlay({
             getCenter={getCenter}
             strokeClassName="stroke-blue-500 dark:stroke-blue-400"
             fillClassName="fill-blue-500 dark:fill-blue-400"
-            strokeWidth={6}
+            strokeWidth={mainWidth}
           />
         </g>
       ) : null}
@@ -907,13 +958,13 @@ function TrailsOverlay({
           <TrailPolyline
             points={buildPoints(demoPath)}
             className={demoTrail.glow}
-            strokeWidth={12}
+            strokeWidth={glowWidth}
             opacity={0.3}
           />
           <TrailPolyline
             points={buildPoints(demoPath)}
             className={demoTrail.main}
-            strokeWidth={6}
+            strokeWidth={mainWidth}
           />
         </g>
       ) : null}
@@ -957,6 +1008,8 @@ type GridCellProps = {
   col: number;
   letter: string;
   fontInfo: { fontSize: number; className: string };
+  fontSize: string;
+  dense: boolean;
   started: boolean;
   currentSelection: CellPosition[];
   foundWords: { cells: CellPosition[]; word: string }[];
@@ -970,6 +1023,8 @@ const GridCell = ({
   col,
   letter,
   fontInfo,
+  fontSize,
+  dense,
   started,
   currentSelection,
   foundWords,
@@ -996,13 +1051,14 @@ const GridCell = ({
       data-col={col}
       data-game-grid
       style={{
-        fontSize: `${fontInfo.fontSize}rem`,
+        fontSize,
         // Additional mobile gesture prevention
         WebkitTouchCallout: 'none',
         WebkitUserSelect: 'none'
       }}
       className={gridCellClass({
         fontInfo,
+        dense,
         started,
         isInDemo,
         isInFound,

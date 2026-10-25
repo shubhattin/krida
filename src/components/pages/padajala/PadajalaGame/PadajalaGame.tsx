@@ -8,7 +8,7 @@ import { motion } from 'framer-motion';
 import { toast } from 'sonner';
 // import { Switch } from '~/components/ui/switch';
 // import { Label } from '~/components/ui/label';
-import { PadajalaGrid } from './PadajalaGrid';
+import { PadajalaGrid, padajalaBoardLayout } from './PadajalaGrid';
 import { GameProgress } from './GameProgress';
 import { GameControls } from './GameControls';
 import { CompletionCelebration } from './CompletionCelebration';
@@ -36,6 +36,7 @@ import {
   pending_navigation_url_atom
 } from './game_state';
 import { cn } from '~/lib/utils';
+import { PADAJALA_DEFAULT_DIM } from '~/util/padajala/grid';
 import { copy_text_to_clipboard } from '~/tools/kry';
 import type { Attachment } from '~/util/puzzle/attachments';
 import type { location_list_type } from '~/db/types';
@@ -194,47 +195,57 @@ function BoardColumn({
   requestKeyboard: () => void;
   onAfterStart: () => void;
 }) {
+  const puzzle = useAtomValue(puzzle_atom);
+  const [rows, cols] = puzzle?.dimensions ?? PADAJALA_DEFAULT_DIM;
+  const layout = padajalaBoardLayout(rows, cols);
+
   return (
     <div className="order-1 flex w-full flex-col items-center gap-1 sm:gap-4 lg:order-2 lg:col-span-6">
-      <div
-        ref={boardAnchorRef}
-        className={cn(
-          'relative w-full max-w-[min(100%,24rem)] lg:max-w-100 xl:max-w-104 2xl:max-w-[min(30rem,calc(100dvh-16rem))]',
-          boardSeamClass(useVirtualKeyboard, started, completed, keyboardPanelOpen)
-        )}
-      >
-        {!useVirtualKeyboard ? (
-          <PadajalaKeyboardBridge
-            ref={keyboardRef}
-            onKeyDown={game.handleKeyDown}
-            onTypeLetter={game.typeLetter}
-            onBackspace={game.backspace}
-          />
-        ) : null}
-        <PadajalaGrid
-          game={game}
-          onRequestKeyboard={useVirtualKeyboard ? undefined : requestKeyboard}
-        />
-        {!started ? (
-          <div className="absolute inset-0 flex items-center justify-center rounded-lg bg-background/25 backdrop-blur-[2px]">
-            <GameControls game={game} onAfterStart={onAfterStart} />
-          </div>
-        ) : null}
-        {/* Toggle sits on the grid/keyboard seam so it doesn't add a gap row. */}
-        {started && !completed ? (
-          <div className="absolute right-1 bottom-0 z-20 translate-y-1/2 sm:right-0">
-            <PadajalaOnScreenKeyboard
-              enabled={useVirtualKeyboard}
-              open={keyboardPanelOpen}
-              onOpenChange={onKeyboardOpenChange}
+      {/* Height cap for tall boards; combines with the width caps on the anchor below. */}
+      <div className="flex w-full justify-center" style={{ maxWidth: layout.tallMaxWidth }}>
+        <div
+          ref={boardAnchorRef}
+          className={cn(
+            'relative w-full',
+            layout.dense
+              ? 'max-w-full sm:max-w-[30rem] lg:max-w-[34rem] xl:max-w-[36rem] 2xl:max-w-[min(38rem,calc(100dvh-12rem))]'
+              : 'max-w-[min(100%,24rem)] lg:max-w-100 xl:max-w-104 2xl:max-w-[min(30rem,calc(100dvh-16rem))]',
+            boardSeamClass(useVirtualKeyboard, started, completed, keyboardPanelOpen)
+          )}
+        >
+          {!useVirtualKeyboard ? (
+            <PadajalaKeyboardBridge
+              ref={keyboardRef}
+              onKeyDown={game.handleKeyDown}
               onTypeLetter={game.typeLetter}
               onBackspace={game.backspace}
-              onToggleDirection={game.toggleDirection}
-              canToggleDirection={game.canToggleDirection}
-              toggleOnly
             />
-          </div>
-        ) : null}
+          ) : null}
+          <PadajalaGrid
+            game={game}
+            onRequestKeyboard={useVirtualKeyboard ? undefined : requestKeyboard}
+          />
+          {!started ? (
+            <div className="absolute inset-0 flex items-center justify-center rounded-lg bg-background/25 backdrop-blur-[2px]">
+              <GameControls game={game} onAfterStart={onAfterStart} />
+            </div>
+          ) : null}
+          {/* Toggle sits on the grid/keyboard seam so it doesn't add a gap row. */}
+          {started && !completed ? (
+            <div className="absolute right-1 bottom-0 z-20 translate-y-1/2 sm:right-0">
+              <PadajalaOnScreenKeyboard
+                enabled={useVirtualKeyboard}
+                open={keyboardPanelOpen}
+                onOpenChange={onKeyboardOpenChange}
+                onTypeLetter={game.typeLetter}
+                onBackspace={game.backspace}
+                onToggleDirection={game.toggleDirection}
+                canToggleDirection={game.canToggleDirection}
+                toggleOnly
+              />
+            </div>
+          ) : null}
+        </div>
       </div>
 
       {started && !completed ? (

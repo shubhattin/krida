@@ -158,10 +158,10 @@ function SimpleGameListFilters({
   onOrderByChange,
   layout,
   onLayoutChange,
-  tagSlug,
-  collectionId,
-  onTagSlugChange,
-  onCollectionIdChange
+  tagSlugs,
+  collectionIds,
+  onTagSlugsChange,
+  onCollectionIdsChange
 }: {
   search: string;
   onSearchChange: (value: string) => void;
@@ -174,10 +174,10 @@ function SimpleGameListFilters({
   onOrderByChange: (value: 'asc' | 'desc') => void;
   layout: ListLayout;
   onLayoutChange: (layout: ListLayout) => void;
-  tagSlug: string;
-  collectionId: string;
-  onTagSlugChange: (value: string) => void;
-  onCollectionIdChange: (value: string) => void;
+  tagSlugs: string[];
+  collectionIds: number[];
+  onTagSlugsChange: (value: string[]) => void;
+  onCollectionIdsChange: (value: number[]) => void;
 }) {
   return (
     <div className="rounded-xl border border-slate-200/60 bg-white/50 p-3 shadow-sm backdrop-blur-sm sm:p-4 dark:border-slate-700/40 dark:bg-slate-800/30">
@@ -245,10 +245,10 @@ function SimpleGameListFilters({
             </Select>
           </div>
           <AdminCatalogFilters
-            tagSlug={tagSlug}
-            collectionId={collectionId}
-            onTagSlugChange={onTagSlugChange}
-            onCollectionIdChange={onCollectionIdChange}
+            tagSlugs={tagSlugs}
+            collectionIds={collectionIds}
+            onTagSlugsChange={onTagSlugsChange}
+            onCollectionIdsChange={onCollectionIdsChange}
           />
           <div className="flex items-center gap-1 rounded-lg border border-slate-200/60 p-0.5 dark:border-slate-700/40">
             <Button
@@ -298,8 +298,8 @@ export function SimpleGameListPage({ kind }: { kind: SimpleGameKind }) {
   const [sortBy, setSortBy] = useState<'created_at' | 'updated_at'>('created_at');
   const [orderBy, setOrderBy] = useState<'asc' | 'desc'>('desc');
   const [layout, setLayout] = useState<ListLayout>('cards');
-  const [tagSlug, setTagSlug] = useState('all');
-  const [collectionId, setCollectionId] = useState('all');
+  const [tagSlugs, setTagSlugs] = useState<string[]>([]);
+  const [collectionIds, setCollectionIds] = useState<number[]>([]);
 
   useEffect(() => {
     const timeout = setTimeout(() => {
@@ -315,8 +315,8 @@ export function SimpleGameListPage({ kind }: { kind: SimpleGameKind }) {
     listed_filter: listedFilter,
     sort_by: sortBy,
     order_by: orderBy,
-    tag_slug: tagSlug === 'all' ? undefined : tagSlug,
-    collection_id: collectionId === 'all' ? undefined : Number(collectionId)
+    tag_slugs: tagSlugs,
+    collection_ids: collectionIds
   };
   const isFullList = layout === 'links';
 
@@ -369,14 +369,14 @@ export function SimpleGameListPage({ kind }: { kind: SimpleGameKind }) {
         }}
         layout={layout}
         onLayoutChange={setLayout}
-        tagSlug={tagSlug}
-        collectionId={collectionId}
-        onTagSlugChange={(value) => {
-          setTagSlug(value);
+        tagSlugs={tagSlugs}
+        collectionIds={collectionIds}
+        onTagSlugsChange={(value) => {
+          setTagSlugs(value);
           setPage(1);
         }}
-        onCollectionIdChange={(value) => {
-          setCollectionId(value);
+        onCollectionIdsChange={(value) => {
+          setCollectionIds(value);
           setPage(1);
         }}
       />

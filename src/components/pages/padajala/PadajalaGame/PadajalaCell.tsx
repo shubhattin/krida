@@ -9,6 +9,8 @@ type PadajalaCellProps = {
   col: number;
   letter: string;
   clueNumber?: number;
+  /** Overrides the fixed clue-number size on boards whose cells scale. */
+  clueFontSize?: string;
   blocked: boolean;
   fixed: boolean;
   selected: boolean;
@@ -70,6 +72,7 @@ export function PadajalaCell({
   col,
   letter,
   clueNumber,
+  clueFontSize,
   blocked,
   fixed,
   selected,
@@ -105,7 +108,10 @@ export function PadajalaCell({
       })}
     >
       {clueNumber ? (
-        <span className="pointer-events-none absolute top-px left-0.5 text-[0.5rem] leading-none font-semibold text-muted-foreground/70 sm:text-[0.6rem]">
+        <span
+          className="pointer-events-none absolute top-px left-0.5 text-[0.5rem] leading-none font-semibold text-muted-foreground/70 sm:text-[0.6rem]"
+          style={clueFontSize ? { fontSize: clueFontSize } : undefined}
+        >
           {clueNumber}
         </span>
       ) : null}
