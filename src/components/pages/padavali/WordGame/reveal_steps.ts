@@ -1,16 +1,7 @@
 import type { CellPosition, RevealedWord } from './game_state';
 
-/**
- * Most akṣaras a progressive reveal will show for a word. For words of 3+ akṣaras
- * the last one is held back so the player still works out the ending; 1–2 akṣara
- * words reveal fully, otherwise a 2-akṣara word would stop after a single cell and
- * the next press would jump to a different word.
- */
-export const maxRevealSteps = (pathLength: number) =>
-  pathLength <= 2 ? Math.max(1, pathLength) : pathLength - 1;
-
-const isExhausted = (revealed: RevealedWord) =>
-  revealed.cells.length >= maxRevealSteps(revealed.fullPath.length);
+/** A word is exhausted once every akṣara of its path has been revealed. */
+const isExhausted = (revealed: RevealedWord) => revealed.cells.length >= revealed.fullPath.length;
 
 /** The current reveal target, or null once it has been found. */
 const activeTarget = (revealed: RevealedWord | null, remainingWords: string[]) =>

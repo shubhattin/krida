@@ -16,13 +16,16 @@ describe('nextRevealState', () => {
     expect(s.animateFrom).toBe(0);
   });
 
-  it('grows by one akṣara and stops one short of the full word', () => {
+  it('grows by one akṣara up to the full word', () => {
     const s1 = nextRevealState(null, ['abc'], pick, first)!;
     const s2 = nextRevealState(s1, ['abc'], pick, first)!;
     expect(s2.cells).toHaveLength(2);
     expect(s2.animateFrom).toBe(1);
-    expect(canRevealMore(s2, ['abc'])).toBe(false);
-    expect(nextRevealState(s2, ['abc'], pick, first)).toBeNull();
+    const s3 = nextRevealState(s2, ['abc'], pick, first)!;
+    expect(s3.cells).toHaveLength(3);
+    expect(s3.animateFrom).toBe(2);
+    expect(canRevealMore(s3, ['abc'])).toBe(false);
+    expect(nextRevealState(s3, ['abc'], pick, first)).toBeNull();
   });
 
   it('reveals both akṣaras of a 2-akṣara word before moving on', () => {
@@ -35,13 +38,14 @@ describe('nextRevealState', () => {
     expect(canRevealMore(s2, ['de'])).toBe(false);
   });
 
-  it('moves to another word once the target is exhausted', () => {
+  it('moves to another word once the target is fully revealed', () => {
     const s1 = nextRevealState(null, ['abc', 'de'], pick, first)!;
     const s2 = nextRevealState(s1, ['abc', 'de'], pick, first)!;
-    expect(s2.cells).toHaveLength(2);
     const s3 = nextRevealState(s2, ['abc', 'de'], pick, first)!;
-    expect(s3.word).toBe('de');
-    expect(s3.cells).toHaveLength(1);
+    expect(s3.cells).toHaveLength(3);
+    const s4 = nextRevealState(s3, ['abc', 'de'], pick, first)!;
+    expect(s4.word).toBe('de');
+    expect(s4.cells).toHaveLength(1);
   });
 
   it('starts fresh when the target was found', () => {
