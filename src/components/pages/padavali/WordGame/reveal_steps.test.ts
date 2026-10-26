@@ -25,12 +25,23 @@ describe('nextRevealState', () => {
     expect(nextRevealState(s2, ['abc'], pick, first)).toBeNull();
   });
 
-  it('moves to another word once the target is exhausted', () => {
+  it('reveals both akṣaras of a 2-akṣara word before moving on', () => {
     const s1 = nextRevealState(null, ['de', 'abc'], pick, first)!;
     expect(s1.word).toBe('de');
     const s2 = nextRevealState(s1, ['de', 'abc'], pick, first)!;
-    expect(s2.word).toBe('abc');
-    expect(s2.cells).toHaveLength(1);
+    expect(s2.word).toBe('de');
+    expect(s2.cells).toHaveLength(2);
+    expect(s2.animateFrom).toBe(1);
+    expect(canRevealMore(s2, ['de'])).toBe(false);
+  });
+
+  it('moves to another word once the target is exhausted', () => {
+    const s1 = nextRevealState(null, ['abc', 'de'], pick, first)!;
+    const s2 = nextRevealState(s1, ['abc', 'de'], pick, first)!;
+    expect(s2.cells).toHaveLength(2);
+    const s3 = nextRevealState(s2, ['abc', 'de'], pick, first)!;
+    expect(s3.word).toBe('de');
+    expect(s3.cells).toHaveLength(1);
   });
 
   it('starts fresh when the target was found', () => {
