@@ -34,6 +34,7 @@ import { MobileHistoryButton } from '../sidebar/AgentsSidebar';
 import { AgentChatProvider, type AddedPuzzle } from './agent_chat_context';
 import { AssistantMessage, ThinkingLine, UserMessage } from './AgentMessage';
 import { ChatComposer, type ComposerMessage } from './ChatComposer';
+import { ChatCost } from './ChatCost';
 import { ModelPicker } from './ModelPicker';
 
 export type AgentChatData = inferRouterOutputs<AppRouter>['agents']['get_chat'];
@@ -147,6 +148,7 @@ export function AgentChat({ data }: { data: AgentChatData }) {
               {creatorSummary ? ` · ${creatorSummary}` : ''}
             </p>
           </div>
+          <ChatCost messages={messages} />
           <Button variant="outline" size="sm" onClick={() => setContextOpen(true)}>
             <LibraryBigIcon />
             Context

@@ -11,6 +11,7 @@ import {
   puzzleRefToModelText
 } from '~/agents/puzzle_refs';
 import { createAgent } from '~/agents/server/create_agent';
+import { withHistoryCacheBreakpoint } from '~/agents/server/chat_messages';
 import {
   findAgentChat,
   loadAgentMessages,
@@ -18,7 +19,8 @@ import {
   setChatStreaming
 } from '~/agents/server/chat_store';
 import { generateChatTitle } from '~/agents/server/chat_title';
-import type { AgentMessageMetadata, AgentUIMessage } from '~/agents/ui_message';
+import { createReplyMeter } from '~/agents/server/cost';
+import type { AgentUIMessage } from '~/agents/ui_message';
 import { BadRequestError } from '~/effect/errors';
 import { runRouteEffect } from '~/effect/run';
 import { appRuntime } from '~/effect/runtime';
@@ -97,13 +99,17 @@ async function handleChat(request: Request): Promise<Response> {
           ? appRuntime.runPromise(generateChatTitle(firstText(newMessage)))
           : null;
 
+      const meter = createReplyMeter(model, undefined);
+
       yield* setChatStreaming(id, true);
       const result = yield* Effect.promise(async () =>
         agent.stream({
-          prompt: await convertToModelMessages<AgentUIMessage>(messages, {
-            tools,
-            convertDataPart: puzzleRefToModelText
-          })
+          prompt: withHistoryCacheBreakpoint(
+            await convertToModelMessages<AgentUIMessage>(messages, {
+              tools,
+              convertDataPart: puzzleRefToModelText
+            })
+          )
         })
       ).pipe(Effect.onError(() => Effect.ignore(setChatStreaming(id, false))));
 
@@ -112,21 +118,8 @@ async function handleChat(request: Request): Promise<Response> {
         generateMessageId,
         // Keep generating (and saving) even if the admin closes the tab mid-reply.
         consumeSseStream: consumeStream,
-        messageMetadata: ({ part }): AgentMessageMetadata | undefined => {
-          if (part.type === 'start') return { model };
-          if (part.type === 'finish') {
-            return {
-              model,
-              usage: {
-                inputTokens: part.totalUsage.inputTokens,
-                outputTokens: part.totalUsage.outputTokens,
-                cachedInputTokens: part.totalUsage.inputTokenDetails?.cacheReadTokens,
-                reasoningTokens: part.totalUsage.outputTokenDetails?.reasoningTokens
-              }
-            };
-          }
-          return undefined;
-        },
+        // Actual cost and tokens, emitted after every step.
+        messageMetadata: ({ part }) => meter(part),
         onFinish: async ({ messages: finished }) => {
           try {
             const title = titlePromise ? await titlePromise : undefined;

@@ -23,10 +23,7 @@ export const resolveAgentModel = Effect.fn('agents.resolve_model')(function* (
   modelId: AgentModelId
 ) {
   const ai = yield* AiProvider;
-  const meta = AGENT_MODELS[modelId];
-  return meta.provider === 'openai'
-    ? ai.openaiModel(meta.providerModelId)
-    : ai.openrouterModel(meta.providerModelId);
+  return ai.openrouterModel(AGENT_MODELS[modelId].providerModelId);
 });
 
 export const createAgent = Effect.fn('agents.create_agent')(function* (chat: {
@@ -54,10 +51,7 @@ export const createAgent = Effect.fn('agents.create_agent')(function* (chat: {
     instructions: toSystemMessages(agentInstructionSections(chat)),
     tools,
     stopWhen: stepCountIs(MAX_STEPS),
-    providerOptions: {
-      openai: { reasoningEffort: 'medium', reasoningSummary: 'auto' },
-      openrouter: { reasoning: { effort: 'medium' } }
-    }
+    providerOptions: { openrouter: { reasoning: { effort: 'medium' } } }
   });
   return { agent, tools };
 });
