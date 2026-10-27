@@ -578,7 +578,12 @@ function GuestCompletionCta({ completed }: { completed: boolean }) {
 function MediaSidebar({ attachments }: { attachments: z.infer<typeof attachment_schema>[] }) {
   return (
     <div className="order-2 lg:order-1 lg:col-span-3">
-      <MediaAttachments attachments={resolveAttachmentsWithDefaults(attachments.map((v) => v))} />
+      <MediaAttachments
+        attachments={resolveAttachmentsWithDefaults(
+          attachments.map((v) => v),
+          'padavali'
+        )}
+      />
     </div>
   );
 }
