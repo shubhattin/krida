@@ -1,6 +1,6 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { useChat } from '@ai-sdk/react';
-import { useQueryClient } from '@tanstack/react-query';
+import { useMutation, useQueryClient } from '@tanstack/react-query';
 import type { inferRouterOutputs } from '@trpc/server';
 import { DefaultChatTransport, isToolUIPart } from 'ai';
 import { AlertCircleIcon, LibraryBigIcon, RotateCcwIcon, SparklesIcon } from 'lucide-react';
@@ -72,6 +72,15 @@ export function AgentChat({ data }: { data: AgentChatData }) {
   const refreshSidebar = () =>
     void queryClient.invalidateQueries({ queryKey: trpc.agents.list_chats.queryKey() });
 
+  // Tells the streaming reply to abort server-side too: without it the reply keeps
+  // generating in the background after the tab lets go. Fire and forget.
+  const { mutate: requestServerStopMutation } = useMutation(
+    trpc.agents.stop_reply.mutationOptions()
+  );
+  const requestServerStop = useCallback(() => {
+    requestServerStopMutation({ id: chat.id });
+  }, [requestServerStopMutation, chat.id]);
+
   const { messages, sendMessage, setMessages, status, stop, error, regenerate } =
     useChat<AgentUIMessage>({
       id: chat.id,
@@ -125,6 +134,7 @@ export function AgentChat({ data }: { data: AgentChatData }) {
 
   const handleStop = () => {
     stoppedManually.current = true;
+    requestServerStop();
     stop();
   };
 
@@ -134,6 +144,7 @@ export function AgentChat({ data }: { data: AgentChatData }) {
     // Interrupt the run for this one; the rest of the queue still auto-sends afterwards.
     if (busy) {
       stoppedManually.current = true;
+      requestServerStop();
       stop();
     }
     sendNow({ text: item.text, refs: item.refs });

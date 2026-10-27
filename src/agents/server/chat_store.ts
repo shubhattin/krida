@@ -180,14 +180,41 @@ export const renameAgentChat = Effect.fn('agents.rename_chat')(function* (
   );
 });
 
-/** Mark a chat as (not) streaming — set when a reply starts, cleared when it lands or fails. */
+/** Mark a chat as (not) streaming — set when a reply starts, cleared when it lands or fails.
+ * A new reply also clears any stop request left from the last one. */
 export const setChatStreaming = Effect.fn('agents.set_streaming')(function* (
   id: string,
   streaming: boolean
 ) {
   yield* dbRunHttp('agents.set_streaming', (client) =>
-    client.update(agent_chats).set({ streaming }).where(eq(agent_chats.id, id)).returning()
+    client
+      .update(agent_chats)
+      .set(streaming ? { streaming, stop_requested_at: null } : { streaming })
+      .where(eq(agent_chats.id, id))
+      .returning()
   );
+});
+
+/** Ask the reply streaming for this chat to stop (it may run on another server instance). */
+export const requestChatStop = Effect.fn('agents.request_stop')(function* (id: string) {
+  yield* dbRunHttp('agents.request_stop', (client) =>
+    client
+      .update(agent_chats)
+      .set({ stop_requested_at: sql`now()` })
+      .where(and(eq(agent_chats.id, id), eq(agent_chats.streaming, true)))
+      .returning()
+  );
+});
+
+export const isChatStopRequested = Effect.fn('agents.is_stop_requested')(function* (id: string) {
+  const [chat] = yield* dbRunHttp('agents.is_stop_requested', (client) =>
+    client
+      .select({ stop_requested_at: agent_chats.stop_requested_at })
+      .from(agent_chats)
+      .where(eq(agent_chats.id, id))
+      .limit(1)
+  );
+  return chat?.stop_requested_at != null;
 });
 
 export const deleteAgentChat = Effect.fn('agents.delete_chat')(function* (id: string) {
