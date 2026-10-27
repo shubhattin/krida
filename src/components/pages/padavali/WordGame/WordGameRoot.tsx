@@ -61,6 +61,7 @@ import {
   getCarouselPuzzlesQueryFn
 } from '~/components/pages/padavali/WordGame/MorePuzzlesCarousel';
 import { MorePuzzles } from '~/components/pages/simple_game/play/MorePuzzles';
+import { CollectionUpNext } from '~/components/pages/puzzle/CollectionUpNext';
 import { attachment_schema } from '~/db/db_shared_vals';
 import { z } from 'zod';
 import { PuzzleHeader, PuzzleShareButton } from '~/components/pages/puzzle/PuzzleHeader';
@@ -752,7 +753,8 @@ function WordGame({
           transition={{ duration: 0.5, ease: 'easeOut' }}
           className="px-3 pt-3 sm:px-4 sm:pt-4"
         >
-          <div className="mx-auto max-w-6xl">
+          <div className="mx-auto flex max-w-6xl flex-col gap-4">
+            <CollectionUpNext />
             <MorePuzzles kind="padavali" puzzleId={puzzle_id} />
           </div>
         </motion.div>

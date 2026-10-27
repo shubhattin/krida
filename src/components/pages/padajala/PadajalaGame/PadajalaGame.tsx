@@ -26,6 +26,7 @@ import {
   MorePadajalaPuzzlesAccordion
 } from './MorePuzzlesCarousel';
 import { MorePuzzles } from '~/components/pages/simple_game/play/MorePuzzles';
+import { CollectionUpNext } from '~/components/pages/puzzle/CollectionUpNext';
 import { usePadajalaGame } from './usePadajalaGame';
 import { useMoreHints } from './useMoreHints';
 import { shouldAutoOpenOnScreenKeyboard } from './touch_device';
@@ -619,7 +620,8 @@ export function PadajalaGame({
       />
 
       {showCompletionCarousel ? (
-        <div className="mx-auto mb-3 w-full max-w-6xl px-3 sm:mb-4 sm:px-4">
+        <div className="mx-auto mb-3 flex w-full max-w-6xl flex-col gap-4 px-3 sm:mb-4 sm:px-4">
+          <CollectionUpNext />
           <MorePuzzles kind="padajala" puzzleId={puzzle.id} />
         </div>
       ) : null}

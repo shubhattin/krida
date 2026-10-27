@@ -20,6 +20,7 @@ import { SimpleGameStartOverlay } from '~/components/pages/simple_game/SimpleGam
 import { useTransliteratedText } from '~/components/pages/simple_game/useTransliteratedText';
 import { GameHud } from '~/components/pages/simple_game/play/GameHud';
 import { GameCompletion } from '~/components/pages/simple_game/play/GameCompletion';
+import { CollectionUpNext } from '~/components/pages/puzzle/CollectionUpNext';
 import { MorePuzzles } from '~/components/pages/simple_game/play/MorePuzzles';
 import { useGameClock } from '~/components/pages/simple_game/play/useGameClock';
 import { shuffleFewInPlace } from '~/components/pages/simple_game/play/shuffle';
@@ -456,7 +457,12 @@ export function DvayiPlay({
           />
         ) : null}
       </AnimatePresence>
-      {completed ? <MorePuzzles kind="dvayi" puzzleId={puzzleId} /> : null}
+      {completed ? (
+        <div className="flex flex-col gap-4">
+          <CollectionUpNext />
+          <MorePuzzles kind="dvayi" puzzleId={puzzleId} />
+        </div>
+      ) : null}
       <SimpleGameMetrics
         kind="dvayi"
         puzzleId={puzzleId}

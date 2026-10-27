@@ -13,6 +13,7 @@ import { useTransliteratedText } from '~/components/pages/simple_game/useTransli
 import { GameHud } from '~/components/pages/simple_game/play/GameHud';
 import { GameCompletion } from '~/components/pages/simple_game/play/GameCompletion';
 import { MorePuzzles } from '~/components/pages/simple_game/play/MorePuzzles';
+import { CollectionUpNext } from '~/components/pages/puzzle/CollectionUpNext';
 import { useGameClock } from '~/components/pages/simple_game/play/useGameClock';
 import { playGradient, SHAKE_TRANSITION, SHAKE_X } from '~/components/pages/simple_game/play/theme';
 
@@ -220,7 +221,12 @@ export function AnveshiPlay({
           </GameCompletion>
         ) : null}
       </AnimatePresence>
-      {completed ? <MorePuzzles kind="anveshi" puzzleId={puzzleId} /> : null}
+      {completed ? (
+        <div className="flex flex-col gap-4">
+          <CollectionUpNext />
+          <MorePuzzles kind="anveshi" puzzleId={puzzleId} />
+        </div>
+      ) : null}
       <SimpleGameMetrics
         kind="anveshi"
         puzzleId={puzzleId}

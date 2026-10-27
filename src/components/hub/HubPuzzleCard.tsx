@@ -20,11 +20,13 @@ const [IMG_W, IMG_H] = PUZZLE_CARD_IMAGE_ASPECT_RATIO;
 function SimplePuzzlePreviewCard({
   puzzle,
   game,
-  compact = false
+  compact = false,
+  fromCollection
 }: {
   puzzle: SimpleListedPuzzle;
   game: SimpleGameKind;
   compact?: boolean;
+  fromCollection?: string;
 }) {
   const imageUrl = puzzle.image ? getCDNUrl(puzzle.image.s3_key) : null;
   // Titles arrive pre-transliterated to the selected script (see hubData$),
@@ -35,6 +37,7 @@ function SimplePuzzlePreviewCard({
     <Link
       to={`/${game}/$slug`}
       params={{ slug: puzzle.slug }}
+      search={fromCollection ? { from: fromCollection } : undefined}
       className="group block h-full no-underline"
     >
       <motion.div
@@ -88,12 +91,15 @@ export function HubPuzzleCard({
   puzzle,
   compact,
   showGameBadge = true,
-  step
+  step,
+  fromCollection
 }: {
   puzzle: HubPuzzle;
   compact?: boolean;
   showGameBadge?: boolean;
   step?: number;
+  /** Collection slug: links keep `?from=` so the puzzle can lead back here. */
+  fromCollection?: string;
 }) {
   return (
     <div className="relative h-full">
@@ -111,11 +117,24 @@ export function HubPuzzleCard({
         </span>
       ) : null}
       {puzzle.game === 'padavali' ? (
-        <PuzzlePreviewCard puzzle={puzzle.source} compact={compact} />
+        <PuzzlePreviewCard
+          puzzle={puzzle.source}
+          compact={compact}
+          fromCollection={fromCollection}
+        />
       ) : puzzle.game === 'padajala' ? (
-        <PadajalaPreviewCard puzzle={puzzle.source} compact={compact} />
+        <PadajalaPreviewCard
+          puzzle={puzzle.source}
+          compact={compact}
+          fromCollection={fromCollection}
+        />
       ) : (
-        <SimplePuzzlePreviewCard puzzle={puzzle.source} game={puzzle.game} compact={compact} />
+        <SimplePuzzlePreviewCard
+          puzzle={puzzle.source}
+          game={puzzle.game}
+          compact={compact}
+          fromCollection={fromCollection}
+        />
       )}
     </div>
   );
