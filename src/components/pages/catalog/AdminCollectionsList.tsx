@@ -4,7 +4,7 @@ import { useEffect, useMemo, useState } from 'react';
 import { Image } from '@unpic/react';
 import { Link, useRouter } from '@tanstack/react-router';
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
-import { ArrowUpDownIcon, FilterIcon, List, Plus, SearchIcon } from 'lucide-react';
+import { ArrowUpDownIcon, FilterIcon, List, ListOrderedIcon, Plus, SearchIcon } from 'lucide-react';
 import { toast } from 'sonner';
 import {
   clearTypingContextOnKeyDown,
@@ -14,6 +14,7 @@ import {
 import { useTRPC } from '~/api/client';
 import { LanguageIcon } from '~/components/icons';
 import { invalidateCatalogQueries } from '~/components/pages/catalog/invalidateCatalogQueries';
+import { CollectionsOrderDialog } from '~/components/pages/catalog/CollectionsOrderDialog';
 import { Button } from '~/components/ui/button';
 import { Card, CardDescription, CardHeader, CardTitle } from '~/components/ui/card';
 import {
@@ -38,10 +39,11 @@ import { Switch } from '~/components/ui/switch';
 import { Textarea } from '~/components/ui/textarea';
 import { getCDNUrl } from '~/constants';
 import Icon from '~/tools/Icon';
+import { cn } from '~/lib/utils';
 import { normalizeTagSlug } from '~/util/catalog/tags';
 
 type ListedFilter = 'all' | 'listed' | 'unlisted';
-type CollectionSort = 'created_at' | 'title' | 'item_count' | 'listed';
+type CollectionSort = 'created_at' | 'title' | 'item_count' | 'listed' | 'order';
 type SortOrder = 'asc' | 'desc';
 
 const LISTED_FILTER_ITEMS: { label: string; value: ListedFilter }[] = [
@@ -54,7 +56,8 @@ const SORT_ITEMS: { label: string; value: CollectionSort }[] = [
   { label: 'Created', value: 'created_at' },
   { label: 'Title', value: 'title' },
   { label: 'Games', value: 'item_count' },
-  { label: 'Listed', value: 'listed' }
+  { label: 'Listed', value: 'listed' },
+  { label: 'Public order', value: 'order' }
 ];
 
 const ORDER_ITEMS: { label: string; value: SortOrder }[] = [
@@ -80,7 +83,15 @@ export function AdminCollectionsList() {
   const [sortBy, setSortBy] = useState<CollectionSort>('created_at');
   const [order, setOrder] = useState<SortOrder>('desc');
   const [createOpen, setCreateOpen] = useState(false);
+  const [reorderOpen, setReorderOpen] = useState(false);
+  const [reorderSession, setReorderSession] = useState(0);
   const ctx = useDevanagariTyping();
+  const trpc = useTRPC();
+  const collections_q = useQuery(trpc.catalog.list_collections.queryOptions());
+  const listedCollections = useMemo(
+    () => (collections_q.data ?? []).filter((collection) => collection.listed),
+    [collections_q.data]
+  );
 
   const toggleLipiOnShortcut = (event: React.KeyboardEvent) => {
     if (
@@ -126,7 +137,20 @@ export function AdminCollectionsList() {
             />
             <Icon src={LanguageIcon} className="size-5" />
           </Label>
-          <div className="ml-auto shrink-0">
+          <div className="ml-auto flex shrink-0 gap-2">
+            <Button
+              type="button"
+              variant="outline"
+              className="border-blue-500/50 text-blue-600 hover:bg-blue-50 hover:text-blue-700 dark:border-blue-400/40 dark:text-blue-400 dark:hover:bg-blue-950/40 dark:hover:text-blue-300"
+              disabled={!collections_q.data}
+              onClick={() => {
+                setReorderSession((session) => session + 1);
+                setReorderOpen(true);
+              }}
+            >
+              <ListOrderedIcon className="size-4" />
+              Reorder
+            </Button>
             <Button type="button" variant="outline" onClick={() => setCreateOpen(true)}>
               <Plus className="size-4" />
               New collection
@@ -206,9 +230,19 @@ export function AdminCollectionsList() {
         order={order}
       />
       <NewCollectionDialog open={createOpen} onOpenChange={setCreateOpen} />
+      <CollectionsOrderDialog
+        key={reorderSession}
+        open={reorderOpen}
+        onOpenChange={setReorderOpen}
+        collections={listedCollections}
+      />
     </div>
   );
 }
+
+/** Public page position; unordered listed after every ordered one, unlisted last. */
+const publicRank = (collection: { listed: boolean; order_index: number | null }) =>
+  collection.order_index ?? (collection.listed ? 1e6 : 2e6);
 
 function SelectDropdown({ items }: { items: { label: string; value: string }[] }) {
   return (
@@ -257,6 +291,12 @@ function CollectionsGrid({
         cmp = a.item_count - b.item_count;
       } else if (sortBy === 'listed') {
         cmp = Number(a.listed) - Number(b.listed);
+      } else if (sortBy === 'order') {
+        // Ascending = the public page: ordered, then unordered listed (newest first), then unlisted.
+        cmp = publicRank(a) - publicRank(b);
+        if (cmp === 0 && a.order_index === null) {
+          return new Date(b.created_at).getTime() - new Date(a.created_at).getTime() || b.id - a.id;
+        }
       } else {
         cmp = new Date(a.created_at).getTime() - new Date(b.created_at).getTime();
       }
@@ -308,7 +348,20 @@ function CollectionsGrid({
                   </CardDescription>
                 </div>
               </div>
-              <span className="text-xs text-muted-foreground">
+              <span className="flex items-center gap-1.5 text-xs text-muted-foreground">
+                {collection.listed ? (
+                  <span
+                    className={cn(
+                      'rounded px-1.5 py-px font-semibold tabular-nums',
+                      collection.order_index === null
+                        ? 'bg-muted text-muted-foreground'
+                        : 'bg-blue-500/10 text-blue-600 dark:text-blue-400'
+                    )}
+                    title="Position on the public collections page"
+                  >
+                    {collection.order_index === null ? 'unordered' : `#${collection.order_index}`}
+                  </span>
+                ) : null}
                 {collection.item_count} game{collection.item_count === 1 ? '' : 's'}
                 {collection.listed ? '' : ' · unlisted'}
               </span>

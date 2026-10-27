@@ -11,11 +11,12 @@ import {
   primaryKey,
   index,
   integer,
-  unique
+  unique,
+  check
 } from 'drizzle-orm/pg-core';
 import { ATTACHMENT_TYPE_LIST } from '../db_shared_vals';
 import type { BatchMetadata } from '~/util/types/ai_batch_metadata';
-import { relations } from 'drizzle-orm';
+import { relations, sql } from 'drizzle-orm';
 
 export const image_assets = pgTable(
   'image_assets',
@@ -87,10 +88,24 @@ export const collections = pgTable(
     image_id: integer().references(() => image_assets.id, { onDelete: 'set null' }),
     /** Whether the collection is listed on the public puzzles pages */
     listed: boolean().notNull().default(false),
+    /**
+     * 1-based position on the public collections list, contiguous across ordered rows.
+     * Only listed collections carry one; `null` = unordered, shown after the ordered
+     * ones (newest first). Contiguity is not a DB constraint: every writer must take
+     * `lockCollectionOrder` and go through the helpers in `src/api/routers/catalog.ts`.
+     */
+    order_index: smallint(),
     created_at: timestamp({ withTimezone: true }).notNull().defaultNow(),
     updated_at: timestamp({ withTimezone: true }).$onUpdate(() => new Date())
   },
-  (table) => [index('collections_listed_created_at_idx').on(table.listed, table.created_at)]
+  (table) => [
+    index('collections_listed_created_at_idx').on(table.listed, table.created_at),
+    index('collections_listed_order_index_idx').on(table.listed, table.order_index),
+    check(
+      'collections_order_index_listed_check',
+      sql`${table.order_index} is null or ${table.listed}`
+    )
+  ]
 );
 
 export const attachment_type_enum = pgEnum('attachment_type', ATTACHMENT_TYPE_LIST);

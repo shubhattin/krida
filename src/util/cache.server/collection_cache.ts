@@ -87,7 +87,8 @@ const load_listed_collections: CacheItem<NoCacheParams, ListedCollectionsType> =
           description: true
         },
         where: (tbl, { eq }) => eq(tbl.listed, true),
-        orderBy: (tbl, { desc }) => desc(tbl.created_at),
+        // Ordered first (asc puts nulls last), then unordered newest first.
+        orderBy: (tbl, { asc, desc }) => [asc(tbl.order_index), desc(tbl.created_at), desc(tbl.id)],
         with: {
           image: { columns: imageColumns },
           items: {
