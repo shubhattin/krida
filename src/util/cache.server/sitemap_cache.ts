@@ -101,6 +101,7 @@ const load_padavali_sitemap: CacheItem<NoCacheParams, string> = createCache({
         { loc: joinUrl(base, '/') },
         { loc: joinUrl(base, '/puzzles') },
         { loc: joinUrl(base, '/puzzles?game=padavali') },
+        { loc: joinUrl(base, '/puzzles?view=collections') },
         ...collections.map((collection) => ({
           loc: joinUrl(base, `/collections/${encodeURIComponent(collection.slug)}`),
           lastmod: collection.updated_at ?? collection.created_at

@@ -1,4 +1,4 @@
-import { createFileRoute } from '@tanstack/react-router';
+import { createFileRoute, redirect } from '@tanstack/react-router';
 import { useHubData } from '~/components/hub/hub_query';
 import { z } from 'zod';
 import { routeHeadFromPageMeta, siteUrl } from '~/components/tags/getPageMetaTags';
@@ -54,9 +54,93 @@ function puzzlesMetaForGame(game: PuzzlesSearch['game']) {
   } as const;
 }
 
+function puzzlesMetaForSearch(search: PuzzlesSearch) {
+  if (search.view === 'collections') {
+    return {
+      title: 'Sanskrit Collections | Krida',
+      project: 'landing_page',
+      description:
+        'Browse curated Sanskrit puzzle collections — mixed-game playlists across Padāvalī, Padajāla, Dvayī, Bhramitā, Surūpa and Anveṣī.',
+      canonical: `${siteUrl()}/puzzles?view=collections`
+    } as const;
+  }
+  return puzzlesMetaForGame(search.game);
+}
+
+/**
+ * Canonical URL shapes (see #134):
+ * - `/puzzles` (all puzzles; `?game=all` and `?view=puzzles` are redundant)
+ * - `/puzzles?game=<kind>` (one game; never with `?view=`)
+ * - `/puzzles?view=collections` (all collections; never with `?game=` or `?page=`)
+ * `?q=`, `?tag=` and (puzzles view only) `?page=` may accompany any of them.
+ * Anything else 301-redirects to its canonical form so old bookmarks stay valid.
+ */
+type CanonicalPuzzlesParams = {
+  view?: string;
+  game?: string;
+  q?: string;
+  tag?: string;
+  page?: string;
+};
+
+function canonicalPuzzlesSearch(search: PuzzlesSearch): CanonicalPuzzlesParams {
+  if (search.view === 'collections') {
+    const canonical: CanonicalPuzzlesParams = { view: 'collections' };
+    if (search.q) canonical.q = search.q;
+    if (search.tag) canonical.tag = search.tag;
+    return canonical;
+  }
+  const canonical: CanonicalPuzzlesParams = {};
+  if (search.game !== 'all') canonical.game = search.game;
+  if (search.q) canonical.q = search.q;
+  if (search.tag) canonical.tag = search.tag;
+  if (search.page != null && search.page > 1) canonical.page = String(search.page);
+  return canonical;
+}
+
+function isCanonicalPuzzlesUrl(searchStr: string, search: PuzzlesSearch): boolean {
+  const raw = new URLSearchParams(searchStr.startsWith('?') ? searchStr : `?${searchStr}`);
+  const canonical = canonicalPuzzlesSearch(search);
+  const rawKeys = new Set<string>();
+  for (const key of raw.keys()) {
+    // Duplicate keys (`?game=a&game=b`) are never canonical.
+    if (rawKeys.has(key)) return false;
+    rawKeys.add(key);
+  }
+  if (rawKeys.size !== Object.keys(canonical).length) return false;
+  for (const [key, value] of Object.entries(canonical)) {
+    if (raw.get(key) !== value) return false;
+  }
+  return true;
+}
+
 export const Route = createFileRoute('/_hub/puzzles')({
   validateSearch: puzzles_search_schema,
-  head: ({ match }) => routeHeadFromPageMeta(puzzlesMetaForGame(match.search.game)),
+  beforeLoad: ({ search, location }) => {
+    if (isCanonicalPuzzlesUrl(location.searchStr, search)) return;
+    if (search.view === 'collections') {
+      throw redirect({
+        to: '/puzzles',
+        search: {
+          view: 'collections' as const,
+          q: search.q || undefined,
+          tag: search.tag || undefined
+        },
+        statusCode: 301
+      });
+    }
+    throw redirect({
+      to: '/puzzles',
+      search: {
+        game: search.game !== 'all' ? search.game : undefined,
+        q: search.q || undefined,
+        tag: search.tag || undefined,
+        page: search.page != null && search.page > 1 ? search.page : undefined
+      },
+      statusCode: 301
+    });
+  },
+  head: ({ match }) => routeHeadFromPageMeta(puzzlesMetaForSearch(match.search)),
   component: PuzzlesPage
 });
 
