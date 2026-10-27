@@ -149,6 +149,7 @@ export const AIWordExplanations = ({ puzzle_id, puzzle_slug, timerRef }: Props) 
                       Word Meanings
                     </h3>
                     <span
+                      title="AI-generated explanations — may contain errors"
                       className={cn(
                         'inline-flex shrink-0 items-center gap-1 rounded-full px-2 py-0.5',
                         'bg-linear-to-r from-violet-100 to-fuchsia-100',
@@ -157,7 +158,7 @@ export const AIWordExplanations = ({ puzzle_id, puzzle_slug, timerRef }: Props) 
                         'dark:text-violet-300'
                       )}
                     >
-                      <Sparkles className="size-2.5" />
+                      <Sparkles className="size-2.5" aria-hidden />
                       AI
                     </span>
                   </div>

@@ -1,7 +1,7 @@
-import { Effect } from 'effect';
+import { Effect, Schedule } from 'effect';
 import { z } from 'zod';
 import { puzzle_schema } from '~/db/db_shared_vals';
-import { AiProvider, aiInvalidOutputRetryPolicy } from '~/effect/ai';
+import { AiProvider } from '~/effect/ai';
 import { AiProviderError } from '~/effect/errors';
 import { OPENROUTER_MODELS } from '~/util/ai/image_gen';
 
@@ -71,7 +71,12 @@ export const get_puzzle_word_meanings = Effect.fn('get_puzzle_word_meanings')(fu
     }
 
     return result;
-  }).pipe(Effect.retry(aiInvalidOutputRetryPolicy));
+  }).pipe(
+    // Basic retry: each attempt is billed, so cap at 2 retries (3 total tries).
+    // Covers transient failures and invalid output (e.g. word-count mismatch);
+    // the underlying AI SDK already retries transient HTTP errors internally.
+    Effect.retry(Schedule.recurs(2))
+  );
 
   return output;
 });

@@ -101,6 +101,7 @@ import {
 import { padavaliActiveWords } from '~/util/puzzle/word_list';
 import { PadavaliWordListEditor } from '~/components/pages/padavali/PadavaliWordListEditor';
 import { PadavaliLayoutGenerator } from '~/components/pages/padavali/PadavaliLayoutGenerator';
+import { PadavaliWordMeaningsPreview } from '~/components/pages/padavali/WordMeaningsPreview';
 import { GridDimensionsField } from '~/components/puzzle/GridDimensionsField';
 import {
   createEmptyGridData,
@@ -233,6 +234,7 @@ const ViewEditPuzzle = ({ word_puzzle: initialWordPuzzle, catalog }: ViewEditPro
             <DimensionsField />
             <EditorGrid />
             <PuzzleImageSection word_puzzle={word_puzzle} />
+            <PadavaliWordMeaningsPreview puzzleId={word_puzzle.id} slug={word_puzzle.slug} />
             <SaveButton word_puzzle={word_puzzle} />
           </div>
         </CardContent>
@@ -1569,6 +1571,14 @@ const SaveButton = ({ word_puzzle }: { word_puzzle: Puzzle }) => {
         await router.invalidate();
         invalidatePadavaliListedPuzzleQueries(queryClient);
         invalidateCatalogQueries(queryClient, trpc);
+        // Word meanings auto-regenerate server-side on title/desc/words change —
+        // refetch the admin preview so it shows the fresh AI output.
+        void queryClient.invalidateQueries({
+          queryKey: trpc.public_ai.get_puzzle_word_meanings.queryKey({
+            puzzle_id: word_puzzle.id,
+            puzzle_slug: word_puzzle.slug
+          })
+        });
       },
       onError() {
         saveSnapRef.current = null;

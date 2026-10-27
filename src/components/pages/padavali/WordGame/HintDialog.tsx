@@ -194,7 +194,6 @@ export function HintDialog({ puzzle_id, puzzle_slug, timerRef }: Props) {
                   compact
                   defaultOpen
                   tone="warm"
-                  showAiBadge={false}
                 />
               </>
             )}
