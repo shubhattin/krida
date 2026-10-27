@@ -80,15 +80,16 @@ export function WordMeaningsPanel({
                 </h3>
                 {showAiBadge ? (
                   <span
+                    title="AI-generated explanations — may contain errors"
                     className={cn(
                       'inline-flex items-center gap-1 rounded-full px-2 py-0.5',
-                      'bg-linear-to-r from-violet-100 to-fuchsia-100',
-                      'dark:from-violet-900/50 dark:to-fuchsia-900/40',
-                      'text-[9px] font-bold text-violet-600 sm:text-[10px]',
-                      'dark:text-violet-300'
+                      'text-[9px] font-bold sm:text-[10px]',
+                      warm
+                        ? 'bg-amber-500/15 text-amber-700 dark:bg-amber-400/10 dark:text-amber-300'
+                        : 'bg-linear-to-r from-violet-100 to-fuchsia-100 text-violet-600 dark:from-violet-900/50 dark:to-fuchsia-900/40 dark:text-violet-300'
                     )}
                   >
-                    <Sparkles className="size-2.5" />
+                    <Sparkles className="size-2.5" aria-hidden />
                     AI
                   </span>
                 ) : null}

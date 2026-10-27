@@ -17,7 +17,14 @@ export function useWordMeanings(puzzle_id: number, puzzle_slug: string) {
   const query = useQuery(
     trpc.public_ai.get_puzzle_word_meanings.queryOptions(
       { puzzle_id, puzzle_slug },
-      { staleTime: Infinity }
+      {
+        staleTime: Infinity,
+        // AI generation can fail transiently (cold start / rate limit) — retry a
+        // couple of times with backoff before surfacing the error + manual Retry.
+        retry: 2,
+        retryDelay: (attemptIndex) => Math.min(1000 * 2 ** attemptIndex, 5000),
+        refetchOnWindowFocus: false
+      }
     )
   );
 
@@ -48,6 +55,8 @@ export function useWordMeanings(puzzle_id: number, puzzle_slug: string) {
     data: query.data,
     error: query.error,
     isLoading: query.isLoading,
+    isFetching: query.isFetching,
+    failureCount: query.failureCount,
     refetch: query.refetch,
     transliteratedWords,
     script

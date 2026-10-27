@@ -18,7 +18,7 @@ type Props = {
 };
 
 export function WordMeaningsList({ meanings, compact = false }: Props) {
-  const { data, isLoading, error, refetch, transliteratedWords, script } = meanings;
+  const { data, isLoading, isFetching, error, refetch, transliteratedWords, script } = meanings;
 
   if (isLoading) {
     return (
@@ -41,6 +41,7 @@ export function WordMeaningsList({ meanings, compact = false }: Props) {
   }
 
   if (error) {
+    const isRetrying = isFetching;
     return (
       <div className="flex flex-col items-center justify-center gap-2.5 px-4 py-6 text-center">
         <div className="flex size-10 items-center justify-center rounded-full bg-rose-100 dark:bg-rose-900/30">
@@ -51,21 +52,25 @@ export function WordMeaningsList({ meanings, compact = false }: Props) {
             Failed to load explanations
           </p>
           <p className="mt-0.5 text-[10px] text-slate-500 sm:text-xs dark:text-slate-400">
-            Something went wrong while fetching AI insights.
+            {isRetrying
+              ? 'Retrying AI generation…'
+              : 'Something went wrong while fetching AI insights.'}
           </p>
         </div>
         <button
           type="button"
           onClick={() => refetch()}
+          disabled={isRetrying}
           className={cn(
             'mt-1 rounded-lg px-4 py-1.5',
             'bg-linear-to-r from-violet-600 to-fuchsia-600',
             'text-[11px] font-semibold text-white sm:text-xs',
             'shadow-sm shadow-violet-500/25',
-            'transition-all hover:shadow-md hover:brightness-110 active:scale-[0.97]'
+            'transition-all hover:shadow-md hover:brightness-110 active:scale-[0.97]',
+            'disabled:cursor-wait disabled:opacity-60 disabled:hover:brightness-100'
           )}
         >
-          Retry
+          {isRetrying ? 'Retrying…' : 'Retry'}
         </button>
       </div>
     );

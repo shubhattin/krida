@@ -450,7 +450,14 @@ function RevealClue({ puzzle_id, puzzle_slug }: { puzzle_id: number; puzzle_slug
           className="flex items-start gap-1.5 rounded-lg bg-amber-50/80 px-2.5 py-1.5 text-xs leading-snug text-amber-900 dark:bg-amber-950/30 dark:text-amber-100"
         >
           <Lightbulb className="mt-px size-3.5 shrink-0" aria-hidden />
-          <span>{clueFromMeaning(meaning)}</span>
+          <span className="min-w-0 flex-1">{clueFromMeaning(meaning)}</span>
+          <span
+            title="AI-generated hint from word meanings — may contain errors"
+            className="inline-flex shrink-0 items-center gap-0.5 rounded-full bg-violet-500/10 px-1.5 py-px text-[9px] font-bold text-violet-700 dark:bg-violet-400/10 dark:text-violet-300"
+          >
+            <Sparkles className="size-2.5" aria-hidden />
+            AI
+          </span>
         </motion.p>
       ) : null}
     </AnimatePresence>
@@ -605,10 +612,13 @@ function WordGame({
       queryFn: getCarouselPuzzlesQueryFn(script, puzzle_slug, puzzle_id)
     });
     void queryClient.prefetchQuery(
-      trpc.public_ai.get_puzzle_word_meanings.queryOptions({
-        puzzle_id,
-        puzzle_slug
-      })
+      trpc.public_ai.get_puzzle_word_meanings.queryOptions(
+        {
+          puzzle_id,
+          puzzle_slug
+        },
+        { staleTime: Infinity, retry: 2, refetchOnWindowFocus: false }
+      )
     );
   }, [puzzle_id, puzzle_slug, trpc, script, queryClient]);
 
