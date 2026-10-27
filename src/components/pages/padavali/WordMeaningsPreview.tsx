@@ -129,7 +129,7 @@ export function PadavaliWordMeaningsPreview({
               No meanings yet — save the puzzle to generate them.
             </p>
           ) : (
-            <ul className="flex max-h-[320px] flex-col gap-1.5 overflow-y-auto pr-0.5">
+            <ul className="grid max-h-[420px] grid-cols-1 gap-1.5 overflow-y-auto pr-0.5 sm:grid-cols-2">
               {query.data.words.map((item, idx) => (
                 <li key={`${item.word}-${idx}`} className="rounded-lg border bg-muted/30 px-3 py-2">
                   <p className="flex items-baseline gap-2 text-xs font-semibold">
