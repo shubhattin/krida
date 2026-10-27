@@ -19,7 +19,7 @@ export const Route = createFileRoute('/_hub/')({
       title: 'Krida | Play, Learn, Grow',
       project: 'landing_page',
       description:
-        'Sanskrit Games — play Padāvalī word search, Padajāla grids, Dvayī matching, Bhramitā jumbles, Surūpa spelling and Ānveṣī quizzes across Indian scripts, and grow your vocabulary through fun challenges.',
+        'Sanskrit Games — play Padāvalī word search, Padajāla grids, Dvayī matching, Bhramitā jumbles, Surūpa spelling and Anveṣī quizzes across Indian scripts, and grow your vocabulary through fun challenges.',
       canonical: `${siteUrl()}/`
     }),
   component: Home

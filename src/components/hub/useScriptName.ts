@@ -17,7 +17,7 @@ export const GAME_SCRIPT_NAMES = {
   dvayi: { iast: 'Dvayī', devanagari: 'द्वयी' },
   bhramita: { iast: 'Bhramitā', devanagari: 'भ्रमिता' },
   surupa: { iast: 'Surūpa', devanagari: 'सुरूप' },
-  anveshi: { iast: 'Ānveṣī', devanagari: 'आन्वेषी' }
+  anveshi: { iast: 'Anveṣī', devanagari: 'अन्वेषी' }
 } as const satisfies Record<GameKind, ScriptName>;
 
 /**

@@ -79,7 +79,7 @@ export const SIMPLE_GAME_META = {
   },
   anveshi: {
     kind: 'anveshi',
-    name: 'Ānveṣī',
+    name: 'Anveṣī',
     subtitle: 'Multiple choice',
     description: 'Answer a set of questions, with optional hints and explanations.',
     accent: {

@@ -80,7 +80,7 @@ const GAME_PRESENTATION = {
   dvayi: { name: 'Dvayī' },
   bhramita: { name: 'Bhramitā' },
   surupa: { name: 'Surūpa' },
-  anveshi: { name: 'Ānveṣī' }
+  anveshi: { name: 'Anveṣī' }
 } as const satisfies Record<AdminAnalyticsGameId, { name: string }>;
 
 const GAME_TABS = [
@@ -90,7 +90,7 @@ const GAME_TABS = [
   { value: 'dvayi', label: 'Dvayī' },
   { value: 'bhramita', label: 'Bhramitā' },
   { value: 'surupa', label: 'Surūpa' },
-  { value: 'anveshi', label: 'Ānveṣī' }
+  { value: 'anveshi', label: 'Anveṣī' }
 ] as const;
 
 function totalsStats(totals: AdminAnalyticsTotals): AnalyticsStat[] {
@@ -370,9 +370,9 @@ function TopPlayedLeaders({
         <TopPlayedLeader
           variant="puzzles"
           accordionValue="central-top-anveshi"
-          title="Top Played — Ānveṣī"
+          title="Top Played — Anveṣī"
           subtitle="Top 10 by plays"
-          emptyMessage="No Ānveṣī plays in this period"
+          emptyMessage="No Anveṣī plays in this period"
           isLoading={anveshi.isLoading}
           items={toTopPlayedRows(anveshi.puzzles)}
         />

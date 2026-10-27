@@ -33,7 +33,7 @@ const GAME_PUZZLES_DESCRIPTION = {
   surupa:
     'Browse Surūpa spelling puzzles — pick the right syllable at each step and restore the word.',
   anveshi:
-    'Browse Ānveṣī multiple-choice Sanskrit quizzes — answer questions with hints and explanations.'
+    'Browse Anveṣī multiple-choice Sanskrit quizzes — answer questions with hints and explanations.'
 } satisfies Record<GameKind, string>;
 
 function puzzlesMetaForGame(game: PuzzlesSearch['game']) {
@@ -42,7 +42,7 @@ function puzzlesMetaForGame(game: PuzzlesSearch['game']) {
       title: 'Sanskrit Puzzles | Krida',
       project: 'landing_page',
       description:
-        'Browse every Sanskrit puzzle — Padāvalī word search, Padajāla grids, Dvayī matching, Bhramitā jumbles, Surūpa spelling and Ānveṣī quizzes — plus collections and topics.',
+        'Browse every Sanskrit puzzle — Padāvalī word search, Padajāla grids, Dvayī matching, Bhramitā jumbles, Surūpa spelling and Anveṣī quizzes — plus collections and topics.',
       canonical: `${siteUrl()}/puzzles`
     } as const;
   }

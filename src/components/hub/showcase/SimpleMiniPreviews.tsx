@@ -539,7 +539,7 @@ function SurupaMiniPreview({ compact }: { compact: boolean }) {
   );
 }
 
-// ─── Ānveṣī: multiple choice ─────────────────────────────
+// ─── Anveṣī: multiple choice ─────────────────────────────
 const ANVESHI_QUESTIONS: {
   question: string;
   options: string[];
