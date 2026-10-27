@@ -121,7 +121,15 @@ function ViewTabs({
             type="button"
             role="tab"
             aria-selected={active}
-            onClick={() => updateFilters({ view: value })}
+            onClick={() =>
+              updateFilters(
+                // Canonical shapes (see #134): collections never carries `?game=`,
+                // puzzles never carries `?view=`. `useUpdateFilters` already drops `?page=`.
+                value === 'collections'
+                  ? { view: 'collections', game: undefined }
+                  : { view: undefined }
+              )
+            }
             className={cn(
               'inline-flex h-8 items-center justify-center gap-1.5 rounded-full px-4 text-sm font-medium transition-colors focus-visible:ring-2 focus-visible:ring-indigo-400/70 focus-visible:outline-none',
               active
@@ -207,7 +215,8 @@ function GameFilters({
     <GamePickerChips
       games={games}
       value={search.game}
-      onChange={(game) => updateFilters({ game })}
+      // `?game=all` is redundant — the canonical all-puzzles URL is just `/puzzles`.
+      onChange={(game) => updateFilters({ game: game === 'all' ? undefined : game })}
       counts={gameCounts}
       compactUntil="lg"
     />
@@ -335,7 +344,7 @@ function EmptyState({ kind }: { kind: 'puzzles' | 'collections' }) {
       <Button
         variant="outline"
         size="sm"
-        onClick={() => updateFilters({ game: 'all', tag: undefined, q: undefined })}
+        onClick={() => updateFilters({ game: undefined, tag: undefined, q: undefined })}
       >
         Clear filters
       </Button>
@@ -512,12 +521,16 @@ export default function HubPuzzles({ data }: { data: HubData }) {
     return Object.fromEntries(counts);
   }, [puzzles, games, search.tag, search.q]);
 
-  // Collections aren't paginated — drop a leftover ?page= from puzzle view.
+  // Collections aren't paginated and ignore the game filter — drop leftover
+  // `?page=` / `?game=` from the puzzle view (beforeLoad also canonicalizes direct hits).
   useEffect(() => {
-    if (isCollections && search.page != null) {
-      void navigate({ search: (prev) => ({ ...prev, page: undefined }), replace: true });
+    if (isCollections && (search.page != null || search.game !== 'all')) {
+      void navigate({
+        search: (prev) => ({ ...prev, game: undefined, page: undefined }),
+        replace: true
+      });
     }
-  }, [navigate, isCollections, search.page]);
+  }, [navigate, isCollections, search.page, search.game]);
 
   // Drop a tag that isn't used by any listed puzzle of the selected game.
   useEffect(() => {

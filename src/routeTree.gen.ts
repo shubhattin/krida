@@ -38,6 +38,7 @@ import { Route as AuthPopupDoneRouteImport } from './routes/auth/popup-done'
 import { Route as CollectionsListRouteImport } from './routes/collections/list'
 import { Route as CrosswordSplatRouteImport } from './routes/crossword.$'
 import { Route as TagsListRouteImport } from './routes/tags/list'
+import { Route as HubCollectionsIndexRouteImport } from './routes/_hub/collections/index'
 import { Route as HubCollectionsSlugRouteImport } from './routes/_hub/collections/$slug'
 import { Route as AdminAgentsIndexRouteImport } from './routes/admin/agents/index'
 import { Route as AdminAgentsChatIdRouteImport } from './routes/admin/agents/$chatId'
@@ -258,6 +259,11 @@ const TagsListRoute = TagsListRouteImport.update({
   id: '/tags/list',
   path: '/tags/list',
   getParentRoute: () => rootRouteImport,
+} as any)
+const HubCollectionsIndexRoute = HubCollectionsIndexRouteImport.update({
+  id: '/collections/',
+  path: '/collections/',
+  getParentRoute: () => HubRoute,
 } as any)
 const HubCollectionsSlugRoute = HubCollectionsSlugRouteImport.update({
   id: '/collections/$slug',
@@ -709,6 +715,7 @@ export interface FileRoutesByFullPath {
   '/api/trpc/$': typeof ApiTrpcSplatRoute
   '/collections/edit/$uid': typeof CollectionsEditUidRoute
   '/tags/edit/$slug': typeof TagsEditSlugRoute
+  '/collections/': typeof HubCollectionsIndexRoute
   '/admin/agents/': typeof AdminAgentsIndexRoute
   '/anveshi/$slug': typeof AnveshipublicPublicSlugRoute
   '/api/qstash/padajala/schedule_listing': typeof ApiQstashPadajalaSchedule_listingRoute
@@ -801,6 +808,7 @@ export interface FileRoutesByTo {
   '/api/trpc/$': typeof ApiTrpcSplatRoute
   '/collections/edit/$uid': typeof CollectionsEditUidRoute
   '/tags/edit/$slug': typeof TagsEditSlugRoute
+  '/collections': typeof HubCollectionsIndexRoute
   '/admin/agents': typeof AdminAgentsIndexRoute
   '/anveshi/$slug': typeof AnveshipublicPublicSlugRoute
   '/api/qstash/padajala/schedule_listing': typeof ApiQstashPadajalaSchedule_listingRoute
@@ -903,6 +911,7 @@ export interface FileRoutesById {
   '/surupa/(auth)/_auth': typeof SurupaauthAuthRouteWithChildren
   '/surupa/(public)/_public': typeof SurupapublicPublicRouteWithChildren
   '/tags/edit/$slug': typeof TagsEditSlugRoute
+  '/_hub/collections/': typeof HubCollectionsIndexRoute
   '/admin/agents/': typeof AdminAgentsIndexRoute
   '/anveshi/(public)/_public/$slug': typeof AnveshipublicPublicSlugRoute
   '/api/qstash/padajala/schedule_listing': typeof ApiQstashPadajalaSchedule_listingRoute
@@ -999,6 +1008,7 @@ export interface FileRouteTypes {
     | '/api/trpc/$'
     | '/collections/edit/$uid'
     | '/tags/edit/$slug'
+    | '/collections/'
     | '/admin/agents/'
     | '/anveshi/$slug'
     | '/api/qstash/padajala/schedule_listing'
@@ -1091,6 +1101,7 @@ export interface FileRouteTypes {
     | '/api/trpc/$'
     | '/collections/edit/$uid'
     | '/tags/edit/$slug'
+    | '/collections'
     | '/admin/agents'
     | '/anveshi/$slug'
     | '/api/qstash/padajala/schedule_listing'
@@ -1192,6 +1203,7 @@ export interface FileRouteTypes {
     | '/surupa/(auth)/_auth'
     | '/surupa/(public)/_public'
     | '/tags/edit/$slug'
+    | '/_hub/collections/'
     | '/admin/agents/'
     | '/anveshi/(public)/_public/$slug'
     | '/api/qstash/padajala/schedule_listing'
@@ -1489,6 +1501,13 @@ declare module '@tanstack/react-router' {
       fullPath: '/tags/list'
       preLoaderRoute: typeof TagsListRouteImport
       parentRoute: typeof rootRouteImport
+    }
+    '/_hub/collections/': {
+      id: '/_hub/collections/'
+      path: '/collections'
+      fullPath: '/collections/'
+      preLoaderRoute: typeof HubCollectionsIndexRouteImport
+      parentRoute: typeof HubRoute
     }
     '/_hub/collections/$slug': {
       id: '/_hub/collections/$slug'
@@ -2363,12 +2382,14 @@ interface HubRouteChildren {
   HubPuzzlesRoute: typeof HubPuzzlesRoute
   HubIndexRoute: typeof HubIndexRoute
   HubCollectionsSlugRoute: typeof HubCollectionsSlugRoute
+  HubCollectionsIndexRoute: typeof HubCollectionsIndexRoute
 }
 
 const HubRouteChildren: HubRouteChildren = {
   HubPuzzlesRoute: HubPuzzlesRoute,
   HubIndexRoute: HubIndexRoute,
   HubCollectionsSlugRoute: HubCollectionsSlugRoute,
+  HubCollectionsIndexRoute: HubCollectionsIndexRoute,
 }
 
 const HubRouteWithChildren = HubRoute._addFileChildren(HubRouteChildren)
