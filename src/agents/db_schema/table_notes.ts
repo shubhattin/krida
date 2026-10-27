@@ -27,7 +27,10 @@ export const TABLE_NOTES = new Map<string, string>([
   ['anveshi_puzzles', 'Anveṣī (multiple-choice quiz) content; id = puzzles.id'],
   ['tags', 'Loose labels shared by all games; the slug is also the display name'],
   ['puzzle_tags', 'Puzzle ↔ tag links'],
-  ['collections', 'Curated, ordered sets of puzzles that can mix games; listed=true is public'],
+  [
+    'collections',
+    'Curated, ordered sets of puzzles that can mix games; listed=true is public; order_index = public list position (null = unordered, after the ordered ones)'
+  ],
   ['collection_items', 'Collection membership; sort by order_index ascending'],
   ['puzzle_redirects', 'Old slugs of renamed puzzles, kept so old URLs redirect'],
   ['puzzle_attachments', 'Links/videos shown with a puzzle'],

@@ -115,6 +115,8 @@ type CollectionData = {
   title: string;
   description: string;
   listed: boolean;
+  order_index: number | null;
+  ordered_count: number;
   image: CollectionImageInfo;
   items: Array<CollectionItem & { order_index: number }>;
 };
@@ -198,6 +200,7 @@ function CollectionEditorBody({ collection }: { collection: CollectionData }) {
         <CollectionDeleteButton uid={collection.uid} />
       </div>
       <CollectionMetaFields />
+      <CollectionOrderBadge uid={collection.uid} />
       <CollectionImageSection />
       <CollectionItemsSection />
       <CollectionSaveDock uid={collection.uid} />
@@ -316,6 +319,45 @@ function CollectionMetaFields() {
         />
         Listed publicly
       </Label>
+    </div>
+  );
+}
+
+/** Read-only public-list position; reorder from the collections list. */
+function CollectionOrderBadge({ uid }: { uid: string }) {
+  const trpc = useTRPC();
+  const [listed] = useAtom(listed_atom);
+  const collection_q = useQuery(trpc.catalog.get_collection.queryOptions({ uid }));
+  const saved = collection_q.data;
+
+  if (!saved) return null;
+  if (!saved.listed) {
+    return <p className="text-sm text-muted-foreground">Public order: not listed.</p>;
+  }
+
+  const ordered = saved.order_index !== null;
+  return (
+    <div className="flex flex-wrap items-center gap-2 text-sm">
+      <span className="text-muted-foreground">Public order:</span>
+      <span
+        className={cn(
+          'rounded px-1.5 py-px text-xs font-semibold tabular-nums',
+          ordered
+            ? 'bg-blue-500/10 text-blue-600 dark:text-blue-400'
+            : 'bg-muted text-muted-foreground'
+        )}
+      >
+        {ordered ? `#${saved.order_index} of ${saved.ordered_count}` : 'unordered'}
+      </span>
+      {!ordered ? (
+        <span className="text-xs text-muted-foreground">
+          shown after {saved.ordered_count} ordered collection
+          {saved.ordered_count === 1 ? '' : 's'}
+        </span>
+      ) : null}
+      {listed ? null : (
+        <span className="text-xs text-muted-foreground">(saving as unlisted clears it)</span>
+      )}
     </div>
   );
 }

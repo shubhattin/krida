@@ -1,9 +1,13 @@
-import type { TextStreamPart, ToolSet } from 'ai';
+import type { DeepPartial, TextStreamPart, ToolSet } from 'ai';
 import { describe, expect, it } from 'vitest';
 import { createReplyMeter, openrouterCost } from './cost';
 
+type StreamPart = TextStreamPart<ToolSet>;
+
 // SAFETY: test stream parts carry only the fields the meter reads.
-const part = (value: Record<string, unknown>) => value as unknown as TextStreamPart<ToolSet>;
+const part = <T extends StreamPart['type']>(
+  value: DeepPartial<Extract<StreamPart, { type: T }>> & { type: T }
+) => value as StreamPart;
 
 const step = (cost: number, input: number, cached: number, output: number) =>
   part({

@@ -1,5 +1,5 @@
 import { Effect } from 'effect';
-import { and, asc, count, desc, eq, ilike, inArray, or, sql } from 'drizzle-orm';
+import { and, asc, count, desc, eq, ilike, inArray, isNotNull, or, sql } from 'drizzle-orm';
 import { z } from 'zod';
 import { protectedAdminProcedure, t } from '~/api/trpc_init';
 import {
@@ -140,6 +140,57 @@ const nextOrderIndex = async (tx: DbTransaction, collectionId: number) => {
     .from(collection_items)
     .where(eq(collection_items.collection_id, collectionId));
   return Number(row?.value ?? 0) + 1;
+};
+
+/**
+ * Public collection order. `order_index` is 1..n across ordered (always listed) rows;
+ * unordered listed rows follow, newest first. Every writer takes this lock first so two
+ * concurrent edits cannot leave gaps or duplicate positions. Raw SQL on purpose: an order
+ * change must not bump `updated_at` (sitemap lastmod).
+ */
+const lockCollectionOrder = (tx: DbTransaction) =>
+  tx.execute(sql`select pg_advisory_xact_lock(hashtext('collections.order_index'))`);
+
+/** Close gaps left by an unlisted or deleted collection, keeping relative order. */
+const compactCollectionOrder = async (tx: DbTransaction) => {
+  await tx.execute(sql`
+    update collections c set order_index = r.rn::smallint
+    from (
+      select id, row_number() over (order by order_index, id) as rn
+      from collections where order_index is not null and listed
+    ) r
+    where c.id = r.id and c.order_index is distinct from r.rn
+  `);
+};
+
+/** Ordered collection ids, position 1 first. */
+const orderedCollectionIds = async (tx: DbTransaction) => {
+  const rows = await tx
+    .select({ id: collections.id })
+    .from(collections)
+    .where(isNotNull(collections.order_index))
+    .orderBy(asc(collections.order_index), asc(collections.id));
+  return rows.map((row) => row.id);
+};
+
+/** `ids` get positions 1..n; every other collection becomes unordered. */
+const writeCollectionOrder = async (tx: DbTransaction, ids: number[]) => {
+  const idList = sql.join(
+    ids.map((id) => sql`${id}`),
+    sql`, `
+  );
+  await tx.execute(
+    ids.length === 0
+      ? sql`update collections set order_index = null where order_index is not null`
+      : sql`update collections set order_index = null
+          where order_index is not null and id not in (${idList})`
+  );
+  if (ids.length === 0) return;
+  await tx.execute(sql`
+    update collections c set order_index = v.ord::smallint
+    from unnest(array[${idList}]::int[]) with ordinality as v(id, ord)
+    where c.id = v.id and c.order_index is distinct from v.ord
+  `);
 };
 
 const findCollectionByUid = (uid: string) =>
@@ -573,6 +624,7 @@ const list_collections_route = protectedAdminProcedure.query(() =>
           title: collections.title,
           description: collections.description,
           listed: collections.listed,
+          order_index: collections.order_index,
           created_at: collections.created_at,
           updated_at: collections.updated_at,
           image_s3_key: image_assets.s3_key,
@@ -594,7 +646,7 @@ const list_collections_route = protectedAdminProcedure.query(() =>
         })
         .from(collections)
         .leftJoin(image_assets, eq(image_assets.id, collections.image_id))
-        .orderBy(desc(collections.created_at))
+        .orderBy(asc(collections.order_index), desc(collections.created_at), desc(collections.id))
     ).pipe(
       Effect.map((rows) =>
         rows.map(({ image_s3_key, padavali_count, padajala_count, extra_count, ...row }) => ({
@@ -692,6 +744,13 @@ const get_collection_route = protectedAdminProcedure
           );
         }
 
+        const [orderStats] = yield* dbRunHttp('catalog.collection_order_stats', (client) =>
+          client
+            .select({ ordered: count(collections.order_index) })
+            .from(collections)
+            .where(eq(collections.listed, true))
+        );
+
         const items = collection.items
           .map((item) => ({
             game: item.puzzle.kind,
@@ -714,6 +773,8 @@ const get_collection_route = protectedAdminProcedure
           title: collection.title,
           description: collection.description,
           listed: collection.listed,
+          order_index: collection.order_index,
+          ordered_count: Number(orderStats?.ordered ?? 0),
           image: collection.image,
           items
         };
@@ -751,6 +812,20 @@ const assertCollectionSlugAvailable = (collectionId: number, slug: string) =>
     }
   });
 
+/** Row values for a metadata save. Only listed collections hold a public position. */
+const collectionMetaValues = (input: z.infer<typeof collection_meta_input>) => {
+  const values: Partial<typeof collections.$inferInsert> = {
+    title: input.title,
+    slug: input.slug,
+    description: input.description,
+    listed: input.listed,
+    image_id: input.image_id,
+    updated_at: new Date()
+  };
+  if (!input.listed) values.order_index = null;
+  return values;
+};
+
 const update_collection_route = protectedAdminProcedure
   .input(collection_meta_input)
   .mutation(({ input }) =>
@@ -764,18 +839,15 @@ const update_collection_route = protectedAdminProcedure
         }
         yield* assertCollectionSlugAvailable(existing.id, input.slug);
 
-        yield* dbRunHttp('catalog.update_collection', async (client) => {
-          await client
+        yield* dbTransaction('catalog.update_collection', async (tx) => {
+          // Unlisting drops the public position; compacting is a no-op otherwise.
+          const unlisting = !input.listed;
+          if (unlisting) await lockCollectionOrder(tx);
+          await tx
             .update(collections)
-            .set({
-              title: input.title,
-              slug: input.slug,
-              description: input.description,
-              listed: input.listed,
-              image_id: input.image_id,
-              updated_at: new Date()
-            })
+            .set(collectionMetaValues(input))
             .where(eq(collections.id, existing.id));
+          if (unlisting) await compactCollectionOrder(tx);
         });
         yield* refreshListedCollections();
         return { success: true as const };
@@ -822,17 +894,14 @@ const save_collection_route = protectedAdminProcedure
             }
           }
 
+          // Unlisting drops the public position; compacting is a no-op otherwise.
+          const unlisting = !input.listed;
+          if (unlisting) await lockCollectionOrder(tx);
           await tx
             .update(collections)
-            .set({
-              title: input.title,
-              slug: input.slug,
-              description: input.description,
-              listed: input.listed,
-              image_id: input.image_id,
-              updated_at: new Date()
-            })
+            .set(collectionMetaValues(input))
             .where(eq(collections.id, existing.id));
+          if (unlisting) await compactCollectionOrder(tx);
 
           await tx.delete(collection_items).where(eq(collection_items.collection_id, existing.id));
 
@@ -1495,12 +1564,71 @@ const delete_collection_route = protectedAdminProcedure
         const padavali = counts.padavali;
         const padajala = counts.padajala;
         const total = GAME_KINDS.reduce((sum, game) => sum + counts[game], 0);
-        yield* dbRunHttp('catalog.delete_collection', async (client) => {
-          await client.delete(collections).where(eq(collections.id, collection.id));
+        yield* dbTransaction('catalog.delete_collection', async (tx) => {
+          await lockCollectionOrder(tx);
+          await tx.delete(collections).where(eq(collections.id, collection.id));
+          await compactCollectionOrder(tx);
         });
         yield* refreshListedCollections();
         // Membership rows cascade; puzzles and cover images are never deleted here.
         return { success: true as const, padavali, padajala, total };
+      })
+    )
+  );
+
+/**
+ * Rewrite the public order: `ids` (listed only) get 1..n, the rest become unordered.
+ * `expected` is the order the editor started from; a mismatch means someone else changed it
+ * meanwhile, so the whole-list write is refused instead of silently overwriting that change.
+ */
+const reorder_collections_route = protectedAdminProcedure
+  .input(
+    z.object({
+      ids: z.array(z.number().int()).max(1000),
+      expected: z.array(z.number().int()).max(1000)
+    })
+  )
+  .mutation(({ input }) =>
+    runTrpcEffect(
+      Effect.gen(function* () {
+        if (new Set(input.ids).size !== input.ids.length) {
+          return yield* Effect.fail(
+            BadRequestError.make({ message: 'Duplicate collections in order' })
+          );
+        }
+        const result = yield* dbTransaction('catalog.reorder_collections', async (tx) => {
+          await lockCollectionOrder(tx);
+          const current = await orderedCollectionIds(tx);
+          if (
+            current.length !== input.expected.length ||
+            current.some((id, index) => id !== input.expected[index])
+          ) {
+            return { ok: false as const, reason: 'changed' as const };
+          }
+          if (input.ids.length > 0) {
+            const rows = await tx
+              .select({ id: collections.id })
+              .from(collections)
+              .where(and(inArray(collections.id, input.ids), eq(collections.listed, true)));
+            if (rows.length !== input.ids.length) {
+              return { ok: false as const, reason: 'not_listed' as const };
+            }
+          }
+          await writeCollectionOrder(tx, input.ids);
+          return { ok: true as const };
+        });
+        if (!result.ok) {
+          return yield* Effect.fail(
+            ConflictError.make({
+              message:
+                result.reason === 'changed'
+                  ? 'The order was changed elsewhere meanwhile — reopen Reorder and retry'
+                  : 'Some collections are no longer listed — reopen Reorder and retry'
+            })
+          );
+        }
+        yield* refreshListedCollections();
+        return { success: true as const };
       })
     )
   );
@@ -1552,6 +1680,7 @@ export const catalog_router = t.router({
   update_collection: update_collection_route,
   save_collection: save_collection_route,
   delete_collection: delete_collection_route,
+  reorder_collections: reorder_collections_route,
   set_puzzle_links: set_puzzle_links_route,
   set_puzzle_links_batch: set_puzzle_links_batch_route,
   add_items: add_items_route,
