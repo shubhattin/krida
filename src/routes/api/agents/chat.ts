@@ -14,7 +14,9 @@ import { createAgent } from '~/agents/server/create_agent';
 import { withHistoryCacheBreakpoint } from '~/agents/server/chat_messages';
 import {
   findAgentChat,
+  isChatStopRequested,
   loadAgentMessages,
+  requestChatStop,
   saveAgentMessages,
   setChatStreaming
 } from '~/agents/server/chat_store';
@@ -41,6 +43,52 @@ const firstText = (message: AgentUIMessage) =>
     .map((part) => (part.type === 'text' ? part.text : ''))
     .join(' ')
     .trim();
+
+/**
+ * Wait until the chat's in-flight turn is saved: a stopped reply still landing, or a
+ * background stream closing. Otherwise its late save would drop the turn that follows.
+ */
+const waitForSavedTurn = Effect.fn('agents.wait_for_saved_turn')(function* (chatId: string) {
+  for (let attempt = 0; attempt < 40; attempt += 1) {
+    const chat = yield* findAgentChat(chatId);
+    if (!chat.streaming) return chat;
+    yield* Effect.sleep('250 millis');
+  }
+  return yield* Effect.fail(
+    BadRequestError.make({
+      message: 'The previous reply is still being saved, try again in a moment'
+    })
+  );
+});
+
+/** The chat once any in-flight turn is saved; a new message stops that turn first. */
+const chatForTurn = Effect.fn('agents.chat_for_turn')(function* (chatId: string) {
+  const chat = yield* findAgentChat(chatId);
+  if (!chat.streaming) return chat;
+  // Send now, or Stop then send: the new message replaces whatever is still replying.
+  yield* requestChatStop(chatId);
+  return yield* waitForSavedTurn(chatId);
+});
+
+const STOP_POLL_MS = 1_000;
+
+/**
+ * Aborts the reply when an explicit Stop is recorded for the chat. The request may be served by
+ * another instance than the Stop, so this polls the database rather than listening in memory.
+ */
+function watchForStop(chatId: string, controller: AbortController) {
+  const timer = setInterval(() => {
+    void appRuntime
+      .runPromise(isChatStopRequested(chatId))
+      .then((stop) => {
+        if (stop) controller.abort();
+      })
+      .catch(() => undefined);
+  }, STOP_POLL_MS);
+  const clear = () => clearInterval(timer);
+  controller.signal.addEventListener('abort', clear, { once: true });
+  return clear;
+}
 
 /**
  * Fill the new message's `@` mentions from the database (never trusting client-sent content),
@@ -73,7 +121,7 @@ async function handleChat(request: Request): Promise<Response> {
 
   return runRouteEffect(
     Effect.gen(function* () {
-      const chat = yield* findAgentChat(id);
+      const chat = yield* chatForTurn(id);
       const previous = yield* loadAgentMessages(id);
       const { agent, tools } = yield* createAgent({ ...chat, model });
 
@@ -102,6 +150,8 @@ async function handleChat(request: Request): Promise<Response> {
       const meter = createReplyMeter(model, undefined);
 
       yield* setChatStreaming(id, true);
+      const stop = new AbortController();
+      const stopWatching = watchForStop(id, stop);
       const result = yield* Effect.promise(async () =>
         agent.stream({
           prompt: withHistoryCacheBreakpoint(
@@ -109,9 +159,15 @@ async function handleChat(request: Request): Promise<Response> {
               tools,
               convertDataPart: puzzleRefToModelText
             })
-          )
+          ),
+          abortSignal: stop.signal
         })
-      ).pipe(Effect.onError(() => Effect.ignore(setChatStreaming(id, false))));
+      ).pipe(
+        Effect.onError(() => {
+          stopWatching();
+          return Effect.ignore(setChatStreaming(id, false));
+        })
+      );
 
       return result.toUIMessageStreamResponse<AgentUIMessage>({
         originalMessages: messages,
@@ -127,10 +183,12 @@ async function handleChat(request: Request): Promise<Response> {
               saveAgentMessages({ chatId: id, messages: finished, model, title })
             );
           } finally {
+            stopWatching();
             await appRuntime.runPromise(setChatStreaming(id, false));
           }
         },
         onError: (error) => {
+          stopWatching();
           void appRuntime.runPromise(setChatStreaming(id, false));
           return error instanceof Error ? error.message : 'The agent failed to reply.';
         }

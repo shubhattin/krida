@@ -20,7 +20,8 @@ import {
   loadAddedPuzzles,
   loadAgentMessages,
   refreshAgentContext,
-  renameAgentChat
+  renameAgentChat,
+  requestChatStop
 } from '~/agents/server/chat_store';
 import { checkDraftWithDatabase } from '~/agents/server/draft_checks';
 
@@ -83,6 +84,11 @@ const rename_chat_route = protectedAdminProcedure
 const delete_chat_route = protectedAdminProcedure
   .input(z.object({ id: chat_id_schema }))
   .mutation(({ input }) => runTrpcEffect(deleteAgentChat(input.id)));
+
+/** Stop the chat's reply for real: it otherwise keeps generating server-side once the tab lets go. */
+const stop_reply_route = protectedAdminProcedure
+  .input(z.object({ id: chat_id_schema }))
+  .mutation(({ input }) => runTrpcEffect(requestChatStop(input.id)));
 
 /** Everything the agent reads before the conversation, for the Context dialog. */
 const get_context_route = protectedAdminProcedure
@@ -168,6 +174,7 @@ export const agents_router = t.router({
   create_chat: create_chat_route,
   rename_chat: rename_chat_route,
   delete_chat: delete_chat_route,
+  stop_reply: stop_reply_route,
   get_context: get_context_route,
   list_mentionable_puzzles: list_mentionable_puzzles_route,
   refresh_context: refresh_context_route,

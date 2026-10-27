@@ -1,4 +1,4 @@
-import { useRef, useState, type ReactNode } from 'react';
+import { useEffect, useRef, useState, type ReactNode } from 'react';
 import { ArrowUpIcon, AtSignIcon, SquareIcon } from 'lucide-react';
 import type { PuzzleRefData } from '~/agents/ui_message';
 import {
@@ -26,7 +26,8 @@ export function ChatComposer({
   placeholder = 'Message the agent…',
   toolbar,
   autoFocus,
-  mentionGame = null
+  mentionGame = null,
+  editTicket = null
 }: {
   onSend: (message: ComposerMessage) => void;
   onStop?: () => void;
@@ -37,6 +38,8 @@ export function ChatComposer({
   autoFocus?: boolean;
   /** The chat's game: its puzzles lead the `@` list. */
   mentionGame?: GameKind | null;
+  /** Editing a queued draft puts its text + refs back here (nonce bumps per edit). */
+  editTicket?: { message: ComposerMessage; nonce: number } | null;
 }) {
   const [text, setText] = useState('');
   const formRef = useRef<HTMLFormElement>(null);
@@ -48,7 +51,17 @@ export function ChatComposer({
     textareaRef,
     preferGame: mentionGame
   });
-  const canSend = text.trim().length > 0 && !busy;
+  // A queued draft under edit: restore its text + refs and focus for tweaks.
+  useEffect(() => {
+    if (!editTicket) return;
+    setText(editTicket.message.text);
+    mentions.restoreRefs(editTicket.message.refs);
+    textareaRef.current?.focus();
+    // `mentions` intentionally omitted: the ticket nonce is the only trigger.
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [editTicket]);
+  // Enter queues while busy, sends when idle — the parent decides.
+  const canSend = text.trim().length > 0;
 
   return (
     <form
@@ -115,16 +128,35 @@ export function ChatComposer({
             <TooltipContent>Mention a puzzle (@)</TooltipContent>
           </Tooltip>
           {busy && onStop ? (
-            <InputGroupButton
-              type="button"
-              variant="outline"
-              size="icon-sm"
-              className="rounded-full"
-              aria-label="Stop"
-              onClick={onStop}
-            >
-              <SquareIcon className="size-3 fill-current" />
-            </InputGroupButton>
+            <>
+              <InputGroupButton
+                type="button"
+                variant="outline"
+                size="icon-sm"
+                className="rounded-full"
+                aria-label="Stop"
+                onClick={onStop}
+              >
+                <SquareIcon className="size-3 fill-current" />
+              </InputGroupButton>
+              <Tooltip>
+                <TooltipTrigger
+                  render={
+                    <InputGroupButton
+                      type="submit"
+                      variant="default"
+                      size="icon-sm"
+                      className="rounded-full transition-opacity duration-300 disabled:opacity-70"
+                      disabled={!canSend}
+                      aria-label="Queue message"
+                    />
+                  }
+                >
+                  <ArrowUpIcon />
+                </TooltipTrigger>
+                <TooltipContent>Queue — sends after the current reply</TooltipContent>
+              </Tooltip>
+            </>
           ) : (
             <InputGroupButton
               type="submit"

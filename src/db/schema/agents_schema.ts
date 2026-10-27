@@ -38,6 +38,8 @@ export const agent_chats = pgTable(
     user_id: text().notNull(),
     /** True while a reply is streaming for this chat (possibly in the background). */
     streaming: boolean().notNull().default(false),
+    /** Set by an explicit Stop; the streaming reply (on whichever instance) polls it and aborts. */
+    stop_requested_at: timestamp({ withTimezone: true }),
     /** Puzzle creator only: starting options (word count, grid…) the system prompt defaults to. */
     creator_options: jsonb().$type<CreatorOptions>(),
     /**
