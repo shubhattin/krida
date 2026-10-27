@@ -60,7 +60,7 @@ export const padajala_image_batch_metadata_schema = image_batch_metadata_base.ex
 /** @deprecated Prefer padavali_image_batch_metadata_schema; kept as alias for existing imports. */
 export const image_batch_metadata_schema = padavali_image_batch_metadata_schema;
 
-/** Dvayī / Bhramitā / Surūpa / Ānveṣī share one discriminator; `game` says which. */
+/** Dvayī / Bhramitā / Surūpa / Anveṣī share one discriminator; `game` says which. */
 export const simple_game_image_batch_metadata_schema = image_batch_metadata_base.extend({
   type: z.literal('krida-puzzle-image'),
   game: z.enum(SIMPLE_GAME_KINDS)

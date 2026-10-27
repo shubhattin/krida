@@ -34,7 +34,7 @@ const SITE_NAME = {
   dvayi: 'Dvayī',
   bhramita: 'Bhramitā',
   surupa: 'Surūpa',
-  anveshi: 'Ānveṣī'
+  anveshi: 'Anveṣī'
 } as const satisfies Record<MetadataProject, string>;
 
 interface Props {

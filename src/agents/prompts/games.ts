@@ -42,7 +42,7 @@ export const GAME_GUIDES = {
 - For each akṣara give plausible misspellings: confusable consonants (स/श/ष, ब/व, ण/न, ट/त), vowel length (ि/ी, ु/ू), visarga/anusvāra slips. Never include the correct akṣara.`
   },
   anveshi: {
-    name: 'Ānveṣī',
+    name: 'Anveṣī',
     summary: 'multiple-choice quiz',
     guide: `A multiple-choice quiz.
 - Questions on one theme, each with exactly one correct answer (correct_option_index is 0-based).

@@ -13,7 +13,7 @@ export const Route = createFileRoute('/anveshi/(public)/_public/view/$nano_id')(
   },
   head: ({ loaderData }) =>
     routeHeadFromPageMeta({
-      title: loaderData ? `${loaderData.puzzle.title} | Ānveṣī` : 'Not Found',
+      title: loaderData ? `${loaderData.puzzle.title} | Anveṣī` : 'Not Found',
       description: loaderData ? loaderData.puzzle.description : null,
       project: 'anveshi',
       robots: 'noindex'

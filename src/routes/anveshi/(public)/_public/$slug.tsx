@@ -26,7 +26,7 @@ export const Route = createFileRoute('/anveshi/(public)/_public/$slug')({
     const isPuzzle = loaderData?.kind === 'puzzle';
     return routeHeadFromPageMeta({
       title: loaderData
-        ? `${loaderData.kind === 'puzzle' ? loaderData.puzzle.title : loaderData.title} | Ānveṣī`
+        ? `${loaderData.kind === 'puzzle' ? loaderData.puzzle.title : loaderData.title} | Anveṣī`
         : 'Not Found',
       description: loaderData
         ? loaderData.kind === 'puzzle'
