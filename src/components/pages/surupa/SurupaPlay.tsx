@@ -23,6 +23,7 @@ import {
   GameCompletion
 } from '~/components/pages/simple_game/play/GameCompletion';
 import { MorePuzzles } from '~/components/pages/simple_game/play/MorePuzzles';
+import { CollectionUpNext } from '~/components/pages/puzzle/CollectionUpNext';
 import { useGameClock } from '~/components/pages/simple_game/play/useGameClock';
 import { shuffle } from '~/components/pages/simple_game/play/shuffle';
 
@@ -238,7 +239,12 @@ export function SurupaPlay({
           </GameCompletion>
         ) : null}
       </AnimatePresence>
-      {completed ? <MorePuzzles kind="surupa" puzzleId={puzzleId} /> : null}
+      {completed ? (
+        <div className="flex flex-col gap-4">
+          <CollectionUpNext />
+          <MorePuzzles kind="surupa" puzzleId={puzzleId} />
+        </div>
+      ) : null}
       <SimpleGameMetrics
         kind="surupa"
         puzzleId={puzzleId}

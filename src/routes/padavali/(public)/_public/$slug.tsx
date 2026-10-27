@@ -5,13 +5,24 @@ import { z } from 'zod';
 import WordGame from '~/components/pages/padavali/WordGame/WordGameRoot';
 import { get_transliterated_word_game_msgs } from '~/components/pages/padavali/WordGame/msgs';
 import { transliterate_custom } from '~/tools/transliterator';
-import { routeHeadFromPageMeta, shareImageInfoFromAsset } from '~/components/tags/getPageMetaTags';
+import {
+  routeHeadFromPageMeta,
+  shareImageInfoFromAsset,
+  siteUrl
+} from '~/components/tags/getPageMetaTags';
 import { getScript$ } from '~/lib/cache_server_route_data';
 import { DEFAULT_DATA_SCRIPT } from '~/state/script_list';
 import { CACHE, NO_CACHE_PARAMS } from '~/util/cache.server/cache_loaders';
 import type { PadavaliPuzzleType } from '~/util/cache.server/padavali_cache';
 import { resolvePuzzleSlug } from '~/util/cache.server/puzzle_slug_map_cache';
 import { runLoaderEffect } from '~/effect/run';
+import { loadPuzzleCollectionContext$ } from '~/lib/puzzle_collection_context';
+import { PuzzleCollectionProvider } from '~/components/pages/puzzle/puzzle_collection_context';
+import {
+  EMPTY_PUZZLE_COLLECTION_CONTEXT,
+  fromQuery,
+  puzzle_page_search_schema
+} from '~/util/catalog/collection_nav';
 
 type SlugResolution =
   | { type: 'puzzle'; puzzle: PadavaliPuzzleType }
@@ -98,12 +109,15 @@ const loader$ = createServerFn({ method: 'GET' })
   });
 
 export const Route = createFileRoute('/padavali/(public)/_public/$slug')({
-  loader: async ({ params }) => {
+  validateSearch: puzzle_page_search_schema,
+  loaderDeps: ({ search }) => ({ from: search.from }),
+  loader: async ({ params, deps }) => {
     const result = await loader$({ data: { slug: params.slug } });
+    const from = deps.from;
 
     if (result.kind === 'redirect') {
       throw redirect({
-        href: `/padavali/${encodeURIComponent(result.targetSlug)}`,
+        href: `/padavali/${encodeURIComponent(result.targetSlug)}${fromQuery(from)}`,
         statusCode: 301
       });
     }
@@ -111,7 +125,14 @@ export const Route = createFileRoute('/padavali/(public)/_public/$slug')({
     if (result.kind === 'current_puzzle')
       throw redirect({ to: '/', search: { game: 'padavali' }, hash: 'padavali' });
 
-    return result;
+    const collection =
+      result.kind === 'puzzle'
+        ? await loadPuzzleCollectionContext$({
+            data: { game: 'padavali', slug: result.word_puzzle.slug, from }
+          }).catch(() => EMPTY_PUZZLE_COLLECTION_CONTEXT)
+        : EMPTY_PUZZLE_COLLECTION_CONTEXT;
+
+    return { ...result, collection };
   },
   head: ({ loaderData }) =>
     routeHeadFromPageMeta({
@@ -123,6 +144,10 @@ export const Route = createFileRoute('/padavali/(public)/_public/$slug')({
           ? loaderData.word_puzzle.description
           : loaderData.description
         : null,
+      canonical:
+        loaderData?.kind === 'puzzle'
+          ? `${siteUrl()}/padavali/${encodeURIComponent(loaderData.word_puzzle.slug)}`
+          : undefined,
       share_image_info: shareImageInfoFromAsset(
         loaderData?.kind === 'puzzle'
           ? loaderData.word_puzzle.image
@@ -138,7 +163,9 @@ function PadavaliSlugRoute() {
   const data = Route.useLoaderData();
 
   return (
-    <>
+    <PuzzleCollectionProvider
+      value={data.kind === 'puzzle' ? data.collection : EMPTY_PUZZLE_COLLECTION_CONTEXT}
+    >
       {data.kind === 'unavailable' ? (
         <div className="px-4 py-8 text-center text-muted-foreground">
           This puzzle is not available.
@@ -160,6 +187,6 @@ function PadavaliSlugRoute() {
           listed={data.word_puzzle.listed}
         />
       )}
-    </>
+    </PuzzleCollectionProvider>
   );
 }

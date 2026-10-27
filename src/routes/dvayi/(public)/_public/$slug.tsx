@@ -7,20 +7,36 @@ import {
 } from '~/components/tags/getPageMetaTags';
 import { loadSimpleGameBySlug$ } from '~/lib/simple_game_loaders';
 import { SIMPLE_GAME_META, simpleGameHref } from '~/util/games/kinds';
+import { loadPuzzleCollectionContext$ } from '~/lib/puzzle_collection_context';
+import { PuzzleCollectionProvider } from '~/components/pages/puzzle/puzzle_collection_context';
+import {
+  EMPTY_PUZZLE_COLLECTION_CONTEXT,
+  fromQuery,
+  puzzle_page_search_schema
+} from '~/util/catalog/collection_nav';
 
 const meta = SIMPLE_GAME_META.dvayi;
 
 export const Route = createFileRoute('/dvayi/(public)/_public/$slug')({
-  loader: async ({ params }) => {
+  validateSearch: puzzle_page_search_schema,
+  loaderDeps: ({ search }) => ({ from: search.from }),
+  loader: async ({ params, deps }) => {
     const result = await loadSimpleGameBySlug$({ data: { kind: 'dvayi', slug: params.slug } });
+    const from = deps.from;
     if (result.kind === 'redirect') {
       throw redirect({
-        href: simpleGameHref(meta.kind, result.targetSlug),
+        href: `${simpleGameHref(meta.kind, result.targetSlug)}${fromQuery(from)}`,
         statusCode: 301
       });
     }
     if (result.kind === 'not_found') throw notFound();
-    return result;
+    const collection =
+      result.kind === 'puzzle'
+        ? await loadPuzzleCollectionContext$({
+            data: { game: 'dvayi', slug: result.puzzle.slug, from }
+          }).catch(() => EMPTY_PUZZLE_COLLECTION_CONTEXT)
+        : EMPTY_PUZZLE_COLLECTION_CONTEXT;
+    return { ...result, collection };
   },
   head: ({ loaderData }) => {
     const isPuzzle = loaderData?.kind === 'puzzle';
@@ -54,5 +70,9 @@ function SlugRoute() {
       </div>
     );
   }
-  return <SimpleGamePlayPage kind="dvayi" location="list_page" puzzle={data.puzzle} />;
+  return (
+    <PuzzleCollectionProvider value={data.collection}>
+      <SimpleGamePlayPage kind="dvayi" location="list_page" puzzle={data.puzzle} />
+    </PuzzleCollectionProvider>
+  );
 }

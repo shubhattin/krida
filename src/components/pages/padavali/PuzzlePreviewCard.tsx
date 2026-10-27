@@ -23,9 +23,11 @@ import {
 type Props = {
   puzzle: DisplayPuzzle;
   compact?: boolean;
+  /** Collection slug: links keep `?from=` so the puzzle can lead back here. */
+  fromCollection?: string;
 };
 
-export const PuzzlePreviewCard = ({ puzzle, compact = false }: Props) => {
+export const PuzzlePreviewCard = ({ puzzle, compact = false, fromCollection }: Props) => {
   const { script } = useContext(AppContext);
   const [started] = useAtom(started_atom);
   const [completed] = useAtom(completed_atom);
@@ -38,7 +40,11 @@ export const PuzzlePreviewCard = ({ puzzle, compact = false }: Props) => {
   const handleClick = (e: React.MouseEvent<HTMLAnchorElement>) => {
     if (started && !completed) {
       e.preventDefault();
-      setPendingUrl(`/padavali/${puzzle.slug}`);
+      setPendingUrl(
+        fromCollection
+          ? `/padavali/${puzzle.slug}?from=${encodeURIComponent(fromCollection)}`
+          : `/padavali/${puzzle.slug}`
+      );
     }
   };
 
@@ -46,6 +52,7 @@ export const PuzzlePreviewCard = ({ puzzle, compact = false }: Props) => {
     <Link
       to="/padavali/$slug"
       params={{ slug: puzzle.slug }}
+      search={fromCollection ? { from: fromCollection } : undefined}
       onClick={handleClick}
       className="group block h-full no-underline"
     >

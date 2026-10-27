@@ -2,11 +2,22 @@ import { createFileRoute, notFound, redirect } from '@tanstack/react-router';
 import { createServerFn } from '@tanstack/react-start';
 import { z } from 'zod';
 import PadajalaGameRoot from '~/components/pages/padajala/PadajalaGame/PadajalaGameRoot';
-import { routeHeadFromPageMeta, shareImageInfoFromAsset } from '~/components/tags/getPageMetaTags';
+import {
+  routeHeadFromPageMeta,
+  shareImageInfoFromAsset,
+  siteUrl
+} from '~/components/tags/getPageMetaTags';
 import { CACHE, NO_CACHE_PARAMS } from '~/util/cache.server/cache_loaders';
 import type { PadajalaPuzzleType } from '~/util/cache.server/padajala_cache';
 import { resolvePuzzleSlug } from '~/util/cache.server/puzzle_slug_map_cache';
 import { runLoaderEffect } from '~/effect/run';
+import { loadPuzzleCollectionContext$ } from '~/lib/puzzle_collection_context';
+import { PuzzleCollectionProvider } from '~/components/pages/puzzle/puzzle_collection_context';
+import {
+  EMPTY_PUZZLE_COLLECTION_CONTEXT,
+  fromQuery,
+  puzzle_page_search_schema
+} from '~/util/catalog/collection_nav';
 
 type SlugResolution =
   | { type: 'puzzle'; puzzle: PadajalaPuzzleType }
@@ -67,12 +78,15 @@ const loader$ = createServerFn({ method: 'GET' })
   });
 
 export const Route = createFileRoute('/padajala/(public)/_public/$slug')({
-  loader: async ({ params }) => {
+  validateSearch: puzzle_page_search_schema,
+  loaderDeps: ({ search }) => ({ from: search.from }),
+  loader: async ({ params, deps }) => {
     const result = await loader$({ data: { slug: params.slug } });
+    const from = deps.from;
 
     if (result.kind === 'redirect') {
       throw redirect({
-        href: `/padajala/${encodeURIComponent(result.targetSlug)}`,
+        href: `/padajala/${encodeURIComponent(result.targetSlug)}${fromQuery(from)}`,
         statusCode: 301
       });
     }
@@ -80,7 +94,14 @@ export const Route = createFileRoute('/padajala/(public)/_public/$slug')({
     if (result.kind === 'current_puzzle')
       throw redirect({ to: '/', search: { game: 'padajala' }, hash: 'padajala' });
 
-    return result;
+    const collection =
+      result.kind === 'puzzle'
+        ? await loadPuzzleCollectionContext$({
+            data: { game: 'padajala', slug: result.word_puzzle.slug, from }
+          }).catch(() => EMPTY_PUZZLE_COLLECTION_CONTEXT)
+        : EMPTY_PUZZLE_COLLECTION_CONTEXT;
+
+    return { ...result, collection };
   },
   head: ({ loaderData }) =>
     routeHeadFromPageMeta({
@@ -93,6 +114,10 @@ export const Route = createFileRoute('/padajala/(public)/_public/$slug')({
           : loaderData.description
         : null,
       project: 'padajala',
+      canonical:
+        loaderData?.kind === 'puzzle'
+          ? `${siteUrl()}/padajala/${encodeURIComponent(loaderData.word_puzzle.slug)}`
+          : undefined,
       share_image_info: shareImageInfoFromAsset(
         loaderData?.kind === 'puzzle'
           ? loaderData.word_puzzle.image
@@ -108,19 +133,23 @@ function PadajalaSlugPage() {
   const data = Route.useLoaderData();
 
   return (
-    <main className="relative min-h-dvh overflow-x-clip">
-      {data.kind === 'unavailable' ? (
-        <div className="px-4 py-8 text-center text-muted-foreground">
-          This puzzle is not available.
-        </div>
-      ) : (
-        <PadajalaGameRoot
-          puzzle={data.word_puzzle}
-          location="list_page"
-          attachments={data.word_puzzle.attachments}
-          image={data.word_puzzle.image}
-        />
-      )}
-    </main>
+    <PuzzleCollectionProvider
+      value={data.kind === 'puzzle' ? data.collection : EMPTY_PUZZLE_COLLECTION_CONTEXT}
+    >
+      <main className="relative min-h-dvh overflow-x-clip">
+        {data.kind === 'unavailable' ? (
+          <div className="px-4 py-8 text-center text-muted-foreground">
+            This puzzle is not available.
+          </div>
+        ) : (
+          <PadajalaGameRoot
+            puzzle={data.word_puzzle}
+            location="list_page"
+            attachments={data.word_puzzle.attachments}
+            image={data.word_puzzle.image}
+          />
+        )}
+      </main>
+    </PuzzleCollectionProvider>
   );
 }

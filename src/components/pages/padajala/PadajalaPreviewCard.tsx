@@ -15,11 +15,20 @@ type Props = {
   puzzle: PadajalaListedPuzzle;
   compact?: boolean;
   onNavigate?: (e: React.MouseEvent<HTMLAnchorElement>, href: string) => void;
+  /** Collection slug: links keep `?from=` so the puzzle can lead back here. */
+  fromCollection?: string;
 };
 
-export function PadajalaPreviewCard({ puzzle, compact = false, onNavigate }: Props) {
+export function PadajalaPreviewCard({
+  puzzle,
+  compact = false,
+  onNavigate,
+  fromCollection
+}: Props) {
   const imageUrl = puzzle.image ? getCDNUrl(puzzle.image.s3_key) : null;
-  const href = `/padajala/${encodeURIComponent(puzzle.slug)}`;
+  const href = fromCollection
+    ? `/padajala/${encodeURIComponent(puzzle.slug)}?from=${encodeURIComponent(fromCollection)}`
+    : `/padajala/${encodeURIComponent(puzzle.slug)}`;
   const description = puzzle.description.trim() || null;
   const [w, h] = PUZZLE_CARD_IMAGE_ASPECT_RATIO;
 
