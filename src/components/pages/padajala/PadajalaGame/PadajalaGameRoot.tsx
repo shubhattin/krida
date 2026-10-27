@@ -63,7 +63,7 @@ export default function PadajalaGameRoot({
   const attachments = useMemo(() => {
     const source =
       attachmentsProp ?? (isDbPuzzle(raw) && 'attachments' in raw ? raw.attachments : []);
-    return resolveAttachmentsWithDefaults(source ?? []);
+    return resolveAttachmentsWithDefaults(source ?? [], 'padajala');
     // eslint-disable-next-line react-hooks/exhaustive-deps -- refresh with puzzle identity / explicit prop
   }, [attachmentsProp, puzzleId]);
 

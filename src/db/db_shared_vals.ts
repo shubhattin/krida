@@ -29,10 +29,12 @@ export const ATTACHMENT_TYPE_NAMES = {
   youtube_embed: 'Youtube Embed'
 } satisfies Record<attachment_list_type, string>;
 
+export const DEFAULT_FALLBACK_YOUTUBE_EMBED_URL = 'https://www.youtube.com/watch?v=YeC5P0-vxOQ';
+
 export const DEFAULT_YOUTUBE_EMBED = {
   title: null,
   type: 'youtube_embed' as const,
-  url: 'https://www.youtube.com/watch?v=YeC5P0-vxOQ'
+  url: DEFAULT_FALLBACK_YOUTUBE_EMBED_URL
 };
 
 export const attachment_schema = z.object({
