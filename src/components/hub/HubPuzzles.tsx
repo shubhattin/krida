@@ -103,8 +103,8 @@ function ViewTabs({
   view,
   counts
 }: {
-  view: PuzzlesSearch['view'];
-  counts: Record<PuzzlesSearch['view'], number>;
+  view: 'puzzles' | 'collections';
+  counts: Record<'puzzles' | 'collections', number>;
 }) {
   const updateFilters = useUpdateFilters();
   return (
@@ -214,7 +214,7 @@ function GameFilters({
   return (
     <GamePickerChips
       games={games}
-      value={search.game}
+      value={search.game ?? 'all'}
       // `?game=all` is redundant — the canonical all-puzzles URL is just `/puzzles`.
       onChange={(game) => updateFilters({ game: game === 'all' ? undefined : game })}
       counts={gameCounts}
@@ -463,7 +463,7 @@ function resultSummary(
   collectionTotal: number,
   page: number | undefined
 ) {
-  if (view === 'collections') return plural(collectionTotal, 'collection');
+  if ((view ?? 'puzzles') === 'collections') return plural(collectionTotal, 'collection');
   const puzzlePart =
     puzzleTotal <= PAGE_LIMIT
       ? plural(puzzleTotal, 'puzzle')
@@ -489,7 +489,7 @@ export default function HubPuzzles({ data }: { data: HubData }) {
   const games = data.visibleGames;
   const isCollections = search.view === 'collections';
   // Collections mix games, so the game filter never applies to them (or their topics).
-  const game = isCollections ? 'all' : search.game;
+  const game = isCollections ? 'all' : (search.game ?? 'all');
   const tags = useMemo(
     () => tagsByPopularity(filterHubPuzzles(puzzles, { game })),
     [puzzles, game]
@@ -524,7 +524,7 @@ export default function HubPuzzles({ data }: { data: HubData }) {
   // Collections aren't paginated and ignore the game filter — drop leftover
   // `?page=` / `?game=` from the puzzle view (beforeLoad also canonicalizes direct hits).
   useEffect(() => {
-    if (isCollections && (search.page != null || search.game !== 'all')) {
+    if (isCollections && (search.page != null || (search.game ?? 'all') !== 'all')) {
       void navigate({
         search: (prev) => ({ ...prev, game: undefined, page: undefined }),
         replace: true
@@ -563,7 +563,7 @@ export default function HubPuzzles({ data }: { data: HubData }) {
           </p>
         </div>
         <ViewTabs
-          view={search.view}
+          view={search.view ?? 'puzzles'}
           counts={{ puzzles: filteredPuzzles.length, collections: filteredCollections.length }}
         />
       </header>

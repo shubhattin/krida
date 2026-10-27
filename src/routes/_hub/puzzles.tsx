@@ -7,11 +7,15 @@ import { HUB_GAMES } from '~/components/hub/hub_games';
 import { GAME_KINDS, type GameKind } from '~/util/catalog/tags';
 
 const puzzles_search_schema = z.object({
+  // NOTE: keep `game` / `view` optional with NO `.default()` — TanStack Router
+  // 307-redirects to fill defaults into the URL, which ping-pongs with the
+  // canonicalizing `beforeLoad` below (it strips `?game=all` / `?view=puzzles`)
+  // and caused ERR_TOO_MANY_REDIRECTS in prod. Resolve via `??` instead.
   game: z
     .enum(['all', ...GAME_KINDS])
-    .catch('all')
-    .default('all'),
-  view: z.enum(['puzzles', 'collections']).catch('puzzles').default('puzzles'),
+    .optional()
+    .catch(undefined),
+  view: z.enum(['puzzles', 'collections']).optional().catch(undefined),
   tag: z.string().max(80).optional().catch(undefined),
   q: z.string().max(200).optional().catch(undefined),
   /** 1-based; omitted from the URL when on page 1. */
@@ -36,8 +40,8 @@ const GAME_PUZZLES_DESCRIPTION = {
     'Browse Anveṣī multiple-choice Sanskrit quizzes — answer questions with hints and explanations.'
 } satisfies Record<GameKind, string>;
 
-function puzzlesMetaForGame(game: PuzzlesSearch['game']) {
-  if (game === 'all') {
+function puzzlesMetaForGame(game: PuzzlesSearch['game'] | 'all') {
+  if (game === 'all' || game == null) {
     return {
       title: 'Sanskrit Puzzles | Krida',
       project: 'landing_page',
@@ -91,7 +95,7 @@ function canonicalPuzzlesSearch(search: PuzzlesSearch): CanonicalPuzzlesParams {
     return canonical;
   }
   const canonical: CanonicalPuzzlesParams = {};
-  if (search.game !== 'all') canonical.game = search.game;
+  if (search.game != null && search.game !== 'all') canonical.game = search.game;
   if (search.q) canonical.q = search.q;
   if (search.tag) canonical.tag = search.tag;
   if (search.page != null && search.page > 1) canonical.page = String(search.page);
@@ -132,7 +136,7 @@ export const Route = createFileRoute('/_hub/puzzles')({
     throw redirect({
       to: '/puzzles',
       search: {
-        game: search.game !== 'all' ? search.game : undefined,
+        game: search.game != null && search.game !== 'all' ? search.game : undefined,
         q: search.q || undefined,
         tag: search.tag || undefined,
         page: search.page != null && search.page > 1 ? search.page : undefined
