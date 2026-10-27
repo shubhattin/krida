@@ -295,7 +295,9 @@ function CollectionsGrid({
         // Ascending = the public page: ordered, then unordered listed (newest first), then unlisted.
         cmp = publicRank(a) - publicRank(b);
         if (cmp === 0 && a.order_index === null) {
-          return new Date(b.created_at).getTime() - new Date(a.created_at).getTime() || b.id - a.id;
+          const newestFirst =
+            new Date(b.created_at).getTime() - new Date(a.created_at).getTime() || b.id - a.id;
+          return newestFirst * dir;
         }
       } else {
         cmp = new Date(a.created_at).getTime() - new Date(b.created_at).getTime();

@@ -112,7 +112,11 @@ export function CollectionsOrderDialog({
         onOpenChange(false);
         await router.invalidate();
       },
-      onError: (error) => toast.error(error.message || 'Could not save the order')
+      onError: (error) => {
+        toast.error(error.message || 'Could not save the order');
+        // A conflict means the list is stale; refetch so reopening starts from the new order.
+        invalidateCatalogQueries(queryClient, trpc);
+      }
     })
   );
 
