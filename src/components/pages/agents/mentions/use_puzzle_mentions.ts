@@ -191,6 +191,8 @@ export function usePuzzleMentions({
   return {
     refs,
     clear: () => setPicked([]),
+    /** Put back refs saved in a queued draft (the text already carries their `@slug` tokens). */
+    restoreRefs: (refs: PuzzleRefData[]) => setPicked(refs),
     removeRef,
     startMention,
     handleKeyDown,

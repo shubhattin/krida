@@ -1,8 +1,8 @@
-import { useEffect, useMemo, useRef, useState } from 'react';
+import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { useChat } from '@ai-sdk/react';
 import { useQueryClient } from '@tanstack/react-query';
 import type { inferRouterOutputs } from '@trpc/server';
-import { DefaultChatTransport } from 'ai';
+import { DefaultChatTransport, isToolUIPart } from 'ai';
 import { AlertCircleIcon, LibraryBigIcon, RotateCcwIcon, SparklesIcon } from 'lucide-react';
 import { useTRPC } from '~/api/client';
 import type { AppRouter } from '~/api/trpc_router';
@@ -36,8 +36,19 @@ import { AssistantMessage, ThinkingLine, UserMessage } from './AgentMessage';
 import { ChatComposer, type ComposerMessage } from './ChatComposer';
 import { ChatCost } from './ChatCost';
 import { ModelPicker } from './ModelPicker';
+import { QueuedMessages } from './QueuedMessages';
+import { useMessageQueue } from './use_message_queue';
 
 export type AgentChatData = inferRouterOutputs<AppRouter>['agents']['get_chat'];
+
+/** A tool call still waiting on client-side input: the run may continue by itself. */
+function hasPendingToolInput(messages: AgentUIMessage[]) {
+  const last = [...messages].reverse().find((message) => message.role === 'assistant');
+  return last?.parts.some(
+    (part) =>
+      isToolUIPart(part) && (part.state === 'input-streaming' || part.state === 'input-available')
+  );
+}
 
 export function AgentChat({ data }: { data: AgentChatData }) {
   const { chat } = data;
@@ -84,17 +95,74 @@ export function AgentChat({ data }: { data: AgentChatData }) {
     }
   }, [chat.id, chat.model, sendMessage]);
 
+  const busy = status === 'submitted' || status === 'streaming';
+
+  // Drafts typed while a reply streams. Per chat (this view remounts per chat id) and
+  // in-memory only — the queue hook clears it on unmount.
+  const messaging = useMessageQueue();
+  const [editTicket, setEditTicket] = useState<{ message: ComposerMessage; nonce: number } | null>(
+    null
+  );
+  // Set when the user stops the run: the queue stays put for them to decide.
+  const stoppedManually = useRef(false);
+  // This view sent at least once: background-stream adoption below must not clobber it.
+  const sentLocally = useRef(false);
+
+  const sendNow = useCallback(
+    (message: ComposerMessage) => {
+      sentLocally.current = true;
+      stoppedManually.current = false;
+      void sendMessage({ parts: toUserParts(message) }, { body: { model } });
+    },
+    [sendMessage, model]
+  );
+
   const send = (message: ComposerMessage) => {
-    sentLocally.current = true;
-    void sendMessage({ parts: toUserParts(message) }, { body: { model } });
+    // While a reply streams the composer stays usable: Enter queues instead of interrupting.
+    if (busy) messaging.enqueue(message);
+    else sendNow(message);
   };
 
-  const busy = status === 'submitted' || status === 'streaming';
+  const handleStop = () => {
+    stoppedManually.current = true;
+    stop();
+  };
+
+  const sendQueuedNow = (id: string) => {
+    const item = messaging.take(id);
+    if (!item) return;
+    // Interrupt the run for this one; the rest of the queue still auto-sends afterwards.
+    if (busy) {
+      stoppedManually.current = true;
+      stop();
+    }
+    sendNow({ text: item.text, refs: item.refs });
+  };
+
+  const editQueued = (id: string) => {
+    const item = messaging.take(id);
+    if (!item) return;
+    setEditTicket((ticket) => ({
+      message: { text: item.text, refs: item.refs },
+      nonce: (ticket?.nonce ?? 0) + 1
+    }));
+  };
+
+  // A run that finished normally (no error, not stopped, no tool continuation pending)
+  // picks up the first queued draft. After an error or Stop the queue stays for the user.
+  const prevStatus = useRef(status);
+  useEffect(() => {
+    const wasBusy = prevStatus.current === 'submitted' || prevStatus.current === 'streaming';
+    prevStatus.current = status;
+    if (!wasBusy || status !== 'ready' || error || stoppedManually.current) return;
+    if (hasPendingToolInput(messages)) return;
+    const next = messaging.takeFirst();
+    if (next) sendNow({ text: next.text, refs: next.refs });
+  }, [status, error, messages, messaging, sendNow]);
 
   // A reply generated elsewhere (background stream, another tab) lands in the DB while this
   // view is idle: adopt it so refresh / back-navigation shows the finished turn. Never while
   // this view sent or streams itself — the local conversation wins.
-  const sentLocally = useRef(false);
   useEffect(() => {
     if (
       !busy &&
@@ -246,9 +314,15 @@ export function AgentChat({ data }: { data: AgentChatData }) {
         </div>
 
         <div className="mx-auto w-full max-w-3xl px-4 pb-4">
+          <QueuedMessages
+            queue={messaging.queue}
+            onEdit={editQueued}
+            onSendNow={sendQueuedNow}
+            onRemove={messaging.remove}
+          />
           <ChatComposer
             busy={busy}
-            onStop={() => void stop()}
+            onStop={handleStop}
             onSend={send}
             placeholder={
               isCreator && game
@@ -257,6 +331,7 @@ export function AgentChat({ data }: { data: AgentChatData }) {
             }
             toolbar={<ModelPicker value={model} onChange={setModel} disabled={busy} />}
             mentionGame={chat.game_kind}
+            editTicket={editTicket}
             autoFocus
           />
         </div>
