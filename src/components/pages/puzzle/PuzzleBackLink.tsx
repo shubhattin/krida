@@ -234,7 +234,27 @@ function MembershipRow({ membership }: { membership: Membership }) {
       params={{ slug: membership.slug }}
       className="group flex items-center gap-3 rounded-lg px-2 py-1.5 text-foreground no-underline transition-colors hover:bg-muted"
     >
-      {level ? (
+      {imageUrl ? (
+        <span className="relative size-9 shrink-0">
+          <Image
+            src={imageUrl}
+            alt=""
+            width={36}
+            height={36}
+            className="size-9 rounded-md object-cover"
+          />
+          {level ? (
+            // The level colour stays visible on the cover.
+            <span
+              className={cn(
+                'absolute -right-0.5 -bottom-0.5 size-2.5 rounded-full ring-2 ring-popover',
+                DIFFICULTY_TONE[level.key].dot
+              )}
+              aria-hidden
+            />
+          ) : null}
+        </span>
+      ) : level ? (
         <span
           className={cn(
             'flex size-9 shrink-0 items-center justify-center rounded-md border',
@@ -244,14 +264,6 @@ function MembershipRow({ membership }: { membership: Membership }) {
         >
           <span className={cn('size-2.5 rounded-full', DIFFICULTY_TONE[level.key].dot)} />
         </span>
-      ) : imageUrl ? (
-        <Image
-          src={imageUrl}
-          alt=""
-          width={36}
-          height={36}
-          className="size-9 shrink-0 rounded-md object-cover"
-        />
       ) : (
         <span
           className="flex size-9 shrink-0 items-center justify-center rounded-md bg-indigo-100 text-indigo-600 dark:bg-indigo-950/60 dark:text-indigo-300"
