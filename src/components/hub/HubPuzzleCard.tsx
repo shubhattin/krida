@@ -124,7 +124,8 @@ export function HubPuzzleCard({
           level={difficulty}
           // Beside the step number when that holds the top-right corner.
           className={cn(
-            'absolute top-3 z-10',
+            // Phones: tighter, so it doesn't crowd the cover art.
+            'absolute top-3 z-10 max-sm:top-2 max-sm:gap-0.5 max-sm:px-1.5 max-sm:py-px max-sm:text-[9px]',
             step != null && showGameBadge ? 'right-11' : 'right-2'
           )}
         />
