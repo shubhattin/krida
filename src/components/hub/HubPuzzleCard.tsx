@@ -107,7 +107,11 @@ export function HubPuzzleCard({
   return (
     <div className="relative h-full">
       {showGameBadge ? (
-        <HubGameBadge game={puzzle.game} className="absolute top-2 left-2 z-10" />
+        <HubGameBadge
+          game={puzzle.game}
+          // Phones: smaller, so it matches the compact difficulty pill.
+          className="absolute top-2 left-2 z-10 max-sm:size-6 max-sm:rounded-lg [&_img]:max-sm:size-4"
+        />
       ) : null}
       {step != null ? (
         <span
@@ -125,7 +129,7 @@ export function HubPuzzleCard({
           // Beside the step number when that holds the top-right corner.
           className={cn(
             // Phones: tighter, so it doesn't crowd the cover art.
-            'absolute top-3 z-10 max-sm:top-2 max-sm:gap-0.5 max-sm:px-1.5 max-sm:py-px max-sm:text-[9px]',
+            'absolute top-2 z-10 max-sm:gap-0.5 max-sm:px-1.5 max-sm:py-px max-sm:text-[9px]',
             step != null && showGameBadge ? 'right-11' : 'right-2'
           )}
         />
