@@ -11,6 +11,10 @@ import {
   padajala_puzzles,
   dvayi_puzzles,
   image_assets,
+  image_system_prompt_templates,
+  agent_chats,
+  agent_messages,
+  agent_chat_puzzles,
   padavali_puzzles,
   puzzle_attachments,
   puzzle_redirects,
@@ -22,6 +26,7 @@ import {
   tags
 } from './schema';
 import { createSelectSchema } from 'drizzle-zod';
+import { agent_model_id_schema } from '~/agents/models';
 import { location_list_enum } from './types';
 import { script_list_enum } from '~/state/script_list';
 import { batch_metadata_schema } from '~/util/types/ai_batch_metadata';
@@ -186,4 +191,29 @@ export const SurupaPuzzleSchemaZod = createSelectSchema(surupa_puzzles, {
 });
 export const AnveshiPuzzleSchemaZod = createSelectSchema(anveshi_puzzles, {
   puzzle_data: anveshi_puzzle_data_schema
+});
+
+export const ImageSystemPromptTemplatesSchemaZod = createSelectSchema(
+  image_system_prompt_templates,
+  {
+    subject: z.enum(['puzzle', 'collection']),
+    created_at: z.coerce.date(),
+    updated_at: z.coerce.date().optional().nullable()
+  }
+);
+
+export const AgentChatsSchemaZod = createSelectSchema(agent_chats, {
+  model: agent_model_id_schema,
+  created_at: z.coerce.date(),
+  updated_at: z.coerce.date(),
+  stop_requested_at: z.coerce.date().optional().nullable()
+});
+
+export const AgentMessagesSchemaZod = createSelectSchema(agent_messages, {
+  role: z.enum(['system', 'user', 'assistant']),
+  created_at: z.coerce.date()
+});
+
+export const AgentChatPuzzlesSchemaZod = createSelectSchema(agent_chat_puzzles, {
+  created_at: z.coerce.date()
 });

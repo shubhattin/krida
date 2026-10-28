@@ -17,6 +17,10 @@ import {
   padajala_puzzles,
   dvayi_puzzles,
   image_assets,
+  image_system_prompt_templates,
+  agent_chats,
+  agent_messages,
+  agent_chat_puzzles,
   padavali_puzzles,
   puzzle_attachments,
   puzzle_redirects,
@@ -35,6 +39,10 @@ import {
   BhramitaPuzzleSchemaZod,
   CollectionItemSchemaZod,
   CollectionSchemaZod,
+  ImageSystemPromptTemplatesSchemaZod,
+  AgentChatsSchemaZod,
+  AgentMessagesSchemaZod,
+  AgentChatPuzzlesSchemaZod,
   PadajalaGamePlayStatsSchemaZod,
   CrossordPuzzleSchemaZod,
   DvayiPuzzleSchemaZod,
@@ -56,6 +64,8 @@ const ExportDataSchema = z.object({
   image_assets: z.array(ImageAssetSchemaZod),
   tags: z.array(TagSchemaZod),
   collections: z.array(CollectionSchemaZod),
+  // Optional so backups written before these tables existed still restore.
+  image_system_prompt_templates: z.array(ImageSystemPromptTemplatesSchemaZod).optional().default([]),
   ai_batches: z.array(AiBatchSchemaZod),
   ai_batch_responses: z.array(AiBatchResponseSchemaZod),
   puzzles: z.array(PuzzleSchemaZod),
@@ -72,13 +82,17 @@ const ExportDataSchema = z.object({
   puzzle_schedules: z.array(PuzzleScheduleSchemaZod),
   puzzle_sessions: z.array(PuzzleSessionSchemaZod),
   attempt_gameplay_stats: z.array(AttemptGamePlayStatsSchemaZod),
-  padajala_gameplay_stats: z.array(PadajalaGamePlayStatsSchemaZod)
+  padajala_gameplay_stats: z.array(PadajalaGamePlayStatsSchemaZod),
+  agent_chats: z.array(AgentChatsSchemaZod).optional().default([]),
+  agent_messages: z.array(AgentMessagesSchemaZod).optional().default([]),
+  agent_chat_puzzles: z.array(AgentChatPuzzlesSchemaZod).optional().default([])
 });
 
 type ExportData = z.infer<typeof ExportDataSchema>;
 
 const SERIAL_TABLES = [
   'image_assets',
+  'image_system_prompt_templates',
   'tags',
   'collections',
   'puzzles',
@@ -91,6 +105,8 @@ const SERIAL_TABLES = [
 ] as const;
 
 async function deleteAllTables(tx: ExportTx): Promise<void> {
+  await tx.delete(agent_messages);
+  await tx.delete(agent_chat_puzzles);
   await tx.delete(attempt_gameplay_stats);
   await tx.delete(padajala_gameplay_stats);
   await tx.delete(puzzle_sessions);
@@ -111,6 +127,8 @@ async function deleteAllTables(tx: ExportTx): Promise<void> {
   await tx.delete(ai_batch_responses);
   await tx.delete(ai_batches);
   await tx.delete(image_assets);
+  await tx.delete(image_system_prompt_templates);
+  await tx.delete(agent_chats);
   console.log(chalk.green('✓ Deleted all tables'));
 }
 
@@ -145,8 +163,15 @@ async function insertIfAny<T extends PgTable>(
 
 async function insertAll(tx: ExportTx, data: ExportData): Promise<void> {
   await insertIfAny(tx, image_assets, data.image_assets, 'image_assets');
+  await insertIfAny(
+    tx,
+    image_system_prompt_templates,
+    data.image_system_prompt_templates,
+    'image_system_prompt_templates'
+  );
   await insertIfAny(tx, tags, data.tags, 'tags');
   await insertIfAny(tx, collections, data.collections, 'collections');
+  await insertIfAny(tx, agent_chats, data.agent_chats, 'agent_chats');
   await insertIfAny(
     tx,
     ai_batches,
@@ -194,6 +219,8 @@ async function insertAll(tx: ExportTx, data: ExportData): Promise<void> {
     data.padajala_gameplay_stats,
     'padajala_gameplay_stats'
   );
+  await insertIfAny(tx, agent_messages, data.agent_messages, 'agent_messages');
+  await insertIfAny(tx, agent_chat_puzzles, data.agent_chat_puzzles, 'agent_chat_puzzles');
 }
 
 async function resetSerialSequences(tx: ExportTx): Promise<void> {

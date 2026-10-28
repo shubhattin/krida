@@ -17,6 +17,7 @@ export const import_data = async (confirm_env = true) => {
     image_assets,
     tags,
     collections,
+    image_system_prompt_templates,
     ai_batches,
     ai_batch_responses,
     puzzles,
@@ -33,11 +34,15 @@ export const import_data = async (confirm_env = true) => {
     puzzle_schedules,
     puzzle_sessions,
     attempt_gameplay_stats,
-    padajala_gameplay_stats
+    padajala_gameplay_stats,
+    agent_chats,
+    agent_messages,
+    agent_chat_puzzles
   ] = await Promise.all([
     db.query.image_assets.findMany(),
     db.query.tags.findMany(),
     db.query.collections.findMany(),
+    db.query.image_system_prompt_templates.findMany(),
     db.query.ai_batches.findMany(),
     db.query.ai_batch_responses.findMany(),
     db.query.puzzles.findMany(),
@@ -54,13 +59,17 @@ export const import_data = async (confirm_env = true) => {
     db.query.puzzle_schedules.findMany(),
     db.query.puzzle_sessions.findMany(),
     db.query.attempt_gameplay_stats.findMany(),
-    db.query.padajala_gameplay_stats.findMany()
+    db.query.padajala_gameplay_stats.findMany(),
+    db.query.agent_chats.findMany(),
+    db.query.agent_messages.findMany(),
+    db.query.agent_chat_puzzles.findMany()
   ]);
 
   const json_data = {
     image_assets,
     tags,
     collections,
+    image_system_prompt_templates,
     ai_batches,
     ai_batch_responses,
     puzzles,
@@ -77,7 +86,10 @@ export const import_data = async (confirm_env = true) => {
     puzzle_schedules,
     puzzle_sessions,
     attempt_gameplay_stats,
-    padajala_gameplay_stats
+    padajala_gameplay_stats,
+    agent_chats,
+    agent_messages,
+    agent_chat_puzzles
   };
 
   await make_dir(path.dirname(dbDataFilePath));
