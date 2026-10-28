@@ -597,6 +597,36 @@ export const invalidateAndRefreshCache = <TParams, TData>(
     yield* cache.refresh(params, { deleteFirst: false });
   });
 
+/**
+ * Run `cache.get` in the background so the value is cached before the first reader asks.
+ * Goes through `get` (not `refresh`) so it shares the single-flight lock with concurrent readers.
+ */
+export const warmCache = <TParams, TData>(cache: CacheItem<TParams, TData>, params: TParams) =>
+  Effect.gen(function* () {
+    const redis = yield* RedisClient;
+    const database = yield* DatabaseHttp;
+    const ai = yield* AiProvider;
+    const appConfig = yield* AppConfig;
+    const background = yield* BackgroundWork;
+    yield* background.enqueue(() =>
+      Effect.runPromise(
+        cache.get(params).pipe(
+          Effect.asVoid,
+          Effect.provideService(RedisClient, redis),
+          Effect.provideService(DatabaseHttp, database),
+          Effect.provideService(AiProvider, ai),
+          Effect.provideService(AppConfig, appConfig),
+          Effect.provideService(BackgroundWork, background),
+          Effect.catch((error) =>
+            reportSwallowedError('cache.warm')(error).pipe(
+              Effect.andThen(Effect.logWarning('cache warm failed', { error }).pipe(Effect.asVoid))
+            )
+          )
+        )
+      )
+    );
+  });
+
 /** No-arg cache loaders use an empty params object. */
 export type NoCacheParams = Record<string, never>;
 

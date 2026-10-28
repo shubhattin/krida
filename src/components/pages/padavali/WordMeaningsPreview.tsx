@@ -1,7 +1,9 @@
 'use client';
 
-import { useQuery, useQueryClient } from '@tanstack/react-query';
-import { AlertCircle, BookOpen, RefreshCw, Sparkles } from 'lucide-react';
+import { useState } from 'react';
+import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
+import { AlertCircle, BookOpen, RefreshCw, Sparkles, WandSparkles } from 'lucide-react';
+import { toast } from 'sonner';
 import { useTRPC } from '~/api/client';
 import {
   Accordion,
@@ -9,13 +11,23 @@ import {
   AccordionItem,
   AccordionTrigger
 } from '~/components/ui/accordion';
+import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle
+} from '~/components/ui/alert-dialog';
 import { cn } from '~/lib/utils';
 
 /**
- * Admin preview of the cached AI word meanings for a padavali puzzle.
+ * Admin preview of the stored AI word meanings for a padavali puzzle.
  * Collapsed by default so a long word list doesn't dominate the edit page.
- * The backend invalidates + refreshes this cache on save when the title,
- * description or active words change, so saving regenerates the list below.
+ * Meanings are saved in the DB; the backend clears and regenerates them on save
+ * when the title, description or active words change. Regenerate forces a new run.
  */
 export function PadavaliWordMeaningsPreview({
   puzzleId,
@@ -34,14 +46,31 @@ export function PadavaliWordMeaningsPreview({
     )
   );
 
+  const queryKey = trpc.public_ai.get_puzzle_word_meanings.queryKey({
+    puzzle_id: puzzleId,
+    puzzle_slug: slug
+  });
+
   const handleRefresh = () => {
-    void queryClient.invalidateQueries({
-      queryKey: trpc.public_ai.get_puzzle_word_meanings.queryKey({
-        puzzle_id: puzzleId,
-        puzzle_slug: slug
-      })
-    });
+    void queryClient.invalidateQueries({ queryKey });
   };
+
+  const [confirmOpen, setConfirmOpen] = useState(false);
+  const regenerate_mut = useMutation(
+    trpc.admin_ai_content.regenerate_word_meanings.mutationOptions({
+      onSuccess(data) {
+        queryClient.setQueryData(queryKey, data);
+        toast.success('Word meanings regenerated');
+      },
+      onError() {
+        toast.error('Failed to regenerate word meanings');
+      },
+      onSettled() {
+        setConfirmOpen(false);
+      }
+    })
+  );
+  const busy = query.isFetching || regenerate_mut.isPending;
 
   const count = query.data?.words.length;
   const statusLabel = query.isLoading
@@ -77,14 +106,15 @@ export function PadavaliWordMeaningsPreview({
         <AccordionContent>
           <p className="text-xs text-muted-foreground">
             Saved meanings used in-game for hints &amp; word explanations. They regenerate
-            automatically on save when the title, description or words change.
+            automatically on save when the title, description or words change; use Regenerate to
+            replace them with a fresh AI run.
           </p>
 
-          <div className="mt-2 mb-2 flex items-center justify-end">
+          <div className="mt-2 mb-2 flex items-center justify-end gap-2">
             <button
               type="button"
               onClick={handleRefresh}
-              disabled={query.isFetching}
+              disabled={busy}
               className={cn(
                 'inline-flex items-center gap-1.5 rounded-md border px-2 py-1 text-xs font-medium',
                 'text-muted-foreground hover:bg-muted disabled:cursor-wait disabled:opacity-60'
@@ -96,7 +126,44 @@ export function PadavaliWordMeaningsPreview({
               />
               {query.isFetching ? 'Loading…' : 'Refresh'}
             </button>
+            <button
+              type="button"
+              onClick={() => setConfirmOpen(true)}
+              disabled={busy}
+              className={cn(
+                'inline-flex items-center gap-1.5 rounded-md border px-2 py-1 text-xs font-medium',
+                'text-violet-600 hover:bg-violet-50 disabled:cursor-wait disabled:opacity-60',
+                'dark:text-violet-300 dark:hover:bg-violet-900/30'
+              )}
+            >
+              <WandSparkles
+                className={cn('size-3.5', regenerate_mut.isPending && 'animate-pulse')}
+                aria-hidden
+              />
+              {regenerate_mut.isPending ? 'Regenerating…' : 'Regenerate'}
+            </button>
           </div>
+
+          <AlertDialog open={confirmOpen} onOpenChange={setConfirmOpen}>
+            <AlertDialogContent>
+              <AlertDialogHeader>
+                <AlertDialogTitle>Regenerate word meanings?</AlertDialogTitle>
+                <AlertDialogDescription>
+                  This runs a new (paid) AI generation and replaces the saved meanings for every
+                  player.
+                </AlertDialogDescription>
+              </AlertDialogHeader>
+              <AlertDialogFooter>
+                <AlertDialogCancel disabled={regenerate_mut.isPending}>Cancel</AlertDialogCancel>
+                <AlertDialogAction
+                  disabled={regenerate_mut.isPending}
+                  onClick={() => regenerate_mut.mutate({ puzzle_id: puzzleId })}
+                >
+                  {regenerate_mut.isPending ? 'Regenerating…' : 'Regenerate'}
+                </AlertDialogAction>
+              </AlertDialogFooter>
+            </AlertDialogContent>
+          </AlertDialog>
 
           {query.isLoading ? (
             <div className="flex flex-col gap-1.5">
@@ -118,7 +185,7 @@ export function PadavaliWordMeaningsPreview({
               <button
                 type="button"
                 onClick={() => void query.refetch()}
-                disabled={query.isFetching}
+                disabled={busy}
                 className="rounded-md bg-violet-600 px-3 py-1.5 text-xs font-semibold text-white disabled:cursor-wait disabled:opacity-60"
               >
                 {query.isFetching ? 'Retrying…' : 'Retry'}
@@ -126,7 +193,7 @@ export function PadavaliWordMeaningsPreview({
             </div>
           ) : !query.data?.words || query.data.words.length === 0 ? (
             <p className="rounded-lg border border-dashed px-3 py-4 text-center text-xs text-muted-foreground">
-              No meanings yet — save the puzzle to generate them.
+              No meanings yet — add words and save the puzzle to generate them.
             </p>
           ) : (
             <ul className="grid max-h-[420px] grid-cols-1 gap-1.5 overflow-y-auto pr-0.5 sm:grid-cols-2">

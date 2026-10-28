@@ -1,13 +1,13 @@
 import { Effect } from 'effect';
-import { z } from 'zod';
 import type { PadajalaPuzzleWord } from '~/db/schema_zod';
 import { AiProvider, aiInvalidOutputRetryPolicy } from '~/effect/ai';
 import { AiProviderError } from '~/effect/errors';
 import { OPENROUTER_MODELS } from '~/util/ai/image_gen';
 import { padajalaActiveWords } from '~/util/puzzle/word_list';
+import { more_hints_schema, type MoreHintsType } from '~/util/ai/ai_content_schemas';
 
 /** Minimal puzzle shape needed to generate more hints. */
-type MoreHintsPuzzleInput = {
+export type MoreHintsPuzzleInput = {
   slug: string;
   title: string;
   description: string;
@@ -37,19 +37,13 @@ Rules:
 Give your response in the required JSON SCHEMA.
 `;
 
-export const more_hints_schema = z.object({
-  hints: z
-    .array(
-      z
-        .string()
-        .trim()
-        .min(1)
-        .describe('Short enriched hint for one padajala entry; must not reveal the answer')
-    )
-    .describe('One enriched hint per padajala entry, in the same order as the input entries')
-});
+export { more_hints_schema, type MoreHintsType };
 
-export type MoreHintsType = z.infer<typeof more_hints_schema>;
+/**
+ * Part of the stored input hash and the Redis key: bump after changing the prompt or model so
+ * every puzzle's saved hints count as stale and regenerate on next request.
+ */
+export const MORE_HINTS_PROMPT_VERSION = 1;
 
 /** Fields that affect AI more-hints generation (placement is ignored). */
 export type MoreHintsInputWord = Pick<PadajalaPuzzleWord, 'word' | 'description'> &

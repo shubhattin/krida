@@ -23,7 +23,9 @@ const loader$ = createServerFn({ method: 'GET' })
         client.query.puzzles.findFirst({
           where: (tbl, { and, eq }) => and(eq(tbl.id, parsed.data), eq(tbl.kind, 'padajala')),
           with: {
-            padajala: true,
+            padajala: {
+              columns: { more_hints: false, more_hints_hash: false, more_hints_generated_at: false }
+            },
             attachments: {
               columns: {
                 id: true,

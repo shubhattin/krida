@@ -1571,8 +1571,8 @@ const SaveButton = ({ word_puzzle }: { word_puzzle: Puzzle }) => {
         await router.invalidate();
         invalidatePadavaliListedPuzzleQueries(queryClient);
         invalidateCatalogQueries(queryClient, trpc);
-        // Word meanings auto-regenerate server-side on title/desc/words change —
-        // refetch the admin preview so it shows the fresh AI output.
+        // Word meanings regenerate server-side (in the background) on title/desc/words
+        // change — refetch the admin preview so it shows the fresh AI output.
         void queryClient.invalidateQueries({
           queryKey: trpc.public_ai.get_puzzle_word_meanings.queryKey({
             puzzle_id: word_puzzle.id,

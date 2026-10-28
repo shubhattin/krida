@@ -1,4 +1,5 @@
 import { CrossordPuzzleGridCellSchema, PadajalaPuzzleWordSchema } from '~/db/schema_zod';
+import { more_hints_schema, word_meanings_schema } from '~/util/ai/ai_content_schemas';
 import { anveshi_puzzle_data_schema } from '~/util/anveshi/data';
 import { bhramita_puzzle_data_schema } from '~/util/bhramita/data';
 import { dvayi_puzzle_data_schema } from '~/util/dvayi/data';
@@ -16,10 +17,13 @@ export const TABLE_NOTES = new Map<string, string>([
     'puzzles',
     'Every puzzle of every game (kind). listed=false means draft/unlisted; listed=true is public. Game content lives in <kind>_puzzles (same id).'
   ],
-  ['padavali_puzzles', 'Padāvalī word-search content; id = puzzles.id'],
+  [
+    'padavali_puzzles',
+    'Padāvalī word-search content; id = puzzles.id. word_meanings = AI word explanations (null until generated; only valid while word_meanings_hash matches the current title/description/words)'
+  ],
   [
     'padajala_puzzles',
-    'Padajāla crossword content; id = puzzles.id. word = Latin answer in the grid, word_dev = Devanagari, description = clue'
+    'Padajāla crossword content; id = puzzles.id. word = Latin answer in the grid, word_dev = Devanagari, description = clue. more_hints = AI extra clues (null until generated; only valid while more_hints_hash matches the current title/description/clues)'
   ],
   ['dvayi_puzzles', 'Dvayī (match the following) content; id = puzzles.id'],
   ['bhramita_puzzles', 'Bhramitā (jumbled words) content; id = puzzles.id'],
@@ -67,9 +71,11 @@ export const JSONB_COLUMN_TYPES = new Map<string, string>([
   ['padavali_puzzles.word_list', zodTypeText(padavali_word_candidate_list_schema)],
   ['padavali_puzzles.grid_data', 'string[][] (rows of akṣaras)'],
   ['padavali_puzzles.grid_dimensions', '[rows, cols]'],
+  ['padavali_puzzles.word_meanings', zodTypeText(word_meanings_schema)],
   ['padajala_puzzles.word_list', zodTypeText(PadajalaPuzzleWordSchema.array())],
   ['padajala_puzzles.grid_data', zodTypeText(CrossordPuzzleGridCellSchema.array().array())],
   ['padajala_puzzles.grid_dimensions', '[rows, cols]'],
+  ['padajala_puzzles.more_hints', zodTypeText(more_hints_schema)],
   ['dvayi_puzzles.puzzle_data', zodTypeText(dvayi_puzzle_data_schema)],
   ['bhramita_puzzles.puzzle_data', zodTypeText(bhramita_puzzle_data_schema)],
   ['surupa_puzzles.puzzle_data', zodTypeText(surupa_puzzle_data_schema)],

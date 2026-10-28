@@ -1,6 +1,7 @@
 import { t } from './trpc_init';
 import { puzzle_router, schedules_router } from './routers/padavali';
 import {
+  admin_ai_content_router,
   ai_image_assets_router,
   batch_ai_router,
   image_assets_router,
@@ -30,6 +31,7 @@ export const appRouter = t.router({
   image_assets: image_assets_router,
   system_prompts: system_prompts_router,
   public_ai: public_ai_router,
+  admin_ai_content: admin_ai_content_router,
   batch_ai: batch_ai_router,
   catalog: catalog_router,
   analytics: analytics_router,

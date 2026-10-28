@@ -1,11 +1,8 @@
 import { Effect, Schedule } from 'effect';
-import { z } from 'zod';
-import { puzzle_schema } from '~/db/db_shared_vals';
 import { AiProvider } from '~/effect/ai';
 import { AiProviderError } from '~/effect/errors';
 import { OPENROUTER_MODELS } from '~/util/ai/image_gen';
-
-type PuzzleType = z.infer<typeof puzzle_schema>;
+import { word_meanings_schema, type WordMeaningsType } from '~/util/ai/ai_content_schemas';
 
 const SYSTEM_PROMPT = `
 You are an expert at providing meanings of Sanskrit words based on the puzzle context.
@@ -24,25 +21,25 @@ You will be provided with
 Give your response in a proper JSON SCHEMA
 `;
 
-export const word_meanings_schema = z.object({
-  words: z
-    .array(
-      z.object({
-        word: z.string().describe('Provided Sanskrit word in Devanagari script'),
-        meaning: z
-          .string()
-          .describe(
-            'Meaning and Short Explanation of the word in English based on the puzzle context'
-          )
-      })
-    )
-    .describe('List of words and their meanings')
-});
+export { word_meanings_schema, type WordMeaningsType };
 
-export type WordMeaningsType = z.infer<typeof word_meanings_schema>;
+/**
+ * Part of the stored input hash and the Redis key: bump after changing the prompt or model so
+ * every puzzle's saved meanings count as stale and regenerate on next request.
+ */
+export const WORD_MEANINGS_PROMPT_VERSION = 1;
+
+/** What word-meanings generation reads from a puzzle. */
+export type WordMeaningsPuzzleInput = {
+  slug: string;
+  title: string;
+  description: string;
+  /** Active (public) words only */
+  word_list: string[];
+};
 
 export const get_puzzle_word_meanings = Effect.fn('get_puzzle_word_meanings')(function* (
-  puzzle: PuzzleType
+  puzzle: WordMeaningsPuzzleInput
 ) {
   const ai = yield* AiProvider;
   const words_list = puzzle.word_list.join(', ');
