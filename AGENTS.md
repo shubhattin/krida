@@ -20,6 +20,7 @@
 # PR Megre Instructins
 
 - By default unless said after merging the PR remove the local and remote branch and git fetch --prune.
+- Squash-merge PRs with 1-3 commits.
 
 # Conventions
 
