@@ -10,8 +10,12 @@ You are an expert at providing meanings of Sanskrit words based on the puzzle co
 You will be provided context of Sanskrit puzzle title and name.
 - You have give short meanings and explanations for meaning of words of the puzzles.
 - Keep In the context tHe indian cultural mythology, history  and background for explanation.
-- Do not use Devanagari in word meanings rather use the IAST (Romanized standard to write Indian Sanskit words), 
-  eg :- śakti (शक्ति) , gaṇeṣa (गणेश), kālabhairava (कालभैरव)
+- Do not use Devanagari in word meanings rather use the IAST (Romanized standard to write Indian Sanskit words)
+  for any other Sanskrit names you mention, eg :- śakti, gaṇeśa, kālabhairava
+- Return every word exactly as provided (same Devanagari spelling), one entry per word, in the same order.
+- The meaning is also shown to players as a hint while they are still searching for the word, so NEVER
+  write the word itself in its meaning: not in Devanagari, not in IAST or any other romanization, not a
+  close spelling, variant or part of it. Refer to it as "this word" or describe it instead.
 
 You will be provided with
 - Title: The title of the puzzle
@@ -27,7 +31,7 @@ export { word_meanings_schema, type WordMeaningsType };
  * Part of the stored input hash and the Redis key: bump after changing the prompt or model so
  * every puzzle's saved meanings count as stale and regenerate on next request.
  */
-export const WORD_MEANINGS_PROMPT_VERSION = 1;
+export const WORD_MEANINGS_PROMPT_VERSION = 2;
 
 /** What word-meanings generation reads from a puzzle. */
 export type WordMeaningsPuzzleInput = {

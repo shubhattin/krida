@@ -1,5 +1,5 @@
 import { Effect } from 'effect';
-import { and, asc, desc, eq, exists, gt, gte, lte, sql } from 'drizzle-orm';
+import { and, asc, desc, eq, exists, gt, gte, isNull, lte, sql } from 'drizzle-orm';
 import { z } from 'zod';
 import { attachment_schema, image_schema } from '~/db/db_shared_vals';
 import {
@@ -412,7 +412,7 @@ const load_more_hints: AiContentCache<MoreHintsType> = createAiContentCache<
       };
     }).pipe(Effect.mapError(toCacheError('fetchMoreHintsSource', moreHintsKey(puzzle_id)))),
   generate: ({ slug, inputs }) => get_padajala_more_hints({ slug, ...inputs }),
-  save: (puzzle_id, inputs, data, hash) =>
+  save: ({ puzzle_id, inputs, data, hash, previousHash }) =>
     dbRunHttp('padajala.save_more_hints', async (client) => {
       const written = await client
         .update(padajala_puzzles)
@@ -424,7 +424,11 @@ const load_more_hints: AiContentCache<MoreHintsType> = createAiContentCache<
         .where(
           and(
             eq(padajala_puzzles.id, puzzle_id),
-            // Compare-and-set: drop the write if a save changed the inputs mid-generation
+            // Compare-and-set: drop the write if a newer run already stored output
+            previousHash === null
+              ? isNull(padajala_puzzles.more_hints_hash)
+              : eq(padajala_puzzles.more_hints_hash, previousHash),
+            // ...or a save changed the inputs mid-generation
             sql`${padajala_puzzles.word_list} = ${JSON.stringify(inputs.word_list)}::jsonb`,
             exists(
               client

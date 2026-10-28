@@ -69,7 +69,7 @@ const run = <A>(effect: Effect.Effect<A, CacheError | ConflictError, Services>, 
 const hashOf = (inputs: Inputs) => inputs.words.join('|');
 
 const setup = (stored: Omit<StoredAiContent<Inputs>, 'slug'>, { saveSucceeds = true } = {}) => {
-  const saves: { data: Data; hash: string }[] = [];
+  const saves: { data: Data; hash: string; previousHash: string | null }[] = [];
   const calls = { generate: 0, saves };
   const cache = createAiContentCache<Inputs, Data>({
     getKey: (id) => `t:v1:${id}`,
@@ -81,9 +81,9 @@ const setup = (stored: Omit<StoredAiContent<Inputs>, 'slug'>, { saveSucceeds = t
         calls.generate++;
         return { words: inputs.words.map((w) => `${w}:new`) };
       }),
-    save: (_id, _inputs, data, hash) =>
+    save: ({ data, hash, previousHash }) =>
       Effect.sync(() => {
-        calls.saves.push({ data, hash });
+        calls.saves.push({ data, hash, previousHash });
         return saveSucceeds;
       })
   });
@@ -108,7 +108,10 @@ describe('createAiContentCache', () => {
     const result = await run(cache.get({ puzzle_id: 1 }), client);
     expect(result).toMatchObject({ _tag: 'Success', value: { words: ['a:new', 'b:new'] } });
     expect(calls.generate).toBe(1);
-    expect(calls.saves).toEqual([{ data: { words: ['a:new', 'b:new'] }, hash: 'a|b' }]);
+    // The write is conditioned on the hash this run loaded, so an older run can't overwrite it
+    expect(calls.saves).toEqual([
+      { data: { words: ['a:new', 'b:new'] }, hash: 'a|b', previousHash: 'old-hash' }
+    ]);
   });
 
   it('regenerate saves, drops the Redis copy and returns the new output', async () => {

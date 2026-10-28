@@ -299,15 +299,8 @@ const update_puzzle_route = protectedAdminProcedure
       Effect.gen(function* () {
         const [existing] = yield* dbRunHttp('padajala.find_puzzle_for_update', (client) =>
           client
-            .select({
-              id: puzzles.id,
-              listed: puzzles.listed,
-              title: puzzles.title,
-              description: puzzles.description,
-              word_list: padajala_puzzles.word_list
-            })
+            .select({ id: puzzles.id, listed: puzzles.listed })
             .from(puzzles)
-            .innerJoin(padajala_puzzles, eq(padajala_puzzles.id, puzzles.id))
             .where(and(padajalaKind, eq(puzzles.id, puzzle_id), eq(puzzles.slug, puzzle_slug)))
             .limit(1)
         );
@@ -338,22 +331,34 @@ const update_puzzle_route = protectedAdminProcedure
         const prev_listed = existing.listed;
         const { attachments, ...puzzle_data_rest } = puzzle_data;
         const becomingListed = puzzle_data.listed && !prev_listed;
-        const more_hints_input_changed = !more_hints_inputs_equal(
-          {
-            title: existing.title,
-            description: existing.description,
-            word_list: existing.word_list
-          },
-          {
-            title: puzzle_data.title,
-            description: puzzle_data.description,
-            word_list: resolvedWordList
-          }
-        );
 
-        const { updated_count, newly_added_index_ids } = yield* dbTransaction(
-          'padajala.update_puzzle',
-          async (tx) => {
+        const { updated_count, newly_added_index_ids, more_hints_input_changed } =
+          yield* dbTransaction('padajala.update_puzzle', async (tx) => {
+            // Compare AI inputs against the row locked by this transaction, so a concurrent save
+            // can't make this one keep hints generated for different clues
+            const [locked] = await tx
+              .select({
+                title: puzzles.title,
+                description: puzzles.description,
+                word_list: padajala_puzzles.word_list
+              })
+              .from(puzzles)
+              .innerJoin(padajala_puzzles, eq(padajala_puzzles.id, puzzles.id))
+              .where(and(padajalaKind, eq(puzzles.id, puzzle_id), eq(puzzles.slug, puzzle_slug)))
+              .for('update');
+            if (!locked) {
+              return {
+                updated_count: 0,
+                newly_added_index_ids: [],
+                more_hints_input_changed: false
+              };
+            }
+            const more_hints_input_changed = !more_hints_inputs_equal(locked, {
+              title: puzzle_data.title,
+              description: puzzle_data.description,
+              word_list: resolvedWordList
+            });
+
             const metaUpdates: Partial<typeof puzzles.$inferInsert> = {
               title: puzzle_data_rest.title,
               description: puzzle_data_rest.description,
@@ -388,10 +393,10 @@ const update_puzzle_route = protectedAdminProcedure
             const attachment_result = await syncPuzzleAttachments(tx, puzzle_id, attachments);
             return {
               updated_count: updated.length,
-              newly_added_index_ids: attachment_result.newly_added_index_ids
+              newly_added_index_ids: attachment_result.newly_added_index_ids,
+              more_hints_input_changed
             };
-          }
-        );
+          });
 
         if (updated_count === 0) {
           return yield* Effect.fail(

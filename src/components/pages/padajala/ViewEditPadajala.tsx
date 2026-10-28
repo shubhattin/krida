@@ -101,6 +101,7 @@ import {
   colIndexToNumberLabel
 } from '~/util/padajala/grid';
 import { PadajalaSlugField } from '~/components/pages/padajala/EditPadajalaSlugDialog';
+import { PadajalaMoreHintsPreview } from '~/components/pages/padajala/MoreHintsPreview';
 import { GridDimensionsField } from '~/components/puzzle/GridDimensionsField';
 import {
   PuzzleCatalogFields,
@@ -270,6 +271,11 @@ export default function ViewEditPadajala({
         <PlacementAndGrid />
         <AttachmentsEditor />
         <PadajalaPuzzleImageSection puzzleId={puzzle.id} />
+        <PadajalaMoreHintsPreview
+          puzzleId={puzzle.id}
+          slug={puzzle.slug}
+          wordList={puzzle.word_list}
+        />
         <SaveControls puzzle={puzzle} />
       </div>
     </EditorHistoryProvider>
@@ -2127,6 +2133,14 @@ const SaveControls = ({ puzzle }: { puzzle: ViewEditPadajalaProps['puzzle'] }) =
         await router.invalidate();
         invalidatePadajalaListedPuzzleQueries(queryClient);
         invalidateCatalogQueries(queryClient, trpc);
+        // More hints regenerate server-side (in the background) on title/desc/words/clues
+        // change — refetch the admin preview so it shows the fresh AI output.
+        void queryClient.invalidateQueries({
+          queryKey: trpc.public_ai.get_padajala_more_hints.queryKey({
+            puzzle_id: puzzle.id,
+            puzzle_slug: puzzle.slug
+          })
+        });
       },
       onError(err) {
         saveSnapRef.current = null;

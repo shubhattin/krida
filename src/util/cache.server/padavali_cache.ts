@@ -1,5 +1,5 @@
 import { Effect } from 'effect';
-import { and, asc, desc, eq, exists, gt, gte, lte, sql } from 'drizzle-orm';
+import { and, asc, desc, eq, exists, gt, gte, isNull, lte, sql } from 'drizzle-orm';
 import { z } from 'zod';
 import { image_schema, puzzle_schema } from '~/db/db_shared_vals';
 import {
@@ -399,7 +399,7 @@ const load_word_meanings: AiContentCache<WordMeaningsType> = createAiContentCach
       description: inputs.description,
       word_list: padavaliActiveWords(inputs.word_list)
     }),
-  save: (puzzle_id, inputs, data, hash) =>
+  save: ({ puzzle_id, inputs, data, hash, previousHash }) =>
     dbRunHttp('padavali.save_word_meanings', async (client) => {
       const written = await client
         .update(padavali_puzzles)
@@ -411,7 +411,11 @@ const load_word_meanings: AiContentCache<WordMeaningsType> = createAiContentCach
         .where(
           and(
             eq(padavali_puzzles.id, puzzle_id),
-            // Compare-and-set: drop the write if a save changed the inputs mid-generation
+            // Compare-and-set: drop the write if a newer run already stored output
+            previousHash === null
+              ? isNull(padavali_puzzles.word_meanings_hash)
+              : eq(padavali_puzzles.word_meanings_hash, previousHash),
+            // ...or a save changed the inputs mid-generation
             sql`${padavali_puzzles.word_list} = ${JSON.stringify(inputs.word_list)}::jsonb`,
             exists(
               client

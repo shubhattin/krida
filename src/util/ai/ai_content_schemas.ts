@@ -9,11 +9,11 @@ export const word_meanings_schema = z.object({
   words: z
     .array(
       z.object({
-        word: z.string().describe('Provided Sanskrit word in Devanagari script'),
+        word: z.string().describe('Provided Sanskrit word in Devanagari script, exactly as given'),
         meaning: z
           .string()
           .describe(
-            'Meaning and Short Explanation of the word in English based on the puzzle context'
+            'Meaning and Short Explanation of the word in English based on the puzzle context; never contains the word itself in any script (it doubles as an in-game hint)'
           )
       })
     )

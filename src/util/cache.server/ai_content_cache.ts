@@ -9,6 +9,8 @@ import { createCache, warmCache, type CacheItem } from '~/effect/cache';
 import { reportSwallowedError } from '~/effect/report';
 import { AI_FAILURE_TTL_SECONDS, CACHE_AI_OUTSIDE_PROD } from './ai_cache_options';
 
+const AI_REDIS_TTL_SECONDS = 24 * 60 * 60;
+
 export type AiContentParams = { puzzle_id: number };
 
 /** A puzzle's generation inputs plus whatever output is currently stored for it. */
@@ -31,15 +33,17 @@ type AiContentCacheConfig<TInputs, TData> = {
   inputHash: (inputs: TInputs) => string;
   generate: (stored: StoredAiContent<TInputs>) => Effect.Effect<TData, AiProviderError, AiProvider>;
   /**
-   * Persist the output, but only while the puzzle's inputs still equal `inputs`.
-   * Resolves `false` when a concurrent edit changed them and nothing was written.
+   * Persist the output, but only while the puzzle's inputs still equal `inputs` and the stored
+   * hash is still `previousHash` (what this generation loaded), so an older run can't overwrite a
+   * newer one. Resolves `false` when nothing was written.
    */
-  save: (
-    puzzle_id: number,
-    inputs: TInputs,
-    data: TData,
-    hash: string
-  ) => Effect.Effect<boolean, CacheError, DatabaseHttp>;
+  save: (args: {
+    puzzle_id: number;
+    inputs: TInputs;
+    data: TData;
+    hash: string;
+    previousHash: string | null;
+  }) => Effect.Effect<boolean, CacheError, DatabaseHttp>;
 };
 
 export type AiContentCache<TData> = CacheItem<AiContentParams, TData> & {
@@ -80,12 +84,13 @@ export function createAiContentCache<TInputs, TData>(
           })
         )
       );
-      const saved = yield* config.save(
+      const saved = yield* config.save({
         puzzle_id,
-        stored.inputs,
+        inputs: stored.inputs,
         data,
-        config.inputHash(stored.inputs)
-      );
+        hash: config.inputHash(stored.inputs),
+        previousHash: stored.hash
+      });
       // Unsaved output still matches the inputs this caller loaded, so it is safe to return;
       // the guarded Redis write is dropped by the edit's generation bump.
       return { data, saved };
@@ -93,6 +98,9 @@ export function createAiContentCache<TInputs, TData>(
 
   const cache = createCache<AiContentParams, TData>({
     getKey: ({ puzzle_id }) => config.getKey(puzzle_id),
+    // Postgres is the source of truth: a short TTL bounds how long a missed Redis delete can
+    // serve outdated output, and a refill is only a DB read
+    ttlSeconds: AI_REDIS_TTL_SECONDS,
     // Paid generation: don't regenerate on every public request after a failure
     failureTtlSeconds: AI_FAILURE_TTL_SECONDS,
     useGenerationGuard: true,
@@ -131,10 +139,9 @@ export function createAiContentCache<TInputs, TData>(
         ConflictError.make({ message: 'Puzzle changed while regenerating; try again' })
       );
     }
-    // Also clears the failure backoff; the next read refills Redis from Postgres
-    yield* cache
-      .delete({ puzzle_id })
-      .pipe(Effect.catch((error) => reportSwallowedError('ai_content.regenerate')(error)));
+    // Also clears the failure backoff; the next read refills Redis from Postgres. Not swallowed:
+    // the admin should retry rather than see success while Redis still serves the old output.
+    yield* cache.delete({ puzzle_id });
     return data;
   });
 
