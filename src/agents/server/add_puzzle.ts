@@ -9,6 +9,7 @@ import {
   puzzles,
   tags
 } from '~/db/schema';
+import { syncDifficultyTags } from '~/db/difficulty_tags';
 import { dbRunHttp, dbTransaction, type DbTransaction } from '~/effect/database';
 import { BadRequestError, ConflictError, NotFoundError } from '~/effect/errors';
 import { SIMPLE_GAME_TABLES } from '~/util/catalog/simple_game_tables';
@@ -174,6 +175,9 @@ export const addProposedPuzzle = Effect.fn('agents.add_proposed_puzzle')(functio
         puzzle_id: inserted.id,
         order_index: Number(row?.value ?? 0) + 1
       });
+    }
+    if (collectionIds.length > 0) {
+      await syncDifficultyTags(tx, { puzzleIds: [inserted.id] });
     }
 
     // Re-adding reuses the link only while its puzzle is deleted; a concurrent add that already

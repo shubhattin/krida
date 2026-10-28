@@ -5,6 +5,7 @@ import { routeHeadFromPageMeta, siteUrl } from '~/components/tags/getPageMetaTag
 import HubPuzzles from '~/components/hub/HubPuzzles';
 import { HUB_GAMES } from '~/components/hub/hub_games';
 import { GAME_KINDS, type GameKind } from '~/util/catalog/tags';
+import { DIFFICULTY_KEYS } from '~/util/catalog/difficulty';
 
 const puzzles_search_schema = z.object({
   // NOTE: keep `game` / `view` optional with NO `.default()` — TanStack Router
@@ -17,6 +18,8 @@ const puzzles_search_schema = z.object({
     .catch(undefined),
   view: z.enum(['puzzles', 'collections']).optional().catch(undefined),
   tag: z.string().max(80).optional().catch(undefined),
+  /** Difficulty level (puzzles view only); matches the level's tag. */
+  level: z.enum(DIFFICULTY_KEYS).optional().catch(undefined),
   q: z.string().max(200).optional().catch(undefined),
   /** 1-based; omitted from the URL when on page 1. */
   page: z.coerce.number().int().min(1).optional().catch(undefined)
@@ -76,7 +79,7 @@ function puzzlesMetaForSearch(search: PuzzlesSearch) {
  * - `/puzzles` (all puzzles; `?game=all` and `?view=puzzles` are redundant)
  * - `/puzzles?game=<kind>` (one game; never with `?view=`)
  * - `/puzzles?view=collections` (all collections; never with `?game=` or `?page=`)
- * `?q=`, `?tag=` and (puzzles view only) `?page=` may accompany any of them.
+ * `?q=`, `?tag=` and (puzzles view only) `?level=` / `?page=` may accompany any of them.
  * Anything else 301-redirects to its canonical form so old bookmarks stay valid.
  */
 type CanonicalPuzzlesParams = {
@@ -84,6 +87,7 @@ type CanonicalPuzzlesParams = {
   game?: string;
   q?: string;
   tag?: string;
+  level?: string;
   page?: string;
 };
 
@@ -98,6 +102,7 @@ function canonicalPuzzlesSearch(search: PuzzlesSearch): CanonicalPuzzlesParams {
   if (search.game != null && search.game !== 'all') canonical.game = search.game;
   if (search.q) canonical.q = search.q;
   if (search.tag) canonical.tag = search.tag;
+  if (search.level) canonical.level = search.level;
   if (search.page != null && search.page > 1) canonical.page = String(search.page);
   return canonical;
 }
@@ -139,6 +144,7 @@ export const Route = createFileRoute('/_hub/puzzles')({
         game: search.game != null && search.game !== 'all' ? search.game : undefined,
         q: search.q || undefined,
         tag: search.tag || undefined,
+        level: search.level,
         page: search.page != null && search.page > 1 ? search.page : undefined
       },
       statusCode: 301

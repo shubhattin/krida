@@ -11,6 +11,8 @@ import type { SimpleListedPuzzle } from '~/util/cache.server/simple_game_cache';
 import type { SimpleGameKind } from '~/util/games/kinds';
 import type { HubPuzzle } from './hub_puzzles';
 import { HubGameBadge } from './HubGameBadge';
+import { DifficultyPill } from './DifficultyPill';
+import { difficultyFromTags } from '~/util/catalog/difficulty';
 import { cn } from '~/lib/utils';
 import { PUZZLE_CARD_IMAGE_ASPECT_RATIO } from '~/components/pages/padavali/listed_puzzle_display';
 
@@ -101,10 +103,15 @@ export function HubPuzzleCard({
   /** Collection slug: links keep `?from=` so the puzzle can lead back here. */
   fromCollection?: string;
 }) {
+  const difficulty = difficultyFromTags(puzzle.tags.map((tag) => tag.slug));
   return (
     <div className="relative h-full">
       {showGameBadge ? (
-        <HubGameBadge game={puzzle.game} className="absolute top-2 left-2 z-10" />
+        <HubGameBadge
+          game={puzzle.game}
+          // Phones: smaller, so it matches the compact difficulty pill.
+          className="absolute top-2 left-2 z-10 max-sm:size-6 max-sm:rounded-lg [&_img]:max-sm:size-4"
+        />
       ) : null}
       {step != null ? (
         <span
@@ -115,6 +122,17 @@ export function HubPuzzleCard({
         >
           {step}
         </span>
+      ) : null}
+      {difficulty ? (
+        <DifficultyPill
+          level={difficulty}
+          // Beside the step number when that holds the top-right corner.
+          className={cn(
+            // Phones: tighter, so it doesn't crowd the cover art.
+            'absolute top-2 z-10 max-sm:gap-0.5 max-sm:px-1.5 max-sm:py-px max-sm:text-[9px]',
+            step != null && showGameBadge ? 'right-11' : 'right-2'
+          )}
+        />
       ) : null}
       {puzzle.game === 'padavali' ? (
         <PuzzlePreviewCard

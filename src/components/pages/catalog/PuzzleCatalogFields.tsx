@@ -1,12 +1,13 @@
 'use client';
 
 import { useId, useState } from 'react';
-import { atom, useAtom } from 'jotai';
+import { atom, useAtom, useAtomValue, useSetAtom } from 'jotai';
 import { useQuery } from '@tanstack/react-query';
-import { XIcon } from 'lucide-react';
+import { LockIcon, XIcon } from 'lucide-react';
 import { useTRPC } from '~/api/client';
 import { useEditorHistoryActions } from '~/hooks/useEditorHistory';
 import { cn } from '~/lib/utils';
+import { requiredDifficultyTagSlugs, withDifficultyTags } from '~/util/catalog/difficulty';
 import { normalizeTagSlug } from '~/util/catalog/tags';
 
 export type EditorTag = { id: number; slug: string };
@@ -27,6 +28,7 @@ export function PuzzleCatalogFields() {
 function TagsField() {
   const { commit } = useEditorHistoryActions();
   const [tags, setTags] = useAtom(puzzle_tags_atom);
+  const collections = useAtomValue(puzzle_collections_atom);
 
   return (
     <div className="space-y-1.5">
@@ -38,6 +40,7 @@ function TagsField() {
           setTags(next);
           commit();
         }}
+        lockedSlugs={requiredDifficultyTagSlugs(collections)}
         className="max-w-xl"
       />
     </div>
@@ -48,10 +51,13 @@ function TagsField() {
 export function TagsInput({
   value: tags,
   onChange,
+  lockedSlugs,
   className
 }: {
   value: EditorTag[];
   onChange: (tags: EditorTag[]) => void;
+  /** Tags that cannot be removed (required by a difficulty collection). */
+  lockedSlugs?: ReadonlySet<string>;
   className?: string;
 }) {
   const trpc = useTRPC();
@@ -96,6 +102,7 @@ export function TagsInput({
   };
 
   const removeSlug = (slug: string) => {
+    if (lockedSlugs?.has(slug)) return;
     onChange(tags.filter((tag) => tag.slug !== slug));
   };
 
@@ -113,14 +120,20 @@ export function TagsInput({
             className="inline-flex items-center gap-1 rounded-md bg-muted px-2 py-0.5 text-sm"
           >
             {tag.slug}
-            <button
-              type="button"
-              className="rounded-sm text-muted-foreground hover:text-foreground"
-              aria-label={`Remove tag ${tag.slug}`}
-              onClick={() => removeSlug(tag.slug)}
-            >
-              <XIcon className="size-3.5" />
-            </button>
+            {lockedSlugs?.has(tag.slug) ? (
+              <span title="Required by a difficulty collection" className="text-muted-foreground">
+                <LockIcon className="size-3" aria-label="Required by a difficulty collection" />
+              </span>
+            ) : (
+              <button
+                type="button"
+                className="rounded-sm text-muted-foreground hover:text-foreground"
+                aria-label={`Remove tag ${tag.slug}`}
+                onClick={() => removeSlug(tag.slug)}
+              >
+                <XIcon className="size-3.5" />
+              </button>
+            )}
           </span>
         ))}
         <input
@@ -201,6 +214,7 @@ export function TagsInput({
 function CollectionsField() {
   const { commit } = useEditorHistoryActions();
   const [links, setLinks] = useAtom(puzzle_collections_atom);
+  const setTags = useSetAtom(puzzle_tags_atom);
 
   return (
     <div className="space-y-1.5">
@@ -212,6 +226,8 @@ function CollectionsField() {
         value={links}
         onChange={(next) => {
           setLinks(next);
+          // A difficulty collection brings its tag along.
+          setTags((tags) => withDifficultyTags(tags, next));
           commit();
         }}
         className="max-w-xl"

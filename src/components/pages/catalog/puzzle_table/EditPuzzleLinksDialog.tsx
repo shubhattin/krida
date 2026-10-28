@@ -12,6 +12,7 @@ import {
   TagsInput
 } from '~/components/pages/catalog/PuzzleCatalogFields';
 import { invalidateCatalogQueries } from '~/components/pages/catalog/invalidateCatalogQueries';
+import { requiredDifficultyTagSlugs, withDifficultyTags } from '~/util/catalog/difficulty';
 import {
   AlertDialog,
   AlertDialogAction,
@@ -203,10 +204,17 @@ export function EditPuzzleLinksDialog({
                     <TagsInput
                       value={value.tags}
                       onChange={(tags) => updateDraft(puzzle, { tags })}
+                      lockedSlugs={requiredDifficultyTagSlugs(value.collections)}
                     />
                     <CollectionsInput
                       value={value.collections}
-                      onChange={(collections) => updateDraft(puzzle, { collections })}
+                      onChange={(collections) =>
+                        updateDraft(puzzle, {
+                          collections,
+                          // A difficulty collection brings its tag along.
+                          tags: withDifficultyTags(value.tags, collections)
+                        })
+                      }
                     />
                     <Button
                       type="button"

@@ -26,6 +26,14 @@ export type CollectionNav = {
   next: CollectionNavItem | null;
 };
 
+export type CollectionMembership = {
+  slug: string;
+  title: string;
+  image: ListedCollectionsType[number]['image'];
+  /** Puzzles in the collection. */
+  total: number;
+};
+
 export type PuzzleCollectionContext = {
   /**
    * The collection to lead the player through: the one in `?from=` when it contains
@@ -35,7 +43,7 @@ export type PuzzleCollectionContext = {
   /** True when `nav` came from `?from=` (the player actually arrived from it). */
   explicit: boolean;
   /** Every listed collection containing this puzzle, in catalog order. */
-  memberships: { slug: string; title: string }[];
+  memberships: CollectionMembership[];
 };
 
 export const EMPTY_PUZZLE_COLLECTION_CONTEXT: PuzzleCollectionContext = {
@@ -77,7 +85,12 @@ export function resolvePuzzleCollectionContext(
   const containing = collections.filter((collection) =>
     collection.items.some((item) => item.game === game && item.slug === slug)
   );
-  const memberships = containing.map(({ slug, title }) => ({ slug, title }));
+  const memberships = containing.map(({ slug, title, image, items }) => ({
+    slug,
+    title,
+    image,
+    total: items.length
+  }));
 
   const fromCollection = from ? containing.find((collection) => collection.slug === from) : null;
   if (fromCollection) {
