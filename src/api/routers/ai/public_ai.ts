@@ -4,22 +4,7 @@ import { z } from 'zod';
 import { CACHE, NO_CACHE_PARAMS } from '~/util/cache.server/cache_loaders';
 import { NotFoundError } from '~/effect/errors';
 import { runTrpcEffect } from '~/effect/run';
-import { more_hints_schema } from '~/util/ai/more_hints';
-
-const word_meaning_schema = z.object({
-  words: z
-    .array(
-      z.object({
-        word: z.string().describe('Provided Sanskrit word in Devanagari script'),
-        meaning: z
-          .string()
-          .describe(
-            'Meaning and Short Explanation of the word in English based on the puzzle context'
-          )
-      })
-    )
-    .describe('List of words and their meanings')
-});
+import { more_hints_schema, word_meanings_schema } from '~/util/ai/ai_content_schemas';
 
 /**
  * Same visibility rule as the public `$slug` loaders: AI output derived from a puzzle's answers is
@@ -39,7 +24,7 @@ const get_puzzle_word_meanings_route = publicProcedure
       puzzle_slug: z.string()
     })
   )
-  .output(word_meaning_schema)
+  .output(word_meanings_schema)
   .query(({ ctx, input: { puzzle_id, puzzle_slug } }) =>
     runTrpcEffect(
       Effect.gen(function* () {
@@ -61,7 +46,7 @@ const get_puzzle_word_meanings_route = publicProcedure
           );
         }
 
-        return yield* CACHE.padavali.word_meanings.get({ slug: puzzle_slug });
+        return yield* CACHE.padavali.word_meanings.get({ puzzle_id: puzzle.id });
       })
     )
   );
@@ -95,7 +80,7 @@ const get_padajala_more_hints_route = publicProcedure
           );
         }
 
-        return yield* CACHE.padajala.more_hints.get({ slug: puzzle_slug });
+        return yield* CACHE.padajala.more_hints.get({ puzzle_id: puzzle.id });
       })
     )
   );

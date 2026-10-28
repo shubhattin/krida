@@ -1,3 +1,4 @@
+export { admin_ai_content_router } from './ai/admin_ai_content';
 export { ai_image_assets_router } from './ai/ai_image_gen';
 export { batch_ai_router } from './ai/batch_ai';
 export { public_ai_router } from './ai/public_ai';

@@ -75,12 +75,7 @@ const update_puzzle_route = protectedAdminProcedure
       Effect.gen(function* () {
         const [existingRow] = yield* dbRunHttp('padavali.find_puzzle_for_update', (client) =>
           client
-            .select({
-              listed: puzzles.listed,
-              title: puzzles.title,
-              description: puzzles.description,
-              word_list: padavali_puzzles.word_list
-            })
+            .select({ listed: puzzles.listed })
             .from(puzzles)
             .innerJoin(padavali_puzzles, eq(padavali_puzzles.id, puzzles.id))
             .where(and(padavaliKind, eq(puzzles.id, puzzle_id), eq(puzzles.slug, puzzle_slug)))
@@ -97,14 +92,29 @@ const update_puzzle_route = protectedAdminProcedure
         }
         const prev_listed = existing.listed;
         const { attachments, ...puzzle_data_rest } = puzzle_data;
-        const meanings_input_changed =
-          existing.title !== puzzle_data.title ||
-          existing.description !== puzzle_data.description ||
-          !padavaliActiveWordsEqual(existing.word_list, puzzle_data.word_list);
 
-        const { updated_count, newly_added_index_ids } = yield* dbTransaction(
-          'padavali.update_puzzle',
-          async (tx) => {
+        const { updated_count, newly_added_index_ids, meanings_input_changed } =
+          yield* dbTransaction('padavali.update_puzzle', async (tx) => {
+            // Compare AI inputs against the row locked by this transaction, so a concurrent save
+            // can't make this one keep meanings generated for different words
+            const [locked] = await tx
+              .select({
+                title: puzzles.title,
+                description: puzzles.description,
+                word_list: padavali_puzzles.word_list
+              })
+              .from(puzzles)
+              .innerJoin(padavali_puzzles, eq(padavali_puzzles.id, puzzles.id))
+              .where(and(padavaliKind, eq(puzzles.id, puzzle_id), eq(puzzles.slug, puzzle_slug)))
+              .for('update');
+            if (!locked) {
+              return { updated_count: 0, newly_added_index_ids: [], meanings_input_changed: false };
+            }
+            const meanings_input_changed =
+              locked.title !== puzzle_data.title ||
+              locked.description !== puzzle_data.description ||
+              !padavaliActiveWordsEqual(locked.word_list, puzzle_data.word_list);
+
             const metaUpdates: Partial<typeof puzzles.$inferInsert> = {
               title: puzzle_data_rest.title,
               description: puzzle_data_rest.description,
@@ -132,7 +142,13 @@ const update_puzzle_route = protectedAdminProcedure
                 .set({
                   word_list: puzzle_data_rest.word_list,
                   grid_data,
-                  grid_dimensions
+                  grid_dimensions,
+                  // Stored meanings no longer match the inputs; regenerated after commit
+                  ...(meanings_input_changed && {
+                    word_meanings: null,
+                    word_meanings_hash: null,
+                    word_meanings_generated_at: null
+                  })
                 })
                 .where(eq(padavali_puzzles.id, puzzle_id));
             }
@@ -140,10 +156,10 @@ const update_puzzle_route = protectedAdminProcedure
             const attachment_result = await syncPuzzleAttachments(tx, puzzle_id, attachments);
             return {
               updated_count: updated.length,
-              newly_added_index_ids: attachment_result.newly_added_index_ids
+              newly_added_index_ids: attachment_result.newly_added_index_ids,
+              meanings_input_changed
             };
-          }
-        );
+          });
 
         if (updated_count === 0) {
           return yield* Effect.fail(
@@ -167,9 +183,7 @@ const update_puzzle_route = protectedAdminProcedure
           invalidate_and_refresh_cache(CACHE.padavali.word_puzzle, { slug: puzzle_slug })
         );
         if (meanings_input_changed) {
-          yield* settle(
-            invalidate_and_refresh_cache(CACHE.padavali.word_meanings, { slug: puzzle_slug })
-          );
+          yield* settle(CACHE.padavali.word_meanings.invalidateAndWarm(puzzle_id));
         }
         if (yield* puzzle_in_current_schedule(puzzle_id)) {
           yield* settle(
@@ -242,10 +256,6 @@ const update_puzzle_slug_route = protectedAdminProcedure
 
         yield* settle(invalidate_and_refresh_cache(CACHE.padavali.word_puzzle, { slug: new_slug }));
         yield* settle(CACHE.padavali.word_puzzle.delete({ slug: current_slug }));
-        yield* settle(
-          invalidate_and_refresh_cache(CACHE.padavali.word_meanings, { slug: new_slug })
-        );
-        yield* settle(CACHE.padavali.word_meanings.delete({ slug: current_slug }));
 
         if (puzzle.listed) {
           yield* settle(
@@ -365,7 +375,7 @@ const delete_puzzle_route = protectedAdminProcedure
             slug: normalizedSlug
           })
         );
-        yield* settle(CACHE.padavali.word_meanings.delete({ slug: normalizedSlug }));
+        yield* settle(CACHE.padavali.word_meanings.delete({ puzzle_id: id }));
         if (yield* puzzle_in_current_schedule(id)) {
           yield* settle(
             invalidate_and_refresh_cache(CACHE.padavali.current_schedule, NO_CACHE_PARAMS)
@@ -619,7 +629,6 @@ const delete_redirect_slug_route = protectedAdminProcedure
         });
 
         yield* settle(CACHE.padavali.word_puzzle.delete({ slug: redirect_slug }));
-        yield* settle(CACHE.padavali.word_meanings.delete({ slug: redirect_slug }));
         yield* settle(refreshPuzzleSlugMap());
 
         return { success: true as const };

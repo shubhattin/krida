@@ -5,7 +5,7 @@ import type { Context } from '~/api/context';
 import { NotFoundError } from '~/effect/errors';
 
 type Puzzle = { id: number; slug: string; listed: boolean };
-type MockState = { puzzles: Map<string, Puzzle>; currentPuzzleId?: number; aiCalls: string[] };
+type MockState = { puzzles: Map<string, Puzzle>; currentPuzzleId?: number; aiCalls: number[] };
 
 const state = vi.hoisted((): MockState => ({ puzzles: new Map(), aiCalls: [] }));
 
@@ -24,9 +24,9 @@ vi.mock('~/util/cache.server/cache_loaders', () => {
         )
     },
     [aiKey]: {
-      get: ({ slug }: { slug: string }) =>
+      get: ({ puzzle_id }: { puzzle_id: number }) =>
         Effect.sync(() => {
-          state.aiCalls.push(slug);
+          state.aiCalls.push(puzzle_id);
           return aiKey === 'word_meanings' ? { words: [] } : { hints: [] };
         })
     }
@@ -83,6 +83,8 @@ describe('public_ai visibility gate', () => {
     setup(listed);
     const results = await both(null, listed);
     expect(outcome(results)).toEqual(['ok', 'ok']);
+    // AI output is keyed by puzzle id, not slug
+    expect(state.aiCalls).toEqual([listed.id, listed.id]);
   });
 
   it('serves the current scheduled puzzle before it is listed', async () => {

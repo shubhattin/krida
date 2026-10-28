@@ -1,5 +1,5 @@
 import { Effect } from 'effect';
-import { and, asc, desc, eq, gt, gte, lte, sql } from 'drizzle-orm';
+import { and, asc, desc, eq, exists, gt, gte, isNull, lte, sql } from 'drizzle-orm';
 import { z } from 'zod';
 import { image_schema, puzzle_schema } from '~/db/db_shared_vals';
 import {
@@ -13,14 +13,16 @@ import { tagsForPuzzleIds } from '~/util/catalog/list_query';
 import { createCache, type CacheItem, type NoCacheParams } from '~/effect/cache';
 import { dbRunHttp } from '~/effect/database';
 import type { RedisJsonValue } from '~/effect/redis';
-import { BadRequestError, CacheError } from '~/effect/errors';
+import { CacheError } from '~/effect/errors';
 import {
   get_puzzle_word_meanings,
   word_meanings_schema,
+  WORD_MEANINGS_PROMPT_VERSION,
   type WordMeaningsType
 } from '../ai/word_meanings';
+import { wordMeaningsInputHash, type WordMeaningsInputs } from '../ai/ai_content_hash';
 import { padavaliActiveWords, type PadavaliWordCandidate } from '~/util/puzzle/word_list';
-import { AI_FAILURE_TTL_SECONDS, CACHE_AI_OUTSIDE_PROD } from './ai_cache_options';
+import { createAiContentCache, type AiContentCache } from './ai_content_cache';
 import { public_tag_schema } from '~/util/catalog/tags';
 import {
   currentScheduleSetOptions,
@@ -83,7 +85,8 @@ const NEXT_SCHEDULE_KEY = 'padavali:next_schedule';
 const LISTED_PUZZLE_LIST_KEY = 'padavali:listed_puzzle_list';
 
 const wordPuzzleKey = (slug: string) => `padavali:word_puzzle:${slug}`;
-const wordMeaningsKey = (slug: string) => `padavali:word_meanings:${slug}`;
+const wordMeaningsKey = (puzzle_id: number) =>
+  `padavali:word_meanings:v${WORD_MEANINGS_PROMPT_VERSION}:${puzzle_id}`;
 
 /** Exported for tests — must stay aligned with createCache getKey builders below. */
 export const padavaliCacheKeys = {
@@ -359,42 +362,78 @@ const load_word_puzzle: CacheItem<PadavaliPuzzleParams, PadavaliPuzzleType | und
       }).pipe(Effect.mapError(toCacheError('fetchWordPuzzle', wordPuzzleKey(slug))))
   });
 
-const load_word_meanings: CacheItem<PadavaliPuzzleParams, WordMeaningsType> = createCache({
-  getKey: ({ slug }) => wordMeaningsKey(slug),
-  ttlSeconds: Infinity,
-  // Paid generation: don't regenerate on every public request after a failure
-  failureTtlSeconds: AI_FAILURE_TTL_SECONDS,
-  useGenerationGuard: true,
-  useSingleFlight: true,
-  cacheOutsideProd: CACHE_AI_OUTSIDE_PROD,
+const load_word_meanings: AiContentCache<WordMeaningsType> = createAiContentCache<
+  WordMeaningsInputs,
+  WordMeaningsType
+>({
+  getKey: wordMeaningsKey,
   schema: word_meanings_schema,
-  fetch: ({ slug }) =>
-    Effect.gen(function* () {
-      const key = wordMeaningsKey(slug);
-      const puzzle = yield* load_word_puzzle.get({ slug });
-
-      if (!puzzle) {
-        return yield* Effect.fail(
-          CacheError.make({
-            operation: 'fetchWordMeaningsPuzzle',
-            key,
-            cause: BadRequestError.make({
-              message: `Puzzle not found for slug: ${slug}`
-            })
-          })
-        );
-      }
-
-      return yield* get_puzzle_word_meanings(puzzle).pipe(
-        Effect.mapError((cause) =>
-          CacheError.make({
-            operation: 'fetchWordMeaningsAi',
-            key,
-            cause
-          })
+  inputHash: wordMeaningsInputHash,
+  load: (puzzle_id) =>
+    dbRunHttp('padavali.word_meanings_source', async (client) => {
+      const [row] = await client
+        .select({
+          slug: puzzles.slug,
+          title: puzzles.title,
+          description: puzzles.description,
+          word_list: padavali_puzzles.word_list,
+          word_meanings: padavali_puzzles.word_meanings,
+          word_meanings_hash: padavali_puzzles.word_meanings_hash
+        })
+        .from(puzzles)
+        .innerJoin(padavali_puzzles, eq(padavali_puzzles.id, puzzles.id))
+        .where(and(eq(puzzles.kind, 'padavali'), eq(puzzles.id, puzzle_id)))
+        .limit(1);
+      if (!row) return undefined;
+      return {
+        slug: row.slug,
+        inputs: { title: row.title, description: row.description, word_list: row.word_list },
+        data: row.word_meanings,
+        hash: row.word_meanings_hash
+      };
+    }).pipe(Effect.mapError(toCacheError('fetchWordMeaningsSource', wordMeaningsKey(puzzle_id)))),
+  generate: ({ slug, inputs }) =>
+    get_puzzle_word_meanings({
+      slug,
+      title: inputs.title,
+      description: inputs.description,
+      word_list: padavaliActiveWords(inputs.word_list)
+    }),
+  save: ({ puzzle_id, inputs, data, hash, previousHash }) =>
+    dbRunHttp('padavali.save_word_meanings', async (client) => {
+      const written = await client
+        .update(padavali_puzzles)
+        .set({
+          word_meanings: data,
+          word_meanings_hash: hash,
+          word_meanings_generated_at: new Date()
+        })
+        .where(
+          and(
+            eq(padavali_puzzles.id, puzzle_id),
+            // Compare-and-set: drop the write if a newer run already stored output
+            previousHash === null
+              ? isNull(padavali_puzzles.word_meanings_hash)
+              : eq(padavali_puzzles.word_meanings_hash, previousHash),
+            // ...or a save changed the inputs mid-generation
+            sql`${padavali_puzzles.word_list} = ${JSON.stringify(inputs.word_list)}::jsonb`,
+            exists(
+              client
+                .select({ id: puzzles.id })
+                .from(puzzles)
+                .where(
+                  and(
+                    eq(puzzles.id, puzzle_id),
+                    eq(puzzles.title, inputs.title),
+                    eq(puzzles.description, inputs.description)
+                  )
+                )
+            )
+          )
         )
-      );
-    })
+        .returning();
+      return written.length > 0;
+    }).pipe(Effect.mapError(toCacheError('saveWordMeanings', wordMeaningsKey(puzzle_id))))
 });
 
 export type PadavaliCacheLoaders = {
@@ -402,7 +441,7 @@ export type PadavaliCacheLoaders = {
   next_schedule: CacheItem<NoCacheParams, PadavaliNextScheduleType>;
   listed_puzzle_list: CacheItem<NoCacheParams, PadavaliListedPuzzlesType>;
   word_puzzle: CacheItem<PadavaliPuzzleParams, PadavaliPuzzleType | undefined>;
-  word_meanings: CacheItem<PadavaliPuzzleParams, WordMeaningsType>;
+  word_meanings: AiContentCache<WordMeaningsType>;
 };
 
 export const padavali_cache_loaders: PadavaliCacheLoaders = {

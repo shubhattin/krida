@@ -1,5 +1,5 @@
 import { Effect } from 'effect';
-import { and, asc, desc, eq, gt, gte, lte, sql } from 'drizzle-orm';
+import { and, asc, desc, eq, exists, gt, gte, isNull, lte, sql } from 'drizzle-orm';
 import { z } from 'zod';
 import { attachment_schema, image_schema } from '~/db/db_shared_vals';
 import {
@@ -18,14 +18,16 @@ import { tagsForPuzzleIds } from '~/util/catalog/list_query';
 import { createCache, type CacheItem, type NoCacheParams } from '~/effect/cache';
 import { dbRunHttp } from '~/effect/database';
 import type { RedisJsonValue } from '~/effect/redis';
-import { BadRequestError, CacheError } from '~/effect/errors';
+import { CacheError } from '~/effect/errors';
 import {
   get_padajala_more_hints,
   more_hints_schema,
+  MORE_HINTS_PROMPT_VERSION,
   type MoreHintsType
 } from '~/util/ai/more_hints';
+import { moreHintsInputHash, type MoreHintsInputs } from '~/util/ai/ai_content_hash';
 import { padajalaActiveWordList } from '~/util/puzzle/word_list';
-import { AI_FAILURE_TTL_SECONDS, CACHE_AI_OUTSIDE_PROD } from './ai_cache_options';
+import { createAiContentCache, type AiContentCache } from './ai_content_cache';
 import { public_tag_schema } from '~/util/catalog/tags';
 import {
   currentScheduleSetOptions,
@@ -100,7 +102,8 @@ const NEXT_SCHEDULE_KEY = 'padajala:next_schedule';
 const LISTED_PUZZLE_LIST_KEY = 'padajala:listed_puzzle_list';
 
 const wordPuzzleKey = (slug: string) => `padajala:word_puzzle:${slug}`;
-const moreHintsKey = (slug: string) => `padajala:puzzle_more_hints:${slug}`;
+const moreHintsKey = (puzzle_id: number) =>
+  `padajala:puzzle_more_hints:v${MORE_HINTS_PROMPT_VERSION}:${puzzle_id}`;
 
 /** Exported for tests — must stay aligned with createCache getKey builders below. */
 export const padajalaCacheKeys = {
@@ -375,42 +378,75 @@ const load_word_puzzle: CacheItem<PadajalaPuzzleParams, PadajalaPuzzleType | und
       }).pipe(Effect.mapError(toCacheError('fetchWordPuzzle', wordPuzzleKey(slug))))
   });
 
-const load_more_hints: CacheItem<PadajalaPuzzleParams, MoreHintsType> = createCache({
-  getKey: ({ slug }) => moreHintsKey(slug),
-  ttlSeconds: Infinity,
-  // Paid generation: don't regenerate on every public request after a failure
-  failureTtlSeconds: AI_FAILURE_TTL_SECONDS,
-  useGenerationGuard: true,
-  useSingleFlight: true,
-  cacheOutsideProd: CACHE_AI_OUTSIDE_PROD,
+/** Full stored word list: the compare-and-set write matches the whole jsonb column. */
+type PadajalaMoreHintsInputs = MoreHintsInputs & { word_list: PadajalaPuzzleWord[] };
+
+const load_more_hints: AiContentCache<MoreHintsType> = createAiContentCache<
+  PadajalaMoreHintsInputs,
+  MoreHintsType
+>({
+  getKey: moreHintsKey,
   schema: more_hints_schema,
-  fetch: ({ slug }) =>
-    Effect.gen(function* () {
-      const key = moreHintsKey(slug);
-      const puzzle = yield* load_word_puzzle.get({ slug });
-
-      if (!puzzle) {
-        return yield* Effect.fail(
-          CacheError.make({
-            operation: 'fetchMoreHintsPuzzle',
-            key,
-            cause: BadRequestError.make({
-              message: `Padajala puzzle not found for slug: ${slug}`
-            })
-          })
-        );
-      }
-
-      return yield* get_padajala_more_hints(puzzle).pipe(
-        Effect.mapError((cause) =>
-          CacheError.make({
-            operation: 'fetchMoreHintsAi',
-            key,
-            cause
-          })
+  inputHash: moreHintsInputHash,
+  load: (puzzle_id) =>
+    dbRunHttp('padajala.more_hints_source', async (client) => {
+      const [row] = await client
+        .select({
+          slug: puzzles.slug,
+          title: puzzles.title,
+          description: puzzles.description,
+          word_list: padajala_puzzles.word_list,
+          more_hints: padajala_puzzles.more_hints,
+          more_hints_hash: padajala_puzzles.more_hints_hash
+        })
+        .from(puzzles)
+        .innerJoin(padajala_puzzles, eq(padajala_puzzles.id, puzzles.id))
+        .where(and(eq(puzzles.kind, 'padajala'), eq(puzzles.id, puzzle_id)))
+        .limit(1);
+      if (!row) return undefined;
+      return {
+        slug: row.slug,
+        inputs: { title: row.title, description: row.description, word_list: row.word_list },
+        data: row.more_hints,
+        hash: row.more_hints_hash
+      };
+    }).pipe(Effect.mapError(toCacheError('fetchMoreHintsSource', moreHintsKey(puzzle_id)))),
+  generate: ({ slug, inputs }) => get_padajala_more_hints({ slug, ...inputs }),
+  save: ({ puzzle_id, inputs, data, hash, previousHash }) =>
+    dbRunHttp('padajala.save_more_hints', async (client) => {
+      const written = await client
+        .update(padajala_puzzles)
+        .set({
+          more_hints: data,
+          more_hints_hash: hash,
+          more_hints_generated_at: new Date()
+        })
+        .where(
+          and(
+            eq(padajala_puzzles.id, puzzle_id),
+            // Compare-and-set: drop the write if a newer run already stored output
+            previousHash === null
+              ? isNull(padajala_puzzles.more_hints_hash)
+              : eq(padajala_puzzles.more_hints_hash, previousHash),
+            // ...or a save changed the inputs mid-generation
+            sql`${padajala_puzzles.word_list} = ${JSON.stringify(inputs.word_list)}::jsonb`,
+            exists(
+              client
+                .select({ id: puzzles.id })
+                .from(puzzles)
+                .where(
+                  and(
+                    eq(puzzles.id, puzzle_id),
+                    eq(puzzles.title, inputs.title),
+                    eq(puzzles.description, inputs.description)
+                  )
+                )
+            )
+          )
         )
-      );
-    })
+        .returning();
+      return written.length > 0;
+    }).pipe(Effect.mapError(toCacheError('saveMoreHints', moreHintsKey(puzzle_id))))
 });
 
 export type PadajalaCacheLoaders = {
@@ -418,7 +454,7 @@ export type PadajalaCacheLoaders = {
   next_schedule: CacheItem<NoCacheParams, PadajalaNextScheduleType>;
   listed_puzzle_list: CacheItem<NoCacheParams, PadajalaListedPuzzlesType>;
   word_puzzle: CacheItem<PadajalaPuzzleParams, PadajalaPuzzleType | undefined>;
-  more_hints: CacheItem<PadajalaPuzzleParams, MoreHintsType>;
+  more_hints: AiContentCache<MoreHintsType>;
 };
 
 export const padajala_cache_loaders: PadajalaCacheLoaders = {

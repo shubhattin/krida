@@ -22,7 +22,13 @@ const loader$ = createServerFn({ method: 'GET' })
         client.query.puzzles.findFirst({
           where: (tbl, { and, eq }) => and(eq(tbl.id, parsed.data), eq(tbl.kind, 'padavali')),
           with: {
-            padavali: true,
+            padavali: {
+              columns: {
+                word_meanings: false,
+                word_meanings_hash: false,
+                word_meanings_generated_at: false
+              }
+            },
             attachments: {
               columns: {
                 id: true,

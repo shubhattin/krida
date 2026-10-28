@@ -1,5 +1,6 @@
-import { integer, jsonb, pgTable } from 'drizzle-orm/pg-core';
+import { integer, jsonb, pgTable, text, timestamp } from 'drizzle-orm/pg-core';
 import { relations } from 'drizzle-orm';
+import type { WordMeaningsType } from '~/util/ai/ai_content_schemas';
 import { puzzles } from './puzzles_schema';
 
 export const padavali_puzzles = pgTable('padavali_puzzles', {
@@ -13,7 +14,12 @@ export const padavali_puzzles = pgTable('padavali_puzzles', {
     }[]
   >(),
   grid_data: jsonb().notNull().$type<string[][]>(),
-  grid_dimensions: jsonb().notNull().$type<[number, number]>()
+  grid_dimensions: jsonb().notNull().$type<[number, number]>(),
+  /** AI word meanings; null until generated, cleared when title/description/words change */
+  word_meanings: jsonb().$type<WordMeaningsType>(),
+  /** sha256 of the inputs + prompt version `word_meanings` was generated from */
+  word_meanings_hash: text(),
+  word_meanings_generated_at: timestamp({ withTimezone: true })
 });
 
 export const padavali_puzzlesRelations = relations(padavali_puzzles, ({ one }) => ({

@@ -25,6 +25,7 @@ import { createSelectSchema } from 'drizzle-zod';
 import { location_list_enum } from './types';
 import { script_list_enum } from '~/state/script_list';
 import { batch_metadata_schema } from '~/util/types/ai_batch_metadata';
+import { more_hints_schema, word_meanings_schema } from '~/util/ai/ai_content_schemas';
 
 import { game_kind_schema } from '~/util/catalog/tags';
 import { padavali_word_candidate_list_schema } from '~/util/puzzle/word_list';
@@ -47,7 +48,11 @@ export const PuzzleSchemaZod = createSelectSchema(puzzles, {
 export const PadavaliPuzzleSchemaZod = createSelectSchema(padavali_puzzles, {
   word_list: padavali_word_candidate_list_schema,
   grid_data: z.string().array().array(),
-  grid_dimensions: z.tuple([z.number().int().min(3), z.number().int().min(3)])
+  grid_dimensions: z.tuple([z.number().int().min(3), z.number().int().min(3)]),
+  // AI output columns: optional so editor payloads (which never carry them) still parse
+  word_meanings: word_meanings_schema.nullable().optional(),
+  word_meanings_hash: (schema) => schema.optional(),
+  word_meanings_generated_at: z.coerce.date().nullable().optional()
 });
 
 export const PadajalaPuzzleWordSchema = z
@@ -93,7 +98,11 @@ export const CrossordPuzzleSchemaZod = createSelectSchema(padajala_puzzles, {
   grid_dimensions: z.tuple([z.number().int().min(3), z.number().int().min(3)]),
   word_list: PadajalaPuzzleWordSchema.array(),
   /** mxn grid; blank text cells are boxes, letters are playable */
-  grid_data: CrossordPuzzleGridCellSchema.array().array()
+  grid_data: CrossordPuzzleGridCellSchema.array().array(),
+  // AI output columns: optional so editor payloads (which never carry them) still parse
+  more_hints: more_hints_schema.nullable().optional(),
+  more_hints_hash: (schema) => schema.optional(),
+  more_hints_generated_at: z.coerce.date().nullable().optional()
 });
 const padajalaListingSchema = z.object({
   uid: z.string(),

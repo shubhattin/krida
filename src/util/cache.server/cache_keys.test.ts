@@ -1,6 +1,8 @@
 import { describe, expect, it } from 'vitest';
 import { z } from 'zod';
 import type { RedisJsonValue } from '~/effect/redis';
+import { MORE_HINTS_PROMPT_VERSION } from '~/util/ai/more_hints';
+import { WORD_MEANINGS_PROMPT_VERSION } from '~/util/ai/word_meanings';
 import { padajalaCacheKeys } from '~/util/cache.server/padajala_cache';
 import { padavaliCacheKeys } from '~/util/cache.server/padavali_cache';
 import { puzzleSlugMapCacheKeys } from '~/util/cache.server/puzzle_slug_map_cache';
@@ -21,10 +23,17 @@ const parseScheduleSentinel =
 describe('cache keys', () => {
   it('uses padavali and padajala prefixes without version segments', () => {
     expect(padavaliCacheKeys.current_schedule()).toBe('padavali:current_schedule');
-    expect(padavaliCacheKeys.word_meanings('abc')).toBe('padavali:word_meanings:abc');
     expect(padajalaCacheKeys.word_puzzle('xyz')).toBe('padajala:word_puzzle:xyz');
-    expect(padajalaCacheKeys.more_hints('xyz')).toBe('padajala:puzzle_more_hints:xyz');
     expect(padajalaCacheKeys).not.toHaveProperty('word_meanings');
+  });
+
+  it('keys AI content by prompt version and puzzle id', () => {
+    expect(padavaliCacheKeys.word_meanings(12)).toBe(
+      `padavali:word_meanings:v${WORD_MEANINGS_PROMPT_VERSION}:12`
+    );
+    expect(padajalaCacheKeys.more_hints(12)).toBe(
+      `padajala:puzzle_more_hints:v${MORE_HINTS_PROMPT_VERSION}:12`
+    );
   });
 
   it('uses simple-game prefixes for listed lists and word puzzles', () => {
@@ -49,11 +58,11 @@ describe('cache keys', () => {
   });
 
   it('derives generation keys with :gen suffix', () => {
-    expect(redisGenerationKey(padavaliCacheKeys.word_meanings('abc'))).toBe(
-      'padavali:word_meanings:abc:gen'
+    expect(redisGenerationKey(padavaliCacheKeys.word_meanings(7))).toBe(
+      `padavali:word_meanings:v${WORD_MEANINGS_PROMPT_VERSION}:7:gen`
     );
-    expect(redisGenerationKey(padajalaCacheKeys.more_hints('abc'))).toBe(
-      'padajala:puzzle_more_hints:abc:gen'
+    expect(redisGenerationKey(padajalaCacheKeys.more_hints(7))).toBe(
+      `padajala:puzzle_more_hints:v${MORE_HINTS_PROMPT_VERSION}:7:gen`
     );
   });
 });
