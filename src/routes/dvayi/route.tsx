@@ -6,9 +6,9 @@ export const Route = createFileRoute('/dvayi')({
   loader: async () => ({ script: await getScript$() }),
   head: () => ({
     links: [
-      { rel: 'icon', href: '/dvayi.favicon.ico', type: 'image/x-icon' },
-      { rel: 'shortcut icon', href: '/dvayi.favicon.ico' },
-      { rel: 'apple-touch-icon', href: '/img/dvayi_icons/icon_128.png' }
+      { rel: 'icon', href: '/dvayi.favicon.ico?v=2', type: 'image/x-icon' },
+      { rel: 'shortcut icon', href: '/dvayi.favicon.ico?v=2' },
+      { rel: 'apple-touch-icon', href: '/img/dvayi_icons/icon_128.png?v=2' }
     ]
   }),
   component: SimpleGameRootLayout
