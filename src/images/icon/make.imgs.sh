@@ -39,11 +39,11 @@ emit() {
 }
 
 cut_plate krida 37 36 1180
-cut_plate dvayi 86 83 1081
-cut_plate bhramita 85 87 1082
-cut_plate surupa 48 48 1156
+cut_plate dvayi 43 46 1151
+cut_plate bhramita 86 80 1081
+cut_plate surupa 54 55 1141
 cut_plate anveshi 69 66 1115
-cut_plate padavali 87 85 1080
+cut_plate padavali 87 91 1070
 
 emit krida public/img public/favicon.ico
 emit padavali public/img/padavali_icons public/padavali.favicon.ico

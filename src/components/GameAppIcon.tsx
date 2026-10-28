@@ -6,11 +6,11 @@ import type { GameKind } from '~/util/catalog/tags';
 export type GameAppIconId = GameKind;
 
 export const GAME_APP_ICON_SRC = {
-  padavali: '/img/padavali_icons/icon_128_no_pad.png',
+  padavali: '/img/padavali_icons/icon_128_no_pad.png?v=2',
   padajala: '/img/padajala_icons/icon_128_no_pad.png',
-  dvayi: '/img/dvayi_icons/icon_128_no_pad.png',
-  bhramita: '/img/bhramita_icons/icon_128_no_pad.png',
-  surupa: '/img/surupa_icons/icon_128_no_pad.png',
+  dvayi: '/img/dvayi_icons/icon_128_no_pad.png?v=2',
+  bhramita: '/img/bhramita_icons/icon_128_no_pad.png?v=2',
+  surupa: '/img/surupa_icons/icon_128_no_pad.png?v=2',
   anveshi: '/img/anveshi_icons/icon_128_no_pad.png'
 } satisfies Record<GameAppIconId, string>;
 
