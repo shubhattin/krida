@@ -87,8 +87,6 @@ const LISTED_PUZZLE_LIST_KEY = 'padavali:listed_puzzle_list';
 const wordPuzzleKey = (slug: string) => `padavali:word_puzzle:${slug}`;
 const wordMeaningsKey = (puzzle_id: number) =>
   `padavali:word_meanings:v${WORD_MEANINGS_PROMPT_VERSION}:${puzzle_id}`;
-/** Pre-Postgres slug-keyed entry, read once per puzzle to avoid a repeat paid generation. */
-const legacyWordMeaningsKey = (slug: string) => `padavali:word_meanings:${slug}`;
 
 /** Exported for tests — must stay aligned with createCache getKey builders below. */
 export const padavaliCacheKeys = {
@@ -96,8 +94,7 @@ export const padavaliCacheKeys = {
   next_schedule: () => NEXT_SCHEDULE_KEY,
   listed_puzzle_list: () => LISTED_PUZZLE_LIST_KEY,
   word_puzzle: wordPuzzleKey,
-  word_meanings: wordMeaningsKey,
-  legacy_word_meanings: legacyWordMeaningsKey
+  word_meanings: wordMeaningsKey
 } as const;
 
 const toCacheError = (operation: string, key: string) => (cause: unknown) =>
@@ -370,10 +367,8 @@ const load_word_meanings: AiContentCache<WordMeaningsType> = createAiContentCach
   WordMeaningsType
 >({
   getKey: wordMeaningsKey,
-  legacyKey: legacyWordMeaningsKey,
   schema: word_meanings_schema,
   inputHash: wordMeaningsInputHash,
-  fitsInputs: (data, inputs) => data.words.length === padavaliActiveWords(inputs.word_list).length,
   load: (puzzle_id) =>
     dbRunHttp('padavali.word_meanings_source', async (client) => {
       const [row] = await client
@@ -406,7 +401,7 @@ const load_word_meanings: AiContentCache<WordMeaningsType> = createAiContentCach
     }),
   save: (puzzle_id, inputs, data, hash) =>
     dbRunHttp('padavali.save_word_meanings', async (client) => {
-      await client
+      const written = await client
         .update(padavali_puzzles)
         .set({
           word_meanings: data,
@@ -431,7 +426,9 @@ const load_word_meanings: AiContentCache<WordMeaningsType> = createAiContentCach
                 )
             )
           )
-        );
+        )
+        .returning();
+      return written.length > 0;
     }).pipe(Effect.mapError(toCacheError('saveWordMeanings', wordMeaningsKey(puzzle_id))))
 });
 

@@ -26,7 +26,7 @@ import {
   type MoreHintsType
 } from '~/util/ai/more_hints';
 import { moreHintsInputHash, type MoreHintsInputs } from '~/util/ai/ai_content_hash';
-import { padajalaActiveWordList, padajalaActiveWords } from '~/util/puzzle/word_list';
+import { padajalaActiveWordList } from '~/util/puzzle/word_list';
 import { createAiContentCache, type AiContentCache } from './ai_content_cache';
 import { public_tag_schema } from '~/util/catalog/tags';
 import {
@@ -104,8 +104,6 @@ const LISTED_PUZZLE_LIST_KEY = 'padajala:listed_puzzle_list';
 const wordPuzzleKey = (slug: string) => `padajala:word_puzzle:${slug}`;
 const moreHintsKey = (puzzle_id: number) =>
   `padajala:puzzle_more_hints:v${MORE_HINTS_PROMPT_VERSION}:${puzzle_id}`;
-/** Pre-Postgres slug-keyed entry, read once per puzzle to avoid a repeat paid generation. */
-const legacyMoreHintsKey = (slug: string) => `padajala:puzzle_more_hints:${slug}`;
 
 /** Exported for tests — must stay aligned with createCache getKey builders below. */
 export const padajalaCacheKeys = {
@@ -113,8 +111,7 @@ export const padajalaCacheKeys = {
   next_schedule: () => NEXT_SCHEDULE_KEY,
   listed_puzzle_list: () => LISTED_PUZZLE_LIST_KEY,
   word_puzzle: wordPuzzleKey,
-  more_hints: moreHintsKey,
-  legacy_more_hints: legacyMoreHintsKey
+  more_hints: moreHintsKey
 } as const;
 
 const toCacheError = (operation: string, key: string) => (cause: unknown) =>
@@ -389,10 +386,8 @@ const load_more_hints: AiContentCache<MoreHintsType> = createAiContentCache<
   MoreHintsType
 >({
   getKey: moreHintsKey,
-  legacyKey: legacyMoreHintsKey,
   schema: more_hints_schema,
   inputHash: moreHintsInputHash,
-  fitsInputs: (data, inputs) => data.hints.length === padajalaActiveWords(inputs.word_list).length,
   load: (puzzle_id) =>
     dbRunHttp('padajala.more_hints_source', async (client) => {
       const [row] = await client
@@ -419,7 +414,7 @@ const load_more_hints: AiContentCache<MoreHintsType> = createAiContentCache<
   generate: ({ slug, inputs }) => get_padajala_more_hints({ slug, ...inputs }),
   save: (puzzle_id, inputs, data, hash) =>
     dbRunHttp('padajala.save_more_hints', async (client) => {
-      await client
+      const written = await client
         .update(padajala_puzzles)
         .set({
           more_hints: data,
@@ -444,7 +439,9 @@ const load_more_hints: AiContentCache<MoreHintsType> = createAiContentCache<
                 )
             )
           )
-        );
+        )
+        .returning();
+      return written.length > 0;
     }).pipe(Effect.mapError(toCacheError('saveMoreHints', moreHintsKey(puzzle_id))))
 });
 

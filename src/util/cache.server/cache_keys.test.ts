@@ -36,11 +36,6 @@ describe('cache keys', () => {
     );
   });
 
-  it('keeps the pre-Postgres slug keys for one-time reuse', () => {
-    expect(padavaliCacheKeys.legacy_word_meanings('abc')).toBe('padavali:word_meanings:abc');
-    expect(padajalaCacheKeys.legacy_more_hints('xyz')).toBe('padajala:puzzle_more_hints:xyz');
-  });
-
   it('uses simple-game prefixes for listed lists and word puzzles', () => {
     expect(simpleGameCacheKeys('dvayi').listed_puzzle_list()).toBe('dvayi:listed_puzzle_list');
     expect(simpleGameCacheKeys('dvayi').word_puzzle('abc')).toBe('dvayi:word_puzzle:abc');

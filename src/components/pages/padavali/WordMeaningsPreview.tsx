@@ -62,8 +62,8 @@ export function PadavaliWordMeaningsPreview({
         queryClient.setQueryData(queryKey, data);
         toast.success('Word meanings regenerated');
       },
-      onError() {
-        toast.error('Failed to regenerate word meanings');
+      onError(error) {
+        toast.error('Failed to regenerate word meanings', { description: error.message });
       },
       onSettled() {
         setConfirmOpen(false);
@@ -181,6 +181,10 @@ export function PadavaliWordMeaningsPreview({
               </div>
               <p className="text-xs font-semibold">
                 {query.isFetching ? 'Retrying AI generation…' : 'Failed to load word meanings'}
+              </p>
+              <p className="max-w-xs text-[11px] text-muted-foreground">
+                After a failed generation the server waits 15 minutes before trying again on its own
+                — use Regenerate to retry right away.
               </p>
               <button
                 type="button"

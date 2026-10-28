@@ -1,10 +1,10 @@
 import { Effect } from 'effect';
 import type { ZodType } from 'zod';
 import { AppConfig } from '~/effect/config';
-import { RedisClient, type RedisJsonValue } from '~/effect/redis';
+import { RedisClient } from '~/effect/redis';
 import { AiProvider } from '~/effect/ai';
 import { DatabaseHttp } from '~/effect/database';
-import { BadRequestError, CacheError, type AiProviderError } from '~/effect/errors';
+import { BadRequestError, CacheError, ConflictError, type AiProviderError } from '~/effect/errors';
 import { createCache, warmCache, type CacheItem } from '~/effect/cache';
 import { reportSwallowedError } from '~/effect/report';
 import { AI_FAILURE_TTL_SECONDS, CACHE_AI_OUTSIDE_PROD } from './ai_cache_options';
@@ -24,32 +24,34 @@ export type StoredAiContent<TInputs> = {
 type AiContentCacheConfig<TInputs, TData> = {
   /** Redis key for a puzzle's output */
   getKey: (puzzle_id: number) => string;
-  /** Pre-Postgres slug-keyed Redis entry; reused once instead of paying for a new run */
-  legacyKey: (slug: string) => string;
   schema: ZodType<TData>;
   load: (
     puzzle_id: number
   ) => Effect.Effect<StoredAiContent<TInputs> | undefined, CacheError, DatabaseHttp>;
   inputHash: (inputs: TInputs) => string;
-  /** Output has one entry per active word of `inputs` */
-  fitsInputs: (data: TData, inputs: TInputs) => boolean;
   generate: (stored: StoredAiContent<TInputs>) => Effect.Effect<TData, AiProviderError, AiProvider>;
-  /** Persist the output, but only while the puzzle's inputs still equal `inputs`. */
+  /**
+   * Persist the output, but only while the puzzle's inputs still equal `inputs`.
+   * Resolves `false` when a concurrent edit changed them and nothing was written.
+   */
   save: (
     puzzle_id: number,
     inputs: TInputs,
     data: TData,
     hash: string
-  ) => Effect.Effect<void, CacheError, DatabaseHttp>;
+  ) => Effect.Effect<boolean, CacheError, DatabaseHttp>;
 };
 
 export type AiContentCache<TData> = CacheItem<AiContentParams, TData> & {
-  /** Force a fresh paid generation, persist it and drop the Redis copy. `undefined` if no puzzle. */
+  /**
+   * Force a fresh paid generation, persist it and drop the Redis copy. `undefined` if no puzzle;
+   * fails with `ConflictError` when the puzzle was edited mid-generation and nothing was saved.
+   */
   regenerate: (
     puzzle_id: number
   ) => Effect.Effect<
     TData | undefined,
-    CacheError,
+    CacheError | ConflictError,
     RedisClient | AppConfig | DatabaseHttp | AiProvider
   >;
   /**
@@ -57,11 +59,6 @@ export type AiContentCache<TData> = CacheItem<AiContentParams, TData> & {
    * Redis copy and pre-generate in the background.
    */
   invalidateAndWarm: (puzzle_id: number) => ReturnType<typeof warmCache>;
-  /**
-   * Drop the pre-Postgres slug-keyed entry wherever it may no longer match its slug's puzzle
-   * (inputs changed, puzzle deleted, slug freed), so `reuseLegacy` never copies stale output.
-   */
-  deleteLegacy: (slug: string) => Effect.Effect<void, never, RedisClient | AppConfig>;
 };
 
 /**
@@ -83,37 +80,15 @@ export function createAiContentCache<TInputs, TData>(
           })
         )
       );
-      yield* config.save(puzzle_id, stored.inputs, data, config.inputHash(stored.inputs));
-      return data;
-    });
-
-  const deleteLegacy = (slug: string) =>
-    Effect.gen(function* () {
-      const appConfig = yield* AppConfig;
-      if (!appConfig.isProd && !CACHE_AI_OUTSIDE_PROD) return;
-      const redis = yield* RedisClient;
-      const legacyKey = config.legacyKey(slug);
-      yield* redis
-        .del(legacyKey, `${legacyKey}:gen`, `${legacyKey}:fail`)
-        .pipe(Effect.catch(() => Effect.void));
-    });
-
-  /** Copy a still-valid slug-keyed Redis value into Postgres so it isn't paid for twice. */
-  const reuseLegacy = (puzzle_id: number, stored: StoredAiContent<TInputs>) =>
-    Effect.gen(function* () {
-      const appConfig = yield* AppConfig;
-      if (!appConfig.isProd && !CACHE_AI_OUTSIDE_PROD) return undefined;
-      const redis = yield* RedisClient;
-      const legacyKey = config.legacyKey(stored.slug);
-      const raw = yield* redis
-        .get<RedisJsonValue>(legacyKey)
-        .pipe(Effect.catch(() => Effect.succeed<RedisJsonValue>(null)));
-      if (raw === null) return undefined;
-      const parsed = config.schema.safeParse(raw);
-      if (!parsed.success || !config.fitsInputs(parsed.data, stored.inputs)) return undefined;
-      yield* config.save(puzzle_id, stored.inputs, parsed.data, config.inputHash(stored.inputs));
-      yield* deleteLegacy(stored.slug);
-      return parsed.data;
+      const saved = yield* config.save(
+        puzzle_id,
+        stored.inputs,
+        data,
+        config.inputHash(stored.inputs)
+      );
+      // Unsaved output still matches the inputs this caller loaded, so it is safe to return;
+      // the guarded Redis write is dropped by the edit's generation bump.
+      return { data, saved };
     });
 
   const cache = createCache<AiContentParams, TData>({
@@ -142,17 +117,20 @@ export function createAiContentCache<TInputs, TData>(
           if (parsed.success) return parsed.data;
         }
 
-        const legacy = yield* reuseLegacy(puzzle_id, stored);
-        if (legacy !== undefined) return legacy;
-
-        return yield* generateAndSave(puzzle_id, stored);
+        const { data } = yield* generateAndSave(puzzle_id, stored);
+        return data;
       })
   });
 
   const regenerate = Effect.fn('ai_content.regenerate')(function* (puzzle_id: number) {
     const stored = yield* config.load(puzzle_id);
     if (!stored) return undefined;
-    const data = yield* generateAndSave(puzzle_id, stored);
+    const { data, saved } = yield* generateAndSave(puzzle_id, stored);
+    if (!saved) {
+      return yield* Effect.fail(
+        ConflictError.make({ message: 'Puzzle changed while regenerating; try again' })
+      );
+    }
     // Also clears the failure backoff; the next read refills Redis from Postgres
     yield* cache
       .delete({ puzzle_id })
@@ -168,5 +146,5 @@ export function createAiContentCache<TInputs, TData>(
       yield* warmCache(cache, { puzzle_id });
     });
 
-  return { ...cache, regenerate, invalidateAndWarm, deleteLegacy };
+  return { ...cache, regenerate, invalidateAndWarm };
 }

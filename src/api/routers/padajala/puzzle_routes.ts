@@ -351,11 +351,6 @@ const update_puzzle_route = protectedAdminProcedure
           }
         );
 
-        if (more_hints_input_changed) {
-          // Before the commit, so no reader can copy the pre-edit slug-keyed value into the DB
-          yield* CACHE.padajala.more_hints.deleteLegacy(puzzle_slug);
-        }
-
         const { updated_count, newly_added_index_ids } = yield* dbTransaction(
           'padajala.update_puzzle',
           async (tx) => {
@@ -495,8 +490,6 @@ const update_puzzle_slug_route = protectedAdminProcedure
 
         yield* settle(invalidate_and_refresh_cache(CACHE.padajala.word_puzzle, { slug: new_slug }));
         yield* settle(CACHE.padajala.word_puzzle.delete({ slug: current_slug }));
-        yield* CACHE.padajala.more_hints.deleteLegacy(current_slug);
-        yield* CACHE.padajala.more_hints.deleteLegacy(new_slug);
 
         if (puzzle.listed) {
           yield* settle(
@@ -634,7 +627,6 @@ const delete_puzzle_route = protectedAdminProcedure
           invalidate_and_refresh_cache(CACHE.padajala.word_puzzle, { slug: normalizedSlug })
         );
         yield* settle(CACHE.padajala.more_hints.delete({ puzzle_id: id }));
-        yield* CACHE.padajala.more_hints.deleteLegacy(normalizedSlug);
         if (yield* puzzle_in_current_schedule(id)) {
           yield* settle(
             invalidate_and_refresh_cache(CACHE.padajala.current_schedule, NO_CACHE_PARAMS)
@@ -763,7 +755,6 @@ const delete_redirect_slug_route = protectedAdminProcedure
         });
 
         yield* settle(CACHE.padajala.word_puzzle.delete({ slug: redirect_slug }));
-        yield* CACHE.padajala.more_hints.deleteLegacy(redirect_slug);
         yield* settle(refreshPuzzleSlugMap());
 
         return { success: true as const };
