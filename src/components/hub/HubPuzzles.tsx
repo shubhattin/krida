@@ -4,6 +4,7 @@ import { useContext, useEffect, useMemo, useRef, useState } from 'react';
 import { getRouteApi } from '@tanstack/react-router';
 import {
   ChevronDownIcon,
+  GaugeIcon,
   Layers as LayersIcon,
   Puzzle as PuzzleIcon,
   SearchIcon,
@@ -49,6 +50,14 @@ import {
   type HubPuzzle
 } from './hub_puzzles';
 import { useHubPuzzles } from './useHubPuzzles';
+import { DIFFICULTY_TONE } from './DifficultyPill';
+import {
+  DIFFICULTY_LEVELS,
+  DIFFICULTY_TAG_SLUGS,
+  difficultyByKey,
+  difficultyForTagSlug,
+  type DifficultyKey
+} from '~/util/catalog/difficulty';
 import { GAME_KINDS, type GameKind, type PublicTag } from '~/util/catalog/tags';
 import type { ListedCollectionsType } from '~/util/cache.server/collection_cache';
 import type { PuzzlesSearch } from '~/routes/_hub/puzzles';
@@ -126,7 +135,7 @@ function ViewTabs({
                 // Canonical shapes (see #134): collections never carries `?game=`,
                 // puzzles never carries `?view=`. `useUpdateFilters` already drops `?page=`.
                 value === 'collections'
-                  ? { view: 'collections', game: undefined }
+                  ? { view: 'collections', game: undefined, level: undefined }
                   : { view: undefined }
               )
             }
@@ -220,6 +229,129 @@ function GameFilters({
       counts={gameCounts}
       compactUntil="lg"
     />
+  );
+}
+
+/** Difficulty levels get their own selector (not the topics list), so it combines with a topic. */
+function DifficultyFilter({ counts }: { counts: Record<DifficultyKey, number> }) {
+  const search = puzzlesRoute.useSearch();
+  const updateFilters = useUpdateFilters();
+  return (
+    <div
+      role="group"
+      aria-label="Filter by difficulty"
+      className="flex items-center gap-1 sm:gap-1.5"
+    >
+      {DIFFICULTY_LEVELS.map((level) => {
+        const active = search.level === level.key;
+        const count = counts[level.key];
+        return (
+          <button
+            key={level.key}
+            type="button"
+            aria-pressed={active}
+            aria-label={`${level.label} (${count})`}
+            title={level.label}
+            disabled={count === 0 && !active}
+            onClick={() => updateFilters({ level: active ? undefined : level.key })}
+            className={cn(
+              'inline-flex h-7 shrink-0 items-center justify-center gap-1.5 rounded-full border px-2.5 text-xs font-semibold transition-colors focus-visible:ring-2 focus-visible:ring-indigo-400/70 focus-visible:outline-none disabled:pointer-events-none disabled:opacity-40 sm:h-8 sm:px-3',
+              active ? DIFFICULTY_TONE[level.key].pill : PILL_IDLE
+            )}
+          >
+            <span
+              className={cn('size-2 shrink-0 rounded-full', DIFFICULTY_TONE[level.key].dot)}
+              aria-hidden
+            />
+            <span className={cn('whitespace-nowrap', !active && 'max-sm:hidden')}>
+              {level.label}
+            </span>
+            <span className="tabular-nums opacity-60 max-sm:hidden">{count}</span>
+          </button>
+        );
+      })}
+    </div>
+  );
+}
+
+/** Phones: one compact pill in the search row opens the level list (the chip row has no room). */
+function DifficultyMenu({ counts }: { counts: Record<DifficultyKey, number> }) {
+  const search = puzzlesRoute.useSearch();
+  const updateFilters = useUpdateFilters();
+  const [open, setOpen] = useState(false);
+  const selected = search.level ? difficultyByKey(search.level) : null;
+
+  const setLevel = (key: DifficultyKey | undefined) => {
+    updateFilters({ level: key });
+    setOpen(false);
+  };
+
+  return (
+    <Popover open={open} onOpenChange={setOpen}>
+      <PopoverTrigger
+        render={
+          <button
+            type="button"
+            title="Filter by difficulty"
+            aria-label={selected ? `Difficulty: ${selected.label}` : 'Difficulty'}
+            className={cn(
+              PILL_CLASS,
+              'w-8 justify-center px-0',
+              selected ? DIFFICULTY_TONE[selected.key].pill : PILL_IDLE
+            )}
+          />
+        }
+      >
+        {selected ? (
+          <span
+            className={cn('size-2.5 rounded-full', DIFFICULTY_TONE[selected.key].dot)}
+            aria-hidden
+          />
+        ) : (
+          <GaugeIcon className="size-3.5" aria-hidden />
+        )}
+      </PopoverTrigger>
+      <PopoverContent className="w-48 p-1.5" align="end">
+        <div className="flex flex-col gap-0.5">
+          {selected ? (
+            <button
+              type="button"
+              onClick={() => setLevel(undefined)}
+              className="flex w-full items-center gap-1.5 rounded-md px-2 py-1.5 text-left text-sm text-muted-foreground hover:bg-muted hover:text-foreground"
+            >
+              <XIcon className="size-3.5" aria-hidden />
+              Any difficulty
+            </button>
+          ) : null}
+          {DIFFICULTY_LEVELS.map((level) => {
+            const active = search.level === level.key;
+            const count = counts[level.key];
+            return (
+              <button
+                key={level.key}
+                type="button"
+                aria-pressed={active}
+                disabled={count === 0 && !active}
+                onClick={() => setLevel(active ? undefined : level.key)}
+                className={cn(
+                  'flex w-full items-center gap-2 rounded-md px-2 py-1.5 text-left text-sm disabled:opacity-40',
+                  active ? 'bg-primary/15 text-foreground' : 'hover:bg-muted'
+                )}
+              >
+                <span
+                  className={cn('size-2 shrink-0 rounded-full', DIFFICULTY_TONE[level.key].dot)}
+                  aria-hidden
+                />
+                <span className="flex-1">{level.label}</span>
+                <span className="text-[11px] font-semibold text-muted-foreground tabular-nums">
+                  {count}
+                </span>
+              </button>
+            );
+          })}
+        </div>
+      </PopoverContent>
+    </Popover>
   );
 }
 
@@ -344,7 +476,9 @@ function EmptyState({ kind }: { kind: 'puzzles' | 'collections' }) {
       <Button
         variant="outline"
         size="sm"
-        onClick={() => updateFilters({ game: undefined, tag: undefined, q: undefined })}
+        onClick={() =>
+          updateFilters({ game: undefined, tag: undefined, level: undefined, q: undefined })
+        }
       >
         Clear filters
       </Button>
@@ -490,13 +624,19 @@ export default function HubPuzzles({ data }: { data: HubData }) {
   const isCollections = search.view === 'collections';
   // Collections mix games, so the game filter never applies to them (or their topics).
   const game = isCollections ? 'all' : (search.game ?? 'all');
+  // Difficulty tags have their own selector, so the topics list leaves them out.
   const tags = useMemo(
-    () => tagsByPopularity(filterHubPuzzles(puzzles, { game })),
+    () =>
+      tagsByPopularity(filterHubPuzzles(puzzles, { game })).filter(
+        (tag) => !DIFFICULTY_TAG_SLUGS.includes(tag.slug)
+      ),
     [puzzles, game]
   );
+  const level = isCollections ? undefined : search.level;
   const filter = {
     game,
     tags: search.tag ? [search.tag] : [],
+    level,
     query: search.q
   };
   const filteredPuzzles = filterHubPuzzles(puzzles, filter);
@@ -509,6 +649,7 @@ export default function HubPuzzles({ data }: { data: HubData }) {
   const gameCounts: GameCounts = useMemo(() => {
     const base = filterHubPuzzles(puzzles, {
       tags: search.tag ? [search.tag] : [],
+      level,
       query: search.q
     });
     // Chips only exist for visible games; hidden games (zero listed puzzles)
@@ -519,7 +660,23 @@ export default function HubPuzzles({ data }: { data: HubData }) {
     ]);
     for (const puzzle of base) counts.set(puzzle.game, (counts.get(puzzle.game) ?? 0) + 1);
     return Object.fromEntries(counts);
-  }, [puzzles, games, search.tag, search.q]);
+  }, [puzzles, games, search.tag, level, search.q]);
+  const difficultyCounts = useMemo(() => {
+    const base = filterHubPuzzles(puzzles, {
+      game,
+      tags: search.tag ? [search.tag] : [],
+      query: search.q
+    });
+    // SAFETY: DIFFICULTY_LEVELS lists every DifficultyKey, so the entries cover every key.
+    return Object.fromEntries(
+      DIFFICULTY_LEVELS.map((row) => [
+        row.key,
+        base.filter((puzzle) => puzzle.tags.some((tag) => tag.slug === row.tag_slug)).length
+      ])
+    ) as Record<DifficultyKey, number>;
+  }, [puzzles, game, search.tag, search.q]);
+  // Hidden until some listed puzzle carries a difficulty tag.
+  const showDifficulty = Boolean(level) || Object.values(difficultyCounts).some(Boolean);
 
   // Collections aren't paginated and ignore the game filter — drop leftover
   // `?page=` / `?game=` from the puzzle view (beforeLoad also canonicalizes direct hits).
@@ -532,14 +689,21 @@ export default function HubPuzzles({ data }: { data: HubData }) {
     }
   }, [navigate, isCollections, search.page, search.game]);
 
-  // Drop a tag that isn't used by any listed puzzle of the selected game.
+  // Drop a tag that isn't used by any listed puzzle of the selected game. An old
+  // `?tag=easy` link moves to the difficulty selector instead.
   useEffect(() => {
     if (!search.tag || tags.some((tag) => tag.slug === search.tag)) return;
+    const asLevel = isCollections ? undefined : difficultyForTagSlug(search.tag)?.key;
     void navigate({
-      search: (prev) => ({ ...prev, tag: undefined, page: undefined }),
+      search: (prev) => ({
+        ...prev,
+        tag: undefined,
+        level: asLevel ?? prev.level,
+        page: undefined
+      }),
       replace: true
     });
-  }, [navigate, search.tag, tags]);
+  }, [navigate, search.tag, tags, isCollections]);
 
   return (
     <div className="mx-auto flex max-w-6xl flex-col gap-6 px-4 py-6 sm:gap-8 sm:py-10">
@@ -574,6 +738,11 @@ export default function HubPuzzles({ data }: { data: HubData }) {
           <div className="min-w-0 flex-1">
             <SearchField />
           </div>
+          {!isCollections && showDifficulty ? (
+            <div className="sm:hidden">
+              <DifficultyMenu counts={difficultyCounts} />
+            </div>
+          ) : null}
           <TopicsFilter tags={tags} />
           <div className="max-sm:hidden">
             <ScriptSelector script={script} onScriptChange={setScript} compact />
@@ -586,7 +755,18 @@ export default function HubPuzzles({ data }: { data: HubData }) {
             isCollections && 'max-sm:hidden'
           )}
         >
-          {isCollections ? null : <GameFilters games={games} gameCounts={gameCounts} />}
+          {isCollections ? null : (
+            <div className="flex min-w-0 flex-wrap items-center gap-x-3 gap-y-2">
+              <GameFilters games={games} gameCounts={gameCounts} />
+              {showDifficulty ? (
+                // Phones use the compact menu in the search row instead.
+                <div className="flex items-center gap-3 max-sm:hidden">
+                  <span className="h-5 w-px bg-border" aria-hidden />
+                  <DifficultyFilter counts={difficultyCounts} />
+                </div>
+              ) : null}
+            </div>
+          )}
           <p className="ml-auto hidden shrink-0 text-xs font-medium text-muted-foreground tabular-nums sm:block">
             {resultSummary(
               search.view,

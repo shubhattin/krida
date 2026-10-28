@@ -11,6 +11,8 @@ import type { SimpleListedPuzzle } from '~/util/cache.server/simple_game_cache';
 import type { SimpleGameKind } from '~/util/games/kinds';
 import type { HubPuzzle } from './hub_puzzles';
 import { HubGameBadge } from './HubGameBadge';
+import { DifficultyPill } from './DifficultyPill';
+import { difficultyFromTags } from '~/util/catalog/difficulty';
 import { cn } from '~/lib/utils';
 import { PUZZLE_CARD_IMAGE_ASPECT_RATIO } from '~/components/pages/padavali/listed_puzzle_display';
 
@@ -101,6 +103,7 @@ export function HubPuzzleCard({
   /** Collection slug: links keep `?from=` so the puzzle can lead back here. */
   fromCollection?: string;
 }) {
+  const difficulty = difficultyFromTags(puzzle.tags.map((tag) => tag.slug));
   return (
     <div className="relative h-full">
       {showGameBadge ? (
@@ -115,6 +118,16 @@ export function HubPuzzleCard({
         >
           {step}
         </span>
+      ) : null}
+      {difficulty ? (
+        <DifficultyPill
+          level={difficulty}
+          // Beside the step number when that holds the top-right corner.
+          className={cn(
+            'absolute top-3 z-10',
+            step != null && showGameBadge ? 'right-11' : 'right-2'
+          )}
+        />
       ) : null}
       {puzzle.game === 'padavali' ? (
         <PuzzlePreviewCard

@@ -16,6 +16,7 @@ import {
   surupa_puzzles,
   tags
 } from '~/db/schema';
+import { syncDifficultyTags, type MissingDifficultyTag } from '~/db/difficulty_tags';
 import { dbRunHttp, dbTransaction, type DbTransaction } from '~/effect/database';
 import { BadRequestError, ConflictError, NotFoundError } from '~/effect/errors';
 import { runTrpcEffect } from '~/effect/run';
@@ -124,6 +125,12 @@ const refreshPublicCachesForTagPuzzles = (items: { game: GameKind; puzzle_id: nu
       })
     ]);
   });
+
+/** Public lists embed tag slugs, so difficulty tags added by a collection write need a refresh. */
+const refreshForDifficultyTags = (added: MissingDifficultyTag[]) =>
+  refreshPublicCachesForTagPuzzles(
+    added.map((row) => ({ game: row.kind, puzzle_id: row.puzzle_id }))
+  );
 
 const imageColumns = {
   id: true,
@@ -839,7 +846,7 @@ const update_collection_route = protectedAdminProcedure
         }
         yield* assertCollectionSlugAvailable(existing.id, input.slug);
 
-        yield* dbTransaction('catalog.update_collection', async (tx) => {
+        const added = yield* dbTransaction('catalog.update_collection', async (tx) => {
           // Unlisting drops the public position; compacting is a no-op otherwise.
           const unlisting = !input.listed;
           if (unlisting) await lockCollectionOrder(tx);
@@ -848,8 +855,11 @@ const update_collection_route = protectedAdminProcedure
             .set(collectionMetaValues(input))
             .where(eq(collections.id, existing.id));
           if (unlisting) await compactCollectionOrder(tx);
+          // A rename onto a difficulty slug tags every existing member.
+          return syncDifficultyTags(tx, { collectionId: existing.id });
         });
         yield* refreshListedCollections();
+        yield* refreshForDifficultyTags(added);
         return { success: true as const };
       })
     )
@@ -915,7 +925,8 @@ const save_collection_route = protectedAdminProcedure
             );
           }
 
-          return { ok: true as const };
+          const added = await syncDifficultyTags(tx, { collectionId: existing.id });
+          return { ok: true as const, added };
         });
 
         if (!saved.ok) {
@@ -928,6 +939,7 @@ const save_collection_route = protectedAdminProcedure
         }
 
         yield* refreshListedCollections();
+        yield* refreshForDifficultyTags(saved.added);
         return { success: true as const };
       })
     )
@@ -954,28 +966,39 @@ const add_collection_item = (uid: string, game: GameKind, puzzleId: number) =>
       );
     }
 
-    const order_index = yield* dbTransaction('catalog.add_collection_item', async (tx) => {
-      const existing = await tx
-        .select({ order_index: collection_items.order_index })
-        .from(collection_items)
-        .where(
-          and(
-            eq(collection_items.collection_id, collection.id),
-            eq(collection_items.puzzle_id, puzzleId)
+    const { order_index, added } = yield* dbTransaction(
+      'catalog.add_collection_item',
+      async (tx) => {
+        const existing = await tx
+          .select({ order_index: collection_items.order_index })
+          .from(collection_items)
+          .where(
+            and(
+              eq(collection_items.collection_id, collection.id),
+              eq(collection_items.puzzle_id, puzzleId)
+            )
           )
-        )
-        .limit(1);
-      if (existing[0]) return existing[0].order_index;
-      const orderIndex = await nextOrderIndex(tx, collection.id);
-      await tx.insert(collection_items).values({
-        collection_id: collection.id,
-        puzzle_id: puzzleId,
-        order_index: orderIndex
-      });
-      return orderIndex;
-    });
+          .limit(1);
+        let orderIndex = existing[0]?.order_index;
+        if (orderIndex === undefined) {
+          orderIndex = await nextOrderIndex(tx, collection.id);
+          await tx.insert(collection_items).values({
+            collection_id: collection.id,
+            puzzle_id: puzzleId,
+            order_index: orderIndex
+          });
+        }
+        // Also backfills a member added before the difficulty rule existed.
+        const added = await syncDifficultyTags(tx, {
+          puzzleIds: [puzzleId],
+          collectionId: collection.id
+        });
+        return { order_index: orderIndex, added };
+      }
+    );
 
     yield* refreshListedCollections();
+    yield* refreshForDifficultyTags(added);
     return { order_index };
   });
 
@@ -1040,6 +1063,8 @@ const applyPuzzleLinks = async (
       order_index: orderIndex
     });
   }
+  // The submitted tags may omit a difficulty tag its collections require.
+  await syncDifficultyTags(tx, { puzzleIds: [puzzle_id] });
   return true;
 };
 
@@ -1186,11 +1211,13 @@ const add_items_route = protectedAdminProcedure
             });
             countAdded += 1;
           }
-          return countAdded;
+          const tagged = await syncDifficultyTags(tx, { collectionId: collection.id });
+          return { countAdded, tagged };
         });
 
         yield* refreshListedCollections();
-        return { added };
+        yield* refreshForDifficultyTags(added.tagged);
+        return { added: added.countAdded };
       })
     )
   );

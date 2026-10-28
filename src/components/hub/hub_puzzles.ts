@@ -6,6 +6,7 @@ import type {
 } from '~/util/cache.server/collection_cache';
 import type { SimpleListedPuzzle } from '~/util/cache.server/simple_game_cache';
 import { GAME_KINDS, type GameKind, type PublicTag } from '~/util/catalog/tags';
+import { difficultyByKey, type DifficultyKey } from '~/util/catalog/difficulty';
 import type { SimpleGameKind } from '~/util/games/kinds';
 import { matchesWordSearch } from '~/util/puzzle/search';
 import { puzzleHref } from './hub_games';
@@ -187,6 +188,8 @@ export type HubPuzzleFilter = {
   game?: GameKind | 'all';
   /** Tag slugs — a puzzle matches when it carries any of them. */
   tags?: string[];
+  /** Difficulty level — a puzzle matches when it carries the level's tag. Puzzles only. */
+  level?: DifficultyKey;
   query?: string;
 };
 
@@ -194,9 +197,11 @@ export function filterHubPuzzles(puzzles: HubPuzzle[], filter: HubPuzzleFilter):
   const game = filter.game ?? 'all';
   const tags = filter.tags ?? [];
   const query = filter.query ?? '';
+  const levelTag = filter.level ? difficultyByKey(filter.level).tag_slug : null;
   return puzzles.filter((puzzle) => {
     if (game !== 'all' && puzzle.game !== game) return false;
     if (tags.length > 0 && !puzzle.tags.some((tag) => tags.includes(tag.slug))) return false;
+    if (levelTag && !puzzle.tags.some((tag) => tag.slug === levelTag)) return false;
     const fields =
       puzzle.game === 'padavali'
         ? [
