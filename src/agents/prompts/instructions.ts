@@ -6,17 +6,18 @@ import type { AgentContextSnapshot } from '~/agents/ui_message';
 import { describeDatabaseSchema } from '~/agents/db_schema/describe_schema';
 import { GENERAL_SYSTEM_PROMPT } from './general';
 import { puzzleCreatorSystemPrompt } from './puzzle_creator';
+import { buildSiteContext } from './site';
 
 export type InstructionSection = {
-  id: 'system_prompt' | 'database_schema' | 'puzzle_context';
+  id: 'system_prompt' | 'database_schema' | 'puzzle_context' | 'site';
   title: string;
   content: string;
 };
 
 /**
  * Everything the agent reads before the conversation, most stable first: system prompt, then
- * the database schema, then the (frozen) puzzle context. The cache breakpoint goes after the
- * last section, so every turn of a chat reuses the whole prefix.
+ * the database schema, the site links, then the (frozen) puzzle context. The cache breakpoint
+ * goes after the last section, so every turn of a chat reuses the whole prefix.
  */
 export function agentInstructionSections(chat: {
   agent_kind: AgentKind;
@@ -40,6 +41,11 @@ export function agentInstructionSections(chat: {
       id: 'database_schema',
       title: 'Database schema',
       content: `<database_schema>\n${describeDatabaseSchema()}\n</database_schema>`
+    },
+    {
+      id: 'site',
+      title: 'Site links',
+      content: `<site>\n${buildSiteContext()}\n</site>`
     }
   ];
   if (creatorKind && chat.context_snapshot) {

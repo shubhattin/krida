@@ -1,4 +1,5 @@
-import { InfoIcon } from 'lucide-react';
+import { useEffect, useRef, useState } from 'react';
+import { CheckIcon, CopyIcon, InfoIcon } from 'lucide-react';
 import { AGENT_MODELS } from '~/agents/models';
 import type { AgentMessageMetadata, AgentUIMessage } from '~/agents/ui_message';
 import { Popover, PopoverContent, PopoverTrigger } from '~/components/ui/popover';
@@ -50,6 +51,40 @@ export function ReplyCost({ metadata }: { metadata: AgentMessageMetadata | undef
         </span>
       </PopoverContent>
     </Popover>
+  );
+}
+
+/** Under a finished reply: a copy button for the reply's markdown, beside the cost info. */
+export function CopyReplyButton({ text }: { text: string }) {
+  const [copied, setCopied] = useState(false);
+  const timer = useRef<number | undefined>(undefined);
+  useEffect(() => () => window.clearTimeout(timer.current), []);
+  if (!text.trim()) return null;
+  return (
+    <button
+      type="button"
+      aria-label={copied ? 'Copied' : 'Copy reply as markdown'}
+      title={copied ? 'Copied' : 'Copy reply as markdown'}
+      onClick={() => {
+        try {
+          const clip = navigator.clipboard;
+          if (!clip?.writeText) return;
+          void clip
+            .writeText(text)
+            .then(() => {
+              setCopied(true);
+              window.clearTimeout(timer.current);
+              timer.current = window.setTimeout(() => setCopied(false), 1500);
+            })
+            .catch(() => undefined);
+        } catch {
+          return;
+        }
+      }}
+      className="inline-flex items-center justify-center rounded p-0.5 text-muted-foreground/60 transition-colors hover:text-muted-foreground"
+    >
+      {copied ? <CheckIcon className="size-3.5" /> : <CopyIcon className="size-3.5" />}
+    </button>
   );
 }
 
