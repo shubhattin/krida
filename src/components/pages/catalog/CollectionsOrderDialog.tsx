@@ -1,6 +1,6 @@
 'use client';
 
-import { useId, useState } from 'react';
+import { useCallback, useEffect, useId, useState } from 'react';
 import { Image } from '@unpic/react';
 import { useRouter } from '@tanstack/react-router';
 import { useMutation, useQueryClient } from '@tanstack/react-query';
@@ -26,7 +26,9 @@ import {
   ArrowUpToLineIcon,
   GripVerticalIcon,
   ListPlusIcon,
-  MinusCircleIcon
+  MinusCircleIcon,
+  Redo2,
+  Undo2
 } from 'lucide-react';
 import { toast } from 'sonner';
 import { useTRPC } from '~/api/client';
@@ -56,6 +58,12 @@ export type OrderableCollection = {
 /** Sortable id of the bar separating ordered (above) from unordered (below) rows. */
 const DIVIDER = 'divider';
 const rowKey = (row: { id: number }) => `c:${row.id}`;
+const MAX_HISTORY = 50;
+
+type OrderSnapshot = {
+  ordered: OrderableCollection[];
+  unordered: OrderableCollection[];
+};
 
 /** Unordered collections keep the public fallback: newest first. */
 const byNewest = (a: OrderableCollection, b: OrderableCollection) =>
@@ -91,6 +99,74 @@ export function CollectionsOrderDialog({
   const [initial] = useState(() => initialSplit(collections));
   const [ordered, setOrdered] = useState(initial.ordered);
   const [unordered, setUnordered] = useState(initial.unordered);
+  const [past, setPast] = useState<OrderSnapshot[]>([]);
+  const [future, setFuture] = useState<OrderSnapshot[]>([]);
+
+  const canUndo = past.length > 0;
+  const canRedo = future.length > 0;
+  const changeCount = past.length;
+
+  const sameOrder = useCallback(
+    (nextOrdered: OrderableCollection[], nextUnordered: OrderableCollection[]) =>
+      nextOrdered.length === ordered.length &&
+      nextUnordered.length === unordered.length &&
+      nextOrdered.every((row, index) => row.id === ordered[index]?.id) &&
+      nextUnordered.every((row, index) => row.id === unordered[index]?.id),
+    [ordered, unordered]
+  );
+
+  const applyChange = useCallback(
+    (nextOrdered: OrderableCollection[], nextUnordered: OrderableCollection[]) => {
+      if (sameOrder(nextOrdered, nextUnordered)) return;
+      setPast((prev) => [...prev.slice(-MAX_HISTORY + 1), { ordered, unordered }]);
+      setFuture([]);
+      setOrdered(nextOrdered);
+      setUnordered(nextUnordered);
+    },
+    [ordered, unordered, sameOrder]
+  );
+
+  const undo = useCallback(() => {
+    if (past.length === 0) return;
+    const previous = past[past.length - 1];
+    setPast((prev) => prev.slice(0, -1));
+    setFuture((next) => [{ ordered, unordered }, ...next].slice(0, MAX_HISTORY));
+    setOrdered(previous.ordered);
+    setUnordered(previous.unordered);
+  }, [past, ordered, unordered]);
+
+  const redo = useCallback(() => {
+    if (future.length === 0) return;
+    const [next, ...rest] = future;
+    setPast((prev) => [...prev.slice(-MAX_HISTORY + 1), { ordered, unordered }]);
+    setFuture(rest);
+    setOrdered(next.ordered);
+    setUnordered(next.unordered);
+  }, [future, ordered, unordered]);
+
+  useEffect(() => {
+    if (!open) return;
+    const onKeyDown = (event: KeyboardEvent) => {
+      if (!(event.ctrlKey || event.metaKey)) return;
+      // SAFETY: keydown targets on window are DOM elements when present
+      const target = event.target as HTMLElement | null;
+      if (
+        target &&
+        (target.tagName === 'INPUT' || target.tagName === 'TEXTAREA' || target.isContentEditable)
+      )
+        return;
+      const key = event.key.toLowerCase();
+      if (key === 'z' && !event.shiftKey) {
+        event.preventDefault();
+        undo();
+      } else if (key === 'y' || (key === 'z' && event.shiftKey)) {
+        event.preventDefault();
+        redo();
+      }
+    };
+    window.addEventListener('keydown', onKeyDown);
+    return () => window.removeEventListener('keydown', onKeyDown);
+  }, [open, undo, redo]);
 
   const dirty =
     ordered.length !== initial.ordered.length ||
@@ -132,34 +208,37 @@ export function CollectionsOrderDialog({
     );
     const split = moved.indexOf(DIVIDER);
     const all = new Map([...ordered, ...unordered].map((row) => [rowKey(row), row]));
-    setOrdered(moved.slice(0, split).map((key) => all.get(key)!));
-    setUnordered(
-      moved
-        .slice(split + 1)
-        .map((key) => all.get(key)!)
-        .toSorted(byNewest)
-    );
+    const nextOrdered = moved.slice(0, split).map((key) => all.get(key)!);
+    const nextUnordered = moved
+      .slice(split + 1)
+      .map((key) => all.get(key)!)
+      .toSorted(byNewest);
+    applyChange(nextOrdered, nextUnordered);
   };
 
   const toTop = (row: OrderableCollection) => {
-    setOrdered((current) => [row, ...current.filter((item) => item.id !== row.id)]);
-    setUnordered((current) => current.filter((item) => item.id !== row.id));
+    applyChange(
+      [row, ...ordered.filter((item) => item.id !== row.id)],
+      unordered.filter((item) => item.id !== row.id)
+    );
   };
   const toBottom = (row: OrderableCollection) => {
-    setOrdered((current) => [...current.filter((item) => item.id !== row.id), row]);
-    setUnordered((current) => current.filter((item) => item.id !== row.id));
+    applyChange(
+      [...ordered.filter((item) => item.id !== row.id), row],
+      unordered.filter((item) => item.id !== row.id)
+    );
   };
   const unorder = (row: OrderableCollection) => {
-    setOrdered((current) => current.filter((item) => item.id !== row.id));
-    setUnordered((current) => [...current, row].toSorted(byNewest));
+    applyChange(
+      ordered.filter((item) => item.id !== row.id),
+      [...unordered, row].toSorted(byNewest)
+    );
   };
   const orderAll = () => {
-    setOrdered((current) => [...current, ...unordered]);
-    setUnordered([]);
+    applyChange([...ordered, ...unordered], []);
   };
   const reset = () => {
-    setOrdered(initial.ordered);
-    setUnordered(initial.unordered);
+    applyChange(initial.ordered, initial.unordered);
   };
 
   return (
@@ -170,8 +249,8 @@ export function CollectionsOrderDialog({
       }}
     >
       {/* Fill the viewport height; only the list scrolls, header and footer stay put. */}
-      <DialogContent className="flex max-h-[calc(100dvh-2rem)] flex-col sm:max-w-xl">
-        <DialogHeader>
+      <DialogContent className="flex max-h-[calc(100dvh-2rem)] flex-col overflow-hidden sm:max-w-xl">
+        <DialogHeader className="shrink-0">
           <DialogTitle>Reorder collections</DialogTitle>
           <DialogDescription>
             Public order of listed collections. Drag rows or use the buttons; unordered ones show
@@ -188,7 +267,7 @@ export function CollectionsOrderDialog({
             onDragEnd={onDragEnd}
           >
             <SortableContext items={sortableIds} strategy={verticalListSortingStrategy}>
-              <div className="-mx-1 min-h-0 flex-1 space-y-1 overflow-y-auto px-1">
+              <div className="-mx-1 min-h-0 flex-1 space-y-1 overflow-y-auto overscroll-contain px-1 py-1">
                 {ordered.length === 0 ? (
                   <p className="px-1 py-2 text-xs text-muted-foreground">
                     Nothing ordered yet — drag a collection above the divider or use the buttons.
@@ -233,27 +312,69 @@ export function CollectionsOrderDialog({
             </SortableContext>
           </DndContext>
         )}
-        <DialogFooter>
-          <Button
-            type="button"
-            variant="ghost"
-            disabled={!dirty || save_mut.isPending}
-            onClick={reset}
-          >
-            Reset
-          </Button>
-          <Button
-            type="button"
-            disabled={!dirty || save_mut.isPending}
-            onClick={() =>
-              save_mut.mutate({
-                ids: ordered.map((row) => row.id),
-                expected: initial.ordered.map((row) => row.id)
-              })
-            }
-          >
-            {save_mut.isPending ? 'Saving…' : 'Save order'}
-          </Button>
+        <DialogFooter className="shrink-0 flex-col gap-2 sm:flex-col sm:items-stretch sm:justify-start">
+          <div className="flex items-center justify-center">
+            <div
+              className="flex items-center gap-1 rounded-xl border border-border/60 bg-muted/40 p-1"
+              role="group"
+              aria-label="Order history"
+            >
+              <Button
+                type="button"
+                size="sm"
+                variant="ghost"
+                aria-label="Undo last change"
+                title="Undo (Ctrl+Z)"
+                disabled={!canUndo || save_mut.isPending}
+                onClick={undo}
+              >
+                <Undo2 />
+                Undo
+              </Button>
+              <span
+                className="min-w-22 px-1 text-center text-xs text-muted-foreground tabular-nums"
+                aria-live="polite"
+              >
+                {changeCount === 0
+                  ? 'No changes'
+                  : `${changeCount} change${changeCount === 1 ? '' : 's'}`}
+              </span>
+              <Button
+                type="button"
+                size="sm"
+                variant="ghost"
+                aria-label="Redo last undone change"
+                title="Redo (Ctrl+Y)"
+                disabled={!canRedo || save_mut.isPending}
+                onClick={redo}
+              >
+                <Redo2 />
+                Redo
+              </Button>
+            </div>
+          </div>
+          <div className="flex items-center justify-end gap-2">
+            <Button
+              type="button"
+              variant="ghost"
+              disabled={!dirty || save_mut.isPending}
+              onClick={reset}
+            >
+              Reset
+            </Button>
+            <Button
+              type="button"
+              disabled={!dirty || save_mut.isPending}
+              onClick={() =>
+                save_mut.mutate({
+                  ids: ordered.map((row) => row.id),
+                  expected: initial.ordered.map((row) => row.id)
+                })
+              }
+            >
+              {save_mut.isPending ? 'Saving…' : 'Save order'}
+            </Button>
+          </div>
         </DialogFooter>
       </DialogContent>
     </Dialog>
