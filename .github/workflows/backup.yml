@@ -2,7 +2,7 @@ name: Data Backup
 
 on:
   schedule:
-    - cron: '30 17 */4 * *' # Run at 11:00 PM IST every 3 days
+    - cron: '30 17 */4 * *' # 11:00 PM IST every 4th day of the month (1st, 5th, 9th, ...)
   workflow_dispatch: # Allows manual triggering of the workflow
 
 permissions:
@@ -25,14 +25,25 @@ jobs:
       - name: Setup PostgreSQL
         uses: tj-actions/install-postgresql@a889ed6c6fa05022333ed4101295bb1d604f97a8 # v3
         with:
-          postgresql-version: 16
+          postgresql-version: 18 # pg_dump must be >= the server major (PlanetScale runs 18)
 
       - name: Load Data and DB Dump
         working-directory: src/db/scripts
         env:
           PG_DATABASE_URL: ${{ secrets.PG_DATABASE_URL }}
+          # libpq (pg_dump) CA for sslmode=verify-full; env only — postgres.js rejects it in the URL
+          PGSSLROOTCERT: system
           AWS_REGION: ${{ vars.AWS_REGION }}
           AWS_ACCESS_KEY_ID: ${{ secrets.AWS_ACCESS_KEY_ID }}
           AWS_SECRET_ACCESS_KEY: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
           AWS_DB_BACKUP_BUCKET_NAME: ${{ secrets.AWS_DB_BACKUP_BUCKET_NAME }}
-        run: bun backup_db_data.ts
+        # The secret is a bare URL: require TLS with certificate verification for both pg_dump
+        # (libpq, CA from PGSSLROOTCERT) and postgres.js (Node's CA store) unless it sets sslmode.
+        run: |
+          case "$PG_DATABASE_URL" in
+            *sslmode=*) ;;
+            *\?*) PG_DATABASE_URL="$PG_DATABASE_URL&sslmode=verify-full" ;;
+            *) PG_DATABASE_URL="$PG_DATABASE_URL?sslmode=verify-full" ;;
+          esac
+          export PG_DATABASE_URL
+          bun backup_db_data.ts
