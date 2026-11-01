@@ -1,7 +1,7 @@
 import { Effect } from 'effect';
 import { z } from 'zod';
 import { protectedAdminProcedure, publicProcedure, t } from '../../trpc_init';
-import { dbRunHttp, dbTransaction } from '~/effect/database';
+import { dbRun, dbTransaction } from '~/effect/database';
 import { and, asc, count, desc, eq, ilike, or, sql } from 'drizzle-orm';
 import { image_assets, puzzle_attachments, puzzle_redirects, puzzles } from '~/db/schema';
 import { escapeIlikeToken, tokenizeSearchQuery } from '~/util/puzzle/search';
@@ -87,7 +87,7 @@ export function createSimpleGameRouter<TData>(options: {
     .input(z.object({ id: z.number().int() }))
     .query(({ input: { id } }) =>
       runTrpcEffect(
-        dbRunHttp(`${kind}.get_puzzle_by_id`, async (client) => {
+        dbRun(`${kind}.get_puzzle_by_id`, async (client) => {
           const [puzzle] = await client
             .select({
               id: puzzles.id,
@@ -162,14 +162,14 @@ export function createSimpleGameRouter<TData>(options: {
           const offset = (page - 1) * size;
 
           const { countResult, rows } = yield* Effect.all({
-            countResult: dbRunHttp(`${kind}.count_puzzle_list_page`, (client) =>
+            countResult: dbRun(`${kind}.count_puzzle_list_page`, (client) =>
               client
                 .select({ count: count() })
                 .from(puzzles)
                 .innerJoin(tables.puzzles, eq(tables.puzzles.id, puzzles.id))
                 .where(whereClause)
             ),
-            rows: dbRunHttp(`${kind}.select_puzzle_list_page`, (client) =>
+            rows: dbRun(`${kind}.select_puzzle_list_page`, (client) =>
               client
                 .select({
                   id: puzzles.id,
@@ -269,7 +269,7 @@ export function createSimpleGameRouter<TData>(options: {
     .mutation(({ input: { puzzle_id, puzzle_data, puzzle_slug, image_id } }) =>
       runTrpcEffect(
         Effect.gen(function* () {
-          const [existing] = yield* dbRunHttp(`${kind}.find_puzzle_for_update`, (client) =>
+          const [existing] = yield* dbRun(`${kind}.find_puzzle_for_update`, (client) =>
             client
               .select({
                 id: puzzles.id,
@@ -369,7 +369,7 @@ export function createSimpleGameRouter<TData>(options: {
             return { success: true as const, slug: new_slug };
           }
 
-          const [puzzle] = yield* dbRunHttp(`${kind}.find_puzzle_for_slug_update`, (client) =>
+          const [puzzle] = yield* dbRun(`${kind}.find_puzzle_for_slug_update`, (client) =>
             client
               .select({ id: puzzles.id, listed: puzzles.listed })
               .from(puzzles)
@@ -428,7 +428,7 @@ export function createSimpleGameRouter<TData>(options: {
       runTrpcEffect(
         Effect.gen(function* () {
           const normalizedSlug = normalizeSlug(slug);
-          const [puzzle] = yield* dbRunHttp(`${kind}.find_puzzle_for_delete`, (client) =>
+          const [puzzle] = yield* dbRun(`${kind}.find_puzzle_for_delete`, (client) =>
             client
               .select({ listed: puzzles.listed })
               .from(puzzles)
@@ -461,7 +461,7 @@ export function createSimpleGameRouter<TData>(options: {
     .query(({ input: { puzzle_id } }) =>
       runTrpcEffect(
         Effect.gen(function* () {
-          const [puzzle] = yield* dbRunHttp(`${kind}.get_puzzle_slugs`, (client) =>
+          const [puzzle] = yield* dbRun(`${kind}.get_puzzle_slugs`, (client) =>
             client
               .select({ slug: puzzles.slug })
               .from(puzzles)
@@ -473,7 +473,7 @@ export function createSimpleGameRouter<TData>(options: {
               NotFoundError.make({ resource: `${kind}_puzzle`, message: 'Puzzle not found' })
             );
           }
-          const redirects = yield* dbRunHttp(`${kind}.get_puzzle_redirects`, (client) =>
+          const redirects = yield* dbRun(`${kind}.get_puzzle_redirects`, (client) =>
             client
               .select({
                 slug: puzzle_redirects.slug,
@@ -508,7 +508,7 @@ export function createSimpleGameRouter<TData>(options: {
     .mutation(({ input: { puzzle_id, redirect_slug } }) =>
       runTrpcEffect(
         Effect.gen(function* () {
-          const [puzzle] = yield* dbRunHttp(`${kind}.find_puzzle_for_redirect_delete`, (client) =>
+          const [puzzle] = yield* dbRun(`${kind}.find_puzzle_for_redirect_delete`, (client) =>
             client
               .select({ id: puzzles.id, slug: puzzles.slug })
               .from(puzzles)
@@ -526,7 +526,7 @@ export function createSimpleGameRouter<TData>(options: {
             );
           }
 
-          const [redirect] = yield* dbRunHttp(`${kind}.find_redirect_for_delete`, (client) =>
+          const [redirect] = yield* dbRun(`${kind}.find_redirect_for_delete`, (client) =>
             client
               .select({ id: puzzle_redirects.id })
               .from(puzzle_redirects)
@@ -548,7 +548,7 @@ export function createSimpleGameRouter<TData>(options: {
             );
           }
 
-          yield* dbRunHttp(`${kind}.delete_redirect`, async (client) => {
+          yield* dbRun(`${kind}.delete_redirect`, async (client) => {
             await client
               .delete(puzzle_redirects)
               .where(

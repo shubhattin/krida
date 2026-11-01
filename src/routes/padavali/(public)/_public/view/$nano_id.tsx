@@ -7,7 +7,7 @@ import WordGame from '~/components/pages/padavali/WordGame/WordGameRoot';
 import { get_transliterated_word_game_msgs } from '~/components/pages/padavali/WordGame/msgs';
 import { transliterate_custom } from '~/tools/transliterator';
 import { routeHeadFromPageMeta } from '~/components/tags/getPageMetaTags';
-import { dbRunHttp } from '~/effect/database';
+import { dbRun } from '~/effect/database';
 import { getScript$ } from '~/lib/cache_server_route_data';
 import { DEFAULT_DATA_SCRIPT } from '~/state/script_list';
 import { CACHE, NO_CACHE_PARAMS } from '~/util/cache.server/cache_loaders';
@@ -19,7 +19,7 @@ const loader$ = createServerFn({ method: 'GET' })
   .handler(async ({ data }) => {
     const nextSchedulePromise = runLoaderEffect(CACHE.padavali.next_schedule.get(NO_CACHE_PARAMS));
     const row = await runLoaderEffect(
-      dbRunHttp('padavali.view.resolve_uid', (client) =>
+      dbRun('padavali.view.resolve_uid', (client) =>
         client.query.puzzles.findFirst({
           columns: { slug: true },
           where: (tbl, { and, eq: eqFn }) =>

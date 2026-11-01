@@ -2,7 +2,7 @@ import { catalog_list_filter_fields } from '~/util/catalog/tags';
 import { Effect } from 'effect';
 import { z } from 'zod';
 import { protectedAdminProcedure, publicProcedure, t } from '~/api/trpc_init';
-import { dbRunHttp, dbTransaction } from '~/effect/database';
+import { dbRun, dbTransaction } from '~/effect/database';
 import { padavali_puzzles, puzzle_redirects, puzzles, image_assets } from '~/db/schema';
 import { and, asc, count, desc, eq, ilike, or, sql } from 'drizzle-orm';
 import { padavali_stats_router } from './padavali_stats';
@@ -73,7 +73,7 @@ const update_puzzle_route = protectedAdminProcedure
   .mutation(({ input: { puzzle_id, puzzle_data, puzzle_slug, image_id } }) =>
     runTrpcEffect(
       Effect.gen(function* () {
-        const [existingRow] = yield* dbRunHttp('padavali.find_puzzle_for_update', (client) =>
+        const [existingRow] = yield* dbRun('padavali.find_puzzle_for_update', (client) =>
           client
             .select({ listed: puzzles.listed })
             .from(puzzles)
@@ -208,7 +208,7 @@ const update_puzzle_slug_route = protectedAdminProcedure
           return { success: true as const, slug: new_slug };
         }
 
-        const [puzzle] = yield* dbRunHttp('padavali.find_puzzle_for_slug_update', (client) =>
+        const [puzzle] = yield* dbRun('padavali.find_puzzle_for_slug_update', (client) =>
           client
             .select({ id: puzzles.id, listed: puzzles.listed })
             .from(puzzles)
@@ -338,7 +338,7 @@ const delete_puzzle_route = protectedAdminProcedure
     runTrpcEffect(
       Effect.gen(function* () {
         const normalizedSlug = normalizeSlug(slug);
-        const [puzzle] = yield* dbRunHttp('padavali.find_puzzle_for_delete', (client) =>
+        const [puzzle] = yield* dbRun('padavali.find_puzzle_for_delete', (client) =>
           client
             .select({ listed: puzzles.listed })
             .from(puzzles)
@@ -435,14 +435,14 @@ export const get_puzzle_list_page = Effect.fn('padavali.get_puzzle_list_page')(f
   const offset = (page - 1) * size;
 
   const { countResult, rows } = yield* Effect.all({
-    countResult: dbRunHttp('padavali.count_puzzle_list_page', (client) =>
+    countResult: dbRun('padavali.count_puzzle_list_page', (client) =>
       client
         .select({ count: count() })
         .from(puzzles)
         .innerJoin(padavali_puzzles, eq(padavali_puzzles.id, puzzles.id))
         .where(whereClause)
     ),
-    rows: dbRunHttp('padavali.select_puzzle_list_page', (client) =>
+    rows: dbRun('padavali.select_puzzle_list_page', (client) =>
       client
         .select({
           id: puzzles.id,
@@ -524,14 +524,14 @@ const get_puzzle_slugs_route = protectedAdminProcedure
   .query(({ input: { puzzle_id } }) =>
     runTrpcEffect(
       Effect.gen(function* () {
-        const [puzzle] = yield* dbRunHttp('padavali.get_puzzle_slugs', (client) =>
+        const [puzzle] = yield* dbRun('padavali.get_puzzle_slugs', (client) =>
           client
             .select({ slug: puzzles.slug })
             .from(puzzles)
             .where(and(padavaliKind, eq(puzzles.id, puzzle_id)))
             .limit(1)
         );
-        const redirects = yield* dbRunHttp('padavali.get_puzzle_redirects', (client) =>
+        const redirects = yield* dbRun('padavali.get_puzzle_redirects', (client) =>
           client
             .select({ slug: puzzle_redirects.slug, created_at: puzzle_redirects.created_at })
             .from(puzzle_redirects)
@@ -575,7 +575,7 @@ const delete_redirect_slug_route = protectedAdminProcedure
   .mutation(({ input: { puzzle_id, redirect_slug } }) =>
     runTrpcEffect(
       Effect.gen(function* () {
-        const [puzzle] = yield* dbRunHttp('padavali.find_puzzle_for_redirect_delete', (client) =>
+        const [puzzle] = yield* dbRun('padavali.find_puzzle_for_redirect_delete', (client) =>
           client
             .select({ id: puzzles.id, slug: puzzles.slug })
             .from(puzzles)
@@ -598,7 +598,7 @@ const delete_redirect_slug_route = protectedAdminProcedure
           );
         }
 
-        const [redirect] = yield* dbRunHttp('padavali.find_redirect_for_delete', (client) =>
+        const [redirect] = yield* dbRun('padavali.find_redirect_for_delete', (client) =>
           client
             .select({ id: puzzle_redirects.id })
             .from(puzzle_redirects)
@@ -620,7 +620,7 @@ const delete_redirect_slug_route = protectedAdminProcedure
           );
         }
 
-        yield* dbRunHttp('padavali.delete_redirect', async (client) => {
+        yield* dbRun('padavali.delete_redirect', async (client) => {
           await client
             .delete(puzzle_redirects)
             .where(

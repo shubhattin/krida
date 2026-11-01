@@ -10,7 +10,7 @@ import {
   tags
 } from '~/db/schema';
 import { syncDifficultyTags } from '~/db/difficulty_tags';
-import { dbRunHttp, dbTransaction, type DbTransaction } from '~/effect/database';
+import { dbRun, dbTransaction, type DbTransaction } from '~/effect/database';
 import { BadRequestError, ConflictError, NotFoundError } from '~/effect/errors';
 import { SIMPLE_GAME_TABLES } from '~/util/catalog/simple_game_tables';
 import {
@@ -104,7 +104,7 @@ export const addProposedPuzzle = Effect.fn('agents.add_proposed_puzzle')(functio
 }) {
   const { proposal, creator_options } = yield* findProposedDraft(input.chatId, input.toolCallId);
 
-  const [alreadyAdded] = yield* dbRunHttp('agents.find_added', (client) =>
+  const [alreadyAdded] = yield* dbRun('agents.find_added', (client) =>
     client
       .select({ puzzle_id: agent_chat_puzzles.puzzle_id })
       .from(agent_chat_puzzles)

@@ -1,7 +1,7 @@
 import { Effect } from 'effect';
 import { and, asc, count, desc, eq, inArray, notInArray, sql } from 'drizzle-orm';
 import { agent_chat_puzzles, agent_chats, agent_messages, puzzles } from '~/db/schema';
-import { dbRunHttp, dbTransaction } from '~/effect/database';
+import { dbRun, dbTransaction } from '~/effect/database';
 import { NotFoundError } from '~/effect/errors';
 import type { GameKind } from '~/util/catalog/tags';
 import type { AgentKind } from '~/agents/agent_kinds';
@@ -25,7 +25,7 @@ export const createAgentChat = Effect.fn('agents.create_chat')(function* (input:
   const creator_options = game_kind
     ? resolveCreatorOptions(game_kind, input.creator_options)
     : null;
-  const [chat] = yield* dbRunHttp('agents.insert_chat', (client) =>
+  const [chat] = yield* dbRun('agents.insert_chat', (client) =>
     client
       .insert(agent_chats)
       .values({ ...input, game_kind, context_snapshot, creator_options })
@@ -35,7 +35,7 @@ export const createAgentChat = Effect.fn('agents.create_chat')(function* (input:
 });
 
 export const listAgentChats = Effect.fn('agents.list_chats')(function* () {
-  return yield* dbRunHttp('agents.list_chats', (client) =>
+  return yield* dbRun('agents.list_chats', (client) =>
     client
       .select({
         id: agent_chats.id,
@@ -55,7 +55,7 @@ export const listAgentChats = Effect.fn('agents.list_chats')(function* () {
 });
 
 export const findAgentChat = Effect.fn('agents.find_chat')(function* (id: string) {
-  const [chat] = yield* dbRunHttp('agents.find_chat', (client) =>
+  const [chat] = yield* dbRun('agents.find_chat', (client) =>
     client.select().from(agent_chats).where(eq(agent_chats.id, id)).limit(1)
   );
   if (!chat) {
@@ -67,7 +67,7 @@ export const findAgentChat = Effect.fn('agents.find_chat')(function* (id: string
 });
 
 export const loadAgentMessages = Effect.fn('agents.load_messages')(function* (chatId: string) {
-  const rows = yield* dbRunHttp('agents.load_messages', (client) =>
+  const rows = yield* dbRun('agents.load_messages', (client) =>
     client
       .select({
         id: agent_messages.id,
@@ -89,7 +89,7 @@ export const loadAgentMessages = Effect.fn('agents.load_messages')(function* (ch
 
 /** Puzzles added from this chat, keyed by the `propose_puzzle` tool call. */
 export const loadAddedPuzzles = Effect.fn('agents.load_added_puzzles')(function* (chatId: string) {
-  return yield* dbRunHttp('agents.load_added_puzzles', (client) =>
+  return yield* dbRun('agents.load_added_puzzles', (client) =>
     client
       .select({
         tool_call_id: agent_chat_puzzles.tool_call_id,
@@ -175,7 +175,7 @@ export const renameAgentChat = Effect.fn('agents.rename_chat')(function* (
   id: string,
   title: string
 ) {
-  yield* dbRunHttp('agents.rename_chat', (client) =>
+  yield* dbRun('agents.rename_chat', (client) =>
     client.update(agent_chats).set({ title }).where(eq(agent_chats.id, id)).returning()
   );
 });
@@ -186,7 +186,7 @@ export const setChatStreaming = Effect.fn('agents.set_streaming')(function* (
   id: string,
   streaming: boolean
 ) {
-  yield* dbRunHttp('agents.set_streaming', (client) =>
+  yield* dbRun('agents.set_streaming', (client) =>
     client
       .update(agent_chats)
       .set(streaming ? { streaming, stop_requested_at: null } : { streaming })
@@ -197,7 +197,7 @@ export const setChatStreaming = Effect.fn('agents.set_streaming')(function* (
 
 /** Ask the reply streaming for this chat to stop (it may run on another server instance). */
 export const requestChatStop = Effect.fn('agents.request_stop')(function* (id: string) {
-  yield* dbRunHttp('agents.request_stop', (client) =>
+  yield* dbRun('agents.request_stop', (client) =>
     client
       .update(agent_chats)
       .set({ stop_requested_at: sql`now()` })
@@ -207,7 +207,7 @@ export const requestChatStop = Effect.fn('agents.request_stop')(function* (id: s
 });
 
 export const isChatStopRequested = Effect.fn('agents.is_stop_requested')(function* (id: string) {
-  const [chat] = yield* dbRunHttp('agents.is_stop_requested', (client) =>
+  const [chat] = yield* dbRun('agents.is_stop_requested', (client) =>
     client
       .select({ stop_requested_at: agent_chats.stop_requested_at })
       .from(agent_chats)
@@ -218,7 +218,7 @@ export const isChatStopRequested = Effect.fn('agents.is_stop_requested')(functio
 });
 
 export const deleteAgentChat = Effect.fn('agents.delete_chat')(function* (id: string) {
-  yield* dbRunHttp('agents.delete_chat', (client) =>
+  yield* dbRun('agents.delete_chat', (client) =>
     client.delete(agent_chats).where(eq(agent_chats.id, id)).returning()
   );
 });
@@ -228,7 +228,7 @@ export const refreshAgentContext = Effect.fn('agents.refresh_context')(function*
   const chat = yield* findAgentChat(id);
   if (!chat.game_kind) return chat.context_snapshot;
   const snapshot = yield* buildPuzzleContext(chat.game_kind);
-  yield* dbRunHttp('agents.save_context', (client) =>
+  yield* dbRun('agents.save_context', (client) =>
     client
       .update(agent_chats)
       .set({ context_snapshot: snapshot })

@@ -2,7 +2,7 @@ import { Effect } from 'effect';
 import { z } from 'zod';
 import { image_assets } from '~/db/schema';
 import { ImageAssetSchemaZod } from '~/db/schema_zod';
-import { dbRunHttp, type TxOrDb } from '~/effect/database';
+import { dbRun, type TxOrDb } from '~/effect/database';
 import { PROJECT_S3_ALIAS, KRIDAS } from '~/constants';
 import { AiProvider } from '~/effect/ai';
 import { ImageProcessor } from '~/effect/image';
@@ -184,7 +184,7 @@ const generatePuzzleCardImage = Effect.fn('generatePuzzleCardImage')(function* (
 
 /** Fetch an editable template row (null when the id does not exist; callers fail fast). */
 const fetchSystemPromptTemplate = (template_id: number) =>
-  dbRunHttp('fetchSystemPromptTemplate', (client) =>
+  dbRun('fetchSystemPromptTemplate', (client) =>
     client.query.image_system_prompt_templates.findFirst({
       where: (tbl, { eq: eqOp }) => eqOp(tbl.id, template_id)
     })
@@ -274,7 +274,7 @@ const insertImageAssetRecord = Effect.fn('insertImageAssetRecord')(function* (
         try: () => db_instance.insert(image_assets).values(values).returning(),
         catch: (cause) => DatabaseError.make({ operation: 'insertImageAssetRecord', cause })
       })
-    : yield* dbRunHttp('insertImageAssetRecord', (client) =>
+    : yield* dbRun('insertImageAssetRecord', (client) =>
         client.insert(image_assets).values(values).returning()
       );
 

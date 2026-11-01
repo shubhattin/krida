@@ -1,7 +1,7 @@
 import { Effect } from 'effect';
 import { z } from 'zod';
 import { protectedAdminProcedure, publicProcedure, t } from '../../trpc_init';
-import { dbRunHttp, dbTransaction } from '~/effect/database';
+import { dbRun, dbTransaction } from '~/effect/database';
 import {
   padajala_puzzles,
   image_assets,
@@ -91,7 +91,7 @@ const get_puzzle_by_id_route = protectedAdminProcedure
   .input(z.object({ id: z.number().int() }))
   .query(({ input: { id } }) =>
     runTrpcEffect(
-      dbRunHttp('padajala.get_puzzle_by_id', async (client) => {
+      dbRun('padajala.get_puzzle_by_id', async (client) => {
         const [puzzle] = await client
           .select({
             id: puzzles.id,
@@ -183,14 +183,14 @@ const get_puzzle_list_page_route = protectedAdminProcedure
         const offset = (page - 1) * size;
 
         const { countResult, rows } = yield* Effect.all({
-          countResult: dbRunHttp('padajala.count_puzzle_list_page', (client) =>
+          countResult: dbRun('padajala.count_puzzle_list_page', (client) =>
             client
               .select({ count: count() })
               .from(puzzles)
               .innerJoin(padajala_puzzles, eq(padajala_puzzles.id, puzzles.id))
               .where(whereClause)
           ),
-          rows: dbRunHttp('padajala.select_puzzle_list_page', (client) =>
+          rows: dbRun('padajala.select_puzzle_list_page', (client) =>
             client
               .select({
                 id: puzzles.id,
@@ -297,7 +297,7 @@ const update_puzzle_route = protectedAdminProcedure
   .mutation(({ input: { puzzle_id, puzzle_data, puzzle_slug, image_id } }) =>
     runTrpcEffect(
       Effect.gen(function* () {
-        const [existing] = yield* dbRunHttp('padajala.find_puzzle_for_update', (client) =>
+        const [existing] = yield* dbRun('padajala.find_puzzle_for_update', (client) =>
           client
             .select({ id: puzzles.id, listed: puzzles.listed })
             .from(puzzles)
@@ -447,7 +447,7 @@ const update_puzzle_slug_route = protectedAdminProcedure
           return { success: true as const, slug: new_slug };
         }
 
-        const [puzzle] = yield* dbRunHttp('padajala.find_puzzle_for_slug_update', (client) =>
+        const [puzzle] = yield* dbRun('padajala.find_puzzle_for_slug_update', (client) =>
           client
             .select({ id: puzzles.id, listed: puzzles.listed })
             .from(puzzles)
@@ -533,7 +533,7 @@ const set_listed_route = protectedAdminProcedure
   .mutation(({ input: { puzzle_id, listed } }) =>
     runTrpcEffect(
       Effect.gen(function* () {
-        const [existing] = yield* dbRunHttp('padajala.find_puzzle_for_set_listed', (client) =>
+        const [existing] = yield* dbRun('padajala.find_puzzle_for_set_listed', (client) =>
           client
             .select({
               id: puzzles.id,
@@ -573,7 +573,7 @@ const set_listed_route = protectedAdminProcedure
         const updates: Partial<typeof puzzles.$inferInsert> = { listed };
         if (becomingListed) updates.last_listed_at = new Date();
 
-        yield* dbRunHttp('padajala.set_listed', async (client) => {
+        yield* dbRun('padajala.set_listed', async (client) => {
           await client
             .update(puzzles)
             .set(updates)
@@ -597,7 +597,7 @@ const delete_puzzle_route = protectedAdminProcedure
     runTrpcEffect(
       Effect.gen(function* () {
         const normalizedSlug = normalizeSlug(slug);
-        const [puzzle] = yield* dbRunHttp('padajala.find_puzzle_for_delete', (client) =>
+        const [puzzle] = yield* dbRun('padajala.find_puzzle_for_delete', (client) =>
           client
             .select({ listed: puzzles.listed })
             .from(puzzles)
@@ -655,14 +655,14 @@ const get_puzzle_slugs_route = protectedAdminProcedure
   .query(({ input: { puzzle_id } }) =>
     runTrpcEffect(
       Effect.gen(function* () {
-        const [puzzle] = yield* dbRunHttp('padajala.get_puzzle_slugs', (client) =>
+        const [puzzle] = yield* dbRun('padajala.get_puzzle_slugs', (client) =>
           client
             .select({ slug: puzzles.slug })
             .from(puzzles)
             .where(and(padajalaKind, eq(puzzles.id, puzzle_id)))
             .limit(1)
         );
-        const redirects = yield* dbRunHttp('padajala.get_puzzle_redirects', (client) =>
+        const redirects = yield* dbRun('padajala.get_puzzle_redirects', (client) =>
           client
             .select({ slug: puzzle_redirects.slug, created_at: puzzle_redirects.created_at })
             .from(puzzle_redirects)
@@ -706,7 +706,7 @@ const delete_redirect_slug_route = protectedAdminProcedure
   .mutation(({ input: { puzzle_id, redirect_slug } }) =>
     runTrpcEffect(
       Effect.gen(function* () {
-        const [puzzle] = yield* dbRunHttp('padajala.find_puzzle_for_redirect_delete', (client) =>
+        const [puzzle] = yield* dbRun('padajala.find_puzzle_for_redirect_delete', (client) =>
           client
             .select({ id: puzzles.id, slug: puzzles.slug })
             .from(puzzles)
@@ -729,7 +729,7 @@ const delete_redirect_slug_route = protectedAdminProcedure
           );
         }
 
-        const [redirect] = yield* dbRunHttp('padajala.find_redirect_for_delete', (client) =>
+        const [redirect] = yield* dbRun('padajala.find_redirect_for_delete', (client) =>
           client
             .select({ id: puzzle_redirects.id })
             .from(puzzle_redirects)
@@ -751,7 +751,7 @@ const delete_redirect_slug_route = protectedAdminProcedure
           );
         }
 
-        yield* dbRunHttp('padajala.delete_redirect', async (client) => {
+        yield* dbRun('padajala.delete_redirect', async (client) => {
           await client
             .delete(puzzle_redirects)
             .where(

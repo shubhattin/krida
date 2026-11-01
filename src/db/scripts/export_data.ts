@@ -65,7 +65,10 @@ const ExportDataSchema = z.object({
   tags: z.array(TagSchemaZod),
   collections: z.array(CollectionSchemaZod),
   // Optional so backups written before these tables existed still restore.
-  image_system_prompt_templates: z.array(ImageSystemPromptTemplatesSchemaZod).optional().default([]),
+  image_system_prompt_templates: z
+    .array(ImageSystemPromptTemplatesSchemaZod)
+    .optional()
+    .default([]),
   ai_batches: z.array(AiBatchSchemaZod),
   ai_batch_responses: z.array(AiBatchResponseSchemaZod),
   puzzles: z.array(PuzzleSchemaZod),

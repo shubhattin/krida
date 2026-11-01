@@ -2,7 +2,7 @@ import { Effect } from 'effect';
 import { protectedAdminProcedure, publicProcedure, t } from '~/api/trpc_init';
 import { z } from 'zod';
 import { attempt_gameplay_stats, padavali_puzzles, puzzle_sessions, puzzles } from '~/db/schema';
-import { dbRunHttp } from '~/effect/database';
+import { dbRun, dbRunHttp } from '~/effect/database';
 import { location_list_enum } from '~/db/types';
 import { script_list_enum } from '~/state/script_list';
 import { and, count, desc, eq, gte, ilike, inArray, isNotNull, lte, sql } from 'drizzle-orm';
@@ -273,7 +273,7 @@ const get_stats_data_route = protectedAdminProcedure
         const selectedUserIds = user_ids ?? [];
         const filterByUsers = selectedUserIds.length > 0;
         const { sessions, stats, puzzleWordRows } = yield* Effect.all({
-          sessions: dbRunHttp('padavali_stats.list_sessions', (client) => {
+          sessions: dbRun('padavali_stats.list_sessions', (client) => {
             const conditions = [padavaliKind];
             if (puzzle_ids && puzzle_ids.length > 0) {
               conditions.push(inArray(puzzle_sessions.puzzle_id, puzzle_ids));
@@ -298,7 +298,7 @@ const get_stats_data_route = protectedAdminProcedure
               .innerJoin(puzzles, sessionForKind)
               .where(and(...conditions));
           }),
-          stats: dbRunHttp('padavali_stats.list_gameplay_stats', (client) => {
+          stats: dbRun('padavali_stats.list_gameplay_stats', (client) => {
             if (filterByUsers) {
               const conditions = [padavaliKind, inArray(puzzle_sessions.user_id, selectedUserIds)];
               if (puzzle_ids && puzzle_ids.length > 0) {
@@ -349,7 +349,7 @@ const get_stats_data_route = protectedAdminProcedure
               .innerJoin(puzzles, statForKind)
               .where(and(...conditions));
           }),
-          puzzleWordRows: dbRunHttp('padavali_stats.list_puzzles_for_word_count', (client) =>
+          puzzleWordRows: dbRun('padavali_stats.list_puzzles_for_word_count', (client) =>
             client
               .select({ word_list: padavali_puzzles.word_list })
               .from(padavali_puzzles)
@@ -385,7 +385,7 @@ const get_top_puzzles_route = protectedAdminProcedure
               ]
             : [];
 
-        const topSessions = yield* dbRunHttp('padavali_stats.get_top_sessions', (client) =>
+        const topSessions = yield* dbRun('padavali_stats.get_top_sessions', (client) =>
           client
             .select({
               puzzle_id: puzzle_sessions.puzzle_id,
@@ -421,23 +421,21 @@ const get_top_puzzles_route = protectedAdminProcedure
               ]
             : [];
 
-        const completionRows = yield* dbRunHttp(
-          'padavali_stats.get_top_completion_counts',
-          (client) =>
-            client
-              .select({
-                puzzle_id: attempt_gameplay_stats.puzzle_id,
-                completed: count()
-              })
-              .from(attempt_gameplay_stats)
-              .innerJoin(puzzles, statForKind)
-              .where(
-                and(
-                  inArray(attempt_gameplay_stats.puzzle_id, puzzleIds),
-                  ...(statsDateConditions.length > 0 ? statsDateConditions : [])
-                )
+        const completionRows = yield* dbRun('padavali_stats.get_top_completion_counts', (client) =>
+          client
+            .select({
+              puzzle_id: attempt_gameplay_stats.puzzle_id,
+              completed: count()
+            })
+            .from(attempt_gameplay_stats)
+            .innerJoin(puzzles, statForKind)
+            .where(
+              and(
+                inArray(attempt_gameplay_stats.puzzle_id, puzzleIds),
+                ...(statsDateConditions.length > 0 ? statsDateConditions : [])
               )
-              .groupBy(attempt_gameplay_stats.puzzle_id)
+            )
+            .groupBy(attempt_gameplay_stats.puzzle_id)
         );
 
         const completedByPuzzle = new Map(
@@ -470,7 +468,7 @@ const get_top_users_route = protectedAdminProcedure
           conditions.push(inArray(puzzle_sessions.puzzle_id, puzzle_ids));
         }
 
-        const topSessions = yield* dbRunHttp('padavali_stats.get_top_users', (client) =>
+        const topSessions = yield* dbRun('padavali_stats.get_top_users', (client) =>
           client
             .select({
               user_id: puzzle_sessions.user_id,
@@ -512,19 +510,17 @@ const get_top_users_route = protectedAdminProcedure
           statsConditions.push(inArray(attempt_gameplay_stats.puzzle_id, puzzle_ids));
         }
 
-        const completionRows = yield* dbRunHttp(
-          'padavali_stats.get_top_user_completions',
-          (client) =>
-            client
-              .select({
-                user_id: puzzle_sessions.user_id,
-                completed: count()
-              })
-              .from(attempt_gameplay_stats)
-              .innerJoin(puzzle_sessions, eq(attempt_gameplay_stats.session_id, puzzle_sessions.id))
-              .innerJoin(puzzles, statForKind)
-              .where(and(...statsConditions))
-              .groupBy(puzzle_sessions.user_id)
+        const completionRows = yield* dbRun('padavali_stats.get_top_user_completions', (client) =>
+          client
+            .select({
+              user_id: puzzle_sessions.user_id,
+              completed: count()
+            })
+            .from(attempt_gameplay_stats)
+            .innerJoin(puzzle_sessions, eq(attempt_gameplay_stats.session_id, puzzle_sessions.id))
+            .innerJoin(puzzles, statForKind)
+            .where(and(...statsConditions))
+            .groupBy(puzzle_sessions.user_id)
         );
 
         const completedByUser = new Map(
@@ -554,7 +550,7 @@ const get_user_list_page_route = protectedAdminProcedure
         if (trimmedSearch) {
           const authMatches = yield* searchAuthUsers(trimmedSearch, 50);
           const idPattern = `%${escapeIlikeToken(trimmedSearch)}%`;
-          const localIdRows = yield* dbRunHttp('padavali_stats.search_user_ids', (client) =>
+          const localIdRows = yield* dbRun('padavali_stats.search_user_ids', (client) =>
             client
               .selectDistinct({ user_id: puzzle_sessions.user_id })
               .from(puzzle_sessions)
@@ -587,7 +583,7 @@ const get_user_list_page_route = protectedAdminProcedure
             };
           }
 
-          const playRows = yield* dbRunHttp('padavali_stats.list_users_filtered', (client) =>
+          const playRows = yield* dbRun('padavali_stats.list_users_filtered', (client) =>
             client
               .select({
                 user_id: puzzle_sessions.user_id,
@@ -638,7 +634,7 @@ const get_user_list_page_route = protectedAdminProcedure
         const whereClause = and(...conditions);
 
         const { countResult, rows } = yield* Effect.all({
-          countResult: dbRunHttp('padavali_stats.count_users', (client) =>
+          countResult: dbRun('padavali_stats.count_users', (client) =>
             client
               .select({
                 count: sql<number>`cast(count(distinct ${puzzle_sessions.user_id}) as int)`
@@ -647,7 +643,7 @@ const get_user_list_page_route = protectedAdminProcedure
               .innerJoin(puzzles, sessionForKind)
               .where(whereClause)
           ),
-          rows: dbRunHttp('padavali_stats.list_users', (client) =>
+          rows: dbRun('padavali_stats.list_users', (client) =>
             client
               .select({
                 user_id: puzzle_sessions.user_id,

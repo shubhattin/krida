@@ -6,7 +6,7 @@ import { RedisClient, type RedisJsonValue } from './redis';
 import { CacheError } from './errors';
 import { BackgroundWork } from './background';
 import { AppConfig } from './config';
-import { DatabaseHttp } from './database';
+import { Database } from './database';
 import { AiProvider } from './ai';
 import { reportSwallowedError } from './report';
 
@@ -16,7 +16,7 @@ const SINGLE_FLIGHT_LOCK_TTL_MS = ms('5m');
 const SINGLE_FLIGHT_POLL = Duration.millis(250);
 const SINGLE_FLIGHT_MAX_POLLS = 120;
 
-type CacheServices = RedisClient | BackgroundWork | AppConfig | DatabaseHttp | AiProvider;
+type CacheServices = RedisClient | BackgroundWork | AppConfig | Database | AiProvider;
 
 export type CacheRefreshOptions = {
   /** Delete the redis key before fetching fresh data. Default true. */
@@ -295,13 +295,13 @@ export function createCache<TParams, TCached, TData = TCached>(
           yield* write;
         } else {
           const redis = yield* RedisClient;
-          const database = yield* DatabaseHttp;
+          const database = yield* Database;
           const ai = yield* AiProvider;
           yield* background.enqueue(() =>
             Effect.runPromise(
               write.pipe(
                 Effect.provideService(RedisClient, redis),
-                Effect.provideService(DatabaseHttp, database),
+                Effect.provideService(Database, database),
                 Effect.provideService(AiProvider, ai),
                 Effect.provideService(AppConfig, appConfig),
                 Effect.catch((error) =>
@@ -482,7 +482,7 @@ export function createCache<TParams, TCached, TData = TCached>(
     const cacheKey = config.getKey(params);
     const genSnapshot = yield* snapshotGeneration(cacheKey);
     const redis = yield* RedisClient;
-    const database = yield* DatabaseHttp;
+    const database = yield* Database;
     const ai = yield* AiProvider;
     const background = yield* BackgroundWork;
 
@@ -512,7 +512,7 @@ export function createCache<TParams, TCached, TData = TCached>(
       Effect.runPromise(
         repopulate.pipe(
           Effect.provideService(RedisClient, redis),
-          Effect.provideService(DatabaseHttp, database),
+          Effect.provideService(Database, database),
           Effect.provideService(AiProvider, ai),
           Effect.provideService(AppConfig, appConfig),
           Effect.provideService(BackgroundWork, background),
@@ -604,7 +604,7 @@ export const invalidateAndRefreshCache = <TParams, TData>(
 export const warmCache = <TParams, TData>(cache: CacheItem<TParams, TData>, params: TParams) =>
   Effect.gen(function* () {
     const redis = yield* RedisClient;
-    const database = yield* DatabaseHttp;
+    const database = yield* Database;
     const ai = yield* AiProvider;
     const appConfig = yield* AppConfig;
     const background = yield* BackgroundWork;
@@ -613,7 +613,7 @@ export const warmCache = <TParams, TData>(cache: CacheItem<TParams, TData>, para
         cache.get(params).pipe(
           Effect.asVoid,
           Effect.provideService(RedisClient, redis),
-          Effect.provideService(DatabaseHttp, database),
+          Effect.provideService(Database, database),
           Effect.provideService(AiProvider, ai),
           Effect.provideService(AppConfig, appConfig),
           Effect.provideService(BackgroundWork, background),

@@ -15,7 +15,7 @@ import {
   type GameDashboardStats
 } from '~/api/routers/user/user_dashboard';
 import { createCache, type CacheItem } from '~/effect/cache';
-import { dbRunHttp } from '~/effect/database';
+import { dbRun } from '~/effect/database';
 import { CacheError } from '~/effect/errors';
 
 const TOP_PUZZLE_LIMIT = 5;
@@ -63,14 +63,14 @@ const fetchPadavaliDashboard = Effect.fn('user_cache.padavali_dashboard')(functi
   const statJoin = and(eq(puzzles.id, attempt_gameplay_stats.puzzle_id), padavaliKind);
 
   const { startedRows, completionRows, topStarted, recentRows } = yield* Effect.all({
-    startedRows: dbRunHttp('user_cache.padavali_started', (client) =>
+    startedRows: dbRun('user_cache.padavali_started', (client) =>
       client
         .select({ started: count() })
         .from(puzzle_sessions)
         .innerJoin(puzzles, sessionJoin)
         .where(eq(puzzle_sessions.user_id, userId))
     ),
-    completionRows: dbRunHttp('user_cache.padavali_completions', (client) =>
+    completionRows: dbRun('user_cache.padavali_completions', (client) =>
       client
         .select({
           completed: count(),
@@ -84,7 +84,7 @@ const fetchPadavaliDashboard = Effect.fn('user_cache.padavali_dashboard')(functi
         .innerJoin(puzzle_sessions, eq(attempt_gameplay_stats.session_id, puzzle_sessions.id))
         .where(eq(puzzle_sessions.user_id, userId))
     ),
-    topStarted: dbRunHttp('user_cache.padavali_top_started', (client) =>
+    topStarted: dbRun('user_cache.padavali_top_started', (client) =>
       client
         .select({
           puzzle_id: puzzle_sessions.puzzle_id,
@@ -99,7 +99,7 @@ const fetchPadavaliDashboard = Effect.fn('user_cache.padavali_dashboard')(functi
         .orderBy(desc(count()))
         .limit(TOP_PUZZLE_LIMIT)
     ),
-    recentRows: dbRunHttp('user_cache.padavali_recent', (client) =>
+    recentRows: dbRun('user_cache.padavali_recent', (client) =>
       client
         .select({
           puzzle_id: puzzles.id,
@@ -131,7 +131,7 @@ const fetchPadavaliDashboard = Effect.fn('user_cache.padavali_dashboard')(functi
 
   if (top_puzzles.length > 0) {
     const puzzleIds = top_puzzles.map((row) => row.puzzle_id);
-    const completionByPuzzle = yield* dbRunHttp('user_cache.padavali_top_completed', (client) =>
+    const completionByPuzzle = yield* dbRun('user_cache.padavali_top_completed', (client) =>
       client
         .select({
           puzzle_id: attempt_gameplay_stats.puzzle_id,
@@ -199,14 +199,14 @@ const fetchPadajalaDashboard = Effect.fn('user_cache.padajala_dashboard')(functi
   const statJoin = and(eq(puzzles.id, padajala_gameplay_stats.puzzle_id), padajalaKind);
 
   const { startedRows, completionRows, topStarted, recentRows } = yield* Effect.all({
-    startedRows: dbRunHttp('user_cache.padajala_started', (client) =>
+    startedRows: dbRun('user_cache.padajala_started', (client) =>
       client
         .select({ started: count() })
         .from(puzzle_sessions)
         .innerJoin(puzzles, sessionJoin)
         .where(eq(puzzle_sessions.user_id, userId))
     ),
-    completionRows: dbRunHttp('user_cache.padajala_completions', (client) =>
+    completionRows: dbRun('user_cache.padajala_completions', (client) =>
       client
         .select({
           completed: count(),
@@ -220,7 +220,7 @@ const fetchPadajalaDashboard = Effect.fn('user_cache.padajala_dashboard')(functi
         .innerJoin(puzzle_sessions, eq(padajala_gameplay_stats.session_id, puzzle_sessions.id))
         .where(eq(puzzle_sessions.user_id, userId))
     ),
-    topStarted: dbRunHttp('user_cache.padajala_top_started', (client) =>
+    topStarted: dbRun('user_cache.padajala_top_started', (client) =>
       client
         .select({
           puzzle_id: puzzle_sessions.puzzle_id,
@@ -235,7 +235,7 @@ const fetchPadajalaDashboard = Effect.fn('user_cache.padajala_dashboard')(functi
         .orderBy(desc(count()))
         .limit(TOP_PUZZLE_LIMIT)
     ),
-    recentRows: dbRunHttp('user_cache.padajala_recent', (client) =>
+    recentRows: dbRun('user_cache.padajala_recent', (client) =>
       client
         .select({
           puzzle_id: puzzles.id,
@@ -267,7 +267,7 @@ const fetchPadajalaDashboard = Effect.fn('user_cache.padajala_dashboard')(functi
 
   if (top_puzzles.length > 0) {
     const puzzleIds = top_puzzles.map((row) => row.puzzle_id);
-    const completionByPuzzle = yield* dbRunHttp('user_cache.padajala_top_completed', (client) =>
+    const completionByPuzzle = yield* dbRun('user_cache.padajala_top_completed', (client) =>
       client
         .select({
           puzzle_id: padajala_gameplay_stats.puzzle_id,
@@ -338,14 +338,14 @@ const fetchSimpleGameDashboard = Effect.fn('user_cache.simple_dashboard')(functi
   const op = (name: string) => `user_cache.${kind}_${name}`;
 
   const { startedRows, completionRows, topStarted, recentRows } = yield* Effect.all({
-    startedRows: dbRunHttp(op('started'), (client) =>
+    startedRows: dbRun(op('started'), (client) =>
       client
         .select({ started: count() })
         .from(puzzle_sessions)
         .innerJoin(puzzles, sessionJoin)
         .where(eq(puzzle_sessions.user_id, userId))
     ),
-    completionRows: dbRunHttp(op('completions'), (client) =>
+    completionRows: dbRun(op('completions'), (client) =>
       client
         .select({
           completed: count(),
@@ -359,7 +359,7 @@ const fetchSimpleGameDashboard = Effect.fn('user_cache.simple_dashboard')(functi
         .innerJoin(puzzle_sessions, eq(attempt_gameplay_stats.session_id, puzzle_sessions.id))
         .where(eq(puzzle_sessions.user_id, userId))
     ),
-    topStarted: dbRunHttp(op('top_started'), (client) =>
+    topStarted: dbRun(op('top_started'), (client) =>
       client
         .select({
           puzzle_id: puzzle_sessions.puzzle_id,
@@ -374,7 +374,7 @@ const fetchSimpleGameDashboard = Effect.fn('user_cache.simple_dashboard')(functi
         .orderBy(desc(count()))
         .limit(TOP_PUZZLE_LIMIT)
     ),
-    recentRows: dbRunHttp(op('recent'), (client) =>
+    recentRows: dbRun(op('recent'), (client) =>
       client
         .select({
           puzzle_id: puzzles.id,
@@ -406,7 +406,7 @@ const fetchSimpleGameDashboard = Effect.fn('user_cache.simple_dashboard')(functi
 
   if (top_puzzles.length > 0) {
     const puzzleIds = top_puzzles.map((row) => row.puzzle_id);
-    const completionByPuzzle = yield* dbRunHttp(op('top_completed'), (client) =>
+    const completionByPuzzle = yield* dbRun(op('top_completed'), (client) =>
       client
         .select({
           puzzle_id: attempt_gameplay_stats.puzzle_id,

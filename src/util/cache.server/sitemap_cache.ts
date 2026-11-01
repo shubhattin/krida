@@ -5,7 +5,7 @@ import { and, eq } from 'drizzle-orm';
 import { puzzles as puzzlesTable } from '~/db/schema';
 import { createCache, type CacheItem, type NoCacheParams, NO_CACHE_PARAMS } from '~/effect/cache';
 import { AppConfig } from '~/effect/config';
-import { dbRunHttp } from '~/effect/database';
+import { dbRun } from '~/effect/database';
 import { CacheError } from '~/effect/errors';
 import { SIMPLE_GAME_KINDS, type SimpleGameKind } from '~/util/games/kinds';
 
@@ -74,7 +74,7 @@ const load_padavali_sitemap: CacheItem<NoCacheParams, string> = createCache({
       const base = config.siteUrl;
 
       const [listedPuzzles, collections] = yield* Effect.all([
-        dbRunHttp('sitemap.padavali_listed', (client) =>
+        dbRun('sitemap.padavali_listed', (client) =>
           client
             .select({
               slug: puzzlesTable.slug,
@@ -85,7 +85,7 @@ const load_padavali_sitemap: CacheItem<NoCacheParams, string> = createCache({
             .from(puzzlesTable)
             .where(and(eq(puzzlesTable.kind, 'padavali'), eq(puzzlesTable.listed, true)))
         ),
-        dbRunHttp('sitemap.listed_collections', (client) =>
+        dbRun('sitemap.listed_collections', (client) =>
           client.query.collections.findMany({
             columns: {
               slug: true,
@@ -125,7 +125,7 @@ const load_padajala_sitemap: CacheItem<NoCacheParams, string> = createCache({
       const config = yield* AppConfig;
       const base = config.siteUrl;
 
-      const listedPuzzles = yield* dbRunHttp('sitemap.padajala_listed', (client) =>
+      const listedPuzzles = yield* dbRun('sitemap.padajala_listed', (client) =>
         client
           .select({
             slug: puzzlesTable.slug,
@@ -161,7 +161,7 @@ function makeSimpleGameSitemap(kind: SimpleGameKind): CacheItem<NoCacheParams, s
         const config = yield* AppConfig;
         const base = config.siteUrl;
 
-        const listedPuzzles = yield* dbRunHttp(`sitemap.${kind}_listed`, (client) =>
+        const listedPuzzles = yield* dbRun(`sitemap.${kind}_listed`, (client) =>
           client
             .select({
               slug: puzzlesTable.slug,

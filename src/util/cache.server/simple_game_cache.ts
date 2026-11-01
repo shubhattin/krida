@@ -4,7 +4,7 @@ import { z } from 'zod';
 import { attachment_schema, image_schema } from '~/db/db_shared_vals';
 import { image_assets, puzzle_attachments, puzzles } from '~/db/schema';
 import { createCache, type CacheItem, type NoCacheParams } from '~/effect/cache';
-import { dbRunHttp } from '~/effect/database';
+import { dbRun } from '~/effect/database';
 import { CacheError } from '~/effect/errors';
 import { public_tag_schema } from '~/util/catalog/tags';
 import { tagsForPuzzleIds } from '~/util/catalog/list_query';
@@ -102,7 +102,7 @@ export function createSimpleGameCacheLoaders<T>(
     getKey: () => listedKey,
     schema: listed_puzzle_schema.array(),
     fetch: () =>
-      dbRunHttp(`${kind}.listed_puzzle_list`, (client) =>
+      dbRun(`${kind}.listed_puzzle_list`, (client) =>
         client
           .select({
             id: puzzles.id,
@@ -156,7 +156,7 @@ export function createSimpleGameCacheLoaders<T>(
       schema: puzzleSchema as z.ZodType<SimpleGamePuzzle<T> | undefined>,
       shouldCache: (data) => data !== undefined,
       fetch: ({ slug }) =>
-        dbRunHttp(`${kind}.word_puzzle`, async (client) => {
+        dbRun(`${kind}.word_puzzle`, async (client) => {
           const [row] = await client
             .select({
               id: puzzles.id,

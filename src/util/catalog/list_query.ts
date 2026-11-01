@@ -1,6 +1,6 @@
 import { and, eq, inArray, sql, type SQL, type SQLWrapper } from 'drizzle-orm';
 import { collection_items, collections, puzzle_tags, puzzles, tags } from '~/db/schema';
-import { dbRunHttp } from '~/effect/database';
+import { dbRun } from '~/effect/database';
 import { Effect } from 'effect';
 import type { GameKind, PublicTag } from './tags';
 
@@ -62,7 +62,7 @@ export const tagsForPuzzleIds = (game: GameKind, puzzleIds: number[]) => {
   if (puzzleIds.length === 0) {
     return Effect.succeed(new Map<number, PublicTag[]>());
   }
-  return dbRunHttp(`${game}.tags_for_puzzle_ids`, (client) =>
+  return dbRun(`${game}.tags_for_puzzle_ids`, (client) =>
     client
       .select({
         puzzle_id: puzzle_tags.puzzle_id,
@@ -94,7 +94,7 @@ export const collectionsForPuzzleIds = (game: GameKind, puzzleIds: number[]) => 
   if (puzzleIds.length === 0) {
     return Effect.succeed(new Map<number, PuzzleCollectionRef[]>());
   }
-  return dbRunHttp(`${game}.collections_for_puzzle_ids`, (client) =>
+  return dbRun(`${game}.collections_for_puzzle_ids`, (client) =>
     client
       .select({
         puzzle_id: collection_items.puzzle_id,

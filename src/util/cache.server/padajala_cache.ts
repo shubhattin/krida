@@ -16,7 +16,7 @@ import {
 } from '~/db/schema_zod';
 import { tagsForPuzzleIds } from '~/util/catalog/list_query';
 import { createCache, type CacheItem, type NoCacheParams } from '~/effect/cache';
-import { dbRunHttp } from '~/effect/database';
+import { dbRun } from '~/effect/database';
 import type { RedisJsonValue } from '~/effect/redis';
 import { CacheError } from '~/effect/errors';
 import {
@@ -134,7 +134,7 @@ const load_current_schedule: CacheItem<NoCacheParams, PadajalaCurrentScheduleTyp
   useSingleFlight: true,
   fetch: () => {
     const currentTime = new Date();
-    return dbRunHttp('padajala.current_schedule', async (client) => {
+    return dbRun('padajala.current_schedule', async (client) => {
       const [schedule] = await client
         .select({
           id: puzzle_schedules.id,
@@ -229,7 +229,7 @@ const load_next_schedule: CacheItem<NoCacheParams, PadajalaNextScheduleType> = c
     data ? { exat: Math.floor(data.start_time.getTime() / 1000) } : undefined,
   fetch: () => {
     const currentTime = new Date();
-    return dbRunHttp('padajala.next_schedule', async (client) => {
+    return dbRun('padajala.next_schedule', async (client) => {
       const [schedule] = await client
         .select({
           id: puzzle_schedules.id,
@@ -255,7 +255,7 @@ const load_listed_puzzle_list: CacheItem<NoCacheParams, PadajalaListedPuzzlesTyp
   getKey: () => LISTED_PUZZLE_LIST_KEY,
   schema: listed_puzzle_schema.array(),
   fetch: () =>
-    dbRunHttp('padajala.listed_puzzle_list', (client) =>
+    dbRun('padajala.listed_puzzle_list', (client) =>
       client
         .select({
           id: puzzles.id,
@@ -314,7 +314,7 @@ const load_word_puzzle: CacheItem<PadajalaPuzzleParams, PadajalaPuzzleType | und
     schema: padajala_puzzle_schema,
     shouldCache: (data) => data !== undefined,
     fetch: ({ slug }) =>
-      dbRunHttp('padajala.word_puzzle', async (client) => {
+      dbRun('padajala.word_puzzle', async (client) => {
         const [row] = await client
           .select({
             id: puzzles.id,
@@ -389,7 +389,7 @@ const load_more_hints: AiContentCache<MoreHintsType> = createAiContentCache<
   schema: more_hints_schema,
   inputHash: moreHintsInputHash,
   load: (puzzle_id) =>
-    dbRunHttp('padajala.more_hints_source', async (client) => {
+    dbRun('padajala.more_hints_source', async (client) => {
       const [row] = await client
         .select({
           slug: puzzles.slug,
@@ -413,7 +413,7 @@ const load_more_hints: AiContentCache<MoreHintsType> = createAiContentCache<
     }).pipe(Effect.mapError(toCacheError('fetchMoreHintsSource', moreHintsKey(puzzle_id)))),
   generate: ({ slug, inputs }) => get_padajala_more_hints({ slug, ...inputs }),
   save: ({ puzzle_id, inputs, data, hash, previousHash }) =>
-    dbRunHttp('padajala.save_more_hints', async (client) => {
+    dbRun('padajala.save_more_hints', async (client) => {
       const written = await client
         .update(padajala_puzzles)
         .set({
