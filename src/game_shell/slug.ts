@@ -1,7 +1,7 @@
 import { Effect } from 'effect';
 import { and, eq } from 'drizzle-orm';
 import { puzzle_redirects, puzzles } from '~/db/schema';
-import { dbRunHttp, type DbTransaction } from '~/effect/database';
+import { dbRun, type DbTransaction } from '~/effect/database';
 import { BadRequestError, ConflictError } from '~/effect/errors';
 import { normalizeSlug } from '~/util/puzzle/slug';
 import type { GameKind } from '~/util/catalog/tags';
@@ -27,7 +27,7 @@ export function createGameSlugHelpers(options: {
     }
 
     const { existing_puzzle, existing_redirect } = yield* Effect.all({
-      existing_puzzle: dbRunHttp(`${kind}_slug.find_puzzle_by_slug`, (client) =>
+      existing_puzzle: dbRun(`${kind}_slug.find_puzzle_by_slug`, (client) =>
         client
           .select({
             id: puzzles.id,
@@ -39,7 +39,7 @@ export function createGameSlugHelpers(options: {
           .limit(1)
           .then((rows) => rows[0])
       ),
-      existing_redirect: dbRunHttp(`${kind}_slug.find_redirect_by_slug`, async (client) => {
+      existing_redirect: dbRun(`${kind}_slug.find_redirect_by_slug`, async (client) => {
         const [redirect] = await client
           .select({
             id: puzzle_redirects.id,

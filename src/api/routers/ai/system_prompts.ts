@@ -3,7 +3,7 @@ import { asc, eq } from 'drizzle-orm';
 import { Effect } from 'effect';
 import { t, protectedAdminProcedure } from '~/api/trpc_init';
 import { image_system_prompt_templates } from '~/db/schema';
-import { dbRunHttp } from '~/effect/database';
+import { dbRun } from '~/effect/database';
 import { ConflictError, NotFoundError } from '~/effect/errors';
 import { runTrpcEffect } from '~/effect/run';
 
@@ -15,7 +15,7 @@ const list_route = protectedAdminProcedure
   .query(({ input }) =>
     runTrpcEffect(
       Effect.gen(function* () {
-        return yield* dbRunHttp('system_prompts.list', (db) =>
+        return yield* dbRun('system_prompts.list', (db) =>
           db
             .select({
               id: image_system_prompt_templates.id,
@@ -40,7 +40,7 @@ const get_route = protectedAdminProcedure
   .query(({ input: { id } }) =>
     runTrpcEffect(
       Effect.gen(function* () {
-        const row = yield* dbRunHttp('system_prompts.get', (db) =>
+        const row = yield* dbRun('system_prompts.get', (db) =>
           db.query.image_system_prompt_templates.findFirst({
             where: (tbl, { eq: eqOp }) => eqOp(tbl.id, id)
           })
@@ -68,7 +68,7 @@ const create_route = protectedAdminProcedure
   .mutation(({ input: { title, subject } }) =>
     runTrpcEffect(
       Effect.gen(function* () {
-        const clash = yield* dbRunHttp('system_prompts.create.lookup', (db) =>
+        const clash = yield* dbRun('system_prompts.create.lookup', (db) =>
           db.query.image_system_prompt_templates.findFirst({
             where: (tbl, { eq: eqOp, and: andOp }) =>
               andOp(eqOp(tbl.subject, subject), eqOp(tbl.title, title))
@@ -79,7 +79,7 @@ const create_route = protectedAdminProcedure
             ConflictError.make({ message: 'A template with this title already exists' })
           );
         }
-        const rows = yield* dbRunHttp('system_prompts.create', (db) =>
+        const rows = yield* dbRun('system_prompts.create', (db) =>
           db
             .insert(image_system_prompt_templates)
             .values({ title, subject, content: '' })
@@ -101,7 +101,7 @@ const update_route = protectedAdminProcedure
   .mutation(({ input: { id, title, content } }) =>
     runTrpcEffect(
       Effect.gen(function* () {
-        const existing = yield* dbRunHttp('system_prompts.update.lookup', (db) =>
+        const existing = yield* dbRun('system_prompts.update.lookup', (db) =>
           db.query.image_system_prompt_templates.findFirst({
             where: (tbl, { eq: eqOp }) => eqOp(tbl.id, id)
           })
@@ -115,7 +115,7 @@ const update_route = protectedAdminProcedure
           );
         }
         if (title !== undefined && title !== existing.title) {
-          const clash = yield* dbRunHttp('system_prompts.update.clash', (db) =>
+          const clash = yield* dbRun('system_prompts.update.clash', (db) =>
             db.query.image_system_prompt_templates.findFirst({
               where: (tbl, { eq: eqOp, and: andOp }) =>
                 andOp(eqOp(tbl.subject, existing.subject), eqOp(tbl.title, title))
@@ -127,7 +127,7 @@ const update_route = protectedAdminProcedure
             );
           }
         }
-        const rows = yield* dbRunHttp('system_prompts.update', (db) =>
+        const rows = yield* dbRun('system_prompts.update', (db) =>
           db
             .update(image_system_prompt_templates)
             .set({
@@ -148,7 +148,7 @@ const delete_route = protectedAdminProcedure
   .mutation(({ input: { id } }) =>
     runTrpcEffect(
       Effect.gen(function* () {
-        const existing = yield* dbRunHttp('system_prompts.delete.lookup', (db) =>
+        const existing = yield* dbRun('system_prompts.delete.lookup', (db) =>
           db.query.image_system_prompt_templates.findFirst({
             where: (tbl, { eq: eqOp }) => eqOp(tbl.id, id)
           })
@@ -161,7 +161,7 @@ const delete_route = protectedAdminProcedure
             })
           );
         }
-        yield* dbRunHttp('system_prompts.delete', async (db) => {
+        yield* dbRun('system_prompts.delete', async (db) => {
           await db
             .delete(image_system_prompt_templates)
             .where(eq(image_system_prompt_templates.id, id));

@@ -6,7 +6,7 @@ import { FaGlobe, FaPlay } from 'react-icons/fa';
 import { z } from 'zod';
 import { adminServerFnMiddleware } from '~/lib/adminServerFn';
 import { routeHeadFromPageMeta } from '~/components/tags/getPageMetaTags';
-import { dbRunHttp } from '~/effect/database';
+import { dbRun } from '~/effect/database';
 import { runLoaderEffect } from '~/effect/run';
 import MainEditPage from './-MainEditPage';
 
@@ -18,7 +18,7 @@ const loader$ = createServerFn({ method: 'GET' })
     if (!parsed.success) return { word_puzzle: null, catalog: { tags: [], collections: [] } };
 
     const row = await runLoaderEffect(
-      dbRunHttp('padavali.admin.get_edit_puzzle', (client) =>
+      dbRun('padavali.admin.get_edit_puzzle', (client) =>
         client.query.puzzles.findFirst({
           where: (tbl, { and, eq }) => and(eq(tbl.id, parsed.data), eq(tbl.kind, 'padavali')),
           with: {

@@ -5,8 +5,8 @@
 - **Framework**: TanStack Start — React 19, SSR, file-based routing (TanStack Router)
 - **Data fetching**: TanStack Query + tRPC v11 (type-safe end-to-end, SuperJSON transformer)
 - **Styling**: Tailwind CSS v4 + shadcn/ui (Base UI primitives)
-- **Database**: PostgreSQL (Neon) with Drizzle ORM
-- **Server layer**: [Effect](https://effect.website) — `dbRunHttp` / storage / AI access are modelled as Effect services with typed errors
+- **Database**: PostgreSQL (PlanetScale) with Drizzle ORM — postgres.js over TCP (PgBouncer in prod) by default; stateless HTTP only for public gameplay data-collection writes
+- **Server layer**: [Effect](https://effect.website) — `dbRun` / `dbRunHttp` (public gameplay writes only) / storage / AI access are modelled as Effect services with typed errors
 - **Auth**: Better Auth (Google sign-in)
 - **Client state**: Jotai
 - **Transliteration**: [`lipilekhika`](https://lipilekhika.in)

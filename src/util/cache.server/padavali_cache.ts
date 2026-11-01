@@ -11,7 +11,7 @@ import {
 } from '~/db/schema';
 import { tagsForPuzzleIds } from '~/util/catalog/list_query';
 import { createCache, type CacheItem, type NoCacheParams } from '~/effect/cache';
-import { dbRunHttp } from '~/effect/database';
+import { dbRun } from '~/effect/database';
 import type { RedisJsonValue } from '~/effect/redis';
 import { CacheError } from '~/effect/errors';
 import {
@@ -118,7 +118,7 @@ const load_current_schedule: CacheItem<NoCacheParams, PadavaliCurrentScheduleTyp
   useSingleFlight: true,
   fetch: () => {
     const currentTime = new Date();
-    return dbRunHttp('padavali.current_schedule', async (client) => {
+    return dbRun('padavali.current_schedule', async (client) => {
       const [schedule] = await client
         .select({
           id: puzzle_schedules.id,
@@ -213,7 +213,7 @@ const load_next_schedule: CacheItem<NoCacheParams, PadavaliNextScheduleType> = c
     data ? { exat: Math.floor(data.start_time.getTime() / 1000) } : undefined,
   fetch: () => {
     const currentTime = new Date();
-    return dbRunHttp('padavali.next_schedule', async (client) => {
+    return dbRun('padavali.next_schedule', async (client) => {
       const [schedule] = await client
         .select({
           id: puzzle_schedules.id,
@@ -239,7 +239,7 @@ const load_listed_puzzle_list: CacheItem<NoCacheParams, PadavaliListedPuzzlesTyp
   getKey: () => LISTED_PUZZLE_LIST_KEY,
   schema: listed_puzzle_schema.array(),
   fetch: () =>
-    dbRunHttp('padavali.listed_puzzle_list', (client) =>
+    dbRun('padavali.listed_puzzle_list', (client) =>
       client
         .select({
           id: puzzles.id,
@@ -298,7 +298,7 @@ const load_word_puzzle: CacheItem<PadavaliPuzzleParams, PadavaliPuzzleType | und
     schema: puzzle_schema,
     shouldCache: (data) => data !== undefined,
     fetch: ({ slug }) =>
-      dbRunHttp('padavali.word_puzzle', async (client) => {
+      dbRun('padavali.word_puzzle', async (client) => {
         const [row] = await client
           .select({
             id: puzzles.id,
@@ -370,7 +370,7 @@ const load_word_meanings: AiContentCache<WordMeaningsType> = createAiContentCach
   schema: word_meanings_schema,
   inputHash: wordMeaningsInputHash,
   load: (puzzle_id) =>
-    dbRunHttp('padavali.word_meanings_source', async (client) => {
+    dbRun('padavali.word_meanings_source', async (client) => {
       const [row] = await client
         .select({
           slug: puzzles.slug,
@@ -400,7 +400,7 @@ const load_word_meanings: AiContentCache<WordMeaningsType> = createAiContentCach
       word_list: padavaliActiveWords(inputs.word_list)
     }),
   save: ({ puzzle_id, inputs, data, hash, previousHash }) =>
-    dbRunHttp('padavali.save_word_meanings', async (client) => {
+    dbRun('padavali.save_word_meanings', async (client) => {
       const written = await client
         .update(padavali_puzzles)
         .set({

@@ -1,7 +1,7 @@
 import { protectedAdminProcedure, t } from '~/api/trpc_init';
 import { Effect } from 'effect';
 import { z } from 'zod';
-import { dbRunHttp, dbTransaction } from '~/effect/database';
+import { dbRun, dbTransaction } from '~/effect/database';
 import { puzzle_schedules, puzzles } from '~/db/schema';
 import { and, desc, eq, gte, lt, lte, ne } from 'drizzle-orm';
 import {
@@ -70,7 +70,7 @@ const add_puzzle_schedule_route = protectedAdminProcedure
     runTrpcEffect(
       Effect.gen(function* () {
         const { puzzle_id, start_time, end_time } = input;
-        const [existing_schedule] = yield* dbRunHttp(
+        const [existing_schedule] = yield* dbRun(
           'padajala_schedules.find_overlapping_schedule',
           (client) =>
             client
@@ -90,7 +90,7 @@ const add_puzzle_schedule_route = protectedAdminProcedure
           return { success: false as const, error_code: 'already_exists_in_time_range' as const };
         }
 
-        const [puzzle] = yield* dbRunHttp('padajala_schedules.find_puzzle', (client) =>
+        const [puzzle] = yield* dbRun('padajala_schedules.find_puzzle', (client) =>
           client
             .select({ id: puzzles.id })
             .from(puzzles)
@@ -153,7 +153,7 @@ const delete_puzzle_schedule_route = protectedAdminProcedure
   .mutation(({ input: { schedule_id } }) =>
     runTrpcEffect(
       Effect.gen(function* () {
-        const [existing] = yield* dbRunHttp('padajala_schedules.find_schedule', (client) =>
+        const [existing] = yield* dbRun('padajala_schedules.find_schedule', (client) =>
           client
             .select({ id: puzzle_schedules.id })
             .from(puzzle_schedules)
@@ -195,17 +195,15 @@ const update_puzzle_schedule_route = protectedAdminProcedure
   .mutation(({ input: { schedule_id, puzzle_id, start_time, end_time } }) =>
     runTrpcEffect(
       Effect.gen(function* () {
-        const [existing] = yield* dbRunHttp(
-          'padajala_schedules.find_schedule_for_update',
-          (client) =>
-            client
-              .select({ id: puzzle_schedules.id })
-              .from(puzzle_schedules)
-              .innerJoin(puzzles, and(eq(puzzles.id, puzzle_schedules.puzzle_id), padajalaKind))
-              .where(
-                and(eq(puzzle_schedules.id, schedule_id), eq(puzzle_schedules.puzzle_id, puzzle_id))
-              )
-              .limit(1)
+        const [existing] = yield* dbRun('padajala_schedules.find_schedule_for_update', (client) =>
+          client
+            .select({ id: puzzle_schedules.id })
+            .from(puzzle_schedules)
+            .innerJoin(puzzles, and(eq(puzzles.id, puzzle_schedules.puzzle_id), padajalaKind))
+            .where(
+              and(eq(puzzle_schedules.id, schedule_id), eq(puzzle_schedules.puzzle_id, puzzle_id))
+            )
+            .limit(1)
         );
         if (!existing) {
           return yield* Effect.fail(
@@ -216,7 +214,7 @@ const update_puzzle_schedule_route = protectedAdminProcedure
           );
         }
 
-        const [overlap] = yield* dbRunHttp('padajala_schedules.find_overlapping_update', (client) =>
+        const [overlap] = yield* dbRun('padajala_schedules.find_overlapping_update', (client) =>
           client
             .select({ id: puzzle_schedules.id })
             .from(puzzle_schedules)
@@ -279,7 +277,7 @@ const get_past_schedules_route = protectedAdminProcedure.query(() =>
     Effect.gen(function* () {
       yield* Effect.sleep('500 millis');
       const current_time = new Date();
-      const past_schedules = yield* dbRunHttp('padajala_schedules.list_past_schedules', (client) =>
+      const past_schedules = yield* dbRun('padajala_schedules.list_past_schedules', (client) =>
         client
           .select({
             id: puzzle_schedules.id,

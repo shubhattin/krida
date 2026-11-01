@@ -4,7 +4,7 @@ import { z } from 'zod';
 import { AppConfig } from '~/effect/config';
 import { RedisClient, type RedisJsonValue } from '~/effect/redis';
 import { BackgroundWork } from '~/effect/background';
-import { DatabaseHttp } from '~/effect/database';
+import { Database } from '~/effect/database';
 import { AiProvider } from '~/effect/ai';
 import { type CacheError, type ConflictError } from '~/effect/errors';
 import { createAiContentCache, type StoredAiContent } from './ai_content_cache';
@@ -53,7 +53,7 @@ const noBackground = { enqueue: () => Effect.void } as never;
 // SAFETY: the fake load/save/generate below never touch the database or AI provider
 const unused = {} as never;
 
-type Services = RedisClient | AppConfig | BackgroundWork | DatabaseHttp | AiProvider;
+type Services = RedisClient | AppConfig | BackgroundWork | Database | AiProvider;
 
 const run = <A>(effect: Effect.Effect<A, CacheError | ConflictError, Services>, redis: never) =>
   Effect.runPromiseExit(
@@ -61,7 +61,7 @@ const run = <A>(effect: Effect.Effect<A, CacheError | ConflictError, Services>, 
       Effect.provideService(RedisClient, redis),
       Effect.provideService(AppConfig, testConfig),
       Effect.provideService(BackgroundWork, noBackground),
-      Effect.provideService(DatabaseHttp, unused),
+      Effect.provideService(Database, unused),
       Effect.provideService(AiProvider, unused)
     )
   );

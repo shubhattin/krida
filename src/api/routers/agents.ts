@@ -2,7 +2,7 @@ import { Effect } from 'effect';
 import { desc } from 'drizzle-orm';
 import { z } from 'zod';
 import { puzzles } from '~/db/schema';
-import { dbRunHttp } from '~/effect/database';
+import { dbRun } from '~/effect/database';
 import { protectedAdminProcedure, t } from '~/api/trpc_init';
 import { runTrpcEffect } from '~/effect/run';
 import { BadRequestError } from '~/effect/errors';
@@ -152,7 +152,7 @@ const add_puzzle_route = protectedAdminProcedure
 /** Every puzzle (all games, drafts too), newest first, for the composer's `@` mention picker. */
 const list_mentionable_puzzles_route = protectedAdminProcedure.query(() =>
   runTrpcEffect(
-    dbRunHttp('agents.list_mentionable_puzzles', (client) =>
+    dbRun('agents.list_mentionable_puzzles', (client) =>
       client
         .select({
           id: puzzles.id,

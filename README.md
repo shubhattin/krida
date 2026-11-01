@@ -47,7 +47,7 @@ Solve Sanskrit crossword grids with across and down clues.
 - **Framework**: TanStack Start (React 19, SSR, file-based routing)
 - **Styling**: Tailwind CSS v4 + shadcn/ui
 - **API**: tRPC (type-safe, end-to-end)
-- **Database**: PostgreSQL (Neon) with Drizzle ORM
+- **Database**: PostgreSQL (PlanetScale) with Drizzle ORM
 - **Auth**: Better Auth (Google sign-in)
 - **Server effects**: [Effect](https://effect.website) for database / AI / storage layers
 - **Transliteration**: `lipilekhika`

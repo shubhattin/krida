@@ -9,7 +9,7 @@ import {
   type NoCacheParams,
   NO_CACHE_PARAMS
 } from '~/effect/cache';
-import { dbRunHttp } from '~/effect/database';
+import { dbRun } from '~/effect/database';
 import { CacheError } from '~/effect/errors';
 import { GAME_KINDS, game_kind_schema, isGameKind, type GameKind } from '~/util/catalog/tags';
 
@@ -87,7 +87,7 @@ const load_slug_map: CacheItem<NoCacheParams, PuzzleSlugMap> = createCache<
   useSingleFlight: true,
   useGenerationGuard: true,
   fetch: () =>
-    dbRunHttp('puzzle_slug_map.fetch', async (client) => {
+    dbRun('puzzle_slug_map.fetch', async (client) => {
       const [live, redirects] = await Promise.all([
         client.select({ kind: puzzles.kind, slug: puzzles.slug }).from(puzzles),
         client

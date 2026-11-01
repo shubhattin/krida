@@ -11,7 +11,7 @@ import { QStashPublisher } from './qstash';
 const InfrastructureLayer = Layer.mergeAll(ImageProcessor.Live, BackgroundWork.Live);
 
 const ConfigDependentLayer = Layer.mergeAll(
-  // HTTP is stateless; WS/TCP pool still opens lazily on first session query
+  // HTTP is stateless; the TCP pool still opens lazily on first session query
   DatabaseHttp.Live,
   Database.Live,
   RedisClient.Live,

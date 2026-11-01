@@ -4,7 +4,7 @@ import { ArrowLeftIcon } from 'lucide-react';
 import { z } from 'zod';
 import PadajalaGameRoot from '~/components/pages/padajala/PadajalaGame/PadajalaGameRoot';
 import { routeHeadFromPageMeta } from '~/components/tags/getPageMetaTags';
-import { dbRunHttp } from '~/effect/database';
+import { dbRun } from '~/effect/database';
 import { CACHE } from '~/util/cache.server/cache_loaders';
 import { runLoaderEffect } from '~/effect/run';
 import { PreviewWarningBanner } from './-PreviewWarningBanner';
@@ -13,7 +13,7 @@ const loader$ = createServerFn({ method: 'GET' })
   .validator(z.object({ nano_id: z.string() }))
   .handler(async ({ data }) => {
     const row = await runLoaderEffect(
-      dbRunHttp('padajala.view.resolve_uid', (client) =>
+      dbRun('padajala.view.resolve_uid', (client) =>
         client.query.puzzles.findFirst({
           columns: { slug: true },
           where: (tbl, { and, eq }) => and(eq(tbl.uid, data.nano_id), eq(tbl.kind, 'padajala'))

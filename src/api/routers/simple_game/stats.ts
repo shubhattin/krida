@@ -1,6 +1,6 @@
 import { Effect } from 'effect';
 import { protectedAdminProcedure, publicProcedure, t } from '../../trpc_init';
-import { dbRunHttp } from '~/effect/database';
+import { dbRun, dbRunHttp } from '~/effect/database';
 import { and, count, desc, eq, gte, ilike, inArray, isNotNull, lte, sql } from 'drizzle-orm';
 import { attempt_gameplay_stats, puzzle_sessions, puzzles } from '~/db/schema';
 import {
@@ -174,7 +174,7 @@ export function createSimpleGameStatsRouter<TData>(
           const selectedUserIds = user_ids ?? [];
           const filterByUsers = selectedUserIds.length > 0;
           const { sessions, stats } = yield* Effect.all({
-            sessions: dbRunHttp(`${kind}_stats.list_sessions`, (client) => {
+            sessions: dbRun(`${kind}_stats.list_sessions`, (client) => {
               const conditions = [puzzleKind];
               if (puzzle_ids && puzzle_ids.length > 0) {
                 conditions.push(inArray(puzzle_sessions.puzzle_id, puzzle_ids));
@@ -198,7 +198,7 @@ export function createSimpleGameStatsRouter<TData>(
                 .innerJoin(puzzles, sessionForKind)
                 .where(and(...conditions));
             }),
-            stats: dbRunHttp(`${kind}_stats.list_gameplay_stats`, (client) => {
+            stats: dbRun(`${kind}_stats.list_gameplay_stats`, (client) => {
               if (filterByUsers) {
                 const conditions = [puzzleKind, inArray(puzzle_sessions.user_id, selectedUserIds)];
                 if (puzzle_ids && puzzle_ids.length > 0) {
@@ -269,7 +269,7 @@ export function createSimpleGameStatsRouter<TData>(
                 ]
               : [];
 
-          const topSessions = yield* dbRunHttp(`${kind}_stats.get_top_sessions`, (client) =>
+          const topSessions = yield* dbRun(`${kind}_stats.get_top_sessions`, (client) =>
             client
               .select({
                 puzzle_id: puzzle_sessions.puzzle_id,
@@ -303,23 +303,21 @@ export function createSimpleGameStatsRouter<TData>(
                 ]
               : [];
 
-          const completionRows = yield* dbRunHttp(
-            `${kind}_stats.get_top_completion_counts`,
-            (client) =>
-              client
-                .select({
-                  puzzle_id: attempt_gameplay_stats.puzzle_id,
-                  completed: count()
-                })
-                .from(attempt_gameplay_stats)
-                .innerJoin(puzzles, statForKind)
-                .where(
-                  and(
-                    inArray(attempt_gameplay_stats.puzzle_id, puzzleIds),
-                    ...(statsDateConditions.length > 0 ? statsDateConditions : [])
-                  )
+          const completionRows = yield* dbRun(`${kind}_stats.get_top_completion_counts`, (client) =>
+            client
+              .select({
+                puzzle_id: attempt_gameplay_stats.puzzle_id,
+                completed: count()
+              })
+              .from(attempt_gameplay_stats)
+              .innerJoin(puzzles, statForKind)
+              .where(
+                and(
+                  inArray(attempt_gameplay_stats.puzzle_id, puzzleIds),
+                  ...(statsDateConditions.length > 0 ? statsDateConditions : [])
                 )
-                .groupBy(attempt_gameplay_stats.puzzle_id)
+              )
+              .groupBy(attempt_gameplay_stats.puzzle_id)
           );
 
           const completedByPuzzle = new Map(
@@ -352,7 +350,7 @@ export function createSimpleGameStatsRouter<TData>(
             conditions.push(inArray(puzzle_sessions.puzzle_id, puzzle_ids));
           }
 
-          const topSessions = yield* dbRunHttp(`${kind}_stats.get_top_users`, (client) =>
+          const topSessions = yield* dbRun(`${kind}_stats.get_top_users`, (client) =>
             client
               .select({
                 user_id: puzzle_sessions.user_id,
@@ -394,22 +392,17 @@ export function createSimpleGameStatsRouter<TData>(
             statsConditions.push(inArray(attempt_gameplay_stats.puzzle_id, puzzle_ids));
           }
 
-          const completionRows = yield* dbRunHttp(
-            `${kind}_stats.get_top_user_completions`,
-            (client) =>
-              client
-                .select({
-                  user_id: puzzle_sessions.user_id,
-                  completed: count()
-                })
-                .from(attempt_gameplay_stats)
-                .innerJoin(puzzles, statForKind)
-                .innerJoin(
-                  puzzle_sessions,
-                  eq(attempt_gameplay_stats.session_id, puzzle_sessions.id)
-                )
-                .where(and(...statsConditions))
-                .groupBy(puzzle_sessions.user_id)
+          const completionRows = yield* dbRun(`${kind}_stats.get_top_user_completions`, (client) =>
+            client
+              .select({
+                user_id: puzzle_sessions.user_id,
+                completed: count()
+              })
+              .from(attempt_gameplay_stats)
+              .innerJoin(puzzles, statForKind)
+              .innerJoin(puzzle_sessions, eq(attempt_gameplay_stats.session_id, puzzle_sessions.id))
+              .where(and(...statsConditions))
+              .groupBy(puzzle_sessions.user_id)
           );
 
           const completedByUser = new Map(
@@ -439,7 +432,7 @@ export function createSimpleGameStatsRouter<TData>(
           if (trimmedSearch) {
             const authMatches = yield* searchAuthUsers(trimmedSearch, 50);
             const idPattern = `%${escapeIlikeToken(trimmedSearch)}%`;
-            const localIdRows = yield* dbRunHttp(`${kind}_stats.search_user_ids`, (client) =>
+            const localIdRows = yield* dbRun(`${kind}_stats.search_user_ids`, (client) =>
               client
                 .selectDistinct({ user_id: puzzle_sessions.user_id })
                 .from(puzzle_sessions)
@@ -468,7 +461,7 @@ export function createSimpleGameStatsRouter<TData>(
               };
             }
 
-            const playRows = yield* dbRunHttp(`${kind}_stats.list_users_filtered`, (client) =>
+            const playRows = yield* dbRun(`${kind}_stats.list_users_filtered`, (client) =>
               client
                 .select({
                   user_id: puzzle_sessions.user_id,
@@ -515,7 +508,7 @@ export function createSimpleGameStatsRouter<TData>(
 
           const whereClause = and(puzzleKind, isNotNull(puzzle_sessions.user_id));
           const { countResult, rows } = yield* Effect.all({
-            countResult: dbRunHttp(`${kind}_stats.count_users`, (client) =>
+            countResult: dbRun(`${kind}_stats.count_users`, (client) =>
               client
                 .select({
                   count: sql<number>`cast(count(distinct ${puzzle_sessions.user_id}) as int)`
@@ -524,7 +517,7 @@ export function createSimpleGameStatsRouter<TData>(
                 .innerJoin(puzzles, sessionForKind)
                 .where(whereClause)
             ),
-            rows: dbRunHttp(`${kind}_stats.list_users`, (client) =>
+            rows: dbRun(`${kind}_stats.list_users`, (client) =>
               client
                 .select({
                   user_id: puzzle_sessions.user_id,

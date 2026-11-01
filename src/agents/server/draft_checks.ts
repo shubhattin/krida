@@ -1,7 +1,7 @@
 import { Effect } from 'effect';
 import { inArray } from 'drizzle-orm';
 import { collections, tags } from '~/db/schema';
-import { dbRunHttp } from '~/effect/database';
+import { dbRun } from '~/effect/database';
 import { createGameSlugHelpers } from '~/game_shell/slug';
 import { checkDraft, isValidSlugForKind } from '~/agents/drafts/check_draft';
 import type { CreatorOptions } from '~/agents/creator_options';
@@ -30,12 +30,12 @@ export const checkDraftWithDatabase = Effect.fn('agents.check_draft_with_databas
         : Effect.succeed(null),
       local.tags.length === 0
         ? Effect.succeed([])
-        : dbRunHttp('agents.draft.existing_tags', (client) =>
+        : dbRun('agents.draft.existing_tags', (client) =>
             client.select({ slug: tags.slug }).from(tags).where(inArray(tags.slug, local.tags))
           ),
       collectionIds.length === 0
         ? Effect.succeed([])
-        : dbRunHttp('agents.draft.collections', (client) =>
+        : dbRun('agents.draft.collections', (client) =>
             client
               .select({ id: collections.id, title: collections.title })
               .from(collections)

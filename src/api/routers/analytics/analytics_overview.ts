@@ -8,7 +8,7 @@ import {
   puzzles
 } from '~/db/schema';
 import type { GameKind } from '~/util/catalog/tags';
-import { dbRunHttp } from '~/effect/database';
+import { dbRun } from '~/effect/database';
 
 export type AdminAnalyticsGameId = GameKind;
 
@@ -167,28 +167,28 @@ const fetchTableStats = Effect.fn('analytics.table_game_stats')(function* (
   const statsConditions = rangeConditions(gameplay_stats.created_at, query);
 
   const { startedRows, completedRows, activeRows, firstSeenRows } = yield* Effect.all({
-    startedRows: dbRunHttp(`analytics.${label}_started`, (client) =>
+    startedRows: dbRun(`analytics.${label}_started`, (client) =>
       client
         .select({ started: count() })
         .from(puzzle_sessions)
         .innerJoin(puzzles, sessionForKind)
         .where(sessionConditions.length > 0 ? and(...sessionConditions) : puzzleKind)
     ),
-    completedRows: dbRunHttp(`analytics.${label}_completed`, (client) =>
+    completedRows: dbRun(`analytics.${label}_completed`, (client) =>
       client
         .select({ completed: count() })
         .from(gameplay_stats)
         .innerJoin(puzzles, statForKind)
         .where(statsConditions.length > 0 ? and(...statsConditions) : puzzleKind)
     ),
-    activeRows: dbRunHttp(`analytics.${label}_active_users`, (client) =>
+    activeRows: dbRun(`analytics.${label}_active_users`, (client) =>
       client
         .selectDistinct({ user_id: puzzle_sessions.user_id })
         .from(puzzle_sessions)
         .innerJoin(puzzles, sessionForKind)
         .where(and(puzzleKind, isNotNull(puzzle_sessions.user_id), ...sessionConditions))
     ),
-    firstSeenRows: dbRunHttp(`analytics.${label}_first_seen`, (client) =>
+    firstSeenRows: dbRun(`analytics.${label}_first_seen`, (client) =>
       client
         .select({
           user_id: puzzle_sessions.user_id,

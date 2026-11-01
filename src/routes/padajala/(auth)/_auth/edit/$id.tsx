@@ -7,7 +7,7 @@ import { z } from 'zod';
 import { CrossordPuzzleSchemaZod, PuzzleAttachmentSchemaZod } from '~/db/schema_zod';
 import { adminServerFnMiddleware } from '~/lib/adminServerFn';
 import { routeHeadFromPageMeta } from '~/components/tags/getPageMetaTags';
-import { dbRunHttp } from '~/effect/database';
+import { dbRun } from '~/effect/database';
 import { runLoaderEffect } from '~/effect/run';
 import MainEditPage from './-MainEditPage';
 
@@ -19,7 +19,7 @@ const loader$ = createServerFn({ method: 'GET' })
     if (!parsed.success) return { puzzle: null, catalog: { tags: [], collections: [] } };
 
     const row = await runLoaderEffect(
-      dbRunHttp('padajala.admin.get_edit_puzzle', (client) =>
+      dbRun('padajala.admin.get_edit_puzzle', (client) =>
         client.query.puzzles.findFirst({
           where: (tbl, { and, eq }) => and(eq(tbl.id, parsed.data), eq(tbl.kind, 'padajala')),
           with: {

@@ -11,7 +11,7 @@ import {
   tags
 } from '~/db/schema';
 import { adminServerFnMiddleware } from '~/lib/adminServerFn';
-import { dbRunHttp } from '~/effect/database';
+import { dbRun } from '~/effect/database';
 import { runLoaderEffect } from '~/effect/run';
 import { SIMPLE_GAME_TABLES } from '~/util/catalog/simple_game_tables';
 import { CACHE, NO_CACHE_PARAMS } from '~/util/cache.server/cache_loaders';
@@ -85,7 +85,7 @@ export const loadSimpleGameEdit$ = createServerFn({ method: 'GET' })
     const puzzleId = parsed.data;
 
     const [puzzle] = await runLoaderEffect(
-      dbRunHttp(`${data.kind}.admin.get_edit_puzzle`, (client) =>
+      dbRun(`${data.kind}.admin.get_edit_puzzle`, (client) =>
         client
           .select({
             id: puzzles.id,
@@ -111,7 +111,7 @@ export const loadSimpleGameEdit$ = createServerFn({ method: 'GET' })
 
     const [attachments, tagRows, collectionRows] = await Promise.all([
       runLoaderEffect(
-        dbRunHttp(`${data.kind}.admin.get_edit_attachments`, (client) =>
+        dbRun(`${data.kind}.admin.get_edit_attachments`, (client) =>
           client
             .select({
               id: puzzle_attachments.id,
@@ -126,7 +126,7 @@ export const loadSimpleGameEdit$ = createServerFn({ method: 'GET' })
         )
       ),
       runLoaderEffect(
-        dbRunHttp(`${data.kind}.admin.get_edit_tags`, (client) =>
+        dbRun(`${data.kind}.admin.get_edit_tags`, (client) =>
           client
             .select({ id: tags.id, slug: tags.slug })
             .from(puzzle_tags)
@@ -136,7 +136,7 @@ export const loadSimpleGameEdit$ = createServerFn({ method: 'GET' })
         )
       ),
       runLoaderEffect(
-        dbRunHttp(`${data.kind}.admin.get_edit_collections`, (client) =>
+        dbRun(`${data.kind}.admin.get_edit_collections`, (client) =>
           client
             .select({
               id: collections.id,
@@ -191,7 +191,7 @@ export const loadSimpleGameByUid$ = createServerFn({ method: 'GET' })
   .validator(z.object({ kind: kind_schema, nano_id: z.string() }))
   .handler(async ({ data }) => {
     const [row] = await runLoaderEffect(
-      dbRunHttp(`${data.kind}.view.resolve_uid`, (client) =>
+      dbRun(`${data.kind}.view.resolve_uid`, (client) =>
         client
           .select({ slug: puzzles.slug })
           .from(puzzles)

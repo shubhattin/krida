@@ -2,7 +2,7 @@ import { Effect } from 'effect';
 import { z } from 'zod';
 import { image_schema } from '~/db/db_shared_vals';
 import { createCache, type CacheItem, type NoCacheParams } from '~/effect/cache';
-import { dbRunHttp } from '~/effect/database';
+import { dbRun } from '~/effect/database';
 import { CacheError } from '~/effect/errors';
 import { GAME_KINDS, type GameKind } from '~/util/catalog/tags';
 
@@ -77,7 +77,7 @@ const load_listed_collections: CacheItem<NoCacheParams, ListedCollectionsType> =
   getKey: () => LISTED_COLLECTIONS_KEY,
   schema: listed_collection_schema.array(),
   fetch: () =>
-    dbRunHttp('catalog.listed_collections', (client) =>
+    dbRun('catalog.listed_collections', (client) =>
       client.query.collections.findMany({
         columns: {
           id: true,

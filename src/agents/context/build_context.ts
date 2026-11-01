@@ -1,6 +1,6 @@
 import { Effect } from 'effect';
 import { asc, count, desc, eq, inArray, type SQL } from 'drizzle-orm';
-import { dbRunHttp } from '~/effect/database';
+import { dbRun } from '~/effect/database';
 import {
   collections,
   padajala_puzzles,
@@ -44,7 +44,7 @@ const loadGamePuzzles = Effect.fn('agents.context.load_game_puzzles')(function* 
 ) {
   const onlyIds = ids ? inArray(puzzles.id, ids) : undefined;
   if (kind === 'padavali') {
-    const rows = yield* dbRunHttp('agents.context.padavali', (client) =>
+    const rows = yield* dbRun('agents.context.padavali', (client) =>
       client
         .select({
           ...puzzleMeta,
@@ -63,7 +63,7 @@ const loadGamePuzzles = Effect.fn('agents.context.load_game_puzzles')(function* 
     }));
   }
   if (kind === 'padajala') {
-    const rows = yield* dbRunHttp('agents.context.padajala', (client) =>
+    const rows = yield* dbRun('agents.context.padajala', (client) =>
       client
         .select({ ...puzzleMeta, word_list: padajala_puzzles.word_list })
         .from(puzzles)
@@ -103,7 +103,7 @@ function loadSimpleGameRows<TData>(
   where: SQL | undefined
 ) {
   const table = tables.puzzles;
-  return dbRunHttp(`agents.context.${kind}`, (client) =>
+  return dbRun(`agents.context.${kind}`, (client) =>
     client
       .select({ ...puzzleMeta, puzzle_data: table.puzzle_data })
       .from(puzzles)
@@ -140,7 +140,7 @@ export const buildPuzzleContext = Effect.fn('agents.build_puzzle_context')(funct
   const { contextPuzzles, tagRows, collectionRows } = yield* Effect.all(
     {
       contextPuzzles: loadContextPuzzles(kind),
-      tagRows: dbRunHttp('agents.context.tags', (client) =>
+      tagRows: dbRun('agents.context.tags', (client) =>
         client
           .select({ slug: tags.slug, usage: count(puzzle_tags.puzzle_id) })
           .from(tags)
@@ -148,7 +148,7 @@ export const buildPuzzleContext = Effect.fn('agents.build_puzzle_context')(funct
           .groupBy(tags.id, tags.slug)
           .orderBy(asc(tags.slug))
       ),
-      collectionRows: dbRunHttp('agents.context.collections', (client) =>
+      collectionRows: dbRun('agents.context.collections', (client) =>
         client
           .select({
             id: collections.id,

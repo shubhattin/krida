@@ -2,7 +2,7 @@ import type { SetCommandOptions } from '@upstash/redis';
 import { and, asc, eq, gt } from 'drizzle-orm';
 import { z } from 'zod';
 import { puzzle_schedules, puzzles } from '~/db/schema';
-import type { DbHttpClient } from '~/effect/database';
+import type { DbClient } from '~/effect/database';
 import type { RedisJsonValue } from '~/effect/redis';
 
 /**
@@ -45,7 +45,7 @@ export const currentScheduleSetOptions = (
 
 /** Earliest schedule of `kind` starting after `now`, or null. */
 export const nextScheduleStart = async (
-  client: DbHttpClient,
+  client: DbClient,
   kind: 'padavali' | 'padajala',
   now: Date
 ): Promise<Date | null> => {

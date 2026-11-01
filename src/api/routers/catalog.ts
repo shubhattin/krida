@@ -17,7 +17,7 @@ import {
   tags
 } from '~/db/schema';
 import { syncDifficultyTags, type MissingDifficultyTag } from '~/db/difficulty_tags';
-import { dbRunHttp, dbTransaction, type DbTransaction } from '~/effect/database';
+import { dbRun, dbTransaction, type DbTransaction } from '~/effect/database';
 import { BadRequestError, ConflictError, NotFoundError } from '~/effect/errors';
 import { runTrpcEffect } from '~/effect/run';
 import {
@@ -59,7 +59,7 @@ const refreshListedCollections = () =>
   );
 
 const loadTagPuzzleRefs = (tagId: number) =>
-  dbRunHttp('catalog.tag_puzzle_refs', (client) =>
+  dbRun('catalog.tag_puzzle_refs', (client) =>
     client
       .select({ game: puzzles.kind, puzzle_id: puzzle_tags.puzzle_id })
       .from(puzzle_tags)
@@ -69,7 +69,7 @@ const loadTagPuzzleRefs = (tagId: number) =>
 
 const listedPuzzleIdsForGame = (game: GameKind, puzzleIds: number[]) => {
   if (puzzleIds.length === 0) return Effect.succeed<number[]>([]);
-  return dbRunHttp(`catalog.listed_tag_puzzles.${game}`, (client) =>
+  return dbRun(`catalog.listed_tag_puzzles.${game}`, (client) =>
     client
       .select({ id: puzzles.id })
       .from(puzzles)
@@ -79,7 +79,7 @@ const listedPuzzleIdsForGame = (game: GameKind, puzzleIds: number[]) => {
 
 const listedCollectionContainsPuzzles = (game: GameKind, puzzleIds: number[]) => {
   if (puzzleIds.length === 0) return Effect.succeed(false);
-  return dbRunHttp(`catalog.listed_collections_for_tag.${game}`, (client) =>
+  return dbRun(`catalog.listed_collections_for_tag.${game}`, (client) =>
     client
       .select({ id: collections.id })
       .from(collection_items)
@@ -201,7 +201,7 @@ const writeCollectionOrder = async (tx: DbTransaction, ids: number[]) => {
 };
 
 const findCollectionByUid = (uid: string) =>
-  dbRunHttp('catalog.find_collection', (client) =>
+  dbRun('catalog.find_collection', (client) =>
     client.query.collections.findFirst({
       where: (tbl, { eq: eqFn }) => eqFn(tbl.uid, uid)
     })
@@ -226,7 +226,7 @@ const tag_puzzle_input = z.object({
 });
 
 const loadTagPuzzles = (tagId: number) =>
-  dbRunHttp('catalog.tag_games', (client) =>
+  dbRun('catalog.tag_games', (client) =>
     client
       .select({
         game: puzzles.kind,
@@ -252,7 +252,7 @@ const loadTagPuzzles = (tagId: number) =>
   );
 
 const findTagBySlug = (slug: string) =>
-  dbRunHttp('catalog.find_tag_by_slug', (client) =>
+  dbRun('catalog.find_tag_by_slug', (client) =>
     client.query.tags.findFirst({
       where: (tbl, { eq: eqFn }) => eqFn(tbl.slug, slug)
     })
@@ -260,7 +260,7 @@ const findTagBySlug = (slug: string) =>
 
 const assertTagSlugAvailable = (tagId: number, slug: string) =>
   Effect.gen(function* () {
-    const owner = yield* dbRunHttp('catalog.tag_slug_owner', (client) =>
+    const owner = yield* dbRun('catalog.tag_slug_owner', (client) =>
       client.select({ id: tags.id }).from(tags).where(eq(tags.slug, slug)).limit(1)
     );
     if (owner[0] && owner[0].id !== tagId) {
@@ -306,13 +306,13 @@ const list_tags_route = protectedAdminProcedure
         const orderBy = input.order === 'desc' ? desc(sortColumn) : asc(sortColumn);
         const offset = (input.page - 1) * input.size;
 
-        // One round trip per query (Neon HTTP in prod): keep the counts as
+        // One round trip per query: keep the counts as
         // correlated subqueries rather than extra group-by queries.
         const { countResult, rows } = yield* Effect.all({
-          countResult: dbRunHttp('catalog.count_tags', (client) =>
+          countResult: dbRun('catalog.count_tags', (client) =>
             client.select({ count: count() }).from(tags).where(whereClause)
           ),
-          rows: dbRunHttp('catalog.list_tags', (client) =>
+          rows: dbRun('catalog.list_tags', (client) =>
             client
               .select({
                 id: tags.id,
@@ -366,7 +366,7 @@ const connected_games_route = protectedAdminProcedure
   .query(({ input }) =>
     runTrpcEffect(
       Effect.gen(function* () {
-        const tag = yield* dbRunHttp('catalog.find_tag', (client) =>
+        const tag = yield* dbRun('catalog.find_tag', (client) =>
           client.query.tags.findFirst({
             where: (tbl, { eq: eqFn }) => eqFn(tbl.id, input.tag_id)
           })
@@ -416,7 +416,7 @@ const create_tag_route = protectedAdminProcedure
   .mutation(({ input }) =>
     runTrpcEffect(
       Effect.gen(function* () {
-        const taken = yield* dbRunHttp('catalog.tag_slug_taken', (client) =>
+        const taken = yield* dbRun('catalog.tag_slug_taken', (client) =>
           client.select({ id: tags.id }).from(tags).where(eq(tags.slug, input.slug)).limit(1)
         );
         if (taken[0]) {
@@ -424,7 +424,7 @@ const create_tag_route = protectedAdminProcedure
             ConflictError.make({ message: 'A tag with this slug already exists' })
           );
         }
-        const [created] = yield* dbRunHttp('catalog.create_tag', (client) =>
+        const [created] = yield* dbRun('catalog.create_tag', (client) =>
           client.insert(tags).values({ slug: input.slug }).returning()
         );
         if (!created) {
@@ -446,7 +446,7 @@ const save_tag_route = protectedAdminProcedure
   .mutation(({ input }) =>
     runTrpcEffect(
       Effect.gen(function* () {
-        const [existing] = yield* dbRunHttp('catalog.find_tag_for_save', (client) =>
+        const [existing] = yield* dbRun('catalog.find_tag_for_save', (client) =>
           client
             .select({ id: tags.id, slug: tags.slug })
             .from(tags)
@@ -520,7 +520,7 @@ const puzzle_tags_route = protectedAdminProcedure
   .query(({ input }) =>
     runTrpcEffect(
       Effect.gen(function* () {
-        const rows = yield* dbRunHttp('catalog.puzzle_tags', (client) =>
+        const rows = yield* dbRun('catalog.puzzle_tags', (client) =>
           client
             .select({ id: tags.id, slug: tags.slug })
             .from(puzzle_tags)
@@ -548,7 +548,7 @@ const attach_tag_route = protectedAdminProcedure
   .mutation(({ input }) =>
     runTrpcEffect(
       Effect.gen(function* () {
-        const puzzle = yield* dbRunHttp('catalog.find_puzzle_for_tag', (client) =>
+        const puzzle = yield* dbRun('catalog.find_puzzle_for_tag', (client) =>
           client
             .select({ id: puzzles.id })
             .from(puzzles)
@@ -590,7 +590,7 @@ const detach_tag_route = protectedAdminProcedure
     runTrpcEffect(
       Effect.gen(function* () {
         // The link table is shared now — confirm the row belongs to this game first.
-        const [link] = yield* dbRunHttp('catalog.find_tag_link', (client) =>
+        const [link] = yield* dbRun('catalog.find_tag_link', (client) =>
           client
             .select({ kind: puzzles.kind })
             .from(puzzle_tags)
@@ -605,7 +605,7 @@ const detach_tag_route = protectedAdminProcedure
             NotFoundError.make({ resource: 'tag', message: 'Tag link not found' })
           );
         }
-        yield* dbRunHttp('catalog.detach_tag', async (client) => {
+        yield* dbRun('catalog.detach_tag', async (client) => {
           await client
             .delete(puzzle_tags)
             .where(
@@ -620,9 +620,9 @@ const detach_tag_route = protectedAdminProcedure
 
 const list_collections_route = protectedAdminProcedure.query(() =>
   runTrpcEffect(
-    // Single round trip (Neon HTTP in prod): keep the counts as correlated
+    // Single round trip: keep the counts as correlated
     // subqueries rather than an extra group-by query.
-    dbRunHttp('catalog.list_collections', (client) =>
+    dbRun('catalog.list_collections', (client) =>
       client
         .select({
           id: collections.id,
@@ -677,7 +677,7 @@ const create_collection_route = protectedAdminProcedure
   .mutation(({ input }) =>
     runTrpcEffect(
       Effect.gen(function* () {
-        const taken = yield* dbRunHttp('catalog.slug_taken', (client) =>
+        const taken = yield* dbRun('catalog.slug_taken', (client) =>
           client
             .select({ id: collections.id })
             .from(collections)
@@ -720,7 +720,7 @@ const get_collection_route = protectedAdminProcedure
   .query(({ input }) =>
     runTrpcEffect(
       Effect.gen(function* () {
-        const collection = yield* dbRunHttp('catalog.get_collection', (client) =>
+        const collection = yield* dbRun('catalog.get_collection', (client) =>
           client.query.collections.findFirst({
             where: (tbl, { eq: eqFn }) => eqFn(tbl.uid, input.uid),
             with: {
@@ -751,7 +751,7 @@ const get_collection_route = protectedAdminProcedure
           );
         }
 
-        const [orderStats] = yield* dbRunHttp('catalog.collection_order_stats', (client) =>
+        const [orderStats] = yield* dbRun('catalog.collection_order_stats', (client) =>
           client
             .select({ ordered: count(collections.order_index) })
             .from(collections)
@@ -805,7 +805,7 @@ const collection_item_input = z.object({
 
 const assertCollectionSlugAvailable = (collectionId: number, slug: string) =>
   Effect.gen(function* () {
-    const slugOwner = yield* dbRunHttp('catalog.slug_owner', (client) =>
+    const slugOwner = yield* dbRun('catalog.slug_owner', (client) =>
       client
         .select({ id: collections.id })
         .from(collections)
@@ -953,7 +953,7 @@ const add_collection_item = (uid: string, game: GameKind, puzzleId: number) =>
         NotFoundError.make({ resource: 'collection', message: 'Collection not found' })
       );
     }
-    const puzzle = yield* dbRunHttp('catalog.find_puzzle_for_collection', (client) =>
+    const puzzle = yield* dbRun('catalog.find_puzzle_for_collection', (client) =>
       client
         .select({ id: puzzles.id })
         .from(puzzles)
@@ -1073,7 +1073,7 @@ const set_puzzle_links_route = protectedAdminProcedure
   .mutation(({ input }) =>
     runTrpcEffect(
       Effect.gen(function* () {
-        const puzzle = yield* dbRunHttp('catalog.find_puzzle_for_links', (client) =>
+        const puzzle = yield* dbRun('catalog.find_puzzle_for_links', (client) =>
           client
             .select({ id: puzzles.id })
             .from(puzzles)
@@ -1113,7 +1113,7 @@ const set_puzzle_links_batch_route = protectedAdminProcedure
       Effect.gen(function* () {
         const items = [...new Map(input.items.map((item) => [item.puzzle_id, item])).values()];
         const puzzleIds = items.map((item) => item.puzzle_id);
-        const found = yield* dbRunHttp('catalog.find_puzzles_for_links', (client) =>
+        const found = yield* dbRun('catalog.find_puzzles_for_links', (client) =>
           client
             .select({ id: puzzles.id })
             .from(puzzles)
@@ -1129,7 +1129,7 @@ const set_puzzle_links_batch_route = protectedAdminProcedure
         const knownCollections =
           collectionUids.length === 0
             ? []
-            : yield* dbRunHttp('catalog.find_collections_for_links', (client) =>
+            : yield* dbRun('catalog.find_collections_for_links', (client) =>
                 client
                   .select({ id: collections.id })
                   .from(collections)
@@ -1252,7 +1252,7 @@ const remove_item_route = protectedAdminProcedure
           );
         }
         // Membership rows are shared now — confirm the row belongs to this game first.
-        const [item] = yield* dbRunHttp('catalog.find_collection_item', (client) =>
+        const [item] = yield* dbRun('catalog.find_collection_item', (client) =>
           client
             .select({ kind: puzzles.kind })
             .from(collection_items)
@@ -1270,7 +1270,7 @@ const remove_item_route = protectedAdminProcedure
             NotFoundError.make({ resource: 'collection', message: 'Collection item not found' })
           );
         }
-        yield* dbRunHttp('catalog.remove_collection_item', async (client) => {
+        yield* dbRun('catalog.remove_collection_item', async (client) => {
           await client
             .delete(collection_items)
             .where(
@@ -1352,7 +1352,7 @@ const puzzle_collections_route = protectedAdminProcedure
   .query(({ input }) =>
     runTrpcEffect(
       Effect.gen(function* () {
-        return yield* dbRunHttp('catalog.puzzle_collections', (client) =>
+        return yield* dbRun('catalog.puzzle_collections', (client) =>
           client
             .select({
               id: collections.id,
@@ -1376,7 +1376,7 @@ const puzzle_collections_route = protectedAdminProcedure
 
 /** Reads puzzles' game data and normalizes it into displayable entries, keyed by puzzle id. */
 const loadPuzzleEntries = (game: GameKind, puzzleIds: number[]) =>
-  dbRunHttp(`catalog.puzzle_entries.${game}`, async (client) => {
+  dbRun(`catalog.puzzle_entries.${game}`, async (client) => {
     const byId = new Map<number, PuzzleEntries>();
     if (puzzleIds.length === 0) return byId;
     switch (game) {
@@ -1457,7 +1457,7 @@ const puzzle_details_route = protectedAdminProcedure
           content: loadPuzzleEntries(input.game, [input.puzzle_id]).pipe(
             Effect.map((byId) => byId.get(input.puzzle_id))
           ),
-          tagRows: dbRunHttp('catalog.puzzle_details_tags', (client) =>
+          tagRows: dbRun('catalog.puzzle_details_tags', (client) =>
             client
               .select({ id: tags.id, slug: tags.slug })
               .from(puzzle_tags)
@@ -1465,7 +1465,7 @@ const puzzle_details_route = protectedAdminProcedure
               .where(eq(puzzle_tags.puzzle_id, input.puzzle_id))
               .orderBy(asc(tags.slug))
           ),
-          collectionRows: dbRunHttp('catalog.puzzle_details_collections', (client) =>
+          collectionRows: dbRun('catalog.puzzle_details_collections', (client) =>
             client
               .select({
                 id: collections.id,
@@ -1529,7 +1529,7 @@ const search_puzzles_route = protectedAdminProcedure
             where ci.puzzle_id = ${puzzles.id} and ci.collection_id = ${collectionId}
           )`);
         }
-        const rows = yield* dbRunHttp('catalog.search_puzzles', (client) =>
+        const rows = yield* dbRun('catalog.search_puzzles', (client) =>
           client
             .select({
               id: puzzles.id,
@@ -1567,7 +1567,7 @@ const delete_collection_route = protectedAdminProcedure
             NotFoundError.make({ resource: 'collection', message: 'Collection not found' })
           );
         }
-        const counts = yield* dbRunHttp('catalog.count_collection_items', async (client) => {
+        const counts = yield* dbRun('catalog.count_collection_items', async (client) => {
           const rows = await client
             .select({ kind: puzzles.kind, count: count() })
             .from(collection_items)
@@ -1665,7 +1665,7 @@ const delete_tag_route = protectedAdminProcedure
   .mutation(({ input }) =>
     runTrpcEffect(
       Effect.gen(function* () {
-        const [tag] = yield* dbRunHttp('catalog.find_tag_for_delete', (client) =>
+        const [tag] = yield* dbRun('catalog.find_tag_for_delete', (client) =>
           client
             .select({ id: tags.id, slug: tags.slug })
             .from(tags)
@@ -1681,7 +1681,7 @@ const delete_tag_route = protectedAdminProcedure
         const padavali = previous.filter((item) => item.game === 'padavali').length;
         const padajala = previous.filter((item) => item.game === 'padajala').length;
         const total = previous.length;
-        yield* dbRunHttp('catalog.delete_tag', async (client) => {
+        yield* dbRun('catalog.delete_tag', async (client) => {
           await client.delete(tags).where(eq(tags.id, input.tag_id));
         });
         yield* refreshPublicCachesForTagPuzzles(previous);

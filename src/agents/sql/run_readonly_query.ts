@@ -31,7 +31,7 @@ const cell_schema = z.union([
 
 const rows_schema = z.array(z.record(z.string(), cell_schema));
 
-/** postgres.js returns the rows array; the Neon pool returns `{ rows }`. */
+/** postgres.js returns the rows array (object form kept for safety). */
 const result_schema = z.union([
   rows_schema,
   z.object({ rows: rows_schema }).transform((r) => r.rows)

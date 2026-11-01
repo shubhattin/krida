@@ -1,7 +1,7 @@
 import { protectedAdminProcedure, t } from '~/api/trpc_init';
 import { Effect } from 'effect';
 import { z } from 'zod';
-import { dbRunHttp, dbTransaction } from '~/effect/database';
+import { dbRun, dbTransaction } from '~/effect/database';
 import { puzzle_schedules, puzzles } from '~/db/schema';
 import { and, asc, desc, eq, gte, ilike, inArray, lt, lte, ne, or } from 'drizzle-orm';
 import {
@@ -58,7 +58,7 @@ const publishListing = (
   });
 
 const puzzleKind = (puzzleId: number) =>
-  dbRunHttp('schedules.puzzle_kind', async (client) => {
+  dbRun('schedules.puzzle_kind', async (client) => {
     const [row] = await client
       .select({ kind: puzzles.kind })
       .from(puzzles)
@@ -98,7 +98,7 @@ const list_schedules_route = protectedAdminProcedure
   )
   .query(({ input }) =>
     runTrpcEffect(
-      dbRunHttp('schedules.list', (client) => {
+      dbRun('schedules.list', (client) => {
         const now = new Date();
         const conditions = [
           input.when === 'upcoming'
@@ -159,7 +159,7 @@ const add_puzzle_schedule_route = protectedAdminProcedure
             })
           );
         }
-        const [existing_schedule] = yield* dbRunHttp('schedules.find_overlapping', (client) =>
+        const [existing_schedule] = yield* dbRun('schedules.find_overlapping', (client) =>
           client
             .select({ id: puzzle_schedules.id })
             .from(puzzle_schedules)
@@ -213,7 +213,7 @@ const delete_puzzle_schedule_route = protectedAdminProcedure
   .mutation(({ input: { schedule_id } }) =>
     runTrpcEffect(
       Effect.gen(function* () {
-        const [existing] = yield* dbRunHttp('schedules.kind_for_delete', (client) =>
+        const [existing] = yield* dbRun('schedules.kind_for_delete', (client) =>
           client
             .select({ kind: puzzles.kind })
             .from(puzzle_schedules)
@@ -245,7 +245,7 @@ const update_puzzle_schedule_route = protectedAdminProcedure
             })
           );
         }
-        const [previous] = yield* dbRunHttp('schedules.kind_before_update', (client) =>
+        const [previous] = yield* dbRun('schedules.kind_before_update', (client) =>
           client
             .select({ kind: puzzles.kind })
             .from(puzzle_schedules)
@@ -259,7 +259,7 @@ const update_puzzle_schedule_route = protectedAdminProcedure
           );
         }
         const previousKind = isGameKind(previous.kind) ? previous.kind : undefined;
-        const [overlap] = yield* dbRunHttp('schedules.find_overlapping_update', (client) =>
+        const [overlap] = yield* dbRun('schedules.find_overlapping_update', (client) =>
           client
             .select({ id: puzzle_schedules.id })
             .from(puzzle_schedules)
@@ -300,7 +300,7 @@ const update_puzzle_schedule_route = protectedAdminProcedure
 
 const get_past_schedules_route = protectedAdminProcedure.query(() =>
   runTrpcEffect(
-    dbRunHttp('schedules.list_past_padavali', (client) =>
+    dbRun('schedules.list_past_padavali', (client) =>
       client
         .select({
           id: puzzle_schedules.id,

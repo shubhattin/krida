@@ -4,7 +4,7 @@ import { createCache, getCachedMany } from './cache';
 import { AppConfig } from './config';
 import { RedisClient } from './redis';
 import { BackgroundWork } from './background';
-import { DatabaseHttp } from './database';
+import { Database } from './database';
 import { AiProvider } from './ai';
 import { CacheError } from './errors';
 
@@ -49,7 +49,7 @@ const memoryRedis = ({ failMget = false } = {}) => {
   return { store, client, calls };
 };
 
-type Services = RedisClient | AppConfig | BackgroundWork | DatabaseHttp | AiProvider;
+type Services = RedisClient | AppConfig | BackgroundWork | Database | AiProvider;
 
 // SAFETY: createCache reads only `isProd` from config; with synchronous writes it never touches
 // the database, AI provider or background queue, so empty stand-ins are sufficient
@@ -65,7 +65,7 @@ const run = <A>(effect: Effect.Effect<A, CacheError, Services>, redis: never) =>
       Effect.provideService(RedisClient, redis),
       Effect.provideService(AppConfig, testConfig),
       Effect.provideService(BackgroundWork, noBackground),
-      Effect.provideService(DatabaseHttp, unused),
+      Effect.provideService(Database, unused),
       Effect.provideService(AiProvider, unused)
     )
   );

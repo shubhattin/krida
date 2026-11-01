@@ -9,7 +9,7 @@ import {
 import { puzzle_schedules, puzzles } from '~/db/schema';
 import { and, eq, ne } from 'drizzle-orm';
 import { scheduleListingPayloadSchema, decodeQstashPayload } from '~/effect/qstash';
-import { dbRunHttp, dbTransaction } from '~/effect/database';
+import { dbRun, dbTransaction } from '~/effect/database';
 import { runQstashEffect } from '~/effect/run';
 import { BadRequestError } from '~/effect/errors';
 import { verifyQstashRequest } from '~/lib/qstash_verify';
@@ -34,7 +34,7 @@ export const Route = createFileRoute('/api/qstash/schedule_listing')({
               body
             );
 
-            const [schedule] = yield* dbRunHttp('qstash.schedule_listing.find_schedule', (client) =>
+            const [schedule] = yield* dbRun('qstash.schedule_listing.find_schedule', (client) =>
               client
                 .select({
                   id: puzzle_schedules.id,

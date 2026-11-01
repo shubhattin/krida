@@ -3,7 +3,7 @@ import type { ZodType } from 'zod';
 import { AppConfig } from '~/effect/config';
 import { RedisClient } from '~/effect/redis';
 import { AiProvider } from '~/effect/ai';
-import { DatabaseHttp } from '~/effect/database';
+import { Database } from '~/effect/database';
 import { BadRequestError, CacheError, ConflictError, type AiProviderError } from '~/effect/errors';
 import { createCache, warmCache, type CacheItem } from '~/effect/cache';
 import { reportSwallowedError } from '~/effect/report';
@@ -29,7 +29,7 @@ type AiContentCacheConfig<TInputs, TData> = {
   schema: ZodType<TData>;
   load: (
     puzzle_id: number
-  ) => Effect.Effect<StoredAiContent<TInputs> | undefined, CacheError, DatabaseHttp>;
+  ) => Effect.Effect<StoredAiContent<TInputs> | undefined, CacheError, Database>;
   inputHash: (inputs: TInputs) => string;
   generate: (stored: StoredAiContent<TInputs>) => Effect.Effect<TData, AiProviderError, AiProvider>;
   /**
@@ -43,7 +43,7 @@ type AiContentCacheConfig<TInputs, TData> = {
     data: TData;
     hash: string;
     previousHash: string | null;
-  }) => Effect.Effect<boolean, CacheError, DatabaseHttp>;
+  }) => Effect.Effect<boolean, CacheError, Database>;
 };
 
 export type AiContentCache<TData> = CacheItem<AiContentParams, TData> & {
@@ -56,7 +56,7 @@ export type AiContentCache<TData> = CacheItem<AiContentParams, TData> & {
   ) => Effect.Effect<
     TData | undefined,
     CacheError | ConflictError,
-    RedisClient | AppConfig | DatabaseHttp | AiProvider
+    RedisClient | AppConfig | Database | AiProvider
   >;
   /**
    * After a save changed the inputs (the stored output is cleared in that transaction): drop the

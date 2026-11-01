@@ -2,7 +2,7 @@ import { Effect, Schedule } from 'effect';
 import { t, protectedAdminProcedure } from '~/api/trpc_init';
 import { z } from 'zod';
 import { image_assets } from '~/db/schema';
-import { dbRunHttp } from '~/effect/database';
+import { dbRun } from '~/effect/database';
 import { ObjectStorage } from '~/effect/storage';
 import { runTrpcEffect } from '~/effect/run';
 import { reportSwallowedError } from '~/effect/report';
@@ -51,7 +51,7 @@ export const get_image_assets_page = Effect.fn('image_assets.get_page')(function
   // Single round-trip: COUNT(*) OVER() returns the filtered total alongside the
   // page rows. Previously count + page ran as two parallel queries, i.e. two
   // full scans per keystroke competing for pool connections.
-  const rows = yield* dbRunHttp('image_assets.select_page', (client) =>
+  const rows = yield* dbRun('image_assets.select_page', (client) =>
     client
       .select({
         id: image_assets.id,
@@ -92,7 +92,7 @@ const delete_image_asset_route = protectedAdminProcedure
   .mutation(({ input }): Promise<{ deleted: boolean }> =>
     runTrpcEffect(
       Effect.gen(function* () {
-        const rows = yield* dbRunHttp('image_assets.select_for_delete', (client) =>
+        const rows = yield* dbRun('image_assets.select_for_delete', (client) =>
           client
             .select({ id: image_assets.id, s3_key: image_assets.s3_key })
             .from(image_assets)
@@ -104,7 +104,7 @@ const delete_image_asset_route = protectedAdminProcedure
           return { deleted: false };
         }
 
-        const deleted = yield* dbRunHttp('image_assets.delete_row', (client) =>
+        const deleted = yield* dbRun('image_assets.delete_row', (client) =>
           client.delete(image_assets).where(eq(image_assets.id, input.id)).returning()
         );
         if (deleted[0] === undefined) {
