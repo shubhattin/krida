@@ -22,10 +22,17 @@ jobs:
           bun-version: 1.4.2
       # --ignore-scripts skips the root `prepare` hook (clones Effect-TS docs; not needed here)
       - run: bun install --frozen-lockfile --ignore-scripts
-      - name: Setup PostgreSQL
-        uses: tj-actions/install-postgresql@a889ed6c6fa05022333ed4101295bb1d604f97a8 # v3
-        with:
-          postgresql-version: 18 # pg_dump must be >= the server major (PlanetScale runs 18)
+      - name: Install PostgreSQL 18 client
+        # pg_dump must be >= the server major (PlanetScale runs 18). Installed from the official
+        # PGDG apt repo; tj-actions/install-postgresql only supports up to 17.
+        run: |
+          sudo apt-get update -qq
+          sudo apt-get install -y -qq postgresql-common
+          sudo /usr/share/postgresql-common/pgdg/apt.postgresql.org.sh -y
+          sudo apt-get install -y -qq postgresql-client-18
+          echo /usr/lib/postgresql/18/bin >> "$GITHUB_PATH"
+      - name: Verify pg_dump version
+        run: pg_dump --version | grep -E ' 18\.'
 
       - name: Load Data and DB Dump
         working-directory: src/db/scripts
