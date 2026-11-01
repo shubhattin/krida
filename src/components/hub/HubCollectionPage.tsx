@@ -1,6 +1,6 @@
 'use client';
 
-import { useEffect } from 'react';
+import { useContext, useEffect } from 'react';
 import { Image } from '@unpic/react';
 import { Link } from '@tanstack/react-router';
 import { ArrowLeft, Layers } from 'lucide-react';
@@ -13,6 +13,8 @@ import { useHubPuzzles } from './useHubPuzzles';
 import { HubGameBadge } from './HubGameBadge';
 import { active_collection_atom } from '~/components/pages/catalog/catalog_admin_state';
 import { PUZZLE_CARD_IMAGE_ASPECT_RATIO } from '~/components/pages/padavali/listed_puzzle_display';
+import { ScriptSelector } from '~/components/pages/padavali/ScriptSelector';
+import { AppContext } from '~/components/AppDataContext';
 
 const [IMG_W, IMG_H] = PUZZLE_CARD_IMAGE_ASPECT_RATIO;
 
@@ -20,6 +22,7 @@ const [IMG_W, IMG_H] = PUZZLE_CARD_IMAGE_ASPECT_RATIO;
 export default function HubCollectionPage({ data, slug }: { data: HubData; slug: string }) {
   const { byKey } = useHubPuzzles(data);
   const setActiveCollection = useSetAtom(active_collection_atom);
+  const { script, setScript } = useContext(AppContext);
   const collection = data.collections.find((row) => row.slug === slug);
 
   useEffect(() => {
@@ -38,14 +41,20 @@ export default function HubCollectionPage({ data, slug }: { data: HubData; slug:
 
   return (
     <div className="mx-auto flex max-w-6xl flex-col gap-6 px-4 py-6 sm:py-8">
-      <Link
-        to="/puzzles"
-        search={{ view: 'collections' }}
-        className="inline-flex w-fit items-center gap-1.5 text-sm text-slate-500 no-underline hover:text-slate-900 dark:hover:text-slate-100"
-      >
-        <ArrowLeft className="size-3.5" />
-        All collections
-      </Link>
+      <div className="flex items-center justify-between gap-3">
+        <Link
+          to="/puzzles"
+          search={{ view: 'collections' }}
+          className="inline-flex w-fit items-center gap-1.5 text-sm text-slate-500 no-underline hover:text-slate-900 dark:hover:text-slate-100"
+        >
+          <ArrowLeft className="size-3.5" />
+          All collections
+        </Link>
+        {/* Phones: script picker beside the back link, keeping the hero text its full width. */}
+        <div className="sm:hidden">
+          <ScriptSelector script={script} onScriptChange={setScript} compact />
+        </div>
+      </div>
 
       <section className="flex items-start gap-4 rounded-3xl border border-slate-200/80 bg-white/80 p-4 shadow-sm sm:items-center sm:gap-5 sm:p-5 dark:border-slate-800/80 dark:bg-slate-900/50">
         <div className="relative h-24 w-24 shrink-0 overflow-hidden rounded-2xl bg-slate-100 sm:h-28 sm:w-28 dark:bg-slate-800">
@@ -80,6 +89,10 @@ export default function HubCollectionPage({ data, slug }: { data: HubData; slug:
               {collection.description}
             </p>
           ) : null}
+        </div>
+        {/* Larger screens: script picker in the hero's otherwise empty right edge. */}
+        <div className="shrink-0 self-start max-sm:hidden">
+          <ScriptSelector script={script} onScriptChange={setScript} compact />
         </div>
       </section>
 
