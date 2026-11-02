@@ -30,6 +30,27 @@ export type ContextPuzzle = {
   content: ContextPuzzleContent;
 };
 
+export type ContextCollectionMember = {
+  id: number;
+  kind: GameKind;
+  slug: string;
+  title: string;
+  description: string;
+  listed: boolean;
+};
+
+export type ContextCollection = {
+  id: number;
+  uid: string;
+  slug: string;
+  title: string;
+  description: string;
+  listed: boolean;
+  members: ContextCollectionMember[];
+  /** More members exist than are listed (roster is capped for prompt size). */
+  truncated: boolean;
+};
+
 export type ContextInput = {
   game_kind: GameKind;
   puzzles: ContextPuzzle[];
@@ -152,4 +173,34 @@ export function renderReferencedPuzzle(puzzle: ContextPuzzle): string {
     puzzleBlock(puzzle),
     '</referenced_puzzle>'
   ].join('\n');
+}
+
+/**
+ * One collection the admin mentioned with `@collection/<slug>`: metadata plus the member
+ * roster (id, game, slug, title, one-line description) — never the members' full contents.
+ * The model fetches details of individual puzzles with `sql_query` as needed.
+ */
+export function renderReferencedCollection(collection: ContextCollection): string {
+  const lines = [
+    `<referenced_collection id="${collection.id}" slug="${collection.slug}" mention="@collection/${collection.slug}">`,
+    `#${collection.id} [${collection.listed ? 'listed' : 'draft'}] slug=${collection.slug} uid=${collection.uid}`,
+    `  title: ${oneLine(collection.title)}`
+  ];
+  if (collection.description.trim())
+    lines.push(`  description: ${oneLine(collection.description)}`);
+  const memberLines = collection.members.map(
+    (member) =>
+      `  #${member.id} [${member.kind}]${member.listed ? '' : ' [draft]'} @${member.slug} — ${oneLine(member.title)}${member.description.trim() ? ` — ${oneLine(member.description)}` : ''}`
+  );
+  lines.push(
+    `  puzzles (${collection.members.length}${collection.truncated ? '+' : ''}):`,
+    ...(memberLines.length > 0 ? memberLines : ['    (none yet)'])
+  );
+  if (collection.truncated) {
+    lines.push(
+      '  … roster truncated; query the database (collection_items + puzzles) for the rest.'
+    );
+  }
+  lines.push('</referenced_collection>');
+  return lines.join('\n');
 }

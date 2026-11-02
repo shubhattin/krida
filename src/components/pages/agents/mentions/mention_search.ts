@@ -10,7 +10,19 @@ export type MentionablePuzzle = {
   listed: boolean;
 };
 
+export type MentionableCollection = {
+  id: number;
+  uid: string;
+  slug: string;
+  title: string;
+  description: string;
+  listed: boolean;
+  puzzle_count: number;
+};
+
 export type MentionGameFilter = GameKind | 'all';
+
+export type MentionTab = 'puzzles' | 'collections';
 
 type IndexEntry = {
   puzzle: MentionablePuzzle;
@@ -98,6 +110,77 @@ export function searchMentions(
   matches.sort((a, b) => b.score - a.score || a.order - b.order);
   return {
     results: matches.slice(0, options.limit).map((match) => match.puzzle),
+    total: matches.length
+  };
+}
+
+type CollectionIndexEntry = {
+  collection: MentionableCollection;
+  /** Title fields (as written + romanized): a hit here ranks above a description hit. */
+  titleFields: string[];
+  fields: string[];
+};
+
+export type CollectionMentionIndex = CollectionIndexEntry[];
+
+/**
+ * Searchable text per collection. `normal` holds the titles and descriptions transliterated
+ * from Devanagari to Normal (Latin) — same convention as the puzzle index.
+ */
+export function buildCollectionMentionIndex(
+  collections: MentionableCollection[],
+  normal?: { titles: string[]; descriptions: string[] }
+): CollectionMentionIndex {
+  return collections.map((collection, index) => {
+    const titleFields = [collection.title, normal?.titles[index] ?? ''].map(foldSearchText);
+    return {
+      collection,
+      titleFields,
+      fields: [
+        ...titleFields,
+        collection.slug,
+        `#${collection.id}`,
+        foldSearchText(collection.description),
+        foldSearchText(normal?.descriptions[index] ?? '')
+      ].filter(Boolean)
+    };
+  });
+}
+
+function rankCollection(entry: CollectionIndexEntry, phrase: string, tokens: string[]): number {
+  if (phrase === `#${entry.collection.id}` || phrase === String(entry.collection.id)) return 400;
+  if (entry.titleFields.some((field) => field.startsWith(phrase))) return 300;
+  if (entry.titleFields.some((field) => field.includes(phrase))) return 200;
+  const slugPhrase = phrase.replace(/\s+/g, '-');
+  if (entry.collection.slug.startsWith(slugPhrase)) return 150;
+  if (entry.collection.slug.includes(slugPhrase)) return 100;
+  const titleAndSlug = [...entry.titleFields, entry.collection.slug];
+  if (tokens.every((token) => titleAndSlug.some((field) => field.includes(token)))) return 50;
+  return 0;
+}
+
+/** Collections matching every word of `query` (in any field), best first, newest first. */
+export function searchCollectionMentions(
+  index: CollectionMentionIndex,
+  options: {
+    query: string;
+    /** `collection:<id>` of collections already mentioned. */
+    exclude: Set<string>;
+    limit: number;
+  }
+) {
+  const tokens = tokenizeSearchQuery(foldSearchText(options.query));
+  const phrase = tokens.join(' ');
+  const matches: { collection: MentionableCollection; score: number; order: number }[] = [];
+  index.forEach((entry, order) => {
+    const { collection } = entry;
+    if (options.exclude.has(`collection:${collection.id}`)) return;
+    if (!tokens.every((token) => entry.fields.some((field) => field.includes(token)))) return;
+    matches.push({ collection, score: phrase ? rankCollection(entry, phrase, tokens) : 0, order });
+  });
+  matches.sort((a, b) => b.score - a.score || a.order - b.order);
+  return {
+    results: matches.slice(0, options.limit).map((match) => match.collection),
     total: matches.length
   };
 }

@@ -2,6 +2,7 @@ import { Effect } from 'effect';
 import { asc, count, desc, eq, inArray, type SQL } from 'drizzle-orm';
 import { dbRun } from '~/effect/database';
 import {
+  collection_items,
   collections,
   padajala_puzzles,
   padavali_puzzles,
@@ -14,10 +15,12 @@ import { collectionsForPuzzleIds, tagsForPuzzleIds } from '~/util/catalog/list_q
 import { SIMPLE_GAME_TABLES } from '~/util/catalog/simple_game_tables';
 import type { SimpleGameKind } from '~/util/games/kinds';
 import type { SimpleGameTableSet } from '~/db/schema/simple_game_tables';
-import type { AgentContextSnapshot, PuzzleRefData } from '~/agents/ui_message';
+import type { AgentContextSnapshot, CollectionRefData, PuzzleRefData } from '~/agents/ui_message';
 import {
   renderPuzzleContext,
+  renderReferencedCollection,
   renderReferencedPuzzle,
+  type ContextCollection,
   type ContextPuzzle,
   type ContextPuzzleContent
 } from './render_context';
@@ -210,6 +213,91 @@ export const resolvePuzzleRefs = Effect.fn('agents.resolve_puzzle_refs')(functio
         slug: puzzle.slug,
         title: puzzle.title,
         context: renderReferencedPuzzle(puzzle)
+      }
+    ];
+  });
+});
+
+/** Roster lines per collection mention: capped so one mention can't flood the prompt. */
+const MAX_COLLECTION_MEMBERS = 200;
+
+/**
+ * Fill each `@collection/<slug>` mention with its metadata plus member roster. The roster
+ * carries each member's id, game, slug, title and one-line description — never the full
+ * puzzle contents (word lists, pairs, questions); the model fetches those with `sql_query`.
+ * Mentions of collections that no longer exist are dropped.
+ */
+export const resolveCollectionRefs = Effect.fn('agents.resolve_collection_refs')(function* (
+  refs: CollectionRefData[]
+) {
+  if (refs.length === 0) return [];
+  const ids = [...new Set(refs.map((ref) => ref.id))];
+  const [collectionRows, memberRows] = yield* Effect.all(
+    [
+      dbRun('agents.resolve_collection_refs.collections', (client) =>
+        client
+          .select({
+            id: collections.id,
+            uid: collections.uid,
+            slug: collections.slug,
+            title: collections.title,
+            description: collections.description,
+            listed: collections.listed
+          })
+          .from(collections)
+          .where(inArray(collections.id, ids))
+      ),
+      dbRun('agents.resolve_collection_refs.members', (client) =>
+        client
+          .select({
+            collection_id: collection_items.collection_id,
+            order_index: collection_items.order_index,
+            id: puzzles.id,
+            kind: puzzles.kind,
+            slug: puzzles.slug,
+            title: puzzles.title,
+            description: puzzles.description,
+            listed: puzzles.listed
+          })
+          .from(collection_items)
+          .innerJoin(puzzles, eq(puzzles.id, collection_items.puzzle_id))
+          .where(inArray(collection_items.collection_id, ids))
+          .orderBy(asc(collection_items.collection_id), asc(collection_items.order_index))
+      )
+    ],
+    { concurrency: 'unbounded' }
+  );
+  const membersByCollection = new Map<number, ContextCollection['members']>();
+  for (const row of memberRows) {
+    const current = membersByCollection.get(row.collection_id) ?? [];
+    current.push({
+      id: row.id,
+      kind: row.kind,
+      slug: row.slug,
+      title: row.title,
+      description: row.description,
+      listed: row.listed
+    });
+    membersByCollection.set(row.collection_id, current);
+  }
+
+  return refs.flatMap((ref): CollectionRefData[] => {
+    const collection = collectionRows.find((row) => row.id === ref.id);
+    if (!collection) return [];
+    const members = membersByCollection.get(collection.id) ?? [];
+    const shown = members.slice(0, MAX_COLLECTION_MEMBERS);
+    const contextCollection: ContextCollection = {
+      ...collection,
+      members: shown,
+      truncated: members.length > shown.length
+    };
+    return [
+      {
+        id: collection.id,
+        uid: collection.uid,
+        slug: collection.slug,
+        title: collection.title,
+        context: renderReferencedCollection(contextCollection)
       }
     ];
   });

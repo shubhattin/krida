@@ -79,7 +79,23 @@ export type PuzzleRefData = {
   context?: string;
 };
 
-export type AgentDataTypes = { puzzle_ref: PuzzleRefData };
+/**
+ * A collection the admin mentioned with `@collection/<slug>`. Same lifecycle as a puzzle
+ * ref, but the rendered `context` is the collection's metadata plus its member roster —
+ * never the members' full contents (the model fetches those with `sql_query` as needed).
+ */
+export type CollectionRefData = {
+  id: number;
+  uid: string;
+  slug: string;
+  title: string;
+  context?: string;
+};
+
+/** Any `@` mention carried on a user message. Discriminated by the presence of `kind`. */
+export type MentionRefData = PuzzleRefData | CollectionRefData;
+
+export type AgentDataTypes = { puzzle_ref: PuzzleRefData; collection_ref: CollectionRefData };
 
 export type AgentUIMessage = UIMessage<AgentMessageMetadata, AgentDataTypes, AgentUITools>;
 

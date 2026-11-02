@@ -1,7 +1,7 @@
 import { Effect } from 'effect';
-import { desc } from 'drizzle-orm';
+import { count, desc, eq } from 'drizzle-orm';
 import { z } from 'zod';
-import { puzzles } from '~/db/schema';
+import { collection_items, collections, puzzles } from '~/db/schema';
 import { dbRun } from '~/effect/database';
 import { protectedAdminProcedure, t } from '~/api/trpc_init';
 import { runTrpcEffect } from '~/effect/run';
@@ -168,6 +168,28 @@ const list_mentionable_puzzles_route = protectedAdminProcedure.query(() =>
   )
 );
 
+/** Every collection with its member count, newest first, for the composer's `@` picker. */
+const list_mentionable_collections_route = protectedAdminProcedure.query(() =>
+  runTrpcEffect(
+    dbRun('agents.list_mentionable_collections', (client) =>
+      client
+        .select({
+          id: collections.id,
+          uid: collections.uid,
+          slug: collections.slug,
+          title: collections.title,
+          description: collections.description,
+          listed: collections.listed,
+          puzzle_count: count(collection_items.puzzle_id)
+        })
+        .from(collections)
+        .leftJoin(collection_items, eq(collection_items.collection_id, collections.id))
+        .groupBy(collections.id)
+        .orderBy(desc(collections.created_at), desc(collections.id))
+    )
+  )
+);
+
 export const agents_router = t.router({
   list_chats: list_chats_route,
   get_chat: get_chat_route,
@@ -177,6 +199,7 @@ export const agents_router = t.router({
   stop_reply: stop_reply_route,
   get_context: get_context_route,
   list_mentionable_puzzles: list_mentionable_puzzles_route,
+  list_mentionable_collections: list_mentionable_collections_route,
   refresh_context: refresh_context_route,
   check_proposal: check_proposal_route,
   add_puzzle: add_puzzle_route

@@ -1,9 +1,12 @@
 import { describe, expect, it } from 'vitest';
 import {
+  buildCollectionMentionIndex,
   buildMentionIndex,
   findMentionTrigger,
   foldSearchText,
+  searchCollectionMentions,
   searchMentions,
+  type MentionableCollection,
   type MentionablePuzzle
 } from './mention_search';
 
@@ -100,5 +103,69 @@ describe('searchMentions', () => {
 describe('foldSearchText', () => {
   it('lowercases and strips Latin diacritics', () => {
     expect(foldSearchText('Krīḍā ĀNVEṢĪ')).toBe('krida anvesi');
+  });
+});
+
+const collection = (
+  id: number,
+  slug: string,
+  title: string,
+  description = '',
+  puzzle_count = 1
+): MentionableCollection => ({
+  id,
+  uid: `uid-${id}`,
+  slug,
+  title,
+  description,
+  listed: true,
+  puzzle_count
+});
+
+// Newest first, like the API.
+const COLLECTIONS = [
+  collection(3, 'parvati-vivaha', 'पार्वती विवाह उत्सव', '', 5),
+  collection(2, 'krida-best', 'Krīḍā Best', 'पार्वती themed picks', 3),
+  collection(1, 'ramayana', 'रामायण', '', 12)
+];
+const COLLECTION_NORMAL = {
+  titles: ['pArvatI vivAha utsava', 'Krīḍā Best', 'rAmAyaNa'],
+  descriptions: ['', 'pArvatI themed picks', '']
+};
+const collectionIndex = buildCollectionMentionIndex(COLLECTIONS, COLLECTION_NORMAL);
+
+const searchCollections = (
+  query: string,
+  extra: Partial<Parameters<typeof searchCollectionMentions>[1]> = {}
+) =>
+  searchCollectionMentions(collectionIndex, {
+    query,
+    exclude: new Set(),
+    limit: 40,
+    ...extra
+  }).results.map((entry) => entry.id);
+
+describe('searchCollectionMentions', () => {
+  it('matches romanized text against Devanagari titles', () => {
+    expect(searchCollections('parvati')).toEqual([3, 2]);
+  });
+
+  it('ranks title hits above description hits', () => {
+    // #2 only mentions पार्वती in its description.
+    expect(searchCollections('parvati').at(-1)).toBe(2);
+  });
+
+  it('needs every word, in any field', () => {
+    expect(searchCollections('parvati vivaha')).toEqual([3]);
+  });
+
+  it('matches slugs and #ids', () => {
+    expect(searchCollections('krida-best')).toEqual([2]);
+    expect(searchCollections('#1')).toEqual([1]);
+  });
+
+  it('skips mentioned collections and lists newest first for an empty query', () => {
+    expect(searchCollections('parvati', { exclude: new Set(['collection:3']) })).toEqual([2]);
+    expect(searchCollections('')).toEqual([3, 2, 1]);
   });
 });

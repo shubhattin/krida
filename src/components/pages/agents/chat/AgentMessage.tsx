@@ -1,7 +1,7 @@
 import { Fragment } from 'react';
 import { isToolUIPart } from 'ai';
 import { BotIcon } from 'lucide-react';
-import { mentionToken, messagePuzzleRefs } from '~/agents/puzzle_refs';
+import { mentionToken, messageCollectionRefs, messagePuzzleRefs } from '~/agents/puzzle_refs';
 import type { AgentUIMessage } from '~/agents/ui_message';
 import { Bubble, BubbleContent } from '~/components/ui/bubble';
 import { Message, MessageContent } from '~/components/ui/message';
@@ -37,7 +37,7 @@ export function ThinkingLine() {
   );
 }
 
-/** Message text with each `@slug` of a mentioned puzzle highlighted. */
+/** Message text with each `@slug` / `@collection/<slug>` mention highlighted. */
 function MentionText({ text, tokens }: { text: string; tokens: string[] }) {
   if (tokens.length === 0) return text;
   const escaped = tokens.map((token) => token.replace(/[.*+?^${}()|[\]\\]/g, '\\$&'));
@@ -54,7 +54,7 @@ function MentionText({ text, tokens }: { text: string; tokens: string[] }) {
 }
 
 export function UserMessage({ message }: { message: AgentUIMessage }) {
-  const refs = messagePuzzleRefs(message);
+  const refs = [...messagePuzzleRefs(message), ...messageCollectionRefs(message)];
   return (
     <Message align="end">
       <MessageContent className="items-end gap-1.5">
