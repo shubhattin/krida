@@ -2,13 +2,15 @@ import { createFileRoute } from '@tanstack/react-router';
 import { consumeStream, convertToModelMessages, createIdGenerator, validateUIMessages } from 'ai';
 import { Effect } from 'effect';
 import { z } from 'zod';
-import { resolvePuzzleRefs } from '~/agents/context/build_context';
+import { resolveCollectionRefs, resolvePuzzleRefs } from '~/agents/context/build_context';
 import { agent_model_id_schema } from '~/agents/models';
 import {
   AGENT_DATA_SCHEMAS,
+  MAX_COLLECTION_REFS,
   MAX_PUZZLE_REFS,
-  messagePuzzleRefs,
-  puzzleRefToModelText
+  mentionRefToModelText,
+  messageCollectionRefs,
+  messagePuzzleRefs
 } from '~/agents/puzzle_refs';
 import { createAgent } from '~/agents/server/create_agent';
 import { withHistoryCacheBreakpoint } from '~/agents/server/chat_messages';
@@ -92,18 +94,29 @@ function watchForStop(chatId: string, controller: AbortController) {
 
 /**
  * Fill the new message's `@` mentions from the database (never trusting client-sent content),
- * placed before the text so each puzzle sits right above what the admin wrote about it.
+ * placed before the text so each mention sits right above what the admin wrote about it.
+ * Puzzles resolve to their full content; collections to metadata + member roster.
  */
-const attachPuzzleRefs = Effect.fn('agents.attach_puzzle_refs')(function* (
+const attachMentionRefs = Effect.fn('agents.attach_mention_refs')(function* (
   message: AgentUIMessage
 ) {
-  const refs = messagePuzzleRefs(message).slice(0, MAX_PUZZLE_REFS);
-  const resolved = refs.length > 0 ? yield* resolvePuzzleRefs(refs) : [];
+  const puzzleRefs = messagePuzzleRefs(message).slice(0, MAX_PUZZLE_REFS);
+  const collectionRefs = messageCollectionRefs(message).slice(0, MAX_COLLECTION_REFS);
+  const [puzzles, collectionList] = yield* Effect.all(
+    [
+      puzzleRefs.length > 0 ? resolvePuzzleRefs(puzzleRefs) : Effect.succeed([]),
+      collectionRefs.length > 0 ? resolveCollectionRefs(collectionRefs) : Effect.succeed([])
+    ],
+    { concurrency: 'unbounded' }
+  );
   return {
     ...message,
     parts: [
-      ...resolved.map((data) => ({ type: 'data-puzzle_ref' as const, data })),
-      ...message.parts.filter((part) => part.type !== 'data-puzzle_ref')
+      ...puzzles.map((data) => ({ type: 'data-puzzle_ref' as const, data })),
+      ...collectionList.map((data) => ({ type: 'data-collection_ref' as const, data })),
+      ...message.parts.filter(
+        (part) => part.type !== 'data-puzzle_ref' && part.type !== 'data-collection_ref'
+      )
     ]
   } satisfies AgentUIMessage;
 });
@@ -138,7 +151,7 @@ async function handleChat(request: Request): Promise<Response> {
           }),
         catch: () => BadRequestError.make({ message: 'Invalid message' })
       });
-      const messages = [...validated.slice(0, -1), yield* attachPuzzleRefs(validated.at(-1)!)];
+      const messages = [...validated.slice(0, -1), yield* attachMentionRefs(validated.at(-1)!)];
 
       // Title the chat in parallel with the first reply.
       const newMessage = messages.at(-1)!;
@@ -157,7 +170,7 @@ async function handleChat(request: Request): Promise<Response> {
           prompt: withHistoryCacheBreakpoint(
             await convertToModelMessages<AgentUIMessage>(messages, {
               tools,
-              convertDataPart: puzzleRefToModelText
+              convertDataPart: mentionRefToModelText
             })
           ),
           abortSignal: stop.signal

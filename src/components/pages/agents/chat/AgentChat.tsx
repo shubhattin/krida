@@ -12,9 +12,13 @@ import type { AgentModelId } from '~/agents/models';
 import { GAME_GUIDES } from '~/agents/prompts/games';
 import type { AgentUIMessage } from '~/agents/ui_message';
 
-/** A composed message as UI parts: mentioned puzzles first, then the text. */
+/** A composed message as UI parts: mentioned puzzles and collections first, then the text. */
 const toUserParts = ({ text, refs }: ComposerMessage): AgentUIMessage['parts'] => [
-  ...refs.map((data) => ({ type: 'data-puzzle_ref' as const, data })),
+  ...refs.map((data) =>
+    'kind' in data
+      ? { type: 'data-puzzle_ref' as const, data }
+      : { type: 'data-collection_ref' as const, data }
+  ),
   { type: 'text', text }
 ];
 import { GAME_APP_ICON_SRC } from '~/components/GameAppIcon';

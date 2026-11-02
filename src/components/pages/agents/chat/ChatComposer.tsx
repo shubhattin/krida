@@ -1,6 +1,6 @@
 import { useEffect, useRef, useState, type ReactNode } from 'react';
 import { ArrowUpIcon, AtSignIcon, SquareIcon } from 'lucide-react';
-import type { PuzzleRefData } from '~/agents/ui_message';
+import type { MentionRefData } from '~/agents/ui_message';
 import {
   InputGroup,
   InputGroupAddon,
@@ -11,13 +11,14 @@ import { Tooltip, TooltipContent, TooltipTrigger } from '~/components/ui/tooltip
 import type { GameKind } from '~/util/catalog/tags';
 import { PuzzleMentionMenu } from '../mentions/PuzzleMentionMenu';
 import { PuzzleRefChips } from '../mentions/PuzzleRefChips';
-import { usePuzzleMentions } from '../mentions/use_puzzle_mentions';
+import { useMentions } from '../mentions/use_puzzle_mentions';
 
-export type ComposerMessage = { text: string; refs: PuzzleRefData[] };
+export type ComposerMessage = { text: string; refs: MentionRefData[] };
 
 /**
  * Message field: Enter sends, Shift+Enter adds a line, Stop while the agent replies.
- * `@` mentions a puzzle (any game; `mentionGame` first), attaching it as context.
+ * `@` mentions a puzzle or a collection (any game; `mentionGame` first for puzzles),
+ * attaching it as context.
  */
 export function ChatComposer({
   onSend,
@@ -45,7 +46,7 @@ export function ChatComposer({
   const formRef = useRef<HTMLFormElement>(null);
   const groupRef = useRef<HTMLDivElement>(null);
   const textareaRef = useRef<HTMLTextAreaElement>(null);
-  const mentions = usePuzzleMentions({
+  const mentions = useMentions({
     text,
     setText,
     textareaRef,
@@ -118,14 +119,14 @@ export function ChatComposer({
                   variant="ghost"
                   size="icon-sm"
                   className="ml-auto rounded-full text-muted-foreground"
-                  aria-label="Mention a puzzle"
+                  aria-label="Mention a puzzle or collection"
                   onClick={mentions.startMention}
                 />
               }
             >
               <AtSignIcon />
             </TooltipTrigger>
-            <TooltipContent>Mention a puzzle (@)</TooltipContent>
+            <TooltipContent>Mention a puzzle or collection (@)</TooltipContent>
           </Tooltip>
           {busy && onStop ? (
             <>
